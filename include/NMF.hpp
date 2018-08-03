@@ -1,6 +1,5 @@
 #pragma once
 
-#include "util.h"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <iostream>

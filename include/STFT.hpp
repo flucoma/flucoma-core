@@ -7,6 +7,7 @@
 #include <iostream>
 #include <numeric>
 #include <vector>
+#include <algorithm>
 
 namespace fluid {
 namespace stft {
@@ -77,7 +78,7 @@ public:
   Spectrogram process(const RealVector audio) {
     int halfWindow = mWindowSize / 2;
     RealVector padded(audio.size() + mWindowSize + mHopSize);
-    padded(slice(halfWindow, audio.size())) = audio(slice(0, audio.size()));
+    padded(slice(halfWindow, audio.size())) = audio;
     int nFrames = floor((padded.size() - mWindowSize) / mHopSize);
     ComplexMatrix data(nFrames, mFrameSize);
     Spectrogram result(data);
