@@ -7,6 +7,7 @@
 #include <iostream>
 #include <numeric>
 #include <vector>
+#include <algorithm>
 
 namespace fluid {
 namespace stft {
