@@ -32,7 +32,7 @@ namespace impl {  // Here is the underlying implementation
   
   struct FFTRealSetup : public FFTComplexSetup
   {
-    FFTRealSetup(size_t maxFFTLog2) : FFTComplexSetup(maxFFTLog2 - 1) {};
+    FFTRealSetup(size_t maxFFTLog2) : FFTComplexSetup(maxFFTLog2) {};
   };
   
   // Temporary Memory
@@ -395,12 +395,12 @@ namespace impl {  // Here is the underlying implementation
     // Operate
     
     double scale = 1.0 / (double) FFTSize;
-    binaryOp(spectrum1, spectrum2, FFTSize, scale, Op());
+    binaryOp(spectrum1.mSpectra, spectrum2.mSpectra, FFTSize, scale, Op());
     
     // Inverse iFFT
     
     transformInverse(setup, spectrum1.mSpectra, FFTSizelog2);
-    arrangeOutput(output, spectrum1, std::min(size1, size2), sizeOut, linearSize, FFTSize, mode, op);
+    arrangeOutput(output, spectrum1.mSpectra, std::min(size1, size2), sizeOut, linearSize, FFTSize, mode, op);
   }
   
   template<typename Op>
