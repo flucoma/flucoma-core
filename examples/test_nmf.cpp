@@ -38,8 +38,8 @@ int main(int argc, char *argv[]) {
   }
 
   AudioFileData data = readFile(argv[1]);
-  int nBins = 512;
-  int fftSize = 2 * nBins;
+  int nBins = 513;
+  int fftSize = (2 * nBins) -1;
   int hopSize = 128;
   int rank = 4;
   STFT stft(fftSize, fftSize, hopSize);

@@ -59,7 +59,7 @@ class STFT {
 public:
   STFT(int windowSize, int fftSize, int hopSize)
       : mWindowSize(windowSize), mFFTSize(fftSize), mHopSize(hopSize),
-        mFrameSize(fftSize / 2), mLog2Size(log2(mFFTSize)),
+        mFrameSize(fftSize / 2 + 1), mLog2Size(log2(mFFTSize)),
         mWindow(windowFuncs[WindowType::Hann](windowSize)) {
     int log2Size = (int)log2(mFFTSize);
     hisstools_create_setup(&mSetup, log2Size);
@@ -74,7 +74,7 @@ public:
       delete mSplit.imagp;
   }
 
-  Spectrogram process(RealVector audio) {
+  Spectrogram process(const RealVector audio) {
     int halfWindow = mWindowSize / 2;
     RealVector padded(audio.size() + mWindowSize + mHopSize);
     padded(slice(halfWindow, audio.size())) = audio(slice(0, audio.size()));
@@ -107,8 +107,8 @@ private:
       tmp[i] = frame(i) * mWindow[i];
     }
     hisstools_rfft(mSetup, tmp.data(), &mSplit, mFFTSize, mLog2Size);
-    mSplit.realp[mFrameSize] = mSplit.imagp[0];
-    mSplit.imagp[mFrameSize] = 0;
+    mSplit.realp[mFrameSize - 1] = mSplit.imagp[0];
+    mSplit.imagp[mFrameSize - 1] = 0;
     mSplit.imagp[0] = 0;
     for (int i = 0; i < mFrameSize; i++) {
       spectrum[i] = complex<double>(mSplit.realp[i], mSplit.imagp[i]);
@@ -121,7 +121,7 @@ class ISTFT {
 public:
   ISTFT(int windowSize, int fftSize, int hopSize)
       : mWindowSize(windowSize), mFFTSize(fftSize), mHopSize(hopSize),
-        mFrameSize(fftSize / 2), mLog2Size(log2(mFFTSize)),
+        mFrameSize(fftSize / 2 + 1), mLog2Size(log2(mFFTSize)),
         mScale(0.5 / double(fftSize)),
         mWindow(windowFuncs[WindowType::Hann](windowSize)) {
     hisstools_create_setup(&mSetup, mLog2Size);
@@ -136,7 +136,7 @@ public:
       delete mSplit.imagp;
   }
 
-  RealVector process(Spectrogram spec) {
+  RealVector process(const Spectrogram &spec) {
     int halfWindow = mWindowSize / 2;
     int outputSize = mWindowSize + (spec.nFrames() - 1) * mHopSize;
     outputSize += mWindowSize + mHopSize;
@@ -171,14 +171,13 @@ private:
   vector<double> mWindow;
   FFT_SETUP_D mSetup;
   FFT_SPLIT_COMPLEX_D mSplit;
-  const RealVector processFrame(const ComplexVector frame) {
+  const RealVector processFrame(const ComplexVector &frame) {
     RealVector result(mFFTSize);
-
     for (int i = 0; i < frame.size(); i++) {
       mSplit.realp[i] = frame(i).real();
       mSplit.imagp[i] = frame(i).imag();
     }
-    mSplit.imagp[0] = mSplit.realp[mFrameSize];
+    mSplit.imagp[0] = mSplit.realp[mFrameSize - 1];
     hisstools_rifft(mSetup, &mSplit, result.data(), mLog2Size);
     return result;
   }
