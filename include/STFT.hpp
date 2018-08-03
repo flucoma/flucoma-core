@@ -59,7 +59,7 @@ class STFT {
 public:
   STFT(int windowSize, int fftSize, int hopSize)
       : mWindowSize(windowSize), mFFTSize(fftSize), mHopSize(hopSize),
-        mFrameSize(fftSize / 2), mLog2Size(log2(mFFTSize)),
+        mFrameSize(fftSize / 2 + 1), mLog2Size(log2(mFFTSize)),
         mWindow(windowFuncs[WindowType::Hann](windowSize)) {
     int log2Size = (int)log2(mFFTSize);
     hisstools_create_setup(&mSetup, log2Size);
@@ -107,8 +107,8 @@ private:
       tmp[i] = frame(i) * mWindow[i];
     }
     hisstools_rfft(mSetup, tmp.data(), &mSplit, mFFTSize, mLog2Size);
-    mSplit.realp[mFrameSize] = mSplit.imagp[0];
-    mSplit.imagp[mFrameSize] = 0;
+    mSplit.realp[mFrameSize - 1] = mSplit.imagp[0];
+    mSplit.imagp[mFrameSize - 1] = 0;
     mSplit.imagp[0] = 0;
     for (int i = 0; i < mFrameSize; i++) {
       spectrum[i] = complex<double>(mSplit.realp[i], mSplit.imagp[i]);
@@ -121,7 +121,7 @@ class ISTFT {
 public:
   ISTFT(int windowSize, int fftSize, int hopSize)
       : mWindowSize(windowSize), mFFTSize(fftSize), mHopSize(hopSize),
-        mFrameSize(fftSize / 2), mLog2Size(log2(mFFTSize)),
+        mFrameSize(fftSize / 2 + 1), mLog2Size(log2(mFFTSize)),
         mScale(0.5 / double(fftSize)),
         mWindow(windowFuncs[WindowType::Hann](windowSize)) {
     hisstools_create_setup(&mSetup, mLog2Size);
@@ -178,7 +178,7 @@ private:
       mSplit.realp[i] = frame(i).real();
       mSplit.imagp[i] = frame(i).imag();
     }
-    mSplit.imagp[0] = mSplit.realp[mFrameSize];
+    mSplit.imagp[0] = mSplit.realp[mFrameSize - 1];
     hisstools_rifft(mSetup, &mSplit, result.data(), mLog2Size);
     return result;
   }
