@@ -74,7 +74,7 @@ public:
       delete mSplit.imagp;
   }
 
-  Spectrogram process(RealVector audio) {
+  Spectrogram process(const RealVector audio) {
     int halfWindow = mWindowSize / 2;
     RealVector padded(audio.size() + mWindowSize + mHopSize);
     padded(slice(halfWindow, audio.size())) = audio(slice(0, audio.size()));
@@ -136,7 +136,7 @@ public:
       delete mSplit.imagp;
   }
 
-  RealVector process(Spectrogram spec) {
+  RealVector process(const Spectrogram &spec) {
     int halfWindow = mWindowSize / 2;
     int outputSize = mWindowSize + (spec.nFrames() - 1) * mHopSize;
     outputSize += mWindowSize + mHopSize;
@@ -171,9 +171,8 @@ private:
   vector<double> mWindow;
   FFT_SETUP_D mSetup;
   FFT_SPLIT_COMPLEX_D mSplit;
-  const RealVector processFrame(const ComplexVector frame) {
+  const RealVector processFrame(const ComplexVector &frame) {
     RealVector result(mFFTSize);
-
     for (int i = 0; i < frame.size(); i++) {
       mSplit.realp[i] = frame(i).real();
       mSplit.imagp[i] = frame(i).imag();
