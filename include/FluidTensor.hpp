@@ -965,6 +965,17 @@ namespace _impl{
          Element access operator(), enabled if args can
         be interpreted as indices (viz convertible to size_t)
          ****/
+
+         template<typename... Args>
+         enable_if_t<is_index_sequence<Args...>(), T&>
+         operator()(Args... args)
+         {
+             assert(_impl::check_bounds(m_desc,args...)
+                    && "Arguments out of bounds");
+             return *(data() + m_desc(args...));
+         }
+
+        // const version
         template<typename... Args>
         enable_if_t<is_index_sequence<Args...>(),const T&>
         operator()(Args... args) const
@@ -973,6 +984,11 @@ namespace _impl{
                    && "Arguments out of bounds");
             return *(data() + m_desc(args...));
         }
+
+
+
+
+
 
         /****
          slice operator(), enabled only if args contain at least one
