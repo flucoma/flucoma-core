@@ -1,0 +1,272 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		B82AAC2C1F61FC0C0015CDCF /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B82AAC2B1F61FC0C0015CDCF /* main.cpp */; };
+		B82AAC341F61FC1C0015CDCF /* HISSTools_FFT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B82AAC321F61FC1C0015CDCF /* HISSTools_FFT.cpp */; };
+		B82AAC361F61FCF70015CDCF /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B82AAC351F61FCF70015CDCF /* Accelerate.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		B82AAC261F61FC0C0015CDCF /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		B82AAC281F61FC0C0015CDCF /* FFT Tester */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "FFT Tester"; sourceTree = BUILT_PRODUCTS_DIR; };
+		B82AAC2B1F61FC0C0015CDCF /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		B82AAC321F61FC1C0015CDCF /* HISSTools_FFT.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = HISSTools_FFT.cpp; path = ../../HISSTools_FFT.cpp; sourceTree = "<group>"; };
+		B82AAC331F61FC1C0015CDCF /* HISSTools_FFT.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = HISSTools_FFT.h; path = ../../HISSTools_FFT.h; sourceTree = "<group>"; };
+		B82AAC351F61FCF70015CDCF /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = ../../../../../../../System/Library/Frameworks/Accelerate.framework; sourceTree = "<group>"; };
+		B82AAC371F6217970015CDCF /* HISSTools_FFT_Core.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = HISSTools_FFT_Core.h; path = ../../HISSTools_FFT_Core.h; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		B82AAC251F61FC0C0015CDCF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B82AAC361F61FCF70015CDCF /* Accelerate.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		B82AAC1F1F61FC0C0015CDCF = {
+			isa = PBXGroup;
+			children = (
+				B82AAC2A1F61FC0C0015CDCF /* FFT Tester */,
+				B82AAC291F61FC0C0015CDCF /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		B82AAC291F61FC0C0015CDCF /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B82AAC281F61FC0C0015CDCF /* FFT Tester */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B82AAC2A1F61FC0C0015CDCF /* FFT Tester */ = {
+			isa = PBXGroup;
+			children = (
+				B82AAC331F61FC1C0015CDCF /* HISSTools_FFT.h */,
+				B82AAC321F61FC1C0015CDCF /* HISSTools_FFT.cpp */,
+				B82AAC371F6217970015CDCF /* HISSTools_FFT_Core.h */,
+				B82AAC2B1F61FC0C0015CDCF /* main.cpp */,
+				B82AAC351F61FCF70015CDCF /* Accelerate.framework */,
+			);
+			path = "FFT Tester";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		B82AAC271F61FC0C0015CDCF /* FFT Tester */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B82AAC2F1F61FC0C0015CDCF /* Build configuration list for PBXNativeTarget "FFT Tester" */;
+			buildPhases = (
+				B82AAC241F61FC0C0015CDCF /* Sources */,
+				B82AAC251F61FC0C0015CDCF /* Frameworks */,
+				B82AAC261F61FC0C0015CDCF /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "FFT Tester";
+			productName = "FFT Tester";
+			productReference = B82AAC281F61FC0C0015CDCF /* FFT Tester */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		B82AAC201F61FC0C0015CDCF /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0830;
+				ORGANIZATIONNAME = "Alex Harker";
+				TargetAttributes = {
+					B82AAC271F61FC0C0015CDCF = {
+						CreatedOnToolsVersion = 8.3.3;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = B82AAC231F61FC0C0015CDCF /* Build configuration list for PBXProject "FFT Tester" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = B82AAC1F1F61FC0C0015CDCF;
+			productRefGroup = B82AAC291F61FC0C0015CDCF /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				B82AAC271F61FC0C0015CDCF /* FFT Tester */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		B82AAC241F61FC0C0015CDCF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B82AAC2C1F61FC0C0015CDCF /* main.cpp in Sources */,
+				B82AAC341F61FC1C0015CDCF /* HISSTools_FFT.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		B82AAC2D1F61FC0C0015CDCF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		B82AAC2E1F61FC0C0015CDCF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		B82AAC301F61FC0C0015CDCF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "c++98";
+				CLANG_X86_VECTOR_INSTRUCTIONS = avx;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		B82AAC311F61FC0C0015CDCF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "c++98";
+				CLANG_X86_VECTOR_INSTRUCTIONS = avx;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		B82AAC231F61FC0C0015CDCF /* Build configuration list for PBXProject "FFT Tester" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B82AAC2D1F61FC0C0015CDCF /* Debug */,
+				B82AAC2E1F61FC0C0015CDCF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B82AAC2F1F61FC0C0015CDCF /* Build configuration list for PBXNativeTarget "FFT Tester" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B82AAC301F61FC0C0015CDCF /* Debug */,
+				B82AAC311F61FC0C0015CDCF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = B82AAC201F61FC0C0015CDCF /* Project object */;
+}
