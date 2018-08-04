@@ -18,7 +18,11 @@ class ARModel
   
 public:
   
-  ARModel(size_t order, size_t iterations) : mOrder(order), mIterations(iterations) {}
+  ARModel(size_t order, size_t iterations) : mParameters(VectorXd::Zero(order)), mVariance(0.0), mOrder(order), mIterations(iterations) {}
+  
+  const double *getParameters() const { return mParameters.data(); }
+  double variance() const { return mVariance; }
+  size_t order() const { return mOrder; }
   
   static MatrixXd toeplitz(const VectorXd& vec)
   {
@@ -36,7 +40,7 @@ public:
     return mat;
   }
   
-  VectorXd estimate(const double *input, int size, double& variance)
+  void estimate(const double *input, int size)
   {
     VectorXd autocorrelation(size);
     convolution::autocorrelateReal(autocorrelation.data(), input, size);
@@ -55,26 +59,24 @@ public:
     
     autocorrelation(0) = pN;
     std::rotate(autocorrelation.data(), autocorrelation.data() + 1, autocorrelation.data() + mOrder);
-    MatrixXd result = mat.llt().solve(autocorrelation);
+    mParameters = mat.llt().solve(autocorrelation);
     
     // Calculate variance
     
-    variance = mat(0, 0);
+    double variance = mat(0, 0);
       
     for (int i = 0; i < mOrder - 1; i++)
-      variance -= result(i, 0) * mat(0, i + 1);
+      variance -= mParameters(i) * mat(0, i + 1);
       
-    variance -= result(mOrder - 1, 0) * pN;
-    variance /= size;
-    
-    return result.col(0);
+    variance -= mParameters(mOrder - 1) * pN;
+    mVariance = variance / size;
   }
   
-  VectorXd robustEstimate(const double *input, int size, double& variance)
+  void robustEstimate(const double *input, int size)
   {
     // Calculate an intial estimate of parameters
     
-    VectorXd params = estimate(input, size, variance);
+    estimate(input, size);
     
     // Initialise Estimates
     
@@ -84,81 +86,76 @@ public:
     
     // Iterate
     
-    double deviation = sqrt(variance);
     for (size_t iterations = mIterations; --iterations; )
-      params = robustIteration(estimates.data(), input, params.data(), size, deviation);
-    
-    variance = deviation * deviation;
-    
-    return params;
+      robustIteration(estimates.data(), input, size);
+  }
+  
+  double fowardPrediction(const double *input, int idx)
+  {
+    return modelPredict<std::minus<int>>(input, idx);
+  }
+  
+  double backwardPrediction(const double *input, int idx)
+  {
+    return modelPredict<std::plus<int>>(input, idx);
+  }
+  
+  double forwardError(const double *input)
+  {
+    return modelError<&ARModel::fowardPrediction>(input, 0);
+  }
+  
+  double backwardError(const double *input)
+  {
+    return modelError<&ARModel::backwardPrediction>(input, 0);
+  }
+  
+  void forwardErrorArray(double *errors, const double *input, int size)
+  {
+    modelErrorArray<&ARModel::forwardError>(errors, input, size);
+  }
+  
+  void backwardErrorArray(double *errors, const double *input, int size)
+  {
+    modelErrorArray<&ARModel::backwardError>(errors, input, size);
   }
   
 private:
 
   template<typename Op>
-  double modelEstimate(const double *input, const double *params, int idx)
+  double modelPredict(const double *input, int idx)
   {
     double estimate = 0.0;
     
     for (int i = 0; i < mOrder; i++)
-      estimate += params[i] * input[Op()(idx, i + 1)];
+      estimate += mParameters(i) * input[Op()(idx, i + 1)];
     
     return estimate;
   }
   
-  template<double (ARModel::*Method)(const double *, const double *, int)>
+  template<double (ARModel::*Method)(const double *, int)>
   double modelError(const double *input, const double *params)
   {
-      return input[0] - (this->*Method)(input, params, 0);
+      return input[0] - (this->*Method)(input, 0);
   }
   
-  template<double (ARModel::*Method)(const double *, const double *)>
-  void modelErrorArray(double *errors, const double *input, const double *params, int size)
+  template<double (ARModel::*Method)(const double *)>
+  void modelErrorArray(double *errors, const double *input, int size)
   {
     for (int i = 0; i < size; i++)
-      errors[i] = (this->*Method)(input + i, params);
-  }
-
-  double fowardEstimate(const double *input, const double *params, int idx)
-  {
-    return modelEstimate<std::minus<int>>(input, params, idx);
+      errors[i] = (this->*Method)(input + i);
   }
   
-  double backwardEstimate(const double *input, const double *params, int idx)
+  double robustFilter(double input, const double *prevEstimates, double cs, double& residual)
   {
-    return modelEstimate<std::plus<int>>(input, params, idx);
-  }
-  
-  double forwardError(const double *input, const double *params)
-  {
-    return modelError<&ARModel::fowardEstimate>(input, params);
-  }
-  
-  double backwardError(const double *input, const double *params)
-  {
-    return modelError<&ARModel::backwardEstimate>(input, params);
-  }
-  
-  void forwardErrorArray(double *errors, const double *input, const double *params, int size)
-  {
-    modelErrorArray<&ARModel::forwardError>(errors, input, params, size);
-  }
-  
-  void backwardErrorArray(double *errors, const double *input, const double *params, int size)
-  {
-    modelErrorArray<&ARModel::backwardError>(errors, input, params, size);
-  }
-  
-  double robustFilter(double input, const double *prevEstimates, const double *params, double cs, double& residual)
-  {
-    double prediction = fowardEstimate(prevEstimates, params, mOrder);
+    double prediction = fowardPrediction(prevEstimates, mOrder);
     residual = (cs * psiFunction(input - prediction)) / cs;
     return prediction + residual;
   }
   
-  VectorXd robustIteration(double *estimates, const double *input, const double *params, int size, double& deviation)
+  void robustIteration(double *estimates, const double *input, int size)
   {
-    const double cs = mThreshold * deviation;
+    const double cs = mThreshold * sqrt(mVariance);
     double residualSqSum = 0.0;
     
     // Iterate to find new filtered input
@@ -167,18 +164,17 @@ private:
     {
       double residual;
       
-      estimates[i + mOrder] = robustFilter(input[i], estimates + i, params, cs, residual);
+      estimates[i + mOrder] = robustFilter(input[i], estimates + i, cs, residual);
       residualSqSum += residual * residual;
     }
     
-    // Update deviation
-    
-    deviation = sqrt(residualSqSum / size);
-    
     // New parameters
     
-    double variance;
-    return estimate(estimates + mOrder, size, variance);
+    estimate(estimates + mOrder, size);
+    
+    // Update variance
+    
+    mVariance = residualSqSum / size;
   }
   
   // Huber PSI function
@@ -187,6 +183,9 @@ private:
   {
     return fabs(x) > 1 ? std::copysign(1.0, x) : x;
   }
+  
+  VectorXd mParameters;
+  double mVariance;
   
   size_t mOrder;
   size_t mIterations;
