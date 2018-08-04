@@ -28,7 +28,7 @@ public:
 
   int detect(double *output, const double *input, const double *analysis, int size, int pad)
   {
-    mModel.robustEstimate(analysis - pad, size + pad + pad);
+    mModel.estimate(analysis - pad, size + pad + pad);
     
     // Resize error storage
     
