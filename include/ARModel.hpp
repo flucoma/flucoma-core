@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <functional>
 #include <Eigen/Eigen>
+#include "Toeplitz.hpp"
 #include "ConvolutionTools.hpp"
 
 namespace fluid {
@@ -23,22 +24,6 @@ public:
   const double *getParameters() const { return mParameters.data(); }
   double variance() const { return mVariance; }
   size_t order() const { return mOrder; }
-  
-  static MatrixXd toeplitz(const VectorXd& vec)
-  {
-    size_t size = vec.size();
-    MatrixXd mat(size, size);
-    
-    for (auto i = 0; i < size; i++)
-    {
-      for (auto j = 0; j < i; j++)
-        mat(j, i) = vec(i - j);
-      for (auto j = i; j < size; j++)
-        mat(j, i) = vec(j - i);
-    }
-    
-    return mat;
-  }
   
   void estimate(const double *input, int size)
   {
@@ -74,13 +59,14 @@ public:
   
   void robustEstimate(const double *input, int size)
   {
+    std::vector<double> estimates(size + mOrder);
+    
     // Calculate an intial estimate of parameters
     
     estimate(input, size);
     
     // Initialise Estimates
     
-    std::vector<double> estimates(size + mOrder);
     for (int i = 0; i < mOrder + size; i++)
       estimates[i] = input[i - mOrder];
     
@@ -146,11 +132,12 @@ private:
       errors[i] = (this->*Method)(input + i);
   }
   
-  double robustFilter(double input, const double *prevEstimates, double cs, double& residual)
+  double robustFilter(double input, double *estimates, double cs)
   {
-    double prediction = fowardPrediction(prevEstimates, mOrder);
-    residual = (cs * psiFunction(input - prediction)) / cs;
-    return prediction + residual;
+    const double prediction = fowardPrediction(estimates, mOrder);
+    const double residual = (cs * psiFunction(input - prediction)) / cs;
+    estimates[mOrder] = prediction + residual;
+    return residual * residual;
   }
   
   void robustIteration(double *estimates, const double *input, int size)
@@ -161,12 +148,7 @@ private:
     // Iterate to find new filtered input
     
     for (int i = 0; i < size; i++)
-    {
-      double residual;
-      
-      estimates[i + mOrder] = robustFilter(input[i], estimates + i, cs, residual);
-      residualSqSum += residual * residual;
-    }
+      residualSqSum += robustFilter(input[i], estimates + i, cs);
     
     // New parameters
     
