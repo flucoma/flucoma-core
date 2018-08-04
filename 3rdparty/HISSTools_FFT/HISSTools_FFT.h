@@ -179,7 +179,7 @@ void hisstools_rfft(FFT_SETUP_F setup, FFT_SPLIT_COMPLEX_F *input, uintptr_t log
 	@remark             The FFT may be performed with either scalar or SIMD instructions. SIMD instuctions will be used when the pointers within the FFT_SPLIT_COMPLEX_D are sixteen byte aligned.
  */
 
-void hisstools_rfft(FFT_SETUP_D setup, double *input, FFT_SPLIT_COMPLEX_D *output, uintptr_t in_length, uintptr_t log2n);
+void hisstools_rfft(FFT_SETUP_D setup, const double *input, FFT_SPLIT_COMPLEX_D *output, uintptr_t in_length, uintptr_t log2n);
 
 /**
  hisstools_rfft() performs an out-of-place real Fast Fourier Transform.
@@ -193,7 +193,7 @@ void hisstools_rfft(FFT_SETUP_D setup, double *input, FFT_SPLIT_COMPLEX_D *outpu
 	@remark             The FFT may be performed with either scalar or SIMD instructions. SIMD instuctions will be used when the pointers within the FFT_SPLIT_COMPLEX_D are sixteen byte aligned.
  */
 
-void hisstools_rfft(FFT_SETUP_F setup, float *input, FFT_SPLIT_COMPLEX_F *output, uintptr_t in_length, uintptr_t log2n);
+void hisstools_rfft(FFT_SETUP_F setup, const float *input, FFT_SPLIT_COMPLEX_F *output, uintptr_t in_length, uintptr_t log2n);
 
 /**
  hisstools_rfft() performs an out-of-place real Fast Fourier Transform.
@@ -207,7 +207,7 @@ void hisstools_rfft(FFT_SETUP_F setup, float *input, FFT_SPLIT_COMPLEX_F *output
 	@remark             The FFT may be performed with either scalar or SIMD instructions. SIMD instuctions will be used when the pointers within the FFT_SPLIT_COMPLEX_D are sixteen byte aligned.
  */
 
-void hisstools_rfft(FFT_SETUP_D setup, float *input, FFT_SPLIT_COMPLEX_D *output, uintptr_t in_length, uintptr_t log2n);
+void hisstools_rfft(FFT_SETUP_D setup, const float *input, FFT_SPLIT_COMPLEX_D *output, uintptr_t in_length, uintptr_t log2n);
 
 /**
  hisstools_ifft() performs an in-place inverse complex Fast Fourier Transform.
@@ -295,7 +295,7 @@ void hisstools_rifft(FFT_SETUP_F setup, FFT_SPLIT_COMPLEX_F *input, float *outpu
 	@remark             Prior to running a real FFT the data must be unzipped from a contiguous memory location into a complex split structure. This function performs unzipping, and zero-pads any remaining input for inputs that may not match the length of the FFT.
  */
 
-void hisstools_unzip_zero(double *input, FFT_SPLIT_COMPLEX_D *output, uintptr_t in_length, uintptr_t log2n);
+void hisstools_unzip_zero(const double *input, FFT_SPLIT_COMPLEX_D *output, uintptr_t in_length, uintptr_t log2n);
 
 /**
     hisstools_unzip_zero() performs unzipping and zero-padding prior to an in-place real FFT.
@@ -308,7 +308,7 @@ void hisstools_unzip_zero(double *input, FFT_SPLIT_COMPLEX_D *output, uintptr_t 
 	@remark             Prior to running a real FFT the data must be unzipped from a contiguous memory location into a complex split structure. This function performs unzipping, and zero-pads any remaining input for inputs that may not match the length of the FFT.
  */
 
-void hisstools_unzip_zero(float *input, FFT_SPLIT_COMPLEX_F *output, uintptr_t in_length, uintptr_t log2n);
+void hisstools_unzip_zero(const float *input, FFT_SPLIT_COMPLEX_F *output, uintptr_t in_length, uintptr_t log2n);
 
 /**
     hisstools_unzip_zero() performs unzipping and zero-padding prior to an in-place real FFT.
@@ -321,7 +321,7 @@ void hisstools_unzip_zero(float *input, FFT_SPLIT_COMPLEX_F *output, uintptr_t i
 	@remark             Prior to running a real FFT the data must be unzipped from a contiguous memory location into a complex split structure. This function performs unzipping, and zero-pads any remaining input for inputs that may not match the length of the FFT. This version allows a floating point input to be unzipped directly to a double-precision complex split structure.
  */
 
-void hisstools_unzip_zero(float *input, FFT_SPLIT_COMPLEX_D *output, uintptr_t in_length, uintptr_t log2n);
+void hisstools_unzip_zero(const float *input, FFT_SPLIT_COMPLEX_D *output, uintptr_t in_length, uintptr_t log2n);
 
 /**
     hisstools_unzip() performs unzipping prior to an in-place real FFT.
@@ -333,7 +333,7 @@ void hisstools_unzip_zero(float *input, FFT_SPLIT_COMPLEX_D *output, uintptr_t i
 	@remark             Prior to running a real FFT the data must be unzipped from a contiguous memory location into a complex split structure. This function performs the unzipping. 
  */
 
-void hisstools_unzip(double *input, FFT_SPLIT_COMPLEX_D *output, uintptr_t log2n);
+void hisstools_unzip(const double *input, FFT_SPLIT_COMPLEX_D *output, uintptr_t log2n);
 
 /**
     hisstools_unzip() performs unzipping prior to an in-place real FFT.
@@ -345,7 +345,7 @@ void hisstools_unzip(double *input, FFT_SPLIT_COMPLEX_D *output, uintptr_t log2n
 	@remark             Prior to running a real FFT the data must be unzipped from a contiguous memory location into a complex split structure. This function performs the unzipping.
  */
 
-void hisstools_unzip(float *input, FFT_SPLIT_COMPLEX_F *output, uintptr_t log2n);
+void hisstools_unzip(const float *input, FFT_SPLIT_COMPLEX_F *output, uintptr_t log2n);
 
 /**
     hisstools_zip() performs zipping subsequent to an in-place real FFT.
@@ -357,7 +357,7 @@ void hisstools_unzip(float *input, FFT_SPLIT_COMPLEX_F *output, uintptr_t log2n)
 	@remark             Subnsequent to running a real FFT the data must be zipped from a complex split structue into a contiguous memory location for final output. This function performs the zipping.
  */
 
-void hisstools_zip(FFT_SPLIT_COMPLEX_D *input, double *output, uintptr_t log2n);
+void hisstools_zip(const FFT_SPLIT_COMPLEX_D *input, double *output, uintptr_t log2n);
 
 /**
     hisstools_zip() performs zipping subsequent to an in-place real FFT.
@@ -368,7 +368,7 @@ void hisstools_zip(FFT_SPLIT_COMPLEX_D *input, double *output, uintptr_t log2n);
 	
 	@remark             Subnsequent to running a real FFT the data must be zipped from a complex split structue into a contiguous memory location for final output. This function performs the zipping.
  */
-void hisstools_zip(FFT_SPLIT_COMPLEX_F *input, float *output, uintptr_t log2n);
+void hisstools_zip(const FFT_SPLIT_COMPLEX_F *input, float *output, uintptr_t log2n);
 
 #endif
 

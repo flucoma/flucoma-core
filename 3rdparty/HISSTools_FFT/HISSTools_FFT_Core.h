@@ -977,7 +977,7 @@ namespace hisstools_fft_impl{
     
     // Unzip
     
-    template <class T, class U, class V> void unzip_complex(U *input, V *output, uintptr_t half_length)
+    template <class T, class U, class V> void unzip_complex(const U *input, V *output, uintptr_t half_length)
     {
         T *realp = output->realp;
         T *imagp = output->imagp;
@@ -991,7 +991,7 @@ namespace hisstools_fft_impl{
     
     // Zip
     
-    template <class T, class U> void zip_complex(T *input, U *output, uintptr_t half_length)
+    template <class T, class U> void zip_complex(const T *input, U *output, uintptr_t half_length)
     {
         U *realp = input->realp;
         U *imagp = input->imagp;
@@ -1005,7 +1005,7 @@ namespace hisstools_fft_impl{
     
     // Unzip With Zero Padding
     
-    template <class T, class U, class V> void unzip_zero(U *input, V *output, uintptr_t in_length, uintptr_t log2n)
+    template <class T, class U, class V> void unzip_zero(const U *input, V *output, uintptr_t in_length, uintptr_t log2n)
     {
         T odd_sample = static_cast<T>(input[in_length - 1]);
         T *realp = output->realp;
