@@ -2,6 +2,7 @@
 #pragma once
 
 #include "ARModel.hpp"
+#include <algorithm>
 #include <cmath>
 #include <vector>
 
@@ -9,7 +10,9 @@ namespace fluid {
 namespace transient_extraction {
   
 using armodel::ARModel;
-
+using Eigen::MatrixXd;
+using Eigen::VectorXd;
+    
 class TransientExtraction
 {
   
@@ -19,6 +22,7 @@ public:
   
   size_t size() const { return mSize; }
   
+  const double *getDetect() const { return mDetect.data(); }
   const double *getForwardError() const { return mForwardError.data(); }
   const double *getBackwardError() const { return mBackwardError.data(); }
   const double *getForwardWindowedError() const { return mForwardWindowedError.data(); }
@@ -26,12 +30,32 @@ public:
   const double *getCombinedError() const { return mCombinedError.data(); }
   const double *getCombinedWindowedError() const { return mCombinedWindowedError.data(); }
 
-  int detect(double *output, const double *input, const double *analysis, int size, int pad)
+  int detect(const double *input, const double *analysis, int size, int pad)
+  {
+    return detection(input, analysis, size, pad);
+  }
+  
+  int extract(double *output, const double *input, const double *analysis, int size, int pad)
+  {
+    int count = detect(input, analysis, size, pad);
+    
+    if (count)
+      interpolate(output, input, mDetect.data(), size, count);
+    else
+      std::copy(input, input + size, output);
+    
+    return count;
+  }
+  
+private:
+
+  int detection(const double *input, const double *analysis, int size, int pad)
   {
     mModel.estimate(analysis - pad, size + pad + pad);
     
-    // Resize error storage
+    // Resize storage
     
+    mDetect.resize(size);
     mForwardError.resize(size);
     mBackwardError.resize(size);
     mForwardWindowedError.resize(size);
@@ -90,7 +114,7 @@ public:
       if (click)
         count++;
       
-      output[i] = click ? 1.0 : 0.0;
+      mDetect[i] = click ? 1.0 : 0.0;
     }
     
     mSize = size;
@@ -98,7 +122,55 @@ public:
     return count;      
   }
   
-private:
+  void interpolate(double *output, const double *input, const double *unknowns, int size, int count)
+  {
+    const double *parameters = mModel.getParameters();
+    int order = mModel.order();
+    
+    // Declare matrices
+    
+    MatrixXd A = MatrixXd::Zero(size - order, size);
+    MatrixXd U = MatrixXd::Zero(size, count);
+    MatrixXd K = MatrixXd::Zero(size, size - count);
+    VectorXd xK(size - count);
+    
+    // Form data
+    
+    for (int i = 0; i < size - order; i++)
+    {
+      for (int j = 0; j < order; j++)
+        A(i, j + i) = -parameters[order - (j + 1)];
+      
+      A(i, order + i) = 1.0;
+    }
+    
+    for (int i = 0, uCount = 0, kCount = 0; i < size; i++)
+    {
+      if (unknowns[i])
+        U(i, uCount++) = 1.0;
+      else
+      {
+        K(i, kCount) = 1.0;
+        xK[kCount++] = input[i];
+      }
+    }
+    
+    // Solve
+    
+    MatrixXd Au = A * U;
+    MatrixXd M = -(Au.transpose() * Au);
+    MatrixXd u = M.llt().solve(Au.transpose() * A * K * xK);
+    
+    // Write the output
+    
+    for (int i = 0, uCount = 0; i < size; i++)
+    {
+      if (unknowns[i])
+        output[i] = u(uCount++);
+      else
+        output[i] = input[i];
+    }
+  }
   
   template <void (ARModel::*Method)(double *, const double *, int)>
   void errorCalculation(double *error, const double *input, int size, double normFactor)
@@ -153,7 +225,8 @@ private:
   ARModel mModel;
   
   size_t mSize;
-  
+
+  std::vector<double> mDetect;
   std::vector<double> mForwardError;
   std::vector<double> mBackwardError;
   std::vector<double> mForwardWindowedError;
