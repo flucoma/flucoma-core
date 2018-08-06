@@ -1,13 +1,12 @@
 #pragma once
 
-#include "FluidTensor.hpp"
-#include "Windows.hpp"
 #include <Eigen/Core>
-#include <HISSTools_FFT/HISSTools_FFT.h>
-#include <iostream>
+#include <FFT.hpp>
+#include <FluidTensor.hpp>
+#include <Windows.hpp>
+#include <algorithm>
 #include <numeric>
 #include <vector>
-#include <algorithm>
 
 namespace fluid {
 namespace stft {
@@ -20,6 +19,9 @@ using std::vector;
 using Eigen::Map;
 using Eigen::MatrixXcd;
 using Eigen::MatrixXd;
+
+using fft::FFT;
+using fft::IFFT;
 
 using fluid::windows::windowFuncs;
 using fluid::windows::WindowType;
@@ -58,22 +60,9 @@ struct Spectrogram {
 
 class STFT {
 public:
-  STFT(int windowSize, int fftSize, int hopSize)
-      : mWindowSize(windowSize), mFFTSize(fftSize), mHopSize(hopSize),
-        mFrameSize(fftSize / 2 + 1), mLog2Size(log2(mFFTSize)),
-        mWindow(windowFuncs[WindowType::Hann](windowSize)) {
-    int log2Size = (int)log2(mFFTSize);
-    hisstools_create_setup(&mSetup, log2Size);
-    mSplit.realp = new double[(1 << (log2Size - 1)) + 1];
-    mSplit.imagp = new double[(1 << (log2Size - 1)) + 1];
-  }
-
-  ~STFT() {
-    if (mSplit.realp)
-      delete mSplit.realp;
-    if (mSplit.imagp)
-      delete mSplit.imagp;
-  }
+  STFT(size_t windowSize, size_t fftSize, size_t hopSize)
+      : mWindowSize(windowSize), mHopSize(hopSize), mFrameSize(fftSize / 2 + 1),
+        mWindow(windowFuncs[WindowType::Hann](windowSize)), mFFT(fftSize) {}
 
   Spectrogram process(const RealVector audio) {
     int halfWindow = mWindowSize / 2;
@@ -92,50 +81,28 @@ public:
   }
 
 private:
-  int mWindowSize;
-  int mFFTSize;
-  int mHopSize;
-  int mFrameSize;
-  int mLog2Size;
+  size_t mWindowSize;
+  size_t mHopSize;
+  size_t mFrameSize;
   vector<double> mWindow;
-  FFT_SETUP_D mSetup;
-  FFT_SPLIT_COMPLEX_D mSplit;
+  FFT mFFT;
 
   ComplexVector processFrame(const RealVector &frame) {
     vector<double> tmp(frame.size(), 0);
-    vector<complex<double>> spectrum(frame.size(), 0);
     for (int i = 0; i < mWindowSize; i++) {
       tmp[i] = frame(i) * mWindow[i];
     }
-    hisstools_rfft(mSetup, tmp.data(), &mSplit, mFFTSize, mLog2Size);
-    mSplit.realp[mFrameSize - 1] = mSplit.imagp[0];
-    mSplit.imagp[mFrameSize - 1] = 0;
-    mSplit.imagp[0] = 0;
-    for (int i = 0; i < mFrameSize; i++) {
-      spectrum[i] = complex<double>(mSplit.realp[i], mSplit.imagp[i]);
-    }
+    vector<complex<double>> spectrum = mFFT.process(tmp);
     return ComplexVector(spectrum);
   }
 };
 
 class ISTFT {
 public:
-  ISTFT(int windowSize, int fftSize, int hopSize)
-      : mWindowSize(windowSize), mFFTSize(fftSize), mHopSize(hopSize),
-        mFrameSize(fftSize / 2 + 1), mLog2Size(log2(mFFTSize)),
-        mScale(0.5 / double(fftSize)),
-        mWindow(windowFuncs[WindowType::Hann](windowSize)) {
-    hisstools_create_setup(&mSetup, mLog2Size);
-    mSplit.realp = new double[(1 << (mLog2Size - 1)) + 1];
-    mSplit.imagp = new double[(1 << (mLog2Size - 1)) + 1];
-  }
-
-  ~ISTFT() {
-    if (mSplit.realp)
-      delete mSplit.realp;
-    if (mSplit.imagp)
-      delete mSplit.imagp;
-  }
+  ISTFT(size_t windowSize, size_t fftSize, size_t hopSize)
+      : mWindowSize(windowSize), mHopSize(hopSize), mFrameSize(fftSize / 2 + 1),
+        mWindow(windowFuncs[WindowType::Hann](windowSize)),
+        mScale(0.5 / double(fftSize)), mIFFT(fftSize) {}
 
   RealVector process(const Spectrogram &spec) {
     int halfWindow = mWindowSize / 2;
@@ -145,9 +112,11 @@ public:
     vector<double> norm(outputSize, 0);
 
     for (int i = 0; i < spec.nFrames(); i++) {
-      RealVector frame = processFrame(spec.mData.row(i));
+      vector<complex<double>> tmp(spec.mData.row(i).data(),
+                                  spec.mData.row(i).data() + mFrameSize);
+      vector<double> frame = mIFFT.process(tmp);
       for (int j = 0; j < mWindowSize; j++) {
-        outputPadded[i * mHopSize + j] += frame(j) * mScale * mWindow[j];
+        outputPadded[i * mHopSize + j] += frame[j] * mScale * mWindow[j];
         norm[i * mHopSize + j] += mWindow[j] * mWindow[j];
       }
     }
@@ -162,26 +131,13 @@ public:
   }
 
 private:
-  int mWindowSize;
-  int mFFTSize;
-  int mHopSize;
-  int mFrameSize;
-  int mLog2Size;
-  double mScale;
-
+  size_t mWindowSize;
+  size_t mHopSize;
+  size_t mFrameSize;
   vector<double> mWindow;
-  FFT_SETUP_D mSetup;
-  FFT_SPLIT_COMPLEX_D mSplit;
-  const RealVector processFrame(const ComplexVector &frame) {
-    RealVector result(mFFTSize);
-    for (int i = 0; i < frame.size(); i++) {
-      mSplit.realp[i] = frame(i).real();
-      mSplit.imagp[i] = frame(i).imag();
-    }
-    mSplit.imagp[0] = mSplit.realp[mFrameSize - 1];
-    hisstools_rifft(mSetup, &mSplit, result.data(), mLog2Size);
-    return result;
-  }
+  double mScale;
+  IFFT mIFFT;
 };
+
 } // namespace stft
 } // namespace fluid
