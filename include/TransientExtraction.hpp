@@ -30,14 +30,15 @@ public:
   const double *getCombinedError() const { return mCombinedError.data(); }
   const double *getCombinedWindowedError() const { return mCombinedWindowedError.data(); }
 
-  int detect(const double *input, const double *analysis, int size, int pad)
+  int detect(const double *input, int size, int pad)
   {
-    return detection(input, analysis, size, pad);
+    analyse(input, size, pad);
+    return detection(input, size);
   }
   
-  int extract(double *output, const double *input, const double *analysis, int size, int pad)
+  int extract(double *output, const double *input, int size, int pad)
   {
-    int count = detect(input, analysis, size, pad);
+    int count = detect(input, size, pad);
     
     if (count)
       interpolate(output, input, mDetect.data(), size, count);
@@ -46,22 +47,43 @@ public:
     
     return count;
   }
+    
+  int extract(double *output, const double *input, const double *unknowns, int size, int pad)
+  {
+    resizeStorage(size);
+   
+    int order = mModel.order();
+    std::copy(unknowns, unknowns + size, mDetect.data());
+    std::fill(mDetect.data(), mDetect.data() + order, 0.0);
+    
+    int count = 0;
+    for (int i = order; i < size; i++)
+      if (mDetect[i])
+        count++;
+    
+    if (count)
+    {
+      analyse(input, size, pad);
+      interpolate(output, input, mDetect.data(), size, count);
+    }
+    else
+      std::copy(input, input + size, output);
+    
+    return count;
+  }
   
 private:
 
-  int detection(const double *input, const double *analysis, int size, int pad)
+  void analyse(const double *input, int size, int pad)
   {
-    mModel.estimate(analysis - pad, size + pad + pad);
-    
+    mModel.estimate(input - pad, size + pad + pad);
+  }
+  
+  int detection(const double *input, int size)
+  {
     // Resize storage
     
-    mDetect.resize(size);
-    mForwardError.resize(size);
-    mBackwardError.resize(size);
-    mForwardWindowedError.resize(size);
-    mBackwardWindowedError.resize(size);
-    mCombinedError.resize(size);
-    mCombinedWindowedError.resize(size);
+    resizeStorage(size);
     
     // Forward and backward error
     
@@ -117,8 +139,6 @@ private:
       mDetect[i] = click ? 1.0 : 0.0;
     }
     
-    mSize = size;
-    
     return count;      
   }
   
@@ -159,7 +179,7 @@ private:
     
     MatrixXd Au = A * U;
     MatrixXd M = -(Au.transpose() * Au);
-    MatrixXd u = M.llt().solve(Au.transpose() * A * K * xK);
+    MatrixXd u = M.fullPivLu().solve(Au.transpose() * (A * K) * xK);
     
     // Write the output
     
@@ -218,6 +238,18 @@ private:
       
       errorWindowed[i] = pow((windowed / windowSum), 1.0/powFactor);
     }
+  }
+  
+  void resizeStorage(int size)
+  {
+    mDetect.resize(size);
+    mForwardError.resize(size);
+    mBackwardError.resize(size);
+    mForwardWindowedError.resize(size);
+    mBackwardWindowedError.resize(size);
+    mCombinedError.resize(size);
+    mCombinedWindowedError.resize(size);
+    mSize = size;
   }
   
 private:
