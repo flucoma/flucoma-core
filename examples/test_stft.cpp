@@ -5,6 +5,7 @@
 int main(int argc, char* argv[])
 {
   using std::cout;
+  using std::vector;
   using fluid::audiofile::AudioFileData;
   using fluid::audiofile::readFile;
   using fluid::audiofile::writeFile;
