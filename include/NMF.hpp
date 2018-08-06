@@ -11,7 +11,7 @@ namespace nmf {
 using Eigen::ArrayXXd;
 using Eigen::Map;
 using Eigen::MatrixXd;
-using fluid::FluidTensor;
+//using fluid::FluidTensor;
 using std::cout;
 using std::vector;
 

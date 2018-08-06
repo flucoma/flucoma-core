@@ -4,12 +4,13 @@
 #include <iostream>
 #include <map>
 
+namespace fluid {
+namespace windows {
+
 using std::vector;
 using std::map;
 using std::function;
 
-namespace fluid {
-namespace windows {
 
 enum class WindowType {Hann, Hamming};
 using WindowFuncMap = map<WindowType, function<vector<double>(int)>>;

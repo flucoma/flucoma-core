@@ -9,6 +9,7 @@ int main(int argc, char *argv[]) {
 
   using std::complex;
   using std::cout;
+  using std::vector;
 
   using Eigen::Map;
   using Eigen::MatrixXcd;

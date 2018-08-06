@@ -23,11 +23,11 @@ using Eigen::MatrixXd;
 using fft::FFT;
 using fft::IFFT;
 
-using fluid::windows::windowFuncs;
-using fluid::windows::WindowType;
+using windows::windowFuncs;
+using windows::WindowType;
 
-using fluid::FluidTensor;
-using fluid::slice;
+//using FluidTensor;
+//using slice;
 
 using ComplexMatrix = FluidTensor<complex<double>, 2>;
 using ComplexVector = FluidTensor<complex<double>, 1>;
