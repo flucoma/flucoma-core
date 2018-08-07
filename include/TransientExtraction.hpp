@@ -18,7 +18,7 @@ class TransientExtraction
   
 public:
   
-  TransientExtraction(size_t order, size_t iterations) : mModel(order, iterations) {}
+  TransientExtraction(size_t order, size_t iterations, double robustFactor, double detectHi, double detectLo, int detectHalfWindow, int detectHold, double detectPower) : mModel(order, iterations, robustFactor), mDetectThreshHi(detectLo), mDetectThreshLo(detectHi), mDetectHalfWindow(detectHalfWindow), mDetectHold(detectHold), mDetectPowerFactor(detectPower) {}
   
   size_t size() const { return mSize; }
   
@@ -107,9 +107,9 @@ private:
     // Detection
     
     int count = 0;
-    double hiThresh = 3.0;
-    double loThresh = 1.5;
-    int offHold = 25;
+    const double hiThresh = mDetectThreshHi;
+    const double loThresh = mDetectThreshLo;
+    const int offHold = mDetectHold;
     
     bool click = false;
     
@@ -210,33 +210,37 @@ private:
     return std::min(norm, 1.0 - norm);
   }
   
-  void windowError(double *errorWindowed, const double *error, int size, int halfWindow = 7)
+  void windowError(double *errorWindowed, const double *error, int size)
   {
-    int windowSize = halfWindow * 2 + 1;
-    int windowOffset = halfWindow;
+    const int windowSize = mDetectHalfWindow * 2 + 1;
+    const int windowOffset = mDetectHalfWindow;
+    const double powFactor = mDetectPowerFactor;
+
+    // Calculate window normalisation factor
+    
+    double windowNormFactor = 0.0;
+    
+    for (int j = 0; j < windowSize; j++)
+    {
+      double window = calcWindow((double) j / windowSize);
+      windowNormFactor += window;
+    }
+    
+    windowNormFactor = 1.0 / windowNormFactor;
+    
+    // Do window processing
     
     for (int i = 0; i < size; i++)
     {
-      double windowSum = 0.0;
       double windowed = 0.0;
       
-      double powFactor = 1.4;
-      
-      for (int j = 0; j < windowSize; j++)
+      for (int j = 1; j < windowSize; j++)
       {
-        double window = calcWindow((double) j / windowSize);
-        int pos = i - windowOffset + j;
-        
-        if (pos >= 0 && pos < size)
-        {
-          double absValue = fabs(error[pos]);
-          double value = pow(absValue, powFactor);;
-          windowed += window * value;
-          windowSum += window;
-        }
+        const double value = pow(fabs(error[i - windowOffset + j]), powFactor);
+        windowed += value * calcWindow((double) j / windowSize);;
       }
       
-      errorWindowed[i] = pow((windowed / windowSum), 1.0/powFactor);
+      errorWindowed[i] = pow((windowed * windowNormFactor), 1.0 / powFactor);
     }
   }
   
@@ -258,6 +262,13 @@ private:
   
   size_t mSize;
 
+  int mDetectHalfWindow;
+  int mDetectHold;
+
+  double mDetectPowerFactor;
+  double mDetectThreshHi;
+  double mDetectThreshLo;
+  
   std::vector<double> mDetect;
   std::vector<double> mForwardError;
   std::vector<double> mBackwardError;
