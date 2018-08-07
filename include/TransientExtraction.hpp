@@ -4,6 +4,7 @@
 #include "ARModel.hpp"
 #include <algorithm>
 #include <cmath>
+#include <random>
 #include <vector>
 
 namespace fluid {
@@ -18,7 +19,9 @@ class TransientExtraction
   
 public:
   
-  TransientExtraction(size_t order, size_t iterations, double robustFactor, double detectHi, double detectLo, int detectHalfWindow, int detectHold, double detectPower) : mModel(order, iterations, robustFactor), mDetectThreshHi(detectLo), mDetectThreshLo(detectHi), mDetectHalfWindow(detectHalfWindow), mDetectHold(detectHold), mDetectPowerFactor(detectPower) {}
+  TransientExtraction(size_t order, size_t iterations, double robustFactor, bool refine, double detectHi, double detectLo, int detectHalfWindow, int detectHold, double detectPower) : mModel(order, iterations, robustFactor), mRandomGenerator(std::random_device()()), mSize(0), mCount(0), mRefine(refine), mDetectThreshHi(detectLo), mDetectThreshLo(detectHi), mDetectHalfWindow(detectHalfWindow), mDetectHold(detectHold), mDetectPowerFactor(detectPower)
+  {
+  }
   
   size_t size() const { return mSize; }
   
@@ -33,19 +36,18 @@ public:
   int detect(const double *input, int size, int pad)
   {
     analyse(input, size, pad);
-    return detection(input, size);
+    detection(input, size);
+    
+    return mCount;
   }
   
   int extract(double *output, const double *input, int size, int pad)
   {
-    int count = detect(input, size, pad);
+    analyse(input, size, pad);
+    detection(input, size);
+    interpolate(output, input, size);
     
-    if (count)
-      interpolate(output, input, mDetect.data(), size, count);
-    else
-      std::copy(input, input + size, output);
-    
-    return count;
+    return mCount;
   }
     
   int extract(double *output, const double *input, const double *unknowns, int size, int pad)
@@ -56,20 +58,16 @@ public:
     std::copy(unknowns, unknowns + size, mDetect.data());
     std::fill(mDetect.data(), mDetect.data() + order, 0.0);
     
-    int count = 0;
+    mCount = 0;
     for (int i = order; i < size; i++)
       if (mDetect[i])
-        count++;
+        mCount++;
     
-    if (count)
-    {
+    if (mCount)
       analyse(input, size, pad);
-      interpolate(output, input, mDetect.data(), size, count);
-    }
-    else
-      std::copy(input, input + size, output);
+    interpolate(output, input, size);
     
-    return count;
+    return mCount;
   }
   
 private:
@@ -79,7 +77,7 @@ private:
     mModel.estimate(input - pad, size + pad + pad);
   }
   
-  int detection(const double *input, int size)
+  void detection(const double *input, int size)
   {
     // Resize storage
     
@@ -139,20 +137,26 @@ private:
       mDetect[i] = click ? 1.0 : 0.0;
     }
     
-    return count;      
+    mCount = count;
   }
   
-  void interpolate(double *output, const double *input, const double *unknowns, int size, int count)
+  void interpolate(double *output, const double *input, int size)
   {
     const double *parameters = mModel.getParameters();
     int order = mModel.order();
     
+    if (!mCount)
+    {
+      std::copy(input, input + size, output);
+      return;
+    }
+    
     // Declare matrices
     
     MatrixXd A = MatrixXd::Zero(size - order, size);
-    MatrixXd U = MatrixXd::Zero(size, count);
-    MatrixXd K = MatrixXd::Zero(size, size - count);
-    VectorXd xK(size - count);
+    MatrixXd U = MatrixXd::Zero(size, mCount);
+    MatrixXd K = MatrixXd::Zero(size, size - mCount);
+    VectorXd xK(size - mCount);
     
     // Form data
     
@@ -166,7 +170,7 @@ private:
     
     for (int i = 0, uCount = 0, kCount = 0; i < size; i++)
     {
-      if (unknowns[i])
+      if (mDetect[i])
         U(i, uCount++) = 1.0;
       else
       {
@@ -185,11 +189,65 @@ private:
     
     for (int i = 0, uCount = 0; i < size; i++)
     {
-      if (unknowns[i])
+      if (mDetect[i])
         output[i] = u(uCount++);
       else
         output[i] = input[i];
     }
+    
+    if (mRefine)
+      refine(output, size, A, Au, u);
+  }
+  
+  void refine(double *io, int size, Eigen::MatrixXd &A, Eigen::MatrixXd &Au, Eigen::MatrixXd &ls)
+  {
+    const double energy = mModel.variance() * mCount;
+    double energyLS = 0.0;
+    
+    for (int i = 0; i < size; i++)
+    {
+      if (mDetect[i])
+      {
+        const double error = mModel.forwardError(io + i);
+        energyLS += error * error;
+      }
+    }
+    
+    if (energyLS < energy)
+    {
+      // Create the square matrix and solve
+      
+      Eigen::LLT<Eigen::MatrixXd> M(Au.transpose() * Au); // Cholesky decomposition
+      Eigen::VectorXd u(mCount);
+      
+      double sum = randomSampling(u, (energy - energyLS) / mCount);
+      Eigen::MatrixXd correction = M.solve(u) + ls;
+      
+      // Write the output
+      
+      for (int i = 0, uCount = 0; i < size; i++)
+      {
+        if (mDetect[i])
+          io[i] = u(uCount++);
+      }
+      
+      std::cout << "Energy is " << energyLS << " expected " << energy << "\n";
+      std::cout << "Energy is " << sum << " should be " << (energy - energyLS) << "\n";
+    }
+  }
+  
+  double randomSampling(Eigen::VectorXd& output, double variance)
+  {
+    std::normal_distribution<double> gaussian(0.0, variance);
+    double sum = 0.0;
+    
+    for (int i = 0; i < output.size(); i++)
+    {
+      output[i] = gaussian(mRandomGenerator);
+      sum += output[i] * output[i];
+    }
+    
+    return sum;
   }
   
   template <void (ARModel::*Method)(double *, const double *, int)>
@@ -260,8 +318,14 @@ private:
   
   ARModel mModel;
   
+  std::mt19937_64 mRandomGenerator;
+
   size_t mSize;
 
+  int mCount;
+  
+  bool mRefine;
+  
   int mDetectHalfWindow;
   int mDetectHold;
 
