@@ -1,5 +1,6 @@
 cmake_minimum_required (VERSION 2.6)
 project (examples)
+set(CMAKE_BUILD_TYPE "Release")
 
 find_path(SNDFILE_INCLUDE_DIR sndfile.h
 	HINTS /usr/local/opt/libsndfile/include
@@ -19,8 +20,8 @@ include_directories(
 )
 
 set(CMAKE_CXX_FLAGS "-Wall -std=c++11 -g")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -Ofast -mavx")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -g")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -mavx -DEIGEN_USE_BLAS")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -g -mavx")
 
 
 add_executable(test_audiofile
@@ -48,3 +49,10 @@ add_executable(test_nmf
 )
 target_link_libraries (test_nmf ${SNDFILE_LIBRARY})
 target_link_libraries (test_nmf "-framework Accelerate")
+
+add_executable(test_sineextraction
+	${THIRDPARTY}/HISSTools_FFT/HISSTools_FFT.cpp
+	test_sineextraction.cpp
+)
+target_link_libraries (test_sineextraction ${SNDFILE_LIBRARY})
+target_link_libraries (test_sineextraction "-framework Accelerate")
