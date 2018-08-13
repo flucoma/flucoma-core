@@ -8,11 +8,15 @@ find_library(SNDFILE_LIBRARY NAMES libsndfile.dylib
 	HINTS /usr/local/opt/libsndfile/lib
 )
 
+
+file(GLOB LIBRARY_HEADERS ${PROJECT_SOURCE_DIR}/../include/*.hpp)
+
 # common to all examples
 foreach ( EXAMPLE  audiofile;fluidtensor;stft;nmf;sineextraction)
 	add_executable(
 		test_${EXAMPLE}
 		test_${EXAMPLE}.cpp
+		${LIBRARY_HEADERS} #add headers for editing in Xcode
 	)
 	target_include_directories(
 		test_${EXAMPLE} PRIVATE
