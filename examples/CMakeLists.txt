@@ -1,58 +1,35 @@
-cmake_minimum_required (VERSION 2.6)
-project (examples)
-set(CMAKE_BUILD_TYPE "Release")
+cmake_minimum_required (VERSION 3.0.0)
+project (examples LANGUAGES CXX)
 
 find_path(SNDFILE_INCLUDE_DIR sndfile.h
 	HINTS /usr/local/opt/libsndfile/include
 )
-
 find_library(SNDFILE_LIBRARY NAMES libsndfile.dylib
 	HINTS /usr/local/opt/libsndfile/lib
 )
 
-set(THIRDPARTY ${PROJECT_SOURCE_DIR}/../3rdparty)
-set(LIBRARY_ROOT ${PROJECT_SOURCE_DIR}/../include)
+# common to all examples
+foreach ( EXAMPLE  audiofile;fluidtensor;stft;nmf;sineextraction)
+	add_executable(
+		test_${EXAMPLE}
+		test_${EXAMPLE}.cpp
+	)
+	target_include_directories(
+		test_${EXAMPLE} PRIVATE
+		${PROJECT_SOURCE_DIR}/../include
+		${PROJECT_SOURCE_DIR}/../3rdparty
+		${SNDFILE_INCLUDE_DIR}
+	)
+	set_target_properties(test_${EXAMPLE} PROPERTIES CXX_STANDARD 11)
+	target_compile_options(test_${EXAMPLE} PRIVATE -O3 -mavx -DEIGEN_USE_BLAS)
+	target_link_libraries (test_${EXAMPLE} ${SNDFILE_LIBRARY})
+endforeach(EXAMPLE)
 
-include_directories(
-	${LIBRARY_ROOT}
-	${THIRDPARTY}
-	${SNDFILE_INCLUDE_DIR}
-)
-
-set(CMAKE_CXX_FLAGS "-Wall -std=c++11 -g")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -mavx -DEIGEN_USE_BLAS")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -g -mavx")
-
-
-add_executable(test_audiofile
-	test_audiofile.cpp
-)
-target_link_libraries (test_audiofile ${SNDFILE_LIBRARY})
-
-
-add_executable(test_tensor
-	TensorTests.cpp
-)
-target_link_libraries (test_tensor ${SNDFILE_LIBRARY})
-
-
-add_executable(test_stft
-	${THIRDPARTY}/HISSTools_FFT/HISSTools_FFT.cpp
-	test_stft.cpp
-)
-target_link_libraries (test_stft ${SNDFILE_LIBRARY})
-target_link_libraries (test_stft "-framework Accelerate")
-
-add_executable(test_nmf
-	${THIRDPARTY}/HISSTools_FFT/HISSTools_FFT.cpp
-	test_nmf.cpp
-)
-target_link_libraries (test_nmf ${SNDFILE_LIBRARY})
-target_link_libraries (test_nmf "-framework Accelerate")
-
-add_executable(test_sineextraction
-	${THIRDPARTY}/HISSTools_FFT/HISSTools_FFT.cpp
-	test_sineextraction.cpp
-)
-target_link_libraries (test_sineextraction ${SNDFILE_LIBRARY})
-target_link_libraries (test_sineextraction "-framework Accelerate")
+# required for examples that use fft
+foreach ( FFT_EXAMPLE  stft;nmf;sineextraction)
+	target_sources(
+		test_${FFT_EXAMPLE} PRIVATE
+		${PROJECT_SOURCE_DIR}/../3rdparty/HISSTools_FFT/HISSTools_FFT.cpp
+	)
+	target_link_libraries (test_${FFT_EXAMPLE} "-framework Accelerate")
+endforeach(FFT_EXAMPLE)
