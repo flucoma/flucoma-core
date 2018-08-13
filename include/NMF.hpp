@@ -23,6 +23,7 @@ using MatrixXdMap =
 struct NMFModel {
   MatrixXd W;
   MatrixXd H;
+  MatrixXd V;
   RealVector divergence;
   RealMatrix getEstimate(int index) const {
     assert(index < W.cols());
@@ -31,16 +32,25 @@ struct NMFModel {
         (W.col(index) * H.row(index)).transpose();
     return result;
   }
+
+  RealMatrix getMixEstimate() const {
+    RealMatrix result(H.cols(), W.rows());// transposing
+    MatrixXdMap(result.data(), H.cols(), W.rows()) = (W * H).transpose();
+    return result;
+  }
+
   RealMatrix getW() const {
-    RealMatrix result;
-    MatrixXdMap(result.data(), W.cols(), W.rows()) = W;
+    RealMatrix result(W.rows(), W.cols());
+    MatrixXdMap(result.data(), W.rows(), W.cols()) = W;
     return result;
   }
+
   RealMatrix getH() const {
-    RealMatrix result;
-    MatrixXdMap(result.data(), H.cols(), H.rows()) = H;
+    RealMatrix result(H.rows(), H.cols());
+    MatrixXdMap(result.data(), H.rows(), H.cols()) = H;
     return result;
   }
+
 };
 
 class NMF {

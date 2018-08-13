@@ -1,11 +1,13 @@
 #include "util/audiofile.hpp"
 #include <STFT.hpp>
 #include <FluidTensor.hpp>
+#include <fstream>
 
 int main(int argc, char* argv[])
 {
   using std::cout;
   using std::vector;
+  using std::ofstream;
   using fluid::audiofile::AudioFileData;
   using fluid::audiofile::readFile;
   using fluid::audiofile::writeFile;
@@ -19,11 +21,13 @@ int main(int argc, char* argv[])
     return 1;
   }
 
+  ofstream specF ("spectrum.txt");
   AudioFileData data = readFile(argv[1]);
-  STFT stft (1024, 1024, 128);
-  ISTFT istft (1024, 1024, 128);
+  STFT stft (512, 1024, 128);
+  ISTFT istft (512, 1024, 128);
   fluid::FluidTensor<double, 1> in(data.audio[0]);
   Spectrogram spec = stft.process(in);
+  /*
   fluid::FluidTensor<double, 1> out = istft.process(spec);
   double err = 0;
   for(int i=0;i<in.size();i++){
@@ -36,5 +40,7 @@ int main(int argc, char* argv[])
   writeFile(data,argv[2]);
   std::cout<<"----"<<std::endl;
   std::cout<<"err "<<err<<std::endl;
+  */
+  specF<<spec.getMagnitude()<<std::endl;
   return 0;
 }
