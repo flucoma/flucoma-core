@@ -102,7 +102,7 @@ public:
   ISTFT(size_t windowSize, size_t fftSize, size_t hopSize)
       : mWindowSize(windowSize), mHopSize(hopSize), mFrameSize(fftSize / 2 + 1),
         mWindow(windowFuncs[WindowType::Hann](windowSize)),
-        mScale(0.5 / double(fftSize)), mIFFT(fftSize) {}
+        mScale(1 / double(fftSize)), mIFFT(fftSize) {}
 
   RealVector process(const Spectrogram &spec) {
     int halfWindow = mWindowSize / 2;
