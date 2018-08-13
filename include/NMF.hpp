@@ -11,7 +11,7 @@ namespace nmf {
 using Eigen::ArrayXXd;
 using Eigen::Map;
 using Eigen::MatrixXd;
-//using fluid::FluidTensor;
+// using fluid::FluidTensor;
 using std::cout;
 using std::vector;
 
@@ -21,9 +21,26 @@ using MatrixXdMap =
     Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>;
 
 struct NMFModel {
-  RealMatrix W;
-  RealMatrix H;
+  MatrixXd W;
+  MatrixXd H;
   RealVector divergence;
+  RealMatrix getEstimate(int index) const {
+    assert(index < W.cols());
+    RealMatrix result(H.cols(), W.rows()); // transposing
+    MatrixXdMap(result.data(), H.cols(), W.rows()) =
+        (W.col(index) * H.row(index)).transpose();
+    return result;
+  }
+  RealMatrix getW() const {
+    RealMatrix result;
+    MatrixXdMap(result.data(), W.cols(), W.rows()) = W;
+    return result;
+  }
+  RealMatrix getH() const {
+    RealMatrix result;
+    MatrixXdMap(result.data(), H.cols(), H.rows()) = H;
+    return result;
+  }
 };
 
 class NMF {
@@ -63,10 +80,8 @@ public:
       divergenceCurve.push_back(divergence);
       // cout << "Divergence " << divergence << "\n";
     }
-    result.W = RealMatrix(nBins, mRank);
-    MatrixXdMap(result.W.data(), nBins, mRank) = W;
-    result.H = RealMatrix(mRank, nFrames);
-    MatrixXdMap(result.H.data(), mRank, nFrames) = H;
+    result.W = W;
+    result.H = H;
     result.divergence = RealVector(divergenceCurve);
     return result;
   }
