@@ -117,7 +117,7 @@ int main(int argc, char* argv[])
     for(int i = 0; i < y; i++)
     {
         //use() with integer types to get elements
-        assert(c2(i) == twodeecee[i][col_offset]);
+        assert(c2[i] == twodeecee[i][col_offset]);
     }
 
     //Free memory from double**, we're done with it
@@ -167,7 +167,7 @@ int main(int argc, char* argv[])
     //Data should also match when accessed through operator()!
     for(int i = 0; i < data.audio[0].size();++i)
     {
-        assert(audio_test(i) == data.audio[0][i]);
+        assert(audio_test[i] == data.audio[0][i]);
     }
 
     //Test unary apply
