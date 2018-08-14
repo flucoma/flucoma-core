@@ -27,10 +27,10 @@ int main(int argc, char* argv[])
   fluid::FluidTensor<double, 1> out = istft.process(spec);
   double err = 0;
   for(int i=0;i<in.size();i++){
-    std::cout<<"in "<<in(i)<<std::endl;
-    std::cout<<"out "<<out(i)<<std::endl;
-    std::cout<<"err "<<std::abs(in(i) - out(i))<<std::endl;
-    err+= std::abs(in(i) - out(i));
+    std::cout<<"in "<<in[i]<<std::endl;
+    std::cout<<"out "<<out[i]<<std::endl;
+    std::cout<<"err "<<std::abs(in[i] - out[i])<<std::endl;
+    err+= std::abs(in[i] - out[i]);
   }
   data.audio[0] = vector<double>(out.data(), out.data()+out.size());
   writeFile(data,argv[2]);

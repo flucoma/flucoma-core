@@ -7,17 +7,9 @@ using fluid::audiofile::readFile;
 
 int main(int argc, char* argv[])
 {
-    fluid::FluidTensor<std::complex<double>, 2> fl;
-    //std::vector<std::vector<double>> stan;
-    //std::vector<double> elem({1,2,3,4});
-    //stan.push_back(elem);
-    //stan.push_back(elem);
-    //fluid::FluidTensor<std::complex<double>, 2> fl2(stan);
+
     //We can initialize a tensor with some elements using braces:
-    //fluid::FluidTensor<std::complex<double>,1> complexT;
     fluid::FluidTensor<double,1> tinit{1.0,2.0,3.0};
-    //verbotten
-    //tinit(3) = 1.0;
     std::cout << "Rank: " << tinit.order << " Length: "
     << tinit.extent(0) << " Data: "<< tinit << '\n';
 
@@ -117,7 +109,7 @@ int main(int argc, char* argv[])
     for(int i = 0; i < y; i++)
     {
         //use() with integer types to get elements
-        assert(c2(i) == twodeecee[i][col_offset]);
+        assert(c2[i] == twodeecee[i][col_offset]);
     }
 
     //Free memory from double**, we're done with it
@@ -167,7 +159,7 @@ int main(int argc, char* argv[])
     //Data should also match when accessed through operator()!
     for(int i = 0; i < data.audio[0].size();++i)
     {
-        assert(audio_test(i) == data.audio[0][i]);
+        assert(audio_test[i] == data.audio[0][i]);
     }
 
     //Test unary apply

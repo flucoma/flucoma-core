@@ -4,6 +4,7 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
+#include <FluidEigenMappings.hpp>
 
 namespace fluid {
 namespace nmf {
@@ -11,19 +12,39 @@ namespace nmf {
 using Eigen::ArrayXXd;
 using Eigen::Map;
 using Eigen::MatrixXd;
-//using fluid::FluidTensor;
-using std::cout;
 using std::vector;
+
+using fluid::eigenmappings::FluidToMatrixXd;
+using fluid::eigenmappings::MatrixXdToFluid;
+
 
 using RealMatrix = FluidTensor<double, 2>;
 using RealVector = FluidTensor<double, 1>;
-using MatrixXdMap =
-    Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>;
 
 struct NMFModel {
-  RealMatrix W;
-  RealMatrix H;
+  MatrixXd W;
+  MatrixXd H;
+  MatrixXd V;
   RealVector divergence;
+  RealMatrix getEstimate(int index) const {
+    assert(index < W.cols());
+    return MatrixXdToFluid((W.col(index) * H.row(index)).transpose())();
+  }
+
+  RealMatrix getMixEstimate() const {
+    RealMatrix result(H.cols(), W.rows());
+    return MatrixXdToFluid((W * H).transpose())();
+  }
+
+  RealMatrix getW() const {
+    RealMatrix result(W.rows(), W.cols());
+    return MatrixXdToFluid(W)();
+  }
+
+  RealMatrix getH() const {
+    RealMatrix result(H.rows(), H.cols());
+    return MatrixXdToFluid(H)();
+  }
 };
 
 class NMF {
@@ -41,8 +62,7 @@ public:
     MatrixXd H = MatrixXd::Random(mRank, nFrames) * 0.5 +
                  MatrixXd::Constant(mRank, nFrames, 0.5);
     // TODO: could we transpose X in place? Does not seem possible with Map
-    MatrixXdMap Vorig(X.data(), X.extent(0), X.extent(1));
-    MatrixXd V = Vorig.transpose();
+    MatrixXd V = FluidToMatrixXd(X)().transpose();
     vector<double> divergenceCurve;
     W.colwise().normalize();
     H.rowwise().normalize();
@@ -61,12 +81,10 @@ public:
       MatrixXd V3 = V2.cwiseMax(epsilon());
       double divergence = (V3.cwiseProduct(V3.cwiseQuotient(R)) - V3 + R).sum();
       divergenceCurve.push_back(divergence);
-      // cout << "Divergence " << divergence << "\n";
+      // std::cout << "Divergence " << divergence << "\n";
     }
-    result.W = RealMatrix(nBins, mRank);
-    MatrixXdMap(result.W.data(), nBins, mRank) = W;
-    result.H = RealMatrix(mRank, nFrames);
-    MatrixXdMap(result.H.data(), mRank, nFrames) = H;
+    result.W = W;
+    result.H = H;
     result.divergence = RealVector(divergenceCurve);
     return result;
   }
