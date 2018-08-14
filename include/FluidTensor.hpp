@@ -6,9 +6,9 @@
 #include <vector>
 #include <numeric>
 #include <array>
-#include <Eigen/Core>
 #include <iostream>
 #include <initializer_list>
+#include <assert.h>
 
 
 using std::size_t;
