@@ -972,7 +972,7 @@ namespace _impl{
 
          template<typename... Args>
          enable_if_t<is_index_sequence<Args...>(), T&>
-         operator()(Args... args)
+         operator[](Args... args)
          {
              assert(_impl::check_bounds(m_desc,args...)
                     && "Arguments out of bounds");
@@ -982,22 +982,22 @@ namespace _impl{
         // const version
         template<typename... Args>
         enable_if_t<is_index_sequence<Args...>(),const T&>
-        operator()(Args... args) const
+        operator[](Args... args) const
         {
             assert(_impl::check_bounds(m_desc,args...)
                    && "Arguments out of bounds");
             return *(data() + m_desc(args...));
         }
-
-
-
-
-
-
-        /****
-         slice operator(), enabled only if args contain at least one
-         fluid::slice struct and a mixture of integer types and fluid::slices
-         ****/
+//
+//
+//
+//
+//
+//
+//        /****
+//         slice operator(), enabled only if args contain at least one
+//         fluid::slice struct and a mixture of integer types and fluid::slices
+//         ****/
         template<typename ...Args>
         enable_if_t<is_slice_sequence<Args...>(),FluidTensorView<T, N>>
         operator()(const Args&... args) const
@@ -1245,13 +1245,23 @@ namespace _impl{
          ****/
         template<typename... Args>
         enable_if_t<is_index_sequence<Args...>(),const T&>
-        operator()(Args... args) const
+        operator[](Args... args) const
         {
             assert(_impl::check_bounds(m_desc,args...)
                    && "Arguments out of bounds");
             return *(data() + m_desc(args...));
         }
-
+        
+        template<typename... Args>
+        enable_if_t<is_index_sequence<Args...>(),T&>
+        operator[](Args... args)
+        {
+            assert(_impl::check_bounds(m_desc,args...)
+                   && "Arguments out of bounds");
+            return *(data() + m_desc(args...));
+        }
+        
+        
         /****
          slice operator(), enabled only if args contain at least one
          fluid::slice struct and a mixture of integer types and fluid::slices
