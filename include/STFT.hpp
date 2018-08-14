@@ -2,6 +2,7 @@
 
 #include <Eigen/Core>
 #include <FFT.hpp>
+#include <FluidEigenMappings.hpp>
 #include <FluidTensor.hpp>
 #include <Windows.hpp>
 #include <algorithm>
@@ -10,11 +11,6 @@
 
 namespace fluid {
 namespace stft {
-
-using std::complex;
-using std::rotate;
-using std::transform;
-using std::vector;
 
 using Eigen::Map;
 using Eigen::MatrixXcd;
@@ -26,30 +22,21 @@ using fft::IFFT;
 using windows::windowFuncs;
 using windows::WindowType;
 
-//using FluidTensor;
-//using slice;
-
-using ComplexMatrix = FluidTensor<complex<double>, 2>;
-using ComplexVector = FluidTensor<complex<double>, 1>;
+using ComplexMatrix = FluidTensor<std::complex<double>, 2>;
+using ComplexVector = FluidTensor<std::complex<double>, 1>;
 using RealMatrix = FluidTensor<double, 2>;
 using RealVector = FluidTensor<double, 1>;
-using MatrixXcdMap = Map<Eigen::Matrix<complex<double>, Eigen::Dynamic,
-                                       Eigen::Dynamic, Eigen::RowMajor>>;
-using MatrixXdMap =
-    Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>;
+
+using fluid::eigenmappings::FluidToMatrixXcd;
+using fluid::eigenmappings::MatrixXdToFluid;
 
 struct Spectrogram {
   ComplexMatrix mData;
   Spectrogram(ComplexMatrix data) : mData(data) {}
-
   RealMatrix getMagnitude() const {
-    MatrixXcdMap dataMat(this->mData.data(), this->mData.extent(0),
-                         this->mData.extent(1));
+    MatrixXcd dataMat = FluidToMatrixXcd(this->mData)();
     MatrixXd magRealMat = dataMat.cwiseAbs().real();
-    RealMatrix result(this->mData.extent(0), this->mData.extent(1));
-    MatrixXdMap(result.data(), this->mData.extent(0), this->mData.extent(1)) =
-        magRealMat;
-    return result;
+    return MatrixXdToFluid(magRealMat)();
   }
 
   RealMatrix getPhase() const; // TODO
@@ -84,15 +71,15 @@ private:
   size_t mWindowSize;
   size_t mHopSize;
   size_t mFrameSize;
-  vector<double> mWindow;
+  std::vector<double> mWindow;
   FFT mFFT;
 
   ComplexVector processFrame(const RealVector &frame) {
-    vector<double> tmp(frame.size(), 0);
+    std::vector<double> tmp(frame.size(), 0);
     for (int i = 0; i < mWindowSize; i++) {
-      tmp[i] = frame(i) * mWindow[i];
+      tmp[i] = frame[i] * mWindow[i];
     }
-    vector<complex<double>> spectrum = mFFT.process(tmp);
+    std::vector<std::complex<double>> spectrum = mFFT.process(tmp);
     return ComplexVector(spectrum);
   }
 };
@@ -108,25 +95,25 @@ public:
     int halfWindow = mWindowSize / 2;
     int outputSize = mWindowSize + (spec.nFrames() - 1) * mHopSize;
     outputSize += mWindowSize + mHopSize;
-    vector<double> outputPadded(outputSize, 0);
-    vector<double> norm(outputSize, 0);
+    std::vector<double> outputPadded(outputSize, 0);
+    std::vector<double> norm(outputSize, 0);
 
     for (int i = 0; i < spec.nFrames(); i++) {
-      vector<complex<double>> tmp(spec.mData.row(i).data(),
-                                  spec.mData.row(i).data() + mFrameSize);
-      vector<double> frame = mIFFT.process(tmp);
+      std::vector<std::complex<double>> tmp(
+          spec.mData.row(i).data(), spec.mData.row(i).data() + mFrameSize);
+      std::vector<double> frame = mIFFT.process(tmp);
       for (int j = 0; j < mWindowSize; j++) {
         outputPadded[i * mHopSize + j] += frame[j] * mScale * mWindow[j];
         norm[i * mHopSize + j] += mWindow[j] * mWindow[j];
       }
     }
-    transform(norm.begin(), norm.end(), norm.begin(),
-              [](double x) { return x < 1e-10 ? 1 : x; });
+    std::transform(norm.begin(), norm.end(), norm.begin(),
+                   [](double x) { return x < 1e-10 ? 1 : x; });
     for (int i = 0; i < outputSize; i++) {
       outputPadded[i] /= norm[i];
     }
-    vector<double> result(outputPadded.begin() + halfWindow,
-                          outputPadded.end() - halfWindow - mHopSize);
+    std::vector<double> result(outputPadded.begin() + halfWindow,
+                               outputPadded.end() - halfWindow - mHopSize);
     return RealVector(result);
   }
 
@@ -134,7 +121,7 @@ private:
   size_t mWindowSize;
   size_t mHopSize;
   size_t mFrameSize;
-  vector<double> mWindow;
+  std::vector<double> mWindow;
   double mScale;
   IFFT mIFFT;
 };
