@@ -72,7 +72,7 @@ void writeFile(const char *name, const double *output, int size, double sampling
 {
   using namespace HISSTools;
   
-  OAudioFile file(name, BaseAudioFile::kAudioFileWAVE, BaseAudioFile::kAudioFileFloat64, 1, samplingRate);
+  OAudioFile file(name, BaseAudioFile::kAudioFileWAVE, BaseAudioFile::kAudioFileFloat32, 1, samplingRate);
   
   file.writeChannel(output, size, 0);
 }
