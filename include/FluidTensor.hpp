@@ -731,37 +731,37 @@ namespace _impl{
 
 
 
-    /********************************************************
-     FluidTensorBase is a base class of whose worth I am not convinced.
-
-     But why not? Well, both FluidTensor and FluidTensor ref have specializations
-     for 0-dimensions that essentially present scalars. So, much as have pure
-     virtual row(n) and col(n) here would make sense for n dims, not so much
-     for these.
-     *********************************************************/
-    template<typename T,size_t N>
-    class FluidTensorBase
-    {
-    public:
-        //embed the order as a field
-        static constexpr size_t order = N;
-
-        //
-        FluidTensorBase() = default;
-
-        //Construct from reference
-//        template<typename U, size_t O>
-//        FluidTensorBase(FluidTensorView<U,O>)
-//        {
-//            static_assert(std::is_convertible<T,U>(),"Matrix constructor: imcompatible types.");
-//        }
-
-
-        //These make no sense for the N=0 specializations...
-        //        virtual size_t extent(size_t n) const = 0;  //#elements in given dim
-        //        virtual FluidTensor_View<T, N-1> row(size_t i) const = 0;
-        //        virtual FluidTensor_View<T, N-1> col(size_t i) const = 0;
-    };
+//    /********************************************************
+//     FluidTensorBase is a base class of whose worth I am not convinced.
+//
+//     But why not? Well, both FluidTensor and FluidTensor ref have specializations
+//     for 0-dimensions that essentially present scalars. So, much as have pure
+//     virtual row(n) and col(n) here would make sense for n dims, not so much
+//     for these.
+//     *********************************************************/
+//    template<typename T,size_t N>
+//    class FluidTensorBase
+//    {
+//    public:
+//        //embed the order as a field
+//        static constexpr size_t order = N;
+//
+//        //
+//        FluidTensorBase() = default;
+//
+//        //Construct from reference
+////        template<typename U, size_t O>
+////        FluidTensorBase(FluidTensorView<U,O>)
+////        {
+////            static_assert(std::is_convertible<T,U>(),"Matrix constructor: imcompatible types.");
+////        }
+//
+//
+//        //These make no sense for the N=0 specializations...
+//        //        virtual size_t extent(size_t n) const = 0;  //#elements in given dim
+//        //        virtual FluidTensor_View<T, N-1> row(size_t i) const = 0;
+//        //        virtual FluidTensor_View<T, N-1> col(size_t i) const = 0;
+//    };
 
 
     /********************************************************
@@ -782,13 +782,17 @@ namespace _impl{
      *views* on the container, not copies.
      *********************************************************/
     template <typename T, size_t N>
-    class FluidTensor: public FluidTensorBase<T,N>
+    class FluidTensor//: public FluidTensorBase<T,N>
     {
         //embed this so we can change our mind
         using container_type = std::vector<T>;
     public:
+        static constexpr size_t order = N;
         //expose this so we can use as an iterator over elements
         using iterator = typename std::vector<T>::iterator;
+        
+//        FluidTensorView<T,N> global_view;
+        
 
         //Default constructor / destructor
         explicit FluidTensor()       = default;
@@ -1129,7 +1133,7 @@ namespace _impl{
      pointer things) to not do this.
      ****************************************************************/
     template<typename T,size_t N>
-    class FluidTensorView: public FluidTensorBase<T,N> {
+    class FluidTensorView {//: public FluidTensorBase<T,N> {
         static constexpr size_t order = N;
     public:
         /*****
