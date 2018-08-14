@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
   Spectrogram spec = stft.process(in);
   NMFModel decomposition = nmfProcessor.process(spec.getMagnitude());
 
-  RatioMask mask = RatioMask(spec.getMagnitude(), 1);
+  RatioMask mask = RatioMask(decomposition.getMixEstimate(), 1);
 
   for (int i = 0; i < rank; i++) {
     RealMatrix estimate = decomposition.getEstimate(i);
