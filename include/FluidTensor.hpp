@@ -595,7 +595,7 @@ namespace fluid {
             std::array<size_t,N> a;
 
             //Get the element-wise minimum of our extents and x's
-            std::transform(m_desc.extents.begin(), m_desc.extents.end(), x.descriptor().extents.begin(), a.begin(), std::less<size_t>());
+            std::transform(m_desc.extents.begin(), m_desc.extents.end(), x.descriptor().extents.begin(), a.begin(), [](size_t a, size_t b){return std::min(a,b);});
 
             size_t count = std::accumulate(a.begin(), a.end(), 1, std::multiplies<size_t>());
 
