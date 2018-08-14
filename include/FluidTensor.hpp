@@ -108,16 +108,40 @@ namespace fluid {
 
          Will fail at compile time if the types aren't convertible
          ***********************************/
-            template <typename U, size_t M>
-            FluidTensor(const FluidTensor<U,M>& x){
-                static_assert(std::is_convertible<U,T>(),"Cannot convert between container value types");
-            }
+        template <typename U, size_t M>
+        FluidTensor(const FluidTensor<U,M>& x)
+        :m_container(x.begin(),x.end()),m_desc(x.descriptor())
+        {
+            static_assert(std::is_convertible<U,T>(),"Cannot convert between container value types");
+            
+            std::copy(x.begin(),x.end(),m_container.begin());
+            
+        }
+        
+        template <typename U, size_t M>
+        FluidTensor(const FluidTensorView<U,M>& x)
+        :m_container(x.begin(),x.end()),m_desc(x.descriptor())
+        {
+            static_assert(std::is_convertible<U,T>(),"Cannot convert between container value types");
+            
+            std::copy(x.begin(),x.end(),m_container.begin());
+            
+        }
+
+        
         //
         /****
          Conversion assignment
          ****/
-        //    template <typename M, typename = enable_if_t<FluidTensor<M>()>>
-        //    FluidTensor& operator=(const M& x);
+        template <typename U, template <typename,size_t> class O,size_t M = N>
+        enable_if_t< std::is_same<FluidTensor<U,N>, O<U,M>>() && (N>1),  FluidTensor&>
+         operator=(const O<U,M>& x)
+        {
+            
+            m_desc = x.descriptor();
+            m_container.assign(x.begin(), x.end());
+            
+        }
 
 
         template<typename... Dims,
@@ -202,16 +226,30 @@ namespace fluid {
                 std::copy(input[i],input[i] + dim2, m_container.data() + (i * dim2 ));
         }
 
+        
+        
+        
         /****
          T* constructor only for 1D structure
-         Copies using std::vec constructor
+         Allows for strided copying (e.g from interleaved audio)
          ****/
         template <typename U=T,size_t D = N,typename = enable_if_t<D==1>()>
-        FluidTensor(T* input, size_t dim)
-        :m_container(input,input+dim),m_desc(0,{dim})
-        {}
-
-
+        FluidTensor(T* input, size_t dim, size_t stride=1)
+        :m_container(dim),m_desc(0,{dim})
+        {
+            for(size_t i = 0, j = 0; i < dim;++i, j+=stride)
+            {
+                m_container[i] = input[j];
+            }
+        }
+        /***
+         TODO: multidim version of the above
+         input: T*, possibly interleaved
+         - Return 2D dim * n_channels thing, appropriately
+         strided
+         – Will need varadic strides?
+         ***/
+        
         /****
         vector<T> constructor only for 1D structure
 
@@ -338,12 +376,12 @@ namespace fluid {
 
          TODO: const_iterators also?
          ************************************/
-        iterator begin()
+        iterator begin() const
         {
             return m_container.begin();
         }
 
-        iterator end()
+        iterator end() const
         {
             return m_container.end();
         }
@@ -499,10 +537,10 @@ namespace fluid {
         // Note param by value https://stackoverflow.com/a/3279550
         //Actually, is this a bad idea? We probably want
         //different move and copy behaviour
+        
         FluidTensorView& operator=(FluidTensorView x)
         {
 //            swap(*this, other);
-
             std::array<size_t,N> a;
 
             //Get the element-wise minimum of our extents and x's
@@ -522,10 +560,38 @@ namespace fluid {
             return *this;
         }
 
+        template <typename U>
+        FluidTensorView& operator=(FluidTensorView<U,N> x)
+        {
+            //            swap(*this, other);
+            static_assert(std::is_convertible<T,U>(),"Can't convert between types");
+            std::array<size_t,N> a;
+            
+            //Get the element-wise minimum of our extents and x's
+            std::transform(m_desc.extents.begin(), m_desc.extents.end(), x.descriptor().extents.begin(), a.begin(), [](size_t a, size_t b){return std::min(a,b);});
+            
+            size_t count = std::accumulate(a.begin(), a.end(), 1, std::multiplies<size_t>());
+            
+            //Have to do this because haven't implemented += for slice iterator (yet),
+            //so can't stop at arbitary offset from begin
+            auto it = x.begin();
+            auto ot = begin();
+            for(int i = 0; i < count; ++i,++it,++ot)
+                *ot = *it;
+            
+            //            std::copy(x.begin(),stop,begin());
+            
+            return *this;
+        }
+        
+        
         //Assign from FluidTensor = copy
         //Respect the existing extents, rather than the FluidTensor's
-        FluidTensorView& operator=(FluidTensor<T,N>& x)
+        
+        template <typename U>
+        FluidTensorView& operator=(FluidTensor<U,N>& x)
         {
+            static_assert(std::is_convertible<T,U>(),"Can't convert between types");
             std::array<size_t,N> a;
 
             //Get the element-wise minimum of our extents and x's
@@ -627,12 +693,12 @@ namespace fluid {
 //            return *(data() + m_desc(args...));
 //        }
 
-        iterator begin()
+        iterator begin() const
         {
             return {m_desc,m_ref};
         }
 
-        iterator end()
+        iterator end() const
         {
             return {m_desc,m_ref,true};
         }
@@ -684,7 +750,7 @@ namespace fluid {
 
 
         pointer data()     const           { return m_ref + m_desc.start; }
-        FluidTensorSlice<N> descriptor() {return m_desc;}
+        FluidTensorSlice<N> descriptor() const {return m_desc;} 
 
 
         friend void swap(FluidTensorView& first, FluidTensorView& second)
