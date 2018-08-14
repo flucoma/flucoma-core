@@ -25,7 +25,8 @@ foreach ( EXAMPLE  audiofile;fluidtensor;stft;nmf;sineextraction)
 		${SNDFILE_INCLUDE_DIR}
 	)
 	set_target_properties(test_${EXAMPLE} PROPERTIES CXX_STANDARD 11)
-	target_compile_options(test_${EXAMPLE} PRIVATE -O3 -mavx -DEIGEN_USE_BLAS)
+	target_compile_options(test_${EXAMPLE} PRIVATE -O3 -mavx)
+	target_compile_options(test_${EXAMPLE} PRIVATE "$<$<CONFIG:RELEASE>:-DEIGEN_USE_BLAS>")
 	target_link_libraries (test_${EXAMPLE} ${SNDFILE_LIBRARY})
 endforeach(EXAMPLE)
 
