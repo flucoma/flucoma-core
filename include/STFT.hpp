@@ -90,7 +90,7 @@ private:
   ComplexVector processFrame(const RealVector &frame) {
     vector<double> tmp(frame.size(), 0);
     for (int i = 0; i < mWindowSize; i++) {
-      tmp[i] = frame(i) * mWindow[i];
+      tmp[i] = frame[i] * mWindow[i];
     }
     vector<complex<double>> spectrum = mFFT.process(tmp);
     return ComplexVector(spectrum);
