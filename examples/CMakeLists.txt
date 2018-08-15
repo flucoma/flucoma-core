@@ -12,7 +12,7 @@ find_library(SNDFILE_LIBRARY NAMES libsndfile.dylib
 file(GLOB LIBRARY_HEADERS ${PROJECT_SOURCE_DIR}/../include/*.hpp)
 
 # common to all examples
-foreach ( EXAMPLE  audiofile;fluidtensor;stft;nmf;sineextraction;fluidbuffer)
+foreach ( EXAMPLE  audiofile;fluidtensor;stft;nmf;sineextraction;fluidbuffer;transient_extractor)
 	add_executable(
 		test_${EXAMPLE}
 		test_${EXAMPLE}.cpp
@@ -31,10 +31,17 @@ foreach ( EXAMPLE  audiofile;fluidtensor;stft;nmf;sineextraction;fluidbuffer)
 endforeach(EXAMPLE)
 
 # required for examples that use fft
-foreach ( FFT_EXAMPLE  stft;nmf;sineextraction)
+foreach ( FFT_EXAMPLE  stft;nmf;sineextraction;transient_extractor)
 	target_sources(
 		test_${FFT_EXAMPLE} PRIVATE
 		${PROJECT_SOURCE_DIR}/../3rdparty/HISSTools_FFT/HISSTools_FFT.cpp
 	)
 	target_link_libraries (test_${FFT_EXAMPLE} "-framework Accelerate")
 endforeach(FFT_EXAMPLE)
+
+target_sources(
+	test_transient_extractor PRIVATE
+	${PROJECT_SOURCE_DIR}/../3rdparty/HISSTools_AudioFile/BaseAudioFile.cpp
+	${PROJECT_SOURCE_DIR}/../3rdparty/HISSTools_AudioFile/IAudioFile.cpp
+	${PROJECT_SOURCE_DIR}/../3rdparty/HISSTools_AudioFile/OAudioFile.cpp
+)
