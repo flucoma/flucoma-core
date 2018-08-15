@@ -125,7 +125,6 @@ private:
     const double hiThresh = mDetectThreshHi;
     const double loThresh = mDetectThreshLo;
     const int offHold = mDetectHold;
-    const int order = modelOrder();
     
     bool click = false;
 
