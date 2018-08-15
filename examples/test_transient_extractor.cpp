@@ -106,9 +106,9 @@ int main(int argc, const char * argv[])
   auto samplingRate = file.getSamplingRate();
   
   std::vector<double> input(frames, 0.0);
-  std::vector<double> corrupted(frames, 0.0);
-  std::vector<double> fixed(frames, 0.0);
-  std::vector<double> transients(frames, 0.0);
+  std::vector<double> corrupted(frames + paramBlockSize, 0.0);
+  std::vector<double> fixed(frames + paramBlockSize, 0.0);
+  std::vector<double> transients(frames + paramBlockSize, 0.0);
   
   file.readChannel(input.data(), frames, 0);
   corruptInput(corrupted.data(), input.data(), frames);
