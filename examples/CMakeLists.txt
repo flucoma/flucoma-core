@@ -12,7 +12,7 @@ find_library(SNDFILE_LIBRARY NAMES libsndfile.dylib
 file(GLOB LIBRARY_HEADERS ${PROJECT_SOURCE_DIR}/../include/*.hpp)
 
 # common to all examples
-foreach ( EXAMPLE  audiofile;fluidtensor;stft;nmf;sineextraction)
+foreach ( EXAMPLE  audiofile;fluidtensor;stft;nmf;sineextraction;fluidbuffer)
 	add_executable(
 		test_${EXAMPLE}
 		test_${EXAMPLE}.cpp
