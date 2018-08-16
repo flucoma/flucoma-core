@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cmath> 
+#include <cmath>
 #include <vector>
 #include <iostream>
 #include <map>

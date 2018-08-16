@@ -15,6 +15,8 @@ namespace stft {
 using Eigen::Map;
 using Eigen::MatrixXcd;
 using Eigen::MatrixXd;
+using Eigen::ArrayXd;
+using Eigen::ArrayXcd;
 
 using fft::FFT;
 using fft::IFFT;
@@ -29,6 +31,7 @@ using RealVector = FluidTensor<double, 1>;
 
 using fluid::eigenmappings::FluidToMatrixXcd;
 using fluid::eigenmappings::MatrixXdToFluid;
+using fluid::eigenmappings::MatrixXcdToFluid;
 
 struct Spectrogram {
   ComplexMatrix mData;
@@ -49,7 +52,8 @@ class STFT {
 public:
   STFT(size_t windowSize, size_t fftSize, size_t hopSize)
       : mWindowSize(windowSize), mHopSize(hopSize), mFrameSize(fftSize / 2 + 1),
-        mWindow(windowFuncs[WindowType::Hann](windowSize)), mFFT(fftSize) {}
+        mWindow(windowFuncs[WindowType::Hann](windowSize).data(), mWindowSize),
+        mFFT(fftSize) {}
 
   Spectrogram process(const RealVector audio) {
     int halfWindow = mWindowSize / 2;
@@ -57,32 +61,31 @@ public:
     RealVector padded(audio.size() + mWindowSize + mHopSize);
     padded(slice(halfWindow, audio.size())) = audio;
     int nFrames = floor((padded.size() - mWindowSize) / mHopSize);
-    ComplexMatrix data(nFrames, mFrameSize);
-    Spectrogram result(data);
+    MatrixXcd result(nFrames, mFrameSize);
     for (int i = 0; i < nFrames; i++) {
       int start = i * mHopSize;
       int end = start + mWindowSize;
-      auto spectrum = processFrame(padded(slice(start, end, 1)));
-      result.mData.row(i) = spectrum(slice(0, mFrameSize));
+      Map<ArrayXd> tmp (padded(slice(start, end, 1)).data(), mWindowSize);
+      result.row(i) = mFFT.process(tmp * mWindow).matrix();
     }
-    return result;
+    return ComplexMatrix(MatrixXcdToFluid(result)());
   }
 
 private:
   size_t mWindowSize;
   size_t mHopSize;
   size_t mFrameSize;
-  std::vector<double> mWindow;
+  Map<ArrayXd> mWindow;
   std::vector<double> mWorkBuf;
   FFT mFFT;
 
-  ComplexVector processFrame(const RealVector &frame) {
+  /*ComplexVector processFrame(const RealVector &frame) {
     for (int i = 0; i < mWindowSize; i++) {
       mWorkBuf[i] = frame[i] * mWindow[i];
     }
     std::vector<std::complex<double>> spectrum = mFFT.process(mWorkBuf);
     return ComplexVector(spectrum);
-  }
+  }*/
 };
 
 class ISTFT {

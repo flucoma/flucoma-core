@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Eigen/Core>
 #include <HISSTools_FFT/HISSTools_FFT.h>
 #include <vector>
 
@@ -8,6 +9,8 @@ namespace fft {
 
 using std::complex;
 using std::vector;
+using Eigen::ArrayXd;
+using Eigen::ArrayXcd;
 
 class FFT {
 public:
@@ -25,14 +28,14 @@ public:
       delete[] mSplit.imagp;
   }
 
-  vector<complex<double>> process(const vector<double> input) {
-    vector<complex<double>> output(mFrameSize, 0);
+  ArrayXcd process(ArrayXd input) {
+    ArrayXcd output = ArrayXcd::Zero(mFrameSize);
     hisstools_rfft(mSetup, input.data(), &mSplit, input.size(), mLog2Size);
     mSplit.realp[mFrameSize - 1] = mSplit.imagp[0];
     mSplit.imagp[mFrameSize - 1] = 0;
     mSplit.imagp[0] = 0;
     for (int i = 0; i < mFrameSize; i++) {
-      output[i] = 0.5 * complex<double>(mSplit.realp[i], mSplit.imagp[i]);
+      output(i) = 0.5 * complex<double>(mSplit.realp[i], mSplit.imagp[i]);
     }
     return output;
   }
