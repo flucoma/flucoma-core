@@ -128,6 +128,8 @@ namespace fluid {
             
         }
 
+
+        
         
         //
         /****
@@ -190,9 +192,10 @@ namespace fluid {
         /**********************************************************
          Copy from a view
          *********************************************************/
-        FluidTensor(FluidTensorView<T,N> x)
+        FluidTensor(FluidTensorView<T,N>& x)
         {
-            m_desc = x.descriptor();
+            m_desc = x.descriptor(); //we get the same size, extent and strides
+            m_desc.start = 0; //but start at 0 now 
             m_container.resize(m_desc.size);
             std::copy(x.begin(),x.end(),m_container.begin());
            
@@ -256,27 +259,14 @@ namespace fluid {
          copies the vector using vector's copy constructor
          ****/
         template <typename U=T,size_t D = N, typename = enable_if_t<D==1>()>
-        FluidTensor(std::vector<T> &input)
+        FluidTensor(std::vector<T>&& input)
         :m_container(input), m_desc(0,{input.size()})
         {}
 
-
-        /***************************************************************
-         global_view: return a FluidTensorView<T,N> giving a view of the whole
-         container
-         ***************************************************************/
- private:
-        const FluidTensorView<T, N> view()const
-        {
-            return {m_desc,data()};
-        }
-//
-        FluidTensorView<T, N> view()
-        {
-            return {m_desc,data()};
-        }
-
-        
+        template <typename U=T,size_t D = N, typename = enable_if_t<D==1>()>
+        FluidTensor(std::vector<T>& input)
+        :m_container(input), m_desc(0,{input.size()})
+        {}
         /***************************************************************
          row(n) / col(n): return a FluidTensorView<T,N-1> (i.e. one dimension
          smaller) along the relevant dim. This feels like strange naming for
@@ -288,16 +278,17 @@ namespace fluid {
          ***************************************************************/
         
    
-    public:
-        FluidTensorView<T,N-1> row(size_t i) const
+        FluidTensorView<T,N-1> row(const size_t i) const
         {
-            FluidTensorSlice<N-1> row = _impl::slice_dim<0>(m_desc, i);
+            assert(i < rows());
+            FluidTensorSlice<N-1> row(m_desc,size_constant<0>(), i);
             return {row,data()};
         }
 
-        FluidTensorView<T,N-1> col(size_t i) const
+        FluidTensorView<T,N-1> col(const size_t i) const
         {
-            FluidTensorSlice<N-1> col = _impl::slice_dim<1>(m_desc, i);
+            assert(i < cols()); 
+            FluidTensorSlice<N-1> col(m_desc,size_constant<1>(), i);
             return {col,data()};
         }
     
@@ -326,14 +317,29 @@ namespace fluid {
          TODO: Wouldn't better slicing syntax be nice? I think Eric Niebler did some work on this as part of the Ranges_V3 library that is set to become part of
          C++20.
          ***************************************************************/
+        
+        
+        T& operator[](const size_t i)
+        {
+            assert(i < m_container.size()); 
+            return m_container[i];
+        }
+        
+        const T& operator[](const size_t i) const
+        {
+            assert(i < m_container.size());
+            return m_container[i];
+        }
+        
+        
         /****
-         Element access operator(), enabled if args can
+         Multisubscript Element access operator(), enabled if args can
         be interpreted as indices (viz convertible to size_t)
          ****/
 
          template<typename... Args>
          enable_if_t<is_index_sequence<Args...>(), T&>
-         operator[](Args... args)
+         operator()(Args... args)
          {
              assert(_impl::check_bounds(m_desc,args...)
                     && "Arguments out of bounds");
@@ -343,12 +349,23 @@ namespace fluid {
         // const version
         template<typename... Args>
         enable_if_t<is_index_sequence<Args...>(),const T&>
-        operator[](Args... args) const
+        operator()(Args... args) const
         {
             assert(_impl::check_bounds(m_desc,args...)
                    && "Arguments out of bounds");
             return *(data() + m_desc(args...));
         }
+//        
+//        /**
+//         implicit cast to view
+//         **/
+//        operator FluidTensorView<T, N>() const
+//        {
+//            return {m_desc,data()};
+//        }
+        
+        
+        
 //
 //
 //
@@ -364,8 +381,9 @@ namespace fluid {
         operator()(const Args&... args) const
         {
             static_assert(sizeof...(Args)==N,"Number of slices must match number of dimensions. Use an integral constant to represent the whole of a dimension,e.g. matrix(1,slice(0,10)).");
-            FluidTensorSlice<N> d;
-            d.start = _impl::do_slice(m_desc, d,args...);
+//            FluidTensorSlice<N> d;
+//            d.start = _impl::do_slice(m_desc, d,args...);
+            FluidTensorSlice<N> d {m_desc, args...};
             return {d,data()};
         }
         /************************************
@@ -425,6 +443,11 @@ namespace fluid {
             m_container.resize(m_desc.size,0);
         }
         
+        void fill(T v)
+        {
+            std::fill(m_container.begin(), m_container.end(), v); 
+        }
+        
         template <typename F>
         FluidTensor& apply(F f)
         {
@@ -440,7 +463,9 @@ namespace fluid {
         FluidTensor& apply(M m, F f)
         {
             //TODO: ensure same size? Ot take min?
-            assert(m.descriptor().extents == m_desc.extents);
+
+            //assert(m.descriptor().extents == m_desc.extents);
+            same_extents(*this, m);
 
             auto i = begin();
             auto j = m.begin();
@@ -538,8 +563,13 @@ namespace fluid {
         //Actually, is this a bad idea? We probably want
         //different move and copy behaviour
         
-        FluidTensorView& operator=(FluidTensorView x)
+        FluidTensorView& operator=(const FluidTensorView x)
         {
+            
+            assert(same_extents(m_desc, x.descriptor()));
+            
+//            std::move(x.begin(), x.end(),begin());
+            
 //            swap(*this, other);
             std::array<size_t,N> a;
 
@@ -559,12 +589,38 @@ namespace fluid {
 
             return *this;
         }
+        
+        
+//        const FluidTensorView& operator=(const FluidTensorView x) const
+//        {
+//            //            swap(*this, other);
+//            std::array<size_t,N> a;
+//
+//            //Get the element-wise minimum of our extents and x's
+//            std::transform(m_desc.extents.begin(), m_desc.extents.end(), x.descriptor().extents.begin(), a.begin(), [](size_t a, size_t b){return std::min(a,b);});
+//
+//            size_t count = std::accumulate(a.begin(), a.end(), 1, std::multiplies<size_t>());
+//
+//            //Have to do this because haven't implemented += for slice iterator (yet),
+//            //so can't stop at arbitary offset from begin
+//            auto it = x.begin();
+//            auto ot = begin();
+//            for(int i = 0; i < count; ++i,++it,++ot)
+//                *ot = *it;
+//
+//            //            std::copy(x.begin(),stop,begin());
+//
+//            return *this;
+//        }
 
         template <typename U>
-        FluidTensorView& operator=(FluidTensorView<U,N> x)
+        FluidTensorView& operator=(const FluidTensorView<U,N> x)
         {
             //            swap(*this, other);
             static_assert(std::is_convertible<T,U>(),"Can't convert between types");
+            
+            assert(same_extents(m_desc, x.descriptor()));
+            
             std::array<size_t,N> a;
             
             //Get the element-wise minimum of our extents and x's
@@ -588,28 +644,28 @@ namespace fluid {
         //Assign from FluidTensor = copy
         //Respect the existing extents, rather than the FluidTensor's
         
-        template <typename U>
-        FluidTensorView& operator=(FluidTensor<U,N>& x)
-        {
-            static_assert(std::is_convertible<T,U>(),"Can't convert between types");
-            std::array<size_t,N> a;
-
-            //Get the element-wise minimum of our extents and x's
-            std::transform(m_desc.extents.begin(), m_desc.extents.end(), x.descriptor().extents.begin(), a.begin(), [](size_t a, size_t b){return std::min(a,b);});
-
-            size_t count = std::accumulate(a.begin(), a.end(), 1, std::multiplies<size_t>());
-
-            //Have to do this because haven't implemented += for slice iterator (yet),
-            //so can't stop at arbitary offset from begin
-            auto it = x.begin();
-            auto ot = begin();
-            for(int i = 0; i < count; ++i,++it,++ot)
-                *ot = *it;
-
-            //            std::copy(x.begin(),stop,begin());
-
-            return *this;
-        }
+//        template <typename U>
+//        FluidTensorView& operator=(FluidTensor<U,N>& x)
+//        {
+//            static_assert(std::is_convertible<T,U>(),"Can't convert between types");
+//            std::array<size_t,N> a;
+//
+//            //Get the element-wise minimum of our extents and x's
+//            std::transform(m_desc.extents.begin(), m_desc.extents.end(), x.descriptor().extents.begin(), a.begin(), [](size_t a, size_t b){return std::min(a,b);});
+//
+//            size_t count = std::accumulate(a.begin(), a.end(), 1, std::multiplies<size_t>());
+//
+//            //Have to do this because haven't implemented += for slice iterator (yet),
+//            //so can't stop at arbitary offset from begin
+//            auto it = x.begin();
+//            auto ot = begin();
+//            for(int i = 0; i < count; ++i,++it,++ot)
+//                *ot = *it;
+//
+//            //            std::copy(x.begin(),stop,begin());
+//
+//            return *this;
+//        }
 
 
 
@@ -626,10 +682,7 @@ namespace fluid {
         :m_desc(x.descriptor()), m_ref(x.data())
         {}
 
-        size_t size() const
-        {
-            return m_desc.size;
-        }
+
 
 
         /**********
@@ -671,28 +724,11 @@ namespace fluid {
         operator()(const Args&... args) const
         {
             static_assert(sizeof...(Args)==N,"Number of slices must match number of dimensions. Use an integral constant to represent the whole of a dimension,e.g. matrix(1,slice(0,10)).");
-            FluidTensorSlice<N> d;
-            d.start = _impl::do_slice(m_desc, d,args...);
-            return {d,data()};
+            FluidTensorSlice<N> d {m_desc, args...};
+            //d.start = _impl::do_slice(m_desc, d,args...);
+            return {d,m_ref};
         }
-
-
-//        template<typename... Args> //TODO type-checking voodoo a la Stroustrup
-//        T& operator()(Args... args)
-//        {
-//            assert(_impl::check_bounds(m_desc, args...)
-//                   && "Bounds out of range");
-//            return *(data() + m_desc(args...));
-//        }
-//
-//        template<typename... Args> //TODO type-checking voodoo a la Stroustrup
-//        const T& operator()(Args... args) const
-//        {
-//            assert(_impl::check_bounds(m_desc, args...)
-//                   && "Bounds out of range");
-//            return *(data() + m_desc(args...));
-//        }
-
+        
         iterator begin() const
         {
             return {m_desc,m_ref};
@@ -710,13 +746,14 @@ namespace fluid {
 
         FluidTensorView<T,N-1> row(size_t i) const
         {
-            FluidTensorSlice<N-1> row = _impl::slice_dim<0>(m_desc, i);
+            //FluidTensorSlice<N-1> row = _impl::slice_dim<0>(m_desc, i);
+            FluidTensorSlice<N-1> row(m_desc, size_constant<0>(), i);
             return {row,m_ref};
         }
 
         FluidTensorView<T,N-1> col(size_t i) const
         {
-            FluidTensorSlice<N-1> col = _impl::slice_dim<1>(m_desc, i);
+            FluidTensorSlice<N-1> col(m_desc, size_constant<1>(), i);
             return {col,m_ref};
         }
 
@@ -724,9 +761,25 @@ namespace fluid {
         {
             return m_desc.extents[0];
         }
+        
+        size_t cols() const
+        {
+            return order > 1? m_desc.extents[1]: 0; 
+        }
 
+        
+        size_t size() const
+        {
+            return m_desc.size;
+        }
+        
+        void fill(T x) 
+        {
+            std::fill(begin(),end(),x);
+        }
+        
         template <typename F>
-        FluidTensorView& apply(F f)
+        FluidTensorView& apply(F f) //const
         {
             for(auto i = begin(); i!=end(); ++i)
                 f(*i);

@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
 
     //We can nest them for multiple dimenions
     fluid::FluidTensor<double,2> tinit2{{1.0,2.0,3.0},{4,5,6}};
-    std::cout << "Rank : " << tinit2.order << "Dimension 1: " << tinit2.extent(0)<<" Dimensio 2: "<<  tinit2.extent(1) << " Data: "<< tinit2 << '\n';
+    std::cout << "Rank : " << tinit2.order << " Dimension 1: " << tinit2.extent(0)<<" Dimension 2: "<<  tinit2.extent(1) << " Data: "<< tinit2 << '\n';
 
     //Three dimensions....
     fluid::FluidTensor<double, 3> threedee{
@@ -30,12 +30,16 @@ int main(int argc, char* argv[])
 
     //Grab a row:
     auto r1 = tinit2.row(1);
-    std::cout << r1 << '\n';
+    std::cout << "4 5 6?" << r1 << '\n';
 
 
     fluid::FluidTensor<double,1> r2 = tinit2.row(1);
-    tinit2.row(1) = r2(fluid::slice(0,3));
+    std::cout << "1 2 3?" << r1 << '\n';
+    
+    
+    //tinit2.row(1) = r2(fluid::slice(0,3));
     //Initialize with vector
+    std::cout << "tinit2"<<tinit2 << '\n';
     std::vector<double> v{1,2,3};
     fluid::FluidTensor<double,1> bob(v);
     std::cout << bob << '\n';
@@ -61,7 +65,7 @@ int main(int argc, char* argv[])
 
 
     //Map a row
-    using FluidTensorToEigenVector = Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, 1>>;
+    using FluidTensorToEigenVector = Eigen::Map<Eigen::Matrix<double,  1,  Eigen::Dynamic,Eigen::RowMajor>>;
 
     //This is also an eigen map, just looking at a row
     FluidTensorToEigenVector maptorow(r1.data(),r1.rows());
@@ -111,6 +115,7 @@ int main(int argc, char* argv[])
         //use() with integer types to get elements
         assert(c2[i] == twodeecee[i][col_offset]);
     }
+    std::cout << "Col 3: " << c2 << '\n'; 
 
     //Free memory from double**, we're done with it
     for(int i = 0; i < x; ++i)
@@ -124,11 +129,13 @@ int main(int argc, char* argv[])
 
     //Take three values from column above, with a stride of 2, offset of 0 and
     //copy to to the begning of the first row of our blank tensor
-    copy_col.row(0) = c2(fluid::slice(0,3,2));
+    copy_col.row(0)(fluid::slice(0,3)) = c2(fluid::slice(0,3,2));
 
+    fluid::FluidTensorView<double,1> aa = c2(fluid::slice(0,3,2));
+    
     std::cout<<"Original column " << c2 <<'\n';
 
-    std::cout<<"Sub-column " << c2(fluid::slice(0,3,2)) <<'\n';
+    std::cout<<"Sub-column " << aa[0] <<'\n';
 
     std::cout<<"Copied to row " << copy_col <<'\n';
 
@@ -252,4 +259,14 @@ int main(int argc, char* argv[])
     //we want it to be small, kthx
     std::cout << "Difference summed " << sum_of_diff << '\n';
 
+    double* interleave = new double[100];
+    
+    std::iota(interleave, interleave+100,0);
+    
+    //Test for assumption about reading from interleaved structure (e.g multichannel buffers in max and sc) 
+    fluid::FluidTensorView<double,2> interT = fluid::FluidTensorView<double,2>({0,{50,2}},interleave);
+    
+    std::cout << interT.col(0) << '\n';
+    
+    
 }

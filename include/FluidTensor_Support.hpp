@@ -73,7 +73,10 @@
     {
         return b || Some(args...);
     }
-    
+
+
+
+
     /****
      Convinience constraint for determining if a arg list can be treated as a set of
      slice specifications. If there is at least once slice instance, and possibly a
@@ -112,7 +115,11 @@
     template <typename Iterator, typename IteratorTag>
     using IsIteratorType = std::is_base_of<IteratorTag,
     typename std::iterator_traits<Iterator>::iterator_category>;
-    
+
+    //Alias integral_constant<size_t,N>
+    template <std::size_t N>
+        using size_constant = std::integral_constant<std::size_t, N>;
+
     namespace _impl{
         /****************************************************
          * Helper templates for the container. Put into _impl namespace to make clear that these are internal
@@ -202,76 +209,77 @@
             return a;
         }
         
-        /*********
-         Makes a new FluidTensorSlice based on offsetting into an existing one
-         *********/
-        template<size_t D, size_t N>
-        fluid::FluidTensorSlice<N-1> slice_dim(const fluid::FluidTensorSlice<N>& inp,size_t idx)
-        {
-            static_assert(D<=N, "Requested dimension too big");
-            
-            fluid::FluidTensorSlice<N-1> r;
-            r.size = inp.size / inp.extents[D];
-            r.start = inp.start + idx * inp.strides[D];
-            auto i = std::copy_n(inp.extents.begin(),D,r.extents.begin());
-            std::copy_n(inp.extents.begin() + D + 1, N-D-1,i);
-            auto j = std::copy_n(inp.strides.begin(),D,r.strides.begin());
-            std::copy_n(inp.strides.begin() + D + 1, N-D-1,j);
-            return r;
-        }
-        
-        /************************************************
-         do_slice_dim does the hard work in making an arbitary
-         new slice from an existing one, used by the operator()
-         of FluidTensor and FluidRensorView. These are called by
-         do_slice, immediately below
-         ************************************************/
-        template<size_t N, size_t M>
-        size_t do_slice_dim(const fluid::FluidTensorSlice<M>& original_slice, fluid::FluidTensorSlice<M>& new_slice, size_t n)
-        {
-            return do_slice_dim<N>(new_slice, fluid::slice(n, 1, 1));
-        }
-        
-        template<size_t N, size_t M, typename T>
-        size_t do_slice_dim(const fluid::FluidTensorSlice<M>& original_slice, fluid::FluidTensorSlice<M>& new_slice, const T& s)
-        {
-            fluid::slice reformed(s);
-            if(reformed.start >= original_slice.extents[N])
-                reformed.start = 0;
-            
-            if(reformed.length > original_slice.extents[N] || reformed.start + reformed.length > original_slice.extents[N])
-                reformed.length = original_slice.extents[N] - reformed.start;
-            
-            if(reformed.start + reformed.length * reformed.stride > original_slice.extents[N])
-                reformed.length = ((original_slice.extents[N] - reformed.start) + reformed.stride -1) / reformed.stride;
-            
-            new_slice.extents[N] = reformed.length;
-            new_slice.strides[N] = original_slice.strides[N] * reformed.stride;
-            new_slice.size = new_slice.extents[0] * new_slice.strides[0];
-            return reformed.start * original_slice.strides[N];
-        }
-        
-        /************************************************
-         do_slice recursively populates a new slice from
-         an old one, based on some variable number of slicing
-         args (that should match the number of dimensions of the
-         container or ref at hand.
-         ************************************************/
-        //Terminating conidition
-        template<size_t N>
-        size_t do_slice(const fluid::FluidTensorSlice<N>& os, fluid::FluidTensorSlice<N>& ns)
-        {
-            return 0;
-        }
-        //Recursion. Works out the offset for a dimension,
-        //and calls again, for the next dimension
-        template<size_t N, typename T, typename ...Args>
-        size_t do_slice(const fluid::FluidTensorSlice<N>& os, fluid::FluidTensorSlice<N>& ns, const T& s, const Args&... args)
-        {
-            size_t m = do_slice_dim<N - sizeof...(Args) - 1>(os, ns, s);
-            size_t n = do_slice(os, ns, args...);
-            return n+m;
-        }
+//        /*********
+//         Makes a new FluidTensorSlice based on offsetting into an existing one
+//         *********/
+//        template<size_t D, size_t N>
+//        fluid::FluidTensorSlice<N-1> slice_dim(const fluid::FluidTensorSlice<N>& inp,size_t idx)
+//        {
+//            static_assert(D<=N, "Requested dimension too big");
+//
+//            fluid::FluidTensorSlice<N-1> r;
+//            r.size = inp.size / inp.extents[D];
+//            r.start = inp.start + idx * inp.strides[D];
+//            auto i = std::copy_n(inp.extents.begin(),D,r.extents.begin());
+//            std::copy_n(inp.extents.begin() + D + 1, N-D-1,i);
+//            auto j = std::copy_n(inp.strides.begin(),D,r.strides.begin());
+//            std::copy_n(inp.strides.begin() + D + 1, N-D-1,j);
+//            return r;
+//        }
+//
+//        /************************************************
+//         do_slice_dim does the hard work in making an arbitary
+//         new slice from an existing one, used by the operator()
+//         of FluidTensor and FluidRensorView. These are called by
+//         do_slice, immediately below
+//         ************************************************/
+//        template<size_t N, size_t M>
+//        size_t do_slice_dim(const fluid::FluidTensorSlice<M>& original_slice, fluid::FluidTensorSlice<M>& new_slice, size_t n)
+//        {
+//            return do_slice_dim<N>(new_slice, fluid::slice(n, 1, 1));
+//        }
+//
+//        template<size_t N, size_t M, typename T>
+//        size_t do_slice_dim(const fluid::FluidTensorSlice<M>& original_slice, fluid::FluidTensorSlice<M>& new_slice, const T& s)
+//        {
+//            fluid::slice reformed(s);
+//            if(reformed.start >= original_slice.extents[N])
+//                reformed.start = 0;
+//
+//            if(reformed.length > original_slice.extents[N] || reformed.start + reformed.length > original_slice.extents[N])
+//                reformed.length = original_slice.extents[N] - reformed.start;
+//
+//            if(reformed.start + reformed.length * reformed.stride > original_slice.extents[N])
+//                reformed.length = ((original_slice.extents[N] - reformed.start) + reformed.stride -1) / reformed.stride;
+//
+//            new_slice.extents[N] = reformed.length;
+//            new_slice.strides[N] = original_slice.strides[N] * reformed.stride;
+//            new_slice.size = new_slice.extents[0] * new_slice.strides[0];
+//            return reformed.start * original_slice.strides[N];
+//        }
+//
+//        /************************************************
+//         do_slice recursively populates a new slice from
+//         an old one, based on some variable number of slicing
+//         args (that should match the number of dimensions of the
+//         container or ref at hand.
+//         ************************************************/
+//        //Terminating conidition
+//        template<size_t N>
+//        size_t do_slice(const fluid::FluidTensorSlice<N>& os, fluid::FluidTensorSlice<N>& ns)
+//        {
+//            return 0;
+//        }
+//        //Recursion. Works out the offset for a dimension,
+//        //and calls again, for the next dimension
+//        template<size_t N, typename T, typename ...Args>
+//        size_t do_slice(const fluid::FluidTensorSlice<N>& os, fluid::FluidTensorSlice<N>& ns, const T& s, const Args&... args)
+//        {
+//            //<N - sizeof...(Args) - 1>
+//            size_t m = do_slice_dim<N - sizeof...(Args) - 1>(os, ns, s);
+//            size_t n = do_slice(os, ns, args...);
+//            return n+m;
+//        }
         
         
         /**
@@ -514,6 +522,7 @@
     template <size_t N>
     struct FluidTensorSlice
     {
+        static constexpr std::size_t order = N;
         //Standard constructors
         FluidTensorSlice() = default;
         //Copy
@@ -554,6 +563,19 @@
         //        }
         
         
+        template <std::size_t M, typename T, std::size_t D>
+        FluidTensorSlice(const FluidTensorSlice<M>& s,
+                                      std::integral_constant<T, D>,
+                                      std::size_t n)
+        : size(s.size / s.extents[D]), start(s.start + n * s.strides[D])
+        {
+            static_assert(D <= N, "");
+            static_assert(N < M, "");
+            // Copy the extetns and strides, excluding the Dth dimension.
+            std::copy_n(s.extents.begin() + D + 1, N - D, std::copy_n(s.extents.begin(), D, extents.begin()));
+            std::copy_n(s.strides.begin() + D + 1, N - D, std::copy_n(s.strides.begin(), D, strides.begin()));
+        }
+        
         //Construct from a start point and an initializer_list of dimensions
         //e.g  FluidTensorSlice<2> my_slice<2>(s, {3,4}).
         //The number of dimenions given needs
@@ -589,6 +611,13 @@
             static_assert(sizeof...(Dims) == N, "Number of arguments must match matrix dimensions");
             extents={{size_t(dims)...}};
             init();
+        }
+       
+        template<size_t M, typename... Args>
+        FluidTensorSlice(FluidTensorSlice<M> s,const Args... args)
+        {
+            start = s.start + do_slice(s,args...);
+            size = extents[0] * strides[0]; 
         }
         
         
@@ -667,6 +696,76 @@
                 strides[i - 1] = strides[i] * extents[i];
             size = extents[0] * strides[0];
         }
+        
+        /************************************************
+         do_slice_dim does the hard work in making an arbitary
+         new slice from an existing one, used by the operator()
+         of FluidTensor and FluidRensorView. These are called by
+         do_slice, immediately below
+         ************************************************/
+        template<size_t D, size_t M>
+        size_t do_slice_dim(const fluid::FluidTensorSlice<M>& new_slice, size_t n)
+        {
+            return do_slice_dim<D>(new_slice, fluid::slice(n, 1, 1));
+        }
+        
+        template<size_t D, size_t M>
+        size_t do_slice_dim(const fluid::FluidTensorSlice<M>& ns, slice s)
+        {
+            
+            if(s.start >= ns.extents[D])
+                s.start = 0;
+            
+            if(s.length > ns.extents[D] || s.start + s.length > ns.extents[D])
+                s.length = ns.extents[D] - s.start;
+            
+            if(s.start + s.length * s.stride > ns.extents[D])
+                s.length = ((ns.extents[D] - s.start) + s.stride -1) / s.stride;
+            
+            extents[D] = s.length;
+            strides[D] = ns.strides[D] * s.stride;
+            size = extents[0] * strides[0];
+            return s.start * ns.strides[D];
+        }
+        
+        /************************************************
+         do_slice recursively populates a new slice from
+         an old one, based on some variable number of slicing
+         args (that should match the number of dimensions of the
+         container or ref at hand.
+         ************************************************/
+        //Terminating conidition
+        template<size_t M>
+        size_t do_slice(const fluid::FluidTensorSlice<M>& os)
+        {
+            return 0;
+        }
+        //Recursion. Works out the offset for a dimension,
+        //and calls again, for the next dimension
+        template<size_t M, typename T, typename ...Args>
+        size_t do_slice(const fluid::FluidTensorSlice<M>& ns, const T& s, const Args&... args)
+        {
+            constexpr size_t D = N - sizeof...(Args) - 1;
+            size_t m = do_slice_dim<D>(ns, s);
+            size_t n = do_slice(ns, args...);
+            return n+m;
+        }
+        
     };
+
+template<std::size_t N>
+    inline bool same_extents(const FluidTensorSlice<N>& a, const FluidTensorSlice<N>& b)
+{
+    return a.order == b.order &&
+    std::equal(a.extents.begin(), a.extents.begin() + N, b.extents.begin());
+}
+
+template <typename M1, typename M2>
+inline bool same_extents(const M1& a, const M2& b)
+{
+    return same_extents(a.descriptor(), b.descriptor()); 
+}
+
+
 
 
