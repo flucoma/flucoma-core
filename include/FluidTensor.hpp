@@ -110,7 +110,7 @@ namespace fluid {
          ***********************************/
         template <typename U, size_t M>
         FluidTensor(const FluidTensor<U,M>& x)
-        :m_container(x.begin(),x.end()),m_desc(x.descriptor())
+        :m_container(x.size()),m_desc(x.descriptor())
         {
             static_assert(std::is_convertible<U,T>(),"Cannot convert between container value types");
             
@@ -120,7 +120,7 @@ namespace fluid {
         
         template <typename U, size_t M>
         FluidTensor(const FluidTensorView<U,M>& x)
-        :m_container(x.begin(),x.end()),m_desc(x.descriptor())
+        :m_container(x.size()),m_desc(0,x.descriptor().extents)
         {
             static_assert(std::is_convertible<U,T>(),"Cannot convert between container value types");
             
@@ -319,16 +319,16 @@ namespace fluid {
          ***************************************************************/
         
         
-        T& operator[](const size_t i)
+        FluidTensorView<T, N-1> operator[](const size_t i)
         {
-            assert(i < m_container.size()); 
-            return m_container[i];
+//            assert(i < m_container.size());
+            return row(i);
         }
         
-        const T& operator[](const size_t i) const
+        const FluidTensorView<T, N-1> operator[](const size_t i) const
         {
-            assert(i < m_container.size());
-            return m_container[i];
+//            assert(i < m_container.size());
+            return row(i);
         }
         
         
@@ -513,8 +513,13 @@ namespace fluid {
 
         FluidTensor(const T& x):elem(x){}
         FluidTensor& operator=(const T& value){elem = value; return this;}
-
-        T& operator()() const {return elem;}
+        operator T&() {return elem;}
+        operator const T&() const {
+            
+            return elem;}
+        
+        T& operator()() {return elem;}
+        const T& operator()() const {return elem;}
         size_t size() const {return 1;}
     private:
         T elem;
@@ -698,7 +703,7 @@ namespace fluid {
          ****/
         template<typename... Args>
         enable_if_t<is_index_sequence<Args...>(),const T&>
-        operator[](Args... args) const
+        operator()(Args... args) const
         {
             assert(_impl::check_bounds(m_desc,args...)
                    && "Arguments out of bounds");
@@ -707,7 +712,7 @@ namespace fluid {
         
         template<typename... Args>
         enable_if_t<is_index_sequence<Args...>(),T&>
-        operator[](Args... args)
+        operator()(Args... args)
         {
             assert(_impl::check_bounds(m_desc,args...)
                    && "Arguments out of bounds");
@@ -744,15 +749,29 @@ namespace fluid {
             return m_desc.extents[n];
         }
 
+        FluidTensorView<T,N-1> operator[](const size_t i)
+        {
+            
+            return row(i);
+        }
+        
+        const FluidTensorView<T,N-1> operator[](const size_t i) const
+        {
+            
+            return row(i);
+        }
+        
         FluidTensorView<T,N-1> row(size_t i) const
         {
             //FluidTensorSlice<N-1> row = _impl::slice_dim<0>(m_desc, i);
+            assert(i < extent(0));
             FluidTensorSlice<N-1> row(m_desc, size_constant<0>(), i);
             return {row,m_ref};
         }
 
         FluidTensorView<T,N-1> col(size_t i) const
         {
+            assert(i < extent(1));
             FluidTensorSlice<N-1> col(m_desc, size_constant<1>(), i);
             return {col,m_ref};
         }
@@ -843,7 +862,8 @@ namespace fluid {
 
         FluidTensorView() = delete;
 
-        FluidTensorView(const FluidTensorSlice<0>& s, pointer x):elem(x + s.start){}
+        FluidTensorView(const FluidTensorSlice<0>& s, pointer x):elem(x + s.start),m_start(s.start)
+        {}
 
         FluidTensorView& operator=(reference x)
         {
@@ -851,8 +871,11 @@ namespace fluid {
             return *this;
         }
 
-        value_type operator()()const {return *elem;}
+        value_type operator()(){return *elem;}
+        const T& operator()() const {return *elem;}
+        
         operator T&() {return *elem;};
+        operator const T&() const {return *elem;}
 
         friend std::ostream& operator<<(std::ostream& o, const FluidTensorView& t)
         {
@@ -861,6 +884,7 @@ namespace fluid {
         }
     private:
         pointer elem;
+        size_t m_start;
     };//View<T,0>
 
 } //namespace fluid

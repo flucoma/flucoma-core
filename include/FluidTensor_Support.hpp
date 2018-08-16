@@ -680,10 +680,10 @@
             return !(*this == rhs);
         }
         
-        size_t size; //num of elements
-        size_t start=0; //offset
-        std::array<size_t,N> extents; //number of elements in each dimension
-        std::array<size_t,N> strides; //offset between elements in each dimension
+        std::size_t size; //num of elements
+        std::size_t start=0; //offset
+        std::array<std::size_t,N> extents; //number of elements in each dimension
+        std::array<std::size_t,N> strides; //offset between elements in each dimension
         
     private:
         //No point calling this before extents have been filled
