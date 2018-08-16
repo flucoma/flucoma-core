@@ -51,8 +51,8 @@ using FluidToMatrixXcd = EigenMatrixMap<complex<double>, Matrix>;
 using MatrixXdToFluid = FluidMatrixMap<double, Matrix>;
 using MatrixXcdToFluid = FluidMatrixMap<complex<double>, Matrix>;
 
-using FluidToArrayXd = EigenMatrixMap<double, Array>;
-using FluidToArrayXcd = EigenMatrixMap<complex<double>, Array>;
+using FluidToArrayXXd = EigenMatrixMap<double, Array>;
+using FluidToArrayXXcd = EigenMatrixMap<complex<double>, Array>;
 using ArrayXXdToFluid = FluidMatrixMap<double, Array>;
 using ArrayXXcdToFluid = FluidMatrixMap<complex<double>, Array>;
 

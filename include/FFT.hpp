@@ -28,7 +28,7 @@ public:
       delete[] mSplit.imagp;
   }
 
-  ArrayXcd process(ArrayXd input) {
+  ArrayXcd process(const ArrayXd &input) {
     ArrayXcd output = ArrayXcd::Zero(mFrameSize);
     hisstools_rfft(mSetup, input.data(), &mSplit, input.size(), mLog2Size);
     mSplit.realp[mFrameSize - 1] = mSplit.imagp[0];
@@ -51,8 +51,8 @@ protected:
 class IFFT : FFT {
 public:
   IFFT(size_t size): FFT(size){}
-  vector<double> process(const vector<complex<double>> input) {
-    vector<double> output(mSize, 0);
+  ArrayXd process(const ArrayXcd &input) {
+    ArrayXd output = ArrayXd::Zero(mSize);
     for (int i = 0; i < input.size(); i++) {
       mSplit.realp[i] = input[i].real();
       mSplit.imagp[i] = input[i].imag();

@@ -12,11 +12,11 @@
 namespace fluid {
 namespace stft {
 
+using Eigen::ArrayXd;
+using Eigen::ArrayXXcd;
 using Eigen::Map;
 using Eigen::MatrixXcd;
 using Eigen::MatrixXd;
-using Eigen::ArrayXd;
-using Eigen::ArrayXcd;
 
 using fft::FFT;
 using fft::IFFT;
@@ -25,13 +25,13 @@ using windows::windowFuncs;
 using windows::WindowType;
 
 using ComplexMatrix = FluidTensor<std::complex<double>, 2>;
-using ComplexVector = FluidTensor<std::complex<double>, 1>;
 using RealMatrix = FluidTensor<double, 2>;
 using RealVector = FluidTensor<double, 1>;
 
+using fluid::eigenmappings::FluidToArrayXXcd;
 using fluid::eigenmappings::FluidToMatrixXcd;
-using fluid::eigenmappings::MatrixXdToFluid;
 using fluid::eigenmappings::MatrixXcdToFluid;
+using fluid::eigenmappings::MatrixXdToFluid;
 
 struct Spectrogram {
   ComplexMatrix mData;
@@ -52,21 +52,22 @@ class STFT {
 public:
   STFT(size_t windowSize, size_t fftSize, size_t hopSize)
       : mWindowSize(windowSize), mHopSize(hopSize), mFrameSize(fftSize / 2 + 1),
-        mWindow(windowFuncs[WindowType::Hann](windowSize).data(), mWindowSize),
-        mFFT(fftSize) {}
+        mFFT(fftSize) {
+    mWindow = Map<ArrayXd>(windowFuncs[WindowType::Hann](mWindowSize).data(),
+                           mWindowSize);
+  }
 
-  Spectrogram process(const RealVector audio) {
+  Spectrogram process(const RealVector &audio) {
     int halfWindow = mWindowSize / 2;
     mWorkBuf = std::vector<double>(mWindowSize, 0);
-    RealVector padded(audio.size() + mWindowSize + mHopSize);
-    padded(slice(halfWindow, audio.size())) = audio;
+    ArrayXd padded(audio.size() + mWindowSize + mHopSize);
+    padded.segment(halfWindow, audio.size()) =
+        Map<ArrayXd>(audio.data(), audio.size());
     int nFrames = floor((padded.size() - mWindowSize) / mHopSize);
     MatrixXcd result(nFrames, mFrameSize);
     for (int i = 0; i < nFrames; i++) {
-      int start = i * mHopSize;
-      int end = start + mWindowSize;
-      Map<ArrayXd> tmp (padded(slice(start, end, 1)).data(), mWindowSize);
-      result.row(i) = mFFT.process(tmp * mWindow).matrix();
+      result.row(i) =
+          mFFT.process(padded.segment(i * mHopSize, mWindowSize) * mWindow);
     }
     return ComplexMatrix(MatrixXcdToFluid(result)());
   }
@@ -75,57 +76,47 @@ private:
   size_t mWindowSize;
   size_t mHopSize;
   size_t mFrameSize;
-  Map<ArrayXd> mWindow;
+  ArrayXd mWindow;
   std::vector<double> mWorkBuf;
   FFT mFFT;
-
-  /*ComplexVector processFrame(const RealVector &frame) {
-    for (int i = 0; i < mWindowSize; i++) {
-      mWorkBuf[i] = frame[i] * mWindow[i];
-    }
-    std::vector<std::complex<double>> spectrum = mFFT.process(mWorkBuf);
-    return ComplexVector(spectrum);
-  }*/
 };
 
 class ISTFT {
 public:
   ISTFT(size_t windowSize, size_t fftSize, size_t hopSize)
       : mWindowSize(windowSize), mHopSize(hopSize), mFrameSize(fftSize / 2 + 1),
-        mWindow(windowFuncs[WindowType::Hann](windowSize)),
-        mScale(1 / double(fftSize)), mIFFT(fftSize) {}
+        mScale(1 / double(fftSize)), mIFFT(fftSize) {
+    mWindow = Map<ArrayXd>(windowFuncs[WindowType::Hann](mWindowSize).data(),
+                           mWindowSize);
+  }
 
   RealVector process(const Spectrogram &spec) {
+    const auto &epsilon = std::numeric_limits<double>::epsilon;
     int halfWindow = mWindowSize / 2;
     int outputSize = mWindowSize + (spec.nFrames() - 1) * mHopSize;
     outputSize += mWindowSize + mHopSize;
-    std::vector<double> outputPadded(outputSize, 0);
-    std::vector<double> norm(outputSize, 0);
-
+    ArrayXXcd specData = FluidToArrayXXcd(spec.mData)();
+    ArrayXd outputPadded = ArrayXd::Zero(outputSize);
+    ArrayXd norm = ArrayXd::Zero(outputSize);
     for (int i = 0; i < spec.nFrames(); i++) {
-      std::vector<std::complex<double>> tmp(
-          spec.mData.row(i).data(), spec.mData.row(i).data() + mFrameSize);
-      std::vector<double> frame = mIFFT.process(tmp);
-      for (int j = 0; j < mWindowSize; j++) {
-        outputPadded[i * mHopSize + j] += frame[j] * mScale * mWindow[j];
-        norm[i * mHopSize + j] += mWindow[j] * mWindow[j];
-      }
+      ArrayXd frame = mIFFT.process(specData.row(i));
+      outputPadded.segment(i * mHopSize, mWindowSize) +=
+          frame * mScale * mWindow;
+      norm.segment(i * mHopSize, mWindowSize) += mWindow * mWindow;
     }
-    std::transform(norm.begin(), norm.end(), norm.begin(),
-                   [](double x) { return x < 1e-10 ? 1 : x; });
-    for (int i = 0; i < outputSize; i++) {
-      outputPadded[i] /= norm[i];
-    }
-    std::vector<double> result(outputPadded.begin() + halfWindow,
-                               outputPadded.end() - halfWindow - mHopSize);
-    return RealVector(result);
+    outputPadded = outputPadded / norm.max(epsilon());
+    return RealVector(
+        outputPadded
+            .segment(halfWindow, outputPadded.size() - halfWindow - mHopSize)
+            .data(),
+        outputSize);
   }
 
 private:
   size_t mWindowSize;
   size_t mHopSize;
   size_t mFrameSize;
-  std::vector<double> mWindow;
+  ArrayXd mWindow;
   double mScale;
   IFFT mIFFT;
 };
