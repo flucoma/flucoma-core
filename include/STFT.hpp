@@ -109,7 +109,7 @@ public:
         outputPadded
             .segment(halfWindow, outputPadded.size() - halfWindow - mHopSize)
             .data(),
-        outputSize);
+        outputSize - halfWindow - mHopSize);
   }
 
 private:
