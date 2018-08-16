@@ -41,10 +41,10 @@ int main(int argc, char *argv[]) {
 
   AudioFileData data = readFile(argv[1]);
   int nBins = 1025;
-  int fftSize = (2 * nBins) - 1;
+  int fftSize = 2 * (nBins - 1) ;
   int hopSize = 128;
   int rank = std::stoi(argv[2]);
-  int windowSize = 1024;
+  int windowSize = 2048;
   STFT stft(windowSize, fftSize, hopSize);
   ISTFT istft(windowSize, fftSize, hopSize);
   NMF nmfProcessor(rank, 100);
