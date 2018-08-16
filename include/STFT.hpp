@@ -53,6 +53,7 @@ public:
 
   Spectrogram process(const RealVector audio) {
     int halfWindow = mWindowSize / 2;
+    mWorkBuf = std::vector<double>(mWindowSize, 0);
     RealVector padded(audio.size() + mWindowSize + mHopSize);
     padded(slice(halfWindow, audio.size())) = audio;
     int nFrames = floor((padded.size() - mWindowSize) / mHopSize);
@@ -72,14 +73,14 @@ private:
   size_t mHopSize;
   size_t mFrameSize;
   std::vector<double> mWindow;
+  std::vector<double> mWorkBuf;
   FFT mFFT;
 
   ComplexVector processFrame(const RealVector &frame) {
-    std::vector<double> tmp(frame.size(), 0);
     for (int i = 0; i < mWindowSize; i++) {
-      tmp[i] = frame[i] * mWindow[i];
+      mWorkBuf[i] = frame[i] * mWindow[i];
     }
-    std::vector<std::complex<double>> spectrum = mFFT.process(tmp);
+    std::vector<std::complex<double>> spectrum = mFFT.process(mWorkBuf);
     return ComplexVector(spectrum);
   }
 };
