@@ -99,9 +99,8 @@ public:
     ArrayXd outputPadded = ArrayXd::Zero(outputSize);
     ArrayXd norm = ArrayXd::Zero(outputSize);
     for (int i = 0; i < spec.nFrames(); i++) {
-      ArrayXd frame = mIFFT.process(specData.row(i));
-      outputPadded.segment(i * mHopSize, mWindowSize) +=
-          frame * mScale * mWindow;
+      ArrayXd frame = mIFFT.process(specData.row(i)).segment(0, mWindowSize);
+      outputPadded.segment(i * mHopSize, mWindowSize) += frame * mScale * mWindow;
       norm.segment(i * mHopSize, mWindowSize) += mWindow * mWindow;
     }
     outputPadded = outputPadded / norm.max(epsilon());
