@@ -20,8 +20,8 @@ int main(int argc, char* argv[])
   }
 
   AudioFileData data = readFile(argv[1]);
-  STFT stft (1024, 1024, 128);
-  ISTFT istft (1024, 1024, 128);
+  STFT stft (1024, 2048, 128);
+  ISTFT istft (1024, 2048, 128);
   fluid::FluidTensor<double, 1> in(data.audio[0]);
   Spectrogram spec = stft.process(in);
   fluid::FluidTensor<double, 1> out = istft.process(spec);
