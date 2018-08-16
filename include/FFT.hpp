@@ -20,9 +20,9 @@ public:
 
   ~FFT() {
     if (mSplit.realp)
-      delete mSplit.realp;
+      delete[] mSplit.realp;
     if (mSplit.imagp)
-      delete mSplit.imagp;
+      delete[] mSplit.imagp;
   }
 
   vector<complex<double>> process(const vector<double> input) {
