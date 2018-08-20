@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
     std::cout << "4 5 6?" << r1 << '\n';
 
 
-    fluid::FluidTensor<double,1> r2 = tinit2.row(1);
+    fluid::FluidTensor<double,1> r2(tinit2.row(1));
     std::cout << "1 2 3?" << r1 << '\n';
     
     
@@ -146,7 +146,7 @@ int main(int argc, char* argv[])
     auto sli = twodee_test(3,fluid::slice(offset, len));
     std::cout << " Slice, start at 5, length 5, start from row 3 " << sli << '\n';
     //Slice from row zero, column 3, lnegth 3 => 10 x 3
-    auto sli2 = twodee_test(0,fluid::slice(3, 3));
+    auto sli2 = twodee_test(fluid::slice(0),fluid::slice(3, 3));
     std::cout << "Slice from row zero, column 3, length 3 => 10 x 3\n" << sli2 << '\n';
     //Slice from row zero to 3, column 3, length 3 => 3 x 3
     auto sli3 = twodee_test(fluid::slice(0, 3),fluid::slice(3, 3));
