@@ -39,7 +39,7 @@ namespace fluid {
      ********************************/
     struct slice
     {
-        static slice all; 
+//        /static constexpr slice all(0, std::size_t(-1),1);
         
         slice()
         :start(-1), length(-1), stride(1)
@@ -58,7 +58,7 @@ namespace fluid {
         size_t stride;
     };
 
-    slice slice::all(0, std::size_t(-1),1); 
+//    slice slice::all(0, std::size_t(-1),1);
     
  
     #include "FluidTensor_Support.hpp"

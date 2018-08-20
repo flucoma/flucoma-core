@@ -53,8 +53,8 @@ namespace fluid{
             
             size_t size = ((offset + blocksize) > buffer_size()) ?  buffer_size() - offset : blocksize ;
             
-            copy_in(x(slice(0,size),slice::all), offset, size);
-            copy_in(x(slice(size,blocksize-size),slice::all), 0, blocksize - size);
+            copy_in(x(slice(0,size),slice(0)), offset, size);
+            copy_in(x(slice(size,blocksize-size),slice(0)), 0, blocksize - size);
         }
         
         template<typename U>
@@ -91,8 +91,8 @@ namespace fluid{
 
             size_t size = (offset + blocksize > buffer_size()) ? buffer_size() - offset : blocksize;
 
-            out(slice(0,size),slice::all) = matrix(slice(offset,size),slice::all);
-            out(slice(size,blocksize-size),slice::all) = matrix(slice(0,blocksize-size),slice::all);
+            out(slice(0,size),slice(0)) = matrix(slice(offset,size),slice(0));
+            out(slice(size,blocksize-size),slice(0)) = matrix(slice(0,blocksize-size),slice(0));
         }
         
         /*
@@ -141,7 +141,7 @@ namespace fluid{
         {
             if(size)
             {
-                matrix(slice(offset,size),slice::all) = input;
+                matrix(slice(offset,size),slice(0)) = input;
                 m_counter = offset + size;
             }
         }
@@ -220,8 +220,8 @@ namespace fluid{
 
             size_t size = ((offset + blocksize) > buffer_size()) ? buffer_size() - offset : blocksize;
             
-            add_in(x(slice(0,size),slice::all), offset, size);
-            add_in(x(slice(size,blocksize-size),slice::all), 0, blocksize - size);
+            add_in(x(slice(0,size),slice(0)), offset, size);
+            add_in(x(slice(size,blocksize-size),slice(0)), 0, blocksize - size);
         }
         
         /**
@@ -239,8 +239,8 @@ namespace fluid{
             
             size_t size = offset + blocksize > buffer_size() ? buffer_size() - offset : blocksize;
             
-            out_and_zero(out(slice(0,size),slice::all), offset, size);
-            out_and_zero(out(slice(size,blocksize-size),slice::all), 0, blocksize-size);
+            out_and_zero(out(slice(0,size),slice(0)), offset, size);
+            out_and_zero(out(slice(size,blocksize-size),slice(0)), 0, blocksize-size);
         }
         
         template <typename U>
@@ -291,7 +291,7 @@ namespace fluid{
         {
             if(size)
             {
-                matrix(slice(offset,size),slice::all)
+                matrix(slice(offset,size),slice(0))
                     .apply(in, [](double& x, double y)
                     {
                         x+=y;
@@ -303,7 +303,7 @@ namespace fluid{
         {
             if(size)
             {
-                view_type buf = matrix(slice(offset, size),slice::all);
+                view_type buf = matrix(slice(offset, size),slice(0));
                 view_type output = buf;
                 out = output;
                 buf.fill(0);
@@ -321,7 +321,7 @@ namespace fluid{
                     std::copy(matrix(slice(offset,size),slice(i)).begin(),
                             matrix(slice(offset,size),slice(i)).end(),out[i]);
                 }
-                matrix(slice(offset,size),slice::all).fill(0);
+                matrix(slice(offset,size),slice(0)).fill(0);
                 m_counter = offset + size;
             }
         }
