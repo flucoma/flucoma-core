@@ -89,6 +89,7 @@ namespace fluid {
         static constexpr size_t order = N;
         //expose this so we can use as an iterator over elements
         using iterator = typename std::vector<T>::iterator;
+        using const_iterator = typename std::vector<T>::const_iterator; 
         
 //        FluidTensorView<T,N> global_view;
         
@@ -297,21 +298,21 @@ namespace fluid {
          ***************************************************************/
         
    
-        FluidTensorView<const T,N-1> row(const size_t i) const
+        const FluidTensorView<const T,N-1> row(const size_t i) const
         {
             assert(i < rows());
             FluidTensorSlice<N-1> row(m_desc,size_constant<0>(), i);
-            return {row,data()};
+            return {row,m_container.data()};
         }
         
         FluidTensorView<T,N-1> row(const size_t i)
         {
             assert(i < rows());
             FluidTensorSlice<N-1> row(m_desc,size_constant<0>(), i);
-            return {row,data()};
+            return {row,m_container.data()};
         }
 
-        FluidTensorView<const T,N-1> col(const size_t i) const
+        const FluidTensorView<const T,N-1> col(const size_t i) const
         {
             assert(i < cols()); 
             FluidTensorSlice<N-1> col(m_desc,size_constant<1>(), i);
@@ -358,7 +359,7 @@ namespace fluid {
             return row(i);
         }
         
-        FluidTensorView<const T, N-1> operator[](const size_t i) const
+        const FluidTensorView<T, N-1> operator[](const size_t i) const
         {
 //            assert(i < m_container.size());
             return row(i);
@@ -392,7 +393,7 @@ namespace fluid {
 //        /**
 //         implicit cast to view
 //         **/
-        operator const FluidTensorView<const T, N>() const
+        operator const FluidTensorView<T, N>() const
         {
             return {m_desc,data()};
         }
@@ -442,14 +443,24 @@ namespace fluid {
 
          TODO: const_iterators also?
          ************************************/
-        iterator begin() const
+        iterator begin()
         {
             return m_container.begin();
         }
 
-        iterator end() const
+        iterator end()
         {
             return m_container.end();
+        }
+        
+        const_iterator begin() const
+        {
+            return m_container.cbegin();
+        }
+        
+        const_iterator end() const 
+        {
+            return m_container.cend();
         }
 
         /********************************************
@@ -477,6 +488,7 @@ namespace fluid {
          Reference to internal slice description
          ***********/
         const FluidTensorSlice<N>& descriptor() const { return m_desc; }
+        FluidTensorSlice<N>& descriptor(){ return m_desc; }
         /***********
          Pointer to internal data
          ***********/
@@ -539,12 +551,7 @@ namespace fluid {
             return o;
         }
     private:
-        //TODO: I'm not sure about this. The alternative to having this mutable
-        //(i.e. returns non-const pointer to data()) is having separate non-const and
-        //const accessor for evertything that touches the container.
-        //Strictly, calling row(i) doesn't alter the state of the object, but can now
-        //mess with the contained data all the time. 98
-        mutable container_type m_container;
+        container_type m_container;
         FluidTensorSlice<N> m_desc;
     };
 
@@ -586,11 +593,14 @@ namespace fluid {
     template<typename T,size_t N>
     class FluidTensorView {//: public FluidTensorBase<T,N> {
         static constexpr size_t order = N;
+        
+        using base_type = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
+        
     public:
         /*****
          STL style shorthand
          *****/
-        using pointer = T*;
+        using pointer = T*;        
         using iterator = _impl::SliceIterator<T,N>;
 
         /*****
@@ -756,6 +766,7 @@ namespace fluid {
          Construct from a slice and a pointer. This gets used by
          row() and col() of FluidTensor and FluidTensorView
          **********/
+      
         FluidTensorView(const FluidTensorSlice<N>& s, T* p):m_desc(s), m_ref(p){}
 
 //        /***********
@@ -785,7 +796,7 @@ namespace fluid {
         {
             assert(_impl::check_bounds(m_desc,args...)
                    && "Arguments out of bounds");
-            return *(data() + m_desc(args...));
+            return *(_data() + m_desc(args...));
         }
         
         template<typename... Args>
@@ -794,7 +805,7 @@ namespace fluid {
         {
             assert(_impl::check_bounds(m_desc,args...)
                    && "Arguments out of bounds");
-            return *(data() + m_desc(args...));
+            return *(_data() + m_desc(args...));
         }
         
         
@@ -812,21 +823,43 @@ namespace fluid {
             return {d,m_ref};
         }
         
-        iterator begin() const
+        iterator begin()
+        {
+            return {m_desc,m_ref};
+        }
+        
+        const iterator begin() const
         {
             return {m_desc,m_ref};
         }
 
-        iterator end() const
+        iterator end()
+        {
+            return {m_desc,m_ref,true};
+        }
+        
+        
+        const iterator end() const
         {
             return {m_desc,m_ref,true};
         }
 
-        size_t extent(size_t n) const
+
+        /**
+         Return the size of the nth dimension (0 based)
+         **/
+        size_t extent(const size_t n) const
         {
+            assert(n < m_desc.extents.size());
             return m_desc.extents[n];
         }
 
+        /**
+         [i] is equivalent to i. This overload allows C-style element access
+         (because of the way that the <T,0> case collapses to a scalar),
+         
+         viz. for 2D you can do my_tensorview[i][j]
+         **/
         FluidTensorView<T,N-1> operator[](const size_t i)
         {
             
@@ -839,7 +872,18 @@ namespace fluid {
             return row(i);
         }
         
-        FluidTensorView<T,N-1> row(size_t i) const
+        /**
+         Slices across the first dimension of the view
+         **/
+        const FluidTensorView<T,N-1> row(const size_t i) const
+        {
+            //FluidTensorSlice<N-1> row = _impl::slice_dim<0>(m_desc, i);
+            assert(i < extent(0));
+            FluidTensorSlice<N-1> row(m_desc, size_constant<0>(), i);
+            return {row,m_ref};
+        }
+        
+        FluidTensorView<T,N-1> row(const size_t i)
         {
             //FluidTensorSlice<N-1> row = _impl::slice_dim<0>(m_desc, i);
             assert(i < extent(0));
@@ -847,36 +891,58 @@ namespace fluid {
             return {row,m_ref};
         }
 
-        FluidTensorView<T,N-1> col(size_t i) const
+        /**
+          Slices across the second dimension of the view
+         **/
+        const FluidTensorView<T,N-1> col(const size_t i) const
+        {
+            assert(i < extent(1));
+            FluidTensorSlice<N-1> col(m_desc, size_constant<1>(), i);
+            return {col,m_ref};
+        }
+        
+        FluidTensorView<T,N-1> col(const size_t i)
         {
             assert(i < extent(1));
             FluidTensorSlice<N-1> col(m_desc, size_constant<1>(), i);
             return {col,m_ref};
         }
 
+        //The extent of the first dimension
         size_t rows() const
         {
             return m_desc.extents[0];
         }
         
+        //For order > 1, the extent of the second dimension
         size_t cols() const
         {
             return order > 1? m_desc.extents[1]: 0; 
         }
 
-        
+        //The total number of elements encompassed by this view
         size_t size() const
         {
             return m_desc.size;
         }
         
-        void fill(T x) 
+        //Fill this view with a value
+        void fill(const T x)
         {
             std::fill(begin(),end(),x);
         }
         
+        /**
+         Apply some function to each element of the view.
+         
+         If using a lambda, the general form might be
+         apply([](T& x){ x = ...
+         
+         viz. remember to pass a reference to x, and you don't need to return
+         
+        **/
         template <typename F>
-        FluidTensorView& apply(F f) //const
+        FluidTensorView& apply(F f)
         {
             for(auto i = begin(); i!=end(); ++i)
                 f(*i);
@@ -884,6 +950,8 @@ namespace fluid {
         }
 
         //Passing by value here allows to pass r-values
+        //this tacilty assumes at the moment that M is
+        // a FluidTensor or FluidTensorView. Maybe this should be more explicit
         template <typename M, typename F>
         FluidTensorView& apply(M m, F f)
         {
@@ -897,11 +965,17 @@ namespace fluid {
             return *this;
         }
 
-
-
-        pointer data()     const           { return m_ref + m_desc.start; }
-        FluidTensorSlice<N> descriptor() const {return m_desc;} 
-
+        /**
+         Retreive pointer to underlying data.
+         **/
+        const T* data()  const { return m_ref + m_desc.start; }
+        pointer data() { return m_ref + m_desc.start; }
+        
+        /**
+         Retreive description of View's shape
+         **/
+        const FluidTensorSlice<N> descriptor() const {return m_desc;}
+        FluidTensorSlice<N> descriptor() {return m_desc;}
 
         friend void swap(FluidTensorView& first, FluidTensorView& second)
         {
@@ -909,7 +983,6 @@ namespace fluid {
             swap(first.m_desc, second.m_desc);
             swap(first.m_ref, second.m_ref);
         }
-
 
         friend std::ostream& operator<<( std::ostream& o, const FluidTensorView& t ) {
             o << '[';
@@ -926,6 +999,10 @@ namespace fluid {
             return o;
         }
     private:
+        pointer _data()
+        {
+            return m_ref + m_desc.start;
+        }
         FluidTensorSlice<N> m_desc;
         pointer m_ref;
     };
@@ -935,6 +1012,7 @@ namespace fluid {
     {
     public:
         using value_type = T;
+        using const_value_type = const T;
         using pointer = T*;
         using reference = T&;
 
@@ -943,17 +1021,17 @@ namespace fluid {
         FluidTensorView(const FluidTensorSlice<0>& s, pointer x):elem(x + s.start),m_start(s.start)
         {}
 
-        FluidTensorView& operator=(reference x)
+        FluidTensorView& operator=(value_type& x)
         {
             *elem = x;
             return *this;
         }
 
         value_type operator()(){return *elem;}
-        const T& operator()() const {return *elem;}
+        const_value_type operator()() const {return *elem;}
         
-        operator T&() {return *elem;};
-        operator const T&() const {return *elem;}
+        operator value_type&() {return *elem;};
+        operator const_value_type&() const {return *elem;}
 
         friend std::ostream& operator<<(std::ostream& o, const FluidTensorView& t)
         {
