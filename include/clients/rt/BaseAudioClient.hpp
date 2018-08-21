@@ -16,7 +16,9 @@
 
 namespace fluid {
 namespace audio {
-    template <typename T>
+
+    
+    template <typename T, typename U>
     class BaseAudioClient
     {
         //Type aliases, mostly for aesthetics
@@ -27,36 +29,50 @@ namespace audio {
         using const_view_type = const fluid::FluidTensorView<T,2>;
     public:
         
-        template <typename U>
-        class AudioSignal
+        template <typename V=U>
+        struct Signal
         {
-            AudioSignal()=delete;
+        public:
+            virtual ~Signal(){}
+            virtual void set(V*,V) = 0;
+            virtual V& next() = 0;
+        };
+        
+        
+        
+        class AudioSignal: public Signal<U>
+        {
+        public:
+            AudioSignal(){}
+            AudioSignal(U* ptr,U elem):m_sig(ptr){}
+        
+            void set(U* p ,U) {m_sig = p;}
             
-            AudioSignal(T* ptr):m_sig(ptr){}
-            
-            T& next()
+            U& next()
             {
                 return *m_sig++;
             }
             
         private:
-            T* m_sig;
+            U* m_sig;
         };
         
-        template <typename U>
-        class ScalarSignal
+        
+        class ScalarSignal:public Signal<U>
         {
-            ScalarSignal()=delete;
+        public:
+            ScalarSignal(){};
+            ScalarSignal(U* ptr ,U val):m_elem(val){}
             
-            ScalarSignal(T val):m_elem(val){}
+            void set(U*, U p) {m_elem = p;}
             
-            T& next()
+            U& next()
             {
                 return m_elem;
             }
         
         private:
-            T m_elem;
+            U m_elem;
         };
         
         
@@ -92,8 +108,8 @@ namespace audio {
          
          Do override process() though. That's what it's for
          **/
-        template<typename U>
-        void do_process(const U * const * input,U** output,size_t nsamps, size_t channels_in, size_t channels_out)
+        template <typename S>
+        void do_process(S** input,S** output,size_t nsamps, size_t channels_in, size_t channels_out)
         {
             assert(channels_in == m_channels_in);
             assert(channels_out == m_channels_out);
@@ -120,6 +136,21 @@ namespace audio {
             
             m_sink.pull(output,nsamps,channels_out);
         }
+        
+        
+        
+        template <template <typename> class SignalType>
+        void register_input_signal(SignalType<U> p, const size_t index)
+        {
+//            m_signals_in.assign
+        }
+        
+        template <template <typename> class SignalType>
+        void register_output_signal(SignalType<U> p, const size_t index)
+        {
+            
+        }
+        
         
         /**
          Base procesisng method. A no-op in this case
@@ -158,6 +189,7 @@ namespace audio {
         }
         
     private:
+        
         size_t m_host_buffer_size;
         size_t m_max_frame_size;
         tensor_type m_frame;

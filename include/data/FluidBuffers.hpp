@@ -57,8 +57,8 @@ namespace fluid{
             copy_in(x(slice(size,blocksize-size),slice(0)), 0, blocksize - size);
         }
         
-        template<typename U>
-        void push(const U* const * in ,size_t nsamps, size_t nchans)
+        template<typename S>
+        void push(S** in ,size_t nsamps, size_t nchans)
         {
             assert(nchans = m_channels);
             assert(nsamps <= buffer_size());
@@ -146,14 +146,18 @@ namespace fluid{
             }
         }
         
-        template <typename U>
-        void copy_in(const U* const * in, size_t in_start, size_t offset, size_t size)
+        template <typename S>
+        void copy_in(S** in, const size_t in_start,const size_t offset, const size_t size)
         {
             if(size)
             {
                 for(size_t i = 0; i < m_channels; ++i)
                 {
-                    std::copy(in[i] + in_start, in[i] + in_start + size, matrix(slice(offset,size),i).begin());
+                    for (size_t j = offset; j < offset + size ; ++j)
+                    {
+                        matrix[j][i] = in[i]->next();
+                    }
+//                    std::copy(in[i] + in_start, in[i] + in_start + size, matrix(slice(offset,size),i).begin());
                 }
                 m_counter = offset + size;
             }
@@ -318,8 +322,12 @@ namespace fluid{
             {
                 for(size_t i = 0; i < m_channels; ++i)
                 {
-                    std::copy(matrix(slice(offset,size),slice(i)).begin(),
-                            matrix(slice(offset,size),slice(i)).end(),out[i]);
+                    for(size_t j = offset; j < size; ++j)
+                    {
+                        out[i]->next() = matrix[j][i];
+                    }
+//                    std::copy(matrix(slice(offset,size),slice(i)).begin(),
+//                            matrix(slice(offset,size),slice(i)).end(),out[i]);
                 }
                 matrix(slice(offset,size),slice(0)).fill(0);
                 m_counter = offset + size;
