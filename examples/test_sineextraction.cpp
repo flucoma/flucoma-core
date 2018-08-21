@@ -56,7 +56,15 @@ int main(int argc, char *argv[]) {
   ISTFT istft(winSize, fftSize, hopSize);
   RealVector in(data.audio[0]);
   Spectrogram spec = stft.process(in);
-  SineExtraction se(winSize, fftSize, hopSize, 76, 0.7);
+  // parameters after hop size are:
+  // * bandwidth - width in bins of the fragment of window transform correlated with each frame
+  // should have an effect on cost vs quality
+  // * threshold (0 to 1) select more or less peaks as sinusoidal from the normalized cross-correlation
+  // * min length (frames): minimum length of a sinusoidal track (0 for no tracking)
+  // * weight of spectral magnitude when associating a peak to an existing track (relative, but suggested 0 to 1)
+  // * weight of frequency when associating a peak to an existing track (relativer, suggested 0 to 1)
+
+  SineExtraction se(winSize, fftSize, hopSize, 76, 0.7, 15, 0.1, 1.0);
   RealMatrix mag = spec.getMagnitude();
 
   SinesPlusNoiseModel result = se.process(mag);
