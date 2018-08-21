@@ -1,13 +1,14 @@
 #pragma once
 
 #include <Eigen/Core>
-#include <FFT.hpp>
-#include <FluidEigenMappings.hpp>
-#include <FluidTensor.hpp>
-#include <Windows.hpp>
 #include <algorithm>
 #include <numeric>
 #include <vector>
+
+#include "data/FluidEigenMappings.hpp"
+#include "data/FluidTensor.hpp"
+#include "FFT.hpp"
+#include "Windows.hpp"
 
 namespace fluid {
 namespace stft {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Eigen/Dense>
-#include <FluidTensor.hpp>
+#include "data/FluidTensor.hpp"
 
 namespace fluid {
 namespace ratiomask {

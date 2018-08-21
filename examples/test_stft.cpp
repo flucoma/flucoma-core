@@ -1,6 +1,6 @@
 #include "util/audiofile.hpp"
-#include <STFT.hpp>
-#include <FluidTensor.hpp>
+#include "algorithms/STFT.hpp"
+#include "data/FluidTensor.hpp"
 
 int main(int argc, char* argv[])
 {

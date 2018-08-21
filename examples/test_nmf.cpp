@@ -1,10 +1,11 @@
-#include "util/audiofile.hpp"
-#include <FluidTensor.hpp>
-#include <NMF.hpp>
-#include <RatioMask.hpp>
-#include <STFT.hpp>
 #include <iostream>
 #include <string>
+
+#include "util/audiofile.hpp"
+#include "data/FluidTensor.hpp"
+#include "algorithms/NMF.hpp"
+#include "algorithms/RatioMask.hpp"
+#include "algorithms/STFT.hpp"
 
 int main(int argc, char *argv[]) {
   const auto &epsilon = std::numeric_limits<double>::epsilon;

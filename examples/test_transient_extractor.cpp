@@ -4,9 +4,9 @@
 #include <random>
 #include <vector>
 
-#include "../include/TransientExtraction.hpp"
-#include "../3rdparty/HISSTools_AudioFile/IAudioFile.h"
-#include "../3rdparty/HISSTools_AudioFile/OAudioFile.h"
+#include "algorithms/TransientExtraction.hpp"
+#include "HISSTools_AudioFile/IAudioFile.h"
+#include "HISSTools_AudioFile/OAudioFile.h"
 
 // ******************* Parameters ******************* //
 
@@ -48,17 +48,17 @@ bool paramCorruptInput = true;
 void corruptInput(double *output, const double *input, int size)
 {
   // Simple markov chain for probability of switching states
-  
+
   double pOn = paramCorruptInput ? 0.00006 : 0.0;
   double pStay = 0.989;
   double dev = 0.1;
-  
+
   bool corrupt = false;
   unsigned int seed = std::random_device()();
   std::mt19937_64 randomGenerator(seed);
   std::normal_distribution<double> gaussian(0.0, dev);
   std::uniform_real_distribution<double> uniform(0.0, 1.0);
-  
+
   for (int i = 0; i < size; i++)
   {
     corrupt = uniform(randomGenerator) < (corrupt ? pStay : pOn);
@@ -71,9 +71,9 @@ void corruptInput(double *output, const double *input, int size)
 void writeFile(const char *name, const double *output, int size, double samplingRate)
 {
   using namespace HISSTools;
-  
+
   OAudioFile file(name, BaseAudioFile::kAudioFileWAVE, BaseAudioFile::kAudioFileFloat32, 1, samplingRate);
-  
+
   file.writeChannel(output, size, 0);
 }
 
@@ -82,59 +82,58 @@ void writeFile(const char *name, const double *output, int size, double sampling
 int main(int argc, const char * argv[])
 {
   using fluid::transient_extraction::TransientExtraction;
-  
+
   if (argc < 5)
   {
     std::cout << "Not enough file paths specified\n";
     return -1;
   }
-  
+
   const char *inputPath = argv[1];
   const char *corruptedOutputPath = argv[2];
   const char *fixedOutputPath = argv[3];
   const char *transientsOutputPath = argv[4];
-  
+
   HISSTools::IAudioFile file(inputPath);
-  
+
   if (!file.isOpen())
   {
     std::cout << "File could not be opened\n";
     return -2;
   }
-  
+
   int frames = file.getFrames();
   auto samplingRate = file.getSamplingRate();
-  
+
   std::vector<double> input(frames, 0.0);
   std::vector<double> corrupted(frames + paramBlockSize, 0.0);
   std::vector<double> fixed(frames + paramBlockSize, 0.0);
   std::vector<double> transients(frames + paramBlockSize, 0.0);
-  
+
   file.readChannel(input.data(), frames, 0);
   corruptInput(corrupted.data(), input.data(), frames);
-  
+
   TransientExtraction extractor(paramOrder, paramIterations, paramRobustFactor, paramRefine);
-  
+
   extractor.prepareStream(paramBlockSize, paramPad);
   extractor.setDetectionParameters(paramDetectPower, paramDetectThreshHi, paramDetectThreshLo, paramDetectHalfWindow, paramDetectHold);
-  
+
   std::cout << "Starting Extraction\n";
-    
+
   for (int i = 0, hopSize = extractor.hopSize(); i < frames; i += hopSize)
   {
     int size = std::min(extractor.inputSize(), frames - i);
     extractor.extract(transients.data() + i, fixed.data() + i, corrupted.data() + i, size);
     std::cout << "Done " << (100 * (i + hopSize) / frames) << "%\n";
   }
-  
+
   std::cout << "Finished Extraction\n";
-  
+
   // Write files
-  
+
   writeFile(corruptedOutputPath, corrupted.data(), frames, samplingRate);
   writeFile(fixedOutputPath, fixed.data(), frames, samplingRate);
   writeFile(transientsOutputPath, transients.data(), frames, samplingRate);
-  
+
   return 0;
 }
-

@@ -1,7 +1,8 @@
-#include "FluidTensor.hpp"
 #include <stdio.h>
 #include <Eigen/Dense>
+#include "data/FluidTensor.hpp"
 #include "util/audiofile.hpp"
+
 using fluid::audiofile::AudioFileData;
 using fluid::audiofile::readFile;
 
@@ -35,8 +36,8 @@ int main(int argc, char* argv[])
 
     fluid::FluidTensor<double,1> r2(tinit2.row(1));
     std::cout << "1 2 3?" << r1 << '\n';
-    
-    
+
+
     //tinit2.row(1) = r2(fluid::slice(0,3));
     //Initialize with vector
     std::cout << "tinit2"<<tinit2 << '\n';
@@ -115,7 +116,7 @@ int main(int argc, char* argv[])
         //use() with integer types to get elements
         assert(c2[i] == twodeecee[i][col_offset]);
     }
-    std::cout << "Col 3: " << c2 << '\n'; 
+    std::cout << "Col 3: " << c2 << '\n';
 
     //Free memory from double**, we're done with it
     for(int i = 0; i < x; ++i)
@@ -132,7 +133,7 @@ int main(int argc, char* argv[])
     copy_col.row(0)(fluid::slice(0,3)) = c2(fluid::slice(0,3,2));
 
     fluid::FluidTensorView<double,1> aa = c2(fluid::slice(0,3,2));
-    
+
     std::cout<<"Original column " << c2 <<'\n';
 
     std::cout<<"Sub-column " << aa[0] <<'\n';
@@ -260,13 +261,13 @@ int main(int argc, char* argv[])
     std::cout << "Difference summed " << sum_of_diff << '\n';
 
     double* interleave = new double[100];
-    
+
     std::iota(interleave, interleave+100,0);
-    
-    //Test for assumption about reading from interleaved structure (e.g multichannel buffers in max and sc) 
+
+    //Test for assumption about reading from interleaved structure (e.g multichannel buffers in max and sc)
     fluid::FluidTensorView<double,2> interT = fluid::FluidTensorView<double,2>({0,{50,2}},interleave);
-    
+
     std::cout << interT.col(0) << '\n';
-    
-    
+
+
 }

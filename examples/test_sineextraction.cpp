@@ -1,10 +1,10 @@
-#include "util/audiofile.hpp"
-#include <ConvolutionTools.hpp>
 #include <Eigen/Dense>
-#include <FluidTensor.hpp>
-#include <HISSTools_FFT/HISSTools_FFT.h>
-#include <STFT.hpp>
-#include <SineExtraction.hpp>
+#include "util/audiofile.hpp"
+#include "algorithms/ConvolutionTools.hpp"
+#include "data/FluidTensor.hpp"
+#include "HISSTools_FFT/HISSTools_FFT.h"
+#include "algorithms/STFT.hpp"
+#include "algorithms/SineExtraction.hpp"
 
 int main(int argc, char *argv[]) {
   using std::complex;

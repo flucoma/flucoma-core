@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Eigen/Core>
-#include <FluidTensor.hpp>
+#include "FluidTensor.hpp"
 
 namespace fluid {
 namespace eigenmappings {
@@ -29,7 +29,7 @@ public:
     MapType operator()()  {
         return MapType(mMatrix.data(), mMatrix.extent(0), mMatrix.extent(1));
     }
-    
+
 
 private:
   FluidTensor<T, 2> mMatrix;

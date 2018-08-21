@@ -4,7 +4,7 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
-#include <FluidEigenMappings.hpp>
+#include "data/FluidEigenMappings.hpp"
 
 namespace fluid {
 namespace nmf {
