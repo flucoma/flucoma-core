@@ -62,7 +62,7 @@ public:
     mWorkBuf = std::vector<double>(mWindowSize, 0);
     ArrayXd padded(audio.size() + mWindowSize + mHopSize);
     padded.segment(halfWindow, audio.size()) =
-        Map<ArrayXd>(audio.data(), audio.size());
+        Map<const ArrayXd>(audio.data(), audio.size());
     int nFrames = floor((padded.size() - mWindowSize) / mHopSize);
     MatrixXcd result(nFrames, mFrameSize);
     for (int i = 0; i < nFrames; i++) {
