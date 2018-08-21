@@ -40,7 +40,8 @@ namespace fluid {
        iterations: max nmf iterations
        fft_size: power 2 pls
        **/
-      NMFClient(size_t rank, size_t iterations, size_t fft_size, size_t window_size, size_t hop_size)
+        NMFClient(size_t rank, size_t iterations, size_t fft_size, size_t window_size, size_t hop_size):
+        m_rank(rank),m_iterations(iterations), m_window_size(window_size),m_fft_size(fft_size),m_hop_size(hop_size)
       {}
       
       ~NMFClient()= default;
@@ -73,7 +74,7 @@ namespace fluid {
             RealMatrix estimate = m_model.getEstimate(i);
             Spectrogram result(mask.process(spec.mData, estimate));
             RealVector audio = istft.process(result);
-            m_audio_buffers.row(i) = audio;
+              m_audio_buffers.row(i) = audio(fluid::slice(0,data.extent(0)));
           }
           m_has_resynthed = true;
         }
