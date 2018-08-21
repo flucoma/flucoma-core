@@ -1,5 +1,5 @@
 /*!
- @file fluid.audio.gainclient
+ @file GainClient.hpp
  
  Simple multi-input client, just does modulation of signal 1 by signal 2, or sclar
  gain change
@@ -8,8 +8,7 @@
 #ifndef fluid_audio_gainclient_h
 #define fluid_audio_gainclient_h
 
-#include "FluidTensor.hpp"
-#include "fluid.audio.baseclient.hpp"
+#include "BaseAudioClient.hpp"
 
 namespace fluid {
 namespace audio {

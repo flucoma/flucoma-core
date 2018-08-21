@@ -11,8 +11,8 @@
 
 #pragma once
 
-#include "FluidTensor.hpp"
-#include "FluidBuffers.hpp"
+#include "data/FluidTensor.hpp"
+#include "data/FluidBuffers.hpp"
 
 namespace fluid {
 namespace audio {
