@@ -9,7 +9,7 @@ find_library(SNDFILE_LIBRARY NAMES libsndfile.dylib
 )
 
 
-file(GLOB LIBRARY_HEADERS ${PROJECT_SOURCE_DIR}/../include/*.hpp)
+file(GLOB LIBRARY_HEADERS ${PROJECT_SOURCE_DIR}/../include/*/*.hpp)
 
 # common to all examples
 foreach ( EXAMPLE  audiofile;fluidtensor;stft;nmf;fluidbuffer;sineextraction;transient_extractor)
