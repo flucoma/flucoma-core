@@ -322,7 +322,7 @@ namespace fluid{
             {
                 for(size_t i = 0; i < m_channels; ++i)
                 {
-                    for(size_t j = offset; j < size; ++j)
+                    for(size_t j = offset; j < offset + size; ++j)
                     {
                         out[i]->next() = matrix[j][i];
                     }
