@@ -1026,6 +1026,18 @@ namespace fluid {
             *elem = x;
             return *this;
         }
+        
+        template<typename U>
+        FluidTensorView& operator=(U& x)
+        {
+            static_assert(std::is_convertible<T,U>(),"Can't convert");
+            *elem = x;
+            return *this;
+        }
+        
+        
+        
+        
 
         value_type operator()(){return *elem;}
         const_value_type operator()() const {return *elem;}
