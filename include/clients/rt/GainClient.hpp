@@ -39,7 +39,7 @@ namespace audio {
          Construct with a (maximum) chunk size and some input channels
          **/
         GainAudioClient(size_t chunk_size):
-        BaseAudioClient<T,U>(chunk_size,2,1), output(chunk_size,1) //this has two input channels, one output
+        BaseAudioClient<T,U>(chunk_size,2,1), output(1,chunk_size) //this has two input channels, one output
         {}
         
         using  BaseAudioClient<T,U>::channelsIn;
@@ -54,28 +54,17 @@ namespace audio {
         virtual view_type process(view_type data)
         {
             //Punishment crashes for the sloppy
-            assert(output.rows() == data.rows());
-            assert(data.cols() == channelsIn());
+            //Data is stored with samples laid out in rows, one channel per row
+            assert(output.cols() == data.cols());
+            assert(data.rows() == channelsIn());
             
-            //For now, we'll branch on the number of input channels.
-            //This feels filthy though, so I intended to come up with
-            //something cleverererer that allows us to write process() once,cleanly
-            output = data.col(0);
+            //Copy the input samples
+            output = data.row(0);
             
-            //In both scenarios we do the processing via a lambda.
-            if(channelsIn() == 2)
-            {
-                //First row is audio input, 2nd is gain vector
-                output.col(0).apply(data.col(1),[](double& x, double g){
-                    x *= g;
-                });
-            }
-            else
-            {
-                output.col(0).apply([&](double& x){
-                    x*= m_scalar_gain;
-                });
-            }
+            //Apply gain from the second channel
+            output.row(0).apply(data.row(1),[](double& x, double g){
+                x *= g;
+            });
             return output;
         }
         
@@ -90,8 +79,6 @@ namespace audio {
     private:
         tensor_type output;
         T m_scalar_gain = 1.;
-//        signal_type in_out[2];
-        
     }; // class
 } //namespace audio
 } //namespace fluid

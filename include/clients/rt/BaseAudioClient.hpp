@@ -114,7 +114,7 @@ namespace audio {
          You *must* set host buffer size and call reset before attemping to use
          **/
         BaseAudioClient(size_t max_frame_size, size_t n_channels_in = 1, size_t n_channels_out = 1):
-            m_max_frame_size(max_frame_size),  m_frame(m_max_frame_size,n_channels_in),
+            m_max_frame_size(max_frame_size),  m_frame(n_channels_in,m_max_frame_size),
             m_source(max_frame_size,n_channels_in), m_sink(max_frame_size, n_channels_out),
             m_channels_in(n_channels_in), m_channels_out(n_channels_out)
         {}
