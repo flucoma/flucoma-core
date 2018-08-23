@@ -6,9 +6,29 @@
 using fluid::audiofile::AudioFileData;
 using fluid::audiofile::readFile;
 
+using  fluid::FluidTensor;
+using fluid::slice;
+
 int main(int argc, char* argv[])
 {
-
+    FluidTensor<int, 2> threebythree{{0,1,2},{3,4,5},{6,7,8}};
+    
+    auto col1 = threebythree(slice(0),slice(1,1)); //all the rows, first column
+    
+    auto twobytwo = threebythree(slice(1,2),slice(1,2));
+    
+    auto threebytwo = threebythree(slice(0,3),slice(1,2));
+    
+    std::cout << threebytwo ;
+    
+    int j = 0;
+    for(auto&& i: threebytwo)
+    {
+        std::cout << j++ << ' '  << i << '\n';
+    }
+    
+    return 0;
+    
     //We can initialize a tensor with some elements using braces:
     fluid::FluidTensor<double,1> tinit{1.0,2.0,3.0};
     std::cout << "Rank: " << tinit.order << " Length: "

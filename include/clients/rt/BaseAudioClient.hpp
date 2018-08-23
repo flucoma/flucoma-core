@@ -36,6 +36,8 @@ namespace audio {
             virtual ~Signal(){}
             virtual void set(V*,V) = 0;
             virtual V& next() = 0;
+            virtual void copy_from(view_type& dst, size_t src_offset, size_t size)=0;
+            virtual void copy_to(view_type& src, size_t dst_offset, size_t size)=0;
         };
         
         
@@ -51,6 +53,16 @@ namespace audio {
             U& next()
             {
                 return *m_sig++;
+            }
+            
+            virtual void copy_from(view_type& dst, size_t src_offset, size_t size)
+            {
+                std::copy(m_sig + src_offset, m_sig + src_offset + size, dst.begin());
+            }
+            
+            virtual void copy_to(view_type& src, size_t dst_offset, size_t size)
+            {
+                std::copy(src.begin(),src.end(), m_sig + dst_offset);
             }
             
         private:
@@ -70,6 +82,17 @@ namespace audio {
             {
                 return m_elem;
             }
+            
+            virtual void copy_from(view_type& dst, size_t src_offset, size_t size)
+            {
+                std::fill(dst.begin(), dst.end(), m_elem);
+            }
+            
+            virtual void copy_to(view_type& src, size_t dst_offset, size_t size)
+            {
+                m_elem = *(src.begin());
+            }
+            
         
         private:
             U m_elem;
@@ -138,18 +161,7 @@ namespace audio {
         }
         
         
-        
-        template <template <typename> class SignalType>
-        void register_input_signal(SignalType<U> p, const size_t index)
-        {
-//            m_signals_in.assign
-        }
-        
-        template <template <typename> class SignalType>
-        void register_output_signal(SignalType<U> p, const size_t index)
-        {
-            
-        }
+    
         
         
         /**
