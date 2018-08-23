@@ -147,9 +147,9 @@ namespace fluid {
       }
     private:
       size_t m_rank;
-      size_t m_iterations;
-      size_t m_fft_size;
+      size_t m_iterations;      
       size_t m_window_size;
+      size_t m_fft_size;
       size_t m_hop_size;
       bool m_has_processed;
       bool m_has_resynthed;

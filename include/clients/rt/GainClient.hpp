@@ -44,15 +44,6 @@ namespace audio {
         
         using  BaseAudioClient<T,U>::channelsIn;
         
-        void copyIn(signal_type s)
-        {
-            
-        }
-        
-        void copyOut(signal_type s)
-        {
-            
-        }
         
         /**
          Do the processing: this is the function that descendents of BaseAudioClient should override
