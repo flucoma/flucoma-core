@@ -377,6 +377,8 @@
             /*****
              Taken from the origin implementation. It's ugleee, but
              can't think of a better way
+             
+             TODO: Is there a better way? It'd be nice,at least, to simplify for continguous ranges in the major dimension 
              *****/
             void increment()
             {

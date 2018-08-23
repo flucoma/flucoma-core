@@ -153,10 +153,13 @@ namespace fluid{
             {
                 for(size_t i = 0; i < m_channels; ++i)
                 {
-                    for (size_t j = offset; j < offset + size ; ++j)
-                    {
-                        matrix[j][i] = in[i]->next();
-                    }
+                    
+                    auto in_range = matrix(slice(offset,size),i);
+                    in[i]->copy_from(in_range, in_start, size);
+//                    for (size_t j = offset; j < offset + size ; ++j)
+//                    {
+//                        matrix[j][i] = in[i]->next();
+//                    }
 //                    std::copy(in[i] + in_start, in[i] + in_start + size, matrix(slice(offset,size),i).begin());
                 }
                 m_counter = offset + size;
@@ -322,10 +325,9 @@ namespace fluid{
             {
                 for(size_t i = 0; i < m_channels; ++i)
                 {
-                    for(size_t j = offset; j < offset + size; ++j)
-                    {
-                        out[i]->next() = matrix[j][i];
-                    }
+                    auto out_slice = matrix(slice(offset, size),i);
+                    out[i]->copy_to(out_slice,out_offset,size);
+                    
 //                    std::copy(matrix(slice(offset,size),slice(i)).begin(),
 //                            matrix(slice(offset,size),slice(i)).end(),out[i]);
                 }
