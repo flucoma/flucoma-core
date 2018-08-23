@@ -29,7 +29,7 @@ namespace fluid{
         FluidSource& operator=(FluidSource&)=delete;
         
         FluidSource(const size_t size, const size_t channels = 1):
-        matrix(size,channels), m_size(size), m_channels(channels)
+        matrix(channels,size), m_size(size), m_channels(channels)
         {}
         
         tensor_type& data()
@@ -42,9 +42,9 @@ namespace fluid{
          */
         void push(const_view_type x)
         {
-            assert(x.cols() == m_channels);
+            assert(x.rows() == m_channels);
             
-            size_t blocksize = x.rows();
+            size_t blocksize = x.cols();
             
             assert(blocksize <= buffer_size());
             
@@ -53,8 +53,9 @@ namespace fluid{
             
             size_t size = ((offset + blocksize) > buffer_size()) ?  buffer_size() - offset : blocksize ;
             
-            copy_in(x(slice(0,size),slice(0)), offset, size);
-            copy_in(x(slice(size,blocksize-size),slice(0)), 0, blocksize - size);
+            //Copy all channels (rows)
+            copy_in(x(slice(0),slice(0,size)), offset, size);
+            copy_in(x(slice(0),slice(size,blocksize-size)), 0, blocksize - size);
         }
         
         template<typename S>
@@ -77,7 +78,7 @@ namespace fluid{
         */
         void pull(view_type out,size_t frame_time)
         {
-            size_t blocksize = out.rows();
+            size_t blocksize = out.cols();
             size_t offset = m_host_buffer_size - frame_time ;
 
             if(offset > buffer_size())
@@ -91,8 +92,8 @@ namespace fluid{
 
             size_t size = (offset + blocksize > buffer_size()) ? buffer_size() - offset : blocksize;
 
-            out(slice(0,size),slice(0)) = matrix(slice(offset,size),slice(0));
-            out(slice(size,blocksize-size),slice(0)) = matrix(slice(0,blocksize-size),slice(0));
+            out(slice(0),slice(0,size)) = matrix(slice(0),slice(offset,size));
+            out(slice(0),slice(size,blocksize-size)) = matrix(slice(0),slice(0,blocksize-size));
         }
         
         /*
@@ -113,8 +114,8 @@ namespace fluid{
          */
         void reset()
         {
-            if(matrix.rows() != buffer_size())
-                matrix.resize(buffer_size(),m_channels);
+            if(matrix.cols() != buffer_size())
+                matrix.resize(m_channels,buffer_size());
             matrix.fill(0);
             m_counter = 0;
         }
@@ -141,7 +142,7 @@ namespace fluid{
         {
             if(size)
             {
-                matrix(slice(offset,size),slice(0)) = input;
+                matrix(slice(0),slice(offset,size)) = input;
                 m_counter = offset + size;
             }
         }
@@ -154,13 +155,8 @@ namespace fluid{
                 for(size_t i = 0; i < m_channels; ++i)
                 {
                     
-                    auto in_range = matrix(slice(offset,size),i);
+                    auto in_range = matrix(i,slice(offset,size));
                     in[i]->copy_from(in_range, in_start, size);
-//                    for (size_t j = offset; j < offset + size ; ++j)
-//                    {
-//                        matrix[j][i] = in[i]->next();
-//                    }
-//                    std::copy(in[i] + in_start, in[i] + in_start + size, matrix(slice(offset,size),i).begin());
                 }
                 m_counter = offset + size;
             }
@@ -192,7 +188,7 @@ namespace fluid{
         FluidSink operator=(FluidSink&)=delete;
         
         FluidSink(const size_t size,const size_t channels=1):
-        matrix(size,channels), m_size(size), m_channels(channels)
+        matrix(channels,size), m_size(size), m_channels(channels)
         {}
         
         tensor_type& data()
@@ -209,9 +205,9 @@ namespace fluid{
          **/
         void push(const_view_type x, size_t frame_time)
         {
-            assert(x.cols() == m_channels);
+            assert(x.rows() == m_channels);
             
-            size_t blocksize = x.rows();
+            size_t blocksize = x.cols();
             
             assert(blocksize <= buffer_size());
             
@@ -227,8 +223,8 @@ namespace fluid{
 
             size_t size = ((offset + blocksize) > buffer_size()) ? buffer_size() - offset : blocksize;
             
-            add_in(x(slice(0,size),slice(0)), offset, size);
-            add_in(x(slice(size,blocksize-size),slice(0)), 0, blocksize - size);
+            add_in(x(slice(0), slice(0,size)), offset, size);
+            add_in(x(slice(0), slice(size,blocksize-size)), 0, blocksize - size);
         }
         
         /**
@@ -236,7 +232,7 @@ namespace fluid{
          **/
         void pull(view_type out)
         {
-            size_t blocksize = out.rows();
+            size_t blocksize = out.cols();
             if(blocksize > buffer_size())
             {
                 return;
@@ -246,8 +242,8 @@ namespace fluid{
             
             size_t size = offset + blocksize > buffer_size() ? buffer_size() - offset : blocksize;
             
-            out_and_zero(out(slice(0,size),slice(0)), offset, size);
-            out_and_zero(out(slice(size,blocksize-size),slice(0)), 0, blocksize-size);
+            out_and_zero(out(slice(0), slice(0,size)), offset, size);
+            out_and_zero(out(slice(0), slice(size,blocksize-size)), 0, blocksize-size);
         }
         
         template <typename U>
@@ -276,8 +272,8 @@ namespace fluid{
          **/
         void reset()
         {
-            if(matrix.rows() != buffer_size())
-                matrix.resize(buffer_size(),m_channels);
+            if(matrix.cols() != buffer_size())
+                matrix.resize(m_channels,buffer_size());
             matrix.fill(0);
             m_counter  = 0;
         }
@@ -298,7 +294,7 @@ namespace fluid{
         {
             if(size)
             {
-                matrix(slice(offset,size),slice(0))
+                matrix(slice(0),slice(offset,size))
                     .apply(in, [](double& x, double y)
                     {
                         x+=y;
@@ -310,7 +306,7 @@ namespace fluid{
         {
             if(size)
             {
-                view_type buf = matrix(slice(offset, size),slice(0));
+                view_type buf = matrix(slice(0),slice(offset, size));
                 view_type output = buf;
                 out = output;
                 buf.fill(0);
@@ -325,13 +321,10 @@ namespace fluid{
             {
                 for(size_t i = 0; i < m_channels; ++i)
                 {
-                    auto out_slice = matrix(slice(offset, size),i);
+                    auto out_slice = matrix(i, slice(offset, size));
                     out[i]->copy_to(out_slice,out_offset,size);
-                    
-//                    std::copy(matrix(slice(offset,size),slice(i)).begin(),
-//                            matrix(slice(offset,size),slice(i)).end(),out[i]);
-                }
-                matrix(slice(offset,size),slice(0)).fill(0);
+                 }
+                matrix(slice(0),slice(offset,size)).fill(0);
                 m_counter = offset + size;
             }
         }
