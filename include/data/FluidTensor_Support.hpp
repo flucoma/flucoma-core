@@ -365,7 +365,7 @@
             bool operator==(const SliceIterator& rhs)
             {
                 assert(m_desc == rhs.m_desc);
-                return (m_base == rhs.m_base) && (m_ptr == rhs.m_ptr);
+                return /*(m_base == rhs.m_base) &&*/ (m_ptr == rhs.m_ptr);
             }
             
             bool operator != (const SliceIterator& rhs)
