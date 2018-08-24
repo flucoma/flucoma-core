@@ -38,8 +38,8 @@ namespace audio {
         /**
          Construct with a (maximum) chunk size and some input channels
          **/
-        GainAudioClient(size_t chunk_size):
-        BaseAudioClient<T,U>(chunk_size,2,1), output(1,chunk_size) //this has two input channels, one output
+        GainAudioClient(size_t chunk_size,size_t hop_size):
+        BaseAudioClient<T,U>(chunk_size,hop_size, 2,1), output(1,chunk_size) //this has two input channels, one output
         {}
         
         using  BaseAudioClient<T,U>::channelsIn;

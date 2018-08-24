@@ -113,8 +113,8 @@ namespace audio {
          
          You *must* set host buffer size and call reset before attemping to use
          **/
-        BaseAudioClient(size_t max_frame_size, size_t n_channels_in = 1, size_t n_channels_out = 1):
-            m_max_frame_size(max_frame_size),  m_frame(n_channels_in,m_max_frame_size),
+        BaseAudioClient(size_t max_frame_size, size_t hop_size, size_t n_channels_in = 1, size_t n_channels_out = 1):
+            m_max_frame_size(max_frame_size), m_hop_size(hop_size), m_frame(n_channels_in,m_max_frame_size),
             m_source(max_frame_size,n_channels_in), m_sink(max_frame_size, n_channels_out),
             m_channels_in(n_channels_in), m_channels_out(n_channels_out)
         {}
@@ -147,7 +147,7 @@ namespace audio {
             // (a) (for overlap) m_max_frame_size size in this look will need to change to take a variable, from somewhere (representing the hop size for this frame _start_)
             // (b) (for varying frame size) the num rows of the view passed in
             // will need to change.
-            for(; m_frame_time < m_host_buffer_size; m_frame_time+=m_max_frame_size)
+            for(; m_frame_time < m_host_buffer_size; m_frame_time+=m_hop_size)
             {
                 m_source.pull(m_frame,m_frame_time);
                 
@@ -204,6 +204,7 @@ namespace audio {
         
         size_t m_host_buffer_size;
         size_t m_max_frame_size;
+        size_t m_hop_size;
         tensor_type m_frame;
         source_buffer_type m_source;
         sink_buffer_type m_sink;
