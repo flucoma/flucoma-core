@@ -622,6 +622,20 @@ namespace fluid {
         //Copy
         FluidTensorView(FluidTensorView const&) = default;
 
+        //Convert to a larger dimension by adding single sized
+        //dimenion, a la numpy newaxis
+        FluidTensorView(FluidTensorView<T,N-1> x)
+        {
+            m_desc.start = x.descriptor().start;
+            
+            std::copy_n(x.descriptor().extents.begin(),N-1,m_desc.extents.begin()+1);
+            std::copy_n(x.descriptor().strides.begin(),N-1,m_desc.strides.begin());
+            m_desc.extents[0] = 1;
+            m_desc.strides[N-1] = 1;
+            m_desc.size = x.descriptor().size;
+            m_ref = x.data()-m_desc.start;
+        }
+        
         //Assign.
         // Note param by value https://stackoverflow.com/a/3279550
         //Actually, is this a bad idea? We probably want
@@ -684,27 +698,7 @@ namespace fluid {
         }
         
         
-//        const FluidTensorView& operator=(const FluidTensorView x) const
-//        {
-//            //            swap(*this, other);
-//            std::array<size_t,N> a;
-//
-//            //Get the element-wise minimum of our extents and x's
-//            std::transform(m_desc.extents.begin(), m_desc.extents.end(), x.descriptor().extents.begin(), a.begin(), [](size_t a, size_t b){return std::min(a,b);});
-//
-//            size_t count = std::accumulate(a.begin(), a.end(), 1, std::multiplies<size_t>());
-//
-//            //Have to do this because haven't implemented += for slice iterator (yet),
-//            //so can't stop at arbitary offset from begin
-//            auto it = x.begin();
-//            auto ot = begin();
-//            for(int i = 0; i < count; ++i,++it,++ot)
-//                *ot = *it;
-//
-//            //            std::copy(x.begin(),stop,begin());
-//
-//            return *this;
-//        }
+        
 
         template <typename U>
         FluidTensorView& operator=(const FluidTensorView<U,N> x)
