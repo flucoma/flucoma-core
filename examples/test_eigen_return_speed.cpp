@@ -58,6 +58,13 @@ public:
         return m_output;
     }
     
+    T& f_class_alloc_native_ref(const_ref input)
+    {
+        m_output = input * m_window;
+        return m_output;
+    }
+    
+    
     ref f_class_alloc_ref(const_ref input)
     {
         m_output = input * m_window;
@@ -156,8 +163,18 @@ int main(int argc, char* argv[])
         dst = test_colwise.f_class_alloc_ref(src);
     end = system_clock::now();
     dur = end - start;
-    std::cout << "Colwise Preallocation Ref Return: " << dur.count() << '\n';
+    std::cout << "Colwise Preallocation Eigen Ref Return: " << dur.count() << '\n';
 
+    
+    // prealloc native ref return
+    start = system_clock::now();
+    for(int i = 0; i < iterations; ++i)
+        dst = test_colwise.f_class_alloc_native_ref(src);
+    end = system_clock::now();
+    dur = end - start;
+    std::cout << "Colwise Preallocation Native Ref Return: " << dur.count() << '\n';
+
+    
     // templated input
     start = system_clock::now();
     for(int i = 0; i < iterations; ++i)
@@ -218,6 +235,14 @@ int main(int argc, char* argv[])
     end = system_clock::now();
     dur = end - start;
     std::cout << "Rowwise Preallocation Ref Return: " << dur.count() << '\n';
+    
+    // prealloc native ref return
+    start = system_clock::now();
+    for(int i = 0; i < iterations; ++i)
+        dst = test_rowwise.f_class_alloc_native_ref(src);
+    end = system_clock::now();
+    dur = end - start;
+    std::cout << "Rowwise Preallocation Native Ref Return: " << dur.count() << '\n';
     
     // prealloc ref return
     start = system_clock::now();
