@@ -32,16 +32,20 @@ public:
 
   Ref<ArrayXcd> process(const Ref<const ArrayXd>& input) {
 //    ArrayXcd output = ArrayXcd::Zero(mFrameSize);
+    
     hisstools_rfft(mSetup, input.data(), &mSplit, input.size(), mLog2Size);
     mSplit.realp[mFrameSize - 1] = mSplit.imagp[0];
     mSplit.imagp[mFrameSize - 1] = 0;
     mSplit.imagp[0] = 0;
-//    for (int i = 0; i < mFrameSize; i++) {
-//      mOutputBuffer(i) = 0.5 * complex<double>(mSplit.realp[i], mSplit.imagp[i]);
-//    }
-      //TODO: Seems like it ought to be faster? Confirm with @AH 
-    hisstools_zip(&mSplit, reinterpret_cast<double*>(mOutputBuffer.data()), mLog2Size);
-    return mOutputBuffer;
+    for (int i = 0; i < mFrameSize; i++) {
+      mOutputBuffer(i) = 0.5 * complex<double>(mSplit.realp[i], mSplit.imagp[i]);
+    }
+  
+      //TODO: Seems like it ought to be faster? Confirm with @AH
+      //Would only work with contiguous layout in outputbuffer as well
+//    hisstools_zip(&mSplit, reinterpret_cast<double*>(mOutputBuffer.data()), mLog2Size);
+    
+      return mOutputBuffer;
   }
 
 protected:
