@@ -768,7 +768,14 @@ namespace fluid {
          **********/
       
         FluidTensorView(const FluidTensorSlice<N>& s, T* p):m_desc(s), m_ref(p){}
-
+        
+        /**
+         Wrap around an arbitary pointer, with an offset and some dimensions
+         **/
+        template<typename... Dims,
+        typename = enable_if_t<is_index_sequence<Dims...>()>>
+        FluidTensorView(T* p,size_t start, Dims...dims):m_desc(start,{dims...}),m_ref(p){}
+        
 //        /***********
 //         Construct from a whole FluidTensor
 //         ***********/
