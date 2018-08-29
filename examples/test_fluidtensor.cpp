@@ -7,10 +7,22 @@ using fluid::audiofile::AudioFileData;
 using fluid::audiofile::readFile;
 
 using  fluid::FluidTensor;
+using  fluid::FluidTensorView;
 using fluid::slice;
 
 int main(int argc, char* argv[])
 {
+    //Wrap any old pointer
+    std::vector<int> s = {0,1,2,3,4,5,6,7,8};
+    
+    FluidTensorView<int,2> s_wrap(s.data(),0,9u,1u);
+    
+    std::cout << s_wrap << '\n';
+    
+    //zero size, nullptr test
+    FluidTensorView<int,2> wrap_null(nullptr,0,0u,0u);
+    
+    
     FluidTensor<int, 2> threebythree{{0,1,2},{3,4,5},{6,7,8}};
     
     auto col1 = threebythree(slice(0),slice(1,1)); //all the rows, first column
