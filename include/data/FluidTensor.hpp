@@ -414,7 +414,7 @@ namespace fluid {
 //         fluid::slice struct and a mixture of integer types and fluid::slices
 //         ****/
         template<typename ...Args>
-        enable_if_t<is_slice_sequence<Args...>(),const FluidTensorView<T, N>>
+        enable_if_t<is_slice_sequence<Args...>(),const FluidTensorView<const T, N>>
         operator()(const Args&... args) const
         {
             static_assert(sizeof...(Args)==N,"Number of slices must match number of dimensions. Use an integral constant to represent the whole of a dimension,e.g. matrix(1,slice(0,10)).");
