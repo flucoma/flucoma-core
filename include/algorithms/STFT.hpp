@@ -13,11 +13,14 @@
 namespace fluid {
 namespace stft {
 
+using Eigen::Array;
 using Eigen::ArrayXd;
 using Eigen::ArrayXXcd;
+using Eigen::Dynamic;
 using Eigen::Map;
 using Eigen::MatrixXcd;
 using Eigen::MatrixXd;
+using Eigen::RowMajor;
 
 using fft::FFT;
 using fft::IFFT;
@@ -56,24 +59,18 @@ struct Spectrogram {
 };
 
 class STFT {
-  // Map an Eigen Array
-  using input_map = Eigen::Map<
-      const Eigen::Array<double, 1, Eigen::Dynamic, Eigen::RowMajor>>;
-  using output_map = Eigen::Map<
-      Eigen::Array<std::complex<double>, 1, Eigen::Dynamic, Eigen::RowMajor>>;
+  using ArrayXXdConstMap = Map<const Array<double, Dynamic, Dynamic, RowMajor>>;
 
 public:
   STFT(size_t windowSize, size_t fftSize, size_t hopSize)
       : mWindowSize(windowSize), mHopSize(hopSize), mFrameSize(fftSize / 2 + 1),
-        mFFT(fftSize), mSTFTBuffer(mFrameSize),
-        mSTFTOutMap(mSTFTBuffer.data(), 1, mFrameSize), mSTFTInMap(nullptr, 0) {
+        mFFT(fftSize) {
     mWindow = Map<ArrayXd>(windowFuncs[WindowType::Hann](mWindowSize).data(),
                            mWindowSize);
   }
 
   Spectrogram process(const RealVector &audio) {
     int halfWindow = mWindowSize / 2;
-    mWorkBuf = std::vector<double>(mWindowSize, 0);
     ArrayXd padded(audio.size() + mWindowSize + mHopSize);
     padded.segment(halfWindow, audio.size()) =
         Map<const ArrayXd>(audio.data(), audio.size());
@@ -87,10 +84,11 @@ public:
   }
 
   ComplexVectorView processFrame(const RealVectorView &frame) {
-    // Point map towards incoming pointer
-    new (&mSTFTInMap) input_map(frame.data(), 1, frame.size());
-    mSTFTOutMap = mFFT.process(mSTFTInMap * mWindow.transpose());
-    return mSTFTBuffer;
+    assert(frame.size() == mWindowSize);
+    return ComplexVectorView(
+        mFFT.process((ArrayXXdConstMap(frame.data(), mWindowSize, 1) * mWindow))
+            .data(),
+        0, mFrameSize);
   }
 
 private:
@@ -98,32 +96,24 @@ private:
   size_t mHopSize;
   size_t mFrameSize;
   ArrayXd mWindow;
-  std::vector<double> mWorkBuf;
   FFT mFFT;
-  ComplexVector mSTFTBuffer;
-  output_map mSTFTOutMap;
-  input_map mSTFTInMap;
 };
 
 class ISTFT {
-  using input_map =
-      Eigen::Map<const Eigen::Array<std::complex<double>, 1, Eigen::Dynamic,
-                                    Eigen::RowMajor>>;
-  using output_map =
-      Eigen::Map<Eigen::Array<double, 1, Eigen::Dynamic, Eigen::RowMajor>>;
+  using ArrayXXdMap = Map<Array<double, Dynamic, Dynamic, RowMajor>>;
+  using ArrayXcdConstMap =
+      Map<const Array<std::complex<double>, Dynamic, Dynamic, RowMajor>>;
 
 public:
   ISTFT(size_t windowSize, size_t fftSize, size_t hopSize)
       : mWindowSize(windowSize), mHopSize(hopSize), mFrameSize(fftSize / 2 + 1),
-        mScale(1 / double(fftSize)), mIFFT(fftSize), mBuffer(2, mWindowSize),
-        mOutputMap(mBuffer.row(0).data(), 1, mWindowSize),
-        mInputMap(nullptr, 0) {
+        mScale(1 / double(fftSize)), mIFFT(fftSize), mBuffer(2, mWindowSize) {
     mWindow = Map<ArrayXd>(windowFuncs[WindowType::Hann](mWindowSize).data(),
                            mWindowSize);
     mWindowSquared = mWindow * mWindow;
     // The 2nd row of our output will be constant, and contain the squared
     // window, for the normalisation buffer
-    output_map(mBuffer.row(1).data(), 1, mWindowSize) = mWindowSquared;
+    ArrayXXdMap(mBuffer.row(1).data(), mWindowSize, 1) = mWindowSquared;
   }
 
   RealVector process(const Spectrogram &spec) {
@@ -150,10 +140,10 @@ public:
 
   RealMatrixView processFrame(const ComplexVectorView &frame) {
     assert(frame.size() == mFrameSize);
-    new (&mInputMap) input_map(frame.data(), 1, mFrameSize);
-    mOutputMap = (mIFFT.process(mInputMap).block(0, 0, mWindowSize, 1) *
-                  mWindow * mScale)
-                     .transpose();
+    ArrayXXdMap(mBuffer.row(0).data(), mWindowSize, 1) =
+        mIFFT.process(ArrayXcdConstMap(frame.data(), mFrameSize, 1))
+            .segment(0, mWindowSize) *
+        mWindow * mScale;
     return mBuffer;
   }
 
@@ -166,8 +156,6 @@ private:
   double mScale;
   IFFT mIFFT;
   RealMatrix mBuffer;
-  output_map mOutputMap;
-  input_map mInputMap;
 };
 
 } // namespace stft
