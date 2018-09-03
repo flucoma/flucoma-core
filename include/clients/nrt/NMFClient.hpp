@@ -460,117 +460,16 @@ namespace fluid {
             }
             mArguments.resynth->release();
           }
-          
-          
         }
-        
-        
-//        stft::Spectrogram spec = stft.process(mArguments.src->row(0));
-//        RealMatrix mag = spec.getMagnitude();
-//        nmf::NMF nmf(mArguments.rank,mArguments.iterations);
-//        nmf::NMFModel m = nmf.process(spec.getMagnitude());
-////        mHasProcessed = true;
-//
-//        if(mArguments.resynthesise)
-//        {
-//          ratiomask::RatioMask mask(mModel.getMixEstimate(),1);
-//          stft::ISTFT istft(mWindowSize, mFFTSize, mHopSize);
-//          for(int i = 0; i < mRank; ++i)
-//          {
-//            RealMatrix estimate = mModel.getEstimate(i);
-//            stft::Spectrogram result(mask.process(spec.mData, estimate));
-//            RealVector audio = istft.process(result);
-//              mAudioBuffers.row(i) = audio(fluid::slice(0,data.extent(0)));
-//          }
-//          mHasResynthed = true;
-//        }
       }
-      
-//      /***
-//       Report the size of a dictionary, in bins (= fft_size/2)
-//       ***/
-//      size_t dictionary_size() const
-//      {
-//        return mHasProcessed ? mModel.getW().extent(0) : 0 ;
-//      }
-//
-//      /***
-//       Report the length of an activation, in frames
-//       ***/
-//      size_t activations_length() const{
-//        return mHasProcessed ? mModel.getH().extent(1) : 0;
-//      }
-//
-//      /***
-//       Report the number of sources (i.e. the rank
-//       ***/
-//      size_t num_sources() const
-//      {
-//        return mHasResynthed ? mAudioBuffers.size() : 0;
-//      }
-//      //        size_t rank() const;
-//
-//      /***
-//       Retreive the dictionary at the given index
-//       ***/
-//      const FluidTensorView<double, 1> dictionary(const size_t idx) const
-//      {
-//        assert(mHasProcessed && idx < mModel.W.cols());
-//        return mModel.getW().col(idx);
-//      }
-//
-//      /***
-//       Retreive the activation at the given index
-//       ***/
-//      const FluidTensorView<double, 1> activation(const size_t idx) const
-//      {
-//        assert(mHasProcessed && idx < mModel.H.rows());
-//        return mModel.getH().row(idx);
-//      }
-//
-//      /***
-//       Retreive the resynthesized source at the given index (so long as resyntheiss has happened, mind
-//       ***/
-//      FluidTensorView<const double, 1> source(const size_t idx) const
-//      {
-//        assert(idx < mAudioBuffers.rows() && "Range Error");
-//        return mAudioBuffers.row(idx);
-//      }
-//
-//      //        source_iterator sources_begin() const ;
-//      //        source_iterator sources_end()const;
-//
-//      /***
-//       Get the whole of dictionaries / activations as a 2D structure
-//       ***/
-//      FluidTensor<double,2> dictionaries() const
-//      {
-//        return mModel.getW();
-//      }
-//      FluidTensor<double,2> activations() const
-//      {
-//        return mModel.getH();
-//      }
     private:
       FluidSource<double> mSource;
       FluidSink<double> mSinkResynth;
       FluidSink<double> mSinkDictionaries;
       FluidSink<double> mSinkActivations;
       ProcessModel mArguments;
-      
-//      size_t mRank;
-//      size_t mIterations;
-//      size_t mWindowSize;
-//      size_t mFFTSize;
-//      size_t mHopSize;
-//      bool mHasProcessed;
-//      bool mHasResynthed;
       fluid::nmf::NMFModel mModel;
       FluidTensor<double,2> mAudioBuffers;
     };
-    
-    
-
-    
   } //namespace max
 } //namesapce fluid
