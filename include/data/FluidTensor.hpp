@@ -204,6 +204,7 @@ namespace fluid {
             m_desc.start = 0; //but start at 0 now 
             m_container.resize(m_desc.size);
             std::copy(x.begin(),x.end(),m_container.begin());
+            return *this;
         }
         
         template<typename U, size_t M>
@@ -640,15 +641,25 @@ namespace fluid {
         // Note param by value https://stackoverflow.com/a/3279550
         //Actually, is this a bad idea? We probably want
         //different move and copy behaviour
-        
+      
+      
+      //Move
+      FluidTensorView& operator=(FluidTensorView&& x)
+      {
+        if(this != &x){
+          auto m = x;
+          swap(*this,m);
+        }
+          return *this;    
+      }
+      
+      
         FluidTensorView& operator=(const FluidTensorView& x)
         {
             
             assert(same_extents(m_desc, x.descriptor()));
             
-//            std::move(x.begin(), x.end(),begin());
-            
-//            swap(*this, other);
+
             std::array<size_t,N> a;
 
             //Get the element-wise minimum of our extents and x's
@@ -761,7 +772,7 @@ namespace fluid {
          row() and col() of FluidTensor and FluidTensorView
          **********/
       
-        FluidTensorView(const FluidTensorSlice<N>& s, T* p):m_desc(s), m_ref(p){}
+          FluidTensorView(const FluidTensorSlice<N>& s, T* p):m_desc(s), m_ref(p){}
         
         /**
          Wrap around an arbitary pointer, with an offset and some dimensions
