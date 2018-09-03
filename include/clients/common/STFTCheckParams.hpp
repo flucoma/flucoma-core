@@ -4,14 +4,52 @@
  Util class for checking and constraining STFT arguments
  **/
 
+#include "clients/common/FluidParams.hpp"
+
 #include <map>
 #include <sstream>
 #include <string>
-
+#include <tuple>
+#include <cmath> //for log2
 
 namespace fluid {
-namespace stft {
+namespace parameter {
 
+  
+  std::tuple<bool, std::string> checkFFTArguments(parameter::Instance& windowSize, parameter::Instance& hopSize, parameter::Instance& fftSize)
+  {
+    double log2WindowSize = log2(windowSize.getLong());
+    if(log2WindowSize - trunc(log2WindowSize) != 0)
+    {
+      return {false, "Window size must be a power of two"};
+    }
+    
+    //if the FFT size has been changed and is smaller than window size, barf
+    //else it defaults to the window size
+    if(fftSize.getLong() < windowSize.getLong()){
+      if(fftSize.hasChanged())
+      {
+        return {false, "FFT Size cannot be smaller than window size"};
+      }
+      else fftSize.setLong(windowSize.getLong());
+    }
+    //if the FFT size isn't 2^n, barf
+    double log2FFTSize = log2(fftSize.getLong());
+    if(log2FFTSize - trunc(log2FFTSize) != 0)
+    {
+      return {false, "FFT size must be a power of two"};
+    }
+    
+    //if the hop size hasn't been changed, it defaults to half the window size
+    if(!hopSize.hasChanged())
+    {
+      hopSize.setLong(windowSize.getLong() / 2);
+    }
+    
+    return {true,""};    
+  }
+  
+  
     class STFTCheckParams
     {
         static constexpr size_t default_fftsize = 2048;
