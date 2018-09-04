@@ -10,19 +10,46 @@ using  fluid::FluidTensor;
 using  fluid::FluidTensorView;
 using fluid::slice;
 
+
+//void whynoworky(const FluidTensorView<double, 1>& v)
+//{
+//  double x = *std::max_element(v.begin(), v.end());
+//}
+
+void whynoworky(const std::vector<double>& v)
+{
+  double x = *std::max_element(v.begin(), v.end());
+}
+
+
 int main(int argc, char* argv[])
 {
     //Wrap any old pointer
-    std::vector<int> s = {0,1,2,3,4,5,6,7,8};
-    
-    FluidTensorView<int,2> s_wrap(s.data(),0,9u,1u);
-    
-    std::cout << s_wrap << '\n';
-    
+    std::vector<double> s = {0,1,2,3,4,5,6,7,8};
+  
+    whynoworky(s);
+  
+  
+//    FluidTensorView<int,2> s_wrap(s.data(),0,9u,1u);
+  
+  FluidTensor<double, 2> iteratorWeirdness(9,1);
+  auto b = iteratorWeirdness(slice(0),slice(0));
+  std::iota(b.begin(),b.end(),0);
+  
+  
+  
+//  whynoworky(iteratorWeirdness);
+  std::cout<< *std::max_element(b.begin(), b.end()) <<'\n';
+  
+//    std::cout << s_wrap << '\n';
+  
     //zero size, nullptr test
     FluidTensorView<int,2> wrap_null(nullptr,0,0u,0u);
     
-    
+  
+  FluidTensor<double, 1> onedinit{{1.,2.,34.,5.,6.,7.}}; 
+  
+  
     FluidTensor<int, 2> threebythree{{0,1,2},{3,4,5},{6,7,8}};
     
     auto col1 = threebythree(slice(0),slice(1,1)); //all the rows, first column

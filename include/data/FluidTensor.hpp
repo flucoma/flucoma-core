@@ -595,14 +595,15 @@ namespace fluid {
     class FluidTensorView {//: public FluidTensorBase<T,N> {
         static constexpr size_t order = N;
         
-        using base_type = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
-        
+//        using base_type = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
+      
     public:
         /*****
          STL style shorthand
          *****/
         using pointer = T*;        
         using iterator = _impl::SliceIterator<T,N>;
+        using const_iterator = _impl::SliceIterator<const T,N>;
 
         /*****
          No default constructor, doesn't make sense
@@ -840,7 +841,7 @@ namespace fluid {
             return {m_desc,m_ref};
         }
         
-        const iterator begin() const
+        const const_iterator begin() const
         {
             return {m_desc,m_ref};
         }
@@ -851,7 +852,7 @@ namespace fluid {
         }
         
         
-        const iterator end() const
+        const const_iterator end() const
         {
             return {m_desc,m_ref,true};
         }
