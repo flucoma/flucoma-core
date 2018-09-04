@@ -20,6 +20,7 @@ class Descriptors
   struct Pow3 { double operator()(double a) { return a * a * a; } };
   struct Pow4 { double operator()(double a) { return Pow2()(Pow2()(a)); } };
   struct Log  { double operator()(double a) { return log(a); } };
+  struct Abs  { double operator()(double a) { return fabs(a); } };
 
   template <typename Op>
   struct IndexDiff {
@@ -76,12 +77,12 @@ public:
   
   static double crest(const Real& input)
   {
-    return statMax(input) / RMS(input);
+    return statMax(input, Abs()) / RMS(input);
   }
   
   static double peak(const Real& input)
   {
-    return statMax(input);
+    return statMax(input, Abs());
   }
   
 private:
@@ -145,22 +146,24 @@ private:
 
   // Min / Max Values
   
-  static double statMin(const Real& input)
+  template <typename Op>
+  static double statMin(const Real& input, Op modifier)
   {
     double min = std::numeric_limits<double>::infinity();
     
     for (auto it = input.begin(); it != input.end(); it++)
-      min = std::min(min, *it);
+      min = std::min(min, modifier(*it));
     
     return min;
   }
   
-  static double statMax(const Real& input)
+  template <typename Op>
+  static double statMax(const Real& input, Op modifier)
   {
     double max = -std::numeric_limits<double>::infinity();
     
     for (auto it = input.begin(); it != input.end(); it++)
-      max = std::max(max, *it);
+      max = std::max(max, modifier(*it));
 
     return max;
   }
