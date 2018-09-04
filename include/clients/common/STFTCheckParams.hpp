@@ -24,14 +24,16 @@ namespace parameter {
       return {false, "Window size must be a power of two"};
     }
     
-    //if the FFT size has been changed and is smaller than window size, barf
-    //else it defaults to the window size
+    //if the FFT size <0 then ionterpret as following window size
+    if(fftSize.getLong() < 0)
+    {
+      fftSize.setLong(windowSize.getLong());
+    }
+    
     if(fftSize.getLong() < windowSize.getLong()){
-      if(fftSize.hasChanged())
-      {
+ 
         return {false, "FFT Size cannot be smaller than window size"};
-      }
-      else fftSize.setLong(windowSize.getLong());
+
     }
     //if the FFT size isn't 2^n, barf
     double log2FFTSize = log2(fftSize.getLong());
