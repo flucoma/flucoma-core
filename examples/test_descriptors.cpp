@@ -25,7 +25,7 @@ void calcSpectrum(Real& output, Real& input)
   std::vector<double> window = windowFuncs[fluid::windows::WindowType::Hann](input.size());
   
   for (auto i = 0; i < input.size(); i++)
-    mapped(i) = input(i) * window[i];
+    mapped(i) = input(i) * window[i] * 2.0;
   
   auto complexSpectrum = processor.process(mapped);
   
