@@ -327,7 +327,7 @@
         struct SliceIterator
         {
             //iterator boilerplate
-            using value_type        = std::remove_const<T>;
+            using value_type        = typename std::remove_const<T>::type;
             using reference         = T&;
             using pointer           = T*;
             using difference_type   = std::ptrdiff_t;
@@ -404,10 +404,10 @@
                     }
                 }
             }
-            const FluidTensorSlice<N>& m_desc;
+            FluidTensorSlice<N> m_desc;
             std::array<size_t,N> m_indexes;
             pointer m_ptr;
-            const T* const m_base;
+            pointer m_base;
         };
         
         /********************************
