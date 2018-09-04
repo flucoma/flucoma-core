@@ -9,6 +9,9 @@
  **/
 #pragma once
 
+
+#include "data/FluidTensor.hpp"
+
 #include <utility> //for swap
 #include <iostream>//for ostream
 #include <limits> //for numeric_limits
@@ -26,16 +29,22 @@ namespace parameter{
   
   enum class Type{Float,Long,Buffer,Enum};
   
-  class BufferAdaptor: public FluidTensorView<float,2>
+  class BufferAdaptor//: public FluidTensorView<float,2>
   {
   public:
-    using FluidTensorView<float,2>::FluidTensorView;
+    //using FluidTensorView<float,2>::FluidTensorView;
     virtual ~BufferAdaptor() = default;
     virtual void acquire() = 0;
     virtual void release() = 0;
     virtual bool valid() const   = 0;
     
     virtual void resize(size_t frames, size_t channels, size_t rank) = 0;
+    
+    //Return a slice of the buffer
+    virtual FluidTensorView<float,1> samps(size_t channel, size_t rankIdx = 1) = 0;
+    //Return a view of all the data
+    virtual FluidTensorView<float,2> samps() = 0;
+    
     
     bool operator==(BufferAdaptor& rhs) const
     {
@@ -46,15 +55,15 @@ namespace parameter{
     {
       return !(*this == rhs);
     }
-    size_t numSamps() const
-    {
-      return rows();
-    }
-    
-    size_t numChans() const
-    {
-      return cols();
-    }
+    virtual size_t numSamps() const = 0;
+//    {
+//      return rows();
+//    }
+//
+    virtual size_t numChans() const = 0;
+//    {
+//      return cols();
+//    }
     
   protected:
     virtual bool equal(BufferAdaptor* rhs) const = 0;
@@ -250,6 +259,13 @@ namespace parameter{
     
     void setFloat(double v)
     {
+//
+//      if(!v == mDesc.getDefault())
+//      {
+//        mHasChanged = true;
+//      }
+
+      
       switch (mDesc.getType())
       {
         case Type::Float:
@@ -267,6 +283,11 @@ namespace parameter{
     
     void setLong(long v)
     {
+//      if(!(static_cast<long>(v) == static_cast<long>(mDesc.getDefault())))
+//      {
+//        mHasChanged = true;
+//      }
+      
       switch (mDesc.getType())
       {
       case Type::Float:
