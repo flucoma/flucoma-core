@@ -21,7 +21,7 @@ class ARModel
   
 public:
   
-  ARModel(size_t order, size_t iterations = 3, bool useWindow = true, double robustFactor = 3.0) : mParameters(VectorXd::Zero(order)), mVariance(0.0), mOrder(order), mIterations(iterations), mUseWindow(useWindow), mRobustFactor(robustFactor)  {}
+  ARModel(size_t order, size_t iterations = 3, bool useWindow = true, double robustFactor = 3.0) : mParameters(VectorXd::Zero(order)), mVariance(0.0), mOrder(order), mIterations(iterations), mUseWindow(useWindow), mRobustFactor(robustFactor), mMinVariance(0.0)  {}
   
   const double *getParameters() const { return mParameters.data(); }
   double variance() const { return mVariance; }
@@ -32,7 +32,7 @@ public:
     if (mIterations)
       robustEstimate(input, size);
     else
-      directEstimate(input, size);
+      directEstimate(input, size, true);
   }
   
   double fowardPrediction(const double *input)
@@ -66,6 +66,11 @@ public:
     modelErrorArray<&ARModel::backwardError>(errors, input, size);
   }
   
+  void setMinVariance(double variance)
+  {
+    mMinVariance = variance;
+  }
+  
 private:
 
   template<typename Op>
@@ -92,7 +97,7 @@ private:
       errors[i] = (this->*Method)(input + i);
   }
   
-  void directEstimate(const double *input, int size)
+  void directEstimate(const double *input, int size, bool updateVariance)
   {
     std::vector<double> frame(size);
     
@@ -128,14 +133,17 @@ private:
     std::rotate(autocorrelation.data(), autocorrelation.data() + 1, autocorrelation.data() + mOrder);
     mParameters = mat.llt().solve(autocorrelation);
     
-    // Calculate variance
+    if (updateVariance)
+    {
+      // Calculate variance
     
-    double variance = mat(0, 0);
+      double variance = mat(0, 0);
     
-    for (int i = 0; i < mOrder - 1; i++)
-      variance -= mParameters(i) * mat(0, i + 1);
+      for (int i = 0; i < mOrder - 1; i++)
+        variance -= mParameters(i) * mat(0, i + 1);
     
-    mVariance = (variance - (mParameters(mOrder - 1) * pN)) / size;
+      setVariance((variance - (mParameters(mOrder - 1) * pN)) / size);
+    }
   }
   
   void robustEstimate(const double *input, int size)
@@ -144,7 +152,7 @@ private:
     
     // Calculate an intial estimate of parameters
     
-    directEstimate(input, size);
+    directEstimate(input, size, true);
     
     // Initialise Estimates
     
@@ -179,7 +187,7 @@ private:
       residualSqSum += residual * residual;
     }
     
-    mVariance = residualSqSum / size;
+    setVariance(residualSqSum / size);
   }
         
   void robustIteration(double *estimates, const double *input, int size)
@@ -196,8 +204,16 @@ private:
     
     // New parameters
     
-    directEstimate(estimates, size);
+    directEstimate(estimates, size, false);
     robustVariance(estimates, input, size);
+  }
+  
+  void setVariance(double variance)
+  {
+    if (variance)
+      variance = std::max(mMinVariance, variance);
+  
+    mVariance = variance;
   }
   
   // Huber PSI function
@@ -216,6 +232,7 @@ private:
   size_t mOrder;
   size_t mIterations;
   double mRobustFactor;
+  double mMinVariance;
 };
   
 };  // namespace armodel

@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "ARModel.hpp"
+#include "Descriptors.hpp"
 
 namespace fluid {
 namespace transient_extraction {
@@ -14,6 +15,8 @@ namespace transient_extraction {
 using armodel::ARModel;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
+using TensorView = const FluidTensorView<double, 1>;
+using descriptors::Descriptors;
 
 class TransientExtraction
 {
@@ -101,6 +104,7 @@ private:
 
   void analyse()
   {
+    mModel.setMinVariance(0.0000001);
     mModel.estimate(mInput.data() + modelOrder(), analysisSize());
   }
 
@@ -155,7 +159,50 @@ private:
       mDetect[i] = click ? 1.0 : 0.0;
     }
 
+    // Count Validation
+      
+    if (count > (hopSize() / 2))
+    {
+      std::fill(mDetect.data(), mDetect.data() + hopSize(), 0.0);
+      count = 0;
+    }
+    
+    // RMS validation
+    /*
+    const double frameRMS = calcStat<&Descriptors::RMS>(input, blockSize());
+    
+    for (int i = 0, size = hopSize(); i < size;)
+    {
+      for (; i < size; i++)
+          if (mDetect[i])
+            break;
+      
+      int beg = i;
+      
+      for (; i < size; i++)
+        if (!mDetect[i])
+          break;
+      
+      if (i <= beg)
+        continue;
+      
+      const double clickRMS = calcStat<&Descriptors::RMS>(input + modelOrder() + beg, i - beg);
+      
+      if ((clickRMS / frameRMS) < 0.001)
+      {
+        count -= (i - beg);
+        std::fill(mDetect.data() + beg, mDetect.data() + i, 0.0);
+      }
+    }
+    */
     mCount = count;
+  }
+  
+  template <double Method(const TensorView&)>
+  double calcStat(const double *input, int size)
+  {
+    TensorView view(const_cast<double *>(input), 0, size);
+    return Method(view);
   }
 
   void interpolate(double *transients, double *residual)
