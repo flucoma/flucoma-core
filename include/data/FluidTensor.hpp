@@ -644,15 +644,15 @@ namespace fluid {
         //different move and copy behaviour
       
       
-      //Move
-      FluidTensorView& operator=(FluidTensorView&& x)
-      {
-        if(this != &x){
-          auto m = x;
-          swap(*this,m);
-        }
-          return *this;    
-      }
+//      //Move
+//      FluidTensorView& operator=(FluidTensorView&& x)
+//      {
+//        if(this != &x){
+//          auto m = x;
+//          swap(*this,m);
+//        }
+//          return *this;
+//      }
       
       
         FluidTensorView& operator=(const FluidTensorView& x)
