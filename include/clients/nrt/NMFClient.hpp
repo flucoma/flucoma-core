@@ -113,7 +113,7 @@ namespace fluid {
           params.back().setMin(1).setDefault(256);
 
           params.emplace_back(desc_type{"FFT Size", parameter::Type::Long});
-          params.back().setMin(4).setDefault(1024);
+          params.back().setMin(-1).setDefault(-1);
         }
         return params;
       }
@@ -401,7 +401,7 @@ namespace fluid {
         stft::STFT stft(mArguments.windowSize,mArguments.fftSize,mArguments.hopSize);
         //Copy input buffer
         mArguments.src->acquire();
-        RealMatrix sourceData(*mArguments.src);
+        RealMatrix sourceData(mArguments.src->samps());
         mArguments.src->release();
         //TODO: get rid of need for this
         //Either: do the whole process loop here via process_frame
@@ -422,7 +422,8 @@ namespace fluid {
             mArguments.dict->acquire();
             auto dictionaries = m.getW();
             for (size_t j = 0; j < mArguments.rank; ++j)
-              mArguments.dict->col(j + (i * mArguments.rank)) = dictionaries.col(j);
+              mArguments.dict->samps(i,j) = dictionaries.col(j);
+              //mArguments.dict->col(j + (i * mArguments.rank)) = dictionaries.col(j);
             mArguments.dict->release();
           }
           
@@ -438,8 +439,9 @@ namespace fluid {
             
             for (size_t j = 0; j < mArguments.rank; ++j)
             {
-              mArguments.act->col(j + (i * mArguments.rank)) = activations.row(j);
-              mArguments.act->col(j + (i * mArguments.rank)).apply([scale](float& x){
+              auto acts = mArguments.act->samps(i,j);
+              acts = activations.row(j);
+              acts.apply([scale](float& x){
                 x *= scale;
               });
             }
@@ -456,7 +458,7 @@ namespace fluid {
               auto estimate = m.getEstimate(j);
               stft::Spectrogram result(mask.process(spec.mData, estimate));
               auto audio = istft.process(result);
-              mArguments.resynth->col(j + (i * mArguments.rank)) = audio(fluid::slice(0,mArguments.frames));
+              mArguments.resynth->samps(i,j) = audio(fluid::slice(0,mArguments.frames));
             }
             mArguments.resynth->release();
           }
