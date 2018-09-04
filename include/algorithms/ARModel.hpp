@@ -151,21 +151,22 @@ private:
     for (int i = 0; i < mOrder + size; i++)
       estimates[i] = input[i - mOrder];
     
+    // Variance
+      
+    robustVariance(estimates.data() + mOrder, input, size);
+      
     // Iterate
     
     for (size_t iterations = mIterations; iterations--; )
       robustIteration(estimates.data() + mOrder, input, size);
   }
   
-  double robustFilter(double input, double *estimates, double cs)
+  double robustResidual(double input, double prediction, double cs)
   {
-    const double prediction = fowardPrediction(estimates);
-    const double residual = cs * psiFunction((input - prediction) / cs);
-    estimates[0] = prediction + residual;
-    return residual * residual;
+    return cs * psiFunction((input - prediction) / cs);
   }
   
-  void robustIteration(double *estimates, const double *input, int size)
+  void robustVariance(double *estimates, const double *input, int size)
   {
     const double cs = mRobustFactor * sqrt(mVariance);
     double residualSqSum = 0.0;
@@ -173,15 +174,30 @@ private:
     // Iterate to find new filtered input
     
     for (int i = 0; i < size; i++)
-      residualSqSum += robustFilter(input[i], estimates + i, cs);
+    {
+      const double residual = robustResidual(input[i], fowardPrediction(estimates + i), cs);
+      residualSqSum += residual * residual;
+    }
+    
+    mVariance = residualSqSum / size;
+  }
+        
+  void robustIteration(double *estimates, const double *input, int size)
+  {
+    const double cs = mRobustFactor * sqrt(mVariance);
+    
+    // Iterate to find new filtered input
+    
+    for (int i = 0; i < size; i++)
+    {
+      const double prediction = fowardPrediction(estimates);
+      estimates[0] = prediction + robustResidual(input[i], prediction, cs);
+    }
     
     // New parameters
     
     directEstimate(estimates, size);
-    
-    // Update variance
-    
-    mVariance = residualSqSum / size;
+    robustVariance(estimates, input, size);
   }
   
   // Huber PSI function
