@@ -3,6 +3,7 @@
 
 #include "../data/FluidTensor.hpp"
 
+#include <cassert>
 #include <cmath>
 #include <algorithm>
 
@@ -53,7 +54,7 @@ class Descriptors
   
   struct KLDifference { double operator()(double a, double b) { return a * log(a / b); } };
   struct SKLDifference { double operator()(double a, double b) { return (a - b) * log(a / b); } };
-  struct MKLDifference { double operator()(double a, double b) { return log2(a / b); } };
+  struct MKLDifference { double operator()(double a, double b) { return log(a / b); } };
   
   // Index difference from a fixed reference
   
@@ -143,9 +144,8 @@ public:
   
   static void forwardFilter(Real& vec1, Real& vec2)
   {
-    if (vec1.size() != vec2.size())
-      return;
-    
+    assert(vec1.size() == vec2.size() && "Vectors should match in size");
+
     for (auto it = vec1.begin(), jt = vec2.begin(); it != vec1.end(); it++, jt++)
     {
       if (*it < *jt)
@@ -157,7 +157,7 @@ public:
   
   static double differenceL1Norm(const Real& vec1, const Real& vec2)
   {
-    return sqrt(statSum(vec1, vec2, AbsDifference()));
+    return statSum(vec1, vec2, AbsDifference());
   }
   
   // L2 Norm difference between two vectors
@@ -178,8 +178,7 @@ public:
   
   static double differenceFT(const Real& vec1, const Real& vec2)
   {
-    if (vec1.size() != vec2.size())
-      return std::numeric_limits<double>::infinity();
+    assert(vec1.size() == vec2.size() && "Vectors should match in size");
     
     return statSumProduct(vec1, vec2) / sqrt(statSumSquares(vec1) + statSumSquares(vec2));
   }
@@ -195,21 +194,21 @@ public:
   
   static double differenceKL(const Real& vec1, const Real& vec2)
   {
-    return sqrt(statSum(vec1, vec2, KLDifference()));
+    return statSum(vec1, vec2, KLDifference());
   }
   
   // Symmetric Kullback-Liebler difference between two vectors (if spectra expected as amplitude spectra, not power spectra)
   
   static double differenceSKL(const Real& vec1, const Real& vec2)
   {
-    return sqrt(statSum(vec1, vec2, SKLDifference()));
+    return 0.5 * statSum(vec1, vec2, SKLDifference());
   }
   
   // Modified Kullback-Liebler difference between two vectors (if spectra expected as amplitude spectra, not power spectra)
   
   static double differenceMKL(const Real& vec1, const Real& vec2)
   {
-    return sqrt(statSum(vec1, vec2, MKLDifference()));
+    return statSum(vec1, vec2, MKLDifference());
   }
   
 private:
@@ -242,8 +241,7 @@ private:
   template <typename Op>
   static double statSum(const Real& v1, const Real& v2, Op modifier)
   {
-    if (v1.size() != v2.size())
-      return 0.0;
+    assert(v1.size() == v2.size() && "Vectors should match in size");
     
     double sum = 0.0;
   
