@@ -55,18 +55,26 @@ namespace parameter{
     {
       return !(*this == rhs);
     }
-    virtual size_t numSamps() const = 0;
-//    {
-//      return rows();
-//    }
-//
-    virtual size_t numChans() const = 0;
-//    {
-//      return cols();
-//    }
+    virtual size_t numSamps() const
+    {
+      return mFrames;
+    }
+
+    virtual size_t numChans() const
+    {
+      return mChans;
+    }
+    
+    virtual size_t rank() const
+    {
+      return mRank; 
+    }
     
   protected:
     virtual bool equal(BufferAdaptor* rhs) const = 0;
+    size_t mFrames;
+    size_t mChans;
+    size_t mRank = 1;
   };
 
   
@@ -75,6 +83,7 @@ namespace parameter{
     Descriptor(const Descriptor& d)
     {
       mName = d.mName;
+      mDisplayName = d.mDisplayName;
       mInstantiation = d.mInstantiation;
       mType = d.mType;
       mMin = d.mMin;
@@ -86,6 +95,7 @@ namespace parameter{
     Descriptor(const Descriptor&& d)
     {
       mName = d.mName;
+      mDisplayName = d.mDisplayName;
       mInstantiation = d.mInstantiation;
       mType = d.mType;
       mMin = d.mMin;
@@ -101,7 +111,7 @@ namespace parameter{
     }
     
     
-    Descriptor(std::string name,Type type):mName(name),mType(type) {
+    Descriptor(std::string name,std::string dispName, Type type):mName(name),mType(type),mDisplayName(dispName){
       
       if(mType == Type::Buffer)
       {
@@ -204,9 +214,11 @@ namespace parameter{
     }
     
   private:
+    
     std::string mName;
-    bool mInstantiation;
+    bool mInstantiation = false;
     parameter::Type mType;
+    std::string mDisplayName; 
     double mMin = std::numeric_limits<double>::lowest();
     double mMax = std::numeric_limits<double>::max();
     double mDefault = 0;
@@ -218,23 +230,23 @@ namespace parameter{
   class Instance
   {
     union Value{
-      long vLong;
-      double vFloat;
       BufferAdaptor* vBuffer;
+      double vFloat;
+      long vLong;
     };
   public:
     enum class RangeErrorType{None,Min,Max};
     
     Instance(const Instance& i):mDesc(i.mDesc)
     {
-      value = i.value;
+//      value = i.value;
       mHasChanged = i.mHasChanged;
       mValue = i.mValue;
     }
     
     Instance(const Instance&& i):mDesc(i.mDesc)
     {
-      value = i.value;
+//      value = i.value;
       mHasChanged = i.mHasChanged;
       mValue = i.mValue;
     }
@@ -247,14 +259,46 @@ namespace parameter{
     
    
     
-    Instance(Descriptor desc):mDesc(desc)
+    Instance(Descriptor desc):mDesc(desc),mValue{0}
     {
       //TODO something that checks 0 is in actual range
-      value = mDesc.hasDefault() ? mDesc.getDefault() : 0;
+//      value = mDesc.hasDefault() ? mDesc.getDefault() : 0;
+      if(mDesc.hasDefault())
+      {
+        switch(mDesc.getType())
+        {
+          case Type::Float:
+            mValue.vFloat = mDesc.getDefault();
+            mHasChanged = true;
+            break;
+          case Type::Long:
+            mValue.vLong = mDesc.getDefault();
+            mHasChanged = true;
+            break;
+          default:
+            break;
+        }
+      }
     }
 
-    Instance(Descriptor desc, double v):mDesc(desc), value(v),mHasChanged(true)
-    {}
+    Instance(Descriptor desc, double v):mDesc(desc), mValue{0}
+    {
+      switch(mDesc.getType())
+      {
+        case Type::Float:
+          mValue.vFloat = v;
+          mHasChanged = true;
+          break;
+        case Type::Long:
+          mValue.vLong = v;
+          mHasChanged = true;
+          break;
+        default:
+          assert(false && "Why would you even?");
+          break;
+      }
+ 
+    }
     
     
     void setFloat(double v)
@@ -421,7 +465,7 @@ namespace parameter{
     
   private:
     Descriptor mDesc;
-    double value;
+//    double value;
     bool mHasChanged = false;
     Value mValue;
   };
