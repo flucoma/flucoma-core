@@ -86,19 +86,19 @@ namespace fluid {
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
 
           params.emplace_back(desc_type{"Resynthesis Buffer", parameter::Type::Buffer});
-          params.back().setInstantiation(true);
+          params.back().setInstantiation(false);
 
           params.emplace_back(desc_type{"Dictionary Buffer", parameter::Type::Buffer});
-          params.back().setInstantiation(true);
+          params.back().setInstantiation(false);
 
           params.emplace_back(desc_type{"Dictionary Update",  parameter::Type::Long});
-          params.back().setInstantiation(true).setMin(0).setMax(2).setDefault(0);
+          params.back().setInstantiation(false).setMin(0).setMax(2).setDefault(0);
           
           params.emplace_back(desc_type{"Activation Buffer", parameter::Type::Buffer});
-          params.back().setInstantiation(true);
+          params.back().setInstantiation(false);
         
           params.emplace_back(desc_type{"Activation Update",  parameter::Type::Long});
-          params.back().setInstantiation(true).setMin(0).setMax(2).setDefault(0);
+          params.back().setInstantiation(false).setMin(0).setMax(2).setDefault(0);
           
           params.emplace_back(desc_type{"Rank",  parameter::Type::Long});
           params.back().setMin(1).setDefault(1);
