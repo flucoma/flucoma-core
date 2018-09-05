@@ -11,6 +11,7 @@ namespace descriptors {
   
 class Descriptors
 {
+  using RealTensor = fluid::FluidTensor<double, 1>;
   using Real = fluid::FluidTensorView<double, 1>;
 
   // Helper structs
@@ -22,6 +23,40 @@ class Descriptors
   struct Log  { double operator()(double a) { return log(a); } };
   struct Abs  { double operator()(double a) { return fabs(a); } };
 
+  struct SqDifference { double operator()(double a, double b) { return (a-b) * (a-b); } };
+  struct AbsDifference { double operator()(double a, double b) { return fabs(a-b); } };
+  
+  // For Log Spectral Difference
+  
+  struct LogDBDifference
+  {
+    double operator()(double a, double b)
+    {
+      const double difference = 20.0 * log10(a / b);
+      return difference * difference;
+    }
+  };
+  
+  // Itakura-Saito difference
+  
+  struct ISDifference
+  {
+    double operator()(double a, double b)
+    {
+      double ratio = a / b;
+      ratio *= ratio;
+      return ratio - log(ratio) - 1;
+    }
+  };
+  
+  // Kullback-Liebler Difference (+ Symmetric and Modifed Versions)
+  
+  struct KLDifference { double operator()(double a, double b) { return a * log(a / b); } };
+  struct SKLDifference { double operator()(double a, double b) { return (a - b) * log(a / b); } };
+  struct MKLDifference { double operator()(double a, double b) { return log2(a / b); } };
+  
+  // Index difference from a fixed reference
+  
   template <typename Op>
   struct IndexDiff {
     IndexDiff(double value) : mValue(value) {}
@@ -85,8 +120,100 @@ public:
     return statMax(input, Abs());
   }
   
-private:
+  // HFC
   
+  // If handed a spectra returns the HFC with positions scaled in bins
+  
+  static double HFC(const Real& input)
+  {
+    return statIndexWeightedSum(input);
+  }
+  
+  // Vector Differences
+  
+  // Normalise a vector (or spectral frame)
+  
+  static void normalise(Real& input, bool power)
+  {
+    const double factor = 1.0 / (power ? sqrt(statSumSquares(input)) : statSum(input));
+    input.apply([&](double& x){x *= factor;});
+  }
+  
+  // Remove values from two vectors in positions that are not greater in the first vector than the second
+  
+  static void forwardFilter(Real& vec1, Real& vec2)
+  {
+    if (vec1.size() != vec2.size())
+      return;
+    
+    for (auto it = vec1.begin(), jt = vec2.begin(); it != vec1.end(); it++, jt++)
+    {
+      if (*it < *jt)
+        *it = *jt = 0.0;
+    }
+  }
+
+  // L1 Norm difference between two vectors
+  
+  static double differenceL1Norm(const Real& vec1, const Real& vec2)
+  {
+    return sqrt(statSum(vec1, vec2, AbsDifference()));
+  }
+  
+  // L2 Norm difference between two vectors
+  
+  static double differenceL2Norm(const Real& vec1, const Real& vec2)
+  {
+    return sqrt(statSum(vec1, vec2, SqDifference()));
+  }
+  
+  // Log difference between two vectors (if spectra expected as amplitude spectra, not power spectra)
+  
+  static double differenceLog(const Real& vec1, const Real& vec2)
+  {
+    return sqrt(statSum(vec1, vec2, LogDBDifference()));
+  }
+  
+  // Foote difference between two vectors
+  
+  static double differenceFT(const Real& vec1, const Real& vec2)
+  {
+    if (vec1.size() != vec2.size())
+      return std::numeric_limits<double>::infinity();
+    
+    return statSumProduct(vec1, vec2) / sqrt(statSumSquares(vec1) + statSumSquares(vec2));
+  }
+  
+  // Itakura-Saito difference between two vectors (if spectra expected as amplitude spectra, not power spectra)
+
+  static double differenceIS(const Real& vec1, const Real& vec2)
+  {
+    return sqrt(statSum(vec1, vec2, ISDifference()));
+  }
+  
+  // Kullback-Liebler difference between two vectors (if spectra expected as amplitude spectra, not power spectra)
+  
+  static double differenceKL(const Real& vec1, const Real& vec2)
+  {
+    return sqrt(statSum(vec1, vec2, KLDifference()));
+  }
+  
+  // Symmetric Kullback-Liebler difference between two vectors (if spectra expected as amplitude spectra, not power spectra)
+  
+  static double differenceSKL(const Real& vec1, const Real& vec2)
+  {
+    return sqrt(statSum(vec1, vec2, SKLDifference()));
+  }
+  
+  // Modified Kullback-Liebler difference between two vectors (if spectra expected as amplitude spectra, not power spectra)
+  
+  static double differenceMKL(const Real& vec1, const Real& vec2)
+  {
+    return sqrt(statSum(vec1, vec2, MKLDifference()));
+  }
+  
+private:
+
   // Sums
   
   template <typename Op>
@@ -112,6 +239,20 @@ private:
     return sum;
   }
   
+  template <typename Op>
+  static double statSum(const Real& v1, const Real& v2, Op modifier)
+  {
+    if (v1.size() != v2.size())
+      return 0.0;
+    
+    double sum = 0.0;
+  
+    for (auto it = v1.begin(), jt = v2.begin(); it != v1.end(); it++, jt++)
+      sum += modifier(*it, *jt);
+    
+    return sum;
+  }
+  
   static double statSum(const Real& input)
   {
     return statSum(input, NOP());
@@ -122,9 +263,24 @@ private:
     return statSum(input, Pow2());
   }
   
+  static double statSumAbs(const Real& input)
+  {
+    return statSum(input, Abs());
+  }
+  
   static double statSumLogs(const Real& input)
   {
     return statSum(input, Log());
+  }
+  
+  static double statIndexWeightedSum(const Real& input)
+  {
+    return statIndexWeightedSum(input, NOP());
+  }
+  
+  static double statSumProduct(const Real& v1, const Real& v2)
+  {
+    return statSum(v1, v2, std::multiplies<double>());
   }
   
   // Means
@@ -186,7 +342,6 @@ private:
     
     return static_cast<double>(input.size() - 1);
   }
-    
 };
         
 };  // namespace descriptors
