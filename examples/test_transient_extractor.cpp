@@ -22,7 +22,7 @@ int paramPad = 1024;        // The analysis is done on a longer segment than the
 // Detection is based on absolute forward and backwards prediction errors in relation to the estimated deviation of the AR model - these predictions are smoothed with a window and subjected to an on and off threshold - higher on thresholds make detection less likely and the reset threshold is used (along with a hold time) to ensure that the detection does not switch off before the end of a transient
 
 double paramDetectPower = 1.0;           // The power factor used when windowing - higher makes detection more likely
-double paramDetectThreshHi = 3.5;        // The threshold for detection (in multiples of the model deviation)
+double paramDetectThreshHi = 3.0;        // The threshold for detection (in multiples of the model deviation)
 double paramDetectThreshLo = 1.1;        // The reset threshold to end a detected segment (in multiples of the model deviation)
 double paramDetectHalfWindow = 7;        // Half the window size used to smooth detection functions (in samples)
 int paramDetectHold = 25;               // The hold time for detection (in samples)
