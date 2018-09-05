@@ -35,7 +35,6 @@ namespace fluid {
       using desc_type = parameter::Descriptor;
       using param_type = parameter::Instance;
     public:
-      
       struct ProcessModel
       {
         bool fixDictionaries;
@@ -118,14 +117,6 @@ namespace fluid {
         return params;
       }
       
-      static const std::vector<param_type> newParameterSet()
-      {
-        std::vector<param_type> newParams;
-        //Note: I'm pretty sure I want auto's copy behaviour here
-        for(auto p: getParamDescriptors())
-          newParams.emplace_back( parameter::Instance(p));
-        return newParams;
-      }
       
       /**
        Go over the supplied parameter values and ensure that they are sensible
@@ -156,7 +147,6 @@ namespace fluid {
           return  { false, "Source buffer doesn't exist or can't be accessed.", model };
         }
         
-      
         for(auto&& p: params)
         {
           switch(p.getDescriptor().getType())
@@ -191,7 +181,6 @@ namespace fluid {
           return {false, "One or more buffers are the same. They all need to be distinct", model};
         }
         
-        
         //Now scan everything for range, until we hit a problem
         //TODO Factor into parameter::instance
         for(auto&& p: params)
@@ -216,7 +205,6 @@ namespace fluid {
             }
             return { false, msg.str(), model};
           }
-
         }
         
         //Now make sense of the overwrite parameter
@@ -237,7 +225,6 @@ namespace fluid {
         model.fixDictionaries  = (dictUpdateRule.getLong() == 2);
         model.seedActivations  = (actUpdateRule.getLong() > 0);
         model.fixActivations   = (actUpdateRule.getLong() == 2);
-        
         
         //Check the size of our buffers
         parameter::BufferAdaptor* src= params[0].getBuffer();
@@ -264,8 +251,7 @@ namespace fluid {
         model.frames        = srcFrames > 0 ? srcFrames : src->numSamps() - model.offset;
         model.channelOffset = srcChanOffset;
         model.channels      = srcChans >  0 ? srcChans  : src->numChans() - model.channelOffset;
-        
-        
+    
         //Check the FFT args
         
         parameter::Instance windowSize = lookupParam("winsize", params);
@@ -369,9 +355,15 @@ namespace fluid {
       {}
       
       ~NMFClient()= default;
-      //Not implemented
-      //void reset();
-      //bool isReady() const;
+      
+      static const std::vector<param_type> newParameterSet()
+      {
+        std::vector<param_type> newParams;
+        //Note: I'm pretty sure I want auto's copy behaviour here
+        for(auto p: getParamDescriptors())
+          newParams.emplace_back( parameter::Instance(p));
+        return newParams;
+      }
       
       /**
        Call this before pushing / processing / pulling
@@ -381,9 +373,7 @@ namespace fluid {
       {
         mSource.set_host_buffer_size(source_frames);
         mSinkResynth.set_host_buffer_size(source_frames);
-        //mSinkDictionaries.set_host_buffer_size(<#size_t n#>)
       }
-      
       
       /***
        Take some data, NMF it
@@ -409,7 +399,7 @@ namespace fluid {
         RealVector tmp(mArguments.frames);
         for(size_t i = 0; i < mArguments.channels; ++i)
         {
-          tmp = sourceData.row(i);
+          tmp = sourceData.col(i);
           stft::Spectrogram spec = stft.process(tmp);
           
           //TODO: Add seeding with pre-formed W & H to NMF
@@ -435,7 +425,7 @@ namespace fluid {
             
             double maxH = *std::max_element(activations.begin(), activations.end());
             
-            double scale = maxH / mArguments.fftSize;
+            double scale = 1. / (maxH);
             
             for (size_t j = 0; j < mArguments.rank; ++j)
             {

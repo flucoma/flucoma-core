@@ -24,7 +24,20 @@ void whynoworky(const std::vector<double>& v)
 
 int main(int argc, char* argv[])
 {
-    //Wrap any old pointer
+  //Test wrapping interleaved structure, coz I keep getting it wrong
+  //4 channels 3 frames
+  std::vector<double> quad = {0,1,2,3,0,1,2,3,0,1,2,3};
+  
+  
+  FluidTensorView<double,2> quadview(quad.data(),0,3,4);
+  
+  std::cout<< quadview.col(0) << '\n';
+  
+  
+  
+  
+  
+  //Wrap any old pointer
     std::vector<double> s = {0,1,2,3,4,5,6,7,8};
   
     whynoworky(s);

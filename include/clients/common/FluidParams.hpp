@@ -110,7 +110,6 @@ namespace parameter{
       return *this;
     }
     
-    
     Descriptor(std::string name,std::string dispName, Type type):mName(name),mType(type),mDisplayName(dispName){
       
       if(mType == Type::Buffer)
@@ -118,7 +117,6 @@ namespace parameter{
         mMin = 0;
         mMax = 0;
       }
-      
     }
     
     std::string  getName() const { return mName; }
@@ -172,7 +170,6 @@ namespace parameter{
     bool instatiation() const {return mInstantiation;}
     bool hasDefault() const {
       return mType==Type::Buffer? false: mHasDefault;
-      
     }
     
     bool hasMin() const {
@@ -223,8 +220,6 @@ namespace parameter{
     double mMax = std::numeric_limits<double>::max();
     double mDefault = 0;
     bool mHasDefault = false;
-    
-
   };
   
   class Instance
@@ -297,9 +292,7 @@ namespace parameter{
           assert(false && "Why would you even?");
           break;
       }
- 
     }
-    
     
     void setFloat(double v)
     {
