@@ -70,49 +70,49 @@ namespace fluid {
         static std::vector<desc_type> params;
         if(params.empty())
         {
-          params.emplace_back(desc_type{"Source Buffer", parameter::Type::Buffer});
+          params.emplace_back(desc_type{"src","Source Buffer", parameter::Type::Buffer});
           params.back().setInstantiation(true);
           
-          params.emplace_back(desc_type{"Source Offset", parameter::Type::Long});
+          params.emplace_back(desc_type{"offsetframes","Source Offset", parameter::Type::Long});
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
-          params.emplace_back(desc_type{"Source Frames", parameter::Type::Long});
+          params.emplace_back(desc_type{"numframes","Source Frames", parameter::Type::Long});
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
           
-          params.emplace_back(desc_type{"Source Channel Offset", parameter::Type::Long});
+          params.emplace_back(desc_type{"offsetchans","Source Channel Offset", parameter::Type::Long});
           params.back().setInstantiation(true).setMin(0).setDefault(0);
           
-          params.emplace_back(desc_type{"Source Channels", parameter::Type::Long});
+          params.emplace_back(desc_type{"numchans","Source Channels", parameter::Type::Long});
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
 
-          params.emplace_back(desc_type{"Resynthesis Buffer", parameter::Type::Buffer});
+          params.emplace_back(desc_type{"resynthbuf","Resynthesis Buffer", parameter::Type::Buffer});
           params.back().setInstantiation(false);
 
-          params.emplace_back(desc_type{"Dictionary Buffer", parameter::Type::Buffer});
+          params.emplace_back(desc_type{"filterbuf","Filters Buffer", parameter::Type::Buffer});
           params.back().setInstantiation(false);
 
-          params.emplace_back(desc_type{"Dictionary Update",  parameter::Type::Long});
+          params.emplace_back(desc_type{"filterupdate","Filter Update",  parameter::Type::Long});
           params.back().setInstantiation(false).setMin(0).setMax(2).setDefault(0);
           
-          params.emplace_back(desc_type{"Activation Buffer", parameter::Type::Buffer});
+          params.emplace_back(desc_type{"envbuf","Envelopes Buffer", parameter::Type::Buffer});
           params.back().setInstantiation(false);
         
-          params.emplace_back(desc_type{"Activation Update",  parameter::Type::Long});
+          params.emplace_back(desc_type{"envupdate","Activation Update",  parameter::Type::Long});
           params.back().setInstantiation(false).setMin(0).setMax(2).setDefault(0);
           
-          params.emplace_back(desc_type{"Rank",  parameter::Type::Long});
+          params.emplace_back(desc_type{"rank","Rank", parameter::Type::Long});
           params.back().setMin(1).setDefault(1);
           
-          params.emplace_back(desc_type{"Iterations", parameter::Type::Long});
-          params.back().setMin(1).setDefault(100);
+          params.emplace_back(desc_type{"iterations","Iterations", parameter::Type::Long});
+          params.back().setInstantiation(false).setMin(1).setDefault(100);
           
-          params.emplace_back(desc_type{"Window Size", parameter::Type::Long});
+          params.emplace_back(desc_type{"winsize","Window Size", parameter::Type::Long});
           params.back().setMin(4).setDefault(1024);
 
-          params.emplace_back(desc_type{"Hop Size", parameter::Type::Long});
+          params.emplace_back(desc_type{"hopsize","Hop Size", parameter::Type::Long});
           params.back().setMin(1).setDefault(256);
 
-          params.emplace_back(desc_type{"FFT Size", parameter::Type::Long});
+          params.emplace_back(desc_type{"fftsize","FFT Size", parameter::Type::Long});
           params.back().setMin(-1).setDefault(-1);
         }
         return params;
@@ -225,8 +225,8 @@ namespace fluid {
         //if 2 (matching) then the buffer should be present, allocated and won't mutate
         //having both == 2 makes no sense
         
-        parameter::Instance dictUpdateRule = parameter::lookupParam("Dictionary Update", params);
-        parameter::Instance actUpdateRule  = parameter::lookupParam("Activation Update", params);
+        parameter::Instance dictUpdateRule = parameter::lookupParam("filterupdate", params);
+        parameter::Instance actUpdateRule  = parameter::lookupParam("envupdate", params);
         
         if(dictUpdateRule.getLong() == 2 && actUpdateRule.getLong() == 2)
         {
@@ -242,10 +242,10 @@ namespace fluid {
         //Check the size of our buffers
         parameter::BufferAdaptor* src= params[0].getBuffer();
         
-        long srcOffset     = parameter::lookupParam("Source Offset",         params).getLong();
-        long srcFrames     = parameter::lookupParam("Source Frames",         params).getLong();
-        long srcChanOffset = parameter::lookupParam("Source Channel Offset", params).getLong();
-        long srcChans      = parameter::lookupParam("Source Channels",       params).getLong();
+        long srcOffset     = parameter::lookupParam("offsetframes",         params).getLong();
+        long srcFrames     = parameter::lookupParam("numframes",         params).getLong();
+        long srcChanOffset = parameter::lookupParam("offsetchans", params).getLong();
+        long srcChans      = parameter::lookupParam("numchans",       params).getLong();
         
         //Ensure that the source buffer can deliver
         if(srcFrames > 0 ? (src->numSamps() < (srcOffset + srcFrames)) : (src->numSamps() < srcOffset))
@@ -268,9 +268,9 @@ namespace fluid {
         
         //Check the FFT args
         
-        parameter::Instance windowSize = lookupParam("Window Size", params);
-        parameter::Instance fftSize    = lookupParam("FFT Size", params);
-        parameter::Instance hopSize    = lookupParam("Hop Size", params);
+        parameter::Instance windowSize = lookupParam("winsize", params);
+        parameter::Instance fftSize    = lookupParam("fftsize", params);
+        parameter::Instance hopSize    = lookupParam("hopsize", params);
       
         auto fftOk = parameter::checkFFTArguments(windowSize,hopSize,fftSize);
         
@@ -283,10 +283,10 @@ namespace fluid {
         model.fftSize    = fftSize.getLong();
         model.windowSize = windowSize.getLong();
         model.hopSize    = hopSize.getLong();
-        model.rank       = parameter::lookupParam("Rank",params).getLong();
-        model.iterations = parameter::lookupParam("Iterations",params).getLong();
+        model.rank       = parameter::lookupParam("rank",params).getLong();
+        model.iterations = parameter::lookupParam("iterations",params).getLong();
         
-        parameter::Instance resynth = parameter::lookupParam("Resynthesis Buffer", params);
+        parameter::Instance resynth = parameter::lookupParam("resynthbuf", params);
         
         if(resynth.hasChanged() && (!resynth.getBuffer() ||!resynth.getBuffer()->valid()))
         {
@@ -300,7 +300,7 @@ namespace fluid {
           model.resynth = resynth.getBuffer();
         }
         
-        parameter::Instance dict = parameter::lookupParam("Dictionary Buffer", params);
+        parameter::Instance dict = parameter::lookupParam("filterbuf", params);
         if(dict.hasChanged() && (!dict.getBuffer() || !dict.getBuffer()->valid()))
         {
           return {false, "Invalid filters buffer supplied",model};
@@ -321,7 +321,7 @@ namespace fluid {
         model.returnDictionaries = dict.hasChanged();
         model.dict = dict.getBuffer(); 
         
-        parameter::Instance act = parameter::lookupParam("Activation Buffer", params);
+        parameter::Instance act = parameter::lookupParam("envbuf", params);
         if(act.hasChanged() && (!act.getBuffer() && !act.getBuffer()->valid()))
         {
           return {false, "Invalid envelope buffer supplied",model};
@@ -409,7 +409,7 @@ namespace fluid {
         RealVector tmp(mArguments.frames);
         for(size_t i = 0; i < mArguments.channels; ++i)
         {
-          tmp = sourceData.col(i);
+          tmp = sourceData.row(i);
           stft::Spectrogram spec = stft.process(tmp);
           
           //TODO: Add seeding with pre-formed W & H to NMF

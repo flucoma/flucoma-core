@@ -6,14 +6,14 @@
 */
 
 #include "clients/rt/BaseAudioClient.hpp"
-#include "clients/util/STFTCheckParams.hpp"
+#include "clients/common/STFTCheckParams.hpp"
 #include "algorithms/STFT.hpp"
 
 namespace  fluid {
 namespace audio {
     using fluid::stft::STFT;
     using fluid::stft::ISTFT;
-    using fluid::stft::STFTCheckParams;
+    using fluid::parameter::STFTCheckParams;
 
     template <typename T, typename U>
     class BaseSTFTClient:public STFTCheckParams, public BaseAudioClient<T,U>
