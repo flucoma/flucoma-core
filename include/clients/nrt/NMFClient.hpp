@@ -217,8 +217,8 @@ namespace fluid {
         //if 2 (matching) then the buffer should be present, allocated and won't mutate
         //having both == 2 makes no sense
         
-        parameter::Instance dictUpdateRule = parameter::lookupParam("filterupdate", mParams);
-        parameter::Instance actUpdateRule  = parameter::lookupParam("envupdate", mParams);
+        parameter::Instance& dictUpdateRule = parameter::lookupParam("filterupdate", mParams);
+        parameter::Instance& actUpdateRule  = parameter::lookupParam("envupdate", mParams);
         
         if(dictUpdateRule.getLong() == 2 && actUpdateRule.getLong() == 2)
         {
@@ -257,9 +257,9 @@ namespace fluid {
     
         //Check the FFT args
         
-        parameter::Instance windowSize = lookupParam("winsize", mParams);
-        parameter::Instance fftSize    = lookupParam("fftsize", mParams);
-        parameter::Instance hopSize    = lookupParam("hopsize", mParams);
+        parameter::Instance& windowSize = lookupParam("winsize", mParams);
+        parameter::Instance& fftSize    = lookupParam("fftsize", mParams);
+        parameter::Instance& hopSize    = lookupParam("hopsize", mParams);
       
         auto fftOk = parameter::checkFFTArguments(windowSize,hopSize,fftSize);
         
@@ -275,7 +275,7 @@ namespace fluid {
         model.rank       = parameter::lookupParam("rank",mParams).getLong();
         model.iterations = parameter::lookupParam("iterations",mParams).getLong();
         
-        parameter::Instance resynth = parameter::lookupParam("resynthbuf", mParams);
+        parameter::Instance& resynth = parameter::lookupParam("resynthbuf", mParams);
         parameter::BufferAdaptor::Access resynthBuf(resynth.getBuffer());
         
         if(resynth.hasChanged() && (!resynth.getBuffer() || !resynthBuf.valid()))
@@ -290,7 +290,7 @@ namespace fluid {
           model.resynth = resynth.getBuffer();
         }
         
-        parameter::Instance dict = parameter::lookupParam("filterbuf", mParams);
+        parameter::Instance& dict = parameter::lookupParam("filterbuf", mParams);
         parameter::BufferAdaptor::Access dictBuf(dict.getBuffer());
 
         if(dict.hasChanged() && (!dict.getBuffer() || !dictBuf.valid()))
@@ -313,7 +313,7 @@ namespace fluid {
         model.returnDictionaries = dict.hasChanged();
         model.dict = dict.getBuffer(); 
         
-        parameter::Instance act = parameter::lookupParam("envbuf", mParams);
+        parameter::Instance& act = parameter::lookupParam("envbuf", mParams);
         parameter::BufferAdaptor::Access actBuf(act.getBuffer());
 
         if(act.hasChanged() && (!act.getBuffer() && !actBuf.valid()))

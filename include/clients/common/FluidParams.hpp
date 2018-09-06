@@ -295,29 +295,17 @@ namespace parameter{
   public:
     enum class RangeErrorType{None,Min,Max};
     
-    Instance(const Instance& i):mDesc(i.mDesc)
-    {
-//      value = i.value;
-      mHasChanged = i.mHasChanged;
-      mValue = i.mValue;
-    }
+    Instance(const Instance& i) = delete;
+    Instance& operator=(Instance i) = delete;
     
-    Instance(const Instance&& i):mDesc(i.mDesc)
+    Instance(const Instance&& i) : mDesc(i.mDesc)
     {
 //      value = i.value;
       mHasChanged = i.mHasChanged;
       mValue = i.mValue;
     }
 
-    Instance& operator=(Instance i)
-    {
-      std::swap(*this, i);
-      return *this;
-    }
-    
-   
-    
-    Instance(Descriptor desc):mDesc(desc),mValue{0}
+    Instance(Descriptor desc) : mDesc(desc), mValue{nullptr}
     {
       //TODO something that checks 0 is in actual range
 //      value = mDesc.hasDefault() ? mDesc.getDefault() : 0;
@@ -339,7 +327,7 @@ namespace parameter{
       }
     }
 
-    Instance(Descriptor desc, double v):mDesc(desc), mValue{0}
+    Instance(Descriptor desc, double v) : mDesc(desc), mValue{0}
     {
       switch(mDesc.getType())
       {
@@ -355,6 +343,12 @@ namespace parameter{
           assert(false && "Why would you even?");
           break;
       }
+    }
+    
+    ~Instance()
+    {
+      if (mDesc.getType() == Type::Buffer && mValue.vBuffer)
+          delete mValue.vBuffer;
     }
     
     void setFloat(double v)
@@ -409,6 +403,8 @@ namespace parameter{
       {
         case Type::Buffer:
         {
+          if (mValue.vBuffer)
+            delete mValue.vBuffer;
           mValue.vBuffer = p;
           break;
         }
@@ -520,7 +516,7 @@ namespace parameter{
     }
     
   private:
-    Descriptor mDesc;
+    const Descriptor mDesc;
 //    double value;
     bool mHasChanged = false;
     Value mValue;
