@@ -58,10 +58,10 @@ namespace fluid {
         size_t channels;
         size_t channelOffset;
         
-        parameter::BufferAdaptor* src;
-        parameter::BufferAdaptor* resynth;
-        parameter::BufferAdaptor* dict;
-        parameter::BufferAdaptor* act;
+        parameter::BufferAdaptor* src = 0 ;
+        parameter::BufferAdaptor* resynth = 0 ;
+        parameter::BufferAdaptor* dict  = 0 ;
+        parameter::BufferAdaptor* act = 0;
       };
       
       static const std::vector<parameter::Descriptor>& getParamDescriptors()
