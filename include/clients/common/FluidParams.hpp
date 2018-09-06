@@ -32,12 +32,97 @@ namespace parameter{
   class BufferAdaptor//: public FluidTensorView<float,2>
   {
   public:
-    //using FluidTensorView<float,2>::FluidTensorView;
     
-    BufferAdaptor(BufferAdaptor&& rhs) = default; 
-    BufferAdaptor() = default; 
+    class Access
+    {
+    public:
+      
+      Access(BufferAdaptor* adaptor) : mAdaptor(adaptor)
+      {
+        if (mAdaptor) mAdaptor->acquire();
+      }
+      
+      ~Access()
+      {
+         if (mAdaptor) mAdaptor->release();
+      }
+      
+      Access(const Access&) = delete;
+      Access& operator=(const Access&) = delete;
+      
+      void destroy()
+      {
+        if (mAdaptor) mAdaptor->release();
+        mAdaptor = nullptr;
+      }
+      
+      bool valid()
+      {
+          return mAdaptor ? mAdaptor->valid() : false;
+      }
+      
+      void resize(size_t frames, size_t channels, size_t rank)
+      {
+        if (mAdaptor) mAdaptor->resize(frames, channels, rank);
+      }
+      
+      FluidTensorView<float,1> samps(size_t channel, size_t rankIdx = 1)
+      {
+        assert(mAdaptor);
+        return mAdaptor->samps(channel, rankIdx);
+      }
+
+      FluidTensorView<float,2> samps()
+      {
+        assert(mAdaptor);
+        return mAdaptor->samps();
+      }
+      
+      FluidTensorView<float,2> samps(size_t offset, size_t nframes, size_t chanoffset, size_t chans)
+      {
+        assert(mAdaptor);
+        return mAdaptor->samps(offset, nframes, chanoffset, chans);
+      }
+      
+      size_t numFrames() const
+      {
+        return mAdaptor ? mAdaptor->numFrames() : 0;
+      }
+      
+      size_t numChans() const
+      {
+        return mAdaptor ? mAdaptor->numChans() : 0;
+      }
+      
+      size_t rank() const
+      {
+        return mAdaptor ? mAdaptor->rank() : 0;
+      }
+      
+    private:
+      
+      BufferAdaptor* mAdaptor;
+    };
+    
+    BufferAdaptor(BufferAdaptor&& rhs) = default;
+    BufferAdaptor() = default;
     
     virtual ~BufferAdaptor() = default;
+    
+    bool operator==(BufferAdaptor& rhs) const
+    {
+      return equal(&rhs);
+    }
+    
+    bool operator!=(BufferAdaptor& rhs) const
+    {
+      return !(*this == rhs);
+    }
+    
+  private:
+    
+    virtual bool equal(BufferAdaptor* rhs) const = 0;
+
     virtual void acquire() = 0;
     virtual void release() = 0;
     virtual bool valid() const   = 0;
@@ -49,36 +134,10 @@ namespace parameter{
     //Return a view of all the data
     virtual FluidTensorView<float,2> samps() = 0;
     virtual FluidTensorView<float,2> samps(size_t offset, size_t nframes, size_t chanoffset, size_t chans) = 0; 
-    
-    bool operator==(BufferAdaptor& rhs) const
-    {
-      return equal(&rhs);
-    }
-    
-    bool operator!=(BufferAdaptor& rhs) const
-    {
-      return !(*this == rhs);
-    }
-    virtual size_t numSamps() const
-    {
-      return mFrames;
-    }
 
-    virtual size_t numChans() const
-    {
-      return mChans;
-    }
-    
-    virtual size_t rank() const
-    {
-      return mRank; 
-    }
-    
-  protected:
-    virtual bool equal(BufferAdaptor* rhs) const = 0;
-    size_t mFrames;
-    size_t mChans;
-    size_t mRank = 1;
+    virtual size_t numFrames() const = 0;
+    virtual size_t numChans() const = 0;
+    virtual size_t rank() const = 0;
   };
 
   

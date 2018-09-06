@@ -142,7 +142,10 @@ namespace fluid {
         std::unordered_set<parameter::BufferAdaptor*> uniqueBuffers;
         //First round of buffer checks
         //Source buffer is mandatory, and should exist
-        if(!mParams[0].getBuffer() || !mParams[0].getBuffer()->valid())
+        
+        parameter::BufferAdaptor::Access src(mParams[0].getBuffer());
+          
+        if(!src.valid())
         {
           return  { false, "Source buffer doesn't exist or can't be accessed.", model };
         }
@@ -155,7 +158,8 @@ namespace fluid {
               //If we've been handed a buffer that we're expecting, then it should exist
               if(p.hasChanged() && p.getBuffer())
               {
-                if(!p.getBuffer()->valid())
+                parameter::BufferAdaptor::Access b(p.getBuffer());
+                if(!b.valid())
              
                  {
                    std::ostringstream ss;
@@ -227,7 +231,6 @@ namespace fluid {
         model.fixActivations   = (actUpdateRule.getLong() == 2);
         
         //Check the size of our buffers
-        parameter::BufferAdaptor* src= mParams[0].getBuffer();
         
         long srcOffset     = parameter::lookupParam("offsetframes",         mParams).getLong();
         long srcFrames     = parameter::lookupParam("numframes",         mParams).getLong();
@@ -235,22 +238,22 @@ namespace fluid {
         long srcChans      = parameter::lookupParam("numchans",       mParams).getLong();
         
         //Ensure that the source buffer can deliver
-        if(srcFrames > 0 ? (src->numSamps() < (srcOffset + srcFrames)) : (src->numSamps() < srcOffset))
+        if(srcFrames > 0 ? (src.numFrames() < (srcOffset + srcFrames)) : (src.numFrames() < srcOffset))
         {
           return  { false, "Source buffer not long enough for given offset and frame count",model};
         }
         
-        if((srcChans > 0) ? (src->numChans() < (srcChanOffset + srcChans)) : (src->numChans() < srcChanOffset))
+        if((srcChans > 0) ? (src.numChans() < (srcChanOffset + srcChans)) : (src.numChans() < srcChanOffset))
         {
           return {false, "Source buffer doesn't have enough channels for given offset and channel count", model};
         }
         
         //At this point, we're happy with the source buffer
-        model.src           = src;
+        model.src           = mParams[0].getBuffer();
         model.offset        = srcChanOffset;
-        model.frames        = srcFrames > 0 ? srcFrames : src->numSamps() - model.offset;
+        model.frames        = srcFrames > 0 ? srcFrames : src.numFrames() - model.offset;
         model.channelOffset = srcChanOffset;
-        model.channels      = srcChans >  0 ? srcChans  : src->numChans() - model.channelOffset;
+        model.channels      = srcChans >  0 ? srcChans  : src.numChans() - model.channelOffset;
     
         //Check the FFT args
         
@@ -273,21 +276,24 @@ namespace fluid {
         model.iterations = parameter::lookupParam("iterations",mParams).getLong();
         
         parameter::Instance resynth = parameter::lookupParam("resynthbuf", mParams);
+        parameter::BufferAdaptor::Access resynthBuf(resynth.getBuffer());
         
-        if(resynth.hasChanged() && (!resynth.getBuffer() ||!resynth.getBuffer()->valid()))
+        if(resynth.hasChanged() && (!resynth.getBuffer() || !resynthBuf.valid()))
         {
           return {false, "Invalid resynthesis buffer supplied", model};
         }
         
-        model.resynthesise  = resynth.hasChanged() && resynth.getBuffer() && resynth.getBuffer()->valid();
+        model.resynthesise = resynth.hasChanged() && resynthBuf.valid();
         if(model.resynthesise)
         {
-          resynth.getBuffer()->resize( src->numSamps(), src->numChans(), model.rank);
+          resynthBuf.resize(src.numFrames(), src.numChans(), model.rank);
           model.resynth = resynth.getBuffer();
         }
         
         parameter::Instance dict = parameter::lookupParam("filterbuf", mParams);
-        if(dict.hasChanged() && (!dict.getBuffer() || !dict.getBuffer()->valid()))
+        parameter::BufferAdaptor::Access dictBuf(dict.getBuffer());
+
+        if(dict.hasChanged() && (!dict.getBuffer() || !dictBuf.valid()))
         {
           return {false, "Invalid filters buffer supplied",model};
         }
@@ -296,19 +302,21 @@ namespace fluid {
           if(!dict.hasChanged())
             return {false,"No dictionary buffer given, but one needed for seeding or matching",model};          
           //Prepared Dictionary buffer needs to be (fftSize/2 + 1) by (rank * srcChans)
-          if(dict.getBuffer()->numSamps() != (model.fftSize / 2) + 1 || dict.getBuffer()->numChans() != model.rank * model.channels)
+          if(dictBuf.numFrames() != (model.fftSize / 2) + 1 || dictBuf.numChans() != model.rank * model.channels)
             return {false, "Pre-prepared dictionary buffer must be [(FFTSize / 2) + 1] frames long, and have [rank] * [channels] channels",model };
         } else {
           if(dict.hasChanged()) //a valid buffer has been designated and needs to be resized
           {
-            dict.getBuffer()->resize(model.fftSize/2 + 1, model.channels, model.rank);
+            dictBuf.resize(model.fftSize/2 + 1, model.channels, model.rank);
           }
         }
         model.returnDictionaries = dict.hasChanged();
         model.dict = dict.getBuffer(); 
         
         parameter::Instance act = parameter::lookupParam("envbuf", mParams);
-        if(act.hasChanged() && (!act.getBuffer() && !act.getBuffer()->valid()))
+        parameter::BufferAdaptor::Access actBuf(act.getBuffer());
+
+        if(act.hasChanged() && (!act.getBuffer() && !actBuf.valid()))
         {
           return {false, "Invalid envelope buffer supplied",model};
         }
@@ -318,14 +326,14 @@ namespace fluid {
             return {false, "No dictionary buffer given, but one needed for seeding or matching", model};
           
           //Prepared activation buffer needs to be (src Frames / hop size + 1) by (rank * srcChans)
-          if(act.getBuffer()->numSamps() != (model.fftSize / 2) + 1 || act.getBuffer()->numChans() != model.rank * src->numChans())
+          if(actBuf.numFrames() != (model.fftSize / 2) + 1 || actBuf.numChans() != model.rank * src.numChans())
           {
             return {false,"Pre-prepared activation buffer must be [(num samples / hop size) + 1] frames long, and have [rank] * [channels] channels", model};
           }
         } else {
           if(act.hasChanged())
           {
-            act.getBuffer()->resize((model.frames / model.hopSize) + 1, model.channels, model.rank);
+            actBuf.resize((model.frames / model.hopSize) + 1, model.channels, model.rank);
           }
         }
         model.returnActivations = act.hasChanged();
@@ -378,6 +386,12 @@ namespace fluid {
         
         mArguments = model;
         
+        parameter::BufferAdaptor::Access src(model.src);
+        parameter::BufferAdaptor::Access dict(model.dict);
+        parameter::BufferAdaptor::Access act(model.act);
+        parameter::BufferAdaptor::Access resynth(model.resynth);
+
+        
 //        mSource.set_host_buffer_size(mArguments.frames);
 //        mSource.reset();
 //        mSource.push(*mArguments.src);
@@ -388,9 +402,7 @@ namespace fluid {
 //        mHasResynthed = false;
         stft::STFT stft(mArguments.windowSize,mArguments.fftSize,mArguments.hopSize);
         //Copy input buffer
-        mArguments.src->acquire();
-        RealMatrix sourceData(mArguments.src->samps(mArguments.offset, mArguments.frames, mArguments.channelOffset, mArguments.channels));
-        mArguments.src->release();
+        RealMatrix sourceData(src.samps(mArguments.offset, mArguments.frames, mArguments.channelOffset, mArguments.channels));
         //TODO: get rid of need for this
         //Either: do the whole process loop here via process_frame
         //Or: change sig of stft.process() to take a view
@@ -407,18 +419,15 @@ namespace fluid {
           //Write W?
           if(mArguments.returnDictionaries)
           {
-            mArguments.dict->acquire();
             auto dictionaries = m.getW();
             for (size_t j = 0; j < mArguments.rank; ++j)
-              mArguments.dict->samps(i,j) = dictionaries.col(j);
+              dict.samps(i,j) = dictionaries.col(j);
               //mArguments.dict->col(j + (i * mArguments.rank)) = dictionaries.col(j);
-            mArguments.dict->release();
           }
           
           //Write H? Need to normalise also
           if(mArguments.returnActivations)
           {
-            mArguments.act->acquire();
             auto activations = m.getH();
             
             double maxH = *std::max_element(activations.begin(), activations.end());
@@ -427,18 +436,16 @@ namespace fluid {
             
             for (size_t j = 0; j < mArguments.rank; ++j)
             {
-              auto acts = mArguments.act->samps(i,j);
+              auto acts = act.samps(i,j);
               acts = activations.row(j);
               acts.apply([scale](float& x){
                 x *= scale;
               });
             }
-            mArguments.act->release();
           }
 
           if(mArguments.resynthesise)
           {
-            mArguments.resynth->acquire();
             ratiomask::RatioMask mask(m.getMixEstimate(),1);
             stft::ISTFT  istft(mArguments.windowSize, mArguments.fftSize, mArguments.hopSize);
             for (size_t j = 0; j < mArguments.rank; ++j)
@@ -446,9 +453,8 @@ namespace fluid {
               auto estimate = m.getEstimate(j);
               stft::Spectrogram result(mask.process(spec.mData, estimate));
               auto audio = istft.process(result);
-              mArguments.resynth->samps(i,j) = audio(fluid::slice(0,mArguments.frames));
+              resynth.samps(i,j) = audio(fluid::slice(0,mArguments.frames));
             }
-            mArguments.resynth->release();
           }
         }
       }
