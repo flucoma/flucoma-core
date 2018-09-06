@@ -122,18 +122,18 @@ namespace fluid {
        Go over the supplied parameter values and ensure that they are sensible
        No hygiene checking of buffers is done here (like whether they exist). It needs to be done in the host code, until I've worked out something cleverer
       **/
-      static std::tuple<bool,std::string,ProcessModel> sanityCheck(std::vector<param_type>& params)
+      std::tuple<bool,std::string,ProcessModel> sanityCheck()
       {
         ProcessModel model;
         const std::vector<parameter::Descriptor>& desc = getParamDescriptors();
         //First, let's make sure that we have a complete of parameters of the right sort
-        bool sensible = std::equal(params.begin(), params.end(),desc.begin(),
+        bool sensible = std::equal(mParams.begin(), mParams.end(),desc.begin(),
           [](const param_type& i, const parameter::Descriptor& d)
           {
             return i.getDescriptor() == d;
           });
         
-        if(! sensible || (desc.size() != params.size()))
+        if(! sensible || (desc.size() != mParams.size()))
         {
           return {false, "Invalid params passed. Were these generated with newParameterSet()?", model };
         }
@@ -142,12 +142,12 @@ namespace fluid {
         std::unordered_set<parameter::BufferAdaptor*> uniqueBuffers;
         //First round of buffer checks
         //Source buffer is mandatory, and should exist
-        if(!params[0].getBuffer() || !params[0].getBuffer()->valid())
+        if(!mParams[0].getBuffer() || !mParams[0].getBuffer()->valid())
         {
           return  { false, "Source buffer doesn't exist or can't be accessed.", model };
         }
         
-        for(auto&& p: params)
+        for(auto&& p: mParams)
         {
           switch(p.getDescriptor().getType())
           {
@@ -183,7 +183,7 @@ namespace fluid {
         
         //Now scan everything for range, until we hit a problem
         //TODO Factor into parameter::instance
-        for(auto&& p: params)
+        for(auto&& p: mParams)
         {
           parameter::Descriptor d = p.getDescriptor();
           bool rangeOk;
@@ -213,8 +213,8 @@ namespace fluid {
         //if 2 (matching) then the buffer should be present, allocated and won't mutate
         //having both == 2 makes no sense
         
-        parameter::Instance dictUpdateRule = parameter::lookupParam("filterupdate", params);
-        parameter::Instance actUpdateRule  = parameter::lookupParam("envupdate", params);
+        parameter::Instance dictUpdateRule = parameter::lookupParam("filterupdate", mParams);
+        parameter::Instance actUpdateRule  = parameter::lookupParam("envupdate", mParams);
         
         if(dictUpdateRule.getLong() == 2 && actUpdateRule.getLong() == 2)
         {
@@ -227,12 +227,12 @@ namespace fluid {
         model.fixActivations   = (actUpdateRule.getLong() == 2);
         
         //Check the size of our buffers
-        parameter::BufferAdaptor* src= params[0].getBuffer();
+        parameter::BufferAdaptor* src= mParams[0].getBuffer();
         
-        long srcOffset     = parameter::lookupParam("offsetframes",         params).getLong();
-        long srcFrames     = parameter::lookupParam("numframes",         params).getLong();
-        long srcChanOffset = parameter::lookupParam("offsetchans", params).getLong();
-        long srcChans      = parameter::lookupParam("numchans",       params).getLong();
+        long srcOffset     = parameter::lookupParam("offsetframes",         mParams).getLong();
+        long srcFrames     = parameter::lookupParam("numframes",         mParams).getLong();
+        long srcChanOffset = parameter::lookupParam("offsetchans", mParams).getLong();
+        long srcChans      = parameter::lookupParam("numchans",       mParams).getLong();
         
         //Ensure that the source buffer can deliver
         if(srcFrames > 0 ? (src->numSamps() < (srcOffset + srcFrames)) : (src->numSamps() < srcOffset))
@@ -254,9 +254,9 @@ namespace fluid {
     
         //Check the FFT args
         
-        parameter::Instance windowSize = lookupParam("winsize", params);
-        parameter::Instance fftSize    = lookupParam("fftsize", params);
-        parameter::Instance hopSize    = lookupParam("hopsize", params);
+        parameter::Instance windowSize = lookupParam("winsize", mParams);
+        parameter::Instance fftSize    = lookupParam("fftsize", mParams);
+        parameter::Instance hopSize    = lookupParam("hopsize", mParams);
       
         auto fftOk = parameter::checkFFTArguments(windowSize,hopSize,fftSize);
         
@@ -269,10 +269,10 @@ namespace fluid {
         model.fftSize    = fftSize.getLong();
         model.windowSize = windowSize.getLong();
         model.hopSize    = hopSize.getLong();
-        model.rank       = parameter::lookupParam("rank",params).getLong();
-        model.iterations = parameter::lookupParam("iterations",params).getLong();
+        model.rank       = parameter::lookupParam("rank",mParams).getLong();
+        model.iterations = parameter::lookupParam("iterations",mParams).getLong();
         
-        parameter::Instance resynth = parameter::lookupParam("resynthbuf", params);
+        parameter::Instance resynth = parameter::lookupParam("resynthbuf", mParams);
         
         if(resynth.hasChanged() && (!resynth.getBuffer() ||!resynth.getBuffer()->valid()))
         {
@@ -286,7 +286,7 @@ namespace fluid {
           model.resynth = resynth.getBuffer();
         }
         
-        parameter::Instance dict = parameter::lookupParam("filterbuf", params);
+        parameter::Instance dict = parameter::lookupParam("filterbuf", mParams);
         if(dict.hasChanged() && (!dict.getBuffer() || !dict.getBuffer()->valid()))
         {
           return {false, "Invalid filters buffer supplied",model};
@@ -307,7 +307,7 @@ namespace fluid {
         model.returnDictionaries = dict.hasChanged();
         model.dict = dict.getBuffer(); 
         
-        parameter::Instance act = parameter::lookupParam("envbuf", params);
+        parameter::Instance act = parameter::lookupParam("envbuf", mParams);
         if(act.hasChanged() && (!act.getBuffer() && !act.getBuffer()->valid()))
         {
           return {false, "Invalid envelope buffer supplied",model};
@@ -336,8 +336,11 @@ namespace fluid {
       }
       
       
-      //No, you may not construct an empty instance, or copy this, or move this
-      NMFClient() = delete;
+      NMFClient(){
+        newParameterSet();
+      };
+      // no copy this, nor move this
+
       NMFClient(NMFClient&)=delete;
       NMFClient(NMFClient&&)=delete;
       NMFClient operator=(NMFClient&)=delete;
@@ -348,38 +351,33 @@ namespace fluid {
        rank: NMF rank
        iterations: max nmf iterations
        fft_size: power 2 pls
-       **/
-        NMFClient(ProcessModel model):
-      mSource(model.channels), mSinkResynth(model.rank * model.channels), mSinkDictionaries(model.rank * model.channels),
-      mSinkActivations(model.rank * model.channels), mArguments(model)      
-      {}
+//       **/
+//        NMFClient(ProcessModel model):
+//        mArguments(model)
+     
       
       ~NMFClient()= default;
       
-      static const std::vector<param_type> newParameterSet()
-      {
-        std::vector<param_type> newParams;
-        //Note: I'm pretty sure I want auto's copy behaviour here
-        for(auto p: getParamDescriptors())
-          newParams.emplace_back( parameter::Instance(p));
-        return newParams;
-      }
+
       
-      /**
-       Call this before pushing / processing / pulling
-       to prepare buffers to correct size
-       **/
-      void setSourceSize(size_t source_frames)
-      {
-        mSource.set_host_buffer_size(source_frames);
-        mSinkResynth.set_host_buffer_size(source_frames);
-      }
+//      /**
+//       Call this before pushing / processing / pulling
+//       to prepare buffers to correct size
+//       **/
+//      void setSourceSize(size_t source_frames)
+//      {
+//        mSource.set_host_buffer_size(source_frames);
+//        mSinkResynth.set_host_buffer_size(source_frames);
+//      }
       
       /***
        Take some data, NMF it
        ***/
-      void process()
+      void process(ProcessModel model)
       {
+        
+        mArguments = model;
+        
 //        mSource.set_host_buffer_size(mArguments.frames);
 //        mSource.reset();
 //        mSource.push(*mArguments.src);
@@ -391,7 +389,7 @@ namespace fluid {
         stft::STFT stft(mArguments.windowSize,mArguments.fftSize,mArguments.hopSize);
         //Copy input buffer
         mArguments.src->acquire();
-        RealMatrix sourceData(mArguments.src->samps());
+        RealMatrix sourceData(mArguments.src->samps(mArguments.offset, mArguments.frames, mArguments.channelOffset, mArguments.channels));
         mArguments.src->release();
         //TODO: get rid of need for this
         //Either: do the whole process loop here via process_frame
@@ -454,14 +452,30 @@ namespace fluid {
           }
         }
       }
+      
+      std::vector<parameter::Instance>& getParams()
+      {
+        return mParams;
+      }
+      
+      
     private:
-      FluidSource<double> mSource;
-      FluidSink<double> mSinkResynth;
-      FluidSink<double> mSinkDictionaries;
-      FluidSink<double> mSinkActivations;
+   
       ProcessModel mArguments;
       fluid::nmf::NMFModel mModel;
       FluidTensor<double,2> mAudioBuffers;
+    
+      void newParameterSet()
+      {
+        mParams.clear();
+        //Note: I'm pretty sure I want auto's copy behaviour here
+        for(auto p: getParamDescriptors())
+          mParams.emplace_back(parameter::Instance(p));
+      }
+      
+      std::vector<parameter::Instance> mParams;
+      
+      
     };
   } //namespace max
 } //namesapce fluid
