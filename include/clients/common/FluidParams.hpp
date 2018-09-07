@@ -66,7 +66,7 @@ namespace parameter{
         if (mAdaptor) mAdaptor->resize(frames, channels, rank);
       }
       
-      FluidTensorView<float,1> samps(size_t channel, size_t rankIdx = 1)
+      FluidTensorView<float,1> samps(size_t channel, size_t rankIdx = 0)
       {
         assert(mAdaptor);
         return mAdaptor->samps(channel, rankIdx);
@@ -423,8 +423,10 @@ namespace parameter{
       {
         case Type::Float:
           value = mValue.vFloat;
+          break;
         case Type::Long:
           value = mValue.vLong;
+          break;
         case Type::Buffer:
         default:
           value = 0; //shut the compiler up
@@ -472,6 +474,7 @@ namespace parameter{
       {
         case Type::Buffer:
           return std::make_pair(true,RangeErrorType::None);
+          break;
         case Type::Float:
           if(mDesc.hasMin() && mValue.vFloat < mDesc.getMin())
           {
@@ -481,6 +484,7 @@ namespace parameter{
           {
             return std::make_pair(false,RangeErrorType::Max);
           }
+          break;
         case Type::Long:
           if(mDesc.hasMin() && mValue.vLong < mDesc.getMin())
           {
@@ -490,9 +494,11 @@ namespace parameter{
           {
             return std::make_pair(false,RangeErrorType::Max);
           }
+          break;
         default:
-          return std::make_pair(true,RangeErrorType::None);
+          break;
       }
+      return std::make_pair(true,RangeErrorType::None);
     }
     
     bool hasChanged() const
