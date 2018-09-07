@@ -285,10 +285,7 @@ namespace fluid {
         
         model.resynthesise = resynth.hasChanged() && resynthBuf.valid();
         if(model.resynthesise)
-        {
-          resynthBuf.resize(src.numFrames(), src.numChans(), model.rank);
           model.resynth = resynth.getBuffer();
-        }
         
         parameter::Instance& dict = parameter::lookupParam("filterbuf", mParams);
         parameter::BufferAdaptor::Access dictBuf(dict.getBuffer());
@@ -304,11 +301,6 @@ namespace fluid {
           //Prepared Dictionary buffer needs to be (fftSize/2 + 1) by (rank * srcChans)
           if(dictBuf.numFrames() != (model.fftSize / 2) + 1 || dictBuf.numChans() != model.rank * model.channels)
             return {false, "Pre-prepared dictionary buffer must be [(FFTSize / 2) + 1] frames long, and have [rank] * [channels] channels",model };
-        } else {
-          if(dict.hasChanged()) //a valid buffer has been designated and needs to be resized
-          {
-            dictBuf.resize(model.fftSize/2 + 1, model.channels, model.rank);
-          }
         }
         model.returnDictionaries = dict.hasChanged();
         model.dict = dict.getBuffer(); 
@@ -326,14 +318,9 @@ namespace fluid {
             return {false, "No dictionary buffer given, but one needed for seeding or matching", model};
           
           //Prepared activation buffer needs to be (src Frames / hop size + 1) by (rank * srcChans)
-          if(actBuf.numFrames() != (model.fftSize / 2) + 1 || actBuf.numChans() != model.rank * src.numChans())
+          if(actBuf.numFrames() != (model.fftSize / 2) + 1 || actBuf.numChans() != model.rank * model.channels)
           {
             return {false,"Pre-prepared activation buffer must be [(num samples / hop size) + 1] frames long, and have [rank] * [channels] channels", model};
-          }
-        } else {
-          if(act.hasChanged())
-          {
-            actBuf.resize((model.frames / model.hopSize) + 1, model.channels, model.rank);
           }
         }
         model.returnActivations = act.hasChanged();
@@ -391,6 +378,13 @@ namespace fluid {
         parameter::BufferAdaptor::Access act(model.act);
         parameter::BufferAdaptor::Access resynth(model.resynth);
 
+        if(model.resynthesise)
+          resynth.resize(model.frames, model.channels, model.rank);
+        if(model.returnDictionaries)
+          dict.resize(model.fftSize/2 + 1, model.channels, model.rank);
+        if(model.returnActivations)
+          act.resize((model.frames / model.hopSize) + 1, model.channels, model.rank);
+        
         
 //        mSource.set_host_buffer_size(mArguments.frames);
 //        mSource.reset();
