@@ -71,6 +71,7 @@ namespace parameter{
         assert(mAdaptor);
         return mAdaptor->samps(channel, rankIdx);
       }
+      
 
       FluidTensorView<float,2> samps()
       {
@@ -130,7 +131,7 @@ namespace parameter{
     virtual void resize(size_t frames, size_t channels, size_t rank) = 0;
     
     //Return a slice of the buffer
-    virtual FluidTensorView<float,1> samps(size_t channel, size_t rankIdx = 1) = 0;
+    virtual FluidTensorView<float,1> samps(size_t channel, size_t rankIdx = 0) = 0;
     //Return a view of all the data
     virtual FluidTensorView<float,2> samps() = 0;
     virtual FluidTensorView<float,2> samps(size_t offset, size_t nframes, size_t chanoffset, size_t chans) = 0; 

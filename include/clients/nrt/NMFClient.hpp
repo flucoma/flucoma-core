@@ -250,7 +250,7 @@ namespace fluid {
         
         //At this point, we're happy with the source buffer
         model.src           = mParams[0].getBuffer();
-        model.offset        = srcChanOffset;
+        model.offset        = srcOffset;
         model.frames        = srcFrames > 0 ? srcFrames : src.numFrames() - model.offset;
         model.channelOffset = srcChanOffset;
         model.channels      = srcChans >  0 ? srcChans  : src.numChans() - model.channelOffset;

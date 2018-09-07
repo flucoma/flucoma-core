@@ -129,7 +129,7 @@ namespace fluid {
           //up to model order ~40 = 1ms, 15 default sampples for whole window
           //
           params.emplace_back("windowsize","Window Size(ms)", parameter::Type::Float);
-          params.back().setInstantiation(false).setMin(0).setDefault(40);
+          params.back().setInstantiation(false).setMin(0).setDefault(14);
 
           
 //          int paramDetectHold = 25;               // The hold time for detection (in samples)
