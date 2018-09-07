@@ -210,10 +210,10 @@ namespace fluid {
         template<typename U, size_t M>
         FluidTensor& operator=(const FluidTensorView<U,M> x)
         {
-            static_assert(M < N, "View has too many dimensions");
+            static_assert(M <= N, "View has too many dimensions");
             static_assert(std::is_convertible<U, T>(), "Cannot convert between types");
             
-            assert(size() == x.size());
+            assert(same_extents(m_desc, x.descriptor()));
             
             //Let's try this dirty, and just copy size values out of the incoming view, ignoring
             //whether dimensions match

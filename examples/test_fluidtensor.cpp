@@ -26,15 +26,16 @@ int main(int argc, char* argv[])
 {
   //Test wrapping interleaved structure, coz I keep getting it wrong
   //4 channels 3 frames
-  std::vector<double> quad = {0,1,2,3,0,1,2,3,0,1,2,3};
+  std::vector<double> quad = {0,3,6,9,1,4,7,10,2,5,8,11};
   
   
   FluidTensorView<double,2> quadview(quad.data(),0,3,4);
   
   std::cout<< quadview.col(0) << '\n';
   
+  std::cout<< quadview.col(0)(fluid::slice(1)) << '\n';
   
-  
+  std::cout<< quadview(fluid::slice(0,2),fluid::slice(1,1) ).col(0) << '\n';
   
   
   //Wrap any old pointer
