@@ -682,7 +682,7 @@ namespace fluid {
             return *this;
         }
         
-        FluidTensorView& operator=(const FluidTensor<T,N> x) 
+        FluidTensorView& operator=(const FluidTensor<T,N>& x) 
         {
 
             assert(same_extents(m_desc, x.descriptor()));
