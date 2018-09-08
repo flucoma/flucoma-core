@@ -626,7 +626,7 @@ namespace fluid {
 
         //Convert to a larger dimension by adding single sized
         //dimenion, a la numpy newaxis
-        FluidTensorView(FluidTensorView<T,N-1> x)
+        explicit FluidTensorView(FluidTensorView<T,N-1> x)
         {
             m_desc.start = x.descriptor().start;
             
