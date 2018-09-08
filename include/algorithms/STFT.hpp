@@ -90,6 +90,13 @@ public:
             .data(),
         0, mFrameSize);
   }
+  
+  RealVector window()
+  {
+    FluidTensor<double,1> win(mWindowSize);
+    win = FluidTensorView<double,1>(mWindow.data(),0,mWindowSize);
+    return win;
+  }
 
 private:
   size_t mWindowSize;
@@ -107,13 +114,13 @@ class ISTFT {
 public:
   ISTFT(size_t windowSize, size_t fftSize, size_t hopSize)
       : mWindowSize(windowSize), mHopSize(hopSize), mFrameSize(fftSize / 2 + 1),
-        mScale(1 / double(fftSize)), mIFFT(fftSize), mBuffer(2, mWindowSize) {
+        mScale(1 / double(fftSize)), mIFFT(fftSize), mBuffer(mWindowSize) {
     mWindow = Map<ArrayXd>(windowFuncs[WindowType::Hann](mWindowSize).data(),
                            mWindowSize);
     mWindowSquared = mWindow * mWindow;
     // The 2nd row of our output will be constant, and contain the squared
     // window, for the normalisation buffer
-    ArrayXXdMap(mBuffer.row(1).data(), mWindowSize, 1) = mWindowSquared;
+//    ArrayXXdMap(mBuffer.row(1).data(), mWindowSize, 1) = mWindowSquared;
   }
 
   RealVector process(const Spectrogram &spec) {
@@ -138,13 +145,20 @@ public:
         outputSize - halfWindow - mHopSize);
   }
 
-  RealMatrixView processFrame(const ComplexVectorView &frame) {
+  RealVectorView processFrame(const ComplexVectorView &frame) {
     assert(frame.size() == mFrameSize);
-    ArrayXXdMap(mBuffer.row(0).data(), mWindowSize, 1) =
+    ArrayXXdMap(mBuffer.data(), mWindowSize,1) =
         mIFFT.process(ArrayXcdConstMap(frame.data(), mFrameSize, 1))
             .segment(0, mWindowSize) *
         mWindow * mScale;
     return mBuffer;
+  }
+  
+  RealVector window()
+  {
+    FluidTensor<double,1> win(mWindowSize);
+    win = FluidTensorView<double,1>(mWindow.data(),0,mWindowSize);
+    return win;
   }
 
 private:
@@ -155,7 +169,7 @@ private:
   ArrayXd mWindowSquared;
   double mScale;
   IFFT mIFFT;
-  RealMatrix mBuffer;
+  RealVector mBuffer;
 };
 
 } // namespace stft
