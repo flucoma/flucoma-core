@@ -189,7 +189,7 @@ namespace fluid{
         {
           
           auto in_range = matrix(i,slice(offset,size));
-          in[i]->copy_from(in_range, in_start, size);
+          in[i]->copy_from(in_range.row(0), in_start, size);
         }
         m_counter = offset + size;
       }
