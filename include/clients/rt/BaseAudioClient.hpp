@@ -132,13 +132,13 @@ namespace audio {
          
          Do override process() though. That's what it's for
          **/
-        template <typename S>
-        void do_process(S** input,S** output,size_t nsamps, size_t channels_in, size_t channels_out)
+        template <typename InputIt, typename OutputIt>
+        void do_process(InputIt input,InputIt inend, OutputIt output, OutputIt outend, size_t nsamps, size_t channels_in, size_t channels_out)
         {
             assert(channels_in == m_channels_in);
             assert(channels_out == m_channels_out);
             
-            m_source.push(input,nsamps, channels_in);
+            m_source.push(input,inend,nsamps, channels_in);
             
             //I had imagined we could delegate knowing about the time into the frame
             //to the buffers, but for cases where chunk_size % host_buffer_size !=0
@@ -158,11 +158,12 @@ namespace audio {
             m_frame_time = m_frame_time < m_host_buffer_size?
                 m_frame_time : m_frame_time - m_host_buffer_size;
           m_sink.pull(m_frame_post);
+          
           post_process(m_frame_post);
           
-          for(int i = 0; i < channels_out; ++i)
+          for(size_t i = 0; (i < m_channels_out && output != outend); ++i,++output)
           {
-            output[i]->copy_to(m_frame_post.row(0),0,nsamps);
+            (*output)->copy_to(m_frame_post.row(i),0,nsamps);
           }
         }
         
