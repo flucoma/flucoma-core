@@ -316,11 +316,11 @@ namespace parameter{
         {
           case Type::Float:
             mValue.vFloat = mDesc.getDefault();
-            mHasChanged = true;
+            mHasChanged = false;
             break;
           case Type::Long:
             mValue.vLong = mDesc.getDefault();
-            mHasChanged = true;
+            mHasChanged = false;
             break;
           default:
             break;
@@ -351,6 +351,31 @@ namespace parameter{
       if (mDesc.getType() == Type::Buffer && mValue.vBuffer)
           delete mValue.vBuffer;
     }
+    
+    void reset()
+    {
+      switch(mDesc.getType())
+      {
+        case Type::Float:
+          mValue.vFloat = mDesc.hasDefault() ? mDesc.getDefault() : 0;
+          mHasChanged = false;
+          break;
+        case Type::Long:
+          mValue.vLong = mDesc.hasDefault() ? mDesc.getDefault() : 0;
+          break;
+        case Type::Buffer:
+          if(mValue.vBuffer)
+            delete mValue.vBuffer;
+          mValue.vBuffer = nullptr; 
+          break;
+        default:
+          break;
+      }
+      mHasChanged = false;
+      
+    }
+    
+    
     
     void setFloat(double v)
     {
