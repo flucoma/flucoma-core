@@ -198,7 +198,7 @@ namespace fluid{
     size_t m_counter = 0;
     size_t m_size;
     size_t m_channels;
-    size_t m_host_buffer_size;
+    size_t m_host_buffer_size = 0;
   };
   
   /*
