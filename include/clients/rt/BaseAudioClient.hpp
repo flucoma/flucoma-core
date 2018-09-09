@@ -5,7 +5,7 @@
  
  Whilst the buffering classes can do overlap and stuff, we're not set up for these here yet.
  
- Override do_proccess in derived classes to implement algorithms
+ Override proccess in derived classes to implement algorithms
  
  ***/
 
@@ -26,7 +26,7 @@ namespace audio {
         using sink_buffer_type = fluid::FluidSink<T>;
         using tensor_type = fluid::FluidTensor<T,2>; 
         using view_type = fluid::FluidTensorView<T,2>;
-        using vector    = fluid::FluidTensorView<T,1>; 
+        using VectorView    = fluid::FluidTensorView<T,1>; 
         using const_view_type = const fluid::FluidTensorView<T,2>;
     public:
         
@@ -37,8 +37,8 @@ namespace audio {
             virtual ~Signal(){}
             virtual void set(V*,V) = 0;
             virtual V& next() = 0;
-            virtual void copy_from(vector dst, size_t src_offset, size_t size)=0;
-            virtual void copy_to(vector src, size_t dst_offset, size_t size)=0;
+            virtual void copy_from(VectorView dst, size_t src_offset, size_t size)=0;
+            virtual void copy_to(VectorView src, size_t dst_offset, size_t size)=0;
         };
         
         
@@ -56,12 +56,12 @@ namespace audio {
                 return *m_sig++;
             }
             
-            void copy_from(vector dst, size_t src_offset, size_t size) override
+            void copy_from(VectorView dst, size_t src_offset, size_t size) override
             {
                 std::copy(m_sig + src_offset, m_sig + src_offset + size, dst.begin());
             }
             
-            void copy_to(vector src, size_t dst_offset, size_t size) override
+            void copy_to(VectorView src, size_t dst_offset, size_t size) override
             {
               std::copy(src.begin(),src.end(), m_sig + dst_offset);
             }
@@ -84,12 +84,12 @@ namespace audio {
                 return m_elem;
             }
             
-            virtual void copy_from(vector dst, size_t src_offset, size_t size) override
+            virtual void copy_from(VectorView dst, size_t src_offset, size_t size) override
             {
                 std::fill(dst.begin(), dst.end(), m_elem);
             }
             
-            virtual void copy_to(vector src, size_t dst_offset, size_t size) override
+            virtual void copy_to(VectorView src, size_t dst_offset, size_t size) override
             {
                 m_elem = *(src.begin());
             }
@@ -116,7 +116,12 @@ namespace audio {
          **/
         BaseAudioClient(size_t max_frame_size, size_t hop_size, size_t n_channels_in = 1, size_t n_channels_out = 1, size_t nIntermediateChannels = 0):
             m_max_frame_size(max_frame_size), m_hop_size(hop_size),
-      m_channels_in(n_channels_in), m_channels_out(n_channels_out), mIntermediateChannels(nIntermediateChannels ? nIntermediateChannels : n_channels_out), m_frame(n_channels_in,m_max_frame_size),m_frame_out(mIntermediateChannels,m_max_frame_size),m_frame_post(mIntermediateChannels,0),
+      m_channels_in(n_channels_in),
+      m_channels_out(n_channels_out),
+      mIntermediateChannels(nIntermediateChannels ? nIntermediateChannels : n_channels_out),
+      m_frame(n_channels_in,m_max_frame_size),
+      m_frame_out(mIntermediateChannels,m_max_frame_size),
+      m_frame_post(mIntermediateChannels,1),
        m_source(max_frame_size,n_channels_in), m_sink(max_frame_size, mIntermediateChannels)
         {}
         
@@ -132,13 +137,13 @@ namespace audio {
          
          Do override process() though. That's what it's for
          **/
-        template <typename S>
-        void do_process(S** input,S** output,size_t nsamps, size_t channels_in, size_t channels_out)
+        template <typename InputIt, typename OutputIt>
+        void do_process(InputIt input,InputIt inend, OutputIt output, OutputIt outend, size_t nsamps, size_t channels_in, size_t channels_out)
         {
             assert(channels_in == m_channels_in);
             assert(channels_out == m_channels_out);
             
-            m_source.push(input,nsamps, channels_in);
+            m_source.push(input,inend,nsamps, channels_in);
             
             //I had imagined we could delegate knowing about the time into the frame
             //to the buffers, but for cases where chunk_size % host_buffer_size !=0
@@ -158,14 +163,15 @@ namespace audio {
             m_frame_time = m_frame_time < m_host_buffer_size?
                 m_frame_time : m_frame_time - m_host_buffer_size;
           m_sink.pull(m_frame_post);
+
           post_process(m_frame_post);
-          
-          for(int i = 0; i < channels_out; ++i)
+
+          for(size_t i = 0; (i < m_channels_out && output != outend); ++i,++output)
           {
-            output[i]->copy_to(m_frame_post.row(0),0,nsamps);
+            (*output)->copy_to(m_frame_post.row(i),0,nsamps);
           }
         }
-        
+      
         /**
          Base procesisng method. A no-op in this case
          **/
@@ -182,7 +188,7 @@ namespace audio {
             m_host_buffer_size = size;
             m_source.set_host_buffer_size(size);
             m_sink.set_host_buffer_size(size);
-          m_frame_post.resize(mIntermediateChannels,m_host_buffer_size);
+            m_frame_post.resize(mIntermediateChannels,m_host_buffer_size);
         }
         
         /**
@@ -211,13 +217,13 @@ namespace audio {
         size_t m_max_frame_size;
         size_t m_hop_size;
 
-      size_t m_frame_time;
-      size_t m_channels_in;
-      size_t m_channels_out;
-      size_t mIntermediateChannels;
-      tensor_type m_frame;
-      tensor_type m_frame_out;
-      tensor_type m_frame_post;
+        size_t m_frame_time;
+        size_t m_channels_in;
+        size_t m_channels_out;
+        size_t mIntermediateChannels;
+        tensor_type m_frame;
+        tensor_type m_frame_out;
+        tensor_type m_frame_post;
         source_buffer_type m_source;
         sink_buffer_type m_sink;
  

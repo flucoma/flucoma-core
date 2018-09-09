@@ -80,10 +80,10 @@ namespace fluid{
     }
     
     
-    template<typename S>
-    void push(S** in ,size_t nsamps, size_t nchans)
+    template<typename InputIt>
+    void push(InputIt in, InputIt end ,size_t nsamps, size_t nchans)
     {
-      assert(nchans = m_channels);
+      assert(nchans == m_channels);
       assert(nsamps <= buffer_size());
       size_t blocksize = nsamps;
       
@@ -91,8 +91,8 @@ namespace fluid{
       
       size_t size = ((offset + blocksize) > buffer_size()) ?  buffer_size() - offset : blocksize ;
       
-      copy_in(in, 0, offset, size);
-      copy_in(in, size, 0, blocksize-size);
+      copy_in(in, end, 0, offset, size);
+      copy_in(in, end, size, 0, blocksize-size);
     }
     
     /*!
@@ -180,16 +180,15 @@ namespace fluid{
     }
     
     
-    template <typename S>
-    void copy_in(S** in, const size_t in_start,const size_t offset, const size_t size)
+    template <typename InputIt>
+    void copy_in(InputIt in, InputIt end, const size_t in_start,const size_t offset, const size_t size)
     {
       if(size)
       {
-        for(size_t i = 0; i < m_channels; ++i)
+        for(size_t i = 0; (i < m_channels && in!=end); ++i,++in)
         {
-          
           auto in_range = matrix(i,slice(offset,size));
-          in[i]->copy_from(in_range.row(0), in_start, size);
+          (*in)->copy_from(in_range.row(0), in_start, size);
         }
         m_counter = offset + size;
       }
@@ -199,7 +198,7 @@ namespace fluid{
     size_t m_counter = 0;
     size_t m_size;
     size_t m_channels;
-    size_t m_host_buffer_size;
+    size_t m_host_buffer_size = 0;
   };
   
   /*
@@ -279,8 +278,8 @@ namespace fluid{
       out_and_zero(out(slice(0), slice(size,blocksize-size)), 0, blocksize-size);
     }
     
-    template <typename U>
-    void pull(U** out, size_t n_samps, size_t n_chans)
+    template <typename OutputIt>
+    void pull(OutputIt out, OutputIt end, size_t n_samps, size_t n_chans)
     {
       size_t blocksize = n_samps;
       if(blocksize > buffer_size())
@@ -291,8 +290,8 @@ namespace fluid{
       size_t offset = m_counter;
       size_t size = offset + blocksize > buffer_size() ? buffer_size() - offset : blocksize;
       
-      out_and_zero(out, 0, offset, size);
-      out_and_zero(out, size, 0,blocksize-size);
+      out_and_zero(out, end,  0, offset, size);
+      out_and_zero(out, end, size, 0,blocksize-size);
       
     }
     
@@ -347,15 +346,15 @@ namespace fluid{
       }
     }
     
-    template <typename U>
-    void out_and_zero(U** out, size_t out_offset, size_t offset, size_t size)
+    template <typename OutputIt>
+    void out_and_zero(OutputIt out, OutputIt end , size_t out_offset, size_t offset, size_t size)
     {
       if(size)
       {
-        for(size_t i = 0; i < m_channels; ++i)
+        for(size_t i = 0; (i < m_channels && out!=end); ++i,++out)
         {
-          auto out_slice = matrix(i, slice(offset, size));
-          out[i]->copy_to(out_slice,out_offset,size);
+          auto out_slice = matrix(i++, slice(offset, size));
+          *out->copy_to(out_slice,out_offset,size);
         }
         matrix(slice(0),slice(offset,size)).fill(0);
         m_counter = offset + size;

@@ -39,7 +39,7 @@ namespace audio {
          Construct with a (maximum) chunk size and some input channels
          **/
         GainAudioClient(size_t chunk_size,size_t hop_size):
-        BaseAudioClient<T,U>(chunk_size,hop_size, 2,1), output(1,chunk_size) //this has two input channels, one output
+        BaseAudioClient<T,U>(chunk_size,hop_size, 2,1)//, output(1,chunk_size) //this has two input channels, one output
         {}
         
         using  BaseAudioClient<T,U>::channelsIn;
@@ -51,7 +51,7 @@ namespace audio {
          Takes a view in
          
          **/
-        virtual view_type process(view_type data)
+        void process(view_type data, view_type output) override
         {
             //Punishment crashes for the sloppy
             //Data is stored with samples laid out in rows, one channel per row
@@ -59,13 +59,12 @@ namespace audio {
             assert(data.rows() == channelsIn());
             
             //Copy the input samples
-            output = data.row(0);
+            output.row(0) = data.row(0);
             
             //Apply gain from the second channel
             output.row(0).apply(data.row(1),[](double& x, double g){
                 x *= g;
             });
-            return output;
         }
         
         /**
@@ -77,7 +76,6 @@ namespace audio {
         }
         
     private:
-        tensor_type output;
         T m_scalar_gain = 1.;
     }; // class
 } //namespace audio
