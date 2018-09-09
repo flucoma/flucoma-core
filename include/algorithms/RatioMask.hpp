@@ -25,7 +25,7 @@ public:
   RatioMask(RealMatrix denominator, int exponent) : mExponent(exponent) {
     ArrayXXdMap denominatorArray(denominator.data(), denominator.extent(0),
                                  denominator.extent(1));
-    mMultiplier = (1 / denominatorArray.max(epsilon()));
+    mMultiplier = (1 / denominatorArray.max(epsilon())).min(1.0);
   }
 
   ComplexMatrix process(ComplexMatrix mixture, RealMatrix targetMag) {
