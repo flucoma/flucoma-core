@@ -106,13 +106,13 @@ class MedianFilter {
       return atEnd() || mData[i] < mData[mMedianIndex] ||
              (mData[i] == mData[mMedianIndex] && i < mMedianIndex);
     }
-
+    size_t mFilterSize;
     vector<Link> mLinks;
     const double *mData;
     vector<pair<double, int>> mSorted;
     int mMedianIndex;
     int mSmallIndex;
-    size_t mFilterSize;
+
   };
 
 public:
