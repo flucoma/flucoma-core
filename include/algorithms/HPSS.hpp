@@ -52,7 +52,6 @@ public:
 
 
   const HPSSModel process(const RealMatrix &X){
-    const auto &epsilon = std::numeric_limits<double>::epsilon;
     HPSSModel result;
     int nFrames = X.extent(0);
     int nBins = X.extent(1);
