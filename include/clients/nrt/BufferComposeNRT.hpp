@@ -12,7 +12,7 @@
 
 namespace fluid {
   namespace buf{
-    
+
     /**
      Integration class for doing NMF filtering and resynthesis
      **/
@@ -21,7 +21,7 @@ namespace fluid {
       using desc_type = parameter::Descriptor;
       using param_type = parameter::Instance;
     public:
-      
+
       struct ProcessModel
       {
         size_t frames[2];
@@ -35,7 +35,7 @@ namespace fluid {
         parameter::BufferAdaptor* src2 = 0;
         parameter::BufferAdaptor* dst = 0;
       };
-      
+
       static const std::vector<parameter::Descriptor>& getParamDescriptors()
       {
         static std::vector<desc_type> params;
@@ -43,58 +43,58 @@ namespace fluid {
         {
           params.emplace_back("src","First Source Buffer", parameter::Type::Buffer);
           params.back().setInstantiation(true);
-          
+
           params.emplace_back("offsetframes1","Source 1 Offset", parameter::Type::Long);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
           params.emplace_back("numframes1","Source 1 Frames", parameter::Type::Long);
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
-          
+
           params.emplace_back("offsetchans1","Source 1 Channel Offset", parameter::Type::Long);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
-          
+
           params.emplace_back("numchans1","Source 1 Channels", parameter::Type::Long);
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
-          
+
           params.emplace_back("src1gain","Source 1 Gain", parameter::Type::Float);
           params.back().setInstantiation(false).setDefault(1);
-          
-          params.emplace_back("src1dstoffset", "Source 1 Desintation Offset", parameter::Type::Long);
+
+          params.emplace_back("src1dstoffset", "Source 1 Destination Offset", parameter::Type::Long);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
-          
-          params.emplace_back("src1dstchanoffset", "Source 1 Desintation Channel Offset", parameter::Type::Long);
+
+          params.emplace_back("src1dstchanoffset", "Source 1 Destination Channel Offset", parameter::Type::Long);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
-          
+
           params.emplace_back("src2","Second Source Buffer", parameter::Type::Buffer);
           params.back().setInstantiation(true);
-          
+
           params.emplace_back("offsetframes2","Source 2 Offset", parameter::Type::Long);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
-          
+
           params.emplace_back("numframes2","Source 2 Frames", parameter::Type::Long);
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
-          
+
           params.emplace_back("offsetchans2","Source 2 Channel Offset", parameter::Type::Long);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
-          
+
           params.emplace_back("numchans2","Source 2 Channels", parameter::Type::Long);
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
-          
+
           params.emplace_back("src2gain","Source 2 Gain", parameter::Type::Float);
           params.back().setInstantiation(false).setDefault(1);
-          
-          params.emplace_back("src2dstoffset", "Source 2 Desintation Offset", parameter::Type::Long);
+
+          params.emplace_back("src2dstoffset", "Source 2 Destination Offset", parameter::Type::Long);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
-          
-          params.emplace_back("src2dstchanoffset", "Source 2 Desintation Channel Offset", parameter::Type::Long);
+
+          params.emplace_back("src2dstchanoffset", "Source 2 Destination Channel Offset", parameter::Type::Long);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
-          
+
           params.emplace_back("dstbuf","Destination Buffer", parameter::Type::Buffer);
           params.back().setInstantiation(false);
         }
         return params;
       }
-      
+
       void newParameterSet()
       {
         mParams.clear();
@@ -103,7 +103,7 @@ namespace fluid {
         for(auto p: getParamDescriptors())
           mParams.emplace_back( parameter::Instance(p));
       }
-      
+
       /**
        Go over the supplied parameter values and ensure that they are sensible
        Args
@@ -119,12 +119,12 @@ namespace fluid {
           {
             return i.getDescriptor() == d;
           });
-        
+
         if(! sensible || (desc.size() != mParams.size()))
         {
           return {false, "Invalid params passed. Were these generated with newParameterSet()?", model };
         }
-        
+
         size_t bufCount = 0;
         std::unordered_set<parameter::BufferAdaptor*> uniqueBuffers;
         //First round of buffer checks
@@ -136,12 +136,12 @@ namespace fluid {
         {
           return  { false, "At least one source buffer doesn't exist or can't be accessed.", model };
         }
-        
+
         if(src1.numFrames() == 0 || src2.numFrames() == 0)
         {
           return {false, "At least one source buffer is empty",model};
         }
-     
+
         for(auto&& p: mParams)
         {
           switch(p.getDescriptor().getType())
@@ -155,7 +155,7 @@ namespace fluid {
                  {
                    std::ostringstream ss;
                    ss << "Buffer given for " << p.getDescriptor().getName() << " doesn't exist.";
-                
+
                    return {false, ss.str(), model};
                  }
                 ++bufCount;
@@ -165,18 +165,13 @@ namespace fluid {
               continue;
           }
         }
- 
+
         if(bufCount < 3)
         {
           return { false, "Expecting three valid buffers", model};
         }
-//
-//        if(bufCount > uniqueBuffers.size())
-//        {
-//          return {false, "One or more buffers are the same. They all need to be distinct", model};
-//        }
-        
-        
+
+
         //Now scan everything for range, until we hit a problem
         //TODO Factor into parameter::instance
         for(auto&& p: mParams)
@@ -203,27 +198,24 @@ namespace fluid {
           }
 
         }
-        
-  
+
+
         //Check the size of our buffers
-//        parameter::BufferAdaptor* src= params[0].getBuffer();
-        
         long srcOffset     = parameter::lookupParam("offsetframes1",mParams).getLong();
         long srcFrames     = parameter::lookupParam("numframes1",   mParams).getLong();
         long srcChanOffset = parameter::lookupParam("offsetchans1", mParams).getLong();
         long srcChans      = parameter::lookupParam("numchans1",    mParams).getLong();
         long srcDstOffset  = parameter::lookupParam("src1dstoffset", mParams).getLong();
         long srcDstChanOffset = parameter::lookupParam("src1dstchanoffset", mParams).getLong();
-        
-        
-        
+
+          
         //We're quite relaxed about asking for more frames than the buffer contains (we'll zero pad)
         //but it seems reasonable the offset should at least point somewhere in the buffer
         if(srcOffset > src1.numFrames())
         {
           return {false,"Source 1 frame offset beyond end of buffer",model};
         }
-        
+
 
         //We're quite relaxd about asking for more channel than the buffer contains (we'll go modulo)
         //but it seems reasonable the offset should at least point somewhere in the buffer
@@ -231,21 +223,7 @@ namespace fluid {
         {
           return {false,"Source 1 channel offset beyond end of buffer",model};
         }
-        
-//
-//
-//
-//        //Ensure that the source buffer can deliver
-//        if(srcFrames > 0 ? (src1.numFrames() < (srcOffset + srcFrames)) : (src1.numFrames() < srcOffset))
-//        {
-//          return  { false, "Source buffer 1 not long enough for given offset and frame count",model};
-//        }
-//
-//        if((srcChans > 0) ? (src1.numChans() < (srcChanOffset + srcChans)) : (src1.numChans() < srcChanOffset))
-//        {
-//          return {false, "Source buffer 1 doesn't have enough channels for given offset and channel count", model};
-//        }
-//
+
         //At this point, we're happy with the source buffer
         model.src1             = mParams[0].getBuffer();
         model.offset[0]        = srcOffset;
@@ -255,41 +233,30 @@ namespace fluid {
         model.gain[0]          = parameter::lookupParam("src1gain",mParams).getFloat();
         model.dstOffset[0] =   srcDstOffset;
         model.dstChannelOffset[0] = srcDstChanOffset;
-        
-        
+
+
         srcOffset     = parameter::lookupParam("offsetframes2",mParams).getLong();
         srcFrames     = parameter::lookupParam("numframes2",   mParams).getLong();
         srcChanOffset = parameter::lookupParam("offsetchans2", mParams).getLong();
         srcChans      = parameter::lookupParam("numchans2",    mParams).getLong();
         srcDstOffset  = parameter::lookupParam("src2dstoffset", mParams).getLong();
         srcDstChanOffset = parameter::lookupParam("src2dstchanoffset", mParams).getLong();
-        
+
         //We're quite relaxed about asking for more frames than the buffer contains (we'll zero pad)
         //but it seems reasonable the offset should at least point somewhere in the buffer
         if(srcOffset > src2.numFrames())
         {
           return {false,"Source 2 frame offset beyond end of buffer",model};
         }
-        
+
         //We're quite relaxd about asking for more channel than the buffer contains (we'll go modulo)
         //but it seems reasonable the offset should at least point somewhere in the buffer
         if(srcChanOffset > src2.numChans())
         {
           return {false,"Source 2 channel offset beyond end of buffer",model};
         }
-        
-        
-//        //Ensure that the source buffer can deliver
-//        if(srcFrames > 0 ? (src2.numFrames() < (srcOffset + srcFrames)) : (src2.numFrames() < srcOffset))
-//        {
-//          return  { false, "Source buffer 2 not long enough for given offset and frame count",model};
-//        }
-//
-//        if((srcChans > 0) ? (src2.numChans() < (srcChanOffset + srcChans)) : (src2.numChans() < srcChanOffset))
-//        {
-//          return {false, "Source buffer 2 doesn't have enough channels for given offset and channel count", model};
-//        }
-        
+
+
         //At this point, we're happy with the source buffer
         model.src2             = mParams[8].getBuffer();
         model.offset[1]        = srcOffset;
@@ -299,118 +266,95 @@ namespace fluid {
         model.gain[1]    = parameter::lookupParam("src2gain",mParams).getFloat();
         model.dstOffset[1] =   srcDstOffset;
         model.dstChannelOffset[1] = srcDstChanOffset;
-  
-        
-        
+
+
+
         parameter::Instance& dstParam = parameter::lookupParam("dstbuf", mParams);
-        
+
         parameter::BufferAdaptor::Access dst(dstParam.getBuffer());
         if(! dst.valid())
         {
           return {false,"Destination buffer invalid",model};
         }
-        
+
         model.dst = dstParam.getBuffer();
-        
+
         //We made it
         return {true, "Everything is lovely",model};
       }
-      
-      
+
+
       //No, you may not  copy this, or move this
       BufferComposeClient(BufferComposeClient&)=delete;
       BufferComposeClient(BufferComposeClient&&)=delete;
       BufferComposeClient operator=(BufferComposeClient&)=delete;
       BufferComposeClient operator=(BufferComposeClient&&)=delete;
-      
+
       BufferComposeClient(){
-        newParameterSet(); 
+        newParameterSet();
       }
-   
+
       void process(ProcessModel model)
       {
         parameter::BufferAdaptor::Access src1(model.src1);
         parameter::BufferAdaptor::Access src2(model.src2);
         parameter::BufferAdaptor::Access dst(model.dst);
-        
-        size_t chans = *std::max_element(model.channels, model.channels + 2) + *std::max_element(model.dstChannelOffset, model.dstChannelOffset + 2);
-        size_t frames = *std::max_element(model.frames,model.frames + 2) + *std::max_element(model.dstOffset, model.dstOffset + 2);
-        
+
+        // chans and frames are cheked and their max is taken
+        std::array<size_t,2> sumChans;
+        std::transform(model.channels,model.channels + 2,model.dstChannelOffset,sumChans.begin(),std::plus<size_t>());
+        size_t chans = *std::max_element(sumChans.begin(), sumChans.end());
+
+        std::array<size_t,2> sumFrames;
+        std::transform(model.frames,model.frames + 2,model.dstOffset,sumFrames.begin(),std::plus<size_t>());
+        size_t frames = *std::max_element(sumFrames.begin(), sumFrames.end());
+
         //Copy both sources here
         FluidTensor<double, 2> src1Data(model.frames[0], model.channels[0]);
         src1Data = src1.samps(model.offset[0],model.frames[0],model.channelOffset[0], model.channels[0]);
         FluidTensor<double, 2> src2Data(model.frames[1], model.channels[1]);
         src2Data = src2.samps(model.offset[1],model.frames[1],model.channelOffset[1], model.channels[1]);
-        
+
+        //apply gains
+          double g1 = model.gain[0];
+          double g2 = model.gain[1];
+          src1Data.apply([g1](double& x){
+              x *= g1;
+          });
+          src2Data.apply([g2](double& x){
+              x *= g2;
+          });
+          
         //Resize dst here
         FluidTensor<double, 2> dstData(frames,chans);
-        
+
         if(dst.numFrames() < frames || dst.numChans() < chans)
           dst.resize(frames,chans,1);
-   
-        for(size_t i = model.dstChannelOffset[0], j = 0; i < chans; ++i,++j)
+
+        // iterates throught the copying of the first source
+        for(size_t i = model.dstChannelOffset[0], j = 0; j < model.channels[0]; ++i,++j)
         {
           auto dstChan = dstData(fluid::slice(model.dstOffset[0], model.frames[0]), fluid::slice(i,1)).col(0);
           dstChan = src1Data.col(j % src1Data.cols());
-          double g1 = model.gain[0];
-          dstChan.apply([g1](double& x){
-              x *= g1;
-          });
         }
-
-        for(size_t i = model.dstChannelOffset[1], j = 0; i < chans; ++i,++j)
+          
+        // iterates throught the copying of the second source and sums it to the dest buff
+        for(size_t i = model.dstChannelOffset[1], j = 0; j < model.channels[1]; ++i,++j)
         {
-          FluidTensor<double,1> src2Frames(model.frames[1]);
-          src2Frames = src2Data.col(j % src2Data.cols());
-          double g2 = model.gain[1];
-          src2Frames.apply([g2](double& x){
-            x *= g2;
-          });
           auto dstChan = dstData(fluid::slice(model.dstOffset[1], model.frames[1]), fluid::slice(i,1)).col(0);
-          dstChan.apply(src2Frames,[](double& x, double& y){
+          dstChan.apply( src2Data.col(j % src2Data.cols()),[](double& x, double& y){
             x += y;
           });
-          
-          dst.samps(i) = dstData.col(i);
-          
         }
-        
-        
-//
-//        for(size_t i = 0; i < chans; ++i)
-//        {
-//          FluidTensor<double,1> dstChan(frames);
-////          dstChan = src1.samps(model.offset[0], frames, model.channelOffset[0] + (i % src1.numChans()),1).cnol(0);
-//          auto dstChanSeg1 = dstChan(fluid::slice(model.dstOffset[0],model.frames[0]));
-//          dstChanSeg1 = src1Data.col(i % src1Data.cols());
-//          double g1 = model.gain[0];
-//          dstChanSeg1.apply([g1](double& x){
-//            x *= g1;
-//          });
-//
-//          FluidTensor<double,1> src2Frames(model.frames[1]);
-////          src2Frames = src2.samps(model.offset[1], frames, model.channelOffset[1] + (i % src2.numChans()),1).col(0);
-//          src2Frames = src2Data.col(i % src2Data.cols());
-//
-//          double g2 = model.gain[1];
-//          src2Frames.apply([g2](double& x){
-//            x *= g2;
-//          });
-//
-//          auto dstChanSeg2 = dstChan(fluid::slice(model.dstOffset[1],model.frames[1]));
-//          dstChanSeg2.apply(src2Frames,[](double& x, double& y){
-//            x += y;
-//          });
-//
-//          dst.samps(i) = dstChan;
-//        }
-        
+          // copies the destination
+          dst.samps() = dstData;
+
       }
       std::vector<parameter::Instance>& getParams()
       {
         return mParams;
       }
-      
+
     private:
       std::vector<parameter::Instance> mParams;
     };
