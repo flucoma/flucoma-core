@@ -13,6 +13,7 @@
 
 #include "data/FluidTensor.hpp"
 #include "data/FluidBuffers.hpp"
+#include "clients/common/FluidParams.hpp"
 
 namespace fluid {
 namespace audio {
@@ -105,7 +106,7 @@ namespace audio {
         BaseAudioClient()= delete;
         //No copying
         BaseAudioClient(BaseAudioClient&)= delete;
-        BaseAudioClient operator=(BaseAudioClient&)= delete;
+//        BaseAudioClient& operator=(BaseAudioClient&)= delete;
         //Default destuctor
         virtual ~BaseAudioClient()=default;
         
@@ -114,17 +115,39 @@ namespace audio {
          
          You *must* set host buffer size and call reset before attemping to use
          **/
-        BaseAudioClient(size_t max_frame_size, size_t hop_size, size_t n_channels_in = 1, size_t n_channels_out = 1, size_t nIntermediateChannels = 0):
-            m_max_frame_size(max_frame_size), m_hop_size(hop_size),
-      m_channels_in(n_channels_in),
-      m_channels_out(n_channels_out),
-      mIntermediateChannels(nIntermediateChannels ? nIntermediateChannels : n_channels_out),
-      m_frame(n_channels_in,m_max_frame_size),
-      m_frame_out(mIntermediateChannels,m_max_frame_size),
-      m_frame_post(mIntermediateChannels,1),
-       m_source(max_frame_size,n_channels_in), m_sink(max_frame_size, mIntermediateChannels)
-        {}
+        BaseAudioClient(size_t max_frame_size, size_t n_channels_in = 1, size_t n_channels_out = 1, size_t nIntermediateChannels = 0):
+            m_max_frame_size(max_frame_size),
+            m_channels_in(n_channels_in),
+            m_channels_out(n_channels_out),
+            mIntermediateChannels(nIntermediateChannels ? nIntermediateChannels : n_channels_out),
+            m_frame(0,0),
+            m_frame_out(0,0),
+            m_frame_post(0,0),
+            m_source(max_frame_size,n_channels_in),
+            m_sink(max_frame_size, mIntermediateChannels)
+        {
+//          newParamSet();
+        }
+      
+      static std::vector<parameter::Descriptor>& getParamDescriptors()
+      {
+        static std::vector<parameter::Descriptor> descriptors;
+        if(descriptors.size() == 0)
+        {
+          descriptors.emplace_back("winsize", "Window Size", parameter::Type::Long);
+          descriptors.back().setMin(4).setDefault(1024).setInstantiation(true);
+          
+          descriptors.emplace_back("hopsize", "Hop Size", parameter::Type::Long);
+          descriptors.back().setMin(1).setDefault(512);
+        }
+        return descriptors;
+      }
         
+      static void initParamDescriptors(std::vector<parameter::Descriptor>& vec)
+      {
+        vec = getParamDescriptors();
+      }
+      
         /**
          TODO: This works for Max /PD, but wouldn't for SC. Come up with something SCish
          
@@ -142,7 +165,9 @@ namespace audio {
         {
             assert(channels_in == m_channels_in);
             assert(channels_out == m_channels_out);
-            
+          
+          
+          
             m_source.push(input,inend,nsamps, channels_in);
             
             //I had imagined we could delegate knowing about the time into the frame
@@ -153,7 +178,8 @@ namespace audio {
             // (a) (for overlap) m_max_frame_size size in this look will need to change to take a variable, from somewhere (representing the hop size for this frame _start_)
             // (b) (for varying frame size) the num rows of the view passed in
             // will need to change.
-            for(; m_frame_time < m_host_buffer_size; m_frame_time+=m_hop_size)
+          
+            for(; m_frame_time < m_host_buffer_size; m_frame_time+=mHopSize)
             {
                 m_source.pull(m_frame,m_frame_time);
                 process(m_frame, m_frame_out);
@@ -190,15 +216,39 @@ namespace audio {
             m_sink.set_host_buffer_size(size);
             m_frame_post.resize(mIntermediateChannels,m_host_buffer_size);
         }
-        
+      
         /**
          Reset everything. Call this from host dsp setup
          **/
-        void reset()
+      
+      std::tuple<bool, std::string> sanityCheck()
+      {
+        size_t winsize = parameter::lookupParam("winsize", getParams()).getLong();
+        
+        if(winsize > m_max_frame_size)
+        {
+          return {false, "Window size out of range"};
+        }
+        
+        return {true, "All is nice"}; 
+        
+      }
+      
+      
+        virtual void reset()
         {
             m_frame_time = 0;
             m_source.reset();
             m_sink.reset();
+          
+          size_t windowSize = parameter::lookupParam("winsize", getParams()).getLong();
+          mHopSize =  parameter::lookupParam("hopsize", getParams()).getLong();
+          
+            if(windowSize != m_frame.cols())
+            {
+              m_frame = FluidTensor<T, 2>(m_channels_in,windowSize);
+              m_frame_out = FluidTensor<T, 2>(mIntermediateChannels,windowSize);
+            }
         }
         
         size_t channelsOut()
@@ -210,22 +260,38 @@ namespace audio {
         {
             return m_channels_in; 
         }
+      
+      
+      virtual std::vector<parameter::Instance>& getParams() = 0;
+     
+
+      
         
     private:
-        
+//      void newParamSet()
+//      {
+//        mParams.clear();
+//        for(auto&& d: getParamDescriptors())
+//          mParams.emplace_back(d);
+//      }
         size_t m_host_buffer_size;
         size_t m_max_frame_size;
-        size_t m_hop_size;
 
         size_t m_frame_time;
         size_t m_channels_in;
         size_t m_channels_out;
         size_t mIntermediateChannels;
+      
+      size_t mHopSize;
+      
         tensor_type m_frame;
         tensor_type m_frame_out;
         tensor_type m_frame_post;
         source_buffer_type m_source;
         sink_buffer_type m_sink;
+      
+//      std::vector<parameter::Instance> mParams;
+      
  
     };
 }

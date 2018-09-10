@@ -286,6 +286,19 @@ namespace parameter{
     bool mHasDefault = false;
   };
   
+  class DescriptorList
+  {
+    
+    
+  private:
+    
+    
+  };
+  
+  
+  
+  
+  
   class Instance
   {
     union Value{
@@ -475,7 +488,7 @@ namespace parameter{
         case Type::Buffer:
         default:
           value = 0; //shut the compiler up
-          assert(false && "Don't call this on a non-buffer parameter");
+          assert(false && "Don't call this on a buffer parameter");
       }
       return value;
     }
@@ -556,10 +569,13 @@ namespace parameter{
   
   Instance& lookupParam(std::string key, std::vector<Instance>& params)
   {
-    return *std::find_if(params.begin(), params.end(),
+    auto res = std::find_if(params.begin(), params.end(),
                          [&](const Instance& i)->bool{
                            return i.getDescriptor().getName() == key;
                          });
+    
+    assert(res != params.end()); //harsh, but fair    
+    return *res;
   }
   
   

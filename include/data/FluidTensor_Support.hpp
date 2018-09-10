@@ -2,7 +2,7 @@
  Support Code for FluidTensor
  **/
 
-
+#pragma once 
     /*****************************
      FluidTensorSlice describes mappings of indices to points in our storage
      ******************************/
