@@ -32,26 +32,16 @@ namespace audio {
       
       static std::vector<parameter::Descriptor> getParamDescriptors()
       {
-        static std::vector<parameter::Descriptor> desc {
-          parameter::Descriptor("gain", "Gain", parameter::Type::Float),
-          parameter::Descriptor("winsize","Window Size", parameter::Type::Long),
-          parameter::Descriptor("hopsize","Hop Size", parameter::Type::Long)
-        };
-        return desc; 
-//        if(desc.size() == 0)
-//        {
-//          desc.emplace_back("gain", "Gain", parameter::Type::Float);
-//          desc.back().setDefault(1);
-//
-//          desc.emplace_back("windowsize","Window Size", parameter::Type::Long);
-//          desc.back().setMin(4).setDefault(1024);
-//
-//          desc.emplace_back("hopsize","Hop Size", parameter::Type::Long);
-//          desc.back().setMin(4).setDefault(256);
-//        }
-        
+        static std::vector<parameter::Descriptor> desc;
+          
+        if(desc.size() == 0)
+        {
+          BaseAudioClient<T,U>::initParamDescriptors(desc);
+          
+          desc.emplace_back("gain", "Gain", parameter::Type::Float);
+          desc.back().setDefault(1);
+        }
       }
-      
       
         /**
          No default instances, no copying
@@ -102,14 +92,14 @@ namespace audio {
 //            m_scalar_gain = gain;
 //        }
       
-      void reset()
+      void reset() override
       {
         m_scalar_gain = parameter::lookupParam("gain",mParams).getFloat();
         BaseAudioClient<T, U>::reset();
       }
       
       
-      std::vector<parameter::Instance>& getParams()
+      std::vector<parameter::Instance>& getParams() override
       {
         return mParams;
       }

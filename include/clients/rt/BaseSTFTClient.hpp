@@ -27,11 +27,7 @@ namespace audio {
         static std::vector<parameter::Descriptor> params;
         if(params.size() == 0)
         {
-          params.emplace_back("winsize","Window Size", parameter::Type::Long);
-          params.back().setMin(4).setDefault(1024);
-          
-          params.emplace_back("hopsize","Hop Size", parameter::Type::Long);
-          params.back().setMin(1).setDefault(256);
+          BaseAudioClient<T,U>::initParamDescriptors(params);
           
           params.emplace_back("fftsize","FFT Size", parameter::Type::Long);
           params.back().setMin(-1).setDefault(-1);
@@ -124,7 +120,7 @@ namespace audio {
           });
         }
       
-     std::vector<parameter::Instance>& getParams()
+     std::vector<parameter::Instance>& getParams() override
       {
         return mParams;
       }

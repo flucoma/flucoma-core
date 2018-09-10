@@ -142,7 +142,11 @@ namespace audio {
         }
         return descriptors;
       }
-      
+        
+      static void initParamDescriptors(std::vector<parameter::Descriptor>& vec)
+      {
+        vec = getParamDescriptors();
+      }
       
         /**
          TODO: This works for Max /PD, but wouldn't for SC. Come up with something SCish
