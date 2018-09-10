@@ -28,7 +28,6 @@ namespace audio {
         if(params.size() == 0)
         {
           BaseAudioClient<T,U>::initParamDescriptors(params);
-          
           params.emplace_back("fftsize","FFT Size", parameter::Type::Long);
           params.back().setMin(-1).setDefault(-1);
         }

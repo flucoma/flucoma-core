@@ -145,7 +145,10 @@ namespace audio {
         
       static void initParamDescriptors(std::vector<parameter::Descriptor>& vec)
       {
-        vec = getParamDescriptors();
+        auto d = getParamDescriptors();
+        
+        vec.insert(vec.end(),d.begin(),d.end());
+        
       }
       
         /**

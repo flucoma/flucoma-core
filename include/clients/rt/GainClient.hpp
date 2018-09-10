@@ -36,11 +36,13 @@ namespace audio {
           
         if(desc.size() == 0)
         {
-          BaseAudioClient<T,U>::initParamDescriptors(desc);
           
           desc.emplace_back("gain", "Gain", parameter::Type::Float);
           desc.back().setDefault(1);
+          BaseAudioClient<T,U>::initParamDescriptors(desc);
+
         }
+        return desc;
       }
       
         /**
