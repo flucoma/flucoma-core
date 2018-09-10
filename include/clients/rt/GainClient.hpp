@@ -9,6 +9,7 @@
 #define fluid_audio_gainclient_h
 
 #include "BaseAudioClient.hpp"
+#include "clients/common/FluidParams.hpp"
 
 namespace fluid {
 namespace audio {
@@ -28,6 +29,30 @@ namespace audio {
         using signal_type = typename BaseAudioClient<T,U>::template Signal<U>;
         using audio_signal = typename BaseAudioClient<T,U>::AudioSignal;
         using scalar_signal = typename BaseAudioClient<T,U>::ScalarSignal;
+      
+      static std::vector<parameter::Descriptor> getParamDescriptors()
+      {
+        static std::vector<parameter::Descriptor> desc {
+          parameter::Descriptor("gain", "Gain", parameter::Type::Float),
+          parameter::Descriptor("winsize","Window Size", parameter::Type::Long),
+          parameter::Descriptor("hopsize","Hop Size", parameter::Type::Long)
+        };
+        return desc; 
+//        if(desc.size() == 0)
+//        {
+//          desc.emplace_back("gain", "Gain", parameter::Type::Float);
+//          desc.back().setDefault(1);
+//
+//          desc.emplace_back("windowsize","Window Size", parameter::Type::Long);
+//          desc.back().setMin(4).setDefault(1024);
+//
+//          desc.emplace_back("hopsize","Hop Size", parameter::Type::Long);
+//          desc.back().setMin(4).setDefault(256);
+//        }
+        
+      }
+      
+      
         /**
          No default instances, no copying
          **/
@@ -38,9 +63,11 @@ namespace audio {
         /**
          Construct with a (maximum) chunk size and some input channels
          **/
-        GainAudioClient(size_t chunk_size,size_t hop_size):
-        BaseAudioClient<T,U>(chunk_size,hop_size, 2,1)//, output(1,chunk_size) //this has two input channels, one output
-        {}
+        GainAudioClient(size_t max_chunk_size):
+        BaseAudioClient<T,U>(max_chunk_size, 2,1)//, output(1,chunk_size) //this has two input channels, one output
+        {
+          newParamSet();
+        }
         
         using  BaseAudioClient<T,U>::channelsIn;
         
@@ -67,16 +94,42 @@ namespace audio {
             });
         }
         
-        /**
-         Having some queriable attribute interface would be longer term goal
-         **/
-        void set_gain(const T gain)
-        {
-            m_scalar_gain = gain; 
-        }
+//        /**
+//         Having some queriable attribute interface would be longer term goal
+//         **/
+//        void set_gain(const T gain)
+//        {
+//            m_scalar_gain = gain;
+//        }
+      
+      void reset()
+      {
+        m_scalar_gain = parameter::lookupParam("gain",mParams).getFloat();
+        BaseAudioClient<T, U>::reset();
+      }
+      
+      
+      std::vector<parameter::Instance>& getParams()
+      {
+        return mParams;
+      }
+      
+      
         
     private:
+        void newParamSet()
+      {
+        mParams.clear();
+        for(auto&& d: getParamDescriptors())
+          mParams.emplace_back(d);
+        
+      }
+      
+      
         T m_scalar_gain = 1.;
+      std::vector<parameter::Instance> mParams;
+      
+      
     }; // class
 } //namespace audio
 } //namespace fluid
