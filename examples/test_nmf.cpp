@@ -35,33 +35,38 @@ int main(int argc, char *argv[]) {
 
   using fluid::ratiomask::RatioMask;
 
-  if (argc <= 2) {
-    cout << "usage: test_nmf in.wav rank\n";
+  if (argc <= 3) {
+    cout << "usage: test_nmf train.wav test.wav rank\n";
     return 1;
   }
 
-  AudioFileData data = readFile(argv[1]);
+  AudioFileData trainData = readFile(argv[1]);
+  AudioFileData testData = readFile(argv[2]);
   int nBins = 1025;
   int fftSize = 2 * (nBins - 1) ;
   int hopSize = 128;
-  int rank = std::stoi(argv[2]);
+  int rank = std::stoi(argv[3]);
   int windowSize = 2048;
   STFT stft(windowSize, fftSize, hopSize);
   ISTFT istft(windowSize, fftSize, hopSize);
   NMF nmfProcessor(rank, 100);
-  RealVector in(data.audio[0]);
-  Spectrogram spec = stft.process(in);
-  NMFModel decomposition = nmfProcessor.process(spec.getMagnitude());
-
-  RatioMask mask = RatioMask(decomposition.getMixEstimate(), 1);
+  RealVector train(trainData.audio[0]);
+  RealVector test(testData.audio[0]);
+  Spectrogram trainSpec = stft.process(train);
+  Spectrogram testSpec = stft.process(test);
+  NMFModel decomposition1 = nmfProcessor.process(trainSpec.getMagnitude());
+  RealMatrix W = decomposition1.getW();
+  NMF nmfProcessor2(rank, 100, false);
+  NMFModel decomposition2 = nmfProcessor2.process(testSpec.getMagnitude(), W);
+  RatioMask mask = RatioMask(decomposition2.getMixEstimate(), 1);
 
   for (int i = 0; i < rank; i++) {
-    RealMatrix estimate = decomposition.getEstimate(i);
-    Spectrogram result(mask.process(spec.mData, estimate));
+    RealMatrix estimate = decomposition2.getEstimate(i);
+    Spectrogram result(mask.process(testSpec.mData, estimate));
     RealVector audio = istft.process(result);
-    data.audio[0] = vector<double>(audio.data(), audio.data() + audio.size());
+    testData.audio[0] = vector<double>(audio.data(), audio.data() + audio.size());
     std::string fname = "source_" + std::to_string(i) + ".wav";
-    writeFile(data, fname.c_str());
+    writeFile(testData, fname.c_str());
   }
 
   return 0;
