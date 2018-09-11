@@ -4,6 +4,7 @@
 #include "data/FluidEigenMappings.hpp"
 #include "data/FluidTensor.hpp"
 #include <Eigen/Core>
+#include <queue>
 
 namespace fluid {
 namespace rtsineextraction {
@@ -15,6 +16,7 @@ using std::abs;
 using std::complex;
 using std::max;
 using std::min;
+using std::queue;
 using std::vector;
 using windows::windowFuncs;
 using windows::WindowType;
@@ -68,34 +70,56 @@ public:
     mWindowTransform = computeWindowTransform(mWindow);
     mOnes = VectorXd::Ones(mBandwidth);
     mWNorm = mWindowTransform.square().sum();
-    mBuf = ArrayXXcd::Zero(mBins, minTrackLength);
   }
 
   void processFrame(const ComplexVector &in, ComplexMatrix out) {
     const auto &epsilon = std::numeric_limits<double>::epsilon;
-    mBuf.block(0, 0, mBins, mMinTrackLength - 1) =
-        mBuf.block(0, 1, mBins, mMinTrackLength - 1);
     ArrayXcdMap frame(in.data(), mBins);
-    mBuf.block(0, mMinTrackLength - 1, mBins, 1) = frame;
+    mBuf.push(frame);
     ArrayXd mag = frame.abs().real();
     ArrayXd correlation = getWindowCorrelation(mag);
     vector<int> peaks = findPeaks(correlation, mThreshold);
     peakContinuation(mTracks, peaks, mag);
     vector<SinePeak> sinePeaks = getActivePeaks(mTracks);
     ArrayXd frameSines = additiveSynthesis(sinePeaks);
-
-    ArrayXcd resultFrame = mBuf.col(0);
-    ArrayXd resultMag = resultFrame.abs().real();
-    ArrayXd frameResidual = resultMag - frameSines;
-    frameResidual = (frameResidual < 0).select(0, frameResidual);
     ArrayXXcd result(mBins, 2);
-
-    ArrayXd all = frameSines + frameResidual;
-    ArrayXd mult = (1.0 / all.max(epsilon()));
-    result.col(0) = resultFrame * (frameSines * mult).min(1.0);
-    result.col(1) = resultFrame * (frameResidual * mult).min(1.0);
+    if (mBuf.size() <= mMinTrackLength) {
+      result.col(0) = ArrayXd::Zero(mBins);
+      result.col(1) = ArrayXd::Zero(mBins);
+    } else {
+      ArrayXcd resultFrame = mBuf.front();
+      ArrayXd resultMag = resultFrame.abs().real();
+      ArrayXd frameResidual = resultMag - frameSines;
+      frameResidual = (frameResidual < 0).select(0, frameResidual);
+      ArrayXd all = frameSines + frameResidual;
+      ArrayXd mult = (1.0 / all.max(epsilon()));
+      result.col(0) = resultFrame * (frameSines * mult).min(1.0);
+      result.col(1) = resultFrame * (frameResidual * mult).min(1.0);
+      mBuf.pop();
+    }
     out = ArrayXXcdToFluid(result)();
     mCurrentFrame++;
+  }
+
+  void reset() { mCurrentFrame = 0; }
+
+  void setThreshold(double threshold) {
+    assert(0 <= threshold <= 1);
+    mThreshold = threshold;
+  }
+
+  void setMinTrackLength(int minTrackLength) {
+    mMinTrackLength = minTrackLength;
+  }
+
+  void setMagWeight(double magWeight) {
+    assert(0 <= magWeight <= 1);
+    mMagWeight = magWeight;
+  }
+
+  void setFreqWeight(double freqWeight) {
+    assert(0 <= freqWeight <= 1);
+    mFreqWeight = freqWeight;
   }
 
 private:
@@ -115,7 +139,7 @@ private:
   double mFreqWeight;
   size_t mCurrentFrame;
   vector<SineTrack> mTracks;
-  ArrayXXcd mBuf;
+  queue<ArrayXcd> mBuf;
 
   const void peakContinuation(vector<SineTrack> &tracks,
                               const vector<int> peaks, const ArrayXd frame) {
@@ -188,7 +212,7 @@ private:
       if (track.endFrame >= 0 &&
           track.endFrame - track.startFrame < mMinTrackLength)
         continue;
-        
+
       sinePeaks.push_back(track.peaks[latencyFrame - track.startFrame]);
     }
     return sinePeaks;

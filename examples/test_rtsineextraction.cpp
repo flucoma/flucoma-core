@@ -25,17 +25,12 @@ int main(int argc, char *argv[]) {
   using Eigen::ArrayXXcd;
   using Eigen::ArrayXXd;
   using Eigen::Map;
-  using ArrayXXcdMap = Map<Eigen::Array<complex<double>, Eigen::Dynamic,
-                                        Eigen::Dynamic, Eigen::RowMajor>>;
-  using ArrayXXdMap = Map<
-      Eigen::Array<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>;
   using ComplexMatrix = FluidTensor<std::complex<double>, 2>;
   using RealMatrix = FluidTensor<double, 2>;
   using RealVector = FluidTensor<double, 1>;
   using fluid::eigenmappings::ArrayXXcdToFluid;
   using fluid::rtsineextraction::RTSineExtraction;
 
-  const auto &epsilon = std::numeric_limits<double>::epsilon;
 
   if (argc != 2) {
     cout << "usage: test_rtsinemodel in.wav\n";
