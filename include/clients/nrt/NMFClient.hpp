@@ -371,7 +371,7 @@ namespace fluid {
       void process(ProcessModel model)
       {
         
-        mArguments = model;
+//        mArguments = model;
         
         parameter::BufferAdaptor::Access src(model.src);
         parameter::BufferAdaptor::Access dict(model.dict);
@@ -380,74 +380,77 @@ namespace fluid {
 
         if(model.resynthesise)
           resynth.resize(model.frames, model.channels, model.rank);
-        if(model.returnDictionaries)
+        if(model.returnDictionaries && !model.seedDictionaries)
           dict.resize(model.fftSize/2 + 1, model.channels, model.rank);
-        if(model.returnActivations)
+        if(model.returnActivations && !model.seedActivations)
           act.resize((model.frames / model.hopSize) + 1, model.channels, model.rank);
-        
-        
-//        mSource.set_host_buffer_size(mArguments.frames);
-//        mSource.reset();
-//        mSource.push(*mArguments.src);
-        
-//        mAudioBuffers.resize(mRank,data.extent(0));
-        
-//        mHasProcessed = false;
-//        mHasResynthed = false;
-        stft::STFT stft(mArguments.windowSize,mArguments.fftSize,mArguments.hopSize);
+
+        stft::STFT stft(model.windowSize,model.fftSize,model.hopSize);
         //Copy input buffer
-        RealMatrix sourceData(src.samps(mArguments.offset, mArguments.frames, mArguments.channelOffset, mArguments.channels));
+        RealMatrix sourceData(src.samps(model.offset, model.frames, model.channelOffset, model.channels));
         //TODO: get rid of need for this
         //Either: do the whole process loop here via process_frame
         //Or: change sig of stft.process() to take a view
-        RealVector tmp(mArguments.frames);
-        for(size_t i = 0; i < mArguments.channels; ++i)
+        RealVector tmp(model.frames);
+        for(size_t i = 0; i < model.channels; ++i)
         {
           tmp = sourceData.col(i);
           stft::Spectrogram spec = stft.process(tmp);
           
+          //For multichannel dictionaries, seed data could be all over the place, so we'll build it up by hand :-/
+          FluidTensor<double, 2> seedDicts(0,0);
+          FluidTensor<double, 2> seedActs(0,0);
+          
+          if(model.seedDictionaries) seedDicts.resize(model.rank, model.fftSize / 2 + 1);
+          if(model.seedActivations) seedActs.resize ((model.frames / model.hopSize) + 1, model.rank);
+          
+          for(size_t j = 0; j < model.rank; ++j)
+          {
+            if(model.seedDictionaries)
+              seedDicts.row(i) = dict.samps(i,j);
+            if(model.seedActivations)
+              seedActs.col(i) = act.samps(i,j);
+          }
+          
           //TODO: Add seeding with pre-formed W & H to NMF
-          nmf::NMF nmf(mArguments.rank,mArguments.iterations);
-          nmf::NMFModel m = nmf.process(spec.getMagnitude());
+          nmf::NMF nmf(model.rank,model.iterations, !model.fixDictionaries, !model.fixActivations);
+          nmf::NMFModel m = nmf.process(spec.getMagnitude(), seedDicts, seedActs);
           
           //Write W?
-          if(mArguments.returnDictionaries)
+          if(model.returnDictionaries)
           {
             auto dictionaries = m.getW();
-            for (size_t j = 0; j < mArguments.rank; ++j)
-              dict.samps(i,j) = dictionaries.col(j);
-              //mArguments.dict->col(j + (i * mArguments.rank)) = dictionaries.col(j);
+            for (size_t j = 0; j < model.rank; ++j)
+              dict.samps(i,j) = dictionaries.row(j);
+              //model.dict->col(j + (i * model.rank)) = dictionaries.col(j);
           }
           
           //Write H? Need to normalise also
-          if(mArguments.returnActivations)
+          if(model.returnActivations)
           {
             auto activations = m.getH();
-            
             double maxH = *std::max_element(activations.begin(), activations.end());
-            
             double scale = 1. / (maxH);
-            
-            for (size_t j = 0; j < mArguments.rank; ++j)
+            for (size_t j = 0; j < model.rank; ++j)
             {
               auto acts = act.samps(i,j);
-              acts = activations.row(j);
+              acts = activations.col(j);
               acts.apply([scale](float& x){
                 x *= scale;
               });
             }
           }
 
-          if(mArguments.resynthesise)
+          if(model.resynthesise)
           {
             ratiomask::RatioMask mask(m.getMixEstimate(),1);
-            stft::ISTFT  istft(mArguments.windowSize, mArguments.fftSize, mArguments.hopSize);
-            for (size_t j = 0; j < mArguments.rank; ++j)
+            stft::ISTFT  istft(model.windowSize, model.fftSize, model.hopSize);
+            for (size_t j = 0; j < model.rank; ++j)
             {
               auto estimate = m.getEstimate(j);
               stft::Spectrogram result(mask.process(spec.mData, estimate));
               auto audio = istft.process(result);
-              resynth.samps(i,j) = audio(fluid::slice(0,mArguments.frames));
+              resynth.samps(i,j) = audio(fluid::slice(0,model.frames));
             }
           }
         }
@@ -461,7 +464,7 @@ namespace fluid {
       
     private:
    
-      ProcessModel mArguments;
+//      ProcessModel mArguments;
       fluid::nmf::NMFModel mModel;
       FluidTensor<double,2> mAudioBuffers;
     
