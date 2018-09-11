@@ -183,6 +183,7 @@ namespace parameter{
       }
     }
     
+    std::string  getDisplayName() const {return mDisplayName; }
     std::string  getName() const { return mName; }
     Type getType() const { return mType; }
     
