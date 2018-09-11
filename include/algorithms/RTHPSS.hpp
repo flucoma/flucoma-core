@@ -29,9 +29,10 @@ using fluid::medianfilter::MedianFilter;
 
 class RTHPSS {
 public:
-  RTHPSS(int nBins, int vSize, int hSize)
+  RTHPSS(int nBins, int vSize, int hSize, double hThreshold, double pThreshold)
       : mVSize(vSize), mHSize(hSize), mBins(nBins), mVMedianFilter(vSize),
-        mHMedianFilter(hSize)  {
+        mHMedianFilter(hSize), mHThreshold(hThreshold),
+        mPThreshold(pThreshold) {
     assert(mVSize % 2);
     assert(mHSize % 2);
     mH = ArrayXXd::Zero(mBins, hSize);
@@ -67,9 +68,30 @@ public:
     ArrayXXcd result(mBins, 2);
     ArrayXd HV = mH.col(0) + mV.col(0);
     ArrayXd mult = (1.0 / HV.max(epsilon())).min(1.0);
-    result.col(0) = mBuf.col(0) * mH.col(0) * mult;
-    result.col(1) = mBuf.col(0) * mV.col(0) * mult;
+    if (mHThreshold == 0) {
+      result.col(0) = mBuf.col(0) * mH.col(0) * mult;
+    } else {
+      ArrayXd bMask = ((mH.col(0) / mV.col(0)) > mHThreshold).cast<double>();
+      result.col(0) = mBuf.col(0) * bMask;
+    }
+
+    if (mPThreshold == 0) {
+      result.col(1) = mBuf.col(0) * mV.col(0) * mult;
+    } else {
+      ArrayXd bMask = ((mV.col(0) / mH.col(0)) > mPThreshold).cast<double>();
+      result.col(1) = mBuf.col(0) * bMask;
+    }
     out = ArrayXXcdToFluid(result)();
+  }
+
+  void setHThreshold(double threshold) {
+    assert(0 <= threshold <= 100);
+    mHThreshold = threshold;
+  }
+
+  void setPThreshold(double threshold) {
+    assert(0 <= threshold <= 100);
+    mPThreshold = threshold;
   }
 
 private:
@@ -82,6 +104,8 @@ private:
   ArrayXXd mV;
   ArrayXXd mHistory;
   ArrayXXcd mBuf;
+  double mHThreshold;
+  double mPThreshold;
 };
 } // namespace rthpss
 } // namespace fluid

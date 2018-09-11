@@ -15,8 +15,8 @@ using fluid::stft::ISTFT;
 using fluid::stft::Spectrogram;
 using fluid::stft::STFT;
 
-using RealMatrix = fluid::FluidTensor<double, 2>;
-using RealVector = fluid::FluidTensor<double, 1>;
+using RealMatrix = FluidTensor<double, 2>;
+using RealVector = FluidTensor<double, 1>;
 using ComplexMatrix = FluidTensor<std::complex<double>, 2>;
 
 using Eigen::ArrayXXd;
@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
   int windowSize = 2048;
   STFT stft(windowSize, fftSize, hopSize);
   ISTFT istft(windowSize, fftSize, hopSize);
-  RTHPSS hpsssProcessor(nBins, vSize, hSize);
+  RTHPSS hpsssProcessor(nBins, vSize, hSize, 3, 3);
   RealVector in(data.audio[0]);
   Spectrogram spec = stft.process(in);
   ComplexMatrix harmonicSpec(spec.mData.rows(), spec.mData.cols());
@@ -48,6 +48,8 @@ int main(int argc, char *argv[]) {
   ComplexMatrix result(nBins, 2);
   for (int i = 0; i < spec.mData.rows(); i++) {
     // std::cout<<i<<std::endl;
+    hpsssProcessor.setHThreshold(5*i/spec.mData.rows());
+    hpsssProcessor.setPThreshold(5*i/spec.mData.rows());
     hpsssProcessor.processFrame(spec.mData.row(i), result);
     harmonicSpec.row(i) = result.col(0);
     percussiveSpec.row(i) = result.col(1);
