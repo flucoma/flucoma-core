@@ -16,28 +16,37 @@ namespace hpss{
   template <typename T, typename U>
   class HPSSClient:public audio::BaseAudioClient<T,U>
   {
+
+    
+    using data_type = FluidTensorView<T,2>;
+    using complex   = FluidTensorView<std::complex<T>,1>;
+  public:
+    
     static const std::vector<parameter::Descriptor> &getParamDescriptors()
     {
       static std::vector<parameter::Descriptor> params;
       if(params.size() == 0)
       {
         params.emplace_back("psize","Percussive Filter Size",parameter::Type::Long);
-        params.back().setMin(3).setDefault(31);
+        params.back().setMin(3).setDefault(31).setInstantiation(true);
         
         params.emplace_back("hsize","Harmonic Filter Size",parameter::Type::Long);
-        params.back().setMin(3).setDefault(17);
+        params.back().setMin(3).setDefault(17).setInstantiation(true);
+        
+        params.emplace_back("pthresh","Percussive Threshold",parameter::Type::Float);
+        params.back().setMin(0).setMax(100).setDefault(50).setInstantiation(false);
+        
+        params.emplace_back("hthresh","Harmonic Threshold",parameter::Type::Float);
+        params.back().setMin(0).setMax(100).setDefault(50).setInstantiation(false);
         
         audio::BaseAudioClient<T,U>::initParamDescriptors(params);
         params.emplace_back("fftsize","FFT Size", parameter::Type::Long);
-        params.back().setMin(-1).setDefault(-1);
+        params.back().setMin(-1).setDefault(-1).setInstantiation(true);
       }
-      
       return params;
     }
     
-    using data_type = FluidTensorView<T,2>;
-    using complex   = FluidTensorView<std::complex<T>,1>;
-  public:
+    
     HPSSClient() = default;
     HPSSClient(HPSSClient&) = delete;
     HPSSClient operator=(HPSSClient&) = delete;
@@ -58,12 +67,14 @@ namespace hpss{
       mSTFT  = std::unique_ptr<stft::STFT> (new stft::STFT(winsize,fftsize,hopsize));
       mISTFT = std::unique_ptr<stft::ISTFT>(new stft::ISTFT(winsize,fftsize,hopsize));
       
-      size_t pBins = parameter::lookupParam("psize", getParams()).getLong();
-      size_t hBins = parameter::lookupParam("hsize", getParams()).getLong();
+      size_t pBins   = parameter::lookupParam("psize", getParams()).getLong();
+      size_t hBins   = parameter::lookupParam("hsize", getParams()).getLong();
+      double pthresh = parameter::lookupParam("pthresh", getParams()).getFloat();
+      double hthresh = parameter::lookupParam("hthresh", getParams()).getFloat();
       
       size_t nBins = fftsize / 2 + 1;
       
-      mHPSS = std::unique_ptr<rthpss::RTHPSS>(new rthpss::RTHPSS(nBins, pBins, hBins));
+      mHPSS = std::unique_ptr<rthpss::RTHPSS>(new rthpss::RTHPSS(nBins, pBins, hBins,hthresh,pthresh));
       
       mNormWindow = mSTFT->window();
       mNormWindow.apply(mISTFT->window(),[](double& x, double& y)
@@ -79,9 +90,6 @@ namespace hpss{
     
     std::tuple<bool,std::string> sanityCheck()
     {
-      //        BaseAudioClient<T,U>::getParams()[0].setLong(parameter::lookupParam("winsize", mParams).getLong());
-      //        BaseAudioClient<T,U>::getParams()[1].setLong(parameter::lookupParam("hopsize", mParams).getLong());
-      
       for(auto&& p: getParams())
       {
         std::tuple<bool,parameter::Instance::RangeErrorType> res = p.checkRange();
@@ -97,7 +105,6 @@ namespace hpss{
               break;
           }
         }
-        
       }
       
       std::tuple<bool, std::string> windowCheck = audio::BaseAudioClient<T,U>::sanityCheck();
@@ -132,6 +139,9 @@ namespace hpss{
     void process(data_type input, data_type output) override
     {
       complex spec  = mSTFT->processFrame(input.row(0));
+      
+      mHPSS->setHThreshold(parameter::lookupParam("hthresh", getParams()).getFloat());
+      mHPSS->setPThreshold(parameter::lookupParam("pthresh", getParams()).getFloat());
       
       mHPSS->processFrame(spec, mSeparatedSpectra);
       
@@ -183,7 +193,5 @@ namespace hpss{
     FluidTensor<std::complex<T>,1> mPerc;
     std::vector<parameter::Instance> mParams;
   };
-
-
 }//namespace hpss
 }//namespace fluid

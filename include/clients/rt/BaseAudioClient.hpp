@@ -135,10 +135,10 @@ namespace audio {
         if(descriptors.size() == 0)
         {
           descriptors.emplace_back("winsize", "Window Size", parameter::Type::Long);
-          descriptors.back().setMin(4).setDefault(1024);//.setInstantiation(true);
+          descriptors.back().setMin(4).setDefault(1024).setInstantiation(true);
           
           descriptors.emplace_back("hopsize", "Hop Size", parameter::Type::Long);
-          descriptors.back().setMin(1).setDefault(512);
+          descriptors.back().setMin(1).setDefault(512).setInstantiation(true);
         }
         return descriptors;
       }
