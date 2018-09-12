@@ -68,6 +68,10 @@ int main(int argc, char *argv[]) {
     std::string fname = "source_" + std::to_string(i) + ".wav";
     writeFile(testData, fname.c_str());
   }
+  RealMatrix X = testSpec.getMagnitude();
+  fluid::FluidTensor<double, 1> frame (X.row(100));
+  RealVector out(nBins);
+  nmfProcessor2.processFrame(frame, W, out);
 
   return 0;
 }
