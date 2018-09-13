@@ -22,22 +22,28 @@ namespace audio {
   template <typename T, typename U>
   class BaseSTFTClient:public BaseAudioClient<T,U>
     {
+   
+        
+      using data_type = FluidTensorView<T,2>;
+      using complex   = FluidTensorView<std::complex<T>,1>;
+    public:
       static const std::vector<parameter::Descriptor> &getParamDescriptors()
       {
         static std::vector<parameter::Descriptor> params;
         if(params.size() == 0)
         {
           BaseAudioClient<T,U>::initParamDescriptors(params);
+          
+          params.front().setDefault(1024);
+          params[1].setDefault(512);
+          
           params.emplace_back("fftsize","FFT Size", parameter::Type::Long);
-          params.back().setMin(-1).setDefault(-1);
+          params.back().setMin(-1).setInstantiation(true).setDefault(-1);
         }
         
         return params;
       }
-        
-      using data_type = FluidTensorView<T,2>;
-      using complex   = FluidTensorView<std::complex<T>,1>;
-    public:
+      
         BaseSTFTClient() = default;
         BaseSTFTClient(BaseSTFTClient&) = delete;
         BaseSTFTClient operator=(BaseSTFTClient&) = delete;

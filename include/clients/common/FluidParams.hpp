@@ -232,7 +232,7 @@ namespace parameter{
       return *this;
     }
 
-    bool instatiation() const {return mInstantiation;}
+    bool instantiation() const {return mInstantiation;}
     bool hasDefault() const {
       return mType==Type::Buffer? false: mHasDefault;
     }
