@@ -180,7 +180,7 @@ public:
   {
     assert(vec1.size() == vec2.size() && "Vectors should match in size");
     
-    return statSumProduct(vec1, vec2) / sqrt(statSumSquares(vec1) + statSumSquares(vec2));
+    return statSumProduct(vec1, vec2) / sqrt(statSumSquares(vec1) * statSumSquares(vec2));
   }
   
   // Itakura-Saito difference between two vectors (if spectra expected as amplitude spectra, not power spectra)
