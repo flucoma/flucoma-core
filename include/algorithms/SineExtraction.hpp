@@ -1,5 +1,7 @@
 #pragma once
 
+#include "algorithms/FFT.hpp"
+#include "algorithms/Windows.hpp"
 #include "algorithms/ConvolutionTools.hpp"
 #include "data/FluidTensor.hpp"
 #include <Eigen/Core>

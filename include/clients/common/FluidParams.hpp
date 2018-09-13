@@ -183,6 +183,7 @@ namespace parameter{
       }
     }
     
+    std::string  getDisplayName() const {return mDisplayName; }
     std::string  getName() const { return mName; }
     Type getType() const { return mType; }
     
@@ -231,7 +232,7 @@ namespace parameter{
       return *this;
     }
 
-    bool instatiation() const {return mInstantiation;}
+    bool instantiation() const {return mInstantiation;}
     bool hasDefault() const {
       return mType==Type::Buffer? false: mHasDefault;
     }
@@ -517,20 +518,24 @@ namespace parameter{
         case Type::Float:
           if(mDesc.hasMin() && mValue.vFloat < mDesc.getMin())
           {
+            mValue.vFloat = mDesc.getMin();
             return std::make_pair(false,RangeErrorType::Min);
           }
           if(mDesc.hasMax() && mValue.vFloat > mDesc.getMax())
           {
+            mValue.vFloat = mDesc.getMax();
             return std::make_pair(false,RangeErrorType::Max);
           }
           break;
         case Type::Long:
           if(mDesc.hasMin() && mValue.vLong < mDesc.getMin())
           {
+            mValue.vLong = static_cast<long>(mDesc.getMin());
             return std::make_pair(false,RangeErrorType::Min);
           }
           if(mDesc.hasMax() && mValue.vLong > mDesc.getMax())
           {
+            mValue.vLong= mDesc.getMax();
             return std::make_pair(false,RangeErrorType::Max);
           }
           break;

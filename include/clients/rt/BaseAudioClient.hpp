@@ -138,14 +138,17 @@ namespace audio {
           descriptors.back().setMin(4).setDefault(1024).setInstantiation(true);
           
           descriptors.emplace_back("hopsize", "Hop Size", parameter::Type::Long);
-          descriptors.back().setMin(1).setDefault(512);
+          descriptors.back().setMin(1).setDefault(512).setInstantiation(true);
         }
         return descriptors;
       }
         
       static void initParamDescriptors(std::vector<parameter::Descriptor>& vec)
       {
-        vec = getParamDescriptors();
+        auto d = getParamDescriptors();
+        
+        vec.insert(vec.end(),d.begin(),d.end());
+        
       }
       
         /**
@@ -241,8 +244,8 @@ namespace audio {
             m_source.reset();
             m_sink.reset();
           
-          size_t windowSize = parameter::lookupParam("winsize", getParams()).getLong();
-          mHopSize =  parameter::lookupParam("hopsize", getParams()).getLong();
+          size_t windowSize = getWindowSize();
+          mHopSize =  getHopSize();
           
             if(windowSize != m_frame.cols())
             {
@@ -261,19 +264,19 @@ namespace audio {
             return m_channels_in; 
         }
       
+        virtual size_t getHopSize()
+        {
+          return parameter::lookupParam("hopsize", getParams()).getLong();
+        }
       
-      virtual std::vector<parameter::Instance>& getParams() = 0;
-     
-
+        virtual size_t getWindowSize()
+        {
+          return parameter::lookupParam("winsize", getParams()).getLong();
+        }
       
-        
+        virtual std::vector<parameter::Instance>& getParams() = 0;
     private:
-//      void newParamSet()
-//      {
-//        mParams.clear();
-//        for(auto&& d: getParamDescriptors())
-//          mParams.emplace_back(d);
-//      }
+
         size_t m_host_buffer_size;
         size_t m_max_frame_size;
 
@@ -289,10 +292,6 @@ namespace audio {
         tensor_type m_frame_post;
         source_buffer_type m_source;
         sink_buffer_type m_sink;
-      
-//      std::vector<parameter::Instance> mParams;
-      
- 
     };
 }
 }
