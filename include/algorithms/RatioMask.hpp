@@ -37,7 +37,7 @@ public:
     ArrayXXdMap targetMagArray(targetMag.data(), targetMag.extent(0),
                                targetMag.extent(1));
     ArrayXXcd tmp = mixtureArray * (targetMagArray.pow(mExponent) *
-                                    mMultiplier.pow(mExponent));
+                                    mMultiplier.pow(mExponent)).min(1.0);
     ArrayXXcdMap(result.data(), mixture.extent(0), mixture.extent(1)) = tmp;
     return result;
   }
