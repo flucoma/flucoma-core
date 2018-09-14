@@ -75,10 +75,7 @@ namespace fluid {
           params.emplace_back(desc_type{"numchans","Source Channels", parameter::Type::Long});
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
           
-          params.emplace_back(desc_type{"transbuf","Transients Buffer", parameter::Type::Buffer});
-          params.back().setInstantiation(false);
-          
-          params.emplace_back(desc_type{"resbuf","Residual Buffer", parameter::Type::Buffer});
+          params.emplace_back(desc_type{"transbuf","Indices Buffer", parameter::Type::Buffer});
           params.back().setInstantiation(false);
           
           params.emplace_back("order", "Order", parameter::Type::Long);
