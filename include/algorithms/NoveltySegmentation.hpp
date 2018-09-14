@@ -17,24 +17,22 @@ public:
     assert(kernelSize % 2);
   }
 
-  RealVector process(const RealMatrix &input) {
+  RealVector process(const RealMatrix &input, RealVector &output) {
     using Eigen::ArrayXd;
     using Eigen::MatrixXd;
     using Eigen::VectorXd;
     using fluid::eigenmappings::FluidToMatrixXd;
     using std::vector;
-
     RealVector temp(input.extent(0));
     Novelty nov(mKernelSize);
     nov.process(input, temp);
-    vector<double> peaks;
     for (int i = 1; i < temp.size() - 1; i++) {
       if (temp(i) > temp(i - 1) && temp(i) > temp(i + 1) &&
           temp(i) > mThreshold) {
-        peaks.push_back(static_cast<double>(i));
+            output(i)  = 1;
       }
+      else output(i)  = 0;
     }
-    return RealVector(peaks.data(), peaks.size());
   }
 
 private:
