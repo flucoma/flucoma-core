@@ -136,8 +136,13 @@ public:
   
   static void normalise(Real& input, bool power)
   {
-    const double factor = 1.0 / (power ? sqrt(statSumSquares(input)) : statSum(input));
-    input.apply([&](double& x){x *= factor;});
+    const double sum = (power ? sqrt(statSumSquares(input)) : statSum(input));
+    
+    if (sum)
+    {
+      const double factor = 1.0 / sum;
+      input.apply([&](double& x){x *= factor;});
+    }
   }
   
   // Remove values from two vectors in positions that are not greater in the first vector than the second
