@@ -192,7 +192,7 @@ public:
 
   static double differenceIS(const Real& vec1, const Real& vec2)
   {
-    return sqrt(statSum(vec1, vec2, ISDifference()));
+    return statSum(vec1, vec2, ISDifference());
   }
   
   // Kullback-Liebler difference between two vectors (if spectra expected as amplitude spectra, not power spectra)
