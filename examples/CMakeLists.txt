@@ -8,7 +8,9 @@ find_library(SNDFILE_LIBRARY NAMES libsndfile.dylib
 	HINTS /usr/local/opt/libsndfile/lib
 )
 
-foreach (EXAMPLE  audiofile;fluidtensor;stft;nmf;fluidbuffer;sineextraction;transient_extractor;median_filter;hpss;rthpss;rtsineextraction)
+foreach (EXAMPLE  audiofile;fluidtensor;stft;nmf;
+									fluidbuffer;sineextraction;transient_extractor;
+									median_filter;hpss;rthpss;rtsineextraction;novelty)
 
 	add_executable (
 			test_${EXAMPLE} test_${EXAMPLE}.cpp
