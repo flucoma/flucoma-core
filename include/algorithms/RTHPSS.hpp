@@ -67,16 +67,16 @@ public:
     }
     ArrayXXcd result(mBins, 2);
     ArrayXd HV = mH.col(0) + mV.col(0);
-    ArrayXd mult = (1.0 / HV.max(epsilon())).min(1.0);
+    ArrayXd mult = 1.0 / HV.max(epsilon());
     if (mHThreshold == 0) {
-      result.col(0) = mBuf.col(0) * mH.col(0) * mult;
+      result.col(0) = mBuf.col(0) * (mH.col(0) * mult).min(1.0);
     } else {
       ArrayXd bMask = ((mH.col(0) / mV.col(0)) > mHThreshold).cast<double>();
       result.col(0) = mBuf.col(0) * bMask;
     }
 
     if (mPThreshold == 0) {
-      result.col(1) = mBuf.col(0) * mV.col(0) * mult;
+      result.col(1) = mBuf.col(0) * (mV.col(0) * mult).min(1.0);
     } else {
       ArrayXd bMask = ((mV.col(0) / mH.col(0)) > mPThreshold).cast<double>();
       result.col(1) = mBuf.col(0) * bMask;
