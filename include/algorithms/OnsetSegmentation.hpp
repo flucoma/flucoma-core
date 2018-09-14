@@ -41,8 +41,11 @@ public:
     kModifiedKullbackLiebler
   };
   
-  OnsetSegmentation(int FFTSize) : fft::FFT(FFTSize), mFFTSize(FFTSize), mWindowSize(0), mFrameDelta(0), mWindowType(windows::WindowType::Hann), mFunction(kL1Norm), mForwardOnly(false), mNormalisation(kNone)
+  OnsetSegmentation(int FFTSize, int windowSize, int frameDelta, WindowType windowType) : fft::FFT(FFTSize), mFFTSize(FFTSize), mWindowSize(0), mFrameDelta(0), mWindowType(windows::WindowType::Hann), mFunction(kL1Norm), mForwardOnly(false), mNormalisation(kNone)
   {
+    mWindowSize = std::min(mWindowSize, mFFTSize);
+    mFrameDelta = frameDelta;
+    mWindowType = windowType;
     resizeStorage();
   }
 
@@ -51,14 +54,6 @@ public:
     mFunction = function;
     mForwardOnly = forwardOnly;
     mNormalisation = normalisation;
-  }
-  
-  void prepareStream(int windowSize, int frameDelta, WindowType windowType)
-  {
-    mWindowSize = std::min(mWindowSize, mFFTSize);
-    mFrameDelta = frameDelta;
-    mWindowType = windowType;
-    resizeStorage();
   }
   
   int FFTSize() const         { return mFFTSize; }
