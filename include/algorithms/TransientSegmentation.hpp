@@ -6,7 +6,7 @@
 namespace fluid {
 namespace segmentation {
 
-  class TransientSegmentation : private transient_extraction::TransientExtraction
+class TransientSegmentation : private transient_extraction::TransientExtraction
 {
 
 public:
