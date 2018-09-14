@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include "algorithms/TransientExtraction.hpp"
+#include "algorithms/TransientSegmentation.hpp"
 
 #include "clients/common/FluidParams.hpp"
 #include "data/FluidTensor.hpp"
@@ -18,12 +18,12 @@
 
 
 namespace fluid {
-  namespace str{
+  namespace segmentation{
     
     /**
      Integration class for doing NMF filtering and resynthesis
      **/
-    class TransientNRTClient
+    class TransientSliceNRT
     {
       using desc_type = parameter::Descriptor;
       using param_type = parameter::Instance;
@@ -81,9 +81,6 @@ namespace fluid {
           params.emplace_back(desc_type{"resbuf","Residual Buffer", parameter::Type::Buffer});
           params.back().setInstantiation(false);
           
-          // The main blocking parameters (expose in ms for the block and pad, possiby also model order as the meaning is SR dependant)
-          
-//          int paramOrder = 200;       // The model order (higher == better quality + more CPU - should be quite a bit smaller than the block size)
           params.emplace_back("order", "Order", parameter::Type::Long);
           params.back().setInstantiation(false).setMin(20).setDefault(200);
           //order min > paramDetectHalfWindow, or ~40-50 ms,
@@ -151,9 +148,6 @@ namespace fluid {
         }
         return params;
       }
-      
-      
-  
       
       void newParameterSet()
       {
@@ -231,12 +225,12 @@ namespace fluid {
  
         if(bufCount < 2)
         {
-          return { false, "Expecting at least two valid buffers", model};
+          return { false, "Expecting two valid buffers", model};
         }
         
         if(bufCount > uniqueBuffers.size())
         {
-          return {false, "One or more buffers are the same. They all need to be distinct", model};
+          return {false, "Buffers are the same. They all need to be distinct", model};
         }
         
         
@@ -293,7 +287,9 @@ namespace fluid {
         model.frames        = srcFrames > 0 ? srcFrames : src.numFrames() - model.offset;
         model.channelOffset = srcChanOffset;
         model.channels      = srcChans >  0 ? srcChans  : src.numChans() - model.channelOffset;
- 
+        
+      
+        
         parameter::Instance& transBufParam =  mParams[5];
         parameter::BufferAdaptor::Access transBuf(transBufParam.getBuffer());
         
@@ -302,19 +298,8 @@ namespace fluid {
           return {false, "Invalid transients buffer supplied", model};
         }
         
-        model.returnTransients = transBufParam.hasChanged();
+//        model.returnTransients = transBufParam.hasChanged();
         model.trans = transBufParam.getBuffer();
-        
-        parameter::Instance& resBufParam =  mParams[6];
-        parameter::BufferAdaptor::Access resBuf(resBufParam.getBuffer());
-        
-        if(resBufParam.hasChanged() && (!resBuf.valid()))
-        {
-          return {false, "Invalid residual buffer supplied", model};
-        }
-        
-        model.returnResidual = resBufParam.hasChanged();
-        model.res = resBufParam.getBuffer();
         
         model.halfWindow = std::round(parameter::lookupParam("windowsize", mParams).getFloat() / 2);
         
@@ -348,12 +333,12 @@ namespace fluid {
       
       
       //No, you may not  copy this, or move this
-      TransientNRTClient(TransientNRTClient&)=delete;
-      TransientNRTClient(TransientNRTClient&&)=delete;
-      TransientNRTClient operator=(TransientNRTClient&)=delete;
-      TransientNRTClient operator=(TransientNRTClient&&)=delete;
+      TransientSliceNRT(TransientSliceNRT&)=delete;
+      TransientSliceNRT(TransientSliceNRT&&)=delete;
+      TransientSliceNRT operator=(TransientSliceNRT&)=delete;
+      TransientSliceNRT operator=(TransientSliceNRT&&)=delete;
       
-      TransientNRTClient(){
+      TransientSliceNRT(){
         newParameterSet(); 
       }
    
@@ -361,38 +346,49 @@ namespace fluid {
       {
         parameter::BufferAdaptor::Access src(model.src);
         parameter::BufferAdaptor::Access trans(model.trans);
-        parameter::BufferAdaptor::Access res(model.res);
         
-        if(model.returnTransients)
-          trans.resize(model.frames,model.channels,1);
-        if(model.returnResidual)
-          res.resize(model.frames,model.channels,1);
+        FluidTensor<double,1> transientFrames(model.frames + model.blocksize);
+
+        FluidTensor<double,1> monoSource(model.frames);
         
+        //Make a mono sum;
         for(size_t i = 0; i < model.channels; ++i)
         {
-          FluidTensor<double,1> srcFrames(model.frames + model.blocksize);
-          FluidTensor<double,1> cleanFrames(model.frames + model.blocksize);
-          FluidTensor<double,1> transientFrames(model.frames + model.blocksize);
-          srcFrames(fluid::slice(0,model.frames))  = src.samps(model.offset,model.frames,model.channelOffset + i,1).col(0);
-          transient_extraction::TransientExtraction extractor(model.order, model.iterations, model.robustFactor, false);
-          extractor.prepareStream(model.blocksize, model.padding);
-          extractor.setDetectionParameters(model.skew, model.fwdThresh, model.backThresh, model.halfWindow, model.debounce);
-          size_t hopsize = extractor.hopSize();
-          assert(hopsize > 0); 
-          for(size_t j = 0; j < model.frames; j+= hopsize)
-          {
-            size_t size = std::min<size_t>(extractor.inputSize(), model.frames - j);
-            extractor.extract(transientFrames.data() + j, cleanFrames.data() + j, srcFrames.data() + j, size);
-          }
-          
-          if(model.returnTransients)
-            trans.samps(i) = transientFrames(fluid::slice(0,model.frames));
-          if(model.returnResidual)
-            res.samps(i) =  cleanFrames(fluid::slice(0,model.frames));
-
+          monoSource.apply(src.samps(i), [](double& x, double y){
+            x += y;
+          });
         }
         
+        
+        segmentation::TransientSegmentation segmentor(model.order, model.iterations, model.robustFactor);
+        segmentor.prepareStream(model.blocksize,model.padding);
+        segmentor.setDetectionParameters(model.skew, model.fwdThresh, model.backThresh);
+  
+
+        size_t hopsize = segmentor.hopSize();
+        assert(hopsize > 0);
+        for(size_t i = 0; i < model.frames; i+= hopsize)
+        {
+          size_t size = std::min<size_t>(segmentor.inputSize(), model.frames - i);
+          FluidTensorView<const double,1> markers(segmentor.process(monoSource.data() + i, size),0, hopsize);
+          transientFrames(fluid::slice(i,hopsize)) = markers;
+        }
+        
+        size_t num_spikes = std::accumulate(transientFrames.begin(), transientFrames.end() , 0);
+        trans.resize(num_spikes,1,1);
+        //Arg sort
+        std::vector<size_t> indices(transientFrames.size());
+        std::iota(indices.begin(),indices.end(),0);
+        std::sort(indices.begin(), indices.end(),[&](size_t i1, size_t i2){
+          return transientFrames[i1] > transientFrames[i2];
+        });
+        for(auto&& i = indices.begin(); i != indices.begin() + 6; ++i )
+          std::cout << *i;
+        
+        trans.samps().col(0) = FluidTensorView<size_t,1>{indices.data(),0,num_spikes};
       }
+      
+      
       std::vector<parameter::Instance>& getParams()
       {
         return mParams;
