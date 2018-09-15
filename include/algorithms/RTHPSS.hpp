@@ -29,16 +29,37 @@ using fluid::medianfilter::MedianFilter;
 
 class RTHPSS {
 public:
-  RTHPSS(int nBins, int vSize, int hSize, double hThreshold, double pThreshold)
-      : mVSize(vSize), mHSize(hSize), mBins(nBins), mVMedianFilter(vSize),
-        mHMedianFilter(hSize), mHThreshold(hThreshold),
-        mPThreshold(pThreshold) {
+  RTHPSS(int nBins, int vSize, int hSize, bool binaryH, bool binaryP,
+         double hThresholdX1, double hThresholdY1, double hThresholdX2,
+         double hThresholdY2, double pThresholdX1, double pThresholdY1,
+         double pThresholdX2, double pThresholdY2)
+      : mBins(nBins), mVSize(vSize), mHSize(hSize), mBinaryH(binaryH),
+        mBinaryP(binaryP), mVMedianFilter(vSize), mHMedianFilter(hSize),
+        mHThresholdX1(hThresholdX1), mHThresholdY1(hThresholdY1),
+        mHThresholdX2(hThresholdX2), mHThresholdY2(hThresholdY2),
+        mPThresholdX1(pThresholdX1), mPThresholdY1(pThresholdY1),
+        mPThresholdX2(pThresholdX2), mPThresholdY2(pThresholdY2) {
     assert(mVSize % 2);
     assert(mHSize % 2);
     mH = ArrayXXd::Zero(mBins, hSize);
     mV = ArrayXXd::Zero(mBins, hSize);
     mBuf = ArrayXXcd::Zero(mBins, hSize);
     mHistory = ArrayXXd::Zero(mBins, 2 * hSize);
+  }
+
+  ArrayXd makeThreshold(double x1, double y1, double x2, double y2) {
+    ArrayXd threshold = ArrayXd::Ones(mBins);
+    int kneeStart = floor(x1 * mBins);
+    int kneeEnd = floor(x2 * mBins);
+    int kneeLength = kneeEnd - kneeStart;
+    threshold.segment(0, kneeStart) =
+        ArrayXd::Constant(kneeStart, 10).pow(y1 / 20.0);
+    threshold.segment(kneeStart, kneeLength) =
+        ArrayXd::Constant(kneeLength, 10)
+            .pow(ArrayXd::LinSpaced(kneeLength, y1, y2) / 20.0);
+    threshold.segment(kneeEnd, mBins - kneeEnd) =
+        ArrayXd::Constant(mBins - kneeEnd, 10).pow(y2 / 20.0);
+    return threshold;
   }
 
   void processFrame(const ComplexVector &in, ComplexMatrix out) {
@@ -65,47 +86,91 @@ public:
       mHMedianFilter.process(mHistory.row(i).transpose(), tmpRow);
       mH.row(i) = tmpRow.segment(h2, mHSize).transpose();
     }
-    ArrayXXcd result(mBins, 2);
+    ArrayXXcd result(mBins, 3);
     ArrayXd HV = mH.col(0) + mV.col(0);
-    ArrayXd mult = 1.0 / HV.max(epsilon());
-    if (mHThreshold == 0) {
-      result.col(0) = mBuf.col(0) * (mH.col(0) * mult).min(1.0);
+    ArrayXd mult = (1.0 / HV.max(epsilon()));
+
+    ArrayXd harmonicMask = ArrayXd::Ones(mBins);
+    ArrayXd percussiveMask = ArrayXd::Ones(mBins);
+    ArrayXd residualMask = ArrayXd::Ones(mBins);
+
+    if (mBinaryH) {
+      harmonicMask = ((mH.col(0) / mV.col(0)) >
+                      makeThreshold(mHThresholdX1, mHThresholdY1, mHThresholdX2,
+                                    mHThresholdY2))
+                         .cast<double>();
+
     } else {
-      ArrayXd bMask = ((mH.col(0) / mV.col(0)) > mHThreshold).cast<double>();
-      result.col(0) = mBuf.col(0) * bMask;
+      harmonicMask = (mH.col(0) * mult).min(1.0);
+    }
+    if (mBinaryP) {
+      percussiveMask = ((mV.col(0) / mH.col(0)) >
+                        makeThreshold(mPThresholdX1, mPThresholdY1,
+                                      mPThresholdX2, mPThresholdY2))
+                           .cast<double>();
+
+    } else {
+      percussiveMask = (mV.col(0) * mult).min(1.0);
     }
 
-    if (mPThreshold == 0) {
-      result.col(1) = mBuf.col(0) * (mV.col(0) * mult).min(1.0);
-    } else {
-      ArrayXd bMask = ((mV.col(0) / mH.col(0)) > mPThreshold).cast<double>();
-      result.col(1) = mBuf.col(0) * bMask;
+    if (mBinaryH && mBinaryP) {
+      residualMask = residualMask * (1 - harmonicMask);
+      residualMask = residualMask * (1 - percussiveMask);
     }
+    result.col(0) = mBuf.col(0) * harmonicMask;
+    result.col(1) = mBuf.col(0) * percussiveMask;
+    result.col(2) = mBuf.col(0) * residualMask;
     out = ArrayXXcdToFluid(result)();
   }
 
-  void setHThreshold(double threshold) {
-    assert(0 <= threshold <= 100);
-    mHThreshold = threshold;
+  void setHThresholdX1(double x) {
+    assert(0 <= x <= 1);
+    mHThresholdX1 = x;
   }
 
-  void setPThreshold(double threshold) {
-    assert(0 <= threshold <= 100);
-    mPThreshold = threshold;
+  void setHThresholdX2(double x) {
+    assert(0 <= x <= 1);
+    mHThresholdX2 = x;
   }
+
+  void setPThresholdX1(double x) {
+    assert(0 <= x <= 1);
+    mPThresholdX1 = x;
+  }
+
+  void setPThresholdX2(double x) {
+    assert(0 <= x <= 1);
+    mPThresholdX2 = x;
+  }
+
+  void setHThresholdY1(double y) { mHThresholdY1 = y; }
+
+  void setHThresholdY2(double y) { mHThresholdY2 = y; }
+
+  void setPThresholdY1(double y) { mPThresholdY1 = y; }
+
+  void setPThresholdY2(double y) { mPThresholdY2 = y; }
 
 private:
+  size_t mBins;
   size_t mVSize;
   size_t mHSize;
-  size_t mBins;
+  bool mBinaryH;
+  bool mBinaryP;
   MedianFilter mVMedianFilter;
   MedianFilter mHMedianFilter;
   ArrayXXd mH;
   ArrayXXd mV;
   ArrayXXd mHistory;
   ArrayXXcd mBuf;
-  double mHThreshold;
-  double mPThreshold;
+  double mHThresholdX1;
+  double mHThresholdY1;
+  double mHThresholdX2;
+  double mHThresholdY2;
+  double mPThresholdX1;
+  double mPThresholdY1;
+  double mPThresholdX2;
+  double mPThresholdY2;
 };
 } // namespace rthpss
 } // namespace fluid

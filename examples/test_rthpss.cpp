@@ -40,27 +40,33 @@ int main(int argc, char *argv[]) {
   int windowSize = 2048;
   STFT stft(windowSize, fftSize, hopSize);
   ISTFT istft(windowSize, fftSize, hopSize);
-  RTHPSS hpsssProcessor(nBins, vSize, hSize, 3, 3);
+  RTHPSS hpsssProcessor(nBins, vSize, hSize, true, true, 0.2, 0, 0.8, 20, 0.2, 20, 0.8, -20);
   RealVector in(data.audio[0]);
   Spectrogram spec = stft.process(in);
   ComplexMatrix harmonicSpec(spec.mData.rows(), spec.mData.cols());
   ComplexMatrix percussiveSpec(spec.mData.rows(), spec.mData.cols());
-  ComplexMatrix result(nBins, 2);
+  ComplexMatrix residualSpec(spec.mData.rows(), spec.mData.cols());
+  ComplexMatrix result(nBins, 3);
   for (int i = 0; i < spec.mData.rows(); i++) {
-    // std::cout<<i<<std::endl;
-    hpsssProcessor.setHThreshold(5*i/spec.mData.rows());
-    hpsssProcessor.setPThreshold(5*i/spec.mData.rows());
     hpsssProcessor.processFrame(spec.mData.row(i), result);
     harmonicSpec.row(i) = result.col(0);
     percussiveSpec.row(i) = result.col(1);
+    residualSpec.row(i) = result.col(2);
   }
   RealVector harmonicAudio = istft.process(harmonicSpec);
   data.audio[0] = vector<double>(harmonicAudio.data(),
                                  harmonicAudio.data() + harmonicAudio.size());
   writeFile(data, "harmonic_rt.wav");
+
   RealVector percussiveAudio = istft.process(percussiveSpec);
   data.audio[0] = vector<double>(
       percussiveAudio.data(), percussiveAudio.data() + percussiveAudio.size());
   writeFile(data, "percussive_rt.wav");
+
+  RealVector residualAudio = istft.process(residualSpec);
+  data.audio[0] = vector<double>(
+      residualAudio.data(), residualAudio.data() + residualAudio.size());
+  writeFile(data, "residual_rt.wav");
+
   return 0;
 }
