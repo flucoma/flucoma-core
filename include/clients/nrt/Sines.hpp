@@ -110,7 +110,7 @@ namespace fluid {
           params.back().setMin(1).setDefault(1024);
           
           params.emplace_back(desc_type{"fftsize","FFT Size", parameter::Type::Long});
-          params.back().setMin(-1).setDefault(-1);
+          params.back().setMin(-1).setDefault(8192);
           
         }
         return params;

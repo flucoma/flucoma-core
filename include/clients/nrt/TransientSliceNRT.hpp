@@ -75,10 +75,7 @@ namespace fluid {
           params.emplace_back(desc_type{"numchans","Source Channels", parameter::Type::Long});
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
           
-          params.emplace_back(desc_type{"transbuf","Transients Buffer", parameter::Type::Buffer});
-          params.back().setInstantiation(false);
-          
-          params.emplace_back(desc_type{"resbuf","Residual Buffer", parameter::Type::Buffer});
+          params.emplace_back(desc_type{"transbuf","Indices Buffer", parameter::Type::Buffer});
           params.back().setInstantiation(false);
           
           params.emplace_back("order", "Order", parameter::Type::Long);
@@ -382,8 +379,9 @@ namespace fluid {
         std::sort(indices.begin(), indices.end(),[&](size_t i1, size_t i2){
           return transientFrames[i1] > transientFrames[i2];
         });
-        for(auto&& i = indices.begin(); i != indices.begin() + 6; ++i )
-          std::cout << *i;
+
+        //Now put the gathered indicies into ascending order
+        std::sort(indices.begin(), indices.begin() + num_spikes);
         
         trans.samps().col(0) = FluidTensorView<size_t,1>{indices.data(),0,num_spikes};
       }
