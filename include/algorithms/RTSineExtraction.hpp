@@ -100,6 +100,10 @@ public:
       result.col(1) = resultFrame * (frameResidual * mult).min(1.0);
       mBuf.pop();
     }
+    auto iterator = std::remove_if(mTracks.begin(), mTracks.end(), [&](SineTrack track) {
+      return (track.endFrame >= 0 && track.endFrame <= mCurrentFrame - mMinTrackLength);
+    });
+    mTracks.erase(iterator, mTracks.end());
     out = ArrayXXcdToFluid(result)();
     mCurrentFrame++;
   }
