@@ -32,13 +32,37 @@ namespace hpss{
         
         params.emplace_back("hsize","Harmonic Filter Size",parameter::Type::Long);
         params.back().setMin(3).setDefault(17).setInstantiation(true);
+
+        params.emplace_back("binaryp","Percussive Binary Mask", parameter::Type::Long);
+        params.back().setMin(0).setMax(1).setInstantiation(true).setDefault(0);
         
-        params.emplace_back("pthresh","Percussive Threshold",parameter::Type::Float);
-        params.back().setMin(0).setMax(100).setDefault(50).setInstantiation(false);
+        params.emplace_back("binaryh","Harmonic Binary Mask", parameter::Type::Long);
+        params.back().setMin(0).setMax(1).setInstantiation(true).setDefault(0);
+
+        params.emplace_back("pthreshf1","Percussive Threshold Low Frequency ",parameter::Type::Float);
+        params.back().setMin(0).setMax(1).setDefault(0).setInstantiation(false);
+
+        params.emplace_back("pthresha1","Percussive Threshold Low Amplitude",parameter::Type::Float);
+        params.back().setDefault(0).setInstantiation(false);
+
+        params.emplace_back("pthreshf2","Percussive Threshold High Frequency",parameter::Type::Float);
+        params.back().setMin(0).setMax(1).setDefault(1).setInstantiation(false);
         
-        params.emplace_back("hthresh","Harmonic Threshold",parameter::Type::Float);
-        params.back().setMin(0).setMax(100).setDefault(50).setInstantiation(false);
+        params.emplace_back("pthresha2","Percussive Threshold High Amplitude",parameter::Type::Float);
+        params.back().setDefault(0).setInstantiation(false);
         
+        params.emplace_back("hthreshf1","Harmonic Threshold Low Frequency",parameter::Type::Float);
+        params.back().setMin(0).setMax(1).setDefault(0).setInstantiation(false);
+        
+        params.emplace_back("hthresha1","Harmonic Threshold Low Amplitude",parameter::Type::Float);
+        params.back().setDefault(0).setInstantiation(false);
+        
+        params.emplace_back("hthreshf2","Harmonic Threshold High Frequency",parameter::Type::Float);
+        params.back().setMin(0).setMax(1).setDefault(1).setInstantiation(false);
+        
+        params.emplace_back("hthresha2","Harmonic Threshold High Amplitude",parameter::Type::Float);
+        params.back().setDefault(0).setInstantiation(false);
+      
         audio::BaseAudioClient<T,U>::initParamDescriptors(params);
         params.emplace_back("fftsize","FFT Size", parameter::Type::Long);
         params.back().setMin(-1).setDefault(-1).setInstantiation(true);
@@ -53,7 +77,7 @@ namespace hpss{
     
     HPSSClient(size_t maxWindowSize):
     //stft::STFTCheckParams(windowsize,hopsize,fftsize),
-    audio::BaseAudioClient<T,U>(maxWindowSize,1,2,3)
+    audio::BaseAudioClient<T,U>(maxWindowSize,1,3,4)
     {
       newParamSet();
     }
@@ -69,12 +93,21 @@ namespace hpss{
       
       size_t pBins   = parameter::lookupParam("psize", getParams()).getLong();
       size_t hBins   = parameter::lookupParam("hsize", getParams()).getLong();
-      double pthresh = parameter::lookupParam("pthresh", getParams()).getFloat();
-      double hthresh = parameter::lookupParam("hthresh", getParams()).getFloat();
-      
+
+      double pthreshF1 = parameter::lookupParam("pthreshf1", getParams()).getFloat();
+      double pthreshA1 = parameter::lookupParam("pthresha1", getParams()).getFloat();
+      double pthreshF2 = parameter::lookupParam("pthreshf2", getParams()).getFloat();
+      double pthreshA2 = parameter::lookupParam("pthresha2", getParams()).getFloat();
+
+      double hthreshF1 = parameter::lookupParam("hthreshf1", getParams()).getFloat();
+      double hthreshA1 = parameter::lookupParam("hthresha1", getParams()).getFloat();
+      double hthreshF2 = parameter::lookupParam("hthreshf2", getParams()).getFloat();
+      double hthreshA2 = parameter::lookupParam("hthresha2", getParams()).getFloat();
+
       size_t nBins = fftsize / 2 + 1;
       
-      mHPSS = std::unique_ptr<rthpss::RTHPSS>(new rthpss::RTHPSS(nBins, pBins, hBins,hthresh,pthresh));
+      mHPSS = std::unique_ptr<rthpss::RTHPSS>(new rthpss::RTHPSS(nBins, pBins, hBins,binaryH(), binaryP(), hthreshF1, hthreshA1, hthreshF2, hthreshA2, pthreshF1, pthreshA1, pthreshF2, pthreshA2));
+                                                                 
       
       mNormWindow = mSTFT->window();
       mNormWindow.apply(mISTFT->window(),[](double& x, double& y)
@@ -82,9 +115,10 @@ namespace hpss{
          x *= y;
       });
       
-      mSeparatedSpectra.resize(fftsize/2+1,2);
+      mSeparatedSpectra.resize(fftsize/2+1,3);
       mHarms.resize(fftsize/2+1);
       mPerc.resize(fftsize/2+1);
+      mResidual.resize(fftsize/2+1);
       audio::BaseAudioClient<T,U>::reset();
     }
     
@@ -140,8 +174,23 @@ namespace hpss{
     {
       complex spec  = mSTFT->processFrame(input.row(0));
       
-      mHPSS->setHThreshold(parameter::lookupParam("hthresh", getParams()).getFloat());
-      mHPSS->setPThreshold(parameter::lookupParam("pthresh", getParams()).getFloat());
+//      mHPSS->setHThreshold(parameter::lookupParam("hthresh", getParams()).getFloat());
+//      mHPSS->setPThreshold(parameter::lookupParam("pthresh", getParams()).getFloat());
+      
+      if(binaryP())
+      {
+        mHPSS->setPThresholdX1(parameter::lookupParam("pthreshf1", getParams()).getFloat());
+        mHPSS->setPThresholdY1(parameter::lookupParam("pthresha1", getParams()).getFloat());
+        mHPSS->setPThresholdX2(parameter::lookupParam("pthreshf2", getParams()).getFloat());
+        mHPSS->setPThresholdY2(parameter::lookupParam("pthresha2", getParams()).getFloat());
+      }
+      if(binaryH())
+      {
+        mHPSS->setHThresholdX1(parameter::lookupParam("hthreshf1", getParams()).getFloat());
+        mHPSS->setHThresholdY1(parameter::lookupParam("hthresha1", getParams()).getFloat());
+        mHPSS->setHThresholdX2(parameter::lookupParam("hthreshf2", getParams()).getFloat());
+        mHPSS->setHThresholdY2(parameter::lookupParam("hthresha2", getParams()).getFloat());
+      }
       
       mHPSS->processFrame(spec, mSeparatedSpectra);
       
@@ -152,28 +201,51 @@ namespace hpss{
       
       output.row(0) = mISTFT->processFrame(mHarms);
       output.row(1) = mISTFT->processFrame(mPerc);
-      output.row(2) = mNormWindow;
+      if(binaryH() || binaryP())
+      {
+        mResidual = mSeparatedSpectra.col(2);
+        output.row(2) = mISTFT->processFrame(mResidual);
+      }
+      output.row(3) = mNormWindow;
     }
     //Here we gain compensate for the OLA
     void post_process(data_type output) override
     {
-      output.row(0).apply(output.row(2),[](double& x, double g){
+      output.row(0).apply(output.row(3),[](double& x, double g){
         if(x)
         {
           x /= g ? g : 1;
         }
       });
-      output.row(1).apply(output.row(2),[](double& x, double g){
+      output.row(1).apply(output.row(3),[](double& x, double g){
         if(x)
         {
           x /= g ? g : 1;
         }
       });
+      
+      if(binaryP() || binaryH())
+        output.row(2).apply(output.row(3),[](double& x, double g){
+          if(x)
+          {
+            x /= g ? g : 1;
+          }
+        });
     }
     
     std::vector<parameter::Instance>& getParams() override
     {
       return mParams;
+    }
+    
+    bool binaryP()
+    {
+      return parameter::lookupParam("binaryp", getParams()).getLong() > 0 ;
+    }
+    
+    bool binaryH()
+    {
+      return parameter::lookupParam("binaryh", getParams()).getLong() > 0 ;
     }
     
   private:
@@ -191,6 +263,7 @@ namespace hpss{
     FluidTensor<std::complex<T>,2> mSeparatedSpectra;
     FluidTensor<std::complex<T>,1> mHarms;
     FluidTensor<std::complex<T>,1> mPerc;
+    FluidTensor<std::complex<T>,1> mResidual;
     std::vector<parameter::Instance> mParams;
   };
 }//namespace hpss
