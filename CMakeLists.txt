@@ -52,7 +52,7 @@ target_include_directories(
 
 #TODO: Not this? We possibly need to seperate public facing headers from
 # obviously implementaion related ones to cut down on noise
-file(GLOB LIBRARY_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/include/*/*.hpp)
+file(GLOB_RECURSE LIBRARY_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/include/*/*.hpp)
 
 target_sources(
   FLUID_DECOMPOSITION
