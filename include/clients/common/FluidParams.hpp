@@ -100,6 +100,16 @@ namespace parameter{
         return mAdaptor ? mAdaptor->rank() : 0;
       }
       
+      void acquire()
+      {
+        if(mAdaptor) mAdaptor->acquire();
+      }
+      
+      void release()
+      {
+        if(mAdaptor) mAdaptor->release(); 
+      }
+      
     private:
       
       BufferAdaptor* mAdaptor;
