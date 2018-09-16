@@ -304,7 +304,7 @@ namespace fluid {
         processor.process(magnitude,changePoints);
         
         size_t num_spikes = std::accumulate(changePoints.begin(), changePoints.end() , 0);
-        idx.resize(num_spikes,1,1);
+        
         //Arg sort
         std::vector<size_t> indices(changePoints.size());
         std::iota(indices.begin(),indices.end(),0);
@@ -315,17 +315,19 @@ namespace fluid {
         //Now put the gathered indicies into ascending order
         std::sort(indices.begin(), indices.begin() + num_spikes);
         
-     
-        
-  
-        
-        
-        idx.samps().col(0) = FluidTensorView<size_t,1>{indices.data(),0,num_spikes};
-        
-        idx.samps().apply([&](float& x){
+        //convert frame numbers to samples, and account for any offset
+        std::transform(indices.begin(),indices.begin() + num_spikes, indices.begin(), [&](size_t x)->size_t {
           x *= model.hopsize;
+          x += model.offset;
+          return x; 
         });
-
+        
+        //Place a leading <offset> and <numframes - 1>
+        indices.insert(indices.begin() + num_spikes, model.offset + model.frames - 1);
+        indices.insert(indices.begin(), model.offset);
+        
+        idx.resize(num_spikes + 2,1,1);
+        idx.samps().col(0) = FluidTensorView<size_t,1>{indices.data(),0,num_spikes + 2};
       }
       std::vector<parameter::Instance>& getParams()
       {
