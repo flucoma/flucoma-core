@@ -660,7 +660,14 @@
         {
             return i * strides[0] + j;
         }
-        
+            
+        FluidTensorSlice<N> transpose()
+        {
+          FluidTensorSlice<N> res(*this);
+          std::reverse(res.extents.begin(), res.extents.end());
+          std::reverse(res.strides.begin(), res.strides.end());
+          return res;
+        }
         
         friend void swap(FluidTensorSlice& first, FluidTensorSlice& second)
         {

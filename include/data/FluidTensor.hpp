@@ -536,19 +536,30 @@ namespace fluid {
             return *this;
         }
 
+        FluidTensorView<T,N> transpose()
+        {
+            return {m_desc.transpose(), data()};
+        }
+      
+        const FluidTensorView<T,N> transpose() const
+        {
+            return {m_desc.transpose(), data()};
+        }
+      
+      
         /***************
          Operator << for printing to console. This recurses down through rows
          (i.e. it will call << for FluidTensorView and burrow down to N=0)
          ***************/
         friend std::ostream& operator<<( std::ostream& o, const FluidTensor& t ) {
-            o << '[';
+//            o << '[';
             for(int i = 0; i < t.rows(); ++i)
             {
                 o  << t.row(i);
                 if(i+1 != t.rows())
                     o << ',';
             }
-            o << ']';
+            o << '\n';
             return o;
         }
     private:
@@ -989,6 +1000,16 @@ namespace fluid {
          **/
         const FluidTensorSlice<N> descriptor() const {return m_desc;}
         FluidTensorSlice<N> descriptor() {return m_desc;}
+      
+        FluidTensorView<T,N> transpose()
+        {
+          return {m_desc.transpose(), m_ref};
+        }
+      
+        const FluidTensorView<T,N> transpose() const
+        {
+          return {m_desc.transpose(), m_ref};
+        }
 
         friend void swap(FluidTensorView& first, FluidTensorView& second)
         {
@@ -998,17 +1019,18 @@ namespace fluid {
         }
 
         friend std::ostream& operator<<( std::ostream& o, const FluidTensorView& t ) {
-            o << '[';
+//            o << '[';
             //T* p = t.m_ref + t.m_desc.start;
+          std::cout << t.rows() << '\n'; 
             for(size_t i = 0; i < t.rows();++i)
             {
                 //FluidTensor_View<T,N-1> row = t.row(i);
-                o << t.row(i);
-                if(i+1 != t.rows())
+                o << t.row(i) << " ( " << i << " )";
+//                if((i + 1) % (t.rows()-1))
                     o << ',';
             }
 
-            o << ']';
+            o << '\n';
             return o;
         }
     private:

@@ -65,6 +65,12 @@ int main(int argc, char* argv[])
   
   
     FluidTensor<int, 2> threebythree{{0,1,2},{3,4,5},{6,7,8}};
+  
+  std::cout << "++++++++++++++++++" << '\n';
+    std::cout << threebythree << '\n';
+  std::cout << "++++++++++++++++++" << '\n';
+  std::cout << threebythree.transpose() << '\n';
+  
     
     auto col1 = threebythree(slice(0),slice(1,1)); //all the rows, first column
     
