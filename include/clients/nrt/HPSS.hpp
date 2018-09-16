@@ -4,7 +4,7 @@
 #include "clients/common/STFTCheckParams.hpp"
 #include "data/FluidTensor.hpp"
 #include "data/FluidBuffers.hpp"
-#include "algorithms/HPSS.hpp"
+#include "algorithms/RTHPSS.hpp"
 #include "algorithms/STFT.hpp"
 #include "algorithms/RatioMask.hpp"
 
@@ -38,6 +38,17 @@ namespace fluid {
         parameter::BufferAdaptor* src = 0;
         parameter::BufferAdaptor* harm = 0;
         parameter::BufferAdaptor* perc = 0;
+        parameter::BufferAdaptor* res = 0;
+        
+        double pThreshFreq[2];
+        double pThreshAmp[2];
+        double hThreshFreq[2];
+        double hThreshAmp[2];
+        
+        bool pbinary;
+        bool hbinary;
+        
+        
         size_t winsize;
         size_t hopsize;
         size_t fftsize;
@@ -69,11 +80,44 @@ namespace fluid {
           params.emplace_back("percbuf","Percussive Component Buffer", parameter::Type::Buffer);
           params.back().setInstantiation(false);
           
+          params.emplace_back("resbuf", "Residual Component Buffer", parameter::Type::Buffer);
+          params.back().setInstantiation(false);
+          
           params.emplace_back("psize","Percussive Filter Size",parameter::Type::Long);
-          params.back().setMin(3).setDefault(31).setInstantiation(false);
+          params.back().setMin(3).setDefault(17).setInstantiation(false);
           
           params.emplace_back("hsize","Harmonic Filter Size",parameter::Type::Long);
           params.back().setMin(3).setDefault(17).setInstantiation(false);
+          
+          params.emplace_back("binaryp","Percussive Binary Mask", parameter::Type::Long);
+          params.back().setMin(0).setMax(1).setInstantiation(false).setDefault(0);
+          
+          params.emplace_back("binaryh","Harmonic Binary Mask", parameter::Type::Long);
+          params.back().setMin(0).setMax(1).setInstantiation(false).setDefault(0);
+          
+          params.emplace_back("pthreshf1","Percussive Threshold Low Frequency ",parameter::Type::Float);
+          params.back().setMin(0).setMax(1).setDefault(0).setInstantiation(false);
+          
+          params.emplace_back("pthresha1","Percussive Threshold Low Amplitude",parameter::Type::Float);
+          params.back().setDefault(0).setInstantiation(false);
+          
+          params.emplace_back("pthreshf2","Percussive Threshold High Frequency",parameter::Type::Float);
+          params.back().setMin(0).setMax(1).setDefault(1).setInstantiation(false);
+          
+          params.emplace_back("pthresha2","Percussive Threshold High Amplitude",parameter::Type::Float);
+          params.back().setDefault(0).setInstantiation(false);
+          
+          params.emplace_back("hthreshf1","Harmonic Threshold Low Frequency",parameter::Type::Float);
+          params.back().setMin(0).setMax(1).setDefault(0).setInstantiation(false);
+          
+          params.emplace_back("hthresha1","Harmonic Threshold Low Amplitude",parameter::Type::Float);
+          params.back().setDefault(0).setInstantiation(false);
+          
+          params.emplace_back("hthreshf2","Harmonic Threshold High Frequency",parameter::Type::Float);
+          params.back().setMin(0).setMax(1).setDefault(1).setInstantiation(false);
+          
+          params.emplace_back("hthresha2","Harmonic Threshold High Amplitude",parameter::Type::Float);
+          params.back().setDefault(0).setInstantiation(false);
           
           params.emplace_back(desc_type{"winsize","Window Size", parameter::Type::Long});
           params.back().setMin(4).setDefault(4096);
@@ -208,7 +252,7 @@ namespace fluid {
         }
 
         //At this point, we're happy with the source buffer
-        model.src          = parameter::lookupParam("src",getParams()).getBuffer();
+        model.src           = parameter::lookupParam("src",getParams()).getBuffer();
         model.offset        = srcOffset;
         model.frames        = srcFrames > 0 ? srcFrames : src.numFrames() - model.offset;
         model.channelOffset = srcChanOffset;
@@ -227,6 +271,8 @@ namespace fluid {
         {
           return {false,"Percussive buffer invalid",model};
         }
+        
+        
 
         model.harm = parameter::lookupParam("harmbuf",getParams()).getBuffer();
         model.perc = parameter::lookupParam("percbuf", getParams()).getBuffer();
@@ -261,6 +307,47 @@ namespace fluid {
         model.hopsize = hopSize.getLong();
         model.fftsize = fftSize.getLong();
         
+        model.hbinary = parameter::lookupParam("binaryh", getParams()).getLong() > 0;
+        model.pbinary = parameter::lookupParam("binaryp", getParams()).getLong() > 0;
+        
+        if(model.hbinary || model.pbinary)
+        {
+          parameter::BufferAdaptor::Access resBuf(parameter::lookupParam("resbuf",getParams()).getBuffer());
+
+          if(!resBuf.valid())
+          {
+            return {false, "One or both masks is binary but no residual output buffer supplied",model};
+          }
+          model.res = parameter::lookupParam("resbuf",getParams()).getBuffer();
+          
+          double pf1 = parameter::lookupParam("pthreshf1", getParams()).getFloat();
+          double pf2 = parameter::lookupParam("pthreshf2", getParams()).getFloat();
+          if(pf1 >= pf2)
+          {
+            return {false,"Percussive Threshold low frequency must be below high frequency",model};
+          }
+          
+          double pa1 = parameter::lookupParam("pthresha1", getParams()).getFloat();
+          double pa2 = parameter::lookupParam("pthresha2", getParams()).getFloat();
+          model.pThreshFreq[0] = pf1;
+          model.pThreshFreq[1] = pf2;
+          model.pThreshAmp[0] =  pa1;
+          model.pThreshAmp[0] = pa2;
+          
+          double hf1 = parameter::lookupParam("hthreshf1", getParams()).getFloat();
+          double hf2 = parameter::lookupParam("hthreshf2", getParams()).getFloat();
+          if(hf1 >= hf2)
+          {
+            return {false,"Harmonic Threshold low frequency must be below high frequency",model};
+          }
+          
+          double ha1 = parameter::lookupParam("hthresha1", getParams()).getFloat();
+          double ha2 = parameter::lookupParam("hthresha2", getParams()).getFloat();
+          model.hThreshFreq[0] = hf1;
+          model.hThreshFreq[1] = hf2;
+          model.hThreshAmp[0] = ha1;
+          model.hThreshAmp[0] = ha2;
+        }
         //We made it
         return {true, "Everything is lovely",model};
       }
@@ -281,32 +368,80 @@ namespace fluid {
         parameter::BufferAdaptor::Access src(model.src);
         parameter::BufferAdaptor::Access harm(model.harm);
         parameter::BufferAdaptor::Access perc(model.perc);
+        parameter::BufferAdaptor::Access res(model.res);
         
         harm.resize(model.frames,model.channels,1);
         perc.resize(model.frames,model.channels,1);
         
-        stft::STFT stft(model.winsize,model.fftsize,model.hopsize);
+        if(model.hbinary || model.pbinary)
+          res.resize(model.frames,model.channels,1);
+          
+        stft::STFT  stft (model.winsize,model.fftsize,model.hopsize);
         stft::ISTFT istft(model.winsize,model.fftsize,model.hopsize);
+ 
+        rthpss::RTHPSS processor(model.fftsize / 2 + 1, model.percsize,model.harmsize,model.hbinary, model.pbinary,
+                                 model.hThreshFreq[0], model.hThreshAmp[0],
+                                 model.hThreshFreq[1], model.hThreshAmp[1],
+                                 model.pThreshFreq[0], model.pThreshAmp[0],
+                                 model.pThreshFreq[1], model.pThreshAmp[1]);
+
         
-        HPSS processor(model.percsize,model.harmsize);
-        
+        size_t lag = model.hopsize * (model.harmsize - 1);
         for(size_t i = 0; i < model.channels;++i)
         {
-          FluidTensor<double,1> input(src.samps(model.offset,model.frames,model.channelOffset + i ,1).col(0));
-          auto  spectrum = stft.process(input);
-          auto magnitude = spectrum.getMagnitude();
-          auto decomposition = processor.process(magnitude);
-          ratiomask::RatioMask mask(decomposition.getMixEstimate(), 1);
-          auto harmonicData = mask.process(spectrum.mData, decomposition.getHarmonicEstimate());
-          auto percussiveData = mask.process(spectrum.mData, decomposition.getPercussiveEstimate());
-          auto harmonicAudio = istft.process(harmonicData);
-          auto percussiveAudio = istft.process(percussiveData);
-          harm.samps(i,0) = harmonicAudio(fluid::slice(0,model.frames));
-          perc.samps(i,0) = percussiveAudio(fluid::slice(0,model.frames));
+          FluidTensor<double,1> input(model.frames + lag);
+          
+          input.fill(0); 
+          input(fluid::slice(0,model.frames)) =  (src.samps(model.offset,model.frames,model.channelOffset + i ,1).col(0));
+          
+          
+//          double max = *std::max_element(input.begin(), input.end());
+//          std::cout << "MAX " << max << '\n';
+//          
+//          auto n = std::find_if(input.begin(),input.end(),[](double d){return std::isnan(d);});
+//          auto idx = std::distance(input.begin(), n);
+//          assert((n == input.end()));
+          
+          
+          auto spectrum = stft.process(input);
+          
+//          auto isanan = std::find_if(spectrum.mData.begin(),spectrum.mData.end(),[](std::complex<double> d){
+//            return (std::isnan(d.real()) || std::isnan(d.imag()));
+//          });
+//
+//          idx = std::distance(spectrum.mData.begin(), isanan);
+//          assert(isanan == spectrum.mData.end());
+          
+          
+          
+          
+          FluidTensor<std::complex<double>,2> harmonicSpec(spectrum.mData.rows(),spectrum.mData.cols());
+          FluidTensor<std::complex<double>,2> percussiveSpec(spectrum.mData.rows(),spectrum.mData.cols());;
+          FluidTensor<std::complex<double>,2> residualSpec(spectrum.mData.rows(),spectrum.mData.cols());;
+          FluidTensor<std::complex<double>,2> result(model.fftsize / 2 + 1, 3);
+          for(size_t j = 0; j < spectrum.mData.rows(); ++j)
+          {
+            processor.processFrame(spectrum.mData.row(j), result);
+            harmonicSpec.row(j)   = result.col(0);
+            percussiveSpec.row(j) = result.col(1);
+            residualSpec.row(j)   = result.col(2);
+          }
+          auto harmonicAudio = istft.process(harmonicSpec);
+          auto percussiveAudio = istft.process(percussiveSpec);
+          
+          
+          
+          harm.samps(i,0) = harmonicAudio  (fluid::slice(lag,model.frames));
+          perc.samps(i,0) = percussiveAudio(fluid::slice(lag,model.frames));
+          
+          if(model.hbinary || model.pbinary)
+          {
+            auto residualAudio = istft.process(residualSpec);
+            res.samps(i,0) = residualAudio(fluid::slice(lag,model.frames));
+          }
         }
-        
-
       }
+      
       std::vector<parameter::Instance>& getParams()
       {
         return mParams;
