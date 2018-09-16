@@ -17,7 +17,7 @@ public:
     assert(kernelSize % 2);
   }
 
-  RealVector process(const RealMatrix &input, RealVector &output) {
+  void process(const RealMatrix &input, RealVector &output) {
     using Eigen::ArrayXd;
     using Eigen::MatrixXd;
     using Eigen::VectorXd;
