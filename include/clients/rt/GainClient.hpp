@@ -26,9 +26,9 @@ namespace audio {
         using tensor_type = fluid::FluidTensor<T,2>;
         using view_type = fluid::FluidTensorView<T,2>;
     public:
-        using signal_type = typename BaseAudioClient<T,U>::template Signal<U>;
-        using audio_signal = typename BaseAudioClient<T,U>::AudioSignal;
-        using scalar_signal = typename BaseAudioClient<T,U>::ScalarSignal;
+        using Signal = typename BaseAudioClient<T,U>::template Signal<U>;
+        using AudioSignal = typename BaseAudioClient<T,U>::AudioSignal;
+        using ScalarSignal = typename BaseAudioClient<T,U>::ScalarSignal;
       
       static std::vector<parameter::Descriptor> getParamDescriptors()
       {

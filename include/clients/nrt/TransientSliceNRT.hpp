@@ -359,7 +359,7 @@ namespace fluid {
         
         segmentation::TransientSegmentation segmentor(model.order, model.iterations, model.robustFactor);
         segmentor.prepareStream(model.blocksize,model.padding);
-        segmentor.setDetectionParameters(model.skew, model.fwdThresh, model.backThresh);
+        segmentor.setDetectionParameters(model.skew, model.fwdThresh, model.backThresh, model.halfWindow, model.debounce); 
   
 
         size_t hopsize = segmentor.hopSize();
