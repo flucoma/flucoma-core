@@ -388,8 +388,8 @@ namespace fluid {
           return x + model.offset;
         });
         
-        //insert leading <offset> and num_frames - 1
-        indices.insert(indices.begin() + num_spikes, model.offset + model.frames - 1);
+        //insert leading <offset> and num_frames
+        indices.insert(indices.begin() + num_spikes, model.offset + model.frames);
         indices.insert(indices.begin(), model.offset);
         
         trans.resize(num_spikes + 2,1,1);

@@ -322,8 +322,8 @@ namespace fluid {
           return x; 
         });
         
-        //Place a leading <offset> and <numframes - 1>
-        indices.insert(indices.begin() + num_spikes, model.offset + model.frames - 1);
+        //Place a leading <offset> and <numframes>
+        indices.insert(indices.begin() + num_spikes, model.offset + model.frames);
         indices.insert(indices.begin(), model.offset);
         
         idx.resize(num_spikes + 2,1,1);
