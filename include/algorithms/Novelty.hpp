@@ -19,7 +19,6 @@ public:
     assert(kernelSize % 2);
     createKernel();
   }
-  double nan2zero(double in) { return isnan(in) ? 0.0 : in; }
 
   void process(const RealMatrix &input, RealVector &output) {
     using Eigen::ArrayXd;
