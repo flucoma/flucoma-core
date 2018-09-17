@@ -72,6 +72,7 @@ public:
   Spectrogram process(const RealVector &audio) {
     int halfWindow = mWindowSize / 2;
     ArrayXd padded(audio.size() + mWindowSize + mHopSize);
+    padded.fill(0); 
     padded.segment(halfWindow, audio.size()) =
         Map<const ArrayXd>(audio.data(), audio.size());
     int nFrames = floor((padded.size() - mWindowSize) / mHopSize);

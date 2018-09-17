@@ -329,7 +329,14 @@ namespace fluid {
         FluidTensor<double, 2> dstData(frames,chans);
 
         if(dst.numFrames() < frames || dst.numChans() < chans)
+        {
+          src1.release();
+          src2.release();
           dst.resize(frames,chans,1);
+          src2.acquire();
+          src1.acquire(); 
+        }
+        
 
         // iterates throught the copying of the first source
         for(size_t i = model.dstChannelOffset[0], j = 0; j < model.channels[0]; ++i,++j)
