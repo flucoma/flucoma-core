@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
   int windowSize = 2048;
   STFT stft(windowSize, fftSize, hopSize);
   ISTFT istft(windowSize, fftSize, hopSize);
-  RTHPSS hpsssProcessor(nBins, vSize, hSize, true, true, 0.2, 0, 0.8, 20, 0.2, 20, 0.8, -20);
+  RTHPSS hpsssProcessor(nBins, vSize, hSize, 1, 0.2, 0, 0.8, 20, 0.2, 20, 0.8, -20);
   RealVector in(data.audio[0]);
   Spectrogram spec = stft.process(in);
   ComplexMatrix harmonicSpec(spec.mData.rows(), spec.mData.cols());

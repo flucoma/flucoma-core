@@ -29,18 +29,20 @@ using fluid::medianfilter::MedianFilter;
 
 class RTHPSS {
 public:
-  RTHPSS(int nBins, int vSize, int hSize, bool binaryH, bool binaryP,
-         double hThresholdX1, double hThresholdY1, double hThresholdX2,
-         double hThresholdY2, double pThresholdX1, double pThresholdY1,
-         double pThresholdX2, double pThresholdY2)
-      : mBins(nBins), mVSize(vSize), mHSize(hSize), mBinaryH(binaryH),
-        mBinaryP(binaryP), mVMedianFilter(vSize), mHMedianFilter(hSize),
+  enum HPSSMode { kClassic, kCoupled, kAdvanced };
+  RTHPSS(int nBins, int vSize, int hSize, int mode, double hThresholdX1,
+         double hThresholdY1, double hThresholdX2, double hThresholdY2,
+         double pThresholdX1, double pThresholdY1, double pThresholdX2,
+         double pThresholdY2)
+      : mBins(nBins), mVSize(vSize), mHSize(hSize), mMode(mode),
+        mVMedianFilter(vSize), mHMedianFilter(hSize),
         mHThresholdX1(hThresholdX1), mHThresholdY1(hThresholdY1),
         mHThresholdX2(hThresholdX2), mHThresholdY2(hThresholdY2),
         mPThresholdX1(pThresholdX1), mPThresholdY1(pThresholdY1),
         mPThresholdX2(pThresholdX2), mPThresholdY2(pThresholdY2) {
     assert(mVSize % 2);
     assert(mHSize % 2);
+    assert(0 <= mMode <= 3);
     mH = ArrayXXd::Zero(mBins, hSize);
     mV = ArrayXXd::Zero(mBins, hSize);
     mBuf = ArrayXXcd::Zero(mBins, hSize);
@@ -87,39 +89,50 @@ public:
       mH.row(i) = tmpRow.segment(h2, mHSize).transpose();
     }
     ArrayXXcd result(mBins, 3);
-    ArrayXd HV = mH.col(0) + mV.col(0);
-    ArrayXd mult = (1.0 / HV.max(epsilon()));
 
     ArrayXd harmonicMask = ArrayXd::Ones(mBins);
     ArrayXd percussiveMask = ArrayXd::Ones(mBins);
     ArrayXd residualMask = ArrayXd::Ones(mBins);
 
-    if (mBinaryH) {
+    switch (mMode) {
+    case kClassic: {
+      ArrayXd HV = mH.col(0) + mV.col(0);
+      ArrayXd mult = (1.0 / HV.max(epsilon()));
+      harmonicMask = (mH.col(0) * mult);
+      percussiveMask = (mV.col(0) * mult);
+      break;
+    }
+    case kCoupled: {
       harmonicMask = ((mH.col(0) / mV.col(0)) >
                       makeThreshold(mHThresholdX1, mHThresholdY1, mHThresholdX2,
                                     mHThresholdY2))
                          .cast<double>();
-
-    } else {
-      harmonicMask = (mH.col(0) * mult).min(1.0);
+      percussiveMask = 1 - harmonicMask;
+      break;
     }
-    if (mBinaryP) {
+    case kAdvanced: {
+      harmonicMask = ((mH.col(0) / mV.col(0)) >
+                      makeThreshold(mHThresholdX1, mHThresholdY1, mHThresholdX2,
+                                    mHThresholdY2))
+                         .cast<double>();
       percussiveMask = ((mV.col(0) / mH.col(0)) >
                         makeThreshold(mPThresholdX1, mPThresholdY1,
                                       mPThresholdX2, mPThresholdY2))
                            .cast<double>();
-
-    } else {
-      percussiveMask = (mV.col(0) * mult).min(1.0);
-    }
-
-    if (mBinaryH && mBinaryP) {
       residualMask = residualMask * (1 - harmonicMask);
       residualMask = residualMask * (1 - percussiveMask);
+      ArrayXd maskNorm =
+          (1. / (harmonicMask + percussiveMask + residualMask)).max(epsilon());
+      harmonicMask = harmonicMask * maskNorm;
+      percussiveMask = percussiveMask * maskNorm;
+      residualMask = residualMask * maskNorm;
+      break;
     }
-    result.col(0) = mBuf.col(0) * harmonicMask;
-    result.col(1) = mBuf.col(0) * percussiveMask;
-    result.col(2) = mBuf.col(0) * residualMask;
+    }
+
+    result.col(0) = mBuf.col(0) * harmonicMask.min(1.0);
+    result.col(1) = mBuf.col(0) * percussiveMask.min(1.0);
+    result.col(2) = mBuf.col(0) * residualMask.min(1.0);
     out = ArrayXXcdToFluid(result)();
   }
 
@@ -155,8 +168,7 @@ private:
   size_t mBins;
   size_t mVSize;
   size_t mHSize;
-  bool mBinaryH;
-  bool mBinaryP;
+  int mMode;
   MedianFilter mVMedianFilter;
   MedianFilter mHMedianFilter;
   ArrayXXd mH;
