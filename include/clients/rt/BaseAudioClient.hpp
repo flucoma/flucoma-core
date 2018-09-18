@@ -186,20 +186,52 @@ namespace audio {
             {
                 m_source.pull(m_frame,m_frame_time);
                 process(m_frame, m_frame_out);
-                m_sink.push(m_frame_out,m_frame_time);
+                if(m_channels_out)
+                  m_sink.push(m_frame_out,m_frame_time);
             }
 
             m_frame_time = m_frame_time < m_host_buffer_size?
                 m_frame_time : m_frame_time - m_host_buffer_size;
-          m_sink.pull(m_frame_post);
-
-          post_process(m_frame_post);
-
-          for(size_t i = 0; (i < m_channels_out && output != outend); ++i,++output)
+          
+          if(m_channels_out)
           {
-            (*output)->copy_to(m_frame_post.row(i),0,nsamps);
+            m_sink.pull(m_frame_post);
+
+            post_process(m_frame_post);
+
+            for(size_t i = 0; (i < m_channels_out && output != outend); ++i,++output)
+            {
+              (*output)->copy_to(m_frame_post.row(i),0,nsamps);
+            }
           }
         }
+      
+      template <typename InputIt>
+      void do_process(InputIt input,InputIt inend, size_t nsamps, size_t channels_in)
+      {
+        assert(channels_in == m_channels_in);
+        
+        m_source.push(input,inend,nsamps, channels_in);
+        
+        //I had imagined we could delegate knowing about the time into the frame
+        //to the buffers, but for cases where chunk_size % host_buffer_size !=0
+        //we don't call the same number of times each tick
+        
+        //When we come to worry about overlap, and variable delay times
+        // (a) (for overlap) m_max_frame_size size in this look will need to change to take a variable, from somewhere (representing the hop size for this frame _start_)
+        // (b) (for varying frame size) the num rows of the view passed in
+        // will need to change.
+        
+        for(; m_frame_time < m_host_buffer_size; m_frame_time+=mHopSize)
+        {
+          m_source.pull(m_frame,m_frame_time);
+          process(m_frame, m_frame_out);
+        }
+        
+        m_frame_time = m_frame_time < m_host_buffer_size?
+        m_frame_time : m_frame_time - m_host_buffer_size;
+      }
+      
       
         /**
          Base procesisng method. A no-op in this case
