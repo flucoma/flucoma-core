@@ -83,12 +83,14 @@ namespace fluid {
           params.emplace_back("resbuf", "Residual Component Buffer", parameter::Type::Buffer);
           params.back().setInstantiation(false);
           
-          params.emplace_back("psize","Percussive Filter Size",parameter::Type::Long);
-          params.back().setMin(3).setDefault(17).setInstantiation(false);
           
           params.emplace_back("hsize","Harmonic Filter Size",parameter::Type::Long);
           params.back().setMin(3).setDefault(17).setInstantiation(false);
           
+          params.emplace_back("psize","Percussive Filter Size",parameter::Type::Long);
+          params.back().setMin(3).setDefault(17).setInstantiation(false);
+          
+
           params.emplace_back("modeflag","Masking Mode", parameter::Type::Long);
           params.back().setMin(0).setMax(2).setInstantiation(false).setDefault(0);
           
