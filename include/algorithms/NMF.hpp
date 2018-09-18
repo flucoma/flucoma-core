@@ -126,19 +126,24 @@ private:
         ArrayXXd Wnum = ((V.array() / V1).matrix() * H.transpose()).array();
         ArrayXXd Wden = (ones * H.transpose()).array();
         W = (W.array() * Wnum / Wden.max(epsilon())).matrix();
-        W.colwise().normalize();
+        
+        if(W.maxCoeff() > epsilon())
+          W.colwise().normalize();
+        assert(W.allFinite());
       }
       ArrayXXd V2 = (W * H).array() + epsilon();
       if (mUpdateH) {
         ArrayXXd Hnum = (W.transpose() * (V.array() / V2).matrix()).array();
         ArrayXXd Hden = (W.transpose() * ones).array();
         H = (H.array() * Hnum / Hden.max(epsilon())).matrix();
+        assert(H.allFinite());
       }
       MatrixXd R = W * H;
       R = R.cwiseMax(epsilon());
       //double divergence = (V.cwiseProduct(V.cwiseQuotient(R)) - V + R).sum();
       //divergenceCurve.push_back(divergence);
       //std::cout << "Divergence " << divergence << "\n";
+      
     }
     result.W = W;
     result.H = H;
