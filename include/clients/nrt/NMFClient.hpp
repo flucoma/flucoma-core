@@ -91,28 +91,28 @@ namespace fluid {
           params.back().setInstantiation(false);
 
           params.emplace_back(desc_type{"filterupdate","Filter Update",  parameter::Type::Long});
-          params.back().setInstantiation(false).setMin(0).setMax(2).setDefault(0);
+          params.back().setInstantiation(false).setMin(0).setMax(2).setDefault(0).setInstantiation(false);
           
           params.emplace_back(desc_type{"envbuf","Envelopes Buffer", parameter::Type::Buffer});
-          params.back().setInstantiation(false);
+          params.back().setInstantiation(false).setInstantiation(false);
         
           params.emplace_back(desc_type{"envupdate","Activation Update",  parameter::Type::Long});
-          params.back().setInstantiation(false).setMin(0).setMax(2).setDefault(0);
+          params.back().setInstantiation(false).setMin(0).setMax(2).setDefault(0).setInstantiation(false);
           
           params.emplace_back(desc_type{"rank","Rank", parameter::Type::Long});
-          params.back().setMin(1).setDefault(1);
+          params.back().setMin(1).setDefault(1).setInstantiation(false);
           
           params.emplace_back(desc_type{"iterations","Iterations", parameter::Type::Long});
-          params.back().setInstantiation(false).setMin(1).setDefault(100);
+          params.back().setInstantiation(false).setMin(1).setDefault(100).setInstantiation(false);
           
           params.emplace_back(desc_type{"winsize","Window Size", parameter::Type::Long});
-          params.back().setMin(4).setDefault(1024);
+          params.back().setMin(4).setDefault(1024).setInstantiation(false);
 
           params.emplace_back(desc_type{"hopsize","Hop Size", parameter::Type::Long});
-          params.back().setMin(1).setDefault(256);
+          params.back().setMin(1).setDefault(256).setInstantiation(false);
 
           params.emplace_back(desc_type{"fftsize","FFT Size", parameter::Type::Long});
-          params.back().setMin(-1).setDefault(-1);
+          params.back().setMin(-1).setDefault(-1).setInstantiation(false);
         }
         return params;
       }
@@ -407,17 +407,17 @@ namespace fluid {
           for(size_t j = 0; j < model.rank; ++j)
           {
             if(model.seedDictionaries)
-              seedDicts.row(i) = dict.samps(i,j);
+              seedDicts.row(j) = dict.samps(i,j);
             if(model.seedActivations)
-              seedActs.col(i) = act.samps(i,j);
+              seedActs.col(j) = act.samps(i,j);
           }
           
-          //TODO: Add seeding with pre-formed W & H to NMF
+          
           nmf::NMF nmf(model.rank,model.iterations, !model.fixDictionaries, !model.fixActivations);
           nmf::NMFModel m = nmf.process(spec.getMagnitude(), seedDicts, seedActs);
           
           //Write W?
-          if(model.returnDictionaries)
+          if(model.returnDictionaries && !model.seedDictionaries)
           {
             auto dictionaries = m.getW();
             for (size_t j = 0; j < model.rank; ++j)
@@ -426,7 +426,7 @@ namespace fluid {
           }
           
           //Write H? Need to normalise also
-          if(model.returnActivations)
+          if(model.returnActivations && !model.seedActivations)
           {
             auto activations = m.getH();
             double maxH = *std::max_element(activations.begin(), activations.end());
