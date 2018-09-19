@@ -318,7 +318,7 @@ namespace fluid {
             return {false, "No dictionary buffer given, but one needed for seeding or matching", model};
           
           //Prepared activation buffer needs to be (src Frames / hop size + 1) by (rank * srcChans)
-          if(actBuf.numFrames() != (model.fftSize / 2) + 1 || actBuf.numChans() != model.rank * model.channels)
+          if(actBuf.numFrames() != (model.frames / model.hopSize) + 1 || actBuf.numChans() != model.rank * model.channels)
           {
             return {false,"Pre-prepared activation buffer must be [(num samples / hop size) + 1] frames long, and have [rank] * [channels] channels", model};
           }
