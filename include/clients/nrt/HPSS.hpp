@@ -310,7 +310,7 @@ namespace fluid {
         model.hopsize = hopSize.getLong();
         model.fftsize = fftSize.getLong();
         
-        model.mode = parameter::lookupParam("modeflag", getParams()).getLong() > 0;
+        model.mode = parameter::lookupParam("modeflag", getParams()).getLong();
         
         
         if(model.mode > 0)
