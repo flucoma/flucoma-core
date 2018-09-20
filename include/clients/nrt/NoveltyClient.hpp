@@ -88,13 +88,13 @@ namespace fluid {
           params.back().setMin(0).setDefault(0.8).setInstantiation(false);
           
           params.emplace_back(desc_type{"winsize","Window Size", parameter::Type::Long});
-          params.back().setMin(4).setDefault(1024);
+          params.back().setMin(4).setDefault(1024).setInstantiation(false);
           
           params.emplace_back(desc_type{"hopsize","Hop Size", parameter::Type::Long});
-          params.back().setMin(1).setDefault(512);
+          params.back().setMin(1).setDefault(512).setInstantiation(false);
           
           params.emplace_back(desc_type{"fftsize","FFT Size", parameter::Type::Long});
-          params.back().setMin(-1).setDefault(2048);
+          params.back().setMin(-1).setDefault(2048).setInstantiation(false);
           
         }
         return params;
@@ -203,10 +203,10 @@ namespace fluid {
 
         }
 
-        long srcOffset     = parameter::lookupParam("offsetframes",         mParams).getLong();
-        long srcFrames     = parameter::lookupParam("numframes",         mParams).getLong();
-        long srcChanOffset = parameter::lookupParam("offsetchans", mParams).getLong();
-        long srcChans      = parameter::lookupParam("numchans",       mParams).getLong();
+        long srcOffset     = parameter::lookupParam("offsetframes", mParams).getLong();
+        long srcFrames     = parameter::lookupParam("numframes",    mParams).getLong();
+        long srcChanOffset = parameter::lookupParam("offsetchans",  mParams).getLong();
+        long srcChans      = parameter::lookupParam("numchans",     mParams).getLong();
         
         //Ensure that the source buffer can deliver
         if(srcFrames > 0 ? (src.numFrames() < (srcOffset + srcFrames)) : (src.numFrames() < srcOffset))
