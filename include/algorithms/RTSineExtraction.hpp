@@ -15,36 +15,18 @@ namespace rtsineextraction {
 using convolution::correlateReal;
 using convolution::kEdgeWrapCentre;
 using fft::FFT;
-using std::abs;
-using std::complex;
-using std::max;
-using std::min;
-using std::queue;
 using std::vector;
 using windows::windowFuncs;
 using windows::WindowType;
 
-using RealMatrix = FluidTensor<double, 2>;
-using ComplexVector = FluidTensorView<std::complex<double>, 1>;
-using ComplexMatrix = FluidTensorView<std::complex<double>, 2>;
 using Eigen::Array;
 using Eigen::ArrayXcd;
 using Eigen::ArrayXd;
-using Eigen::ArrayXXcd;
-using Eigen::ArrayXXd;
 using Eigen::Dynamic;
 using Eigen::Map;
-using Eigen::MatrixXd;
 using Eigen::RowMajor;
 using Eigen::VectorXd;
-using fluid::eigenmappings::ArrayXXcdToFluid;
-using MatrixXdMap =
-    Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>;
-using ArrayXXdMap = Map<const Eigen::Array<double, Eigen::Dynamic,
-                                           Eigen::Dynamic, Eigen::RowMajor>>;
-using ArrayXdMap =
-    Map<const Eigen::Array<double, Eigen::Dynamic, Eigen::RowMajor>>;
-using ArrayXcdMap = Map<const Array<std::complex<double>, Dynamic, RowMajor>>;
+
 
 struct SinePeak {
   int centerBin;
@@ -62,6 +44,10 @@ struct SineTrack {
 
 class RTSineExtraction {
 public:
+  using RealMatrix = FluidTensor<double, 2>;
+  using ComplexVector = FluidTensorView<std::complex<double>, 1>;
+  using ComplexMatrix = FluidTensorView<std::complex<double>, 2>;
+
   RTSineExtraction(int windowSize, int fftSize, int hopSize, int bandwidth,
                    double threshold, int minTrackLength, double magWeight,
                    double freqWeight)
@@ -76,6 +62,10 @@ public:
   }
 
   void processFrame(const ComplexVector &in, ComplexMatrix out) {
+    using ArrayXcdMap = Map<const Array<std::complex<double>, Dynamic, RowMajor>>;
+    using fluid::eigenmappings::ArrayXXcdToFluid;
+    using Eigen::ArrayXXcd;
+
     const auto &epsilon = std::numeric_limits<double>::epsilon;
     ArrayXcdMap frame(in.data(), mBins);
     mBuf.push(frame);
@@ -146,7 +136,7 @@ private:
   double mFreqWeight;
   size_t mCurrentFrame;
   vector<SineTrack> mTracks;
-  queue<ArrayXcd> mBuf;
+  std::queue<ArrayXcd> mBuf;
 
   const void peakContinuation(vector<SineTrack> &tracks,
                               const vector<int> peaks, const ArrayXd frame) {
@@ -269,10 +259,10 @@ private:
   ArrayXd synthesizePeak(int idx, double amp) {
     int halfBW = mBandwidth / 2;
     ArrayXd sine = ArrayXd::Zero(mBins);
-    for (int i = idx, j = 0; i < min(idx + halfBW, mBins - 1); i++, j++) {
+    for (int i = idx, j = 0; i < std::min(idx + halfBW, mBins - 1); i++, j++) {
       sine[i] = amp * mWindowTransform(halfBW + j);
     }
-    for (int i = idx, j = 0; i > max(idx - halfBW, 0); i--, j++) {
+    for (int i = idx, j = 0; i > std::max(idx - halfBW, 0); i--, j++) {
       sine[i] = amp * mWindowTransform(halfBW - j);
     }
     return sine;

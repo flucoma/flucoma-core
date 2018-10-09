@@ -2,18 +2,13 @@
 
 #include "HISSTools_FFT/HISSTools_FFT.h"
 #include <Eigen/Core>
-#include <vector>
 
 namespace fluid {
 namespace fft {
 
-using Eigen::ArrayXcd;
-using Eigen::ArrayXd;
-using Eigen::Ref;
-using std::complex;
-using std::vector;
-
 class FFT {
+
+
 public:
   FFT(size_t size)
       : mSize(size), mFrameSize(size / 2 + 1), mLog2Size(log2(size)),
@@ -30,14 +25,19 @@ public:
       delete[] mSplit.imagp;
   }
 
-  Ref<ArrayXcd> process(const Ref<const ArrayXd> &input) {
+  using ArrayXcd = Eigen::ArrayXcd;
+  using ArrayXcdRef = Eigen::Ref<ArrayXcd>;
+  using ArrayXd = Eigen::ArrayXd;
+  using ArrayXdRef = Eigen::Ref<const ArrayXd>;
+
+  Eigen::Ref<ArrayXcd> process(const ArrayXdRef &input) {
     hisstools_rfft(mSetup, input.data(), &mSplit, input.size(), mLog2Size);
     mSplit.realp[mFrameSize - 1] = mSplit.imagp[0];
     mSplit.imagp[mFrameSize - 1] = 0;
     mSplit.imagp[0] = 0;
     for (int i = 0; i < mFrameSize; i++) {
       mOutputBuffer(i) =
-          0.5 * complex<double>(mSplit.realp[i], mSplit.imagp[i]);
+          0.5 * std::complex<double>(mSplit.realp[i], mSplit.imagp[i]);
     }
     return mOutputBuffer;
   }
@@ -55,10 +55,14 @@ private:
 };
 
 class IFFT : FFT {
+
 public:
   IFFT(size_t size) : FFT(size), mOutputBuffer(size) {}
 
-  Ref<ArrayXd> process(const Ref<const ArrayXcd> &input) {
+  using ArrayXcdRef = Eigen::Ref<const ArrayXcd>;
+  using ArrayXdRef = Eigen::Ref<ArrayXd>;
+
+  ArrayXdRef process(const ArrayXcdRef &input) {
     for (int i = 0; i < input.size(); i++) {
       mSplit.realp[i] = input[i].real();
       mSplit.imagp[i] = input[i].imag();
