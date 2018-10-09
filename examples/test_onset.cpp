@@ -23,8 +23,8 @@ int main(int argc, char *argv[]) {
   using std::cout;
   using std::vector;
 
-  if (argc <= 1) {
-    cout << "usage: test_onset in.wav\n";
+  if (argc <= 3) {
+    cout << "usage: test_onset in.wav filterSize threshold\n";
     return 1;
   }
 
@@ -35,13 +35,20 @@ int main(int argc, char *argv[]) {
   int frameDelta = 512;
   int windowSize = 1024;
   RealVector in(data.audio[0]);
+  int filterSize = std::stoi(argv[2]);
+  double threshold = std::stod(argv[3]);
+
   RealVectorView inV = RealVectorView(in);
 
   OnsetSegmentation os(fftSize, windowSize, hopSize, frameDelta,
-                    WindowType::Hann, 0.01, OnsetSegmentation::DifferenceFunction::kL1Norm, 20);
+                    WindowType::Hann, threshold, OnsetSegmentation::DifferenceFunction::kL1Norm, filterSize);
   RealVector result(os.nFrames(in.size()));
   RealVectorView outV = RealVectorView(result);
   os.process(inV, outV);
-  std::cout<<result<<std::endl;
+  for(int i = 0; i < result.size(); i++){
+    if(result[i] == 1){
+      std::cout<<i<<std::endl;
+    }
+  }
   return 0;
 }

@@ -87,21 +87,23 @@ public:
       RealVectorView frame = input(fluid::slice(i * mHopSize, frameSize));
       onsetDetectionFunc(i) = processFrame(frame);
     }
+    if (mFilterSize > 0) {
+      ArrayXd filter = ArrayXd::Constant(mFilterSize, 1.0 / mFilterSize);
+      ArrayXd smoothed = ArrayXd::Zero(onsetDetectionFunc.size());
+      convolveReal(smoothed.data(), onsetDetectionFunc.data(),
+                   onsetDetectionFunc.size(), filter.data(), filter.size(),
+                   kEdgeWrapCentre);
+      onsetDetectionFunc = smoothed;
+    }
     onsetDetectionFunc /= onsetDetectionFunc.maxCoeff();
-
-    ArrayXd filter = ArrayXd::Constant(mFilterSize, 1.0/mFilterSize);
-    ArrayXd smoothed = ArrayXd::Zero(onsetDetectionFunc.size());
-    convolveReal(smoothed.data(), onsetDetectionFunc.data(),
-                 onsetDetectionFunc.size(), filter.data(), filter.size(),
-                 kEdgeWrapCentre);
-     for (int i = 1; i < smoothed.size() - 1; i++) {
-       if (smoothed(i) > smoothed(i - 1) &&
-           smoothed(i) > smoothed(i + 1) &&
-           smoothed(i) > mThreshold) {
-         output(i) = 1;
-       } else
-         output(i) = 0;
-     }
+    for (int i = 1; i < onsetDetectionFunc.size() - 1; i++) {
+      if (onsetDetectionFunc(i) > onsetDetectionFunc(i - 1) &&
+          onsetDetectionFunc(i) > onsetDetectionFunc(i + 1) &&
+          onsetDetectionFunc(i) > mThreshold && i > mFilterSize / 2) {
+        output(i - mFilterSize / 2) = 1;
+      } else
+        output(i - mFilterSize / 2) = 0;
+    }
   }
 
   double processFrame(RealVectorView &input) {
