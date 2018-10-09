@@ -21,8 +21,8 @@ int main(int argc, char *argv[]) {
   using std::cout;
   using std::vector;
 
-  if (argc <= 2) {
-    cout << "usage: test_novelty in.wav kernel_size\n";
+  if (argc <= 4) {
+    cout << "usage: test_novelty in.wav kernel_size filter_size threshold\n";
     return 1;
   }
 
@@ -31,13 +31,15 @@ int main(int argc, char *argv[]) {
   int fftSize = 2 * (nBins - 1);
   int hopSize = 256;
   int kernelSize = std::stoi(argv[2]);
+  int filterSize = std::stoi(argv[3]);
+  double threshold = std::stod(argv[4]);
   int windowSize = 1024;
   STFT stft(windowSize, fftSize, hopSize);
   RealVector in(data.audio[0]);
   Spectrogram spec = stft.process(in);
   RealMatrix mag = spec.getMagnitude();
   RealVector result(spec.nFrames());
-  NoveltySegmentation nov(kernelSize, 0.8);
+  NoveltySegmentation nov(kernelSize, threshold, filterSize);
   nov.process(mag, result);
   for(int i = 0; i < spec.nFrames(); i++){
     if(result[i] == 1){

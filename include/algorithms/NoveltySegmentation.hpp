@@ -1,5 +1,6 @@
 #pragma once
 #include "Novelty.hpp"
+#include "algorithms/ConvolutionTools.hpp"
 #include "data/FluidEigenMappings.hpp"
 #include "data/FluidTensor.hpp"
 #include <Eigen/Dense>
@@ -12,32 +13,48 @@ class NoveltySegmentation {
   using RealVector = FluidTensor<double, 1>;
 
 public:
-  NoveltySegmentation(int kernelSize, double threshold)
-      : mKernelSize(kernelSize), mThreshold(threshold) {
+  NoveltySegmentation(int kernelSize, double threshold, int filterSize)
+      : mKernelSize(kernelSize), mThreshold(threshold),
+        mFilterSize(filterSize) {
     assert(kernelSize % 2);
   }
 
   void process(const RealMatrix &input, RealVector &output) {
+    using convolution::convolveReal;
+    using convolution::kEdgeWrapCentre;
     using Eigen::ArrayXd;
+    using Eigen::Map;
     using Eigen::MatrixXd;
     using Eigen::VectorXd;
     using fluid::eigenmappings::FluidToMatrixXd;
     using std::vector;
+
     RealVector temp(input.extent(0));
     Novelty nov(mKernelSize);
     nov.process(input, temp);
-    for (int i = 1; i < temp.size() - 1; i++) {
-      if (temp(i) > temp(i - 1) && temp(i) > temp(i + 1) &&
-          temp(i) > mThreshold) {
-            output(i)  = 1;
-      }
-      else output(i)  = 0;
+    ArrayXd curve = Map<ArrayXd>(temp.data(), temp.size());
+    if (mFilterSize > 0) {
+      ArrayXd filter = ArrayXd::Constant(mFilterSize, 1.0 / mFilterSize);
+      ArrayXd smoothed = ArrayXd::Zero(curve.size());
+      convolveReal(smoothed.data(), curve.data(), curve.size(), filter.data(),
+                   filter.size(), kEdgeWrapCentre);
+      curve = smoothed;
+    }
+    curve /= curve.maxCoeff();
+
+    for (int i = 1; i < curve.size() - 1; i++) {
+      if (curve(i) > curve(i - 1) && curve(i) > curve(i + 1) &&
+          curve(i) > mThreshold && i > mFilterSize / 2) {
+        output(i - mFilterSize / 2) = 1;
+      } else
+        output(i - mFilterSize / 2) = 0;
     }
   }
 
 private:
   int mKernelSize;
   double mThreshold;
+  int mFilterSize;
 };
 } // namespace novelty
 } // namespace fluid
