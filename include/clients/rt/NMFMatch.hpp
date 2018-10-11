@@ -77,13 +77,13 @@ namespace fluid{
         outbuf = parameter::lookupParam("outbuf", getParams()).getBuffer();
         filbuf = parameter::lookupParam("filterbuf", getParams()).getBuffer();
         
-        outputBuffer = BufferPointer(new parameter::BufferAdaptor::Access(outbuf));
+        parameter::BufferAdaptor::Access outputBuffer(outbuf);
         
-        outputBuffer->resize(rank,1,1);
+        outputBuffer.resize(rank,1,1);
         
-        filterBuffer = BufferPointer(new parameter::BufferAdaptor::Access(filbuf));
+        parameter::BufferAdaptor::Access filterBuffer(filbuf);
 
-        tmpFilt.resize(filterBuffer->numFrames(), filterBuffer->numChans());
+        tmpFilt.resize(filterBuffer.numFrames(), filterBuffer.numChans());
         tmpOut.resize(rank);
         
         tmpMagnitude.resize(fftsize / 2 + 1);
@@ -178,7 +178,17 @@ namespace fluid{
         if(outbuf && filbuf)
         {
           
-          tmpFilt = filterBuffer->samps();
+          parameter::BufferAdaptor::Access filterBuffer(filbuf);
+          parameter::BufferAdaptor::Access outputBuffer(outbuf);
+          
+          if(!(filterBuffer.valid() && outputBuffer.valid()))
+          {
+            return;
+          }
+          
+          
+          for(size_t i = 0; i < tmpFilt.cols(); ++i)
+            tmpFilt.col(i) = filterBuffer.samps(0,i);
           
           tmpMagnitude.apply(mSTFT->processFrame(input.row(0)), [](double& x, std::complex<double>& y)->double{
             x = std::abs(y);
@@ -192,7 +202,7 @@ namespace fluid{
           });
           
           
-          outputBuffer->samps().col(0) = tmpOut;
+          outputBuffer.samps(0) = tmpOut;
         }
       }
       
@@ -230,19 +240,15 @@ namespace fluid{
       parameter::BufferAdaptor* outbuf = nullptr;
       parameter::BufferAdaptor* filbuf = nullptr;
       FluidTensor<double, 2> tmpFilt;
-                             
-                             
-FluidTensor<double, 1> tmpMagnitude;
+      FluidTensor<double, 1> tmpMagnitude;
       FluidTensor<double, 1> tmpOut;
-      BufferPointer filterBuffer;
-      BufferPointer outputBuffer;
+//      BufferPointer filterBuffer;
+//      BufferPointer outputBuffer;
       
 //      std::unique_ptr<TransientSegmentation> mExtractor;
 //      FluidTensor<std::complex<T>,1> mTransients;
       std::vector<parameter::Instance> mParams;
     };
-    
-    
   }//namespace hpss
 }//namespace fluid
 

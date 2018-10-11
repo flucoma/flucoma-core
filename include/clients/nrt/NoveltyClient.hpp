@@ -286,7 +286,7 @@ namespace fluid {
         //Make a mono sum;
         for(size_t i = 0; i < model.channels; ++i)
         {
-          monoSource.apply(src.samps(model.offset, model.frames, model.channelOffset + i, 1).col(0), [](double& x, double y){
+          monoSource.apply(src.samps(model.offset, model.frames, model.channelOffset + i), [](double& x, double y){
             x += y;
           });
         }
@@ -327,7 +327,9 @@ namespace fluid {
         indices.insert(indices.begin(), model.offset);
         
         idx.resize(num_spikes + 2,1,1);
-        idx.samps().col(0) = FluidTensorView<size_t,1>{indices.data(),0,num_spikes + 2};
+        
+    
+        idx.samps(0) = FluidTensorView<size_t,1>{indices.data(),0,num_spikes + 2};
       }
       std::vector<parameter::Instance>& getParams()
       {

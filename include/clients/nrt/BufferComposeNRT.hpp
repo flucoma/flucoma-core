@@ -296,10 +296,6 @@ namespace fluid {
 
       void process(ProcessModel model)
       {
-        parameter::BufferAdaptor::Access src1(model.src1);
-        parameter::BufferAdaptor::Access src2(model.src2);
-        parameter::BufferAdaptor::Access dst(model.dst);
-
         // chans and frames are cheked and their max is taken
         std::array<size_t,2> sumChans;
         std::transform(model.channels,model.channels + 2,model.dstChannelOffset,sumChans.begin(),std::plus<size_t>());
@@ -309,54 +305,49 @@ namespace fluid {
         std::transform(model.frames,model.frames + 2,model.dstOffset,sumFrames.begin(),std::plus<size_t>());
         size_t frames = *std::max_element(sumFrames.begin(), sumFrames.end());
 
-        //Copy both sources here
-        FluidTensor<double, 2> src1Data(model.frames[0], model.channels[0]);
-        src1Data = src1.samps(model.offset[0],model.frames[0],model.channelOffset[0], model.channels[0]);
-        FluidTensor<double, 2> src2Data(model.frames[1], model.channels[1]);
-        src2Data = src2.samps(model.offset[1],model.frames[1],model.channelOffset[1], model.channels[1]);
-
-        //apply gains
-          double g1 = model.gain[0];
-          double g2 = model.gain[1];
-          src1Data.apply([g1](double& x){
-              x *= g1;
-          });
-          src2Data.apply([g2](double& x){
-              x *= g2;
-          });
-          
-        //Resize dst here
         FluidTensor<double, 2> dstData(frames,chans);
 
-        if(dst.numFrames() < frames || dst.numChans() < chans)
+        //Access sources inside own scope block, so they'll be unlocked before
+        //we need to (possibly) resize the desintation buffer which could (possibly)
+        //also be one of the sources
         {
-          src1.release();
-          src2.release();
-          dst.resize(frames,chans,1);
-          src2.acquire();
-          src1.acquire(); 
+          parameter::BufferAdaptor::Access src1(model.src1);
+          parameter::BufferAdaptor::Access src2(model.src2);
+          // iterates throught the copying of the first source
+          for(size_t i = model.dstChannelOffset[0], j = 0; j < model.channels[0]; ++i,++j)
+          {
+            FluidTensor<double, 1> srcChan(src1.samps(model.offset[0],model.frames[0],(model.channelOffset[0] + j) % src1.numChans()));
+            srcChan.apply([model](double& x){
+              x *= model.gain[0];
+            });
+            auto dstChan = dstData(fluid::slice(model.dstOffset[0], model.frames[0]), fluid::slice(i,1)).col(0);
+            dstChan = srcChan;
+          }
+          
+          // iterates throught the copying of the second source and sums it to the dest buff
+          for(size_t i = model.dstChannelOffset[1], j = 0; j < model.channels[1]; ++i,++j)
+          {
+            FluidTensor<double, 1> srcChan(src2.samps(model.offset[1],model.frames[1],(model.channelOffset[1] + j) % src2.numChans()));
+            srcChan.apply([model](double& x){
+              x *= model.gain[1];
+            });
+            auto dstChan = dstData(fluid::slice(model.dstOffset[1], model.frames[1]), fluid::slice(i,1)).col(0);
+            dstChan.apply(srcChan,[](double& x, double& y){
+              x += y;
+            });
+          }
         }
         
-
-        // iterates throught the copying of the first source
-        for(size_t i = model.dstChannelOffset[0], j = 0; j < model.channels[0]; ++i,++j)
+        parameter::BufferAdaptor::Access dst(model.dst);
+        if(dst.numFrames() < frames || dst.numChans() < chans)
+          dst.resize(frames,chans,1);
+        
+        for(size_t i = 0; i < dst.numChans(); ++i)
         {
-          auto dstChan = dstData(fluid::slice(model.dstOffset[0], model.frames[0]), fluid::slice(i,1)).col(0);
-          dstChan = src1Data.col(j % src1Data.cols());
+          dst.samps(0,frames, i) = dstData.col(i);
         }
-          
-        // iterates throught the copying of the second source and sums it to the dest buff
-        for(size_t i = model.dstChannelOffset[1], j = 0; j < model.channels[1]; ++i,++j)
-        {
-          auto dstChan = dstData(fluid::slice(model.dstOffset[1], model.frames[1]), fluid::slice(i,1)).col(0);
-          dstChan.apply( src2Data.col(j % src2Data.cols()),[](double& x, double& y){
-            x += y;
-          });
-        }
-          // copies the destination
-          dst.samps() = dstData;
-
-      }
+    }
+      
       std::vector<parameter::Instance>& getParams()
       {
         return mParams;

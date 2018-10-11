@@ -387,14 +387,15 @@ namespace fluid {
 
         stft::STFT stft(model.windowSize,model.fftSize,model.hopSize);
         //Copy input buffer
-        RealMatrix sourceData(src.samps(model.offset, model.frames, model.channelOffset, model.channels));
+//        RealMatrix sourceData(src.samps(model.offset, model.frames, model.channelOffset, model.channels));
         //TODO: get rid of need for this
         //Either: do the whole process loop here via process_frame
         //Or: change sig of stft.process() to take a view
         RealVector tmp(model.frames);
         for(size_t i = 0; i < model.channels; ++i)
         {
-          tmp = sourceData.col(i);
+//          tmp = sourceData.col(i);
+          tmp = src.samps(model.offset, model.frames, model.channelOffset + i); 
           stft::Spectrogram spec = stft.process(tmp);
           
           //For multichannel dictionaries, seed data could be all over the place, so we'll build it up by hand :-/

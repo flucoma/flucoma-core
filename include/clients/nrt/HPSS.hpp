@@ -404,7 +404,7 @@ namespace fluid {
           FluidTensor<double,1> input(model.frames + lag);
           
           input.fill(0); 
-          input(fluid::slice(0,model.frames)) =  (src.samps(model.offset,model.frames,model.channelOffset + i ,1).col(0));
+          input(fluid::slice(0,model.frames)) =  src.samps(model.offset,model.frames,model.channelOffset + i);
           
           
 //          double max = *std::max_element(input.begin(), input.end());

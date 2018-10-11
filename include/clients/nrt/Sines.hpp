@@ -297,7 +297,7 @@ namespace fluid {
         
         for(size_t i = 0; i < model.channels;++i)
         {
-          FluidTensor<double,1> input(src.samps(model.offset,model.frames,model.channelOffset + i ,1).col(0));
+          FluidTensor<double,1> input(src.samps(model.offset,model.frames,model.channelOffset + i));
           auto  spectrum = stft.process(input);
           auto magnitude = spectrum.getMagnitude();
           auto decomposition = processor.process(magnitude);

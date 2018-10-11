@@ -1,4 +1,4 @@
-/**
+  /**
   @file FluidParams.hpp
  
  Templates for defining and querying parameters of fluid decomposition client objects,
@@ -73,16 +73,16 @@ namespace parameter{
       }
       
 
-      FluidTensorView<float,2> samps()
+//      FluidTensorView<float,2> samps()
+//      {
+//        assert(mAdaptor);
+//        return mAdaptor->samps();
+//      }
+//      
+      FluidTensorView<float,1> samps(size_t offset, size_t nframes, size_t chanoffset)
       {
         assert(mAdaptor);
-        return mAdaptor->samps();
-      }
-      
-      FluidTensorView<float,2> samps(size_t offset, size_t nframes, size_t chanoffset, size_t chans)
-      {
-        assert(mAdaptor);
-        return mAdaptor->samps(offset, nframes, chanoffset, chans);
+        return mAdaptor->samps(offset, nframes, chanoffset);
       }
       
       size_t numFrames() const
@@ -100,16 +100,6 @@ namespace parameter{
         return mAdaptor ? mAdaptor->rank() : 0;
       }
       
-      void acquire()
-      {
-        if(mAdaptor) mAdaptor->acquire();
-      }
-      
-      void release()
-      {
-        if(mAdaptor) mAdaptor->release(); 
-      }
-      
     private:
       
       BufferAdaptor* mAdaptor;
@@ -118,7 +108,10 @@ namespace parameter{
     BufferAdaptor(BufferAdaptor&& rhs) = default;
     BufferAdaptor() = default;
     
-    virtual ~BufferAdaptor() = default;
+    virtual ~BufferAdaptor()
+    {
+//      destroy();
+    }
     
     bool operator==(BufferAdaptor& rhs) const
     {
@@ -129,23 +122,21 @@ namespace parameter{
     {
       return !(*this == rhs);
     }
+
     
   private:
-    
     virtual bool equal(BufferAdaptor* rhs) const = 0;
-
+//    virtual void assign() = 0;
+//    virtual void destroy() = 0;
     virtual void acquire() = 0;
     virtual void release() = 0;
     virtual bool valid() const   = 0;
-    
     virtual void resize(size_t frames, size_t channels, size_t rank) = 0;
-    
     //Return a slice of the buffer
     virtual FluidTensorView<float,1> samps(size_t channel, size_t rankIdx = 0) = 0;
     //Return a view of all the data
-    virtual FluidTensorView<float,2> samps() = 0;
-    virtual FluidTensorView<float,2> samps(size_t offset, size_t nframes, size_t chanoffset, size_t chans) = 0; 
-
+//    virtual FluidTensorView<float,2> samps() = 0;
+    virtual FluidTensorView<float,1> samps(size_t offset, size_t nframes, size_t chanoffset) = 0;
     virtual size_t numFrames() const = 0;
     virtual size_t numChans() const = 0;
     virtual size_t rank() const = 0;

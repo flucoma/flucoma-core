@@ -393,7 +393,7 @@ namespace fluid {
         indices.insert(indices.begin(), model.offset);
         
         trans.resize(num_spikes + 2,1,1);
-        trans.samps().col(0) = FluidTensorView<size_t,1>{indices.data(),0,num_spikes + 2};
+        trans.samps(0) = FluidTensorView<size_t,1>{indices.data(),0,num_spikes + 2};
       }
       
       

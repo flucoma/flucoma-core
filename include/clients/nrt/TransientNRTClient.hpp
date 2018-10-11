@@ -373,7 +373,7 @@ namespace fluid {
           FluidTensor<double,1> srcFrames(model.frames + model.blocksize);
           FluidTensor<double,1> cleanFrames(model.frames + model.blocksize);
           FluidTensor<double,1> transientFrames(model.frames + model.blocksize);
-          srcFrames(fluid::slice(0,model.frames))  = src.samps(model.offset,model.frames,model.channelOffset + i,1).col(0);
+          srcFrames(fluid::slice(0,model.frames))  = src.samps(model.offset,model.frames,model.channelOffset + i);
           transient_extraction::TransientExtraction extractor(model.order, model.iterations, model.robustFactor, false);
           extractor.prepareStream(model.blocksize, model.padding);
           extractor.setDetectionParameters(model.skew, model.fwdThresh, model.backThresh, model.halfWindow, model.debounce);
