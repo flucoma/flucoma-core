@@ -6,11 +6,6 @@
 namespace fluid {
 namespace medianfilter {
 
-using std::cout;
-using std::endl;
-using std::pair;
-using std::vector;
-
 using Eigen::ArrayXd;
 using Eigen::Ref;
 
@@ -107,9 +102,9 @@ class MedianFilter {
              (mData[i] == mData[mMedianIndex] && i < mMedianIndex);
     }
     size_t mFilterSize;
-    vector<Link> mLinks;
+    std::vector<Link> mLinks;
     const double *mData;
-    vector<pair<double, int>> mSorted;
+    std::vector<std::pair<double, int>> mSorted;
     int mMedianIndex;
     int mSmallIndex;
 

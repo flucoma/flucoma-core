@@ -6,7 +6,6 @@
 #include <Eigen/Dense>
 #include <fstream>
 #include <iostream>
-#include <vector>
 
 namespace fluid {
 namespace rthpss {
@@ -19,16 +18,16 @@ using Eigen::Dynamic;
 using Eigen::Map;
 using Eigen::MatrixXd;
 using Eigen::RowMajor;
-using std::vector;
 
-using ComplexVector = FluidTensorView<std::complex<double>, 1>;
-using ComplexMatrix = FluidTensorView<std::complex<double>, 2>;
-using ArrayXcdMap = Map<const Array<std::complex<double>, Dynamic, RowMajor>>;
 using fluid::eigenmappings::ArrayXXcdToFluid;
 using fluid::medianfilter::MedianFilter;
 
 class RTHPSS {
 public:
+  using ComplexVector = FluidTensorView<std::complex<double>, 1>;
+  using ComplexMatrix = FluidTensorView<std::complex<double>, 2>;
+  using ArrayXcdMap = Map<const Array<std::complex<double>, Dynamic, RowMajor>>;
+
   enum HPSSMode { kClassic, kCoupled, kAdvanced };
   RTHPSS(int nBins, int vSize, int hSize, int mode, double hThresholdX1,
          double hThresholdY1, double hThresholdX2, double hThresholdY2,

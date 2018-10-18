@@ -1,8 +1,8 @@
 #pragma once
 
+#include "algorithms/ConvolutionTools.hpp"
 #include "algorithms/FFT.hpp"
 #include "algorithms/Windows.hpp"
-#include "algorithms/ConvolutionTools.hpp"
 #include "data/FluidTensor.hpp"
 #include <Eigen/Core>
 
@@ -11,28 +11,21 @@ namespace sineextraction {
 
 using convolution::correlateReal;
 using convolution::kEdgeWrapCentre;
-using fft::FFT;
-using std::abs;
-using std::complex;
-using std::max;
-using std::min;
-using std::vector;
-using windows::windowFuncs;
-using windows::WindowType;
-
-using RealMatrix = FluidTensor<double, 2>;
+using Eigen::Array;
 using Eigen::ArrayXcd;
 using Eigen::ArrayXd;
 using Eigen::ArrayXXd;
+using Eigen::Dynamic;
 using Eigen::Map;
+using Eigen::Matrix;
 using Eigen::MatrixXd;
+using Eigen::RowMajor;
 using Eigen::VectorXd;
-using MatrixXdMap =
-    Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>;
-using ArrayXXdMap = Map<const Eigen::Array<double, Eigen::Dynamic,
-                                           Eigen::Dynamic, Eigen::RowMajor>>;
-using ArrayXdMap =
-    Map<const Eigen::Array<double, Eigen::Dynamic, Eigen::RowMajor>>;
+using fft::FFT;
+
+using std::vector;
+using windows::windowFuncs;
+using windows::WindowType;
 
 struct SinePeak {
   double centerBin;
@@ -49,12 +42,15 @@ struct SineTrack {
 };
 
 struct SinesPlusNoiseModel {
+  using RealMatrix = FluidTensor<double, 2>;
   RealMatrix sines;
   RealMatrix noise;
 };
 
 class SineExtraction {
 public:
+  using RealMatrix = FluidTensor<double, 2>;
+
   SineExtraction(int windowSize, int fftSize, int hopSize, int bandwidth,
                  double threshold, int minTrackLength, double magWeight,
                  double freqWeight)
@@ -69,6 +65,11 @@ public:
   }
 
   const SinesPlusNoiseModel process(const RealMatrix &X) {
+    using MatrixXdMap = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>;
+    using ArrayXXdMap =
+        Map<const Eigen::Array<double, Dynamic, Dynamic, RowMajor>>;
+    using ArrayXdMap = Map<const Array<double, Dynamic, RowMajor>>;
+
     int nFrames = X.rows();
     int nBins = X.cols();
     ArrayXXdMap input(X.data(), nFrames, nBins);
@@ -237,10 +238,10 @@ private:
     int halfBW = mBandwidth / 2;
     ArrayXd sine = ArrayXd::Zero(mFFTSize / 2 + 1);
     int frameSize = mFFTSize / 2 + 1;
-    for (int i = idx, j = 0; i < min(idx + halfBW, frameSize - 1); i++, j++) {
+    for (int i = idx, j = 0; i < std::min(idx + halfBW, frameSize - 1); i++, j++) {
       sine[i] = amp * mWindowTransform(halfBW + j);
     }
-    for (int i = idx, j = 0; i > max(idx - halfBW, 0); i--, j++) {
+    for (int i = idx, j = 0; i > std::max(idx - halfBW, 0); i--, j++) {
       sine[i] = amp * mWindowTransform(halfBW - j);
     }
     return sine;

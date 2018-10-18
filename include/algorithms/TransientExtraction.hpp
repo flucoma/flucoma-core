@@ -15,14 +15,14 @@ namespace transient_extraction {
 using armodel::ARModel;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
-using TensorView = const FluidTensorView<double, 1>;
+
 using descriptors::Descriptors;
 
 class TransientExtraction
 {
 
 public:
-
+  using TensorView = const FluidTensorView<double, 1>;
   TransientExtraction(size_t order, size_t iterations, double robustFactor, bool refine) : mModel(order, iterations, robustFactor), mRandomGenerator(std::random_device()()), mBlockSize(0), mPadSize(0), mCount(0), mRefine(refine), mDetectHalfWindow(1), mDetectHold(25), mDetectPowerFactor(1.4), mDetectThreshHi(1.5), mDetectThreshLo(3.0)
   {
   }
@@ -160,34 +160,34 @@ private:
     }
 
     // Count Validation
-      
+
     if (count > (hopSize() / 2))
     {
       std::fill(mDetect.data(), mDetect.data() + hopSize(), 0.0);
       count = 0;
     }
-    
+
     // RMS validation
     /*
     const double frameRMS = calcStat<&Descriptors::RMS>(input, blockSize());
-    
+
     for (int i = 0, size = hopSize(); i < size;)
     {
       for (; i < size; i++)
           if (mDetect[i])
             break;
-      
+
       int beg = i;
-      
+
       for (; i < size; i++)
         if (!mDetect[i])
           break;
-      
+
       if (i <= beg)
         continue;
-      
+
       const double clickRMS = calcStat<&Descriptors::RMS>(input + modelOrder() + beg, i - beg);
-      
+
       if ((clickRMS / frameRMS) < 0.001)
       {
         count -= (i - beg);
@@ -197,7 +197,7 @@ private:
     */
     mCount = count;
   }
-  
+
   template <double Method(const TensorView&)>
   double calcStat(const double *input, int size)
   {
