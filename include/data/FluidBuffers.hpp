@@ -134,9 +134,13 @@ namespace fluid{
      This should be called in the DSP setup routine of
      the audio host
      */
-    void reset()
+    void reset(size_t channels = 0)
     {
-      if(matrix.cols() != buffer_size())
+      
+      if(channels)
+        m_channels = channels;
+        
+      if(matrix.cols() != buffer_size() || channels)
         matrix.resize(m_channels,buffer_size());
       matrix.fill(0);
       m_counter = 0;
@@ -188,7 +192,7 @@ namespace fluid{
         for(size_t i = 0; (i < m_channels && in!=end); ++i,++in)
         {
           auto in_range = matrix(i,slice(offset,size));
-          (*in)->copy_from(in_range.row(0), in_start, size);
+          (*in)->copy_from(in_range.row(0), in_start, size);          
         }
         m_counter = offset + size;
       }
@@ -302,9 +306,12 @@ namespace fluid{
      
      This should be called from an audio host's DSP setup routine
      **/
-    void reset()
+    void reset(size_t channels = 0)
     {
-      if(matrix.cols() != buffer_size())
+      if(channels)
+        m_channels = channels;
+      
+      if(matrix.cols() != buffer_size() || channels)
         matrix.resize(m_channels,buffer_size());
       matrix.fill(0);
       m_counter  = 0;

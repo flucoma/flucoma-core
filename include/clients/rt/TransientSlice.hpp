@@ -98,7 +98,7 @@ namespace fluid{
         newParamSet();
       }
       
-      void reset() override
+      void reset() 
       {
         static constexpr unsigned iterations = 3;
         static constexpr double   robustFactor = 3.0;

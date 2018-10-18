@@ -43,7 +43,6 @@ namespace audio {
         };
         
         
-        
         class AudioSignal: public Signal<U>
         {
         public:
@@ -168,9 +167,7 @@ namespace audio {
         {
             assert(channels_in == m_channels_in);
             assert(channels_out == m_channels_out);
-          
-          
-          
+
             m_source.push(input,inend,nsamps, channels_in);
             
             //I had imagined we could delegate knowing about the time into the frame
@@ -206,10 +203,14 @@ namespace audio {
           }
         }
       
-      template <typename InputIt>
-      void do_process(InputIt input,InputIt inend, size_t nsamps, size_t channels_in)
+      template <typename InputIt,typename OutputIt>
+      void do_process_noOLA(InputIt input,InputIt inend, OutputIt output, OutputIt outend, size_t nsamps, size_t channels_in, size_t channels_out)
       {
         assert(channels_in == m_channels_in);
+        assert(channels_out == m_channels_out);
+        
+  
+        
         
         m_source.push(input,inend,nsamps, channels_in);
         
@@ -226,10 +227,14 @@ namespace audio {
         {
           m_source.pull(m_frame,m_frame_time);
           process(m_frame, m_frame_out);
+          
+          for(size_t i = 0; (i < m_channels_out && output != outend); ++i,++output)
+          {
+            (*output)->copy_to(m_frame_out.row(i),0,nsamps);
+          }
         }
         
-        m_frame_time = m_frame_time < m_host_buffer_size?
-        m_frame_time : m_frame_time - m_host_buffer_size;
+        m_frame_time = m_frame_time < m_host_buffer_size? m_frame_time : m_frame_time - m_host_buffer_size;
       }
       
       
@@ -270,20 +275,25 @@ namespace audio {
       }
       
       
-        virtual void reset()
+        virtual void reset(long inputs = -1, long outputs = -1, long intermediates = -1)
         {
-            m_frame_time = 0;
-            m_source.reset();
-            m_sink.reset();
+          
+          m_channels_in = inputs > -1 ? inputs : m_channels_in;
+          m_channels_out = outputs > -1 ? outputs : m_channels_out;
+          mIntermediateChannels = intermediates > 0  ? intermediates : m_channels_out;
+         
+          m_frame_time = 0;
+          m_source.reset(m_channels_in);
+          m_sink.reset(mIntermediateChannels);
           
           size_t windowSize = getWindowSize();
           mHopSize =  getHopSize();
           
-            if(windowSize != m_frame.cols())
-            {
-              m_frame = FluidTensor<T, 2>(m_channels_in,windowSize);
-              m_frame_out = FluidTensor<T, 2>(mIntermediateChannels,windowSize);
-            }
+          if(windowSize != m_frame.cols())
+          {
+            m_frame = FluidTensor<T, 2>(m_channels_in,windowSize);
+            m_frame_out = FluidTensor<T, 2>(mIntermediateChannels,windowSize);
+          }
         }
         
         size_t channelsOut()

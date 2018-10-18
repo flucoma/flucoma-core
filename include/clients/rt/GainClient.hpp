@@ -94,7 +94,7 @@ namespace audio {
 //            m_scalar_gain = gain;
 //        }
       
-      void reset() override
+      void reset() 
       {
         m_scalar_gain = parameter::lookupParam("gain",mParams).getFloat();
         BaseAudioClient<T, U>::reset();

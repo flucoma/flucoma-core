@@ -80,7 +80,7 @@ namespace hpss{
       newParamSet();
     }
     
-    void reset() override
+    void reset() 
     {
       size_t winsize = parameter::lookupParam("winsize", mParams).getLong();
       size_t hopsize = parameter::lookupParam("hopsize", mParams).getLong();
