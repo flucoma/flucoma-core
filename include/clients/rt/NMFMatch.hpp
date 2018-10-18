@@ -28,9 +28,6 @@ namespace fluid{
           params.emplace_back("filterbuf","Filters Buffer", parameter::Type::Buffer);
           params.back().setInstantiation(false);
           
-          params.emplace_back("outbuf","Output Buffer", parameter::Type::Buffer);
-          params.back().setInstantiation(false);
-
           params.emplace_back("rank","Rank", parameter::Type::Long);
           params.back().setMin(1).setDefault(1).setInstantiation(true);
           
@@ -63,7 +60,7 @@ namespace fluid{
         newParamSet();
       }
       
-      void reset() override
+      void reset()
       {
         size_t winsize = parameter::lookupParam("winsize", mParams).getLong();
         size_t hopsize = parameter::lookupParam("hopsize", mParams).getLong();
@@ -71,24 +68,24 @@ namespace fluid{
         
         mSTFT  = std::unique_ptr<stft::STFT> (new stft::STFT(winsize,fftsize,hopsize));
         
-        size_t rank = parameter::lookupParam("rank", getParams()).getLong();
+        mRank = parameter::lookupParam("rank", getParams()).getLong();
         size_t iterations = parameter::lookupParam("iterations", getParams()).getLong();
-        mNMF = std::unique_ptr<NMF>(new NMF(rank,iterations));
-        outbuf = parameter::lookupParam("outbuf", getParams()).getBuffer();
+        mNMF = std::unique_ptr<NMF>(new NMF(mRank,iterations));
+//        outbuf = parameter::lookupParam("outbuf", getParams()).getBuffer();
         filbuf = parameter::lookupParam("filterbuf", getParams()).getBuffer();
         
-        parameter::BufferAdaptor::Access outputBuffer(outbuf);
+//        parameter::BufferAdaptor::Access outputBuffer(outbuf);
         
-        outputBuffer.resize(rank,1,1);
+//        outputBuffer.resize(mRank,1,1);
         
         parameter::BufferAdaptor::Access filterBuffer(filbuf);
 
         tmpFilt.resize(filterBuffer.numFrames(), filterBuffer.numChans());
-        tmpOut.resize(rank);
+        tmpOut.resize(mRank);
         
         tmpMagnitude.resize(fftsize / 2 + 1);
         
-        audio::BaseAudioClient<T,U>::reset();
+        audio::BaseAudioClient<T,U>::reset(1,mRank);
       }
       
       std::tuple<bool,std::string> sanityCheck()
@@ -151,7 +148,7 @@ namespace fluid{
         
         
         parameter::BufferAdaptor::Access filters(parameter::lookupParam("filterbuf", getParams()).getBuffer());
-        parameter::BufferAdaptor::Access output(parameter::lookupParam("outbuf", getParams()).getBuffer());
+//        parameter::BufferAdaptor::Access output(parameter::lookupParam("outbuf", getParams()).getBuffer());
         
         size_t rank = parameter::lookupParam("rank", getParams()).getLong();
         size_t iterations = parameter::lookupParam("iterations", getParams()).getLong();
@@ -160,11 +157,11 @@ namespace fluid{
         {
           return {false, "Filters buffer invalid"};
         }
-        
-        if(!output.valid())
-        {
-          return {false, "Output buffer invalid"};
-        }
+//        
+//        if(!output.valid())
+//        {
+//          return {false, "Output buffer invalid"};
+//        }
         
         if(filters.numChans() != rank || filters.numFrames() != ((fftSize.getLong() / 2) + 1))
         {
@@ -175,13 +172,13 @@ namespace fluid{
       
       void process(data_type input, data_type output) override
       {        
-        if(outbuf && filbuf)
+        if(filbuf)
         {
           
           parameter::BufferAdaptor::Access filterBuffer(filbuf);
-          parameter::BufferAdaptor::Access outputBuffer(outbuf);
+//          parameter::BufferAdaptor::Access outputBuffer(outbuf);
           
-          if(!(filterBuffer.valid() && outputBuffer.valid()))
+          if(!filterBuffer.valid())
           {
             return;
           }
@@ -201,8 +198,8 @@ namespace fluid{
             return hsum? x / hsum : 0;
           });
           
-          
-          outputBuffer.samps(0) = tmpOut;
+          output.col(0) = tmpOut; 
+   
         }
       }
       
@@ -242,6 +239,7 @@ namespace fluid{
       FluidTensor<double, 2> tmpFilt;
       FluidTensor<double, 1> tmpMagnitude;
       FluidTensor<double, 1> tmpOut;
+      size_t mRank;
 //      BufferPointer filterBuffer;
 //      BufferPointer outputBuffer;
       
