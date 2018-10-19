@@ -391,7 +391,7 @@ namespace fluid {
         //TODO: get rid of need for this
         //Either: do the whole process loop here via process_frame
         //Or: change sig of stft.process() to take a view
-        RealVector tmp(model.frames);
+        FluidTensor<double,1> tmp(model.frames);
         for(size_t i = 0; i < model.channels; ++i)
         {
 //          tmp = sourceData.col(i);
