@@ -27,23 +27,16 @@ using fft::IFFT;
 
 using windows::windowFuncs;
 using windows::WindowType;
-
-using ComplexMatrix = FluidTensor<std::complex<double>, 2>;
-using ComplexVector = FluidTensor<std::complex<double>, 1>;
-using RealMatrix = FluidTensor<double, 2>;
-using RealVector = FluidTensor<double, 1>;
-
-using RealVectorView = FluidTensorView<double, 1>;
-using RealMatrixView = FluidTensorView<double, 2>;
-using ComplexVectorView = FluidTensorView<std::complex<double>, 1>;
+using std::complex;
 
 using fluid::eigenmappings::FluidToArrayXXcd;
-using fluid::eigenmappings::FluidToArrayXXd;
 using fluid::eigenmappings::FluidToMatrixXcd;
 using fluid::eigenmappings::MatrixXcdToFluid;
 using fluid::eigenmappings::MatrixXdToFluid;
 
 struct Spectrogram {
+  using ComplexMatrix = FluidTensor<complex<double>, 2>;
+  using RealMatrix = FluidTensor<double, 2>;
   ComplexMatrix mData;
   Spectrogram(ComplexMatrix data) : mData(data) {}
   RealMatrix getMagnitude() const {
@@ -59,9 +52,15 @@ struct Spectrogram {
 };
 
 class STFT {
-  using ArrayXXdConstMap = Map<const Array<double, Dynamic, Dynamic, RowMajor>>;
 
 public:
+  using ComplexMatrix = FluidTensor<complex<double>, 2>;
+  using RealMatrix = FluidTensor<double, 2>;
+  using RealVector = FluidTensor<double, 1>;
+  using RealVectorView = FluidTensorView<double, 1>;
+  using ComplexVectorView = FluidTensorView<complex<double>, 1>;
+  using ArrayXXdConstMap = Map<const Array<double, Dynamic, Dynamic, RowMajor>>;
+
   STFT(size_t windowSize, size_t fftSize, size_t hopSize)
       : mWindowSize(windowSize), mHopSize(hopSize), mFrameSize(fftSize / 2 + 1),
         mFFT(fftSize) {
@@ -72,7 +71,7 @@ public:
   Spectrogram process(const RealVector &audio) {
     int halfWindow = mWindowSize / 2;
     ArrayXd padded(audio.size() + mWindowSize + mHopSize);
-    padded.fill(0); 
+    padded.fill(0);
     padded.segment(halfWindow, audio.size()) =
         Map<const ArrayXd>(audio.data(), audio.size());
     int nFrames = floor((padded.size() - mWindowSize) / mHopSize);
@@ -91,7 +90,7 @@ public:
             .data(),
         0, mFrameSize);
   }
-  
+
   RealVector window()
   {
     FluidTensor<double,1> win(mWindowSize);
@@ -108,11 +107,18 @@ private:
 };
 
 class ISTFT {
-  using ArrayXXdMap = Map<Array<double, Dynamic, Dynamic, RowMajor>>;
-  using ArrayXcdConstMap =
-      Map<const Array<std::complex<double>, Dynamic, Dynamic, RowMajor>>;
 
 public:
+  using ComplexMatrix = FluidTensor<complex<double>, 2>;
+  using RealMatrix = FluidTensor<double, 2>;
+  using RealVector = FluidTensor<double, 1>;
+  using RealVectorView = FluidTensorView<double, 1>;
+  using ComplexVectorView = FluidTensorView<complex<double>, 1>;
+
+  using ArrayXXdMap = Map<Array<double, Dynamic, Dynamic, RowMajor>>;
+  using ArrayXcdConstMap =
+      Map<const Array<complex<double>, Dynamic, Dynamic, RowMajor>>;
+
   ISTFT(size_t windowSize, size_t fftSize, size_t hopSize)
       : mWindowSize(windowSize), mHopSize(hopSize), mFrameSize(fftSize / 2 + 1),
         mScale(1 / double(fftSize)), mIFFT(fftSize), mBuffer(mWindowSize) {
@@ -154,7 +160,7 @@ public:
         mWindow * mScale;
     return mBuffer;
   }
-  
+
   RealVector window()
   {
     FluidTensor<double,1> win(mWindowSize);

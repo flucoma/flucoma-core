@@ -38,6 +38,7 @@ namespace fluid {
         
         size_t kernelsize;
         double threshold;
+        size_t filtersize;
         
         size_t winsize;
         size_t hopsize;
@@ -86,6 +87,10 @@ namespace fluid {
           
           params.emplace_back(desc_type{"threshold","Threshold", parameter::Type::Float});
           params.back().setMin(0).setDefault(0.8).setInstantiation(false);
+          
+          params.emplace_back("filtersize","Smoothing Filter Size", parameter::Type::Long);
+          params.back().setInstantiation(false);
+          
           
           params.emplace_back(desc_type{"winsize","Window Size", parameter::Type::Long});
           params.back().setMin(4).setDefault(1024).setInstantiation(false);
@@ -253,7 +258,12 @@ namespace fluid {
           return {false,"Kernel size is bigger than number of available samples", model};
         }
         
+        size_t filterSize = parameter::lookupParam("filtersize", getParams()).getLong();
+        
+        
+        
         model.kernelsize = kernelSize;
+        model.filtersize = filterSize;
         model.winsize = winSize.getLong();
         model.hopsize = hopSize.getLong();
         model.fftsize = fftSize.getLong();
@@ -294,7 +304,7 @@ namespace fluid {
         stft::STFT stft(model.winsize,model.fftsize,model.hopsize);
         stft::ISTFT istft(model.winsize,model.fftsize,model.hopsize);
         
-        novelty::NoveltySegmentation processor(model.kernelsize,model.threshold);
+        novelty::NoveltySegmentation processor(model.kernelsize,model.threshold,model.filtersize);
         
         auto  spectrum = stft.process(monoSource);
         auto magnitude = spectrum.getMagnitude();
