@@ -85,7 +85,7 @@ namespace fluid{
         
         tmpMagnitude.resize(fftsize / 2 + 1);
         
-        audio::BaseAudioClient<T,U>::reset(1,mRank);
+        audio::BaseAudioClient<T,U>::reset(1,mRank,mRank);
       }
       
       std::tuple<bool,std::string> sanityCheck()

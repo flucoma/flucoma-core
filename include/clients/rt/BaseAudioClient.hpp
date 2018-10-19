@@ -280,7 +280,7 @@ namespace audio {
           
           m_channels_in = inputs > -1 ? inputs : m_channels_in;
           m_channels_out = outputs > -1 ? outputs : m_channels_out;
-          mIntermediateChannels = intermediates > 0  ? intermediates : m_channels_out;
+          mIntermediateChannels = intermediates > 0  ? intermediates : mIntermediateChannels;
          
           m_frame_time = 0;
           m_source.reset(m_channels_in);
