@@ -45,16 +45,19 @@ int main(int argc, char* argv[])
 
   // test processFrame
   FluidTensorView<double, 1> inF = in(slice(0, 1024));
-  FluidTensorView<double, 2> outF = istft.processFrame(stft.processFrame(inF));
+  FluidTensorView<double, 1> outF = istft.processFrame(stft.processFrame(inF));
   std::cout<<"size "<<outF.size()<<std::endl;
   err = 0;
-  outF(1, 0) = 1;
+
+  FluidTensor<double,1> windowNorm = stft.window();
+  windowNorm.apply(stft.window(),[](double& x, double& y){x *= y;});
+  windowNorm(0) = 1;
+
   for(int i=0;i<inF.size();i++){
     std::cout<<"in "<<inF[i]<<std::endl;
-
-    std::cout<<"out "<<outF(0, i) / outF(1, i)<<std::endl;
-    std::cout<<"err "<<std::abs(inF[i] - outF(0, i) / outF(1, i))<<std::endl;
-    err += std::abs(inF[i] - outF(0, i) / outF(1, i));
+    std::cout<<"out "<<outF[i] / windowNorm[i]<<std::endl;
+    std::cout<<"err "<<std::abs(inF[i] - outF[i] / windowNorm[i])<<std::endl;
+    err += std::abs(inF[i] - outF[i] / windowNorm[i]);
   }
   std::cout<<"----"<<std::endl;
   std::cout<<"err "<<err<<std::endl;
