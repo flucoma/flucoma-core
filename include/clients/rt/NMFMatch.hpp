@@ -194,9 +194,9 @@ namespace fluid{
           mNMF->processFrame(tmpMagnitude, tmpFilt, tmpOut);
           
           double hsum = std::accumulate(tmpOut.begin(), tmpOut.end(), 0.0);
-          std::transform(tmpOut.begin(), tmpOut.end(), tmpOut.begin(), [&](double& x)->double{
-            return hsum? x / hsum : 0;
-          });
+//          std::transform(tmpOut.begin(), tmpOut.end(), tmpOut.begin(), [&](double& x)->double{
+//            return hsum? x / hsum : 0;
+//          });
           
           output.col(0) = tmpOut; 
    
