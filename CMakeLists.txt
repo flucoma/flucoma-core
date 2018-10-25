@@ -47,8 +47,14 @@ target_include_directories(
   FLUID_DECOMPOSITION
   INTERFACE
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
+)
+
+target_include_directories(
+  FLUID_DECOMPOSITION
+  SYSTEM INTERFACE
   "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty"
 )
+
 
 #TODO: Not this? We possibly need to seperate public facing headers from
 # obviously implementaion related ones to cut down on noise
