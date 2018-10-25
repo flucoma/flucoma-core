@@ -57,7 +57,7 @@ namespace fluid {
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
 
           params.emplace_back("src1gain","Source 1 Gain", parameter::Type::Float);
-          params.back().setInstantiation(false).setDefault(1);
+          params.back().setInstantiation(true).setDefault(1);
 
           params.emplace_back("src1dstoffset", "Source 1 Destination Offset", parameter::Type::Long);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
@@ -81,7 +81,7 @@ namespace fluid {
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
 
           params.emplace_back("src2gain","Source 2 Gain", parameter::Type::Float);
-          params.back().setInstantiation(false).setDefault(1);
+          params.back().setInstantiation(true).setDefault(1);
 
           params.emplace_back("src2dstoffset", "Source 2 Destination Offset", parameter::Type::Long);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
