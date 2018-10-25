@@ -235,11 +235,11 @@ namespace fluid {
         model.dstChannelOffset[0] = srcDstChanOffset;
 
 
-        srcOffset     = parameter::lookupParam("offsetframes2",mParams).getLong();
-        srcFrames     = parameter::lookupParam("numframes2",   mParams).getLong();
-        srcChanOffset = parameter::lookupParam("offsetchans2", mParams).getLong();
-        srcChans      = parameter::lookupParam("numchans2",    mParams).getLong();
-        srcDstOffset  = parameter::lookupParam("src2dstoffset", mParams).getLong();
+        srcOffset        = parameter::lookupParam("offsetframes2",mParams).getLong();
+        srcFrames        = parameter::lookupParam("numframes2",   mParams).getLong();
+        srcChanOffset    = parameter::lookupParam("offsetchans2", mParams).getLong();
+        srcChans         = parameter::lookupParam("numchans2",    mParams).getLong();
+        srcDstOffset     = parameter::lookupParam("src2dstoffset", mParams).getLong();
         srcDstChanOffset = parameter::lookupParam("src2dstchanoffset", mParams).getLong();
 
         //We're quite relaxed about asking for more frames than the buffer contains (we'll zero pad)
@@ -313,7 +313,7 @@ namespace fluid {
         {
           parameter::BufferAdaptor::Access src1(model.src1);
           parameter::BufferAdaptor::Access src2(model.src2);
-          // iterates throught the copying of the first source
+          // iterates through the copying of the first source
           for(size_t i = model.dstChannelOffset[0], j = 0; j < model.channels[0]; ++i,++j)
           {
             FluidTensor<double, 1> srcChan(src1.samps(model.offset[0],model.frames[0],(model.channelOffset[0] + j) % src1.numChans()));
@@ -324,7 +324,7 @@ namespace fluid {
             dstChan = srcChan;
           }
           
-          // iterates throught the copying of the second source and sums it to the dest buff
+          // iterates through the copying of the second source and sums it to the dest buff
           for(size_t i = model.dstChannelOffset[1], j = 0; j < model.channels[1]; ++i,++j)
           {
             FluidTensor<double, 1> srcChan(src2.samps(model.offset[1],model.frames[1],(model.channelOffset[1] + j) % src2.numChans()));
@@ -339,12 +339,14 @@ namespace fluid {
         }
         
         parameter::BufferAdaptor::Access dst(model.dst);
-        if(dst.numFrames() < frames || dst.numChans() < chans)
-          dst.resize(frames,chans,1);
+//        if(dst.numFrames() < frames || dst.numChans() < chans)
+//        {
+        dst.resize(frames,chans,1);
+//        }
         
         for(size_t i = 0; i < dst.numChans(); ++i)
         {
-          dst.samps(0,frames, i) = dstData.col(i);
+          dst.samps(0,frames, i) = dstData.col(i % dstData.cols());
         }
     }
       
