@@ -1,7 +1,9 @@
 #pragma once
 
+#include <iostream>//for ostream
 #include <string>
 #include <functional>
+#include <cassert>
 
 namespace fluid {
 namespace client {
@@ -37,10 +39,25 @@ namespace client {
     double getDefault() const { return mDefaultVal; }
     bool instantiation() const { return mInstantiation; }
     
-    bool operator == (const ParameterDescriptor& x) const {}
+    bool operator == (const ParameterDescriptor& x) const {
+      return  mType          == x.mType
+          &&  mName          == x.mName
+          &&  mDispName      == x.mDispName
+          &&  mInstantiation == x.mInstantiation
+          &&  mDefaultVal    == x.mDefaultVal;
+    }
     bool operator != (const ParameterDescriptor& x) const { return !(x == *this); }
     
-    friend std::ostream& operator << (std::ostream& out,const ParameterDescriptor& p) {}
+    friend std::ostream& operator << (std::ostream& out,const ParameterDescriptor& p) {
+      out << "Parameter "
+          << p.mName
+          << "{ \n\tType: "
+          << static_cast<std::underlying_type<Type>::type>(p.mType)
+          << "\tInstantiation " << p.mInstantiation
+          << "\tDefault " << p.mDefaultVal
+          << "\n}\n";
+          return out;
+    }
       
   private:
       
