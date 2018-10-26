@@ -1,6 +1,3 @@
-/**
- ParameterInstanceList.hpp
- **/
 
 #pragma once
 
@@ -29,12 +26,10 @@ namespace client {
     const_iterator cbegin() const { return mContainer.cbegin(); }
     const_iterator cend() const { return mContainer.cend(); }
     size_t size() const { return mContainer.size(); }
-    
-    const ParameterInstance& operator[](size_t index) const
-    {
-      return mContainer[index];
-    }
-    
+
+    ParameterInstance& operator[](size_t index) { return mContainer[index]; }
+    const ParameterInstance& operator[](size_t index) const { return mContainer[index]; }
+      
   private:
     
     std::vector<ParameterInstance> mContainer;
