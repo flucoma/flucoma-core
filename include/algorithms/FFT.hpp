@@ -4,7 +4,7 @@
 #include <Eigen/Core>
 
 namespace fluid {
-namespace fft {
+namespace algorithm {
 
 class FFT {
 
@@ -75,5 +75,5 @@ public:
 private:
   ArrayXd mOutputBuffer;
 };
-} // namespace fft
+} // namespace algorithm
 } // namespace fluid

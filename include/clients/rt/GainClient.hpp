@@ -12,7 +12,7 @@
 #include "clients/common/FluidParams.hpp"
 
 namespace fluid {
-namespace audio {
+namespace client {
     
     /**!
      @class GainAudioClient
@@ -30,14 +30,14 @@ namespace audio {
         using AudioSignal = typename BaseAudioClient<T,U>::AudioSignal;
         using ScalarSignal = typename BaseAudioClient<T,U>::ScalarSignal;
       
-      static std::vector<parameter::Descriptor> getParamDescriptors()
+      static std::vector<client::Descriptor> getParamDescriptors()
       {
-        static std::vector<parameter::Descriptor> desc;
+        static std::vector<client::Descriptor> desc;
           
         if(desc.size() == 0)
         {
 
-          desc.emplace_back("gain", "Gain", parameter::Type::kFloat);
+          desc.emplace_back("gain", "Gain", client::Type::kFloat);
           desc.back().setDefault(1);
           BaseAudioClient<T,U>::initParamDescriptors(desc);
 
@@ -98,12 +98,12 @@ namespace audio {
       
       void reset() 
       {
-        mScalarGain = parameter::lookupParam("gain",mParams).getFloat();
+        mScalarGain = client::lookupParam("gain",mParams).getFloat();
         BaseAudioClient<T, U>::reset();
       }
       
       
-      std::vector<parameter::Instance>& getParams() override
+      std::vector<client::Instance>& getParams() override
       {
         return mParams;
       }
@@ -120,11 +120,11 @@ namespace audio {
       }
 
       T mScalarGain = 1.;
-      std::vector<parameter::Instance> mParams;
+      std::vector<client::Instance> mParams;
       
       
     }; // class
-} //namespace audio
+} //namespace client
 } //namespace fluid
 
 

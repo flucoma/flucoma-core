@@ -15,10 +15,10 @@
 #include <cmath> //for log2
 
 namespace fluid {
-namespace parameter {
+namespace client {
 
   
-  std::tuple<bool, std::string> checkFFTArguments(parameter::Instance& windowSize, parameter::Instance& hopSize, parameter::Instance& fftSize)
+  std::tuple<bool, std::string> checkFFTArguments(client::Instance& windowSize, client::Instance& hopSize, client::Instance& fftSize)
   {
     double log2WindowSize = log2(windowSize.getLong());
     if(log2WindowSize - trunc(log2WindowSize) != 0)
@@ -114,5 +114,5 @@ namespace parameter {
 //        std::string feedback_string;
 //        
 //    };
-} //namespace stft
+} //namespace client
 } //namespace fluid

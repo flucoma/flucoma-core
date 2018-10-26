@@ -11,19 +11,19 @@
 using fluid::audiofile::AudioFileData;
 using fluid::audiofile::readFile;
 using fluid::audiofile::writeFile;
-using fluid::eigenmappings::FluidToArrayXXd;
+using fluid::algorithm::FluidToArrayXXd;
 
-using fluid::hpss::HPSS;
-using fluid::hpss::HPSSModel;
-using fluid::stft::ISTFT;
-using fluid::stft::Spectrogram;
-using fluid::stft::STFT;
+using fluid::algorithm::HPSS;
+using fluid::algorithm::HPSSModel;
+using fluid::algorithm::ISTFT;
+using fluid::algorithm::Spectrogram;
+using fluid::algorithm::STFT;
 
 using RealMatrix = fluid::FluidTensor<double, 2>;
 using RealVector = fluid::FluidTensor<double, 1>;
 
 using Eigen::ArrayXXd;
-using fluid::ratiomask::RatioMask;
+using fluid::algorithm::RatioMask;
 using std::ofstream;
 
 int main(int argc, char *argv[]) {

@@ -11,38 +11,38 @@
 
 
 namespace fluid{
-  namespace nmf{
+  namespace client{
     template <typename T, typename U>
-    class NMFMatch:public audio::BaseAudioClient<T,U>
+    class NMFMatch:public client::BaseAudioClient<T,U>
     {
       using data_type = FluidTensorView<T,2>;
       using complex   = FluidTensorView<std::complex<T>,1>;
-      using BufferPointer = std::unique_ptr<parameter::BufferAdaptor::Access>;
+      using BufferPointer = std::unique_ptr<client::BufferAdaptor::Access>;
     public:
-      static const std::vector<parameter::Descriptor> &getParamDescriptors()
+      static const std::vector<client::Descriptor> &getParamDescriptors()
       {
-        static std::vector<parameter::Descriptor> params;
+        static std::vector<client::Descriptor> params;
         if(params.size() == 0)
         {
 
           params.emplace_back("filterbuf", "Filters Buffer",
-                              parameter::Type::kBuffer);
+                              client::Type::kBuffer);
           params.back().setInstantiation(false);
 
-          params.emplace_back("rank", "Rank", parameter::Type::kLong);
+          params.emplace_back("rank", "Rank", client::Type::kLong);
           params.back().setMin(1).setDefault(1).setInstantiation(true);
 
           params.emplace_back("iterations", "Iterations",
-                              parameter::Type::kLong);
+                              client::Type::kLong);
           params.back().setInstantiation(false).setMin(1).setDefault(10).setInstantiation(false);
 
-          params.emplace_back("winsize", "Window Size", parameter::Type::kLong);
+          params.emplace_back("winsize", "Window Size", client::Type::kLong);
           params.back().setMin(4).setDefault(1024).setInstantiation(true);
 
-          params.emplace_back("hopsize", "Hop Size", parameter::Type::kLong);
+          params.emplace_back("hopsize", "Hop Size", client::Type::kLong);
           params.back().setMin(1).setDefault(256).setInstantiation(true);
 
-          params.emplace_back("fftsize", "FFT Size", parameter::Type::kLong);
+          params.emplace_back("fftsize", "FFT Size", client::Type::kLong);
           params.back().setMin(-1).setDefault(-1).setInstantiation(true);
 
         }
@@ -57,45 +57,45 @@ namespace fluid{
       NMFMatch operator=(NMFMatch&) = delete;
       
       NMFMatch(size_t maxWindowSize):
-      audio::BaseAudioClient<T,U>(maxWindowSize,1,0,0)
+      client::BaseAudioClient<T,U>(maxWindowSize,1,0,0)
       {
         newParamSet();
       }
       
       void reset()
       {
-        size_t winsize = parameter::lookupParam("winsize", mParams).getLong();
-        size_t hopsize = parameter::lookupParam("hopsize", mParams).getLong();
-        size_t fftsize = parameter::lookupParam("fftsize", mParams).getLong();
+        size_t winsize = client::lookupParam("winsize", mParams).getLong();
+        size_t hopsize = client::lookupParam("hopsize", mParams).getLong();
+        size_t fftsize = client::lookupParam("fftsize", mParams).getLong();
         
-        mSTFT  = std::unique_ptr<stft::STFT> (new stft::STFT(winsize,fftsize,hopsize));
+        mSTFT  = std::unique_ptr<algorithm::STFT> (new algorithm::STFT(winsize,fftsize,hopsize));
         
-        mRank = parameter::lookupParam("rank", getParams()).getLong();
-        size_t iterations = parameter::lookupParam("iterations", getParams()).getLong();
-        mNMF = std::unique_ptr<NMF>(new NMF(mRank,iterations));
-//        outbuf = parameter::lookupParam("outbuf", getParams()).getBuffer();
-        filbuf = parameter::lookupParam("filterbuf", getParams()).getBuffer();
+        mRank = client::lookupParam("rank", getParams()).getLong();
+        size_t iterations = client::lookupParam("iterations", getParams()).getLong();
+        mNMF = std::unique_ptr<algorithm::NMF>(new algorithm::NMF(mRank,iterations));
+//        outbuf = client::lookupParam("outbuf", getParams()).getBuffer();
+        filbuf = client::lookupParam("filterbuf", getParams()).getBuffer();
         
-//        parameter::BufferAdaptor::Access outputBuffer(outbuf);
+//        client::BufferAdaptor::Access outputBuffer(outbuf);
         
 //        outputBuffer.resize(mRank,1,1);
         
-        parameter::BufferAdaptor::Access filterBuffer(filbuf);
+        client::BufferAdaptor::Access filterBuffer(filbuf);
 
         tmpFilt.resize(filterBuffer.numFrames(), filterBuffer.numChans());
         tmpOut.resize(mRank);
         
         tmpMagnitude.resize(fftsize / 2 + 1);
         
-        audio::BaseAudioClient<T,U>::reset(1,mRank,mRank);
+        client::BaseAudioClient<T,U>::reset(1,mRank,mRank);
       }
       
       std::tuple<bool,std::string> sanityCheck()
       {
-        const std::vector<parameter::Descriptor>& desc = getParamDescriptors();
+        const std::vector<client::Descriptor>& desc = getParamDescriptors();
         //First, let's make sure that we have a complete of parameters of the right sort
         bool sensible = std::equal(mParams.begin(), mParams.end(),desc.begin(),
-         [](const parameter::Instance& i, const parameter::Descriptor& d)
+         [](const client::Instance& i, const client::Descriptor& d)
          {
            return i.getDescriptor() == d;
          });
@@ -105,12 +105,12 @@ namespace fluid{
           return {false, "Invalid params passed. Were these generated with newParameterSet()?" };
         }
         //Now scan everything for range, until we hit a problem
-        //TODO Factor into parameter::instance
+        //TODO Factor into client::instance
         for(auto&& p: mParams)
         {
-          parameter::Descriptor d = p.getDescriptor();
+          client::Descriptor d = p.getDescriptor();
           bool rangeOk;
-          parameter::Instance::RangeErrorType errorType;
+          client::Instance::RangeErrorType errorType;
           std::tie(rangeOk, errorType) = p.checkRange();
           if (!rangeOk)
           {
@@ -118,10 +118,10 @@ namespace fluid{
             msg << "Parameter " << d.getName();
             switch (errorType)
             {
-            case parameter::Instance::RangeErrorType::kMin:
+            case client::Instance::RangeErrorType::kMin:
               msg << " value below minimum(" << d.getMin() << ")";
               break;
-            case parameter::Instance::RangeErrorType::kMax:
+            case client::Instance::RangeErrorType::kMax:
               msg << " value above maximum(" << d.getMin() << ")";
             default:
               assert(false && "This should be unreachable");
@@ -130,30 +130,30 @@ namespace fluid{
           }
         }
         
-        std::tuple<bool, std::string> windowCheck = audio::BaseAudioClient<T,U>::sanityCheck();
+        std::tuple<bool, std::string> windowCheck = client::BaseAudioClient<T,U>::sanityCheck();
         if(!std::get<0>(windowCheck))
         {
           return windowCheck;
         }
         
-        parameter::Instance& winSize = parameter::lookupParam("winsize", getParams());
-        parameter::Instance& hopSize = parameter::lookupParam("hopsize", getParams());
-        parameter::Instance& fftSize = parameter::lookupParam("fftsize", getParams());
+        client::Instance& winSize = client::lookupParam("winsize", getParams());
+        client::Instance& hopSize = client::lookupParam("hopsize", getParams());
+        client::Instance& fftSize = client::lookupParam("fftsize", getParams());
         
         
         
-        std::tuple<bool, std::string> fftok =  parameter::checkFFTArguments(winSize, hopSize, fftSize);
+        std::tuple<bool, std::string> fftok =  client::checkFFTArguments(winSize, hopSize, fftSize);
         if(! std::get<0>(fftok))
         {
           return {false, std::get<1>(fftok)};
         }
         
         
-        parameter::BufferAdaptor::Access filters(parameter::lookupParam("filterbuf", getParams()).getBuffer());
-//        parameter::BufferAdaptor::Access output(parameter::lookupParam("outbuf", getParams()).getBuffer());
+        client::BufferAdaptor::Access filters(client::lookupParam("filterbuf", getParams()).getBuffer());
+//        client::BufferAdaptor::Access output(client::lookupParam("outbuf", getParams()).getBuffer());
         
-        size_t rank = parameter::lookupParam("rank", getParams()).getLong();
-        size_t iterations = parameter::lookupParam("iterations", getParams()).getLong();
+        size_t rank = client::lookupParam("rank", getParams()).getLong();
+        size_t iterations = client::lookupParam("iterations", getParams()).getLong();
         
         if(!filters.valid())
         {
@@ -177,8 +177,8 @@ namespace fluid{
         if(filbuf)
         {
           
-          parameter::BufferAdaptor::Access filterBuffer(filbuf);
-//          parameter::BufferAdaptor::Access outputBuffer(outbuf);
+          client::BufferAdaptor::Access filterBuffer(filbuf);
+//          client::BufferAdaptor::Access outputBuffer(outbuf);
           
           if(!filterBuffer.valid())
           {
@@ -208,7 +208,7 @@ namespace fluid{
       //Here we gain compensate for the OLA
       void postProcess(data_type output) override {}
 
-      std::vector<parameter::Instance>& getParams() override
+      std::vector<client::Instance>& getParams() override
       {
         return mParams;
       }
@@ -234,10 +234,10 @@ namespace fluid{
       }
       
       
-      std::unique_ptr<stft::STFT> mSTFT; 
-      std::unique_ptr<NMF> mNMF;
-      parameter::BufferAdaptor* outbuf = nullptr;
-      parameter::BufferAdaptor* filbuf = nullptr;
+      std::unique_ptr<algorithm::STFT> mSTFT; 
+      std::unique_ptr<algorithm::NMF> mNMF;
+      client::BufferAdaptor* outbuf = nullptr;
+      client::BufferAdaptor* filbuf = nullptr;
       FluidTensor<double, 2> tmpFilt;
       FluidTensor<double, 1> tmpMagnitude;
       FluidTensor<double, 1> tmpOut;
@@ -247,8 +247,8 @@ namespace fluid{
       
 //      std::unique_ptr<TransientSegmentation> mExtractor;
 //      FluidTensor<std::complex<T>,1> mTransients;
-      std::vector<parameter::Instance> mParams;
+      std::vector<client::Instance> mParams;
     };
-  }//namespace hpss
+  }//namespace client
 }//namespace fluid
 

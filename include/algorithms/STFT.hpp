@@ -11,7 +11,7 @@
 #include "data/FluidTensor.hpp"
 
 namespace fluid {
-namespace stft {
+namespace algorithm {
 
 using Eigen::Array;
 using Eigen::ArrayXd;
@@ -22,17 +22,17 @@ using Eigen::MatrixXcd;
 using Eigen::MatrixXd;
 using Eigen::RowMajor;
 
-using fft::FFT;
-using fft::IFFT;
-
-using windows::windowFuncs;
-using windows::WindowType;
+//using algorithm::FFT;
+//using algorithm::IFFT;
+//
+//using algorithm::windowFuncs;
+//using algorithm::WindowType;
 using std::complex;
 
-using fluid::eigenmappings::FluidToArrayXXcd;
-using fluid::eigenmappings::FluidToMatrixXcd;
-using fluid::eigenmappings::MatrixXcdToFluid;
-using fluid::eigenmappings::MatrixXdToFluid;
+//using fluid::algorithm::FluidToArrayXXcd;
+//using fluid::algorithm::FluidToMatrixXcd;
+//using fluid::algorithm::MatrixXcdToFluid;
+//using fluid::algorithm::MatrixXdToFluid;
 
 struct Spectrogram {
   using ComplexMatrix = FluidTensor<complex<double>, 2>;
@@ -179,5 +179,5 @@ private:
   RealVector mBuffer;
 };
 
-} // namespace stft
+} // namespace algorithm
 } // namespace fluid

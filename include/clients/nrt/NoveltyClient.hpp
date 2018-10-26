@@ -16,15 +16,15 @@
 #include <vector> //for containers of params, and for checking things
 
 namespace fluid {
-  namespace segmentation{
+  namespace client{
 
     /**
      Integration class for doing NMF filtering and resynthesis
      **/
       class NoveltyClient
     {
-      using desc_type = parameter::Descriptor;
-      using param_type = parameter::Instance;
+      using desc_type = client::Descriptor;
+      using param_type = client::Instance;
     public:
 
       struct ProcessModel
@@ -33,8 +33,8 @@ namespace fluid {
         size_t offset;
         size_t channels;
         size_t channelOffset;
-        parameter::BufferAdaptor* src = 0;
-        parameter::BufferAdaptor* indices = 0;
+        client::BufferAdaptor* src = 0;
+        client::BufferAdaptor* indices = 0;
         
         size_t kernelsize;
         double threshold;
@@ -59,56 +59,56 @@ namespace fluid {
        // * weight of spectral magnitude when associating a peak to an existing track (relative, but suggested 0 to 1)
        // * weight of frequency when associating a peak to an existing track (relativer, suggested 0 to 1)
        ***/
-      static const std::vector<parameter::Descriptor>& getParamDescriptors()
+      static const std::vector<client::Descriptor>& getParamDescriptors()
       {
         static std::vector<desc_type> params;
         if(params.empty())
         {
-          params.emplace_back("src", "Source Buffer", parameter::Type::kBuffer);
+          params.emplace_back("src", "Source Buffer", client::Type::kBuffer);
           params.back().setInstantiation(true);
 
           params.emplace_back("offsetframes", "Source Offset",
-                              parameter::Type::kLong);
+                              client::Type::kLong);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
           params.emplace_back("numframes", "Source Frames",
-                              parameter::Type::kLong);
+                              client::Type::kLong);
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
 
           params.emplace_back("offsetchans", "Source Channel Offset",
-                              parameter::Type::kLong);
+                              client::Type::kLong);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
           params.emplace_back("numchans", "Source Channels",
-                              parameter::Type::kLong);
+                              client::Type::kLong);
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
 
           params.emplace_back(desc_type{"transbuf", "Indices Buffer",
-                                        parameter::Type::kBuffer});
+                                        client::Type::kBuffer});
           params.back().setInstantiation(false);
 
           params.emplace_back(
-              desc_type{"kernelsize", "Kernel Size", parameter::Type::kLong});
+              desc_type{"kernelsize", "Kernel Size", client::Type::kLong});
           params.back().setMin(3).setDefault(3).setInstantiation(false);
 
           params.emplace_back(
-              desc_type{"threshold", "Threshold", parameter::Type::kFloat});
+              desc_type{"threshold", "Threshold", client::Type::kFloat});
           params.back().setMin(0).setDefault(0.8).setInstantiation(false);
 
           params.emplace_back("filtersize", "Smoothing Filter Size",
-                              parameter::Type::kLong);
+                              client::Type::kLong);
           params.back().setInstantiation(false);
 
           params.emplace_back(
-              desc_type{"winsize", "Window Size", parameter::Type::kLong});
+              desc_type{"winsize", "Window Size", client::Type::kLong});
           params.back().setMin(4).setDefault(1024).setInstantiation(false);
 
           params.emplace_back(
-              desc_type{"hopsize", "Hop Size", parameter::Type::kLong});
+              desc_type{"hopsize", "Hop Size", client::Type::kLong});
           params.back().setMin(1).setDefault(512).setInstantiation(false);
 
           params.emplace_back(
-              desc_type{"fftsize", "FFT Size", parameter::Type::kLong});
+              desc_type{"fftsize", "FFT Size", client::Type::kLong});
           params.back().setMin(-1).setDefault(2048).setInstantiation(false);
           
         }
@@ -121,7 +121,7 @@ namespace fluid {
         mParams.reserve(getParamDescriptors().size());
         //Note: I'm pretty sure I want auto's copy behaviour here
         for(auto p: getParamDescriptors())
-          mParams.emplace_back( parameter::Instance(p));
+          mParams.emplace_back( client::Instance(p));
       }
 
       /**
@@ -132,10 +132,10 @@ namespace fluid {
       std::tuple<bool,std::string,ProcessModel> sanityCheck()
       {
         ProcessModel model;
-        const std::vector<parameter::Descriptor>& desc = getParamDescriptors();
+        const std::vector<client::Descriptor>& desc = getParamDescriptors();
         //First, let's make sure that we have a complete of parameters of the right sort
         bool sensible = std::equal(mParams.begin(), mParams.end(),desc.begin(),
-          [](const param_type& i, const parameter::Descriptor& d)
+          [](const param_type& i, const client::Descriptor& d)
           {
             return i.getDescriptor() == d;
           });
@@ -146,10 +146,10 @@ namespace fluid {
         }
 
         size_t bufCount = 0;
-        std::unordered_set<parameter::BufferAdaptor*> uniqueBuffers;
+        std::unordered_set<client::BufferAdaptor*> uniqueBuffers;
         //First round of buffer checks
         //Source buffer is mandatory, and should exist
-        parameter::BufferAdaptor::Access src(mParams[0].getBuffer());
+        client::BufferAdaptor::Access src(mParams[0].getBuffer());
 
         if(!src.valid())
         {
@@ -165,11 +165,11 @@ namespace fluid {
         {
           switch(p.getDescriptor().getType())
           {
-          case parameter::Type::kBuffer:
+          case client::Type::kBuffer:
             // If we've been handed a buffer that we're expecting, then it
             // should exist
             if (p.hasChanged() && p.getBuffer()) {
-              parameter::BufferAdaptor::Access b(p.getBuffer());
+              client::BufferAdaptor::Access b(p.getBuffer());
               if (!b.valid()) {
                 std::ostringstream ss;
                 ss << "Buffer given for " << p.getDescriptor().getName()
@@ -192,12 +192,12 @@ namespace fluid {
 
 
         //Now scan everything for range, until we hit a problem
-        //TODO Factor into parameter::instance
+        //TODO Factor into client::instance
         for(auto&& p: mParams)
         {
-          parameter::Descriptor d = p.getDescriptor();
+          client::Descriptor d = p.getDescriptor();
           bool rangeOk;
-          parameter::Instance::RangeErrorType errorType;
+          client::Instance::RangeErrorType errorType;
           std::tie(rangeOk, errorType) = p.checkRange();
           if (!rangeOk)
           {
@@ -205,10 +205,10 @@ namespace fluid {
             msg << "Parameter " << d.getName();
             switch (errorType)
             {
-            case parameter::Instance::RangeErrorType::kMin:
+            case client::Instance::RangeErrorType::kMin:
               msg << " value below minimum (" << d.getMin() << ")";
               break;
-            case parameter::Instance::RangeErrorType::kMax:
+            case client::Instance::RangeErrorType::kMax:
               msg << " value above maximum (" << d.getMin() << ")";
             default:
               assert(false && "This should be unreachable");
@@ -218,10 +218,10 @@ namespace fluid {
 
         }
 
-        long srcOffset     = parameter::lookupParam("offsetframes", mParams).getLong();
-        long srcFrames     = parameter::lookupParam("numframes",    mParams).getLong();
-        long srcChanOffset = parameter::lookupParam("offsetchans",  mParams).getLong();
-        long srcChans      = parameter::lookupParam("numchans",     mParams).getLong();
+        long srcOffset     = client::lookupParam("offsetframes", mParams).getLong();
+        long srcFrames     = client::lookupParam("numframes",    mParams).getLong();
+        long srcChanOffset = client::lookupParam("offsetchans",  mParams).getLong();
+        long srcChans      = client::lookupParam("numchans",     mParams).getLong();
         
         //Ensure that the source buffer can deliver
         if(srcFrames > 0 ? (src.numFrames() < (srcOffset + srcFrames)) : (src.numFrames() < srcOffset))
@@ -235,27 +235,27 @@ namespace fluid {
         }
 
         //At this point, we're happy with the source buffer
-        model.src          = parameter::lookupParam("src",getParams()).getBuffer();
+        model.src          = client::lookupParam("src",getParams()).getBuffer();
         model.offset        = srcOffset;
         model.frames        = srcFrames > 0 ? srcFrames : src.numFrames() - model.offset;
         model.channelOffset = srcChanOffset;
         model.channels      = srcChans >  0 ? srcChans  : src.numChans() - model.channelOffset;
 
-        model.indices = parameter::lookupParam("transbuf",getParams()).getBuffer();
+        model.indices = client::lookupParam("transbuf",getParams()).getBuffer();
 
-        parameter::Instance& winSize = parameter::lookupParam("winsize", getParams());
-        parameter::Instance& hopSize = parameter::lookupParam("hopsize", getParams());
-        parameter::Instance& fftSize = parameter::lookupParam("fftsize", getParams());
+        client::Instance& winSize = client::lookupParam("winsize", getParams());
+        client::Instance& hopSize = client::lookupParam("hopsize", getParams());
+        client::Instance& fftSize = client::lookupParam("fftsize", getParams());
         
         
-        std::tuple<bool,std::string> fftok = parameter::checkFFTArguments(winSize, hopSize, fftSize);
+        std::tuple<bool,std::string> fftok = client::checkFFTArguments(winSize, hopSize, fftSize);
         if(!std::get<0>(fftok))
         {
           return std::tuple_cat(fftok,std::make_tuple(model));
         }
         
         
-        size_t kernelSize = parameter::lookupParam("kernelsize",getParams()).getLong();
+        size_t kernelSize = client::lookupParam("kernelsize",getParams()).getLong();
         
         if(!(kernelSize % 2))
         {
@@ -268,7 +268,7 @@ namespace fluid {
           return {false,"Kernel size is bigger than number of available samples", model};
         }
         
-        size_t filterSize = parameter::lookupParam("filtersize", getParams()).getLong();
+        size_t filterSize = client::lookupParam("filtersize", getParams()).getLong();
         
         
         
@@ -277,7 +277,7 @@ namespace fluid {
         model.winsize = winSize.getLong();
         model.hopsize = hopSize.getLong();
         model.fftsize = fftSize.getLong();
-        model.threshold =  parameter::lookupParam("threshold",getParams()).getFloat();
+        model.threshold =  client::lookupParam("threshold",getParams()).getFloat();
 
         //We made it
         return {true, "Everything is lovely",model};
@@ -296,8 +296,8 @@ namespace fluid {
 
       void process(ProcessModel model)
       {
-        parameter::BufferAdaptor::Access src(model.src);
-        parameter::BufferAdaptor::Access idx(model.indices);
+        client::BufferAdaptor::Access src(model.src);
+        client::BufferAdaptor::Access idx(model.indices);
         
         
         FluidTensor<double,1> monoSource(model.frames);
@@ -311,10 +311,10 @@ namespace fluid {
           });
         }
         
-        stft::STFT stft(model.winsize,model.fftsize,model.hopsize);
-        stft::ISTFT istft(model.winsize,model.fftsize,model.hopsize);
+        algorithm::STFT stft(model.winsize,model.fftsize,model.hopsize);
+        algorithm::ISTFT istft(model.winsize,model.fftsize,model.hopsize);
         
-        novelty::NoveltySegmentation processor(model.kernelsize,model.threshold,model.filtersize);
+        algorithm::NoveltySegmentation processor(model.kernelsize,model.threshold,model.filtersize);
         
         auto  spectrum = stft.process(monoSource);
         auto magnitude = spectrum.getMagnitude();
@@ -354,13 +354,13 @@ namespace fluid {
         idx.samps(0) =
             FluidTensorView<size_t, 1>{indices.data(), 0, numSpikes + 2};
       }
-      std::vector<parameter::Instance>& getParams()
+      std::vector<client::Instance>& getParams()
       {
         return mParams;
       }
 
     private:
-      std::vector<parameter::Instance> mParams;
+      std::vector<client::Instance> mParams;
     };
-  } //namespace buf
+  } //namespace client
 } //namesapce fluid

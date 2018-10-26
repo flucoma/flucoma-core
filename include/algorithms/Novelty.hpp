@@ -7,7 +7,7 @@
 #include <limits>
 
 namespace fluid {
-namespace novelty {
+namespace algorithm {
 
 // This implements Foote's novelty curve
 class Novelty {
@@ -26,8 +26,8 @@ public:
     using Eigen::VectorXd;
     using ArrayXdMap =
         Eigen::Map<Eigen::Array<double, Eigen::Dynamic, Eigen::RowMajor>>;
-    using fluid::descriptors::Descriptors;
-    using fluid::eigenmappings::FluidToMatrixXd;
+    using fluid::algorithm::Descriptors;
+    using fluid::algorithm::FluidToMatrixXd;
     using std::vector;
 
     const auto &epsilon = std::numeric_limits<double>::epsilon;
@@ -59,8 +59,8 @@ private:
     using Eigen::ArrayXd;
     using Eigen::Map;
     using Eigen::MatrixXd;
-    using windows::windowFuncs;
-    using windows::WindowType;
+    using algorithm::windowFuncs;
+    using algorithm::WindowType;
     int h = (mKernelSize - 1) / 2;
     ArrayXd gaussian = Map<ArrayXd>(
         windowFuncs[WindowType::kGaussian](mKernelSize).data(), mKernelSize);
@@ -70,5 +70,5 @@ private:
     mKernel = tmp.array();
   }
 };
-} // namespace novelty
+} // namespace algorithm
 } // namespace fluid

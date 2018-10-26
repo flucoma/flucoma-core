@@ -4,7 +4,7 @@
 #include "FluidTensor.hpp"
 
 namespace fluid {
-namespace eigenmappings {
+namespace algorithm {
 
 using Eigen::Array;
 using Eigen::Dynamic;
@@ -62,5 +62,5 @@ using FluidToArrayXXcd = EigenMatrixMap<complex<double>, Array>;
 using ArrayXXdToFluid = FluidMatrixMap<double, Array>;
 using ArrayXXcdToFluid = FluidMatrixMap<complex<double>, Array>;
 
-} // namespace eigenmappings
+} // namespace algorithm
 } // namespace fluid

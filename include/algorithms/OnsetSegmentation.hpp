@@ -9,18 +9,18 @@
 #include <algorithm>
 
 namespace fluid {
-namespace onset {
+namespace algorithm {
 
 using Eigen::Map;
 
 class OnsetSegmentation {
   using RealVector = fluid::FluidTensor<double, 1>;
   using RealVectorView = fluid::FluidTensorView<double, 1>;
-  using WindowType = windows::WindowType;
+  using WindowType = algorithm::WindowType;
   using ArrayXd = Eigen::ArrayXd;
   using ArrayXcd = Eigen::ArrayXcd;
   using ArrayXdMap = Map<Eigen::Array<double, Eigen::Dynamic, Eigen::RowMajor>>;
-  using FFT = fft::FFT;
+  using FFT = algorithm::FFT;
 
 public:
   enum Normalisation {
@@ -46,7 +46,7 @@ public:
                     bool forwardOnly = false)
       : mFFT(FFTSize), mFFTSize(FFTSize), mWindowSize(windowSize),
         mHopSize(hopSize), mFrameDelta(frameDelta),
-        mWindowType(windows::WindowType::Hann), mFunction(function),
+        mWindowType(algorithm::WindowType::Hann), mFunction(function),
         mFilterSize(filterSize), mForwardOnly(forwardOnly),
         mNormalisation(kNone), mThreshold(threshold) {
     assert(mWindowSize <= mFFTSize);
@@ -72,8 +72,8 @@ public:
   }
 
   void process(RealVectorView &input, RealVectorView &output) {
-    using convolution::convolveReal;
-    using convolution::kEdgeWrapCentre;
+    using algorithm::convolveReal;
+    using algorithm::kEdgeWrapCentre;
     int frameSize = inputFrameSize();
     int leftPadding = frameSize / 2;
     int rightPadding = mWindowSize;
@@ -177,7 +177,7 @@ private:
     mFFTBuffer.resize(windowSize());
 
     mWindow = Map<ArrayXd>(
-        windows::windowFuncs[mWindowType](windowSize()).data(), windowSize());
+        algorithm::windowFuncs[mWindowType](windowSize()).data(), windowSize());
   }
 
 private:
@@ -200,5 +200,5 @@ private:
   Normalisation mNormalisation;
 };
 
-}; // namespace onset
+}; // namespace algorithm
 }; // namespace fluid

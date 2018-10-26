@@ -18,9 +18,9 @@ int main(int argc, char *argv[]) {
   using fluid::audiofile::writeFile;
 
   using fluid::FluidTensor;
-  using fluid::stft::ISTFT;
-  using fluid::stft::Spectrogram;
-  using fluid::stft::STFT;
+  using fluid::algorithm::ISTFT;
+  using fluid::algorithm::Spectrogram;
+  using fluid::algorithm::STFT;
 
   using Eigen::ArrayXXcd;
   using Eigen::ArrayXXd;
@@ -29,8 +29,8 @@ int main(int argc, char *argv[]) {
                                         Eigen::Dynamic, Eigen::RowMajor>>;
   using ArrayXXdMap = Map<
       Eigen::Array<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>;
-  using fluid::sineextraction::SineExtraction;
-  using fluid::sineextraction::SinesPlusNoiseModel;
+  using fluid::algorithm::SineExtraction;
+  using fluid::algorithm::SinesPlusNoiseModel;
   using ComplexMatrix = FluidTensor<complex<double>, 2>;
   using RealMatrix = FluidTensor<double, 2>;
   using RealVector = FluidTensor<double, 1>;

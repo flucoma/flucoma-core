@@ -12,48 +12,48 @@
 
 
 namespace fluid{
-namespace stn{
+namespace client{
   template <typename T, typename U>
-  class SinesClient:public audio::BaseAudioClient<T,U>
+  class SinesClient:public client::BaseAudioClient<T,U>
   {
     using data_type = FluidTensorView<T,2>;
     using complex   = FluidTensorView<std::complex<T>,1>;
   public:
     
-    static const std::vector<parameter::Descriptor> &getParamDescriptors()
+    static const std::vector<client::Descriptor> &getParamDescriptors()
     {
-      static std::vector<parameter::Descriptor> params;
+      static std::vector<client::Descriptor> params;
       if(params.size() == 0)
       {
-        params.emplace_back("bandwidth", "Bandwidth", parameter::Type::kLong);
+        params.emplace_back("bandwidth", "Bandwidth", client::Type::kLong);
         params.back().setMin(1).setDefault(76).setInstantiation(true);
 
-        params.emplace_back("threshold", "Threshold", parameter::Type::kFloat);
+        params.emplace_back("threshold", "Threshold", client::Type::kFloat);
         params.back().setMin(0).setMax(1).setDefault(0.7).setInstantiation(false);
 
         params.emplace_back("mintracklen", "Min Track Length",
-                            parameter::Type::kLong);
+                            client::Type::kLong);
         params.back().setMin(0).setDefault(15).setInstantiation(false);
 
         params.emplace_back("magweight", "Magnitude Weight",
-                            parameter::Type::kFloat);
+                            client::Type::kFloat);
         params.back().setMin(0).setMax(1).setDefault(0.1).setInstantiation(false);
 
         params.emplace_back("freqweight", "Frequency Weight",
-                            parameter::Type::kFloat);
+                            client::Type::kFloat);
         params.back().setMin(0).setMax(1).setDefault(1).setInstantiation(false);
         
-        //        params.emplace_back("winsize","Window Size", parameter::Type::Long);
+        //        params.emplace_back("winsize","Window Size", client::Type::Long);
         //        params.back().setMin(4).setDefault(4096);
         //
-        //        params.emplace_back("hopsize","Hop Size", parameter::Type::Long);
+        //        params.emplace_back("hopsize","Hop Size", client::Type::Long);
         //        params.back().setMin(1).setDefault(1024);
-        audio::BaseAudioClient<T,U>::initParamDescriptors(params);
+        client::BaseAudioClient<T,U>::initParamDescriptors(params);
         
         params[params.size() - 2].setInstantiation(true);//winsize
         params.back().setInstantiation(true);//hopsize
 
-        params.emplace_back("fftsize", "FFT Size", parameter::Type::kLong);
+        params.emplace_back("fftsize", "FFT Size", client::Type::kLong);
         params.back().setMin(-1).setDefault(8192).setInstantiation(true);
       }
       
@@ -67,33 +67,33 @@ namespace stn{
     SinesClient operator=(SinesClient&) = delete;
     
     SinesClient(size_t maxWindowSize):
-    //stft::STFTCheckParams(windowsize,hopsize,fftsize),
-    audio::BaseAudioClient<T,U>(maxWindowSize,1,2,3)
+    //algorithm::STFTCheckParams(windowsize,hopsize,fftsize),
+    client::BaseAudioClient<T,U>(maxWindowSize,1,2,3)
     {
       newParamSet();
     }
     
     void reset()
     {
-      size_t winsize = parameter::lookupParam("winsize", mParams).getLong();
-      size_t hopsize = parameter::lookupParam("hopsize", mParams).getLong();
-      size_t fftsize = parameter::lookupParam("fftsize", mParams).getLong();
+      size_t winsize = client::lookupParam("winsize", mParams).getLong();
+      size_t hopsize = client::lookupParam("hopsize", mParams).getLong();
+      size_t fftsize = client::lookupParam("fftsize", mParams).getLong();
       
-      mSTFT  = std::unique_ptr<stft::STFT> (new stft::STFT(winsize,fftsize,hopsize));
-      mISTFT = std::unique_ptr<stft::ISTFT>(new stft::ISTFT(winsize,fftsize,hopsize));
+      mSTFT  = std::unique_ptr<algorithm::STFT> (new algorithm::STFT(winsize,fftsize,hopsize));
+      mISTFT = std::unique_ptr<algorithm::ISTFT>(new algorithm::ISTFT(winsize,fftsize,hopsize));
       
-      size_t bandwidth = parameter::lookupParam("bandwidth", getParams()).getLong();
-      double threshold = parameter::lookupParam("threshold", getParams()).getFloat();
-      size_t mintracklen = parameter::lookupParam("mintracklen", getParams()).getLong();
-      double magweight = parameter::lookupParam("magweight", getParams()).getFloat();
-      double freqweight = parameter::lookupParam("freqweight", getParams()).getFloat();
+      size_t bandwidth = client::lookupParam("bandwidth", getParams()).getLong();
+      double threshold = client::lookupParam("threshold", getParams()).getFloat();
+      size_t mintracklen = client::lookupParam("mintracklen", getParams()).getLong();
+      double magweight = client::lookupParam("magweight", getParams()).getFloat();
+      double freqweight = client::lookupParam("freqweight", getParams()).getFloat();
       
       
 //      (int windowSize, int fftSize, int hopSize, int bandwidth,
 //       double threshold, int minTrackLength, double magWeight,
 //       double freqWeight)
       
-      mSinesExtractor = std::unique_ptr<rtsineextraction::RTSineExtraction>(new rtsineextraction::RTSineExtraction(winsize,fftsize,hopsize, bandwidth,threshold,mintracklen, magweight,freqweight));
+      mSinesExtractor = std::unique_ptr<algorithm::RTSineExtraction>(new algorithm::RTSineExtraction(winsize,fftsize,hopsize, bandwidth,threshold,mintracklen, magweight,freqweight));
       
       
       
@@ -107,17 +107,17 @@ namespace stn{
       mSeparatedSpectra.resize(fftsize/2+1,2);
       mSines.resize(fftsize/2+1);
       mRes.resize(fftsize/2+1);
-      audio::BaseAudioClient<T,U>::reset();
+      client::BaseAudioClient<T,U>::reset();
     }
     
     std::tuple<bool,std::string> sanityCheck()
     {
-      //        BaseAudioClient<T,U>::getParams()[0].setLong(parameter::lookupParam("winsize", mParams).getLong());
-      //        BaseAudioClient<T,U>::getParams()[1].setLong(parameter::lookupParam("hopsize", mParams).getLong());
-      const std::vector<parameter::Descriptor>& desc = getParamDescriptors();
+      //        BaseAudioClient<T,U>::getParams()[0].setLong(client::lookupParam("winsize", mParams).getLong());
+      //        BaseAudioClient<T,U>::getParams()[1].setLong(client::lookupParam("hopsize", mParams).getLong());
+      const std::vector<client::Descriptor>& desc = getParamDescriptors();
       //First, let's make sure that we have a complete of parameters of the right sort
       bool sensible = std::equal(mParams.begin(), mParams.end(),desc.begin(),
-       [](const parameter::Instance& i, const parameter::Descriptor& d)
+       [](const client::Instance& i, const client::Descriptor& d)
        {
          return i.getDescriptor() == d;
        });
@@ -129,12 +129,12 @@ namespace stn{
       
       
       //Now scan everything for range, until we hit a problem
-      //TODO Factor into parameter::instance
+      //TODO Factor into client::instance
       for(auto&& p: mParams)
       {
-        parameter::Descriptor d = p.getDescriptor();
+        client::Descriptor d = p.getDescriptor();
         bool rangeOk;
-        parameter::Instance::RangeErrorType errorType;
+        client::Instance::RangeErrorType errorType;
         std::tie(rangeOk, errorType) = p.checkRange();
         if (!rangeOk)
         {
@@ -142,10 +142,10 @@ namespace stn{
           msg << "Parameter " << d.getName();
           switch (errorType)
           {
-          case parameter::Instance::RangeErrorType::kMin:
+          case client::Instance::RangeErrorType::kMin:
             msg << " value below minimum (" << d.getMin() << ")";
             break;
-          case parameter::Instance::RangeErrorType::kMax:
+          case client::Instance::RangeErrorType::kMax:
             msg << " value above maximum (" << d.getMin() << ")";
             break;
           default:
@@ -156,17 +156,17 @@ namespace stn{
         
       }
 
-     std::tuple<bool, std::string> windowCheck = audio::BaseAudioClient<T,U>::sanityCheck();
+     std::tuple<bool, std::string> windowCheck = client::BaseAudioClient<T,U>::sanityCheck();
       if(!std::get<0>(windowCheck))
       {
         return windowCheck;
       }
       
-      parameter::Instance& winSize = parameter::lookupParam("winsize", getParams());
-      parameter::Instance& hopSize = parameter::lookupParam("hopsize", getParams());
-      parameter::Instance& fftSize = parameter::lookupParam("fftsize", getParams());
+      client::Instance& winSize = client::lookupParam("winsize", getParams());
+      client::Instance& hopSize = client::lookupParam("hopsize", getParams());
+      client::Instance& fftSize = client::lookupParam("fftsize", getParams());
       
-      return parameter::checkFFTArguments(winSize, hopSize, fftSize);
+      return client::checkFFTArguments(winSize, hopSize, fftSize);
       
       return {true,"Groovy"};
     }
@@ -176,10 +176,10 @@ namespace stn{
     {
       complex spec  = mSTFT->processFrame(input.row(0));
       
-      mSinesExtractor->setThreshold(parameter::lookupParam("threshold", getParams()).getFloat());
-      mSinesExtractor->setMagWeight(parameter::lookupParam("magweight", getParams()).getFloat());
-      mSinesExtractor->setFreqWeight(parameter::lookupParam("freqweight", getParams()).getFloat());
-      mSinesExtractor->setMinTrackLength(parameter::lookupParam("mintracklen", getParams()).getLong());
+      mSinesExtractor->setThreshold(client::lookupParam("threshold", getParams()).getFloat());
+      mSinesExtractor->setMagWeight(client::lookupParam("magweight", getParams()).getFloat());
+      mSinesExtractor->setFreqWeight(client::lookupParam("freqweight", getParams()).getFloat());
+      mSinesExtractor->setMinTrackLength(client::lookupParam("mintracklen", getParams()).getLong());
       
       
       mSinesExtractor->processFrame(spec, mSeparatedSpectra);
@@ -209,7 +209,7 @@ namespace stn{
       });
     }
     
-    std::vector<parameter::Instance>& getParams() override
+    std::vector<client::Instance>& getParams() override
     {
       return mParams;
     }
@@ -224,16 +224,16 @@ namespace stn{
     
     
     
-    std::unique_ptr<stft::STFT> mSTFT;
-    std::unique_ptr<rtsineextraction::RTSineExtraction> mSinesExtractor;
-    std::unique_ptr<stft::ISTFT> mISTFT;
+    std::unique_ptr<algorithm::STFT> mSTFT;
+    std::unique_ptr<algorithm::RTSineExtraction> mSinesExtractor;
+    std::unique_ptr<algorithm::ISTFT> mISTFT;
     FluidTensor<T,1> mNormWindow;
     FluidTensor<std::complex<T>,2> mSeparatedSpectra;
     FluidTensor<std::complex<T>,1> mSines;
     FluidTensor<std::complex<T>,1> mRes;
-    std::vector<parameter::Instance> mParams;
+    std::vector<client::Instance> mParams;
   };
 
 
-}//namespace hpss
+}//namespace client
 }//namespace fluid

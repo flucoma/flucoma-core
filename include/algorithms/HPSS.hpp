@@ -8,7 +8,7 @@
 #include <vector>
 
 namespace fluid {
-namespace hpss {
+namespace algorithm {
 
 using Eigen::ArrayXd;
 using Eigen::ArrayXXd;
@@ -16,16 +16,16 @@ using Eigen::Map;
 using Eigen::MatrixXd;
 using std::vector;
 
-using fluid::eigenmappings::ArrayXXdToFluid;
-using fluid::eigenmappings::FluidToArrayXXd;
-using fluid::eigenmappings::FluidToMatrixXd;
-using fluid::eigenmappings::MatrixXdToFluid;
+using fluid::algorithm::ArrayXXdToFluid;
+using fluid::algorithm::FluidToArrayXXd;
+using fluid::algorithm::FluidToMatrixXd;
+using fluid::algorithm::MatrixXdToFluid;
 
 using RealMatrix = FluidTensor<double, 2>;
 using RealVector = FluidTensor<double, 1>;
 
 using fluid::Slice;
-using fluid::medianfilter::MedianFilter;
+using fluid::algorithm::MedianFilter;
 
 struct HPSSModel {
   MatrixXd H;
@@ -81,5 +81,5 @@ private:
   MedianFilter mVMedianFilter;
   MedianFilter mHMedianFilter;
 };
-} // namespace hpss
+} // namespace algorithm
 } // namespace fluid

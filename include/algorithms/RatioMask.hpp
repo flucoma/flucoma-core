@@ -4,7 +4,7 @@
 #include "data/FluidTensor.hpp"
 
 namespace fluid {
-namespace ratiomask {
+namespace algorithm {
 
 using Eigen::ArrayXXcd;
 using Eigen::ArrayXXd;
@@ -18,14 +18,15 @@ using ArrayXXdMap =
 using ArrayXXcdMap = Map<Eigen::Array<std::complex<double>, Eigen::Dynamic,
                                       Eigen::Dynamic, Eigen::RowMajor>>;
 
-const auto &epsilon = std::numeric_limits<double>::epsilon;
 
 class RatioMask {
+  const double epsilon = std::numeric_limits<double>::epsilon();
+
 public:
   RatioMask(RealMatrix denominator, int exponent) : mExponent(exponent) {
     ArrayXXdMap denominatorArray(denominator.data(), denominator.extent(0),
                                  denominator.extent(1));
-    mMultiplier = (1 / denominatorArray.max(epsilon()));
+    mMultiplier = (1 / denominatorArray.max(epsilon));
   }
 
   ComplexMatrix process(ComplexMatrix mixture, RealMatrix targetMag) {
@@ -47,5 +48,5 @@ private:
   int mExponent;
 };
 
-} // namespace ratiomask
+} // namespace algorithm
 } // namespace fluid

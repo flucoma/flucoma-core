@@ -7,9 +7,9 @@ using fluid::FluidTensor;
 using fluid::audiofile::AudioFileData;
 using fluid::audiofile::readFile;
 using fluid::audiofile::writeFile;
-using fluid::stft::Spectrogram;
-using fluid::stft::STFT;
-using fluid::novelty::NoveltySegmentation;
+using fluid::algorithm::Spectrogram;
+using fluid::algorithm::STFT;
+using fluid::algorithm::NoveltySegmentation;
 
 using RealMatrix = FluidTensor<double, 2>;
 using RealVector = FluidTensor<double, 1>;

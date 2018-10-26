@@ -23,17 +23,17 @@ int main(int argc, char *argv[]) {
   using fluid::audiofile::writeFile;
 
   using fluid::FluidTensor;
-  using fluid::nmf::NMF;
-  using fluid::nmf::NMFModel;
-  using fluid::stft::ISTFT;
-  using fluid::stft::Spectrogram;
-  using fluid::stft::STFT;
+  using fluid::algorithm::NMF;
+  using fluid::algorithm::NMFModel;
+  using fluid::algorithm::ISTFT;
+  using fluid::algorithm::Spectrogram;
+  using fluid::algorithm::STFT;
 
   using ComplexMatrix = FluidTensor<complex<double>, 2>;
   using RealVector = FluidTensor<double, 1>;
   using RealMatrix = FluidTensor<double, 2>;
 
-  using fluid::ratiomask::RatioMask;
+  using fluid::algorithm::RatioMask;
 
   if (argc <= 3) {
     cout << "usage: test_nmf train.wav test.wav rank\n";

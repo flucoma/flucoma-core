@@ -20,7 +20,7 @@
 #include <vector> //for lookup
 
 namespace fluid {
-namespace parameter{
+namespace client{
   /**
    Plain base class, just has a parameter name and whether its instantiation-only
    
@@ -259,7 +259,7 @@ private:
     
     std::string mName;
     bool mInstantiation = false;
-    parameter::Type mType;
+    client::Type mType;
     std::string mDisplayName; 
     double mMin = std::numeric_limits<double>::lowest();
     double mMax = std::numeric_limits<double>::max();
@@ -641,7 +641,7 @@ private:
 //  };
   
 
-}//namespace parameter
+}//namespace client
 }//namespace fluid
 
 

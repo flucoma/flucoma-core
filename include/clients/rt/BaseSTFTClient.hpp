@@ -16,7 +16,7 @@
 
 
 namespace  fluid {
-namespace audio {
+namespace client {
 
 
   template <typename T, typename U>
@@ -27,9 +27,9 @@ namespace audio {
       using data_type = FluidTensorView<T,2>;
       using complex   = FluidTensorView<std::complex<T>,1>;
     public:
-      static const std::vector<parameter::Descriptor> &getParamDescriptors()
+      static const std::vector<client::Descriptor> &getParamDescriptors()
       {
-        static std::vector<parameter::Descriptor> params;
+        static std::vector<client::Descriptor> params;
         if(params.size() == 0)
         {
           BaseAudioClient<T,U>::initParamDescriptors(params);
@@ -37,7 +37,7 @@ namespace audio {
           params.front().setDefault(1024);
           params[1].setDefault(512);
 
-          params.emplace_back("fftsize", "FFT Size", parameter::Type::kLong);
+          params.emplace_back("fftsize", "FFT Size", client::Type::kLong);
           params.back().setMin(-1).setInstantiation(true).setDefault(-1);
         }
         
@@ -49,7 +49,7 @@ namespace audio {
         BaseSTFTClient operator=(BaseSTFTClient&) = delete;
 
         BaseSTFTClient(size_t maxWindowSize):
-        //stft::STFTCheckParams(windowsize,hopsize,fftsize),
+        //algorithm::STFTCheckParams(windowsize,hopsize,fftsize),
         BaseAudioClient<T,U>(maxWindowSize,1,1,2 )
         {
           newParamSet();
@@ -57,12 +57,12 @@ namespace audio {
 
       void reset() 
       {
-        size_t winsize = parameter::lookupParam("winsize", mParams).getLong();
-        size_t hopsize = parameter::lookupParam("hopsize", mParams).getLong();
-        size_t fftsize = parameter::lookupParam("fftsize", mParams).getLong();
+        size_t winsize = client::lookupParam("winsize", mParams).getLong();
+        size_t hopsize = client::lookupParam("hopsize", mParams).getLong();
+        size_t fftsize = client::lookupParam("fftsize", mParams).getLong();
         
-        mSTFT  = std::unique_ptr<stft::STFT> (new stft::STFT(winsize,fftsize,hopsize));
-        mISTFT = std::unique_ptr<stft::ISTFT>(new stft::ISTFT(winsize,fftsize,hopsize));
+        mSTFT  = std::unique_ptr<algorithm::STFT> (new algorithm::STFT(winsize,fftsize,hopsize));
+        mISTFT = std::unique_ptr<algorithm::ISTFT>(new algorithm::ISTFT(winsize,fftsize,hopsize));
         
         normWindow = mSTFT->window();
         normWindow.apply(mISTFT->window(),[](double& x, double& y)
@@ -76,20 +76,20 @@ namespace audio {
       
       std::tuple<bool,std::string> sanityCheck()
       {
-//        BaseAudioClient<T,U>::getParams()[0].setLong(parameter::lookupParam("winsize", mParams).getLong());
-//        BaseAudioClient<T,U>::getParams()[1].setLong(parameter::lookupParam("hopsize", mParams).getLong());
+//        BaseAudioClient<T,U>::getParams()[0].setLong(client::lookupParam("winsize", mParams).getLong());
+//        BaseAudioClient<T,U>::getParams()[1].setLong(client::lookupParam("hopsize", mParams).getLong());
         
         for(auto&& p: getParams())
         {
-          std::tuple<bool,parameter::Instance::RangeErrorType> res = p.checkRange();
+          std::tuple<bool,client::Instance::RangeErrorType> res = p.checkRange();
           if(!std::get<0>(res))
           {
             switch(std::get<1>(res))
             {
-            case parameter::Instance::RangeErrorType::kMin:
+            case client::Instance::RangeErrorType::kMin:
               return {false, "Parameter below minimum"};
               break;
-            case parameter::Instance::RangeErrorType::kMax:
+            case client::Instance::RangeErrorType::kMax:
               return {false, "Parameter above maximum"};
               break;
             }
@@ -104,7 +104,7 @@ namespace audio {
           return windowCheck;
         }
         
-        return parameter::checkFFTArguments(mParams[0], mParams[1], mParams[2]);
+        return client::checkFFTArguments(mParams[0], mParams[1], mParams[2]);
       }
       
         //Here we do an STFT and its inverse
@@ -124,7 +124,7 @@ namespace audio {
           });
         }
       
-     std::vector<parameter::Instance>& getParams() override
+     std::vector<client::Instance>& getParams() override
       {
         return mParams;
       }
@@ -137,10 +137,10 @@ namespace audio {
           mParams.emplace_back(d);
       }
       
-      std::unique_ptr<stft::STFT> mSTFT;
-      std::unique_ptr<stft::ISTFT> mISTFT;
+      std::unique_ptr<algorithm::STFT> mSTFT;
+      std::unique_ptr<algorithm::ISTFT> mISTFT;
       FluidTensor<T,1> normWindow;
-      std::vector<parameter::Instance> mParams;
+      std::vector<client::Instance> mParams;
     };
-} //namespace audio
+} //namespace client
 }//namespace fluid

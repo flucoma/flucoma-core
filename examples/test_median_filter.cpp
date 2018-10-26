@@ -3,7 +3,7 @@
 
 int main(int argc, char *argv[]) {
   using Eigen::ArrayXd;
-  using fluid::medianfilter::MedianFilter;
+  using fluid::algorithm::MedianFilter;
   using std::cout;
   using std::endl;
   using std::vector;

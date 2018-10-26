@@ -12,9 +12,9 @@
 
 
 namespace fluid{
-namespace hpss{
+namespace client{
   template <typename T, typename U>
-  class HPSSClient:public audio::BaseAudioClient<T,U>
+  class HPSSClient:public client::BaseAudioClient<T,U>
   {
 
     
@@ -22,57 +22,57 @@ namespace hpss{
     using complex   = FluidTensorView<std::complex<T>,1>;
   public:
     
-    static const std::vector<parameter::Descriptor> &getParamDescriptors()
+    static const std::vector<client::Descriptor> &getParamDescriptors()
     {
-      static std::vector<parameter::Descriptor> params;
+      static std::vector<client::Descriptor> params;
       if(params.size() == 0)
       {
 
         params.emplace_back("hsize", "Harmonic Filter Size",
-                            parameter::Type::kLong);
+                            client::Type::kLong);
         params.back().setMin(3).setDefault(17).setInstantiation(true);
 
         params.emplace_back("psize", "Percussive Filter Size",
-                            parameter::Type::kLong);
+                            client::Type::kLong);
         params.back().setMin(3).setDefault(31).setInstantiation(true);
 
-        params.emplace_back("modeflag", "Masking Mode", parameter::Type::kLong);
+        params.emplace_back("modeflag", "Masking Mode", client::Type::kLong);
         params.back().setMin(0).setMax(2).setInstantiation(true).setDefault(0);
 
         params.emplace_back("htf1", "Harmonic Threshold Low Frequency",
-                            parameter::Type::kFloat);
+                            client::Type::kFloat);
         params.back().setMin(0).setMax(1).setDefault(0).setInstantiation(false);
 
         params.emplace_back("hta1", "Harmonic Threshold Low Amplitude",
-                            parameter::Type::kFloat);
+                            client::Type::kFloat);
         params.back().setDefault(0).setInstantiation(false);
 
         params.emplace_back("htf2", "Harmonic Threshold High Frequency",
-                            parameter::Type::kFloat);
+                            client::Type::kFloat);
         params.back().setMin(0).setMax(1).setDefault(1).setInstantiation(false);
 
         params.emplace_back("hta2", "Harmonic Threshold High Amplitude",
-                            parameter::Type::kFloat);
+                            client::Type::kFloat);
         params.back().setDefault(0).setInstantiation(false);
 
         params.emplace_back("ptf1", "Percussive Threshold Low Frequency ",
-                            parameter::Type::kFloat);
+                            client::Type::kFloat);
         params.back().setMin(0).setMax(1).setDefault(0).setInstantiation(false);
 
         params.emplace_back("pta1", "Percussive Threshold Low Amplitude",
-                            parameter::Type::kFloat);
+                            client::Type::kFloat);
         params.back().setDefault(0).setInstantiation(false);
 
         params.emplace_back("ptf2", "Percussive Threshold High Frequency",
-                            parameter::Type::kFloat);
+                            client::Type::kFloat);
         params.back().setMin(0).setMax(1).setDefault(1).setInstantiation(false);
 
         params.emplace_back("pta2", "Percussive Threshold High Amplitude",
-                            parameter::Type::kFloat);
+                            client::Type::kFloat);
         params.back().setDefault(0).setInstantiation(false);
         
-        audio::BaseAudioClient<T,U>::initParamDescriptors(params);
-        params.emplace_back("fftsize", "FFT Size", parameter::Type::kLong);
+        client::BaseAudioClient<T,U>::initParamDescriptors(params);
+        params.emplace_back("fftsize", "FFT Size", client::Type::kLong);
         params.back().setMin(-1).setDefault(-1).setInstantiation(true);
       }
       return params;
@@ -84,37 +84,37 @@ namespace hpss{
     HPSSClient operator=(HPSSClient&) = delete;
     
     HPSSClient(size_t maxWindowSize):
-    //stft::STFTCheckParams(windowsize,hopsize,fftsize),
-    audio::BaseAudioClient<T,U>(maxWindowSize,1,3,4)
+    //algorithm::STFTCheckParams(windowsize,hopsize,fftsize),
+    client::BaseAudioClient<T,U>(maxWindowSize,1,3,4)
     {
       newParamSet();
     }
     
     void reset() 
     {
-      size_t winsize = parameter::lookupParam("winsize", mParams).getLong();
-      size_t hopsize = parameter::lookupParam("hopsize", mParams).getLong();
-      size_t fftsize = parameter::lookupParam("fftsize", mParams).getLong();
+      size_t winsize = client::lookupParam("winsize", mParams).getLong();
+      size_t hopsize = client::lookupParam("hopsize", mParams).getLong();
+      size_t fftsize = client::lookupParam("fftsize", mParams).getLong();
       
-      mSTFT  = std::unique_ptr<stft::STFT> (new stft::STFT(winsize,fftsize,hopsize));
-      mISTFT = std::unique_ptr<stft::ISTFT>(new stft::ISTFT(winsize,fftsize,hopsize));
+      mSTFT  = std::unique_ptr<algorithm::STFT> (new algorithm::STFT(winsize,fftsize,hopsize));
+      mISTFT = std::unique_ptr<algorithm::ISTFT>(new algorithm::ISTFT(winsize,fftsize,hopsize));
       
-      size_t pBins   = parameter::lookupParam("psize", getParams()).getLong();
-      size_t hBins   = parameter::lookupParam("hsize", getParams()).getLong();
+      size_t pBins   = client::lookupParam("psize", getParams()).getLong();
+      size_t hBins   = client::lookupParam("hsize", getParams()).getLong();
 
-      double pthreshF1 = parameter::lookupParam("ptf1", getParams()).getFloat();
-      double pthreshA1 = parameter::lookupParam("pta1", getParams()).getFloat();
-      double pthreshF2 = parameter::lookupParam("ptf2", getParams()).getFloat();
-      double pthreshA2 = parameter::lookupParam("pta2", getParams()).getFloat();
+      double pthreshF1 = client::lookupParam("ptf1", getParams()).getFloat();
+      double pthreshA1 = client::lookupParam("pta1", getParams()).getFloat();
+      double pthreshF2 = client::lookupParam("ptf2", getParams()).getFloat();
+      double pthreshA2 = client::lookupParam("pta2", getParams()).getFloat();
 
-      double hthreshF1 = parameter::lookupParam("htf1", getParams()).getFloat();
-      double hthreshA1 = parameter::lookupParam("hta1", getParams()).getFloat();
-      double hthreshF2 = parameter::lookupParam("htf2", getParams()).getFloat();
-      double hthreshA2 = parameter::lookupParam("hta2", getParams()).getFloat();
+      double hthreshF1 = client::lookupParam("htf1", getParams()).getFloat();
+      double hthreshA1 = client::lookupParam("hta1", getParams()).getFloat();
+      double hthreshF2 = client::lookupParam("htf2", getParams()).getFloat();
+      double hthreshA2 = client::lookupParam("hta2", getParams()).getFloat();
 
       size_t nBins = fftsize / 2 + 1;
       
-      mHPSS = std::unique_ptr<rthpss::RTHPSS>(new rthpss::RTHPSS(nBins, pBins, hBins,mode(), hthreshF1, hthreshA1, hthreshF2, hthreshA2, pthreshF1, pthreshA1, pthreshF2, pthreshA2));
+      mHPSS = std::unique_ptr<algorithm::RTHPSS>(new algorithm::RTHPSS(nBins, pBins, hBins,mode(), hthreshF1, hthreshA1, hthreshF2, hthreshA2, pthreshF1, pthreshA1, pthreshF2, pthreshA2));
                                                                  
       
       mNormWindow = mSTFT->window();
@@ -127,42 +127,42 @@ namespace hpss{
       mHarms.resize(fftsize/2+1);
       mPerc.resize(fftsize/2+1);
       mResidual.resize(fftsize/2+1);
-      audio::BaseAudioClient<T,U>::reset();
+      client::BaseAudioClient<T,U>::reset();
     }
     
     std::tuple<bool,std::string> sanityCheck()
     {
       for(auto&& p: getParams())
       {
-        std::tuple<bool,parameter::Instance::RangeErrorType> res = p.checkRange();
+        std::tuple<bool,client::Instance::RangeErrorType> res = p.checkRange();
         if(!std::get<0>(res))
         {
           switch(std::get<1>(res))
           {
-          case parameter::Instance::RangeErrorType::kMin:
+          case client::Instance::RangeErrorType::kMin:
             return {false, "Parameter below minimum"};
             break;
-          case parameter::Instance::RangeErrorType::kMax:
+          case client::Instance::RangeErrorType::kMax:
             return {false, "Parameter above maximum"};
             break;
           }
         }
       }
       
-      std::tuple<bool, std::string> windowCheck = audio::BaseAudioClient<T,U>::sanityCheck();
+      std::tuple<bool, std::string> windowCheck = client::BaseAudioClient<T,U>::sanityCheck();
       if(!std::get<0>(windowCheck))
       {
         return windowCheck;
       }
       
-      parameter::Instance& winSize = parameter::lookupParam("winsize", getParams());
-      parameter::Instance& hopSize = parameter::lookupParam("hopsize", getParams());
-      parameter::Instance& fftSize = parameter::lookupParam("fftsize", getParams());
+      client::Instance& winSize = client::lookupParam("winsize", getParams());
+      client::Instance& hopSize = client::lookupParam("hopsize", getParams());
+      client::Instance& fftSize = client::lookupParam("fftsize", getParams());
       
-      return parameter::checkFFTArguments(winSize, hopSize, fftSize);
+      return client::checkFFTArguments(winSize, hopSize, fftSize);
       
-      size_t pSize = parameter::lookupParam("psize", getParams()).getLong();
-      size_t hSize = parameter::lookupParam("hsize", getParams()).getLong();
+      size_t pSize = client::lookupParam("psize", getParams()).getLong();
+      size_t hSize = client::lookupParam("hsize", getParams()).getLong();
       
       if(pSize > (fftSize.getLong() / 2) + 1 )
       {
@@ -182,24 +182,24 @@ namespace hpss{
     {
       complex spec  = mSTFT->processFrame(input.row(0));
       
-//      mHPSS->setHThreshold(parameter::lookupParam("hthresh", getParams()).getFloat());
-//      mHPSS->setPThreshold(parameter::lookupParam("pthresh", getParams()).getFloat());
+//      mHPSS->setHThreshold(client::lookupParam("hthresh", getParams()).getFloat());
+//      mHPSS->setPThreshold(client::lookupParam("pthresh", getParams()).getFloat());
       
       
       if(mode() > 0)
       {
-        mHPSS->setHThresholdX1(parameter::lookupParam("htf1", getParams()).getFloat());
-        mHPSS->setHThresholdY1(parameter::lookupParam("hta1", getParams()).getFloat());
-        mHPSS->setHThresholdX2(parameter::lookupParam("htf2", getParams()).getFloat());
-        mHPSS->setHThresholdY2(parameter::lookupParam("hta2", getParams()).getFloat());
+        mHPSS->setHThresholdX1(client::lookupParam("htf1", getParams()).getFloat());
+        mHPSS->setHThresholdY1(client::lookupParam("hta1", getParams()).getFloat());
+        mHPSS->setHThresholdX2(client::lookupParam("htf2", getParams()).getFloat());
+        mHPSS->setHThresholdY2(client::lookupParam("hta2", getParams()).getFloat());
       }
       
       if(mode() == 2)
       {
-        mHPSS->setPThresholdX1(parameter::lookupParam("ptf1", getParams()).getFloat());
-        mHPSS->setPThresholdY1(parameter::lookupParam("pta1", getParams()).getFloat());
-        mHPSS->setPThresholdX2(parameter::lookupParam("ptf2", getParams()).getFloat());
-        mHPSS->setPThresholdY2(parameter::lookupParam("pta2", getParams()).getFloat());
+        mHPSS->setPThresholdX1(client::lookupParam("ptf1", getParams()).getFloat());
+        mHPSS->setPThresholdY1(client::lookupParam("pta1", getParams()).getFloat());
+        mHPSS->setPThresholdX2(client::lookupParam("ptf2", getParams()).getFloat());
+        mHPSS->setPThresholdY2(client::lookupParam("pta2", getParams()).getFloat());
       }
      
       
@@ -243,14 +243,14 @@ namespace hpss{
         });
     }
     
-    std::vector<parameter::Instance>& getParams() override
+    std::vector<client::Instance>& getParams() override
     {
       return mParams;
     }
     
     size_t mode()
     {
-      return parameter::lookupParam("modeflag", getParams()).getLong();
+      return client::lookupParam("modeflag", getParams()).getLong();
     }
 
     
@@ -264,15 +264,15 @@ namespace hpss{
         mParams.emplace_back(d);
     }
     
-    std::unique_ptr<stft::STFT> mSTFT;
-    std::unique_ptr<rthpss::RTHPSS> mHPSS;
-    std::unique_ptr<stft::ISTFT> mISTFT;
+    std::unique_ptr<algorithm::STFT> mSTFT;
+    std::unique_ptr<algorithm::RTHPSS> mHPSS;
+    std::unique_ptr<algorithm::ISTFT> mISTFT;
     FluidTensor<T,1> mNormWindow;
     FluidTensor<std::complex<T>,2> mSeparatedSpectra;
     FluidTensor<std::complex<T>,1> mHarms;
     FluidTensor<std::complex<T>,1> mPerc;
     FluidTensor<std::complex<T>,1> mResidual;
-    std::vector<parameter::Instance> mParams;
+    std::vector<client::Instance> mParams;
   };
-}//namespace hpss
+}//namespace client
 }//namespace fluid

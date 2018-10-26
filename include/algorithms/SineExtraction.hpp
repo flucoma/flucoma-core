@@ -7,10 +7,10 @@
 #include <Eigen/Core>
 
 namespace fluid {
-namespace sineextraction {
+namespace algorithm {
 
-using convolution::correlateReal;
-using convolution::kEdgeWrapCentre;
+using algorithm::correlateReal;
+using algorithm::kEdgeWrapCentre;
 using Eigen::Array;
 using Eigen::ArrayXcd;
 using Eigen::ArrayXd;
@@ -21,11 +21,11 @@ using Eigen::Matrix;
 using Eigen::MatrixXd;
 using Eigen::RowMajor;
 using Eigen::VectorXd;
-using fft::FFT;
+using algorithm::FFT;
 
 using std::vector;
-using windows::windowFuncs;
-using windows::WindowType;
+using algorithm::windowFuncs;
+using algorithm::WindowType;
 
 struct SinePeak {
   double centerBin;
@@ -247,5 +247,5 @@ private:
     return sine;
   }
 };
-} // namespace sineextraction
+} // namespace algorithm
 } // namespace fluid

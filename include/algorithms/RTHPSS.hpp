@@ -8,7 +8,7 @@
 #include <iostream>
 
 namespace fluid {
-namespace rthpss {
+namespace algorithm {
 
 using Eigen::Array;
 using Eigen::ArrayXd;
@@ -19,8 +19,8 @@ using Eigen::Map;
 using Eigen::MatrixXd;
 using Eigen::RowMajor;
 
-using fluid::eigenmappings::ArrayXXcdToFluid;
-using fluid::medianfilter::MedianFilter;
+//using fluid::eigenmappings::ArrayXXcdToFluid;
+//using fluid::medianfilter::MedianFilter;
 
 class RTHPSS {
 public:
@@ -183,5 +183,5 @@ private:
   double mPThresholdX2;
   double mPThresholdY2;
 };
-} // namespace rthpss
+} // namespace algorithm
 } // namespace fluid

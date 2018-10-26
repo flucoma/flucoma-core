@@ -18,15 +18,15 @@
 
 
 namespace fluid {
-  namespace segmentation{
+  namespace client{
     
     /**
      Integration class for doing NMF filtering and resynthesis
      **/
     class TransientSliceNRT
     {
-      using desc_type = parameter::Descriptor;
-      using param_type = parameter::Instance;
+      using desc_type = client::Descriptor;
+      using param_type = client::Instance;
     public:
       
       struct ProcessModel
@@ -39,9 +39,9 @@ namespace fluid {
         size_t offset;
         size_t channels;
         size_t channelOffset;
-        parameter::BufferAdaptor* src = 0;
-        parameter::BufferAdaptor* trans = 0;
-        parameter::BufferAdaptor* res = 0;
+        client::BufferAdaptor* src = 0;
+        client::BufferAdaptor* trans = 0;
+        client::BufferAdaptor* res = 0;
         
         size_t order;
         size_t blocksize;
@@ -55,49 +55,49 @@ namespace fluid {
         double robustFactor = 3.0;
       };
       
-      static const std::vector<parameter::Descriptor>& getParamDescriptors()
+      static const std::vector<client::Descriptor>& getParamDescriptors()
       {
         static std::vector<desc_type> params;
         if(params.empty())
         {
           params.emplace_back(
-              desc_type{"src", "Source Buffer", parameter::Type::kBuffer});
+              desc_type{"src", "Source Buffer", client::Type::kBuffer});
           params.back().setInstantiation(true);
 
           params.emplace_back(desc_type{"offsetframes", "Source Offset",
-                                        parameter::Type::kLong});
+                                        client::Type::kLong});
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
           params.emplace_back(
-              desc_type{"numframes", "Source Frames", parameter::Type::kLong});
+              desc_type{"numframes", "Source Frames", client::Type::kLong});
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
 
           params.emplace_back(desc_type{"offsetchans", "Source Channel Offset",
-                                        parameter::Type::kLong});
+                                        client::Type::kLong});
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
           params.emplace_back(
-              desc_type{"numchans", "Source Channels", parameter::Type::kLong});
+              desc_type{"numchans", "Source Channels", client::Type::kLong});
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
 
           params.emplace_back(desc_type{"transbuf", "Indices Buffer",
-                                        parameter::Type::kBuffer});
+                                        client::Type::kBuffer});
           params.back().setInstantiation(false);
 
-          params.emplace_back("order", "Order", parameter::Type::kLong);
+          params.emplace_back("order", "Order", client::Type::kLong);
           params.back().setInstantiation(false).setMin(20).setDefault(200);
           //order min > paramDetectHalfWindow, or ~40-50 ms,
        
 //          int paramBlockSize = 2048;  // The main block size for processing (higher == longer processing times N^2 but better quality)
           params.emplace_back("blocksize", "Block Size",
-                              parameter::Type::kLong);
+                              client::Type::kLong);
           params.back().setInstantiation(false).setMin(100).setDefault(2048);
           
           //must be greater than model order
           
 //          int paramPad = 1024;        // The analysis is done on a longer segment than the block, with this many extra values on either side
           //padding min 0
-          params.emplace_back("padding", "Padding", parameter::Type::kLong);
+          params.emplace_back("padding", "Padding", client::Type::kLong);
           params.back().setInstantiation(false).setMin(0).setDefault(1024);
           
           
@@ -111,20 +111,20 @@ namespace fluid {
           //'skew', do 2^n -10, 10
           
 //          double paramDetectPower = 1.0;           // The power factor used when windowing - higher makes detection more likely
-          params.emplace_back("skew", "Skew", parameter::Type::kFloat);
+          params.emplace_back("skew", "Skew", client::Type::kFloat);
           params.back().setInstantiation(false).setMin(-10).setMax(10).setDefault(0);
 
           
 //          double paramDetectThreshHi = 3.0;        // The threshold for detection (in multiples of the model deviation)
           //
           params.emplace_back("threshfwd", "Forward Threshold",
-                              parameter::Type::kFloat);
+                              client::Type::kFloat);
           params.back().setInstantiation(false).setMin(0).setDefault(3);
           
           
 //          double paramDetectThreshLo = 1.1;        // The reset threshold to end a detected segment (in multiples of the model deviation)
           params.emplace_back("threshback", "Backward Threshold",
-                              parameter::Type::kFloat);
+                              client::Type::kFloat);
           params.back().setInstantiation(false).setMin(0).setDefault(1.1);
           
           
@@ -132,14 +132,14 @@ namespace fluid {
           //up to model order ~40 = 1ms, 15 default sampples for whole window
           //
           params.emplace_back("windowsize", "Window Size(ms)",
-                              parameter::Type::kFloat);
+                              client::Type::kFloat);
           params.back().setInstantiation(false).setMin(0).setDefault(14);
 
           
 //          int paramDetectHold = 25;               // The hold time for detection (in samples)
           //prevents onsets within n samples of an offset, min 0,
           params.emplace_back("debounce", "Debounce(ms)",
-                              parameter::Type::kFloat);
+                              client::Type::kFloat);
           params.back().setInstantiation(false).setMin(0).setDefault(25);
 
           
@@ -163,7 +163,7 @@ namespace fluid {
         mParams.reserve(getParamDescriptors().size());
         //Note: I'm pretty sure I want auto's copy behaviour here
         for(auto p: getParamDescriptors())
-          mParams.emplace_back( parameter::Instance(p));
+          mParams.emplace_back( client::Instance(p));
       }
       
       /**
@@ -177,10 +177,10 @@ namespace fluid {
       std::tuple<bool,std::string,ProcessModel> sanityCheck()
       {
         ProcessModel model;
-        const std::vector<parameter::Descriptor>& desc = getParamDescriptors();
+        const std::vector<client::Descriptor>& desc = getParamDescriptors();
         //First, let's make sure that we have a complete of parameters of the right sort
         bool sensible = std::equal(mParams.begin(), mParams.end(),desc.begin(),
-          [](const param_type& i, const parameter::Descriptor& d)
+          [](const param_type& i, const client::Descriptor& d)
           {
             return i.getDescriptor() == d;
           });
@@ -191,10 +191,10 @@ namespace fluid {
         }
         
         size_t bufCount = 0;
-        std::unordered_set<parameter::BufferAdaptor*> uniqueBuffers;
+        std::unordered_set<client::BufferAdaptor*> uniqueBuffers;
         //First round of buffer checks
         //Source buffer is mandatory, and should exist
-        parameter::BufferAdaptor::Access src(mParams[0].getBuffer());
+        client::BufferAdaptor::Access src(mParams[0].getBuffer());
         
         if(!src.valid())
         {
@@ -211,11 +211,11 @@ namespace fluid {
         {
           switch(p.getDescriptor().getType())
           {
-          case parameter::Type::kBuffer:
+          case client::Type::kBuffer:
             // If we've been handed a buffer that we're expecting, then it
             // should exist
             if (p.hasChanged() && p.getBuffer()) {
-              parameter::BufferAdaptor::Access b(p.getBuffer());
+              client::BufferAdaptor::Access b(p.getBuffer());
               if (!b.valid()) {
                 std::ostringstream ss;
                 ss << "Buffer given for " << p.getDescriptor().getName()
@@ -243,12 +243,12 @@ namespace fluid {
         
         
         //Now scan everything for range, until we hit a problem
-        //TODO Factor into parameter::instance
+        //TODO Factor into client::instance
         for(auto&& p: mParams)
         {
-          parameter::Descriptor d = p.getDescriptor();
+          client::Descriptor d = p.getDescriptor();
           bool rangeOk;
-          parameter::Instance::RangeErrorType errorType;
+          client::Instance::RangeErrorType errorType;
           std::tie(rangeOk, errorType) = p.checkRange();
           if (!rangeOk)
           {
@@ -256,10 +256,10 @@ namespace fluid {
             msg << "Parameter " << d.getName();
             switch (errorType)
             {
-            case parameter::Instance::RangeErrorType::kMin:
+            case client::Instance::RangeErrorType::kMin:
               msg << " value below minimum(" << d.getMin() << ")";
               break;
-            case parameter::Instance::RangeErrorType::kMax:
+            case client::Instance::RangeErrorType::kMax:
               msg << " value above maximum(" << d.getMin() << ")";
             default:
               assert(false && "This should be unreachable");
@@ -271,12 +271,12 @@ namespace fluid {
         
   
         //Check the size of our buffers
-//        parameter::BufferAdaptor* src= params[0].getBuffer();
+//        client::BufferAdaptor* src= params[0].getBuffer();
         
-        long srcOffset     = parameter::lookupParam("offsetframes",         mParams).getLong();
-        long srcFrames     = parameter::lookupParam("numframes",         mParams).getLong();
-        long srcChanOffset = parameter::lookupParam("offsetchans", mParams).getLong();
-        long srcChans      = parameter::lookupParam("numchans",       mParams).getLong();
+        long srcOffset     = client::lookupParam("offsetframes",         mParams).getLong();
+        long srcFrames     = client::lookupParam("numframes",         mParams).getLong();
+        long srcChanOffset = client::lookupParam("offsetchans", mParams).getLong();
+        long srcChans      = client::lookupParam("numchans",       mParams).getLong();
         
         //Ensure that the source buffer can deliver
         if(srcFrames > 0 ? (src.numFrames() < (srcOffset + srcFrames)) : (src.numFrames() < srcOffset))
@@ -298,8 +298,8 @@ namespace fluid {
         
       
         
-        parameter::Instance& transBufParam =  mParams[5];
-        parameter::BufferAdaptor::Access transBuf(transBufParam.getBuffer());
+        client::Instance& transBufParam =  mParams[5];
+        client::BufferAdaptor::Access transBuf(transBufParam.getBuffer());
         
         if(transBufParam.hasChanged() && (!transBuf.valid()))
         {
@@ -309,16 +309,16 @@ namespace fluid {
 //        model.returnTransients = transBufParam.hasChanged();
         model.trans = transBufParam.getBuffer();
         
-        model.halfWindow = std::round(parameter::lookupParam("windowsize", mParams).getFloat() / 2);
+        model.halfWindow = std::round(client::lookupParam("windowsize", mParams).getFloat() / 2);
         
-        long order = parameter::lookupParam("order", mParams).getLong();
+        long order = client::lookupParam("order", mParams).getLong();
         
         if(order < model.halfWindow)
         {
           return {false, "Model order must be more than half the window size", model};
         }
         
-        long blocksize = parameter::lookupParam("blocksize", mParams).getLong();
+        long blocksize = client::lookupParam("blocksize", mParams).getLong();
         
         if(blocksize < order)
         {
@@ -326,12 +326,12 @@ namespace fluid {
         }
         
         
-        model.skew = std::pow(2, parameter::lookupParam("skew",mParams).getFloat());
+        model.skew = std::pow(2, client::lookupParam("skew",mParams).getFloat());
         
-        model.padding = parameter::lookupParam("padding",mParams).getLong();
-        model.fwdThresh = parameter::lookupParam("threshfwd",mParams).getFloat();
-        model.backThresh = parameter::lookupParam("threshback",mParams).getFloat();;
-        model.debounce = parameter::lookupParam("debounce",mParams).getFloat();;
+        model.padding = client::lookupParam("padding",mParams).getLong();
+        model.fwdThresh = client::lookupParam("threshfwd",mParams).getFloat();
+        model.backThresh = client::lookupParam("threshback",mParams).getFloat();;
+        model.debounce = client::lookupParam("debounce",mParams).getFloat();;
         model.blocksize = blocksize;
         model.order = order; 
 
@@ -352,8 +352,8 @@ namespace fluid {
    
       void process(ProcessModel model)
       {
-        parameter::BufferAdaptor::Access src(model.src);
-        parameter::BufferAdaptor::Access trans(model.trans);
+        client::BufferAdaptor::Access src(model.src);
+        client::BufferAdaptor::Access trans(model.trans);
         
         FluidTensor<double,1> transientFrames(model.frames + model.blocksize);
 
@@ -368,7 +368,7 @@ namespace fluid {
         }
         
         
-        segmentation::TransientSegmentation segmentor(model.order, model.iterations, model.robustFactor);
+        algorithm::TransientSegmentation segmentor(model.order, model.iterations, model.robustFactor);
         segmentor.prepareStream(model.blocksize,model.padding);
         segmentor.setDetectionParameters(model.skew, model.fwdThresh, model.backThresh, model.halfWindow, model.debounce); 
   
@@ -411,13 +411,13 @@ namespace fluid {
       }
       
       
-      std::vector<parameter::Instance>& getParams()
+      std::vector<client::Instance>& getParams()
       {
         return mParams;
       }
       
     private:
-      std::vector<parameter::Instance> mParams;
+      std::vector<client::Instance> mParams;
     };
-  } //namespace max
+  } //namespace client
 } //namesapce fluid

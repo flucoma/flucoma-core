@@ -4,9 +4,9 @@
 #include "TransientExtraction.hpp"
 
 namespace fluid {
-namespace segmentation {
+namespace algorithm {
 
-class TransientSegmentation : private transient_extraction::TransientExtraction
+class TransientSegmentation : private algorithm::TransientExtraction
 {
 
 public:
@@ -64,5 +64,5 @@ private:
   std::vector<double> mDetect;
 };
 
-};  // namespace segmentation
+};  // namespace algorithm
 };  // namespace fluid

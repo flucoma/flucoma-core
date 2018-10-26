@@ -10,14 +10,14 @@
 #include <queue>
 
 namespace fluid {
-namespace rtsineextraction {
+namespace algorithm {
 
-using convolution::correlateReal;
-using convolution::kEdgeWrapCentre;
-using fft::FFT;
+using algorithm::correlateReal;
+using algorithm::kEdgeWrapCentre;
+using algorithm::FFT;
 using std::vector;
-using windows::windowFuncs;
-using windows::WindowType;
+using algorithm::windowFuncs;
+using algorithm::WindowType;
 
 using Eigen::Array;
 using Eigen::ArrayXcd;
@@ -63,7 +63,7 @@ public:
 
   void processFrame(const ComplexVector &in, ComplexMatrix out) {
     using ArrayXcdMap = Map<const Array<std::complex<double>, Dynamic, RowMajor>>;
-    using fluid::eigenmappings::ArrayXXcdToFluid;
+//    using fluid::eigenmappings::ArrayXXcdToFluid;
     using Eigen::ArrayXXcd;
 
     const auto &epsilon = std::numeric_limits<double>::epsilon;
@@ -268,5 +268,5 @@ private:
     return sine;
   }
 };
-} // namespace rtsineextraction
+} // namespace algorithm
 } // namespace fluid

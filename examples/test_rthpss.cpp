@@ -9,11 +9,11 @@ using fluid::FluidTensor;
 using fluid::audiofile::AudioFileData;
 using fluid::audiofile::readFile;
 using fluid::audiofile::writeFile;
-using fluid::eigenmappings::FluidToArrayXXd;
-using fluid::rthpss::RTHPSS;
-using fluid::stft::ISTFT;
-using fluid::stft::Spectrogram;
-using fluid::stft::STFT;
+using fluid::algorithm::FluidToArrayXXd;
+using fluid::algorithm::RTHPSS;
+using fluid::algorithm::ISTFT;
+using fluid::algorithm::Spectrogram;
+using fluid::algorithm::STFT;
 
 using RealMatrix = FluidTensor<double, 2>;
 using RealVector = FluidTensor<double, 1>;

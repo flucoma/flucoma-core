@@ -4,7 +4,7 @@
 #include <limits>
 
 namespace fluid {
-namespace medianfilter {
+namespace algorithm {
 
 using Eigen::ArrayXd;
 using Eigen::Ref;
@@ -161,5 +161,5 @@ private:
   Block a;
   Block b;
 };
-} // namespace medianfilter
+} // namespace algorithm
 } // namespace fluid

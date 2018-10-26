@@ -6,7 +6,7 @@
 #include <vector>
 
 namespace fluid {
-namespace windows {
+namespace algorithm {
 
 using std::function;
 using std::map;
@@ -54,5 +54,5 @@ static WindowFuncMap windowFuncs = {
        }
        return result;
      }}};
-} // namespace windows
+} // namespace algorithm
 } // namespace fluid

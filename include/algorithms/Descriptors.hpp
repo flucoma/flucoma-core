@@ -8,7 +8,7 @@
 #include <algorithm>
 
 namespace fluid {
-namespace descriptors {
+namespace algorithm {
   
 class Descriptors
 {
@@ -347,6 +347,6 @@ private:
   }
 };
         
-};  // namespace descriptors
+};  // namespace algorithm
 };  // namespace fluid
 

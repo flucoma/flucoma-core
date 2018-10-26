@@ -8,7 +8,7 @@
 
 
 namespace fluid {
-namespace convolution {
+namespace algorithm {
 
 // The edge mode determines wraparound etc.
 
@@ -513,5 +513,5 @@ static void autocorrelate(double *rOut, double *iOut, const double *rIn, size_t 
     correlate(rOut, iOut, rIn, sizeR, iIn, sizeI, rIn, sizeR, iIn, sizeI, mode);
 }
 
-} // namespace convolution
+} // namespace algorithm
 } // namespace fluid

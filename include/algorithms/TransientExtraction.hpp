@@ -10,13 +10,13 @@
 #include "Descriptors.hpp"
 
 namespace fluid {
-namespace transient_extraction {
+namespace algorithm {
 
-using armodel::ARModel;
+using algorithm::ARModel;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
-using descriptors::Descriptors;
+using algorithm::Descriptors;
 
 class TransientExtraction
 {
@@ -415,5 +415,5 @@ private:
   std::vector<double> mBackwardWindowedError;
 };
 
-};  // namespace transient_extraction
+};  // namespace algorithm
 };  // namespace fluid

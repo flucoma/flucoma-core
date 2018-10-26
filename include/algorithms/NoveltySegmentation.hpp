@@ -6,7 +6,7 @@
 #include <Eigen/Dense>
 
 namespace fluid {
-namespace novelty {
+namespace algorithm {
 
 class NoveltySegmentation {
   using RealMatrix = FluidTensor<double, 2>;
@@ -20,13 +20,13 @@ public:
   }
 
   void process(const RealMatrix &input, RealVector &output) {
-    using convolution::convolveReal;
-    using convolution::kEdgeWrapCentre;
+    using algorithm::convolveReal;
+    using algorithm::EdgeMode::kEdgeWrapCentre;
     using Eigen::ArrayXd;
     using Eigen::Map;
     using Eigen::MatrixXd;
     using Eigen::VectorXd;
-    using fluid::eigenmappings::FluidToMatrixXd;
+    using fluid::algorithm::FluidToMatrixXd;
     using std::vector;
 
     RealVector temp(input.extent(0));
@@ -56,5 +56,5 @@ private:
   double mThreshold;
   int mFilterSize;
 };
-} // namespace novelty
+} // namespace algorithm
 } // namespace fluid

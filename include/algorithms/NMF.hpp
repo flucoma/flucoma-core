@@ -7,7 +7,7 @@
 #include <vector>
 
 namespace fluid {
-namespace nmf {
+namespace algorithm {
 
 using Eigen::Array;
 using Eigen::ArrayXd;
@@ -18,8 +18,8 @@ using Eigen::RowMajor;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
-using fluid::eigenmappings::FluidToMatrixXd;
-using fluid::eigenmappings::MatrixXdToFluid;
+//using fluid::eigenmappings::FluidToMatrixXd;
+//using fluid::eigenmappings::MatrixXdToFluid;
 
 struct NMFModel {
   using RealMatrix = FluidTensor<double, 2>;
@@ -50,9 +50,9 @@ struct NMFModel {
   }
 };
 
-const auto &epsilon = std::numeric_limits<double>::epsilon;
 
 class NMF {
+  double const epsilon = std::numeric_limits<double>::epsilon();
 public:
   using RealMatrix = FluidTensor<double, 2>;
   using RealVector = FluidTensor<double, 1>;
@@ -76,10 +76,10 @@ public:
 
     VectorXd ones = VectorXd::Ones(x.extent(0));
     while (nIterations--) {
-      ArrayXd v1 = (W * h).array() + epsilon();
+      ArrayXd v1 = (W * h).array() + epsilon;
       ArrayXXd hNum = (WT * (v.array() / v1).matrix()).array();
       ArrayXXd hDen = (WT * ones).array();
-      h = (h.array() * hNum / hDen.max(epsilon())).matrix();
+      h = (h.array() * hNum / hDen.max(epsilon)).matrix();
       // VectorXd r = W * h;
       // double divergence = (v.cwiseProduct(v.cwiseQuotient(r)) - v + r).sum();
       // std::cout<<"Divergence "<<divergence<<std::endl;
@@ -129,23 +129,23 @@ private:
     H.rowwise().normalize();
     while (mIterations--) {
       if (mUpdateW) {
-        ArrayXXd V1 = (W * H).array() + epsilon();
+        ArrayXXd V1 = (W * H).array() + epsilon;
         ArrayXXd wnum = ((V.array() / V1).matrix() * H.transpose()).array();
         ArrayXXd wden = (ones * H.transpose()).array();
-        W = (W.array() * wnum / wden.max(epsilon())).matrix();
-        if (W.maxCoeff() > epsilon())
+        W = (W.array() * wnum / wden.max(epsilon)).matrix();
+        if (W.maxCoeff() > epsilon)
           W.colwise().normalize();
         assert(W.allFinite());
       }
-      ArrayXXd V2 = (W * H).array() + epsilon();
+      ArrayXXd V2 = (W * H).array() + epsilon;
       if (mUpdateH) {
         ArrayXXd hnum = (W.transpose() * (V.array() / V2).matrix()).array();
         ArrayXXd hden = (W.transpose() * ones).array();
-        H = (H.array() * hnum / hden.max(epsilon())).matrix();
+        H = (H.array() * hnum / hden.max(epsilon)).matrix();
         assert(H.allFinite());
       }
       MatrixXd R = W * H;
-      R = R.cwiseMax(epsilon());
+      R = R.cwiseMax(epsilon);
       // double divergence = (V.cwiseProduct(V.cwiseQuotient(R)) - V + R).sum();
       // divergenceCurve.push_back(divergence);
       // std::cout << "Divergence " << divergence << "\n";
@@ -156,5 +156,5 @@ private:
     return result;
   }
 };
-} // namespace nmf
+} // namespace algorihtm
 } // namespace fluid

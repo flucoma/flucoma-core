@@ -10,9 +10,9 @@ int main(int argc, char* argv[])
   using fluid::audiofile::readFile;
   using fluid::audiofile::writeFile;
 
-  using fluid::stft::STFT;
-  using fluid::stft::ISTFT;
-  using fluid::stft::Spectrogram;
+  using fluid::algorithm::STFT;
+  using fluid::algorithm::ISTFT;
+  using fluid::algorithm::Spectrogram;
 
   using fluid::FluidTensor;
   using fluid::FluidTensorView;

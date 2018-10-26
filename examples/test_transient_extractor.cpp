@@ -81,7 +81,7 @@ void writeFile(const char *name, const double *output, int size, double sampling
 
 int main(int argc, const char * argv[])
 {
-  using fluid::transient_extraction::TransientExtraction;
+  using fluid::algorithm::TransientExtraction;
 
   if (argc < 5)
   {

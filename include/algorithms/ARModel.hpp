@@ -11,7 +11,7 @@
 #include "Windows.hpp"
 
 namespace fluid {
-namespace armodel {
+namespace algorithm {
     
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
@@ -108,7 +108,7 @@ private:
       if (mWindow.size() != size)
       {
         std::vector<double> newWindow =
-            windows::windowFuncs[windows::WindowType::kHann](size);
+            algorithm::windowFuncs[algorithm::WindowType::kHann](size);
         std::swap(mWindow, newWindow);
       }
                   
@@ -119,7 +119,7 @@ private:
       std::copy(input, input + size, frame.data());
     
     VectorXd autocorrelation(size);
-    convolution::autocorrelateReal(autocorrelation.data(), frame.data(), size);
+    algorithm::autocorrelateReal(autocorrelation.data(), frame.data(), size);
     
     // Resize to the desired order (only keep coefficients for up to the order we need)
     
@@ -238,6 +238,6 @@ private:
   double mMinVariance;
 };
   
-};  // namespace armodel
+};  // namespace algorithm
 };  // namespace fluid
 

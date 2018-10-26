@@ -16,15 +16,15 @@
 #include <vector> //for containers of params, and for checking things
 
 namespace fluid {
-  namespace hpss{
+  namespace client{
 
     /**
      Integration class for doing NMF filtering and resynthesis
      **/
     class HPSSClient
     {
-      using desc_type = parameter::Descriptor;
-      using param_type = parameter::Instance;
+      using desc_type = client::Descriptor;
+      using param_type = client::Instance;
     public:
 
       struct ProcessModel
@@ -35,10 +35,10 @@ namespace fluid {
         size_t channelOffset;
         size_t harmsize;
         size_t percsize;
-        parameter::BufferAdaptor* src = 0;
-        parameter::BufferAdaptor* harm = 0;
-        parameter::BufferAdaptor* perc = 0;
-        parameter::BufferAdaptor* res = 0;
+        client::BufferAdaptor* src = 0;
+        client::BufferAdaptor* harm = 0;
+        client::BufferAdaptor* perc = 0;
+        client::BufferAdaptor* res = 0;
         
         bool returnRes;
         
@@ -54,97 +54,97 @@ namespace fluid {
         size_t fftsize;
       };
 
-      static const std::vector<parameter::Descriptor>& getParamDescriptors()
+      static const std::vector<client::Descriptor>& getParamDescriptors()
       {
         static std::vector<desc_type> params;
         if(params.empty())
         {
           params.emplace_back("src", "First Source Buffer",
-                              parameter::Type::kBuffer);
+                              client::Type::kBuffer);
           params.back().setInstantiation(true);
 
           params.emplace_back("offsetframes", "Source Offset",
-                              parameter::Type::kLong);
+                              client::Type::kLong);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
           params.emplace_back("numframes", "Source Frames",
-                              parameter::Type::kLong);
+                              client::Type::kLong);
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
 
           params.emplace_back("offsetchans", "Source Channel Offset",
-                              parameter::Type::kLong);
+                              client::Type::kLong);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
           params.emplace_back("numchans", "Source Channels",
-                              parameter::Type::kLong);
+                              client::Type::kLong);
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
 
           params.emplace_back("harmbuf", "Harmonic Component Buffer",
-                              parameter::Type::kBuffer);
+                              client::Type::kBuffer);
           params.back().setInstantiation(false);
 
           params.emplace_back("percbuf", "Percussive Component Buffer",
-                              parameter::Type::kBuffer);
+                              client::Type::kBuffer);
           params.back().setInstantiation(false);
 
           params.emplace_back("resbuf", "Residual Component Buffer",
-                              parameter::Type::kBuffer);
+                              client::Type::kBuffer);
           params.back().setInstantiation(false);
 
           params.emplace_back("hsize", "Harmonic Filter Size",
-                              parameter::Type::kLong);
+                              client::Type::kLong);
           params.back().setMin(3).setDefault(17).setInstantiation(false);
 
           params.emplace_back("psize", "Percussive Filter Size",
-                              parameter::Type::kLong);
+                              client::Type::kLong);
           params.back().setMin(3).setDefault(17).setInstantiation(false);
 
           params.emplace_back("modeflag", "Masking Mode",
-                              parameter::Type::kLong);
+                              client::Type::kLong);
           params.back().setMin(0).setMax(2).setInstantiation(false).setDefault(0);
 
           params.emplace_back("htf1", "Harmonic Threshold Low Frequency",
-                              parameter::Type::kFloat);
+                              client::Type::kFloat);
           params.back().setMin(0).setMax(1).setDefault(0).setInstantiation(false);
 
           params.emplace_back("hta1", "Harmonic Threshold Low Amplitude",
-                              parameter::Type::kFloat);
+                              client::Type::kFloat);
           params.back().setDefault(0).setInstantiation(false);
 
           params.emplace_back("htf2", "Harmonic Threshold High Frequency",
-                              parameter::Type::kFloat);
+                              client::Type::kFloat);
           params.back().setMin(0).setMax(1).setDefault(1).setInstantiation(false);
 
           params.emplace_back("hta2", "Harmonic Threshold High Amplitude",
-                              parameter::Type::kFloat);
+                              client::Type::kFloat);
           params.back().setDefault(0).setInstantiation(false);
 
           params.emplace_back("ptf1", "Percussive Threshold Low Frequency ",
-                              parameter::Type::kFloat);
+                              client::Type::kFloat);
           params.back().setMin(0).setMax(1).setDefault(0).setInstantiation(false);
 
           params.emplace_back("pta1", "Percussive Threshold Low Amplitude",
-                              parameter::Type::kFloat);
+                              client::Type::kFloat);
           params.back().setDefault(0).setInstantiation(false);
 
           params.emplace_back("ptf2", "Percussive Threshold High Frequency",
-                              parameter::Type::kFloat);
+                              client::Type::kFloat);
           params.back().setMin(0).setMax(1).setDefault(1).setInstantiation(false);
 
           params.emplace_back("pta2", "Percussive Threshold High Amplitude",
-                              parameter::Type::kFloat);
+                              client::Type::kFloat);
           params.back().setDefault(0).setInstantiation(false);
 
           params.emplace_back(
-              desc_type{"winsize", "Window Size", parameter::Type::kLong});
+              desc_type{"winsize", "Window Size", client::Type::kLong});
           params.back().setMin(4).setDefault(4096);
 
           params.emplace_back(
-              desc_type{"hopsize", "Hop Size", parameter::Type::kLong});
+              desc_type{"hopsize", "Hop Size", client::Type::kLong});
           params.back().setMin(1).setDefault(1024);
 
           params.emplace_back(
-              desc_type{"fftsize", "FFT Size", parameter::Type::kLong});
+              desc_type{"fftsize", "FFT Size", client::Type::kLong});
           params.back().setMin(-1).setDefault(-1);
           
         }
@@ -157,7 +157,7 @@ namespace fluid {
         mParams.reserve(getParamDescriptors().size());
         //Note: I'm pretty sure I want auto's copy behaviour here
         for(auto p: getParamDescriptors())
-          mParams.emplace_back( parameter::Instance(p));
+          mParams.emplace_back( client::Instance(p));
       }
 
       /**
@@ -168,10 +168,10 @@ namespace fluid {
       std::tuple<bool,std::string,ProcessModel> sanityCheck()
       {
         ProcessModel model;
-        const std::vector<parameter::Descriptor>& desc = getParamDescriptors();
+        const std::vector<client::Descriptor>& desc = getParamDescriptors();
         //First, let's make sure that we have a complete of parameters of the right sort
         bool sensible = std::equal(mParams.begin(), mParams.end(),desc.begin(),
-          [](const param_type& i, const parameter::Descriptor& d)
+          [](const param_type& i, const client::Descriptor& d)
           {
             return i.getDescriptor() == d;
           });
@@ -182,10 +182,10 @@ namespace fluid {
         }
 
         size_t bufCount = 0;
-        std::unordered_set<parameter::BufferAdaptor*> uniqueBuffers;
+        std::unordered_set<client::BufferAdaptor*> uniqueBuffers;
         //First round of buffer checks
         //Source buffer is mandatory, and should exist
-        parameter::BufferAdaptor::Access src(mParams[0].getBuffer());
+        client::BufferAdaptor::Access src(mParams[0].getBuffer());
 
         if(!src.valid())
         {
@@ -201,11 +201,11 @@ namespace fluid {
         {
           switch(p.getDescriptor().getType())
           {
-          case parameter::Type::kBuffer:
+          case client::Type::kBuffer:
             // If we've been handed a buffer that we're expecting, then it
             // should exist
             if (p.hasChanged() && p.getBuffer()) {
-              parameter::BufferAdaptor::Access b(p.getBuffer());
+              client::BufferAdaptor::Access b(p.getBuffer());
               if (!b.valid()) {
                 std::ostringstream ss;
                 ss << "Buffer given for " << p.getDescriptor().getName()
@@ -228,12 +228,12 @@ namespace fluid {
 
 
         //Now scan everything for range, until we hit a problem
-        //TODO Factor into parameter::instance
+        //TODO Factor into client::instance
         for(auto&& p: mParams)
         {
-          parameter::Descriptor d = p.getDescriptor();
+          client::Descriptor d = p.getDescriptor();
           bool rangeOk;
-          parameter::Instance::RangeErrorType errorType;
+          client::Instance::RangeErrorType errorType;
           std::tie(rangeOk, errorType) = p.checkRange();
           if (!rangeOk)
           {
@@ -241,10 +241,10 @@ namespace fluid {
             msg << "Parameter " << d.getName();
             switch (errorType)
             {
-            case parameter::Instance::RangeErrorType::kMin:
+            case client::Instance::RangeErrorType::kMin:
               msg << " value below minimum (" << d.getMin() << ")";
               break;
-            case parameter::Instance::RangeErrorType::kMax:
+            case client::Instance::RangeErrorType::kMax:
               msg << " value above maximum (" << d.getMin() << ")";
             default:
               assert(false && "This should be unreachable");
@@ -254,10 +254,10 @@ namespace fluid {
 
         }
 
-        long srcOffset     = parameter::lookupParam("offsetframes",         mParams).getLong();
-        long srcFrames     = parameter::lookupParam("numframes",         mParams).getLong();
-        long srcChanOffset = parameter::lookupParam("offsetchans", mParams).getLong();
-        long srcChans      = parameter::lookupParam("numchans",       mParams).getLong();
+        long srcOffset     = client::lookupParam("offsetframes",         mParams).getLong();
+        long srcFrames     = client::lookupParam("numframes",         mParams).getLong();
+        long srcChanOffset = client::lookupParam("offsetchans", mParams).getLong();
+        long srcChans      = client::lookupParam("numchans",       mParams).getLong();
         
         //Ensure that the source buffer can deliver
         if(srcFrames > 0 ? (src.numFrames() < (srcOffset + srcFrames)) : (src.numFrames() < srcOffset))
@@ -271,15 +271,15 @@ namespace fluid {
         }
 
         //At this point, we're happy with the source buffer
-        model.src           = parameter::lookupParam("src",getParams()).getBuffer();
+        model.src           = client::lookupParam("src",getParams()).getBuffer();
         model.offset        = srcOffset;
         model.frames        = srcFrames > 0 ? srcFrames : src.numFrames() - model.offset;
         model.channelOffset = srcChanOffset;
         model.channels      = srcChans >  0 ? srcChans  : src.numChans() - model.channelOffset;
 
 
-        parameter::BufferAdaptor::Access harmBuf(parameter::lookupParam("harmbuf",getParams()).getBuffer());
-        parameter::BufferAdaptor::Access percBuf(parameter::lookupParam("percbuf", getParams()).getBuffer());
+        client::BufferAdaptor::Access harmBuf(client::lookupParam("harmbuf",getParams()).getBuffer());
+        client::BufferAdaptor::Access percBuf(client::lookupParam("percbuf", getParams()).getBuffer());
 
         
         if(! harmBuf.valid())
@@ -293,22 +293,22 @@ namespace fluid {
         
         
 
-        model.harm = parameter::lookupParam("harmbuf",getParams()).getBuffer();
-        model.perc = parameter::lookupParam("percbuf", getParams()).getBuffer();
+        model.harm = client::lookupParam("harmbuf",getParams()).getBuffer();
+        model.perc = client::lookupParam("percbuf", getParams()).getBuffer();
         
-        parameter::Instance& winSize = parameter::lookupParam("winsize", getParams());
-        parameter::Instance& hopSize = parameter::lookupParam("hopsize", getParams());
-        parameter::Instance& fftSize = parameter::lookupParam("fftsize", getParams());
+        client::Instance& winSize = client::lookupParam("winsize", getParams());
+        client::Instance& hopSize = client::lookupParam("hopsize", getParams());
+        client::Instance& fftSize = client::lookupParam("fftsize", getParams());
         
         
-        std::tuple<bool,std::string> fftok = parameter::checkFFTArguments(winSize, hopSize, fftSize);
+        std::tuple<bool,std::string> fftok = client::checkFFTArguments(winSize, hopSize, fftSize);
         if(!std::get<0>(fftok))
         {
           return std::tuple_cat(fftok,std::make_tuple(model));
         }
         
-        size_t pSize = parameter::lookupParam("psize", getParams()).getLong();
-        size_t hSize = parameter::lookupParam("hsize", getParams()).getLong();
+        size_t pSize = client::lookupParam("psize", getParams()).getLong();
+        size_t hSize = client::lookupParam("hsize", getParams()).getLong();
         
         if(pSize > (fftSize.getLong() / 2) + 1 )
         {
@@ -326,36 +326,36 @@ namespace fluid {
         model.hopsize = hopSize.getLong();
         model.fftsize = fftSize.getLong();
         
-        model.mode = parameter::lookupParam("modeflag", getParams()).getLong();
+        model.mode = client::lookupParam("modeflag", getParams()).getLong();
         
         
         if(model.mode > 0)
         {
         
           
-          double pf1 = parameter::lookupParam("ptf1", getParams()).getFloat();
-          double pf2 = parameter::lookupParam("ptf2", getParams()).getFloat();
+          double pf1 = client::lookupParam("ptf1", getParams()).getFloat();
+          double pf2 = client::lookupParam("ptf2", getParams()).getFloat();
           if(pf1 >= pf2)
           {
             return {false,"Percussive Threshold low frequency must be below high frequency",model};
           }
           
-          double pa1 = parameter::lookupParam("pta1", getParams()).getFloat();
-          double pa2 = parameter::lookupParam("pta2", getParams()).getFloat();
+          double pa1 = client::lookupParam("pta1", getParams()).getFloat();
+          double pa2 = client::lookupParam("pta2", getParams()).getFloat();
           model.pThreshFreq[0] = pf1;
           model.pThreshFreq[1] = pf2;
           model.pThreshAmp[0] =  pa1;
           model.pThreshAmp[0] = pa2;
           
-          double hf1 = parameter::lookupParam("htf1", getParams()).getFloat();
-          double hf2 = parameter::lookupParam("htf2", getParams()).getFloat();
+          double hf1 = client::lookupParam("htf1", getParams()).getFloat();
+          double hf2 = client::lookupParam("htf2", getParams()).getFloat();
           if(hf1 >= hf2)
           {
             return {false,"Harmonic Threshold low frequency must be below high frequency",model};
           }
           
-          double ha1 = parameter::lookupParam("hta1", getParams()).getFloat();
-          double ha2 = parameter::lookupParam("hta2", getParams()).getFloat();
+          double ha1 = client::lookupParam("hta1", getParams()).getFloat();
+          double ha2 = client::lookupParam("hta2", getParams()).getFloat();
           model.hThreshFreq[0] = hf1;
           model.hThreshFreq[1] = hf2;
           model.hThreshAmp[0] = ha1;
@@ -364,8 +364,8 @@ namespace fluid {
         
         
         
-        model.res = parameter::lookupParam("resbuf",getParams()).getBuffer();
-        parameter::BufferAdaptor::Access resBuf(model.res);
+        model.res = client::lookupParam("resbuf",getParams()).getBuffer();
+        client::BufferAdaptor::Access resBuf(model.res);
         
         if(model.mode == 2 && model.res)
         {
@@ -393,10 +393,10 @@ namespace fluid {
 
       void process(ProcessModel model)
       {
-        parameter::BufferAdaptor::Access src(model.src);
-        parameter::BufferAdaptor::Access harm(model.harm);
-        parameter::BufferAdaptor::Access perc(model.perc);
-        parameter::BufferAdaptor::Access res(model.res);
+        client::BufferAdaptor::Access src(model.src);
+        client::BufferAdaptor::Access harm(model.harm);
+        client::BufferAdaptor::Access perc(model.perc);
+        client::BufferAdaptor::Access res(model.res);
         
         harm.resize(model.frames,model.channels,1);
         perc.resize(model.frames,model.channels,1);
@@ -404,10 +404,10 @@ namespace fluid {
         if(model.returnRes)
           res.resize(model.frames,model.channels,1);
           
-        stft::STFT  stft (model.winsize,model.fftsize,model.hopsize);
-        stft::ISTFT istft(model.winsize,model.fftsize,model.hopsize);
+        algorithm::STFT  stft (model.winsize,model.fftsize,model.hopsize);
+        algorithm::ISTFT istft(model.winsize,model.fftsize,model.hopsize);
  
-        rthpss::RTHPSS processor(model.fftsize / 2 + 1, model.percsize,model.harmsize,model.mode,
+        algorithm::RTHPSS processor(model.fftsize / 2 + 1, model.percsize,model.harmsize,model.mode,
                                  model.hThreshFreq[0], model.hThreshAmp[0],
                                  model.hThreshFreq[1], model.hThreshAmp[1],
                                  model.pThreshFreq[0], model.pThreshAmp[0],
@@ -469,13 +469,13 @@ namespace fluid {
         }
       }
       
-      std::vector<parameter::Instance>& getParams()
+      std::vector<client::Instance>& getParams()
       {
         return mParams;
       }
 
     private:
-      std::vector<parameter::Instance> mParams;
+      std::vector<client::Instance> mParams;
     };
-  } //namespace buf
+  } //namespace client
 } //namesapce fluid

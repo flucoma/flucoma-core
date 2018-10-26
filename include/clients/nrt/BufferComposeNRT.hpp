@@ -11,15 +11,15 @@
 #include <vector> //for containers of params, and for checking things
 
 namespace fluid {
-  namespace buf{
+  namespace client{
 
     /**
      Integration class for doing NMF filtering and resynthesis
      **/
     class BufferComposeClient
     {
-      using desc_type = parameter::Descriptor;
-      using param_type = parameter::Instance;
+      using desc_type = client::Descriptor;
+      using param_type = client::Instance;
     public:
 
       struct ProcessModel
@@ -31,84 +31,84 @@ namespace fluid {
         double gain[2];
         size_t dstOffset[2];
         size_t dstChannelOffset[2];
-        parameter::BufferAdaptor* src1 = 0;
-        parameter::BufferAdaptor* src2 = 0;
-        parameter::BufferAdaptor* dst = 0;
+        client::BufferAdaptor* src1 = 0;
+        client::BufferAdaptor* src2 = 0;
+        client::BufferAdaptor* dst = 0;
       };
 
-      static const std::vector<parameter::Descriptor>& getParamDescriptors()
+      static const std::vector<client::Descriptor>& getParamDescriptors()
       {
         static std::vector<desc_type> params;
         if(params.empty())
         {
           params.emplace_back("src", "First Source Buffer",
-                              parameter::Type::kBuffer);
+                              client::Type::kBuffer);
           params.back().setInstantiation(true);
 
           params.emplace_back("offsetframes1", "Source 1 Offset",
-                              parameter::Type::kLong);
+                              client::Type::kLong);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
           params.emplace_back("numframes1", "Source 1 Frames",
-                              parameter::Type::kLong);
+                              client::Type::kLong);
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
 
           params.emplace_back("offsetchans1", "Source 1 Channel Offset",
-                              parameter::Type::kLong);
+                              client::Type::kLong);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
           params.emplace_back("numchans1", "Source 1 Channels",
-                              parameter::Type::kLong);
+                              client::Type::kLong);
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
 
           params.emplace_back("src1gain", "Source 1 Gain",
-                              parameter::Type::kFloat);
+                              client::Type::kFloat);
           params.back().setInstantiation(true).setDefault(1);
 
           params.emplace_back("src1dstoffset", "Source 1 Destination Offset",
-                              parameter::Type::kLong);
+                              client::Type::kLong);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
           params.emplace_back("src1dstchanoffset",
                               "Source 1 Destination Channel Offset",
-                              parameter::Type::kLong);
+                              client::Type::kLong);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
           params.emplace_back("src2", "Second Source Buffer",
-                              parameter::Type::kBuffer);
+                              client::Type::kBuffer);
           params.back().setInstantiation(true);
 
           params.emplace_back("offsetframes2", "Source 2 Offset",
-                              parameter::Type::kLong);
+                              client::Type::kLong);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
           params.emplace_back("numframes2", "Source 2 Frames",
-                              parameter::Type::kLong);
+                              client::Type::kLong);
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
 
           params.emplace_back("offsetchans2", "Source 2 Channel Offset",
-                              parameter::Type::kLong);
+                              client::Type::kLong);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
           params.emplace_back("numchans2", "Source 2 Channels",
-                              parameter::Type::kLong);
+                              client::Type::kLong);
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
 
           params.emplace_back("src2gain", "Source 2 Gain",
-                              parameter::Type::kFloat);
+                              client::Type::kFloat);
           params.back().setInstantiation(true).setDefault(1);
 
           params.emplace_back("src2dstoffset", "Source 2 Destination Offset",
-                              parameter::Type::kLong);
+                              client::Type::kLong);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
           params.emplace_back("src2dstchanoffset",
                               "Source 2 Destination Channel Offset",
-                              parameter::Type::kLong);
+                              client::Type::kLong);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
           params.emplace_back("dstbuf", "Destination Buffer",
-                              parameter::Type::kBuffer);
+                              client::Type::kBuffer);
           params.back().setInstantiation(false);
         }
         return params;
@@ -120,7 +120,7 @@ namespace fluid {
         mParams.reserve(getParamDescriptors().size());
         //Note: I'm pretty sure I want auto's copy behaviour here
         for(auto p: getParamDescriptors())
-          mParams.emplace_back( parameter::Instance(p));
+          mParams.emplace_back( client::Instance(p));
       }
 
       /**
@@ -131,10 +131,10 @@ namespace fluid {
       std::tuple<bool,std::string,ProcessModel> sanityCheck()
       {
         ProcessModel model;
-        const std::vector<parameter::Descriptor>& desc = getParamDescriptors();
+        const std::vector<client::Descriptor>& desc = getParamDescriptors();
         //First, let's make sure that we have a complete of parameters of the right sort
         bool sensible = std::equal(mParams.begin(), mParams.end(),desc.begin(),
-          [](const param_type& i, const parameter::Descriptor& d)
+          [](const param_type& i, const client::Descriptor& d)
           {
             return i.getDescriptor() == d;
           });
@@ -145,11 +145,11 @@ namespace fluid {
         }
 
         size_t bufCount = 0;
-        std::unordered_set<parameter::BufferAdaptor*> uniqueBuffers;
+        std::unordered_set<client::BufferAdaptor*> uniqueBuffers;
         //First round of buffer checks
         //Source buffer is mandatory, and should exist
-        parameter::BufferAdaptor::Access src1(mParams[0].getBuffer());
-        parameter::BufferAdaptor::Access src2(mParams[8].getBuffer());
+        client::BufferAdaptor::Access src1(mParams[0].getBuffer());
+        client::BufferAdaptor::Access src2(mParams[8].getBuffer());
 
         if(!(src1.valid() && src2.valid()))
         {
@@ -165,11 +165,11 @@ namespace fluid {
         {
           switch(p.getDescriptor().getType())
           {
-          case parameter::Type::kBuffer:
+          case client::Type::kBuffer:
             // If we've been handed a buffer that we're expecting, then it
             // should exist
             if (p.hasChanged() && p.getBuffer()) {
-              parameter::BufferAdaptor::Access b(p.getBuffer());
+              client::BufferAdaptor::Access b(p.getBuffer());
               if (!b.valid()) {
                 std::ostringstream ss;
                 ss << "Buffer given for " << p.getDescriptor().getName()
@@ -192,12 +192,12 @@ namespace fluid {
 
 
         //Now scan everything for range, until we hit a problem
-        //TODO Factor into parameter::instance
+        //TODO Factor into client::instance
         for(auto&& p: mParams)
         {
-          parameter::Descriptor d = p.getDescriptor();
+          client::Descriptor d = p.getDescriptor();
           bool rangeOk;
-          parameter::Instance::RangeErrorType errorType;
+          client::Instance::RangeErrorType errorType;
           std::tie(rangeOk, errorType) = p.checkRange();
           if (!rangeOk)
           {
@@ -205,10 +205,10 @@ namespace fluid {
             msg << "Parameter " << d.getName();
             switch (errorType)
             {
-            case parameter::Instance::RangeErrorType::kMin:
+            case client::Instance::RangeErrorType::kMin:
               msg << " value below minimum (" << d.getMin() << ")";
               break;
-            case parameter::Instance::RangeErrorType::kMax:
+            case client::Instance::RangeErrorType::kMax:
               msg << " value above maximum (" << d.getMin() << ")";
             default:
               assert(false && "This should be unreachable");
@@ -220,12 +220,12 @@ namespace fluid {
 
 
         //Check the size of our buffers
-        long srcOffset     = parameter::lookupParam("offsetframes1",mParams).getLong();
-        long srcFrames     = parameter::lookupParam("numframes1",   mParams).getLong();
-        long srcChanOffset = parameter::lookupParam("offsetchans1", mParams).getLong();
-        long srcChans      = parameter::lookupParam("numchans1",    mParams).getLong();
-        long srcDstOffset  = parameter::lookupParam("src1dstoffset", mParams).getLong();
-        long srcDstChanOffset = parameter::lookupParam("src1dstchanoffset", mParams).getLong();
+        long srcOffset     = client::lookupParam("offsetframes1",mParams).getLong();
+        long srcFrames     = client::lookupParam("numframes1",   mParams).getLong();
+        long srcChanOffset = client::lookupParam("offsetchans1", mParams).getLong();
+        long srcChans      = client::lookupParam("numchans1",    mParams).getLong();
+        long srcDstOffset  = client::lookupParam("src1dstoffset", mParams).getLong();
+        long srcDstChanOffset = client::lookupParam("src1dstchanoffset", mParams).getLong();
 
           
         //We're quite relaxed about asking for more frames than the buffer contains (we'll zero pad)
@@ -249,17 +249,17 @@ namespace fluid {
         model.frames[0]        = srcFrames > 0 ? srcFrames : src1.numFrames() - model.offset[0];
         model.channelOffset[0] = srcChanOffset;
         model.channels[0]      = srcChans >  0 ? srcChans  : src1.numChans() - model.channelOffset[0];
-        model.gain[0]          = parameter::lookupParam("src1gain",mParams).getFloat();
+        model.gain[0]          = client::lookupParam("src1gain",mParams).getFloat();
         model.dstOffset[0] =   srcDstOffset;
         model.dstChannelOffset[0] = srcDstChanOffset;
 
 
-        srcOffset        = parameter::lookupParam("offsetframes2",mParams).getLong();
-        srcFrames        = parameter::lookupParam("numframes2",   mParams).getLong();
-        srcChanOffset    = parameter::lookupParam("offsetchans2", mParams).getLong();
-        srcChans         = parameter::lookupParam("numchans2",    mParams).getLong();
-        srcDstOffset     = parameter::lookupParam("src2dstoffset", mParams).getLong();
-        srcDstChanOffset = parameter::lookupParam("src2dstchanoffset", mParams).getLong();
+        srcOffset        = client::lookupParam("offsetframes2",mParams).getLong();
+        srcFrames        = client::lookupParam("numframes2",   mParams).getLong();
+        srcChanOffset    = client::lookupParam("offsetchans2", mParams).getLong();
+        srcChans         = client::lookupParam("numchans2",    mParams).getLong();
+        srcDstOffset     = client::lookupParam("src2dstoffset", mParams).getLong();
+        srcDstChanOffset = client::lookupParam("src2dstchanoffset", mParams).getLong();
 
         //We're quite relaxed about asking for more frames than the buffer contains (we'll zero pad)
         //but it seems reasonable the offset should at least point somewhere in the buffer
@@ -282,15 +282,15 @@ namespace fluid {
         model.frames[1]        = srcFrames > 0 ? srcFrames : src2.numFrames() - model.offset[1];
         model.channelOffset[1] = srcChanOffset;
         model.channels[1]      = srcChans >  0 ? srcChans  : src2.numChans() - model.channelOffset[1];
-        model.gain[1]    = parameter::lookupParam("src2gain",mParams).getFloat();
+        model.gain[1]    = client::lookupParam("src2gain",mParams).getFloat();
         model.dstOffset[1] =   srcDstOffset;
         model.dstChannelOffset[1] = srcDstChanOffset;
 
 
 
-        parameter::Instance& dstParam = parameter::lookupParam("dstbuf", mParams);
+        client::Instance& dstParam = client::lookupParam("dstbuf", mParams);
 
-        parameter::BufferAdaptor::Access dst(dstParam.getBuffer());
+        client::BufferAdaptor::Access dst(dstParam.getBuffer());
         if(! dst.valid())
         {
           return {false,"Destination buffer invalid",model};
@@ -330,8 +330,8 @@ namespace fluid {
         //we need to (possibly) resize the desintation buffer which could (possibly)
         //also be one of the sources
         {
-          parameter::BufferAdaptor::Access src1(model.src1);
-          parameter::BufferAdaptor::Access src2(model.src2);
+          client::BufferAdaptor::Access src1(model.src1);
+          client::BufferAdaptor::Access src2(model.src2);
           // iterates through the copying of the first source
           for(size_t i = model.dstChannelOffset[0], j = 0; j < model.channels[0]; ++i,++j)
           {
@@ -363,7 +363,7 @@ namespace fluid {
           }
         }
         
-        parameter::BufferAdaptor::Access dst(model.dst);
+        client::BufferAdaptor::Access dst(model.dst);
 //        if(dst.numFrames() < frames || dst.numChans() < chans)
 //        {
         dst.resize(frames,chans,1);
@@ -375,13 +375,13 @@ namespace fluid {
         }
     }
       
-      std::vector<parameter::Instance>& getParams()
+      std::vector<client::Instance>& getParams()
       {
         return mParams;
       }
 
     private:
-      std::vector<parameter::Instance> mParams;
+      std::vector<client::Instance> mParams;
     };
-  } //namespace buf
+  } //namespace client
 } //namesapce fluid

@@ -1,5 +1,5 @@
 /***!
- @file fluid::audio::BaseAudioClient
+ @file fluid::client::BaseAudioClient
 
  Provides buffering services, and performs simple pass through (i.e. is a concrete class).
 
@@ -16,7 +16,7 @@
 #include "clients/common/FluidParams.hpp"
 
 namespace fluid {
-namespace audio {
+namespace client {
 
 
     template <typename T, typename U>
@@ -130,23 +130,23 @@ namespace audio {
           //          newParamSet();
         }
 
-      static std::vector<parameter::Descriptor>& getParamDescriptors()
+      static std::vector<client::Descriptor>& getParamDescriptors()
       {
-        static std::vector<parameter::Descriptor> descriptors;
+        static std::vector<client::Descriptor> descriptors;
         if(descriptors.size() == 0)
         {
           descriptors.emplace_back("winsize", "Window Size",
-                                   parameter::Type::kLong);
+                                   client::Type::kLong);
           descriptors.back().setMin(4).setDefault(1024).setInstantiation(true);
 
           descriptors.emplace_back("hopsize", "Hop Size",
-                                   parameter::Type::kLong);
+                                   client::Type::kLong);
           descriptors.back().setMin(1).setDefault(512).setInstantiation(true);
         }
         return descriptors;
       }
 
-      static void initParamDescriptors(std::vector<parameter::Descriptor>& vec)
+      static void initParamDescriptors(std::vector<client::Descriptor>& vec)
       {
         auto d = getParamDescriptors();
 
@@ -268,7 +268,7 @@ namespace audio {
 
       std::tuple<bool, std::string> sanityCheck()
       {
-        size_t winsize = parameter::lookupParam("winsize", getParams()).getLong();
+        size_t winsize = client::lookupParam("winsize", getParams()).getLong();
 
         if(winsize > mMaxFrameSize)
         {
@@ -313,15 +313,15 @@ namespace audio {
 
         virtual size_t getHopSize()
         {
-          return parameter::lookupParam("hopsize", getParams()).getLong();
+          return client::lookupParam("hopsize", getParams()).getLong();
         }
 
         virtual size_t getWindowSize()
         {
-          return parameter::lookupParam("winsize", getParams()).getLong();
+          return client::lookupParam("winsize", getParams()).getLong();
         }
 
-        virtual std::vector<parameter::Instance>& getParams() = 0;
+        virtual std::vector<client::Instance>& getParams() = 0;
     private:
       size_t mHostBufferSize;
       size_t mMaxFrameSize;
@@ -339,5 +339,5 @@ namespace audio {
       source_buffer_type mSource;
       sink_buffer_type mSink;
     };
-}
-}
+} //namespace client
+} //nameapace audio

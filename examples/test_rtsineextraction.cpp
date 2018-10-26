@@ -18,9 +18,9 @@ int main(int argc, char *argv[]) {
   using fluid::audiofile::writeFile;
 
   using fluid::FluidTensor;
-  using fluid::stft::ISTFT;
-  using fluid::stft::Spectrogram;
-  using fluid::stft::STFT;
+  using fluid::algorithm::ISTFT;
+  using fluid::algorithm::Spectrogram;
+  using fluid::algorithm::STFT;
 
   using Eigen::ArrayXXcd;
   using Eigen::ArrayXXd;
@@ -28,8 +28,8 @@ int main(int argc, char *argv[]) {
   using ComplexMatrix = FluidTensor<std::complex<double>, 2>;
   using RealMatrix = FluidTensor<double, 2>;
   using RealVector = FluidTensor<double, 1>;
-  using fluid::eigenmappings::ArrayXXcdToFluid;
-  using fluid::rtsineextraction::RTSineExtraction;
+  using fluid::algorithm::ArrayXXcdToFluid;
+  using fluid::algorithm::RTSineExtraction;
 
 
   if (argc != 2) {
