@@ -1,11 +1,11 @@
 
 #pragma once
 
+#include "ParameterDescriptor.hpp"
+
 namespace fluid{
 namespace client{
-  
-//  struct ParameterDescriptor;
-  
+    
   class ParameterInstance
   {
   public:

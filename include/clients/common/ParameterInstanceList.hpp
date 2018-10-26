@@ -4,7 +4,8 @@
 
 #pragma once
 
-#include "clients/common/ParameterDescriptorList.hpp"
+#include "ParameterInstance.hpp"
+#include "ParameterDescriptorList.hpp"
 #include <vector>
 
 namespace fluid {
@@ -12,7 +13,6 @@ namespace client {
     
   class ParameterInstanceList
   {
-    using ParameterInstance = Instance;
     using const_iterator = std::vector<ParameterInstance>::const_iterator;
     using iterator = std::vector<ParameterInstance>::iterator;
 
