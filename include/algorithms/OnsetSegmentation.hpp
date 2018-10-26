@@ -46,7 +46,7 @@ public:
                     bool forwardOnly = false)
       : mFFT(FFTSize), mFFTSize(FFTSize), mWindowSize(windowSize),
         mHopSize(hopSize), mFrameDelta(frameDelta),
-        mWindowType(algorithm::WindowType::Hann), mFunction(function),
+        mWindowType(algorithm::WindowType::kHann), mFunction(function),
         mFilterSize(filterSize), mForwardOnly(forwardOnly),
         mNormalisation(kNone), mThreshold(threshold) {
     assert(mWindowSize <= mFFTSize);
@@ -84,7 +84,7 @@ public:
     int nFrames = floor((padded.size() - frameSize) / mHopSize);
     ArrayXd onsetDetectionFunc(nFrames);
     for (int i = 0; i < nFrames; i++) {
-      RealVectorView frame = input(fluid::slice(i * mHopSize, frameSize));
+      RealVectorView frame = input(fluid::Slice(i * mHopSize, frameSize));
       onsetDetectionFunc(i) = processFrame(frame);
     }
     if (mFilterSize > 0) {
@@ -134,9 +134,8 @@ private:
       *it = std::max(std::numeric_limits<double>::epsilon(), *it);
   }
 
-  double frameComparison(RealVectorView &vec1, RealVectorView &vec2) {
-    using namespace descriptors;
-
+  double frameComparison(RealVectorView &vec1, RealVectorView &vec2)
+  {
     if (mForwardOnly)
       Descriptors::forwardFilter(vec1, vec2);
 
