@@ -353,7 +353,7 @@ private:
             delete mValue.vBuffer;
           mValue.vBuffer = nullptr;
           break;
-        default:
+        default: break;
       }
       mHasChanged = false;
     }
@@ -403,7 +403,7 @@ private:
       switch (mDesc.getType())
       {
         case Type::kFloat:    return mValue.vFloat;
-        case Type::kLong:     return return static_cast<double>(mValue.vLong);
+        case Type::kLong:     return static_cast<double>(mValue.vLong);
         default:              assert(false && "Don't call this on a non-buffer parameter");
       }
       return 0.0;
