@@ -10,8 +10,8 @@
 namespace fluid {
 namespace client {
     
-  using ParameterDescriptor = Descriptor;
-    
+//  using ParameterDescriptor = Descriptor;
+  
   class ParameterDescriptorList
   {
     using const_iterator = std::vector<ParameterDescriptor>::const_iterator;
