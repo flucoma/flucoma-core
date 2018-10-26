@@ -28,7 +28,7 @@ namespace client {
     
   protected:
 
-    void addParameterDescriptor(ParameterDescriptor x)
+    void add(ParameterDescriptor x)
     {
       mContainer.emplace_back(x);
     }
