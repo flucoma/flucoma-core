@@ -5,7 +5,7 @@
 void testPseudoEnvironment()
 {
   
-  clients
+//  clients
   
   
 }
