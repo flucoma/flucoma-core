@@ -27,8 +27,11 @@ namespace client {
     }
     
   protected:
-    template<typename T>
-    void addParameterDescriptor(T x) { }
+
+    void addParameterDescriptor(ParameterDescriptor x)
+    {
+      mContainer.emplace_back(x);
+    }
     
     std::vector<ParameterDescriptor> mContainer;
   };
