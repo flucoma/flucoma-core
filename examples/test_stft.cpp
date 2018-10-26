@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
 
   using fluid::FluidTensor;
   using fluid::FluidTensorView;
-  using fluid::slice;
+  using fluid::Slice;
 
   if (argc <= 2){
     cout << "usage: test_stft in.wav out.wav\n";
@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
   std::cout<<"----"<<std::endl;
 
   // test processFrame
-  FluidTensorView<double, 1> inF = in(slice(0, 1024));
+  FluidTensorView<double, 1> inF = in(Slice(0, 1024));
   FluidTensorView<double, 1> outF = istft.processFrame(stft.processFrame(inF));
   std::cout<<"size "<<outF.size()<<std::endl;
   err = 0;

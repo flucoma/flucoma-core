@@ -64,41 +64,51 @@ namespace fluid {
         static std::vector<desc_type> params;
         if(params.empty())
         {
-          params.emplace_back("src","Source Buffer", parameter::Type::Buffer);
+          params.emplace_back("src", "Source Buffer", parameter::Type::kBuffer);
           params.back().setInstantiation(true);
 
-          params.emplace_back("offsetframes","Source Offset", parameter::Type::Long);
+          params.emplace_back("offsetframes", "Source Offset",
+                              parameter::Type::kLong);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
-          params.emplace_back("numframes","Source Frames", parameter::Type::Long);
+          params.emplace_back("numframes", "Source Frames",
+                              parameter::Type::kLong);
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
 
-          params.emplace_back("offsetchans","Source Channel Offset", parameter::Type::Long);
+          params.emplace_back("offsetchans", "Source Channel Offset",
+                              parameter::Type::kLong);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
-          params.emplace_back("numchans","Source Channels", parameter::Type::Long);
+          params.emplace_back("numchans", "Source Channels",
+                              parameter::Type::kLong);
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
 
-          params.emplace_back(desc_type{"transbuf","Indices Buffer", parameter::Type::Buffer});
+          params.emplace_back(desc_type{"transbuf", "Indices Buffer",
+                                        parameter::Type::kBuffer});
           params.back().setInstantiation(false);
-      
-          params.emplace_back(desc_type{"kernelsize","Kernel Size", parameter::Type::Long});
+
+          params.emplace_back(
+              desc_type{"kernelsize", "Kernel Size", parameter::Type::kLong});
           params.back().setMin(3).setDefault(3).setInstantiation(false);
-          
-          params.emplace_back(desc_type{"threshold","Threshold", parameter::Type::Float});
+
+          params.emplace_back(
+              desc_type{"threshold", "Threshold", parameter::Type::kFloat});
           params.back().setMin(0).setDefault(0.8).setInstantiation(false);
-          
-          params.emplace_back("filtersize","Smoothing Filter Size", parameter::Type::Long);
+
+          params.emplace_back("filtersize", "Smoothing Filter Size",
+                              parameter::Type::kLong);
           params.back().setInstantiation(false);
-          
-          
-          params.emplace_back(desc_type{"winsize","Window Size", parameter::Type::Long});
+
+          params.emplace_back(
+              desc_type{"winsize", "Window Size", parameter::Type::kLong});
           params.back().setMin(4).setDefault(1024).setInstantiation(false);
-          
-          params.emplace_back(desc_type{"hopsize","Hop Size", parameter::Type::Long});
+
+          params.emplace_back(
+              desc_type{"hopsize", "Hop Size", parameter::Type::kLong});
           params.back().setMin(1).setDefault(512).setInstantiation(false);
-          
-          params.emplace_back(desc_type{"fftsize","FFT Size", parameter::Type::Long});
+
+          params.emplace_back(
+              desc_type{"fftsize", "FFT Size", parameter::Type::kLong});
           params.back().setMin(-1).setDefault(2048).setInstantiation(false);
           
         }
@@ -155,23 +165,23 @@ namespace fluid {
         {
           switch(p.getDescriptor().getType())
           {
-            case parameter::Type::Buffer:
-              //If we've been handed a buffer that we're expecting, then it should exist
-              if(p.hasChanged() && p.getBuffer())
-              {
-                parameter::BufferAdaptor::Access b(p.getBuffer());
-                if(!b.valid())
-                 {
-                   std::ostringstream ss;
-                   ss << "Buffer given for " << p.getDescriptor().getName() << " doesn't exist.";
+          case parameter::Type::kBuffer:
+            // If we've been handed a buffer that we're expecting, then it
+            // should exist
+            if (p.hasChanged() && p.getBuffer()) {
+              parameter::BufferAdaptor::Access b(p.getBuffer());
+              if (!b.valid()) {
+                std::ostringstream ss;
+                ss << "Buffer given for " << p.getDescriptor().getName()
+                   << " doesn't exist.";
 
-                   return {false, ss.str(), model};
-                 }
-                ++bufCount;
-                uniqueBuffers.insert(p.getBuffer());
+                return {false, ss.str(), model};
               }
-            default:
-              continue;
+              ++bufCount;
+              uniqueBuffers.insert(p.getBuffer());
+            }
+          default:
+            continue;
           }
         }
 
@@ -195,13 +205,13 @@ namespace fluid {
             msg << "Parameter " << d.getName();
             switch (errorType)
             {
-              case parameter::Instance::RangeErrorType::Min:
-                msg << " value below minimum (" << d.getMin() << ")";
-                break;
-              case parameter::Instance::RangeErrorType::Max:
-                msg << " value above maximum (" << d.getMin() << ")";
-              default:
-                assert(false && "This should be unreachable");
+            case parameter::Instance::RangeErrorType::kMin:
+              msg << " value below minimum (" << d.getMin() << ")";
+              break;
+            case parameter::Instance::RangeErrorType::kMax:
+              msg << " value above maximum (" << d.getMin() << ")";
+            default:
+              assert(false && "This should be unreachable");
             }
             return { false, msg.str(), model};
           }
@@ -312,9 +322,10 @@ namespace fluid {
         FluidTensor<double,1> changePoints(magnitude.rows());
         
         processor.process(magnitude,changePoints);
-        
-        size_t num_spikes = std::accumulate(changePoints.begin(), changePoints.end() , 0);
-        
+
+        size_t numSpikes =
+            std::accumulate(changePoints.begin(), changePoints.end(), 0);
+
         //Arg sort
         std::vector<size_t> indices(changePoints.size());
         std::iota(indices.begin(),indices.end(),0);
@@ -323,23 +334,25 @@ namespace fluid {
         });
         
         //Now put the gathered indicies into ascending order
-        std::sort(indices.begin(), indices.begin() + num_spikes);
-        
+        std::sort(indices.begin(), indices.begin() + numSpikes);
+
         //convert frame numbers to samples, and account for any offset
-        std::transform(indices.begin(),indices.begin() + num_spikes, indices.begin(), [&](size_t x)->size_t {
-          x *= model.hopsize;
-          x += model.offset;
-          return x; 
-        });
-        
+        std::transform(indices.begin(), indices.begin() + numSpikes,
+                       indices.begin(), [&](size_t x) -> size_t {
+                         x *= model.hopsize;
+                         x += model.offset;
+                         return x;
+                       });
+
         //Place a leading <offset> and <numframes>
-        indices.insert(indices.begin() + num_spikes, model.offset + model.frames);
+        indices.insert(indices.begin() + numSpikes,
+                       model.offset + model.frames);
         indices.insert(indices.begin(), model.offset);
-        
-        idx.resize(num_spikes + 2,1,1);
-        
-    
-        idx.samps(0) = FluidTensorView<size_t,1>{indices.data(),0,num_spikes + 2};
+
+        idx.resize(numSpikes + 2, 1, 1);
+
+        idx.samps(0) =
+            FluidTensorView<size_t, 1>{indices.data(), 0, numSpikes + 2};
       }
       std::vector<parameter::Instance>& getParams()
       {

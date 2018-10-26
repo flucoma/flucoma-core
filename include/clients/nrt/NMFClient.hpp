@@ -69,49 +69,64 @@ namespace fluid {
         static std::vector<desc_type> params;
         if(params.empty())
         {
-          params.emplace_back(desc_type{"src","Source Buffer", parameter::Type::Buffer});
+          params.emplace_back(
+              desc_type{"src", "Source Buffer", parameter::Type::kBuffer});
           params.back().setInstantiation(true);
-          
-          params.emplace_back(desc_type{"offsetframes","Source Offset", parameter::Type::Long});
+
+          params.emplace_back(desc_type{"offsetframes", "Source Offset",
+                                        parameter::Type::kLong});
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
-          params.emplace_back(desc_type{"numframes","Source Frames", parameter::Type::Long});
+          params.emplace_back(
+              desc_type{"numframes", "Source Frames", parameter::Type::kLong});
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
-          
-          params.emplace_back(desc_type{"offsetchans","Source Channel Offset", parameter::Type::Long});
+
+          params.emplace_back(desc_type{"offsetchans", "Source Channel Offset",
+                                        parameter::Type::kLong});
           params.back().setInstantiation(true).setMin(0).setDefault(0);
-          
-          params.emplace_back(desc_type{"numchans","Source Channels", parameter::Type::Long});
+
+          params.emplace_back(
+              desc_type{"numchans", "Source Channels", parameter::Type::kLong});
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
 
-          params.emplace_back(desc_type{"resynthbuf","Resynthesis Buffer", parameter::Type::Buffer});
+          params.emplace_back(desc_type{"resynthbuf", "Resynthesis Buffer",
+                                        parameter::Type::kBuffer});
           params.back().setInstantiation(false);
 
-          params.emplace_back(desc_type{"filterbuf","Filters Buffer", parameter::Type::Buffer});
+          params.emplace_back(desc_type{"filterbuf", "Filters Buffer",
+                                        parameter::Type::kBuffer});
           params.back().setInstantiation(false);
 
-          params.emplace_back(desc_type{"filterupdate","Filter Update",  parameter::Type::Long});
+          params.emplace_back(desc_type{"filterupdate", "Filter Update",
+                                        parameter::Type::kLong});
           params.back().setInstantiation(false).setMin(0).setMax(2).setDefault(0).setInstantiation(false);
-          
-          params.emplace_back(desc_type{"envbuf","Envelopes Buffer", parameter::Type::Buffer});
+
+          params.emplace_back(desc_type{"envbuf", "Envelopes Buffer",
+                                        parameter::Type::kBuffer});
           params.back().setInstantiation(false).setInstantiation(false);
-        
-          params.emplace_back(desc_type{"envupdate","Activation Update",  parameter::Type::Long});
+
+          params.emplace_back(desc_type{"envupdate", "Activation Update",
+                                        parameter::Type::kLong});
           params.back().setInstantiation(false).setMin(0).setMax(2).setDefault(0).setInstantiation(false);
-          
-          params.emplace_back(desc_type{"rank","Rank", parameter::Type::Long});
+
+          params.emplace_back(
+              desc_type{"rank", "Rank", parameter::Type::kLong});
           params.back().setMin(1).setDefault(1).setInstantiation(false);
-          
-          params.emplace_back(desc_type{"iterations","Iterations", parameter::Type::Long});
+
+          params.emplace_back(
+              desc_type{"iterations", "Iterations", parameter::Type::kLong});
           params.back().setInstantiation(false).setMin(1).setDefault(100).setInstantiation(false);
-          
-          params.emplace_back(desc_type{"winsize","Window Size", parameter::Type::Long});
+
+          params.emplace_back(
+              desc_type{"winsize", "Window Size", parameter::Type::kLong});
           params.back().setMin(4).setDefault(1024).setInstantiation(false);
 
-          params.emplace_back(desc_type{"hopsize","Hop Size", parameter::Type::Long});
+          params.emplace_back(
+              desc_type{"hopsize", "Hop Size", parameter::Type::kLong});
           params.back().setMin(1).setDefault(256).setInstantiation(false);
 
-          params.emplace_back(desc_type{"fftsize","FFT Size", parameter::Type::Long});
+          params.emplace_back(
+              desc_type{"fftsize", "FFT Size", parameter::Type::kLong});
           params.back().setMin(-1).setDefault(-1).setInstantiation(false);
         }
         return params;
@@ -154,24 +169,25 @@ namespace fluid {
         {
           switch(p.getDescriptor().getType())
           {
-            case parameter::Type::Buffer:
-              //If we've been handed a buffer that we're expecting, then it should exist
-              if(p.hasChanged() && p.getBuffer())
+          case parameter::Type::kBuffer:
+            // If we've been handed a buffer that we're expecting, then it
+            // should exist
+            if (p.hasChanged() && p.getBuffer()) {
+              parameter::BufferAdaptor::Access b(p.getBuffer());
+              if (!b.valid())
+
               {
-                parameter::BufferAdaptor::Access b(p.getBuffer());
-                if(!b.valid())
-             
-                 {
-                   std::ostringstream ss;
-                   ss << "Buffer given for " << p.getDescriptor().getName() << " doesn't exist.";
-                
-                   return {false, ss.str(), model};
-                 }
-                ++bufCount;
-                uniqueBuffers.insert(p.getBuffer());
+                std::ostringstream ss;
+                ss << "Buffer given for " << p.getDescriptor().getName()
+                   << " doesn't exist.";
+
+                return {false, ss.str(), model};
               }
-            default:
-              continue;
+              ++bufCount;
+              uniqueBuffers.insert(p.getBuffer());
+            }
+          default:
+            continue;
           }
         }
  
@@ -199,13 +215,13 @@ namespace fluid {
             msg << "Parameter " << d.getName();
             switch (errorType)
             {
-              case parameter::Instance::RangeErrorType::Min:
-                msg << " value below minimum(" << d.getMin() << ")";
-                break;
-              case parameter::Instance::RangeErrorType::Max:
-                msg << " value above maximum(" << d.getMin() << ")";
-              default:
-                assert(false && "This should be unreachable");
+            case parameter::Instance::RangeErrorType::kMin:
+              msg << " value below minimum(" << d.getMin() << ")";
+              break;
+            case parameter::Instance::RangeErrorType::kMax:
+              msg << " value above maximum(" << d.getMin() << ")";
+            default:
+              assert(false && "This should be unreachable");
             }
             return { false, msg.str(), model};
           }
@@ -451,7 +467,7 @@ namespace fluid {
               auto estimate = m.getEstimate(j);
               stft::Spectrogram result(mask.process(spec.mData, estimate));
               auto audio = istft.process(result);
-              resynth.samps(i,j) = audio(fluid::slice(0,model.frames));
+              resynth.samps(i, j) = audio(fluid::Slice(0, model.frames));
             }
           }
         }

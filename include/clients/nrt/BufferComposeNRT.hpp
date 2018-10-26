@@ -41,55 +41,74 @@ namespace fluid {
         static std::vector<desc_type> params;
         if(params.empty())
         {
-          params.emplace_back("src","First Source Buffer", parameter::Type::Buffer);
+          params.emplace_back("src", "First Source Buffer",
+                              parameter::Type::kBuffer);
           params.back().setInstantiation(true);
 
-          params.emplace_back("offsetframes1","Source 1 Offset", parameter::Type::Long);
+          params.emplace_back("offsetframes1", "Source 1 Offset",
+                              parameter::Type::kLong);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
-          params.emplace_back("numframes1","Source 1 Frames", parameter::Type::Long);
+          params.emplace_back("numframes1", "Source 1 Frames",
+                              parameter::Type::kLong);
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
 
-          params.emplace_back("offsetchans1","Source 1 Channel Offset", parameter::Type::Long);
+          params.emplace_back("offsetchans1", "Source 1 Channel Offset",
+                              parameter::Type::kLong);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
-          params.emplace_back("numchans1","Source 1 Channels", parameter::Type::Long);
+          params.emplace_back("numchans1", "Source 1 Channels",
+                              parameter::Type::kLong);
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
 
-          params.emplace_back("src1gain","Source 1 Gain", parameter::Type::Float);
+          params.emplace_back("src1gain", "Source 1 Gain",
+                              parameter::Type::kFloat);
           params.back().setInstantiation(true).setDefault(1);
 
-          params.emplace_back("src1dstoffset", "Source 1 Destination Offset", parameter::Type::Long);
+          params.emplace_back("src1dstoffset", "Source 1 Destination Offset",
+                              parameter::Type::kLong);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
-          params.emplace_back("src1dstchanoffset", "Source 1 Destination Channel Offset", parameter::Type::Long);
+          params.emplace_back("src1dstchanoffset",
+                              "Source 1 Destination Channel Offset",
+                              parameter::Type::kLong);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
-          params.emplace_back("src2","Second Source Buffer", parameter::Type::Buffer);
+          params.emplace_back("src2", "Second Source Buffer",
+                              parameter::Type::kBuffer);
           params.back().setInstantiation(true);
 
-          params.emplace_back("offsetframes2","Source 2 Offset", parameter::Type::Long);
+          params.emplace_back("offsetframes2", "Source 2 Offset",
+                              parameter::Type::kLong);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
-          params.emplace_back("numframes2","Source 2 Frames", parameter::Type::Long);
+          params.emplace_back("numframes2", "Source 2 Frames",
+                              parameter::Type::kLong);
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
 
-          params.emplace_back("offsetchans2","Source 2 Channel Offset", parameter::Type::Long);
+          params.emplace_back("offsetchans2", "Source 2 Channel Offset",
+                              parameter::Type::kLong);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
-          params.emplace_back("numchans2","Source 2 Channels", parameter::Type::Long);
+          params.emplace_back("numchans2", "Source 2 Channels",
+                              parameter::Type::kLong);
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
 
-          params.emplace_back("src2gain","Source 2 Gain", parameter::Type::Float);
+          params.emplace_back("src2gain", "Source 2 Gain",
+                              parameter::Type::kFloat);
           params.back().setInstantiation(true).setDefault(1);
 
-          params.emplace_back("src2dstoffset", "Source 2 Destination Offset", parameter::Type::Long);
+          params.emplace_back("src2dstoffset", "Source 2 Destination Offset",
+                              parameter::Type::kLong);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
-          params.emplace_back("src2dstchanoffset", "Source 2 Destination Channel Offset", parameter::Type::Long);
+          params.emplace_back("src2dstchanoffset",
+                              "Source 2 Destination Channel Offset",
+                              parameter::Type::kLong);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
-          params.emplace_back("dstbuf","Destination Buffer", parameter::Type::Buffer);
+          params.emplace_back("dstbuf", "Destination Buffer",
+                              parameter::Type::kBuffer);
           params.back().setInstantiation(false);
         }
         return params;
@@ -146,23 +165,23 @@ namespace fluid {
         {
           switch(p.getDescriptor().getType())
           {
-            case parameter::Type::Buffer:
-              //If we've been handed a buffer that we're expecting, then it should exist
-              if(p.hasChanged() && p.getBuffer())
-              {
-                parameter::BufferAdaptor::Access b(p.getBuffer());
-                if(!b.valid())
-                 {
-                   std::ostringstream ss;
-                   ss << "Buffer given for " << p.getDescriptor().getName() << " doesn't exist.";
+          case parameter::Type::kBuffer:
+            // If we've been handed a buffer that we're expecting, then it
+            // should exist
+            if (p.hasChanged() && p.getBuffer()) {
+              parameter::BufferAdaptor::Access b(p.getBuffer());
+              if (!b.valid()) {
+                std::ostringstream ss;
+                ss << "Buffer given for " << p.getDescriptor().getName()
+                   << " doesn't exist.";
 
-                   return {false, ss.str(), model};
-                 }
-                ++bufCount;
-                uniqueBuffers.insert(p.getBuffer());
+                return {false, ss.str(), model};
               }
-            default:
-              continue;
+              ++bufCount;
+              uniqueBuffers.insert(p.getBuffer());
+            }
+          default:
+            continue;
           }
         }
 
@@ -186,13 +205,13 @@ namespace fluid {
             msg << "Parameter " << d.getName();
             switch (errorType)
             {
-              case parameter::Instance::RangeErrorType::Min:
-                msg << " value below minimum (" << d.getMin() << ")";
-                break;
-              case parameter::Instance::RangeErrorType::Max:
-                msg << " value above maximum (" << d.getMin() << ")";
-              default:
-                assert(false && "This should be unreachable");
+            case parameter::Instance::RangeErrorType::kMin:
+              msg << " value below minimum (" << d.getMin() << ")";
+              break;
+            case parameter::Instance::RangeErrorType::kMax:
+              msg << " value above maximum (" << d.getMin() << ")";
+            default:
+              assert(false && "This should be unreachable");
             }
             return { false, msg.str(), model};
           }
@@ -320,7 +339,10 @@ namespace fluid {
             srcChan.apply([model](double& x){
               x *= model.gain[0];
             });
-            auto dstChan = dstData(fluid::slice(model.dstOffset[0], model.frames[0]), fluid::slice(i,1)).col(0);
+            auto dstChan =
+                dstData(fluid::Slice(model.dstOffset[0], model.frames[0]),
+                        fluid::Slice(i, 1))
+                    .col(0);
             dstChan = srcChan;
           }
           
@@ -331,7 +353,10 @@ namespace fluid {
             srcChan.apply([model](double& x){
               x *= model.gain[1];
             });
-            auto dstChan = dstData(fluid::slice(model.dstOffset[1], model.frames[1]), fluid::slice(i,1)).col(0);
+            auto dstChan =
+                dstData(fluid::Slice(model.dstOffset[1], model.frames[1]),
+                        fluid::Slice(i, 1))
+                    .col(0);
             dstChan.apply(srcChan,[](double& x, double& y){
               x += y;
             });

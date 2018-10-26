@@ -74,44 +74,45 @@ namespace impl {  // Here is the underlying implementation
 
   // Complex Forward Transform
 
-  void transformForward(FFTComplexSetup& setup, FFT_SPLIT_COMPLEX_D &io, size_t FFTSizelog2)
-  {
-    hisstools_fft(setup.mSetup, &io, FFTSizelog2);
+  void transformForward(FFTComplexSetup &setup, FFT_SPLIT_COMPLEX_D &io,
+                        size_t fftSizelog2) {
+    hisstools_fft(setup.mSetup, &io, fftSizelog2);
   }
 
   // Complex Inverse Transform
 
-  void transformInverse(FFTComplexSetup& setup, FFT_SPLIT_COMPLEX_D &io, size_t FFTSizelog2)
-  {
-    hisstools_ifft(setup.mSetup, &io, FFTSizelog2);
+  void transformInverse(FFTComplexSetup &setup, FFT_SPLIT_COMPLEX_D &io,
+                        size_t fftSizelog2) {
+    hisstools_ifft(setup.mSetup, &io, fftSizelog2);
   }
 
   // Real Forward Transform (in-place)
 
-  void transformForwardReal(FFTRealSetup& setup, FFT_SPLIT_COMPLEX_D &io, size_t FFTSizelog2)
-  {
-    hisstools_rfft(setup.mSetup, &io, FFTSizelog2);
+  void transformForwardReal(FFTRealSetup &setup, FFT_SPLIT_COMPLEX_D &io,
+                            size_t fftSizelog2) {
+    hisstools_rfft(setup.mSetup, &io, fftSizelog2);
   }
 
   // Real Forward Tansform (with unzipping)
 
-  void transformForwardReal(FFTRealSetup& setup, FFT_SPLIT_COMPLEX_D &output, const double *input, size_t size, size_t FFTSizelog2)
-  {
-    hisstools_rfft(setup.mSetup, input, &output, size, FFTSizelog2);
+  void transformForwardReal(FFTRealSetup &setup, FFT_SPLIT_COMPLEX_D &output,
+                            const double *input, size_t size,
+                            size_t fftSizelog2) {
+    hisstools_rfft(setup.mSetup, input, &output, size, fftSizelog2);
   }
 
   // Real Inverse Transform (in-place)
 
-  void transformInverseReal(FFTRealSetup& setup, FFT_SPLIT_COMPLEX_D &io, size_t FFTSizelog2)
-  {
-    hisstools_rifft(setup.mSetup, &io, FFTSizelog2);
+  void transformInverseReal(FFTRealSetup &setup, FFT_SPLIT_COMPLEX_D &io,
+                            size_t fftSizelog2) {
+    hisstools_rifft(setup.mSetup, &io, fftSizelog2);
   }
 
   // Real Inverse Transform (with zipping)
 
-  void transformInverseReal(FFTRealSetup& setup, double *output, FFT_SPLIT_COMPLEX_D &input, size_t FFTSizelog2)
-  {
-    hisstools_rifft(setup.mSetup, &input, output, FFTSizelog2);
+  void transformInverseReal(FFTRealSetup &setup, double *output,
+                            FFT_SPLIT_COMPLEX_D &input, size_t fftSizelog2) {
+    hisstools_rifft(setup.mSetup, &input, output, fftSizelog2);
   }
 
   // Size calculations
@@ -185,10 +186,18 @@ namespace impl {  // Here is the underlying implementation
 
   // Memory manipulation (real)
 
-  struct assign { void operator()(double *output, const double *ptr) { *output = *ptr; } };
-  struct accum { void operator()(double *output, const double *ptr) { *output += *ptr; } };
-  struct increment { template<class T> T *operator()(T *&ptr) { return ptr++; } };
-  struct decrement { template<class T> T *operator()(T *&ptr) { return ptr--; } };
+  struct Assign {
+    void operator()(double *output, const double *ptr) { *output = *ptr; }
+  };
+  struct Accum {
+    void operator()(double *output, const double *ptr) { *output += *ptr; }
+  };
+  struct Increment {
+    template <class T> T *operator()(T *&ptr) { return ptr++; }
+  };
+  struct Decrement {
+    template <class T> T *operator()(T *&ptr) { return ptr--; }
+  };
 
   template <typename Op, typename PtrOp>
   void zip(double *output, const double *p1, const double *p2, size_t size, Op op, PtrOp pOp)
@@ -208,7 +217,7 @@ namespace impl {  // Here is the underlying implementation
     const double *p1 = (offset & 1U) ? spectrum.imagp + (offset >> 1) : spectrum.realp + (offset >> 1);
     const double *p2 = (offset & 1U) ? spectrum.realp + (offset >> 1) + 1 : spectrum.imagp + (offset >> 1);
 
-    zip(output + outOffset, p1, p2, size, assign(), increment());
+    zip(output + outOffset, p1, p2, size, Assign(), Increment());
   }
 
   void wrap(double *output, const FFT_SPLIT_COMPLEX_D spectrum, size_t outOffset, size_t offset, size_t size)
@@ -216,7 +225,7 @@ namespace impl {  // Here is the underlying implementation
     const double *p1 = (offset & 1U) ? spectrum.imagp + (offset >> 1) : spectrum.realp + (offset >> 1);
     const double *p2 = (offset & 1U) ? spectrum.realp + (offset >> 1) + 1 : spectrum.imagp + (offset >> 1);
 
-    zip(output + outOffset, p1, p2, size, accum(), increment());
+    zip(output + outOffset, p1, p2, size, Accum(), Increment());
   }
 
   void fold(double *output, const FFT_SPLIT_COMPLEX_D spectrum, size_t outOffset, size_t endOffset, size_t size)
@@ -224,12 +233,13 @@ namespace impl {  // Here is the underlying implementation
     const double *p1 = (endOffset & 1U) ? spectrum.realp + (endOffset >> 1) : spectrum.imagp + (endOffset >> 1) - 1;
     const double *p2 = (endOffset & 1U) ? spectrum.imagp + (endOffset >> 1) - 1 : spectrum.realp + (endOffset >> 1) - 1;
 
-    zip(output + outOffset, p1, p2, size, accum(), decrement());
+    zip(output + outOffset, p1, p2, size, Accum(), Decrement());
   }
 
   template <class T>
-  void arrangeOutput(T output, FFT_SPLIT_COMPLEX_D spectrum, size_t minSize, size_t sizeOut, size_t linearSize, size_t FFTSize, EdgeMode mode, ConvolveOp op)
-  {
+  void arrangeOutput(T output, FFT_SPLIT_COMPLEX_D spectrum, size_t minSize,
+                     size_t sizeOut, size_t linearSize, size_t fftSize,
+                     EdgeMode mode, ConvolveOp op) {
     size_t offset = (mode == kEdgeFold || mode == kEdgeWrapCentre) ? (minSize - 1) / 2: 0;
 
     copy(output, spectrum, 0, offset, sizeOut);
@@ -256,8 +266,9 @@ namespace impl {  // Here is the underlying implementation
   }
 
   template <class T>
-  void arrangeOutput(T output, FFT_SPLIT_COMPLEX_D spectrum, size_t minSize, size_t sizeOut, size_t linearSize, size_t FFTSize, EdgeMode mode, CorrelateOp op)
-  {
+  void arrangeOutput(T output, FFT_SPLIT_COMPLEX_D spectrum, size_t minSize,
+                     size_t sizeOut, size_t linearSize, size_t fftSize,
+                     EdgeMode mode, CorrelateOp op) {
     size_t maxSize = (linearSize - minSize) + 1;
 
     if (mode == kEdgeLinear || mode == kEdgeWrap)
@@ -267,15 +278,16 @@ namespace impl {  // Here is the underlying implementation
       copy(output, spectrum, 0, 0, maxSize);
 
       if (mode == kEdgeLinear)
-        copy(output, spectrum, maxSize, FFTSize - extraSize, extraSize);
+        copy(output, spectrum, maxSize, fftSize - extraSize, extraSize);
       else
-        wrap(output, spectrum, (linearSize - (2 * (minSize - 1))), FFTSize - extraSize, extraSize);
+        wrap(output, spectrum, (linearSize - (2 * (minSize - 1))),
+             fftSize - extraSize, extraSize);
     }
     else
     {
       size_t offset = minSize / 2;
 
-      copy(output, spectrum, 0, FFTSize - offset, offset);
+      copy(output, spectrum, 0, fftSize - offset, offset);
       copy(output, spectrum, offset, 0, sizeOut - offset);
 
       if (mode == kEdgeWrapCentre)
@@ -283,11 +295,12 @@ namespace impl {  // Here is the underlying implementation
         size_t endWrap = minSize - offset - 1;
 
         wrap(output, spectrum, 0, maxSize - offset, offset);
-        wrap(output, spectrum, sizeOut - endWrap, FFTSize - (minSize - 1), endWrap);
+        wrap(output, spectrum, sizeOut - endWrap, fftSize - (minSize - 1),
+             endWrap);
       }
       else
       {
-        fold(output, spectrum, 0, FFTSize - (offset - 1), offset);
+        fold(output, spectrum, 0, fftSize - (offset - 1), offset);
         fold(output, spectrum, sizeOut - offset, maxSize, offset);
       }
     }
@@ -298,36 +311,41 @@ namespace impl {  // Here is the underlying implementation
   template<typename Op>
   void binaryOp(FFT_SPLIT_COMPLEX_D &io1, FFT_SPLIT_COMPLEX_D &in2, size_t dataLength, double scale, Op op)
   {
-    const int vec_size = SIMDLimits<double>::max_size;
+    const int vecSize = SIMDLimits<double>::max_size;
 
-    if (dataLength == 1 || dataLength < (vec_size / 2))
-    {
+    if (dataLength == 1 || dataLength < (vecSize / 2)) {
       op(io1.realp[0], io1.imagp[0], io1.realp[0], io1.imagp[0], in2.realp[0], in2.imagp[0], scale);
-    }
-    else if (dataLength < vec_size)
-    {
-      const int current_vec_size = SIMDLimits<double>::max_size / 2;
+    } else if (dataLength < vecSize) {
+      const int currentVecSize = SIMDLimits<double>::max_size / 2;
 
-      SIMDType<double, current_vec_size> *real1 = reinterpret_cast<SIMDType<double, current_vec_size> *>(io1.realp);
-      SIMDType<double, current_vec_size> *imag1 = reinterpret_cast<SIMDType<double, current_vec_size> *>(io1.imagp);
-      SIMDType<double, current_vec_size> *real2 = reinterpret_cast<SIMDType<double, current_vec_size> *>(in2.realp);
-      SIMDType<double, current_vec_size> *imag2 = reinterpret_cast<SIMDType<double, current_vec_size> *>(in2.imagp);
+      SIMDType<double, currentVecSize> *real1 =
+          reinterpret_cast<SIMDType<double, currentVecSize> *>(io1.realp);
+      SIMDType<double, currentVecSize> *imag1 =
+          reinterpret_cast<SIMDType<double, currentVecSize> *>(io1.imagp);
+      SIMDType<double, currentVecSize> *real2 =
+          reinterpret_cast<SIMDType<double, currentVecSize> *>(in2.realp);
+      SIMDType<double, currentVecSize> *imag2 =
+          reinterpret_cast<SIMDType<double, currentVecSize> *>(in2.imagp);
 
-      SIMDType<double, current_vec_size> scaleVec(scale);
+      SIMDType<double, currentVecSize> scaleVec(scale);
 
-      for (size_t i = 0; i < (dataLength / current_vec_size); i++)
+      for (size_t i = 0; i < (dataLength / currentVecSize); i++)
         op(real1[i], imag1[i], real1[i], imag1[i], real2[i], imag2[i], scaleVec);
     }
     else
     {
-      SIMDType<double, vec_size> *real1 = reinterpret_cast<SIMDType<double, vec_size> *>(io1.realp);
-      SIMDType<double, vec_size> *imag1 = reinterpret_cast<SIMDType<double, vec_size> *>(io1.imagp);
-      SIMDType<double, vec_size> *real2 = reinterpret_cast<SIMDType<double, vec_size> *>(in2.realp);
-      SIMDType<double, vec_size> *imag2 = reinterpret_cast<SIMDType<double, vec_size> *>(in2.imagp);
+      SIMDType<double, vecSize> *real1 =
+          reinterpret_cast<SIMDType<double, vecSize> *>(io1.realp);
+      SIMDType<double, vecSize> *imag1 =
+          reinterpret_cast<SIMDType<double, vecSize> *>(io1.imagp);
+      SIMDType<double, vecSize> *real2 =
+          reinterpret_cast<SIMDType<double, vecSize> *>(in2.realp);
+      SIMDType<double, vecSize> *imag2 =
+          reinterpret_cast<SIMDType<double, vecSize> *>(in2.imagp);
 
-      SIMDType<double, vec_size> scaleVec(scale);
+      SIMDType<double, vecSize> scaleVec(scale);
 
-      for (size_t i = 0; i < (dataLength / vec_size); i++)
+      for (size_t i = 0; i < (dataLength / vecSize); i++)
         op(real1[i], imag1[i], real1[i], imag1[i], real2[i], imag2[i], scaleVec);
     }
   }
@@ -338,14 +356,14 @@ namespace impl {  // Here is the underlying implementation
     // Store DC and Nyquist Results
 
     const double DC = spectrum1.realp[0] * spectrum2.realp[0] * scale;
-    const double Nyquist = spectrum1.imagp[0] * spectrum2.imagp[0] * scale;
+    const double nyquist = spectrum1.imagp[0] * spectrum2.imagp[0] * scale;
 
     binaryOp(spectrum1, spectrum2, dataLength, scale, op);
 
     // Set DC and Nyquist bins
 
     spectrum1.realp[0] = DC;
-    spectrum1.imagp[0] = Nyquist;
+    spectrum1.imagp[0] = nyquist;
   }
 
   template<typename Op>
@@ -357,10 +375,10 @@ namespace impl {  // Here is the underlying implementation
 
     size_t linearSize = calcLinearSize(size1, size2);
     size_t sizeOut = calcSize(size1, size2, mode);
-    size_t FFTSizelog2 = ilog2(linearSize);
-    size_t FFTSize = 1 << FFTSizelog2;
+    size_t fftSizelog2 = ilog2(linearSize);
+    size_t fftSize = 1 << fftSizelog2;
 
-    FFTComplexSetup setup(FFTSizelog2);
+    FFTComplexSetup setup(fftSizelog2);
 
     // Special cases for short inputs
 
@@ -375,8 +393,8 @@ namespace impl {  // Here is the underlying implementation
 
     // Assign temporary memory
 
-    TempSpectra spectrum1(FFTSize);
-    TempSpectra spectrum2(FFTSize);
+    TempSpectra spectrum1(fftSize);
+    TempSpectra spectrum2(fftSize);
 
     FFT_SPLIT_COMPLEX_D output;
     output.realp = rOut;
@@ -384,25 +402,26 @@ namespace impl {  // Here is the underlying implementation
 
     // Copy to the inputs
 
-    copyZero(spectrum1.mSpectra.realp, rIn1, sizeR1, FFTSize);
-    copyZero(spectrum1.mSpectra.imagp, iIn1, sizeI1, FFTSize);
-    copyZero(spectrum2.mSpectra.realp, rIn2, sizeR2, FFTSize);
-    copyZero(spectrum2.mSpectra.imagp, iIn2, sizeI2, FFTSize);
+    copyZero(spectrum1.mSpectra.realp, rIn1, sizeR1, fftSize);
+    copyZero(spectrum1.mSpectra.imagp, iIn1, sizeI1, fftSize);
+    copyZero(spectrum2.mSpectra.realp, rIn2, sizeR2, fftSize);
+    copyZero(spectrum2.mSpectra.imagp, iIn2, sizeI2, fftSize);
 
     // Take the Forward FFTs
 
-    transformForward(setup, spectrum1.mSpectra, FFTSizelog2);
-    transformForward(setup, spectrum2.mSpectra, FFTSizelog2);
+    transformForward(setup, spectrum1.mSpectra, fftSizelog2);
+    transformForward(setup, spectrum2.mSpectra, fftSizelog2);
 
     // Operate
 
-    double scale = 1.0 / (double) FFTSize;
-    binaryOp(spectrum1.mSpectra, spectrum2.mSpectra, FFTSize, scale, Op());
+    double scale = 1.0 / (double)fftSize;
+    binaryOp(spectrum1.mSpectra, spectrum2.mSpectra, fftSize, scale, Op());
 
     // Inverse iFFT
 
-    transformInverse(setup, spectrum1.mSpectra, FFTSizelog2);
-    arrangeOutput(output, spectrum1.mSpectra, std::min(size1, size2), sizeOut, linearSize, FFTSize, mode, op);
+    transformInverse(setup, spectrum1.mSpectra, fftSizelog2);
+    arrangeOutput(output, spectrum1.mSpectra, std::min(size1, size2), sizeOut,
+                  linearSize, fftSize, mode, op);
   }
 
   template<typename Op>
@@ -410,10 +429,10 @@ namespace impl {  // Here is the underlying implementation
   {
     size_t linearSize = calcLinearSize(size1, size2);
     size_t sizeOut = calcSize(size1, size2, mode);
-    size_t FFTSizelog2 = ilog2(linearSize);
-    size_t FFTSize = 1 << FFTSizelog2;
+    size_t fftSizelog2 = ilog2(linearSize);
+    size_t fftSize = 1 << fftSizelog2;
 
-    FFTRealSetup setup(FFTSizelog2);
+    FFTRealSetup setup(fftSizelog2);
 
     // Special cases for short inputs
 
@@ -428,23 +447,25 @@ namespace impl {  // Here is the underlying implementation
 
     // Assign temporary memory
 
-    TempSpectra spectrum1(FFTSize >> 1);
-    TempSpectra spectrum2(FFTSize >> 1);
+    TempSpectra spectrum1(fftSize >> 1);
+    TempSpectra spectrum2(fftSize >> 1);
 
     // Take the Forward Real FFTs
 
-    transformForwardReal(setup, spectrum1.mSpectra, in1, size1, FFTSizelog2);
-    transformForwardReal(setup, spectrum2.mSpectra, in2, size2, FFTSizelog2);
+    transformForwardReal(setup, spectrum1.mSpectra, in1, size1, fftSizelog2);
+    transformForwardReal(setup, spectrum2.mSpectra, in2, size2, fftSizelog2);
 
     // Operate
 
-    double scale = 0.25 / (double) FFTSize;
-    binaryOpReal(spectrum1.mSpectra, spectrum2.mSpectra, FFTSize >> 1, scale, Op());
+    double scale = 0.25 / (double)fftSize;
+    binaryOpReal(spectrum1.mSpectra, spectrum2.mSpectra, fftSize >> 1, scale,
+                 Op());
 
     // Inverse iFFT
 
-    transformInverseReal(setup, spectrum1.mSpectra, FFTSizelog2);
-    arrangeOutput(output, spectrum1.mSpectra, std::min(size1, size2), sizeOut, linearSize, FFTSize, mode, op);
+    transformInverseReal(setup, spectrum1.mSpectra, fftSizelog2);
+    arrangeOutput(output, spectrum1.mSpectra, std::min(size1, size2), sizeOut,
+                  linearSize, fftSize, mode, op);
   }
 }
 

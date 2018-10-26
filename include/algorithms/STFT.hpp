@@ -64,7 +64,7 @@ public:
   STFT(size_t windowSize, size_t fftSize, size_t hopSize)
       : mWindowSize(windowSize), mHopSize(hopSize), mFrameSize(fftSize / 2 + 1),
         mFFT(fftSize) {
-    mWindow = Map<ArrayXd>(windowFuncs[WindowType::Hann](mWindowSize).data(),
+    mWindow = Map<ArrayXd>(windowFuncs[WindowType::kHann](mWindowSize).data(),
                            mWindowSize);
   }
 
@@ -122,7 +122,7 @@ public:
   ISTFT(size_t windowSize, size_t fftSize, size_t hopSize)
       : mWindowSize(windowSize), mHopSize(hopSize), mFrameSize(fftSize / 2 + 1),
         mScale(1 / double(fftSize)), mIFFT(fftSize), mBuffer(mWindowSize) {
-    mWindow = Map<ArrayXd>(windowFuncs[WindowType::Hann](mWindowSize).data(),
+    mWindow = Map<ArrayXd>(windowFuncs[WindowType::kHann](mWindowSize).data(),
                            mWindowSize);
     mWindowSquared = mWindow * mWindow;
     // The 2nd row of our output will be constant, and contain the squared

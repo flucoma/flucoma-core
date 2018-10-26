@@ -59,76 +59,92 @@ namespace fluid {
         static std::vector<desc_type> params;
         if(params.empty())
         {
-          params.emplace_back("src","First Source Buffer", parameter::Type::Buffer);
+          params.emplace_back("src", "First Source Buffer",
+                              parameter::Type::kBuffer);
           params.back().setInstantiation(true);
 
-          params.emplace_back("offsetframes","Source Offset", parameter::Type::Long);
+          params.emplace_back("offsetframes", "Source Offset",
+                              parameter::Type::kLong);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
-          params.emplace_back("numframes","Source Frames", parameter::Type::Long);
+          params.emplace_back("numframes", "Source Frames",
+                              parameter::Type::kLong);
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
 
-          params.emplace_back("offsetchans","Source Channel Offset", parameter::Type::Long);
+          params.emplace_back("offsetchans", "Source Channel Offset",
+                              parameter::Type::kLong);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
-          params.emplace_back("numchans","Source Channels", parameter::Type::Long);
+          params.emplace_back("numchans", "Source Channels",
+                              parameter::Type::kLong);
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
 
-          params.emplace_back("harmbuf","Harmonic Component Buffer", parameter::Type::Buffer);
+          params.emplace_back("harmbuf", "Harmonic Component Buffer",
+                              parameter::Type::kBuffer);
           params.back().setInstantiation(false);
-          
-          params.emplace_back("percbuf","Percussive Component Buffer", parameter::Type::Buffer);
-          params.back().setInstantiation(false);
-          
-          params.emplace_back("resbuf", "Residual Component Buffer", parameter::Type::Buffer);
-          params.back().setInstantiation(false);
-          
-          
-          params.emplace_back("hsize","Harmonic Filter Size",parameter::Type::Long);
-          params.back().setMin(3).setDefault(17).setInstantiation(false);
-          
-          params.emplace_back("psize","Percussive Filter Size",parameter::Type::Long);
-          params.back().setMin(3).setDefault(17).setInstantiation(false);
-          
 
-          params.emplace_back("modeflag","Masking Mode", parameter::Type::Long);
+          params.emplace_back("percbuf", "Percussive Component Buffer",
+                              parameter::Type::kBuffer);
+          params.back().setInstantiation(false);
+
+          params.emplace_back("resbuf", "Residual Component Buffer",
+                              parameter::Type::kBuffer);
+          params.back().setInstantiation(false);
+
+          params.emplace_back("hsize", "Harmonic Filter Size",
+                              parameter::Type::kLong);
+          params.back().setMin(3).setDefault(17).setInstantiation(false);
+
+          params.emplace_back("psize", "Percussive Filter Size",
+                              parameter::Type::kLong);
+          params.back().setMin(3).setDefault(17).setInstantiation(false);
+
+          params.emplace_back("modeflag", "Masking Mode",
+                              parameter::Type::kLong);
           params.back().setMin(0).setMax(2).setInstantiation(false).setDefault(0);
-          
-          
-          params.emplace_back("htf1","Harmonic Threshold Low Frequency",parameter::Type::Float);
-          params.back().setMin(0).setMax(1).setDefault(0).setInstantiation(false);
-          
-          params.emplace_back("hta1","Harmonic Threshold Low Amplitude",parameter::Type::Float);
-          params.back().setDefault(0).setInstantiation(false);
-          
-          params.emplace_back("htf2","Harmonic Threshold High Frequency",parameter::Type::Float);
-          params.back().setMin(0).setMax(1).setDefault(1).setInstantiation(false);
-          
-          params.emplace_back("hta2","Harmonic Threshold High Amplitude",parameter::Type::Float);
-          params.back().setDefault(0).setInstantiation(false);
-          
-          
-          params.emplace_back("ptf1","Percussive Threshold Low Frequency ",parameter::Type::Float);
-          params.back().setMin(0).setMax(1).setDefault(0).setInstantiation(false);
-          
-          params.emplace_back("pta1","Percussive Threshold Low Amplitude",parameter::Type::Float);
-          params.back().setDefault(0).setInstantiation(false);
-          
-          params.emplace_back("ptf2","Percussive Threshold High Frequency",parameter::Type::Float);
-          params.back().setMin(0).setMax(1).setDefault(1).setInstantiation(false);
-          
-          params.emplace_back("pta2","Percussive Threshold High Amplitude",parameter::Type::Float);
-          params.back().setDefault(0).setInstantiation(false);
-          
 
-          
-          params.emplace_back(desc_type{"winsize","Window Size", parameter::Type::Long});
+          params.emplace_back("htf1", "Harmonic Threshold Low Frequency",
+                              parameter::Type::kFloat);
+          params.back().setMin(0).setMax(1).setDefault(0).setInstantiation(false);
+
+          params.emplace_back("hta1", "Harmonic Threshold Low Amplitude",
+                              parameter::Type::kFloat);
+          params.back().setDefault(0).setInstantiation(false);
+
+          params.emplace_back("htf2", "Harmonic Threshold High Frequency",
+                              parameter::Type::kFloat);
+          params.back().setMin(0).setMax(1).setDefault(1).setInstantiation(false);
+
+          params.emplace_back("hta2", "Harmonic Threshold High Amplitude",
+                              parameter::Type::kFloat);
+          params.back().setDefault(0).setInstantiation(false);
+
+          params.emplace_back("ptf1", "Percussive Threshold Low Frequency ",
+                              parameter::Type::kFloat);
+          params.back().setMin(0).setMax(1).setDefault(0).setInstantiation(false);
+
+          params.emplace_back("pta1", "Percussive Threshold Low Amplitude",
+                              parameter::Type::kFloat);
+          params.back().setDefault(0).setInstantiation(false);
+
+          params.emplace_back("ptf2", "Percussive Threshold High Frequency",
+                              parameter::Type::kFloat);
+          params.back().setMin(0).setMax(1).setDefault(1).setInstantiation(false);
+
+          params.emplace_back("pta2", "Percussive Threshold High Amplitude",
+                              parameter::Type::kFloat);
+          params.back().setDefault(0).setInstantiation(false);
+
+          params.emplace_back(
+              desc_type{"winsize", "Window Size", parameter::Type::kLong});
           params.back().setMin(4).setDefault(4096);
-          
-          params.emplace_back(desc_type{"hopsize","Hop Size", parameter::Type::Long});
+
+          params.emplace_back(
+              desc_type{"hopsize", "Hop Size", parameter::Type::kLong});
           params.back().setMin(1).setDefault(1024);
-          
-          params.emplace_back(desc_type{"fftsize","FFT Size", parameter::Type::Long});
+
+          params.emplace_back(
+              desc_type{"fftsize", "FFT Size", parameter::Type::kLong});
           params.back().setMin(-1).setDefault(-1);
           
         }
@@ -185,23 +201,23 @@ namespace fluid {
         {
           switch(p.getDescriptor().getType())
           {
-            case parameter::Type::Buffer:
-              //If we've been handed a buffer that we're expecting, then it should exist
-              if(p.hasChanged() && p.getBuffer())
-              {
-                parameter::BufferAdaptor::Access b(p.getBuffer());
-                if(!b.valid())
-                 {
-                   std::ostringstream ss;
-                   ss << "Buffer given for " << p.getDescriptor().getName() << " doesn't exist.";
+          case parameter::Type::kBuffer:
+            // If we've been handed a buffer that we're expecting, then it
+            // should exist
+            if (p.hasChanged() && p.getBuffer()) {
+              parameter::BufferAdaptor::Access b(p.getBuffer());
+              if (!b.valid()) {
+                std::ostringstream ss;
+                ss << "Buffer given for " << p.getDescriptor().getName()
+                   << " doesn't exist.";
 
-                   return {false, ss.str(), model};
-                 }
-                ++bufCount;
-                uniqueBuffers.insert(p.getBuffer());
+                return {false, ss.str(), model};
               }
-            default:
-              continue;
+              ++bufCount;
+              uniqueBuffers.insert(p.getBuffer());
+            }
+          default:
+            continue;
           }
         }
 
@@ -225,13 +241,13 @@ namespace fluid {
             msg << "Parameter " << d.getName();
             switch (errorType)
             {
-              case parameter::Instance::RangeErrorType::Min:
-                msg << " value below minimum (" << d.getMin() << ")";
-                break;
-              case parameter::Instance::RangeErrorType::Max:
-                msg << " value above maximum (" << d.getMin() << ")";
-              default:
-                assert(false && "This should be unreachable");
+            case parameter::Instance::RangeErrorType::kMin:
+              msg << " value below minimum (" << d.getMin() << ")";
+              break;
+            case parameter::Instance::RangeErrorType::kMax:
+              msg << " value above maximum (" << d.getMin() << ")";
+            default:
+              assert(false && "This should be unreachable");
             }
             return { false, msg.str(), model};
           }
@@ -403,16 +419,17 @@ namespace fluid {
         {
           FluidTensor<double,1> input(model.frames + lag);
           
-          input.fill(0); 
-          input(fluid::slice(0,model.frames)) =  src.samps(model.offset,model.frames,model.channelOffset + i);
-          
-          
-//          double max = *std::max_element(input.begin(), input.end());
-//          std::cout << "MAX " << max << '\n';
-//          
-//          auto n = std::find_if(input.begin(),input.end(),[](double d){return std::isnan(d);});
-//          auto idx = std::distance(input.begin(), n);
-//          assert((n == input.end()));
+          input.fill(0);
+          input(fluid::Slice(0, model.frames)) =
+              src.samps(model.offset, model.frames, model.channelOffset + i);
+
+          //          double max = *std::max_element(input.begin(),
+          //          input.end()); std::cout << "MAX " << max << '\n';
+          //
+          //          auto n = std::find_if(input.begin(),input.end(),[](double
+          //          d){return std::isnan(d);}); auto idx =
+          //          std::distance(input.begin(), n); assert((n ==
+          //          input.end()));
           
           
           auto spectrum = stft.process(input);
@@ -440,16 +457,14 @@ namespace fluid {
           }
           auto harmonicAudio = istft.process(harmonicSpec);
           auto percussiveAudio = istft.process(percussiveSpec);
-          
-          
-          
-          harm.samps(i,0) = harmonicAudio  (fluid::slice(lag,model.frames));
-          perc.samps(i,0) = percussiveAudio(fluid::slice(lag,model.frames));
-          
+
+          harm.samps(i, 0) = harmonicAudio(fluid::Slice(lag, model.frames));
+          perc.samps(i, 0) = percussiveAudio(fluid::Slice(lag, model.frames));
+
           if(model.returnRes)
           {
             auto residualAudio = istft.process(residualSpec);
-            res.samps(i,0) = residualAudio(fluid::slice(lag,model.frames));
+            res.samps(i, 0) = residualAudio(fluid::Slice(lag, model.frames));
           }
         }
       }

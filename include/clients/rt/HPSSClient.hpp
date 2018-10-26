@@ -27,42 +27,52 @@ namespace hpss{
       static std::vector<parameter::Descriptor> params;
       if(params.size() == 0)
       {
-        
-        params.emplace_back("hsize","Harmonic Filter Size",parameter::Type::Long);
+
+        params.emplace_back("hsize", "Harmonic Filter Size",
+                            parameter::Type::kLong);
         params.back().setMin(3).setDefault(17).setInstantiation(true);
-        
-        params.emplace_back("psize","Percussive Filter Size",parameter::Type::Long);
+
+        params.emplace_back("psize", "Percussive Filter Size",
+                            parameter::Type::kLong);
         params.back().setMin(3).setDefault(31).setInstantiation(true);
-        
-        params.emplace_back("modeflag","Masking Mode", parameter::Type::Long);
+
+        params.emplace_back("modeflag", "Masking Mode", parameter::Type::kLong);
         params.back().setMin(0).setMax(2).setInstantiation(true).setDefault(0);
-        
-        params.emplace_back("htf1","Harmonic Threshold Low Frequency",parameter::Type::Float);
+
+        params.emplace_back("htf1", "Harmonic Threshold Low Frequency",
+                            parameter::Type::kFloat);
         params.back().setMin(0).setMax(1).setDefault(0).setInstantiation(false);
-        
-        params.emplace_back("hta1","Harmonic Threshold Low Amplitude",parameter::Type::Float);
+
+        params.emplace_back("hta1", "Harmonic Threshold Low Amplitude",
+                            parameter::Type::kFloat);
         params.back().setDefault(0).setInstantiation(false);
-        
-        params.emplace_back("htf2","Harmonic Threshold High Frequency",parameter::Type::Float);
+
+        params.emplace_back("htf2", "Harmonic Threshold High Frequency",
+                            parameter::Type::kFloat);
         params.back().setMin(0).setMax(1).setDefault(1).setInstantiation(false);
-        
-        params.emplace_back("hta2","Harmonic Threshold High Amplitude",parameter::Type::Float);
+
+        params.emplace_back("hta2", "Harmonic Threshold High Amplitude",
+                            parameter::Type::kFloat);
         params.back().setDefault(0).setInstantiation(false);
-      
-        params.emplace_back("ptf1","Percussive Threshold Low Frequency ",parameter::Type::Float);
+
+        params.emplace_back("ptf1", "Percussive Threshold Low Frequency ",
+                            parameter::Type::kFloat);
         params.back().setMin(0).setMax(1).setDefault(0).setInstantiation(false);
-        
-        params.emplace_back("pta1","Percussive Threshold Low Amplitude",parameter::Type::Float);
+
+        params.emplace_back("pta1", "Percussive Threshold Low Amplitude",
+                            parameter::Type::kFloat);
         params.back().setDefault(0).setInstantiation(false);
-        
-        params.emplace_back("ptf2","Percussive Threshold High Frequency",parameter::Type::Float);
+
+        params.emplace_back("ptf2", "Percussive Threshold High Frequency",
+                            parameter::Type::kFloat);
         params.back().setMin(0).setMax(1).setDefault(1).setInstantiation(false);
-        
-        params.emplace_back("pta2","Percussive Threshold High Amplitude",parameter::Type::Float);
+
+        params.emplace_back("pta2", "Percussive Threshold High Amplitude",
+                            parameter::Type::kFloat);
         params.back().setDefault(0).setInstantiation(false);
         
         audio::BaseAudioClient<T,U>::initParamDescriptors(params);
-        params.emplace_back("fftsize","FFT Size", parameter::Type::Long);
+        params.emplace_back("fftsize", "FFT Size", parameter::Type::kLong);
         params.back().setMin(-1).setDefault(-1).setInstantiation(true);
       }
       return params;
@@ -129,12 +139,12 @@ namespace hpss{
         {
           switch(std::get<1>(res))
           {
-            case parameter::Instance::RangeErrorType::Min:
-              return {false,"Parameter below minimum"};
-              break;
-            case parameter::Instance::RangeErrorType::Max:
-              return {false,"Parameter above maximum"};
-              break;
+          case parameter::Instance::RangeErrorType::kMin:
+            return {false, "Parameter below minimum"};
+            break;
+          case parameter::Instance::RangeErrorType::kMax:
+            return {false, "Parameter above maximum"};
+            break;
           }
         }
       }
@@ -210,8 +220,7 @@ namespace hpss{
       output.row(3) = mNormWindow;
     }
     //Here we gain compensate for the OLA
-    void post_process(data_type output) override
-    {
+    void postProcess(data_type output) override {
       output.row(0).apply(output.row(3),[](double& x, double g){
         if(x)
         {

@@ -67,49 +67,62 @@ namespace fluid {
         static std::vector<desc_type> params;
         if(params.empty())
         {
-          params.emplace_back("src","Source Buffer", parameter::Type::Buffer);
+          params.emplace_back("src", "Source Buffer", parameter::Type::kBuffer);
           params.back().setInstantiation(true);
 
-          params.emplace_back("offsetframes","Source Offset", parameter::Type::Long);
+          params.emplace_back("offsetframes", "Source Offset",
+                              parameter::Type::kLong);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
-          params.emplace_back("numframes","Source Frames", parameter::Type::Long);
+          params.emplace_back("numframes", "Source Frames",
+                              parameter::Type::kLong);
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
 
-          params.emplace_back("offsetchans","Source Channel Offset", parameter::Type::Long);
+          params.emplace_back("offsetchans", "Source Channel Offset",
+                              parameter::Type::kLong);
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
-          params.emplace_back("numchans","Source Channels", parameter::Type::Long);
+          params.emplace_back("numchans", "Source Channels",
+                              parameter::Type::kLong);
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
 
-          params.emplace_back("sinebuf","Sine Component Buffer", parameter::Type::Buffer);
+          params.emplace_back("sinebuf", "Sine Component Buffer",
+                              parameter::Type::kBuffer);
           params.back().setInstantiation(false);
-          
-          params.emplace_back("resbuf","Residual Component Buffer", parameter::Type::Buffer);
+
+          params.emplace_back("resbuf", "Residual Component Buffer",
+                              parameter::Type::kBuffer);
           params.back().setInstantiation(false);
-          
-          params.emplace_back("bandwidth","Bandwidth", parameter::Type::Long);
+
+          params.emplace_back("bandwidth", "Bandwidth", parameter::Type::kLong);
           params.back().setMin(1).setDefault(76);
-          
-          params.emplace_back("threshold","Threshold",parameter::Type::Float);
+
+          params.emplace_back("threshold", "Threshold",
+                              parameter::Type::kFloat);
           params.back().setMin(0).setMax(1).setDefault(0.7);
-          
-          params.emplace_back("mintracklen","Min Track Length",parameter::Type::Long);
+
+          params.emplace_back("mintracklen", "Min Track Length",
+                              parameter::Type::kLong);
           params.back().setMin(0).setDefault(15);
-          
-          params.emplace_back("magweight","Magnitude Weight",parameter::Type::Float);
+
+          params.emplace_back("magweight", "Magnitude Weight",
+                              parameter::Type::kFloat);
           params.back().setMin(0).setMax(1).setDefault(0.1);
 
-          params.emplace_back("freqweight","Frequency Weight",parameter::Type::Float);
+          params.emplace_back("freqweight", "Frequency Weight",
+                              parameter::Type::kFloat);
           params.back().setMin(0).setMax(1).setDefault(1);
-      
-          params.emplace_back(desc_type{"winsize","Window Size", parameter::Type::Long});
+
+          params.emplace_back(
+              desc_type{"winsize", "Window Size", parameter::Type::kLong});
           params.back().setMin(4).setDefault(4096);
-          
-          params.emplace_back(desc_type{"hopsize","Hop Size", parameter::Type::Long});
+
+          params.emplace_back(
+              desc_type{"hopsize", "Hop Size", parameter::Type::kLong});
           params.back().setMin(1).setDefault(1024);
-          
-          params.emplace_back(desc_type{"fftsize","FFT Size", parameter::Type::Long});
+
+          params.emplace_back(
+              desc_type{"fftsize", "FFT Size", parameter::Type::kLong});
           params.back().setMin(-1).setDefault(8192);
           
         }
@@ -166,23 +179,23 @@ namespace fluid {
         {
           switch(p.getDescriptor().getType())
           {
-            case parameter::Type::Buffer:
-              //If we've been handed a buffer that we're expecting, then it should exist
-              if(p.hasChanged() && p.getBuffer())
-              {
-                parameter::BufferAdaptor::Access b(p.getBuffer());
-                if(!b.valid())
-                 {
-                   std::ostringstream ss;
-                   ss << "Buffer given for " << p.getDescriptor().getName() << " doesn't exist.";
+          case parameter::Type::kBuffer:
+            // If we've been handed a buffer that we're expecting, then it
+            // should exist
+            if (p.hasChanged() && p.getBuffer()) {
+              parameter::BufferAdaptor::Access b(p.getBuffer());
+              if (!b.valid()) {
+                std::ostringstream ss;
+                ss << "Buffer given for " << p.getDescriptor().getName()
+                   << " doesn't exist.";
 
-                   return {false, ss.str(), model};
-                 }
-                ++bufCount;
-                uniqueBuffers.insert(p.getBuffer());
+                return {false, ss.str(), model};
               }
-            default:
-              continue;
+              ++bufCount;
+              uniqueBuffers.insert(p.getBuffer());
+            }
+          default:
+            continue;
           }
         }
 
@@ -206,13 +219,13 @@ namespace fluid {
             msg << "Parameter " << d.getName();
             switch (errorType)
             {
-              case parameter::Instance::RangeErrorType::Min:
-                msg << " value below minimum (" << d.getMin() << ")";
-                break;
-              case parameter::Instance::RangeErrorType::Max:
-                msg << " value above maximum (" << d.getMin() << ")";
-              default:
-                assert(false && "This should be unreachable");
+            case parameter::Instance::RangeErrorType::kMin:
+              msg << " value below minimum (" << d.getMin() << ")";
+              break;
+            case parameter::Instance::RangeErrorType::kMax:
+              msg << " value above maximum (" << d.getMin() << ")";
+            default:
+              assert(false && "This should be unreachable");
             }
             return { false, msg.str(), model};
           }
@@ -312,8 +325,8 @@ namespace fluid {
           auto residualData = mask.process(spectrum.mData, decomposition.noise);
           auto sineAudio = istft.process(sineData);
           auto residualAudio = istft.process(residualData);
-          sine.samps(i,0) = sineAudio(fluid::slice(0,model.frames));
-          res.samps(i,0) = residualAudio(fluid::slice(0,model.frames));
+          sine.samps(i, 0) = sineAudio(fluid::Slice(0, model.frames));
+          res.samps(i, 0) = residualAudio(fluid::Slice(0, model.frames));
         }
         
 

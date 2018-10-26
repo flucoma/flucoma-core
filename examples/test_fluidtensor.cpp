@@ -8,8 +8,7 @@ using fluid::audiofile::readFile;
 
 using  fluid::FluidTensor;
 using  fluid::FluidTensorView;
-using fluid::slice;
-
+using fluid::Slice;
 
 //void whynoworky(const FluidTensorView<double, 1>& v)
 //{
@@ -32,12 +31,11 @@ int main(int argc, char* argv[])
   FluidTensorView<double,2> quadview(quad.data(),0,3,4);
   
   std::cout<< quadview.col(0) << '\n';
-  
-  std::cout<< quadview.col(0)(fluid::slice(1)) << '\n';
-  
-  std::cout<< quadview(fluid::slice(0,2),fluid::slice(1,1) ).col(0) << '\n';
-  
-  
+
+  std::cout << quadview.col(0)(fluid::Slice(1)) << '\n';
+
+  std::cout << quadview(fluid::Slice(0, 2), fluid::Slice(1, 1)).col(0) << '\n';
+
   //Wrap any old pointer
     std::vector<double> s = {0,1,2,3,4,5,6,7,8};
   
@@ -47,7 +45,7 @@ int main(int argc, char* argv[])
 //    FluidTensorView<int,2> s_wrap(s.data(),0,9u,1u);
   
   FluidTensor<double, 2> iteratorWeirdness(9,1);
-  auto b = iteratorWeirdness(slice(0),slice(0));
+  auto b = iteratorWeirdness(Slice(0), Slice(0));
   std::iota(b.begin(),b.end(),0);
   
   
@@ -58,20 +56,20 @@ int main(int argc, char* argv[])
 //    std::cout << s_wrap << '\n';
   
     //zero size, nullptr test
-    FluidTensorView<int,2> wrap_null(nullptr,0,0u,0u);
-    
-  
+  FluidTensorView<int, 2> wrapNull(nullptr, 0, 0u, 0u);
+
   FluidTensor<double, 1> onedinit{{1.,2.,34.,5.,6.,7.}}; 
   
   
     FluidTensor<int, 2> threebythree{{0,1,2},{3,4,5},{6,7,8}};
-    
-    auto col1 = threebythree(slice(0),slice(1,1)); //all the rows, first column
-    
-    auto twobytwo = threebythree(slice(1,2),slice(1,2));
-    
-    auto threebytwo = threebythree(slice(0,3),slice(1,2));
-    
+
+    auto col1 =
+        threebythree(Slice(0), Slice(1, 1)); // all the rows, first column
+
+    auto twobytwo = threebythree(Slice(1, 2), Slice(1, 2));
+
+    auto threebytwo = threebythree(Slice(0, 3), Slice(1, 2));
+
     std::cout << threebytwo ;
     
     int j = 0;
@@ -149,9 +147,9 @@ int main(int argc, char* argv[])
     //Print with Eigen
     std::cout << maptorow << '\n';
     //This is what we expect:
-    std::array<size_t,3> r1_expected{{4,5,6}};
+    std::array<size_t, 3> r1Expected{{4, 5, 6}};
     //Is it true?
-    assert(std::equal(r1_expected.begin(), r1_expected.end(),r1.data()));
+    assert(std::equal(r1Expected.begin(), r1Expected.end(), r1.data()));
     //Print with FluidTensor
     std::cout << r1 << '\n';
 
@@ -160,11 +158,12 @@ int main(int argc, char* argv[])
     //Have a look
     std::cout << c1 << '\n';
     //Should have this in it:
-    std::array<size_t,6> tinit2_expected{{3,6,9,4,5,6}};
+    std::array<size_t, 6> tinit2Expected{{3, 6, 9, 4, 5, 6}};
     //Let's look
     std::cout << tinit2 << '\n';
     //Is it right?
-    assert(std::equal(tinit2_expected.begin(), tinit2_expected.end(),tinit2.data()));
+    assert(std::equal(tinit2Expected.begin(), tinit2Expected.end(),
+                      tinit2.data()));
 
     //Test double** constructor for 2D
     size_t x(10);
@@ -177,17 +176,17 @@ int main(int argc, char* argv[])
         std::iota(twodeecee[i], twodeecee[i] + y, i * y);
     }
     //Create
-    fluid::FluidTensor<double, 2> twodee_test(twodeecee,x,y);
+    fluid::FluidTensor<double, 2> twodeeTest(twodeecee, x, y);
     //Look
-    std::cout << twodee_test << '\n';
+    std::cout << twodeeTest << '\n';
 
     //Test stepping through a column whilst we're here
-    size_t col_offset = 3;
-    auto c2 = twodee_test.col(col_offset);
+    size_t colOffset = 3;
+    auto c2 = twodeeTest.col(colOffset);
     for(int i = 0; i < y; i++)
     {
         //use() with integer types to get elements
-        assert(c2[i] == twodeecee[i][col_offset]);
+        assert(c2[i] == twodeecee[i][colOffset]);
     }
     std::cout << "Col 3: " << c2 << '\n';
 
@@ -196,34 +195,33 @@ int main(int argc, char* argv[])
         delete twodeecee[i];
 
     //Make a new blank 2D tensor
-    fluid::FluidTensor<double,2> copy_col(2,10);
+    fluid::FluidTensor<double, 2> copyCol(2, 10);
 
     //Use() operator with at least one fluid::slice(start,size,stride), possibly mixed
     //with integer types to do arbitary slicees:
 
     //Take three values from column above, with a stride of 2, offset of 0 and
     //copy to to the begning of the first row of our blank tensor
-    copy_col.row(0)(fluid::slice(0,3)) = c2(fluid::slice(0,3,2));
+    copyCol.row(0)(fluid::Slice(0, 3)) = c2(fluid::Slice(0, 3, 2));
 
-    fluid::FluidTensorView<double,1> aa = c2(fluid::slice(0,3,2));
+    fluid::FluidTensorView<double, 1> aa = c2(fluid::Slice(0, 3, 2));
 
     std::cout<<"Original column " << c2 <<'\n';
 
     std::cout<<"Sub-column " << aa[0] <<'\n';
 
-    std::cout<<"Copied to row " << copy_col <<'\n';
-
+    std::cout << "Copied to row " << copyCol << '\n';
 
     //More arbitary slicing
     size_t offset = 5;
     size_t len = 5;
-    auto sli = twodee_test(3,fluid::slice(offset, len));
+    auto sli = twodeeTest(3, fluid::Slice(offset, len));
     std::cout << " Slice, start at 5, length 5, start from row 3 " << sli << '\n';
     //Slice from row zero, column 3, lnegth 3 => 10 x 3
-    auto sli2 = twodee_test(fluid::slice(0),fluid::slice(3, 3));
+    auto sli2 = twodeeTest(fluid::Slice(0), fluid::Slice(3, 3));
     std::cout << "Slice from row zero, column 3, length 3 => 10 x 3\n" << sli2 << '\n';
     //Slice from row zero to 3, column 3, length 3 => 3 x 3
-    auto sli3 = twodee_test(fluid::slice(0, 3),fluid::slice(3, 3));
+    auto sli3 = twodeeTest(fluid::Slice(0, 3), fluid::Slice(3, 3));
     std::cout << "Slice from row zero to 3, column 3, length 3 => 3 x 3\n"<< sli3 << '\n';
 
 
@@ -231,16 +229,16 @@ int main(int argc, char* argv[])
     AudioFileData data = readFile("/Applications/Max.app/Contents/Resources/C74/media/msp/jongly.aif");
     std::vector<std::vector<double>> a = data.audio;
     //Init from vector
-    fluid::FluidTensor<double, 1> audio_test(data.audio[0]);
+    fluid::FluidTensor<double, 1> audioTest(data.audio[0]);
     //Sizes should match
-    assert(audio_test.size() == data.audio[0].size());
+    assert(audioTest.size() == data.audio[0].size());
     //Data should match
     assert(std::equal(data.audio[0].begin(), data.audio[0].end(),
-                      audio_test.data()));
+                      audioTest.data()));
     //Data should also match when accessed through operator()!
     for(int i = 0; i < data.audio[0].size();++i)
     {
-        assert(audio_test[i] == data.audio[0][i]);
+      assert(audioTest[i] == data.audio[0][i]);
     }
 
     //Test unary apply
@@ -280,7 +278,7 @@ int main(int argc, char* argv[])
     fluid::FluidTensor<double,1> in(1024 * 100);
     fluid::FluidTensor<double,1> out(1024 * 100);
     //Leave frame/2 at either end
-    auto in_minus_padding = in(fluid::slice(frame/2, frame*99));
+    auto inMinusPadding = in(fluid::Slice(frame / 2, frame * 99));
     //Zero output buffer, just in case
     out.apply([](double& x){x=0;});
 
@@ -291,17 +289,14 @@ int main(int argc, char* argv[])
         x = 0.5 - 0.5*(std::cos((M_PI * 2 * x) / 1024)); //periodic hann window (1024,not 1023 in denominator)
     });
 
-    size_t win_sum = std::accumulate(win.begin(), win.end(), 0);
+    size_t winSum = std::accumulate(win.begin(), win.end(), 0);
     //normalise window to sum to 1
-    win.apply([&](double& x){
-        x /= win_sum;
-    });
+    win.apply([&](double &x) { x /= winSum; });
 
     //Fill input with a cosine
-    std::iota(in_minus_padding.begin(), in_minus_padding.end(),0);
-    in_minus_padding.apply([](double& x){
-        x = std::cos(2 * M_PI * x * 32 * (1024./44100.));
-    });
+    std::iota(inMinusPadding.begin(), inMinusPadding.end(), 0);
+    inMinusPadding.apply(
+        [](double &x) { x = std::cos(2 * M_PI * x * 32 * (1024. / 44100.)); });
 
     //Make a normalisation buffer
     fluid::FluidTensor<double,1> norm(out);
@@ -310,7 +305,7 @@ int main(int argc, char* argv[])
     for(int i = 0; i < 99*frame; i+=hop)
     {
         //Same slice all round: start at i, take frame samples
-        fluid::slice slice(i,frame);
+        fluid::Slice slice(i, frame);
         //grab input and copy before windowing
         fluid::FluidTensor<double, 1> windowed(in(slice));
         //apply window
@@ -329,9 +324,9 @@ int main(int argc, char* argv[])
     fluid::FluidTensor<double, 1> diff(in);
     diff.apply(out, [](double& x, double y){ x -= y; });
     //sum it
-    double sum_of_diff = std::accumulate(diff.begin(), diff.end(), 0.0);
+    double sumOfDiff = std::accumulate(diff.begin(), diff.end(), 0.0);
     //we want it to be small, kthx
-    std::cout << "Difference summed " << sum_of_diff << '\n';
+    std::cout << "Difference summed " << sumOfDiff << '\n';
 
     double* interleave = new double[100];
 

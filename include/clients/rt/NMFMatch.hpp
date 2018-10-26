@@ -25,22 +25,24 @@ namespace fluid{
         if(params.size() == 0)
         {
 
-          params.emplace_back("filterbuf","Filters Buffer", parameter::Type::Buffer);
+          params.emplace_back("filterbuf", "Filters Buffer",
+                              parameter::Type::kBuffer);
           params.back().setInstantiation(false);
-          
-          params.emplace_back("rank","Rank", parameter::Type::Long);
+
+          params.emplace_back("rank", "Rank", parameter::Type::kLong);
           params.back().setMin(1).setDefault(1).setInstantiation(true);
-          
-          params.emplace_back("iterations","Iterations", parameter::Type::Long);
+
+          params.emplace_back("iterations", "Iterations",
+                              parameter::Type::kLong);
           params.back().setInstantiation(false).setMin(1).setDefault(10).setInstantiation(false);
-          
-          params.emplace_back("winsize","Window Size", parameter::Type::Long);
+
+          params.emplace_back("winsize", "Window Size", parameter::Type::kLong);
           params.back().setMin(4).setDefault(1024).setInstantiation(true);
-          
-          params.emplace_back("hopsize","Hop Size", parameter::Type::Long);
+
+          params.emplace_back("hopsize", "Hop Size", parameter::Type::kLong);
           params.back().setMin(1).setDefault(256).setInstantiation(true);
-          
-          params.emplace_back("fftsize","FFT Size", parameter::Type::Long);
+
+          params.emplace_back("fftsize", "FFT Size", parameter::Type::kLong);
           params.back().setMin(-1).setDefault(-1).setInstantiation(true);
 
         }
@@ -116,13 +118,13 @@ namespace fluid{
             msg << "Parameter " << d.getName();
             switch (errorType)
             {
-              case parameter::Instance::RangeErrorType::Min:
-                msg << " value below minimum(" << d.getMin() << ")";
-                break;
-              case parameter::Instance::RangeErrorType::Max:
-                msg << " value above maximum(" << d.getMin() << ")";
-              default:
-                assert(false && "This should be unreachable");
+            case parameter::Instance::RangeErrorType::kMin:
+              msg << " value below minimum(" << d.getMin() << ")";
+              break;
+            case parameter::Instance::RangeErrorType::kMax:
+              msg << " value above maximum(" << d.getMin() << ")";
+            default:
+              assert(false && "This should be unreachable");
             }
             return { false, msg.str()};
           }
@@ -204,8 +206,8 @@ namespace fluid{
       }
       
       //Here we gain compensate for the OLA
-      void post_process(data_type output) override {}
-      
+      void postProcess(data_type output) override {}
+
       std::vector<parameter::Instance>& getParams() override
       {
         return mParams;

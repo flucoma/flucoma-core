@@ -25,19 +25,22 @@ namespace stn{
       static std::vector<parameter::Descriptor> params;
       if(params.size() == 0)
       {
-        params.emplace_back("bandwidth","Bandwidth", parameter::Type::Long);
+        params.emplace_back("bandwidth", "Bandwidth", parameter::Type::kLong);
         params.back().setMin(1).setDefault(76).setInstantiation(true);
-        
-        params.emplace_back("threshold","Threshold",parameter::Type::Float);
+
+        params.emplace_back("threshold", "Threshold", parameter::Type::kFloat);
         params.back().setMin(0).setMax(1).setDefault(0.7).setInstantiation(false);
-        
-        params.emplace_back("mintracklen","Min Track Length",parameter::Type::Long);
+
+        params.emplace_back("mintracklen", "Min Track Length",
+                            parameter::Type::kLong);
         params.back().setMin(0).setDefault(15).setInstantiation(false);
-        
-        params.emplace_back("magweight","Magnitude Weight",parameter::Type::Float);
+
+        params.emplace_back("magweight", "Magnitude Weight",
+                            parameter::Type::kFloat);
         params.back().setMin(0).setMax(1).setDefault(0.1).setInstantiation(false);
-        
-        params.emplace_back("freqweight","Frequency Weight",parameter::Type::Float);
+
+        params.emplace_back("freqweight", "Frequency Weight",
+                            parameter::Type::kFloat);
         params.back().setMin(0).setMax(1).setDefault(1).setInstantiation(false);
         
         //        params.emplace_back("winsize","Window Size", parameter::Type::Long);
@@ -49,8 +52,8 @@ namespace stn{
         
         params[params.size() - 2].setInstantiation(true);//winsize
         params.back().setInstantiation(true);//hopsize
-        
-        params.emplace_back("fftsize","FFT Size", parameter::Type::Long);
+
+        params.emplace_back("fftsize", "FFT Size", parameter::Type::kLong);
         params.back().setMin(-1).setDefault(8192).setInstantiation(true);
       }
       
@@ -139,14 +142,14 @@ namespace stn{
           msg << "Parameter " << d.getName();
           switch (errorType)
           {
-            case parameter::Instance::RangeErrorType::Min:
-              msg << " value below minimum (" << d.getMin() << ")";
-              break;
-            case parameter::Instance::RangeErrorType::Max:
-              msg << " value above maximum (" << d.getMin() << ")";
-              break; 
-            default:
-              assert(false && "This should be unreachable");
+          case parameter::Instance::RangeErrorType::kMin:
+            msg << " value below minimum (" << d.getMin() << ")";
+            break;
+          case parameter::Instance::RangeErrorType::kMax:
+            msg << " value above maximum (" << d.getMin() << ")";
+            break;
+          default:
+            assert(false && "This should be unreachable");
           }
           return { false, msg.str()};
         }
@@ -191,8 +194,7 @@ namespace stn{
       output.row(2) = mNormWindow;
     }
     //Here we gain compensate for the OLA
-    void post_process(data_type output) override
-    {
+    void postProcess(data_type output) override {
       output.row(0).apply(output.row(2),[](double& x, double g){
         if(x)
         {

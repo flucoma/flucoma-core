@@ -55,7 +55,7 @@ public:
                  double threshold, int minTrackLength, double magWeight,
                  double freqWeight)
       : mWindowSize(windowSize),
-        mWindow(windowFuncs[WindowType::Hann](windowSize)), mFFTSize(fftSize),
+        mWindow(windowFuncs[WindowType::kHann](windowSize)), mFFTSize(fftSize),
         mFFT(fftSize), mBandwidth(bandwidth), mThreshold(threshold),
         mMinTrackLength(minTrackLength), mMagWeight(magWeight),
         mFreqWeight(freqWeight) {

@@ -36,8 +36,8 @@ namespace audio {
           
           params.front().setDefault(1024);
           params[1].setDefault(512);
-          
-          params.emplace_back("fftsize","FFT Size", parameter::Type::Long);
+
+          params.emplace_back("fftsize", "FFT Size", parameter::Type::kLong);
           params.back().setMin(-1).setInstantiation(true).setDefault(-1);
         }
         
@@ -86,12 +86,12 @@ namespace audio {
           {
             switch(std::get<1>(res))
             {
-              case parameter::Instance::RangeErrorType::Min:
-                return {false,"Parameter below minimum"};
-                break;
-              case parameter::Instance::RangeErrorType::Max:
-                return {false,"Parameter above maximum"};
-                break;
+            case parameter::Instance::RangeErrorType::kMin:
+              return {false, "Parameter below minimum"};
+              break;
+            case parameter::Instance::RangeErrorType::kMax:
+              return {false, "Parameter above maximum"};
+              break;
             }
           }
           
@@ -115,8 +115,7 @@ namespace audio {
             output.row(1) = normWindow;
         }
         //Here we gain compensate for the OLA
-        void post_process(data_type output) override
-        {
+        void postProcess(data_type output) override {
           output.row(0).apply(output.row(1),[](double& x, double g){
               if(x)
               {

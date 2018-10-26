@@ -26,120 +26,96 @@ namespace parameter{
    
    Exists so that we can have polymorphic containers of Params, irrespective of their mix-ins
    **/
-  
-  enum class Type{Float,Long,Buffer,Enum};
-  
-  class BufferAdaptor//: public FluidTensorView<float,2>
-  {
+
+enum class Type { kFloat, kLong, kBuffer, kEnum };
+
+class BufferAdaptor //: public FluidTensorView<float,2>
+{
+public:
+  class Access {
   public:
-    
-    class Access
-    {
-    public:
-      
-      Access(BufferAdaptor* adaptor) : mAdaptor(adaptor)
-      {
-        if (mAdaptor) mAdaptor->acquire();
-      }
-      
-      ~Access()
-      {
-         if (mAdaptor) mAdaptor->release();
-      }
-      
-      Access(const Access&) = delete;
-      Access& operator=(const Access&) = delete;
-      
-      void destroy()
-      {
-        if (mAdaptor) mAdaptor->release();
-        mAdaptor = nullptr;
-      }
-      
-      bool valid()
-      {
-          return mAdaptor ? mAdaptor->valid() : false;
-      }
-      
-      void resize(size_t frames, size_t channels, size_t rank)
-      {
-        if (mAdaptor) mAdaptor->resize(frames, channels, rank);
-      }
-      
-      FluidTensorView<float,1> samps(size_t channel, size_t rankIdx = 0)
-      {
-        assert(mAdaptor);
-        return mAdaptor->samps(channel, rankIdx);
-      }
-      
-
-//      FluidTensorView<float,2> samps()
-//      {
-//        assert(mAdaptor);
-//        return mAdaptor->samps();
-//      }
-//      
-      FluidTensorView<float,1> samps(size_t offset, size_t nframes, size_t chanoffset)
-      {
-        assert(mAdaptor);
-        return mAdaptor->samps(offset, nframes, chanoffset);
-      }
-      
-      size_t numFrames() const
-      {
-        return mAdaptor ? mAdaptor->numFrames() : 0;
-      }
-      
-      size_t numChans() const
-      {
-        return mAdaptor ? mAdaptor->numChans() : 0;
-      }
-      
-      size_t rank() const
-      {
-        return mAdaptor ? mAdaptor->rank() : 0;
-      }
-      
-    private:
-      
-      BufferAdaptor* mAdaptor;
-    };
-    
-    BufferAdaptor(BufferAdaptor&& rhs) = default;
-    BufferAdaptor() = default;
-    
-    virtual ~BufferAdaptor()
-    {
-//      destroy();
-    }
-    
-    bool operator==(BufferAdaptor& rhs) const
-    {
-      return equal(&rhs);
-    }
-    
-    bool operator!=(BufferAdaptor& rhs) const
-    {
-      return !(*this == rhs);
+    Access(BufferAdaptor *adaptor) : mAdaptor(adaptor) {
+      if (mAdaptor)
+        mAdaptor->acquire();
     }
 
-    
+    ~Access() {
+      if (mAdaptor)
+        mAdaptor->release();
+    }
+
+    Access(const Access &) = delete;
+    Access &operator=(const Access &) = delete;
+
+    void destroy() {
+      if (mAdaptor)
+        mAdaptor->release();
+      mAdaptor = nullptr;
+    }
+
+    bool valid() { return mAdaptor ? mAdaptor->valid() : false; }
+
+    void resize(size_t frames, size_t channels, size_t rank) {
+      if (mAdaptor)
+        mAdaptor->resize(frames, channels, rank);
+    }
+
+    FluidTensorView<float, 1> samps(size_t channel, size_t rankIdx = 0) {
+      assert(mAdaptor);
+      return mAdaptor->samps(channel, rankIdx);
+    }
+
+    //      FluidTensorView<float,2> samps()
+    //      {
+    //        assert(mAdaptor);
+    //        return mAdaptor->samps();
+    //      }
+    //
+    FluidTensorView<float, 1> samps(size_t offset, size_t nframes,
+                                    size_t chanoffset) {
+      assert(mAdaptor);
+      return mAdaptor->samps(offset, nframes, chanoffset);
+    }
+
+    size_t numFrames() const { return mAdaptor ? mAdaptor->numFrames() : 0; }
+
+    size_t numChans() const { return mAdaptor ? mAdaptor->numChans() : 0; }
+
+    size_t rank() const { return mAdaptor ? mAdaptor->rank() : 0; }
+
   private:
-    virtual bool equal(BufferAdaptor* rhs) const = 0;
-//    virtual void assign() = 0;
-//    virtual void destroy() = 0;
-    virtual void acquire() = 0;
-    virtual void release() = 0;
-    virtual bool valid() const   = 0;
-    virtual void resize(size_t frames, size_t channels, size_t rank) = 0;
-    //Return a slice of the buffer
-    virtual FluidTensorView<float,1> samps(size_t channel, size_t rankIdx = 0) = 0;
-    //Return a view of all the data
-//    virtual FluidTensorView<float,2> samps() = 0;
-    virtual FluidTensorView<float,1> samps(size_t offset, size_t nframes, size_t chanoffset) = 0;
-    virtual size_t numFrames() const = 0;
-    virtual size_t numChans() const = 0;
-    virtual size_t rank() const = 0;
+    BufferAdaptor *mAdaptor;
+  };
+
+  BufferAdaptor(BufferAdaptor &&rhs) = default;
+  BufferAdaptor() = default;
+
+  virtual ~BufferAdaptor() {
+    //      destroy();
+  }
+
+  bool operator==(BufferAdaptor &rhs) const { return equal(&rhs); }
+
+  bool operator!=(BufferAdaptor &rhs) const { return !(*this == rhs); }
+
+private:
+  virtual bool equal(BufferAdaptor *rhs) const = 0;
+  //    virtual void assign() = 0;
+  //    virtual void destroy() = 0;
+  virtual void acquire() = 0;
+  virtual void release() = 0;
+  virtual bool valid() const = 0;
+  virtual void resize(size_t frames, size_t channels, size_t rank) = 0;
+  // Return a slice of the buffer
+  virtual FluidTensorView<float, 1> samps(size_t channel,
+                                          size_t rankIdx = 0) = 0;
+  // Return a view of all the data
+  //    virtual FluidTensorView<float,2> samps() = 0;
+  virtual FluidTensorView<float, 1> samps(size_t offset, size_t nframes,
+                                          size_t chanoffset) = 0;
+  virtual size_t numFrames() const = 0;
+  virtual size_t numChans() const = 0;
+  virtual size_t rank() const = 0;
   };
 
   
@@ -176,9 +152,8 @@ namespace parameter{
     }
     
     Descriptor(std::string name,std::string dispName, Type type):mName(name),mType(type),mDisplayName(dispName){
-      
-      if(mType == Type::Buffer)
-      {
+
+      if (mType == Type::kBuffer) {
         mMin = 0;
         mMax = 0;
       }
@@ -190,7 +165,7 @@ namespace parameter{
     
     Descriptor& setMin(double  min)
     {
-      assert(mType != Type::Buffer);
+      assert(mType != Type::kBuffer);
       assert(min < mMax);
       mMin = min;
       return *this;
@@ -200,7 +175,7 @@ namespace parameter{
     
     Descriptor& setMax(double max)
     {
-      assert(mType != Type::Buffer);
+      assert(mType != Type::kBuffer);
       assert(max > mMin);
       mMax = max;
       return *this;
@@ -217,7 +192,7 @@ namespace parameter{
     
     Descriptor& setDefault(double def)
     {
-      assert(mType != Type::Buffer);
+      assert(mType != Type::kBuffer);
       assert(def <= mMax);
       assert(def >= mMin);
       mDefault = def;
@@ -235,15 +210,19 @@ namespace parameter{
 
     bool instantiation() const {return mInstantiation;}
     bool hasDefault() const {
-      return mType==Type::Buffer? false: mHasDefault;
+      return mType == Type::kBuffer ? false : mHasDefault;
     }
     
     bool hasMin() const {
-      return mType==Type::Buffer? false: !(mMin == std::numeric_limits<double>::lowest());
+      return mType == Type::kBuffer
+                 ? false
+                 : !(mMin == std::numeric_limits<double>::lowest());
     }
     
     bool hasMax() const {
-      return mType==Type::Buffer? false: ! (mMax == std::numeric_limits<double>::max());
+      return mType == Type::kBuffer
+                 ? false
+                 : !(mMax == std::numeric_limits<double>::max());
     }
     
     bool operator==(const Descriptor& x) const
@@ -309,8 +288,8 @@ namespace parameter{
       long vLong;
     };
   public:
-    enum class RangeErrorType{None,Min,Max};
-    
+    enum class RangeErrorType { kNone, kMin, kMax };
+
     Instance(const Instance& i) = delete;
     Instance& operator=(Instance i) = delete;
     
@@ -329,16 +308,16 @@ namespace parameter{
       {
         switch(mDesc.getType())
         {
-          case Type::Float:
-            mValue.vFloat = mDesc.getDefault();
-            mHasChanged = false;
-            break;
-          case Type::Long:
-            mValue.vLong = mDesc.getDefault();
-            mHasChanged = false;
-            break;
-          default:
-            break;
+        case Type::kFloat:
+          mValue.vFloat = mDesc.getDefault();
+          mHasChanged = false;
+          break;
+        case Type::kLong:
+          mValue.vLong = mDesc.getDefault();
+          mHasChanged = false;
+          break;
+        default:
+          break;
         }
       }
     }
@@ -347,44 +326,44 @@ namespace parameter{
     {
       switch(mDesc.getType())
       {
-        case Type::Float:
-          mValue.vFloat = v;
-          mHasChanged = true;
-          break;
-        case Type::Long:
-          mValue.vLong = v;
-          mHasChanged = true;
-          break;
-        default:
-          assert(false && "Why would you even?");
-          break;
+      case Type::kFloat:
+        mValue.vFloat = v;
+        mHasChanged = true;
+        break;
+      case Type::kLong:
+        mValue.vLong = v;
+        mHasChanged = true;
+        break;
+      default:
+        assert(false && "Why would you even?");
+        break;
       }
     }
     
     ~Instance()
     {
-      if (mDesc.getType() == Type::Buffer && mValue.vBuffer)
-          delete mValue.vBuffer;
+      if (mDesc.getType() == Type::kBuffer && mValue.vBuffer)
+        delete mValue.vBuffer;
     }
     
     void reset()
     {
       switch(mDesc.getType())
       {
-        case Type::Float:
-          mValue.vFloat = mDesc.hasDefault() ? mDesc.getDefault() : 0;
-          mHasChanged = false;
-          break;
-        case Type::Long:
-          mValue.vLong = mDesc.hasDefault() ? mDesc.getDefault() : 0;
-          break;
-        case Type::Buffer:
-          if(mValue.vBuffer)
-            delete mValue.vBuffer;
-          mValue.vBuffer = nullptr; 
-          break;
-        default:
-          break;
+      case Type::kFloat:
+        mValue.vFloat = mDesc.hasDefault() ? mDesc.getDefault() : 0;
+        mHasChanged = false;
+        break;
+      case Type::kLong:
+        mValue.vLong = mDesc.hasDefault() ? mDesc.getDefault() : 0;
+        break;
+      case Type::kBuffer:
+        if (mValue.vBuffer)
+          delete mValue.vBuffer;
+        mValue.vBuffer = nullptr;
+        break;
+      default:
+        break;
       }
       mHasChanged = false;
       
@@ -403,15 +382,15 @@ namespace parameter{
       
       switch (mDesc.getType())
       {
-        case Type::Float:
-          mValue.vFloat = v;
-          break;
-        case Type::Long:
-          mValue.vLong = v;
-          break;
-        case Type::Buffer:
-        default:
-          assert(false && "Don't call this on this type of parameter");
+      case Type::kFloat:
+        mValue.vFloat = v;
+        break;
+      case Type::kLong:
+        mValue.vLong = v;
+        break;
+      case Type::kBuffer:
+      default:
+        assert(false && "Don't call this on this type of parameter");
       }
       mHasChanged = true;
     }
@@ -425,13 +404,13 @@ namespace parameter{
       
       switch (mDesc.getType())
       {
-      case Type::Float:
+      case Type::kFloat:
         mValue.vFloat = v;
         break;
-      case Type::Long:
+      case Type::kLong:
         mValue.vLong = v;
         break;
-      case Type::Buffer:
+      case Type::kBuffer:
       default:
         assert(false && "Don't call this on this type of parameter");
       }
@@ -442,15 +421,14 @@ namespace parameter{
     {
       switch (mDesc.getType())
       {
-        case Type::Buffer:
-        {
-          if (mValue.vBuffer)
-            delete mValue.vBuffer;
-          mValue.vBuffer = p;
-          break;
+      case Type::kBuffer: {
+        if (mValue.vBuffer)
+          delete mValue.vBuffer;
+        mValue.vBuffer = p;
+        break;
         }
-        case Type::Float:
-        case Type::Long:
+        case Type::kFloat:
+        case Type::kLong:
         default:
           assert(false && "Don't call this on a non-buffer parameter");
       }
@@ -462,16 +440,16 @@ namespace parameter{
       double value;
       switch (mDesc.getType())
       {
-        case Type::Float:
-          value = mValue.vFloat;
-          break;
-        case Type::Long:
-          value = mValue.vLong;
-          break;
-        case Type::Buffer:
-        default:
-          value = 0; //shut the compiler up
-          assert(false && "Don't call this on a non-buffer parameter");
+      case Type::kFloat:
+        value = mValue.vFloat;
+        break;
+      case Type::kLong:
+        value = mValue.vLong;
+        break;
+      case Type::kBuffer:
+      default:
+        value = 0; // shut the compiler up
+        assert(false && "Don't call this on a non-buffer parameter");
       }
       return value;
       
@@ -481,16 +459,16 @@ namespace parameter{
       long value;
       switch (mDesc.getType())
       {
-        case Type::Float:
-          value = static_cast<long>(mValue.vFloat);
-          break;
-        case Type::Long:
-          value = mValue.vLong;
-          break;
-        case Type::Buffer:
-        default:
-          value = 0; //shut the compiler up
-          assert(false && "Don't call this on a buffer parameter");
+      case Type::kFloat:
+        value = static_cast<long>(mValue.vFloat);
+        break;
+      case Type::kLong:
+        value = mValue.vLong;
+        break;
+      case Type::kBuffer:
+      default:
+        value = 0; // shut the compiler up
+        assert(false && "Don't call this on a buffer parameter");
       }
       return value;
     }
@@ -499,13 +477,13 @@ namespace parameter{
     {
       switch (mDesc.getType())
       {
-        case Type::Buffer:
-          return mValue.vBuffer;
-        case Type::Float:
-        case Type::Long:
-        default:
-          assert(false && "Don't call this on a non-buffer parameter");
-          return nullptr; //shut the compiler up
+      case Type::kBuffer:
+        return mValue.vBuffer;
+      case Type::kFloat:
+      case Type::kLong:
+      default:
+        assert(false && "Don't call this on a non-buffer parameter");
+        return nullptr; // shut the compiler up
       }
     }
     
@@ -513,37 +491,33 @@ namespace parameter{
     {
       switch (mDesc.getType())
       {
-        case Type::Buffer:
-          return std::make_pair(true,RangeErrorType::None);
-          break;
-        case Type::Float:
-          if(mDesc.hasMin() && mValue.vFloat < mDesc.getMin())
-          {
-            mValue.vFloat = mDesc.getMin();
-            return std::make_pair(false,RangeErrorType::Min);
-          }
-          if(mDesc.hasMax() && mValue.vFloat > mDesc.getMax())
-          {
-            mValue.vFloat = mDesc.getMax();
-            return std::make_pair(false,RangeErrorType::Max);
-          }
-          break;
-        case Type::Long:
-          if(mDesc.hasMin() && mValue.vLong < mDesc.getMin())
-          {
-            mValue.vLong = static_cast<long>(mDesc.getMin());
-            return std::make_pair(false,RangeErrorType::Min);
-          }
-          if(mDesc.hasMax() && mValue.vLong > mDesc.getMax())
-          {
-            mValue.vLong= mDesc.getMax();
-            return std::make_pair(false,RangeErrorType::Max);
-          }
-          break;
-        default:
-          break;
+      case Type::kBuffer:
+        return std::make_pair(true, RangeErrorType::kNone);
+        break;
+      case Type::kFloat:
+        if (mDesc.hasMin() && mValue.vFloat < mDesc.getMin()) {
+          mValue.vFloat = mDesc.getMin();
+          return std::make_pair(false, RangeErrorType::kMin);
+        }
+        if (mDesc.hasMax() && mValue.vFloat > mDesc.getMax()) {
+          mValue.vFloat = mDesc.getMax();
+          return std::make_pair(false, RangeErrorType::kMax);
+        }
+        break;
+      case Type::kLong:
+        if (mDesc.hasMin() && mValue.vLong < mDesc.getMin()) {
+          mValue.vLong = static_cast<long>(mDesc.getMin());
+          return std::make_pair(false, RangeErrorType::kMin);
+        }
+        if (mDesc.hasMax() && mValue.vLong > mDesc.getMax()) {
+          mValue.vLong = mDesc.getMax();
+          return std::make_pair(false, RangeErrorType::kMax);
+        }
+        break;
+      default:
+        break;
       }
-      return std::make_pair(true,RangeErrorType::None);
+      return std::make_pair(true, RangeErrorType::kNone);
     }
     
     bool hasChanged() const

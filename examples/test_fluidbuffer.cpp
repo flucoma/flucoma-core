@@ -3,9 +3,9 @@
 #include "data/FluidBuffers.hpp"
 #include "algorithms/Windows.hpp"
 
-using fluid::FluidTensor;
-using fluid::slice;
 using fluid::FluidSource;
+using fluid::FluidTensor;
+using fluid::Slice;
 
 int main(int argc, char* argv[])
 {

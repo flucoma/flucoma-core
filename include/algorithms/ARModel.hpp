@@ -42,8 +42,10 @@ public:
   
   double backwardPrediction(const double *input)
   {
-    struct identity { int operator()(int a) { return a;} };
-    return modelPredict<identity>(input);
+    struct Identity {
+      int operator()(int a) { return a; }
+    };
+    return modelPredict<Identity>(input);
   }
   
   double forwardError(const double *input)
@@ -105,7 +107,8 @@ private:
     {
       if (mWindow.size() != size)
       {
-        std::vector<double> newWindow = windows::windowFuncs[windows::WindowType::Hann](size);
+        std::vector<double> newWindow =
+            windows::windowFuncs[windows::WindowType::kHann](size);
         std::swap(mWindow, newWindow);
       }
                   

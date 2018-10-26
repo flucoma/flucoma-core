@@ -36,8 +36,8 @@ namespace audio {
           
         if(desc.size() == 0)
         {
-          
-          desc.emplace_back("gain", "Gain", parameter::Type::Float);
+
+          desc.emplace_back("gain", "Gain", parameter::Type::kFloat);
           desc.back().setDefault(1);
           BaseAudioClient<T,U>::initParamDescriptors(desc);
 
@@ -55,8 +55,10 @@ namespace audio {
         /**
          Construct with a (maximum) chunk size and some input channels
          **/
-        GainAudioClient(size_t max_chunk_size):
-        BaseAudioClient<T,U>(max_chunk_size, 2,1)//, output(1,chunk_size) //this has two input channels, one output
+        GainAudioClient(size_t maxChunkSize)
+            : BaseAudioClient<T, U>(maxChunkSize, 2,
+                                    1) //, output(1,chunk_size) //this has two
+                                       //input channels, one output
         {
           newParamSet();
         }
@@ -96,7 +98,7 @@ namespace audio {
       
       void reset() 
       {
-        m_scalar_gain = parameter::lookupParam("gain",mParams).getFloat();
+        mScalarGain = parameter::lookupParam("gain",mParams).getFloat();
         BaseAudioClient<T, U>::reset();
       }
       
@@ -116,9 +118,8 @@ namespace audio {
           mParams.emplace_back(d);
         
       }
-      
-      
-        T m_scalar_gain = 1.;
+
+      T mScalarGain = 1.;
       std::vector<parameter::Instance> mParams;
       
       

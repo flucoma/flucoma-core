@@ -12,11 +12,11 @@ using std::function;
 using std::map;
 using std::vector;
 
-enum class WindowType { Hann, Hamming, BlackmanHarris, Gaussian };
+enum class WindowType { kHann, kHamming, kBlackmanHarris, kGaussian };
 using WindowFuncMap = map<WindowType, function<vector<double>(int)>>;
 
 static WindowFuncMap windowFuncs = {
-    {WindowType::Hann,
+    {WindowType::kHann,
      [](int size) {
        vector<double> result(size);
        for (int i = 0; i < size; i++) {
@@ -24,7 +24,7 @@ static WindowFuncMap windowFuncs = {
        }
        return result;
      }},
-    {WindowType::Hamming,
+    {WindowType::kHamming,
      [](int size) {
        vector<double> result(size);
        for (int i = 0; i < size; i++) {
@@ -32,7 +32,8 @@ static WindowFuncMap windowFuncs = {
        }
        return result;
      }},
-    {WindowType::BlackmanHarris, [](int size) {
+    {WindowType::kBlackmanHarris,
+     [](int size) {
        using std::cos;
        vector<double> result(size);
        for (int i = 0; i < size; i++) {
@@ -42,17 +43,16 @@ static WindowFuncMap windowFuncs = {
        }
        return result;
      }},
-     {WindowType::Gaussian, [](int size) {
-        using std::exp;
-        double sigma = size / 3;// TODO: should be argument
-        assert(size%2);
-        int h = (size - 1) / 2;
-        vector<double> result(size);
-        for (int i = -h; i <= h; i++) {
-          result[i+h] = exp(-i * i / (2 * sigma * sigma));
-        }
-        return result;
-      }}
-   };
+    {WindowType::kGaussian, [](int size) {
+       using std::exp;
+       double sigma = size / 3; // TODO: should be argument
+       assert(size % 2);
+       int h = (size - 1) / 2;
+       vector<double> result(size);
+       for (int i = -h; i <= h; i++) {
+         result[i + h] = exp(-i * i / (2 * sigma * sigma));
+       }
+       return result;
+     }}};
 } // namespace windows
 } // namespace fluid

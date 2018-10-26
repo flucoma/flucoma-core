@@ -60,43 +60,51 @@ namespace fluid {
         static std::vector<desc_type> params;
         if(params.empty())
         {
-          params.emplace_back(desc_type{"src","Source Buffer", parameter::Type::Buffer});
+          params.emplace_back(
+              desc_type{"src", "Source Buffer", parameter::Type::kBuffer});
           params.back().setInstantiation(true);
-          
-          params.emplace_back(desc_type{"offsetframes","Source Offset", parameter::Type::Long});
+
+          params.emplace_back(desc_type{"offsetframes", "Source Offset",
+                                        parameter::Type::kLong});
           params.back().setInstantiation(true).setMin(0).setDefault(0);
 
-          params.emplace_back(desc_type{"numframes","Source Frames", parameter::Type::Long});
+          params.emplace_back(
+              desc_type{"numframes", "Source Frames", parameter::Type::kLong});
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
-          
-          params.emplace_back(desc_type{"offsetchans","Source Channel Offset", parameter::Type::Long});
+
+          params.emplace_back(desc_type{"offsetchans", "Source Channel Offset",
+                                        parameter::Type::kLong});
           params.back().setInstantiation(true).setMin(0).setDefault(0);
-          
-          params.emplace_back(desc_type{"numchans","Source Channels", parameter::Type::Long});
+
+          params.emplace_back(
+              desc_type{"numchans", "Source Channels", parameter::Type::kLong});
           params.back().setInstantiation(true).setMin(-1).setDefault(-1);
-          
-          params.emplace_back(desc_type{"transbuf","Transients Buffer", parameter::Type::Buffer});
+
+          params.emplace_back(desc_type{"transbuf", "Transients Buffer",
+                                        parameter::Type::kBuffer});
           params.back().setInstantiation(false);
-          
-          params.emplace_back(desc_type{"resbuf","Residual Buffer", parameter::Type::Buffer});
+
+          params.emplace_back(
+              desc_type{"resbuf", "Residual Buffer", parameter::Type::kBuffer});
           params.back().setInstantiation(false);
           
           // The main blocking parameters (expose in ms for the block and pad, possiby also model order as the meaning is SR dependant)
           
 //          int paramOrder = 200;       // The model order (higher == better quality + more CPU - should be quite a bit smaller than the block size)
-          params.emplace_back("order", "Order", parameter::Type::Long);
+          params.emplace_back("order", "Order", parameter::Type::kLong);
           params.back().setInstantiation(false).setMin(20).setDefault(200);
           //order min > paramDetectHalfWindow, or ~40-50 ms,
        
 //          int paramBlockSize = 2048;  // The main block size for processing (higher == longer processing times N^2 but better quality)
-          params.emplace_back("blocksize","Block Size", parameter::Type::Long);
+          params.emplace_back("blocksize", "Block Size",
+                              parameter::Type::kLong);
           params.back().setInstantiation(false).setMin(100).setDefault(2048);
           
           //must be greater than model order
           
 //          int paramPad = 1024;        // The analysis is done on a longer segment than the block, with this many extra values on either side
           //padding min 0
-          params.emplace_back("padding","Padding", parameter::Type::Long);
+          params.emplace_back("padding", "Padding", parameter::Type::kLong);
           params.back().setInstantiation(false).setMin(0).setDefault(1024);
           
           
@@ -110,31 +118,35 @@ namespace fluid {
           //'skew', do 2^n -10, 10
           
 //          double paramDetectPower = 1.0;           // The power factor used when windowing - higher makes detection more likely
-          params.emplace_back("skew","Skew", parameter::Type::Float);
+          params.emplace_back("skew", "Skew", parameter::Type::kFloat);
           params.back().setInstantiation(false).setMin(-10).setMax(10).setDefault(0);
 
           
 //          double paramDetectThreshHi = 3.0;        // The threshold for detection (in multiples of the model deviation)
           //
-          params.emplace_back("threshfwd","Forward Threshold", parameter::Type::Float);
+          params.emplace_back("threshfwd", "Forward Threshold",
+                              parameter::Type::kFloat);
           params.back().setInstantiation(false).setMin(0).setDefault(3);
           
           
 //          double paramDetectThreshLo = 1.1;        // The reset threshold to end a detected segment (in multiples of the model deviation)
-          params.emplace_back("threshback","Backward Threshold", parameter::Type::Float);
+          params.emplace_back("threshback", "Backward Threshold",
+                              parameter::Type::kFloat);
           params.back().setInstantiation(false).setMin(0).setDefault(1.1);
           
           
 //          double paramDetectHalfWindow = 7;        // Half the window size used to smooth detection functions (in samples)
           //up to model order ~40 = 1ms, 15 default sampples for whole window
           //
-          params.emplace_back("windowsize","Window Size(ms)", parameter::Type::Float);
+          params.emplace_back("windowsize", "Window Size(ms)",
+                              parameter::Type::kFloat);
           params.back().setInstantiation(false).setMin(0).setDefault(14);
 
           
 //          int paramDetectHold = 25;               // The hold time for detection (in samples)
           //prevents onsets within n samples of an offset, min 0,
-          params.emplace_back("debounce","Debounce(ms)", parameter::Type::Float);
+          params.emplace_back("debounce", "Debounce(ms)",
+                              parameter::Type::kFloat);
           params.back().setInstantiation(false).setMin(0).setDefault(25);
 
           
@@ -209,23 +221,23 @@ namespace fluid {
         {
           switch(p.getDescriptor().getType())
           {
-            case parameter::Type::Buffer:
-              //If we've been handed a buffer that we're expecting, then it should exist
-              if(p.hasChanged() && p.getBuffer())
-              {
-                parameter::BufferAdaptor::Access b(p.getBuffer());
-                if(!b.valid())
-                 {
-                   std::ostringstream ss;
-                   ss << "Buffer given for " << p.getDescriptor().getName() << " doesn't exist.";
-                
-                   return {false, ss.str(), model};
-                 }
-                ++bufCount;
-                uniqueBuffers.insert(p.getBuffer());
+          case parameter::Type::kBuffer:
+            // If we've been handed a buffer that we're expecting, then it
+            // should exist
+            if (p.hasChanged() && p.getBuffer()) {
+              parameter::BufferAdaptor::Access b(p.getBuffer());
+              if (!b.valid()) {
+                std::ostringstream ss;
+                ss << "Buffer given for " << p.getDescriptor().getName()
+                   << " doesn't exist.";
+
+                return {false, ss.str(), model};
               }
-            default:
-              continue;
+              ++bufCount;
+              uniqueBuffers.insert(p.getBuffer());
+            }
+          default:
+            continue;
           }
         }
  
@@ -254,13 +266,13 @@ namespace fluid {
             msg << "Parameter " << d.getName();
             switch (errorType)
             {
-              case parameter::Instance::RangeErrorType::Min:
-                msg << " value below minimum(" << d.getMin() << ")";
-                break;
-              case parameter::Instance::RangeErrorType::Max:
-                msg << " value above maximum(" << d.getMin() << ")";
-              default:
-                assert(false && "This should be unreachable");
+            case parameter::Instance::RangeErrorType::kMin:
+              msg << " value below minimum(" << d.getMin() << ")";
+              break;
+            case parameter::Instance::RangeErrorType::kMax:
+              msg << " value above maximum(" << d.getMin() << ")";
+            default:
+              assert(false && "This should be unreachable");
             }
             return { false, msg.str(), model};
           }
@@ -373,7 +385,8 @@ namespace fluid {
           FluidTensor<double,1> srcFrames(model.frames + model.blocksize);
           FluidTensor<double,1> cleanFrames(model.frames + model.blocksize);
           FluidTensor<double,1> transientFrames(model.frames + model.blocksize);
-          srcFrames(fluid::slice(0,model.frames))  = src.samps(model.offset,model.frames,model.channelOffset + i);
+          srcFrames(fluid::Slice(0, model.frames)) =
+              src.samps(model.offset, model.frames, model.channelOffset + i);
           transient_extraction::TransientExtraction extractor(model.order, model.iterations, model.robustFactor, false);
           extractor.prepareStream(model.blocksize, model.padding);
           extractor.setDetectionParameters(model.skew, model.fwdThresh, model.backThresh, model.halfWindow, model.debounce);
@@ -386,10 +399,9 @@ namespace fluid {
           }
           
           if(model.returnTransients)
-            trans.samps(i) = transientFrames(fluid::slice(0,model.frames));
+            trans.samps(i) = transientFrames(fluid::Slice(0, model.frames));
           if(model.returnResidual)
-            res.samps(i) =  cleanFrames(fluid::slice(0,model.frames));
-
+            res.samps(i) = cleanFrames(fluid::Slice(0, model.frames));
         }
         
       }

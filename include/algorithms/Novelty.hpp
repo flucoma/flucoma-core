@@ -63,7 +63,7 @@ private:
     using windows::WindowType;
     int h = (mKernelSize - 1) / 2;
     ArrayXd gaussian = Map<ArrayXd>(
-        windowFuncs[WindowType::Gaussian](mKernelSize).data(), mKernelSize);
+        windowFuncs[WindowType::kGaussian](mKernelSize).data(), mKernelSize);
     MatrixXd tmp = gaussian.matrix() * gaussian.matrix().transpose();
     tmp.block(h, 0, h + 1, h) *= -1;
     tmp.block(0, h, h, h + 1) *= -1;

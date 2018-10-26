@@ -130,18 +130,18 @@ private:
     while (mIterations--) {
       if (mUpdateW) {
         ArrayXXd V1 = (W * H).array() + epsilon();
-        ArrayXXd Wnum = ((V.array() / V1).matrix() * H.transpose()).array();
-        ArrayXXd Wden = (ones * H.transpose()).array();
-        W = (W.array() * Wnum / Wden.max(epsilon())).matrix();
+        ArrayXXd wnum = ((V.array() / V1).matrix() * H.transpose()).array();
+        ArrayXXd wden = (ones * H.transpose()).array();
+        W = (W.array() * wnum / wden.max(epsilon())).matrix();
         if (W.maxCoeff() > epsilon())
           W.colwise().normalize();
         assert(W.allFinite());
       }
       ArrayXXd V2 = (W * H).array() + epsilon();
       if (mUpdateH) {
-        ArrayXXd Hnum = (W.transpose() * (V.array() / V2).matrix()).array();
-        ArrayXXd Hden = (W.transpose() * ones).array();
-        H = (H.array() * Hnum / Hden.max(epsilon())).matrix();
+        ArrayXXd hnum = (W.transpose() * (V.array() / V2).matrix()).array();
+        ArrayXXd hden = (W.transpose() * ones).array();
+        H = (H.array() * hnum / hden.max(epsilon())).matrix();
         assert(H.allFinite());
       }
       MatrixXd R = W * H;

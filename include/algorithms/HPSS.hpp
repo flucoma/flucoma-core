@@ -24,7 +24,7 @@ using fluid::eigenmappings::MatrixXdToFluid;
 using RealMatrix = FluidTensor<double, 2>;
 using RealVector = FluidTensor<double, 1>;
 
-using fluid::slice;
+using fluid::Slice;
 using fluid::medianfilter::MedianFilter;
 
 struct HPSSModel {

@@ -26,20 +26,21 @@ namespace fluid{
         if(params.size() == 0)
         {
           //Determines input / hop size, can't yet set at perform time
-          
-          params.emplace_back("order", "Order", parameter::Type::Long);
+
+          params.emplace_back("order", "Order", parameter::Type::kLong);
           params.back().setInstantiation(false).setMin(20).setDefault(50).setInstantiation(true);
           //order min > paramDetectHalfWindow, or ~40-50 ms,
           
           //          int paramBlockSize = 2048;  // The main block size for processing (higher == longer processing times N^2 but better quality)
-          params.emplace_back("blocksize","Block Size", parameter::Type::Long);
+          params.emplace_back("blocksize", "Block Size",
+                              parameter::Type::kLong);
           params.back().setInstantiation(false).setMin(100).setDefault(256).setInstantiation(true);
           
           //must be greater than model order
           
           //          int paramPad = 1024;        // The analysis is done on a longer segment than the block, with this many extra values on either side
           //padding min 0
-          params.emplace_back("padding","Padding", parameter::Type::Long);
+          params.emplace_back("padding", "Padding", parameter::Type::kLong);
           params.back().setInstantiation(false).setMin(0).setDefault(128).setInstantiation(false);
           
           
@@ -53,31 +54,35 @@ namespace fluid{
           //'skew', do 2^n -10, 10
           
           //          double paramDetectPower = 1.0;           // The power factor used when windowing - higher makes detection more likely
-          params.emplace_back("skew","Skew", parameter::Type::Float);
+          params.emplace_back("skew", "Skew", parameter::Type::kFloat);
           params.back().setInstantiation(false).setMin(-10).setMax(10).setDefault(0).setInstantiation(false);
           
           
           //          double paramDetectThreshHi = 3.0;        // The threshold for detection (in multiples of the model deviation)
           //
-          params.emplace_back("threshfwd","Forward Threshold", parameter::Type::Float);
+          params.emplace_back("threshfwd", "Forward Threshold",
+                              parameter::Type::kFloat);
           params.back().setInstantiation(false).setMin(0).setDefault(3).setInstantiation(false);
           
           
           //          double paramDetectThreshLo = 1.1;        // The reset threshold to end a detected segment (in multiples of the model deviation)
-          params.emplace_back("threshback","Backward Threshold", parameter::Type::Float);
+          params.emplace_back("threshback", "Backward Threshold",
+                              parameter::Type::kFloat);
           params.back().setInstantiation(false).setMin(0).setDefault(1.1).setInstantiation(false);
           
           
           //          double paramDetectHalfWindow = 7;        // Half the window size used to smooth detection functions (in samples)
           //up to model order ~40 = 1ms, 15 default sampples for whole window
           //
-          params.emplace_back("windowsize","Window Size(ms)", parameter::Type::Float);
+          params.emplace_back("windowsize", "Window Size(ms)",
+                              parameter::Type::kFloat);
           params.back().setInstantiation(false).setMin(0).setDefault(14).setInstantiation(false);
           
           
           //          int paramDetectHold = 25;               // The hold time for detection (in samples)
           //prevents onsets within n samples of an offset, min 0,
-          params.emplace_back("debounce","Debounce(ms)", parameter::Type::Float);
+          params.emplace_back("debounce", "Debounce(ms)",
+                              parameter::Type::kFloat);
           params.back().setInstantiation(false).setMin(0).setDefault(25).setInstantiation(false);
 
         }
@@ -138,13 +143,13 @@ namespace fluid{
             msg << "Parameter " << d.getName();
             switch (errorType)
             {
-              case parameter::Instance::RangeErrorType::Min:
-                msg << " value below minimum(" << d.getMin() << ")";
-                break;
-              case parameter::Instance::RangeErrorType::Max:
-                msg << " value above maximum(" << d.getMin() << ")";
-              default:
-                assert(false && "This should be unreachable");
+            case parameter::Instance::RangeErrorType::kMin:
+              msg << " value below minimum(" << d.getMin() << ")";
+              break;
+            case parameter::Instance::RangeErrorType::kMax:
+              msg << " value above maximum(" << d.getMin() << ")";
+            default:
+              assert(false && "This should be unreachable");
             }
             return { false, msg.str()};
           }
@@ -177,11 +182,11 @@ namespace fluid{
         
         mExtractor->setDetectionParameters(skew, fwdThresh, backThresh, halfWindow, debounce);
         FluidTensorView<const double,1> markers{mExtractor->process(input.data(), mExtractor->inputSize()),0, mExtractor->hopSize()};
-        output.row(0)(fluid::slice(0,mExtractor->hopSize())) = markers;
+        output.row(0)(fluid::Slice(0, mExtractor->hopSize())) = markers;
       }
       //Here we gain compensate for the OLA
-      void post_process(data_type output) override {}
-      
+      void postProcess(data_type output) override {}
+
       std::vector<parameter::Instance>& getParams() override
       {
         return mParams;
