@@ -1,46 +1,54 @@
 #pragma once
 
 #include <string>
+#include <functional>
 
 namespace fluid {
 namespace client {
     
   class ParameterDescriptor
   {
+    using Constraints = std::function<void(void)>;
+      
   public:
     
     enum class Type { kFloat, kLong, kBuffer, kEnum };
     
-    ParameterDescriptor(const ParameterDescriptor& d) {}
-    ParameterDescriptor(const ParameterDescriptor&& d) {}
-    ParameterDescriptor& operator=(ParameterDescriptor d) {}
-    ParameterDescriptor(std::string name,std::string dispName, Type type) {}
+    ParameterDescriptor(std::string name, std::string dispName, Type type, double defaultVal, Constraints constraints, bool instantiation = false)
+      : mName(name), mDispName(dispName), mType(type), mDefaultVal(defaultVal), mInstantiation(instantiation)
+    {
+      assert(type != Type::kBuffer && "Cannot set default value for buffers");
+    }
     
-    std::string  getDisplayName() const {}
-    std::string  getName() const {}
-    Type getType() const {}
-    
-    ParameterDescriptor& setInstantiation(bool i) {}
-    ParameterDescriptor& setMax(double max) {}
-    ParameterDescriptor& setMin(double min) {}
-    ParameterDescriptor& setDefault(double def) {}
+    ParameterDescriptor(std::string name, std::string dispName, Type type, Constraints constraints, bool instantiation = false)
+      : mName(name), mDispName(dispName), mType(type), mDefaultVal(0.0), mInstantiation(instantiation)
+    {
+    }
+      
+    ParameterDescriptor(const ParameterDescriptor& d) = default;
+    ParameterDescriptor(ParameterDescriptor&& d) = default;
+    ParameterDescriptor& operator=(ParameterDescriptor& d) = default;
+    ParameterDescriptor& operator=(ParameterDescriptor&& d) = default;
 
-    double getMin() const {}
-    double getDefault() const {}
-    double getMax() const {}
-    bool instantiation() const {}
+    std::string getDisplayName() const { return mName; }
+    std::string getName() const { return mDispName; }
+    Type getType() const { return mType; }
 
-//    ParameterDescriptor& setClip(double min, double max){}
+    double getDefault() const { return mDefaultVal; }
+    bool instantiation() const { return mInstantiation; }
     
-    bool hasDefault() const {}
-    bool hasMin() const {}
-    bool hasMax() const {}
+    bool operator == (const ParameterDescriptor& x) const {}
+    bool operator != (const ParameterDescriptor& x) const { return !(x == *this); }
     
-    bool operator==(const ParameterDescriptor& x) const {}
-    bool operator != (const ParameterDescriptor& x) const {}
-    
-    friend std::ostream& operator<< (std::ostream& out,const ParameterDescriptor& p) {}
+    friend std::ostream& operator << (std::ostream& out,const ParameterDescriptor& p) {}
+      
   private:
+      
+    std::string mName;
+    std::string mDispName;
+    Type mType;
+    double mDefaultVal;
+    bool mInstantiation;
   };
 
 }
