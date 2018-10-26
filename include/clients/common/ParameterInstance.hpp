@@ -6,18 +6,25 @@ namespace client{
   
 //  struct ParameterDescriptor;
   
-  struct ParameterRangeCheck
+  class ParameterRangeCheck
   {
+  public:
+      
     enum class RangeErrorType { kNone, kMin, kMax };
-    RangeErrorType condition;
-    bool ok;
-    
-    operator bool() { return ok; }
+      
+    ParameterRangeCheck(RangeErrorType a) : mCondition(a) {}
+    operator bool() { return mCondition == RangeErrorType::kNone; }
+    operator RangeErrorType() { return mCondition; }
+
+  private:
+      
+    RangeErrorType mCondition;
   };
   
-  struct ParameterInstance
+  class ParameterInstance
   {
-    
+  public:
+      
     ParameterInstance(const ParameterInstance& i) = delete;
     ParameterInstance& operator=(ParameterInstance i) = delete;
     
@@ -25,29 +32,21 @@ namespace client{
     
     ParameterInstance(ParameterDescriptor desc) {}
     
-    ParameterInstance(ParameterDescriptor desc, double v) {}
+    ~ParameterInstance() {}
     
-    ~ParameterInstance()  {}
+    void reset() {}
     
-    void reset()  {}
-    
-    void setFloat(double v){}
-    
-    void setLong(long v){}
-    
-    void setBuffer(BufferAdaptor* p){}
+    void set(double v) {}
+    void set(long v) {}
+    void set(BufferAdaptor* p) {}
     
     double getFloat() const {}
-    
-    long   getLong()  const {}
-    
+    long getLong() const {}
     BufferAdaptor* getBuffer() const{}
     
     ParameterRangeCheck checkRange(){}
     bool hasChanged() const{}
     const ParameterDescriptor& descriptor() const{}
-    bool operator==(Instance& x) const{}
-    bool operator!=(Instance& x) const{}
   }; //ParameterInstance
 
 } //namespace client
