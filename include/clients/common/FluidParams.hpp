@@ -293,12 +293,8 @@ private:
     Instance(const Instance& i) = delete;
     Instance& operator=(Instance i) = delete;
     
-    Instance(const Instance&& i) : mDesc(i.mDesc)
-    {
-//      value = i.value;
-      mHasChanged = i.mHasChanged;
-      mValue = i.mValue;
-    }
+    Instance(const Instance&& i) : mDesc(i.mDesc), mHasChanged(i.mHasChanged), mValue(i.mValue)
+    {}
 
     Instance(Descriptor desc) : mDesc(desc), mValue{nullptr}
     {
@@ -348,47 +344,26 @@ private:
     
     void reset()
     {
-      switch(mDesc.getType())
+      switch (mDesc.getType())
       {
-      case Type::kFloat:
-        mValue.vFloat = mDesc.hasDefault() ? mDesc.getDefault() : 0;
-        mHasChanged = false;
-        break;
-      case Type::kLong:
-        mValue.vLong = mDesc.hasDefault() ? mDesc.getDefault() : 0;
-        break;
-      case Type::kBuffer:
-        if (mValue.vBuffer)
-          delete mValue.vBuffer;
-        mValue.vBuffer = nullptr;
-        break;
-      default:
-        break;
+        case Type::kFloat:  mValue.vFloat = mDesc.getDefault();     break;
+        case Type::kLong:   mValue.vLong = mDesc.getDefault();      break;
+        case Type::kBuffer:
+          if (mValue.vBuffer)
+            delete mValue.vBuffer;
+          mValue.vBuffer = nullptr;
+          break;
+        default:
       }
       mHasChanged = false;
-      
     }
-    
-    
     
     void setFloat(double v)
     {
-//
-//      if(!v == mDesc.getDefault())
-//      {
-//        mHasChanged = true;
-//      }
-
-      
       switch (mDesc.getType())
       {
-      case Type::kFloat:
-        mValue.vFloat = v;
-        break;
-      case Type::kLong:
-        mValue.vLong = v;
-        break;
-      case Type::kBuffer:
+      case Type::kFloat:    mValue.vFloat = v;                      break;
+      case Type::kLong:     mValue.vLong = static_cast<long>(v);    break;
       default:
         assert(false && "Don't call this on this type of parameter");
       }
@@ -397,20 +372,10 @@ private:
     
     void setLong(long v)
     {
-//      if(!(static_cast<long>(v) == static_cast<long>(mDesc.getDefault())))
-//      {
-//        mHasChanged = true;
-//      }
-      
       switch (mDesc.getType())
       {
-      case Type::kFloat:
-        mValue.vFloat = v;
-        break;
-      case Type::kLong:
-        mValue.vLong = v;
-        break;
-      case Type::kBuffer:
+      case Type::kFloat:    mValue.vFloat = static_cast<double>(v);     break;
+      case Type::kLong:     mValue.vLong = v;                           break;
       default:
         assert(false && "Don't call this on this type of parameter");
       }
@@ -421,70 +386,48 @@ private:
     {
       switch (mDesc.getType())
       {
-      case Type::kBuffer: {
-        if (mValue.vBuffer)
-          delete mValue.vBuffer;
-        mValue.vBuffer = p;
-        break;
+        case Type::kBuffer:
+        {
+          if (mValue.vBuffer)
+            delete mValue.vBuffer;
+          mValue.vBuffer = p;
+          break;
         }
-        case Type::kFloat:
-        case Type::kLong:
-        default:
-          assert(false && "Don't call this on a non-buffer parameter");
+        default:  assert(false && "Don't call this on a non-buffer parameter");
       }
       mHasChanged = true;
     }
     
-    
-    double getFloat() const {
-      double value;
+    double getFloat() const
+    {
       switch (mDesc.getType())
       {
-      case Type::kFloat:
-        value = mValue.vFloat;
-        break;
-      case Type::kLong:
-        value = mValue.vLong;
-        break;
-      case Type::kBuffer:
-      default:
-        value = 0; // shut the compiler up
-        assert(false && "Don't call this on a non-buffer parameter");
+        case Type::kFloat:    return mValue.vFloat;
+        case Type::kLong:     return return static_cast<double>(mValue.vLong);
+        default:              assert(false && "Don't call this on a non-buffer parameter");
       }
-      return value;
-      
+      return 0.0;
     }
     
-    long   getLong()  const {
-      long value;
+    long getLong() const
+    {
       switch (mDesc.getType())
       {
-      case Type::kFloat:
-        value = static_cast<long>(mValue.vFloat);
-        break;
-      case Type::kLong:
-        value = mValue.vLong;
-        break;
-      case Type::kBuffer:
-      default:
-        value = 0; // shut the compiler up
-        assert(false && "Don't call this on a buffer parameter");
+        case Type::kFloat:    return static_cast<long>(mValue.vFloat);
+        case Type::kLong:     return mValue.vLong;
+        default:              assert(false && "Don't call this on a buffer parameter");
       }
-      return value;
+      return 0;
     }
     
     BufferAdaptor* getBuffer() const
     {
       switch (mDesc.getType())
       {
-      case Type::kBuffer:
-        return mValue.vBuffer;
-      case Type::kFloat:
-      case Type::kLong:
-      default:
-        assert(false && "Don't call this on a non-buffer parameter");
-        return nullptr; // shut the compiler up
+        case Type::kBuffer:     return mValue.vBuffer;
+        default:                assert(false && "Don't call this on a non-buffer parameter");
       }
+      return nullptr;
     }
     
     std::pair<bool, RangeErrorType> checkRange()
@@ -520,25 +463,10 @@ private:
       return std::make_pair(true, RangeErrorType::kNone);
     }
     
-    bool hasChanged() const
-    {
-      return mHasChanged;
-    }
-    
-    const Descriptor& getDescriptor() const
-    {
-      return mDesc; 
-    }
-    
-    bool operator==(Instance& x) const
-    {
-      return mDesc == x.mDesc;
-    }
-    
-    bool operator!=(Instance& x) const
-    {
-      return !(*this == x); 
-    }
+    bool hasChanged() const                     { return mHasChanged; }
+    const Descriptor& getDescriptor() const     { return mDesc; }
+    bool operator==(Instance& x) const          { return mDesc == x.mDesc; }
+    bool operator!=(Instance& x) const          { return !(*this == x); }
     
   private:
     const Descriptor mDesc;
