@@ -4,7 +4,7 @@
 namespace fluid{
 namespace client{
   
-  struct ParameterDescriptor;
+//  struct ParameterDescriptor;
   
   struct ParameterRangeCheck
   {
@@ -13,7 +13,7 @@ namespace client{
     bool ok;
     
     operator bool() { return ok; }
-  }
+  };
   
   struct ParameterInstance
   {

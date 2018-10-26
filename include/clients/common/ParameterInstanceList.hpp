@@ -18,7 +18,11 @@ namespace client {
 
   public:
       
-    ParameterInstanceList(const ParameterDescriptorList& descriptor);
+    ParameterInstanceList(const ParameterDescriptorList& descriptor)
+    {
+      for (auto&& d:descriptor)
+        mContainer.emplace_back(d);
+    }
       
     iterator begin() { return mContainer.begin(); }
     iterator end  () { return mContainer.end(); }
