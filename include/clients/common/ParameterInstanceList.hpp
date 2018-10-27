@@ -29,6 +29,24 @@ namespace client {
 
     ParameterInstance& operator[](size_t index) { return mContainer[index]; }
     const ParameterInstance& operator[](size_t index) const { return mContainer[index]; }
+     
+    iterator lookup(std::string name)
+    {
+      for (auto it = begin(); it != end(); it++)
+        if (it->descriptor().getName() == name)
+          return it;
+      
+      return end();
+    }
+    
+    const_iterator lookup(std::string name) const
+    {
+      for (auto it = cbegin(); it != cend(); it++)
+        if (it->descriptor().getName() == name)
+          return it;
+      
+      return cend();
+    }
       
   private:
     
