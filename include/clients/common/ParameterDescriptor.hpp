@@ -7,12 +7,28 @@
 
 namespace fluid {
 namespace client {
-    
+  
+  class ParameterInstance; 
+  class ParameterInstanceList;
+  
   class ParameterDescriptor
   {
-    using Constraints = std::function<void(void)>;
-      
   public:
+    
+    struct ConstraintResult{
+     
+      ConstraintResult(bool ok, std::string errorStr):mOk(ok),mErrorStr(errorStr){}
+      
+      operator bool(){
+        return mOk;
+      }
+    
+    private:
+      bool mOk;
+      std::string mErrorStr;
+    };
+    
+    using Constraints = std::function<ConstraintResult(const ParameterInstance&, const ParameterInstanceList&)>;
     
     enum class Type { kFloat, kLong, kBuffer, kEnum };
     
