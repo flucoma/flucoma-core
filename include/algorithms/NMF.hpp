@@ -66,9 +66,10 @@ public:
   // processFrame computes activations of a dictionary W in a given frame
   void processFrame(const RealVector x, const RealMatrix W0, RealVector &out,
                     int nIterations = 10) {
+    int rank = W0.extent(1);
     MatrixXd W = FluidToMatrixXd(W0)();
     VectorXd h =
-        MatrixXd::Random(mRank, 1) * 0.5 + MatrixXd::Constant(mRank, 1, 0.5);
+        MatrixXd::Random(rank, 1) * 0.5 + MatrixXd::Constant(rank, 1, 0.5);
     VectorXd v = ArrayXdConstMap(x.data(), x.extent(0)).matrix();
 
     MatrixXd WT = W.transpose();
@@ -84,7 +85,7 @@ public:
       // double divergence = (v.cwiseProduct(v.cwiseQuotient(r)) - v + r).sum();
       // std::cout<<"Divergence "<<divergence<<std::endl;
     }
-    ArrayXdMap(out.data(), mRank) = h.array();
+    ArrayXdMap(out.data(), rank) = h.array();
   }
 
   const NMFModel process(const RealMatrix &X, RealMatrix W0 = RealMatrix(0, 0),
