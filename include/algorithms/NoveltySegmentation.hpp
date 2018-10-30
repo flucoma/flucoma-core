@@ -20,12 +20,12 @@ public:
   }
 
   void process(const RealMatrix &input, RealVector &output) {
-    using algorithm::convolveReal;
-    using algorithm::EdgeMode::kEdgeWrapCentre;
     using Eigen::ArrayXd;
     using Eigen::Map;
     using Eigen::MatrixXd;
     using Eigen::VectorXd;
+    using algorithm::EdgeMode::kEdgeWrapCentre;
+    using algorithm::convolveReal;
     using fluid::algorithm::FluidToMatrixXd;
     using std::vector;
 

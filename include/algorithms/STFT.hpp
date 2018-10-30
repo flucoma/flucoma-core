@@ -14,25 +14,25 @@ namespace fluid {
 namespace algorithm {
 
 using Eigen::Array;
-using Eigen::ArrayXd;
 using Eigen::ArrayXXcd;
+using Eigen::ArrayXd;
 using Eigen::Dynamic;
 using Eigen::Map;
 using Eigen::MatrixXcd;
 using Eigen::MatrixXd;
 using Eigen::RowMajor;
 
-//using algorithm::FFT;
-//using algorithm::IFFT;
+// using algorithm::FFT;
+// using algorithm::IFFT;
 //
-//using algorithm::windowFuncs;
-//using algorithm::WindowType;
+// using algorithm::windowFuncs;
+// using algorithm::WindowType;
 using std::complex;
 
-//using fluid::algorithm::FluidToArrayXXcd;
-//using fluid::algorithm::FluidToMatrixXcd;
-//using fluid::algorithm::MatrixXcdToFluid;
-//using fluid::algorithm::MatrixXdToFluid;
+// using fluid::algorithm::FluidToArrayXXcd;
+// using fluid::algorithm::FluidToMatrixXcd;
+// using fluid::algorithm::MatrixXcdToFluid;
+// using fluid::algorithm::MatrixXdToFluid;
 
 struct Spectrogram {
   using ComplexMatrix = FluidTensor<complex<double>, 2>;
@@ -91,10 +91,9 @@ public:
         0, mFrameSize);
   }
 
-  RealVector window()
-  {
-    FluidTensor<double,1> win(mWindowSize);
-    win = FluidTensorView<double,1>(mWindow.data(),0,mWindowSize);
+  RealVector window() {
+    FluidTensor<double, 1> win(mWindowSize);
+    win = FluidTensorView<double, 1>(mWindow.data(), 0, mWindowSize);
     return win;
   }
 
@@ -127,7 +126,7 @@ public:
     mWindowSquared = mWindow * mWindow;
     // The 2nd row of our output will be constant, and contain the squared
     // window, for the normalisation buffer
-//    ArrayXXdMap(mBuffer.row(1).data(), mWindowSize, 1) = mWindowSquared;
+    //    ArrayXXdMap(mBuffer.row(1).data(), mWindowSize, 1) = mWindowSquared;
   }
 
   RealVector process(const Spectrogram &spec) {
@@ -154,17 +153,16 @@ public:
 
   RealVectorView processFrame(const ComplexVectorView &frame) {
     assert(frame.size() == mFrameSize);
-    ArrayXXdMap(mBuffer.data(), mWindowSize,1) =
+    ArrayXXdMap(mBuffer.data(), mWindowSize, 1) =
         mIFFT.process(ArrayXcdConstMap(frame.data(), mFrameSize, 1))
             .segment(0, mWindowSize) *
         mWindow * mScale;
     return mBuffer;
   }
 
-  RealVector window()
-  {
-    FluidTensor<double,1> win(mWindowSize);
-    win = FluidTensorView<double,1>(mWindow.data(),0,mWindowSize);
+  RealVector window() {
+    FluidTensor<double, 1> win(mWindowSize);
+    win = FluidTensorView<double, 1>(mWindow.data(), 0, mWindowSize);
     return win;
   }
 

@@ -9,12 +9,10 @@
 namespace fluid {
 namespace algorithm {
 
-using algorithm::correlateReal;
-using algorithm::kEdgeWrapCentre;
 using Eigen::Array;
+using Eigen::ArrayXXd;
 using Eigen::ArrayXcd;
 using Eigen::ArrayXd;
-using Eigen::ArrayXXd;
 using Eigen::Dynamic;
 using Eigen::Map;
 using Eigen::Matrix;
@@ -22,10 +20,12 @@ using Eigen::MatrixXd;
 using Eigen::RowMajor;
 using Eigen::VectorXd;
 using algorithm::FFT;
+using algorithm::correlateReal;
+using algorithm::kEdgeWrapCentre;
 
-using std::vector;
-using algorithm::windowFuncs;
 using algorithm::WindowType;
+using algorithm::windowFuncs;
+using std::vector;
 
 struct SinePeak {
   double centerBin;
@@ -238,7 +238,8 @@ private:
     int halfBW = mBandwidth / 2;
     ArrayXd sine = ArrayXd::Zero(mFFTSize / 2 + 1);
     int frameSize = mFFTSize / 2 + 1;
-    for (int i = idx, j = 0; i < std::min(idx + halfBW, frameSize - 1); i++, j++) {
+    for (int i = idx, j = 0; i < std::min(idx + halfBW, frameSize - 1);
+         i++, j++) {
       sine[i] = amp * mWindowTransform(halfBW + j);
     }
     for (int i = idx, j = 0; i > std::max(idx - halfBW, 0); i--, j++) {

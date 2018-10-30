@@ -4,6 +4,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include <cassert>
 
 namespace fluid {
 namespace algorithm {

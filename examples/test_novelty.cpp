@@ -4,12 +4,12 @@
 #include "util/audiofile.hpp"
 
 using fluid::FluidTensor;
+using fluid::algorithm::NoveltySegmentation;
+using fluid::algorithm::STFT;
+using fluid::algorithm::Spectrogram;
 using fluid::audiofile::AudioFileData;
 using fluid::audiofile::readFile;
 using fluid::audiofile::writeFile;
-using fluid::algorithm::Spectrogram;
-using fluid::algorithm::STFT;
-using fluid::algorithm::NoveltySegmentation;
 
 using RealMatrix = FluidTensor<double, 2>;
 using RealVector = FluidTensor<double, 1>;
@@ -41,11 +41,11 @@ int main(int argc, char *argv[]) {
   RealVector result(spec.nFrames());
   NoveltySegmentation nov(kernelSize, threshold, filterSize);
   nov.process(mag, result);
-  for(int i = 0; i < spec.nFrames(); i++){
-    if(result[i] == 1){
-      std::cout<<i<<std::endl;
+  for (int i = 0; i < spec.nFrames(); i++) {
+    if (result[i] == 1) {
+      std::cout << i << std::endl;
     }
   }
-  //std::cout<<result<<std::endl;
+  // std::cout<<result<<std::endl;
   return 0;
 }

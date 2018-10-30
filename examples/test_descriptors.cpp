@@ -1,9 +1,9 @@
 
 #define EIGEN_USE_BLAS
 
+#include <cmath>
 #include <random>
 #include <vector>
-#include <cmath>
 
 #include <algorithms/Descriptors.hpp>
 #include <algorithms/FFT.hpp>
@@ -15,45 +15,43 @@ using fluid::eigenmappings::FluidToArrayXXd;
 using fluid::windows::windowFuncs;
 using Real = fluid::FluidTensor<double, 1>;
 
-void calcSpectrum(Real& output, Real& input)
-{
+void calcSpectrum(Real &output, Real &input) {
   using fluid::fft::FFT;
 
   FFT processor(input.size());
-  
+
   Eigen::VectorXd mapped(input.size());
-  std::vector<double> window = windowFuncs[fluid::windows::WindowType::Hann](input.size());
-  
+  std::vector<double> window =
+      windowFuncs[fluid::windows::WindowType::Hann](input.size());
+
   for (auto i = 0; i < input.size(); i++)
     mapped(i) = input(i) * window[i] * 2.0;
-  
+
   auto complexSpectrum = processor.process(mapped);
-  
-  for (auto i = 0; i < output.size(); i++)
-  {
+
+  for (auto i = 0; i < output.size(); i++) {
     const double real = complexSpectrum(i).real();
     const double imag = complexSpectrum(i).imag();
     output(i) = sqrt(real * real + imag * imag);
   }
 }
 
-void calcDescriptors(Real& input, Real& spectrum, double amp)
-{
+void calcDescriptors(Real &input, Real &spectrum, double amp) {
   double rms = Descriptors::RMS(input);
   double crest = Descriptors::crest(input);
-  
+
   std::cout << "Descriptor RMS " << rms << "\n";
   std::cout << "Descriptor Crest " << crest << "\n";
 
   std::cout << "Amplitude Multiplier Set To  " << amp << "\n";
 
   Real copy(input.size());
-  
+
   for (auto i = 0; i < input.size(); i++)
     copy(i) = input(i) * amp;
-  
+
   double peak = Descriptors::peak(copy);
-  
+
   std::cout << "Descriptor Peak " << peak << "\n";
 
   double rolloff = Descriptors::rolloff(spectrum);
@@ -70,50 +68,49 @@ void calcDescriptors(Real& input, Real& spectrum, double amp)
   std::cout << "Descriptor Skewness " << skewness << "\n";
   std::cout << "Descriptor Kurtosis " << kurtosis << "\n";
 }
-      
+
 // Main
 
-int main(int argc, const char * argv[])
-{
+int main(int argc, const char *argv[]) {
   unsigned int seed = std::random_device()();
   std::mt19937_64 randomGenerator(seed);
   std::normal_distribution<double> gaussian(0.0, 2.0);
   std::uniform_real_distribution<double> uniform(-1.0, 1.0);
-  
+
   int blockSize = 8192;
   double amp = fabs(uniform(randomGenerator));
 
   Real sine(blockSize);
   Real flatNoise(blockSize);
   Real gaussNoise(blockSize);
-  
+
   Real sineSpectrum((blockSize / 2) + 1);
   Real flatNoiseSpectrum((blockSize / 2) + 1);
   Real gaussNoiseSpectrum((blockSize / 2) + 1);
 
   for (auto i = 0; i < blockSize; i++)
     sine(i) = sin(M_PI * i / 25.5);
-  
+
   for (auto i = 0; i < blockSize; i++)
     flatNoise(i) = uniform(randomGenerator);
-  
+
   for (auto i = 0; i < blockSize; i++)
     gaussNoise(i) = gaussian(randomGenerator);
-  
+
   calcSpectrum(sineSpectrum, sine);
   calcSpectrum(flatNoiseSpectrum, flatNoise);
   calcSpectrum(gaussNoiseSpectrum, gaussNoise);
-  
+
   std::cout << "\n*** Sine ***  " << amp << "\n\n";
-  
+
   calcDescriptors(sine, sineSpectrum, amp);
-  
+
   std::cout << "\n*** Flat Noise ***  " << amp << "\n\n";
-  
+
   calcDescriptors(flatNoise, flatNoiseSpectrum, amp);
-  
+
   std::cout << "\n*** Gauss Noise (dev 2.0) ***  " << amp << "\n\n";
-  
+
   calcDescriptors(gaussNoise, gaussNoiseSpectrum, amp);
 
   return 0;

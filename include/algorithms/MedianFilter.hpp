@@ -107,7 +107,6 @@ class MedianFilter {
     std::vector<std::pair<double, int>> mSorted;
     int mMedianIndex;
     int mSmallIndex;
-
   };
 
 public:

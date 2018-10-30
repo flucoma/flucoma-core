@@ -10,16 +10,16 @@ namespace fluid {
 namespace algorithm {
 
 using Eigen::Array;
-using Eigen::ArrayXd;
 using Eigen::ArrayXXd;
-using Eigen::Map;
+using Eigen::ArrayXd;
 using Eigen::Dynamic;
-using Eigen::RowMajor;
+using Eigen::Map;
 using Eigen::MatrixXd;
+using Eigen::RowMajor;
 using Eigen::VectorXd;
 
-//using fluid::eigenmappings::FluidToMatrixXd;
-//using fluid::eigenmappings::MatrixXdToFluid;
+// using fluid::eigenmappings::FluidToMatrixXd;
+// using fluid::eigenmappings::MatrixXdToFluid;
 
 struct NMFModel {
   using RealMatrix = FluidTensor<double, 2>;
@@ -50,9 +50,9 @@ struct NMFModel {
   }
 };
 
-
 class NMF {
   double const epsilon = std::numeric_limits<double>::epsilon();
+
 public:
   using RealMatrix = FluidTensor<double, 2>;
   using RealVector = FluidTensor<double, 1>;
@@ -156,5 +156,5 @@ private:
     return result;
   }
 };
-} // namespace algorihtm
+} // namespace algorithm
 } // namespace fluid

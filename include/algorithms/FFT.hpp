@@ -8,7 +8,6 @@ namespace algorithm {
 
 class FFT {
 
-
 public:
   FFT(size_t size)
       : mSize(size), mFrameSize(size / 2 + 1), mLog2Size(log2(size)),

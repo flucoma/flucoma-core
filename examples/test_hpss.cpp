@@ -8,16 +8,16 @@
 #include "util/audiofile.hpp"
 #include <fstream>
 
+using fluid::algorithm::FluidToArrayXXd;
 using fluid::audiofile::AudioFileData;
 using fluid::audiofile::readFile;
 using fluid::audiofile::writeFile;
-using fluid::algorithm::FluidToArrayXXd;
 
 using fluid::algorithm::HPSS;
 using fluid::algorithm::HPSSModel;
 using fluid::algorithm::ISTFT;
-using fluid::algorithm::Spectrogram;
 using fluid::algorithm::STFT;
+using fluid::algorithm::Spectrogram;
 
 using RealMatrix = fluid::FluidTensor<double, 2>;
 using RealVector = fluid::FluidTensor<double, 1>;

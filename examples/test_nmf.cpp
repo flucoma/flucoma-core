@@ -1,11 +1,11 @@
 #include <iostream>
 #include <string>
 
-#include "util/audiofile.hpp"
-#include "data/FluidTensor.hpp"
 #include "algorithms/NMF.hpp"
 #include "algorithms/RatioMask.hpp"
 #include "algorithms/STFT.hpp"
+#include "data/FluidTensor.hpp"
+#include "util/audiofile.hpp"
 
 int main(int argc, char *argv[]) {
   const auto &epsilon = std::numeric_limits<double>::epsilon;
@@ -23,11 +23,11 @@ int main(int argc, char *argv[]) {
   using fluid::audiofile::writeFile;
 
   using fluid::FluidTensor;
+  using fluid::algorithm::ISTFT;
   using fluid::algorithm::NMF;
   using fluid::algorithm::NMFModel;
-  using fluid::algorithm::ISTFT;
-  using fluid::algorithm::Spectrogram;
   using fluid::algorithm::STFT;
+  using fluid::algorithm::Spectrogram;
 
   using ComplexMatrix = FluidTensor<complex<double>, 2>;
   using RealVector = FluidTensor<double, 1>;
@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
   AudioFileData trainData = readFile(argv[1]);
   AudioFileData testData = readFile(argv[2]);
   int nBins = 1025;
-  int fftSize = 2 * (nBins - 1) ;
+  int fftSize = 2 * (nBins - 1);
   int hopSize = 128;
   int rank = std::stoi(argv[3]);
   int windowSize = 2048;
@@ -64,12 +64,13 @@ int main(int argc, char *argv[]) {
     RealMatrix estimate = decomposition2.getEstimate(i);
     Spectrogram result(mask.process(testSpec.mData, estimate));
     RealVector audio = istft.process(result);
-    testData.audio[0] = vector<double>(audio.data(), audio.data() + audio.size());
+    testData.audio[0] =
+        vector<double>(audio.data(), audio.data() + audio.size());
     std::string fname = "source_" + std::to_string(i) + ".wav";
     writeFile(testData, fname.c_str());
   }
   RealMatrix X = testSpec.getMagnitude();
-  fluid::FluidTensor<double, 1> frame (X.row(100));
+  fluid::FluidTensor<double, 1> frame(X.row(100));
   RealVector out(nBins);
   nmfProcessor2.processFrame(frame, W, out);
 

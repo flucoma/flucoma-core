@@ -134,8 +134,7 @@ private:
       *it = std::max(std::numeric_limits<double>::epsilon(), *it);
   }
 
-  double frameComparison(RealVectorView &vec1, RealVectorView &vec2)
-  {
+  double frameComparison(RealVectorView &vec1, RealVectorView &vec2) {
     if (mForwardOnly)
       Descriptors::forwardFilter(vec1, vec2);
 

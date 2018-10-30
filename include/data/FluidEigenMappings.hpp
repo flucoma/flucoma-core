@@ -1,7 +1,7 @@
 #pragma once
 
-#include <Eigen/Core>
 #include "FluidTensor.hpp"
+#include <Eigen/Core>
 
 namespace fluid {
 namespace algorithm {
@@ -19,17 +19,16 @@ template <typename T, template <typename, int, int, int, int, int> class E,
           int M = Dynamic>
 class EigenMatrixMap {
 public:
-    using MapType = Map<E<T, R, C, S, M, M>>;
-    using ConstMapType = const MapType;
+  using MapType = Map<E<T, R, C, S, M, M>>;
+  using ConstMapType = const MapType;
   EigenMatrixMap(const FluidTensor<T, 2> &x) : mMatrix(x) {}
   ConstMapType operator()() const {
     return ConstMapType(mMatrix.data(), mMatrix.extent(0), mMatrix.extent(1));
   }
 
-    MapType operator()()  {
-        return MapType(mMatrix.data(), mMatrix.extent(0), mMatrix.extent(1));
-    }
-
+  MapType operator()() {
+    return MapType(mMatrix.data(), mMatrix.extent(0), mMatrix.extent(1));
+  }
 
 private:
   FluidTensor<T, 2> mMatrix;
@@ -40,6 +39,7 @@ template <typename T, template <typename, int, int, int, int, int> class E,
           int M = Dynamic>
 class FluidMatrixMap {
   using MatrixType = E<T, R, C, S, M, M>;
+
 public:
   FluidMatrixMap(const MatrixType &x) : mMatrix(x) {}
   FluidTensor<T, 2> operator()() const {

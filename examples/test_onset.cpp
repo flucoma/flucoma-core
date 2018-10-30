@@ -13,8 +13,8 @@ using RealMatrix = FluidTensor<double, 2>;
 using RealVector = FluidTensor<double, 1>;
 using RealVectorView = FluidTensorView<double, 1>;
 
-using fluid::windows::windowFuncs;
 using fluid::windows::WindowType;
+using fluid::windows::windowFuncs;
 
 using Eigen::ArrayXXd;
 using std::ofstream;
@@ -40,14 +40,15 @@ int main(int argc, char *argv[]) {
 
   RealVectorView inV = RealVectorView(in);
 
-  OnsetSegmentation os(fftSize, windowSize, hopSize, frameDelta,
-                    WindowType::Hann, threshold, OnsetSegmentation::DifferenceFunction::kL1Norm, filterSize);
+  OnsetSegmentation os(
+      fftSize, windowSize, hopSize, frameDelta, WindowType::Hann, threshold,
+      OnsetSegmentation::DifferenceFunction::kL1Norm, filterSize);
   RealVector result(os.nFrames(in.size()));
   RealVectorView outV = RealVectorView(result);
   os.process(inV, outV);
-  for(int i = 0; i < result.size(); i++){
-    if(result[i] == 1){
-      std::cout<<i<<std::endl;
+  for (int i = 0; i < result.size(); i++) {
+    if (result[i] == 1) {
+      std::cout << i << std::endl;
     }
   }
   return 0;

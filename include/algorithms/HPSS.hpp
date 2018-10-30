@@ -10,8 +10,8 @@
 namespace fluid {
 namespace algorithm {
 
-using Eigen::ArrayXd;
 using Eigen::ArrayXXd;
+using Eigen::ArrayXd;
 using Eigen::Map;
 using Eigen::MatrixXd;
 using std::vector;
@@ -50,8 +50,7 @@ public:
       : mVSize(vSize), mHSize(hSize), mVMedianFilter(vSize),
         mHMedianFilter(hSize) {}
 
-
-  const HPSSModel process(const RealMatrix &X){
+  const HPSSModel process(const RealMatrix &X) {
     HPSSModel result;
     int nFrames = X.extent(0);
     int nBins = X.extent(1);
@@ -62,7 +61,7 @@ public:
     MatrixXd V = MatrixXd::Zero(paddedV, paddedH);
     ArrayXXd tmp1 = FluidToMatrixXd(X)().transpose();
     tmp.block((mVSize - 1) / 2, (mHSize - 1) / 2, nBins, nFrames) = tmp1;
-    for (int i = mHSize / 2; i < nFrames +  mHSize / 2; i++) {
+    for (int i = mHSize / 2; i < nFrames + mHSize / 2; i++) {
       mVMedianFilter.process(tmp.col(i).array(), V.col(i).array());
     }
     ArrayXd tmpRow(paddedH);

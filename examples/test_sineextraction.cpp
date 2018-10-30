@@ -1,10 +1,10 @@
-#include <Eigen/Dense>
-#include "util/audiofile.hpp"
-#include "algorithms/ConvolutionTools.hpp"
-#include "data/FluidTensor.hpp"
 #include "HISSTools_FFT/HISSTools_FFT.h"
+#include "algorithms/ConvolutionTools.hpp"
 #include "algorithms/STFT.hpp"
 #include "algorithms/SineExtraction.hpp"
+#include "data/FluidTensor.hpp"
+#include "util/audiofile.hpp"
+#include <Eigen/Dense>
 
 int main(int argc, char *argv[]) {
   using std::complex;
@@ -19,8 +19,8 @@ int main(int argc, char *argv[]) {
 
   using fluid::FluidTensor;
   using fluid::algorithm::ISTFT;
-  using fluid::algorithm::Spectrogram;
   using fluid::algorithm::STFT;
+  using fluid::algorithm::Spectrogram;
 
   using Eigen::ArrayXXcd;
   using Eigen::ArrayXXd;
@@ -57,12 +57,16 @@ int main(int argc, char *argv[]) {
   RealVector in(data.audio[0]);
   Spectrogram spec = stft.process(in);
   // parameters after hop size are:
-  // * bandwidth - width in bins of the fragment of window transform correlated with each frame
-  // should have an effect on cost vs quality
-  // * threshold (0 to 1) select more or less peaks as sinusoidal from the normalized cross-correlation
-  // * min length (frames): minimum length of a sinusoidal track (0 for no tracking)
-  // * weight of spectral magnitude when associating a peak to an existing track (relative, but suggested 0 to 1)
-  // * weight of frequency when associating a peak to an existing track (relativer, suggested 0 to 1)
+  // * bandwidth - width in bins of the fragment of window transform correlated
+  // with each frame should have an effect on cost vs quality
+  // * threshold (0 to 1) select more or less peaks as sinusoidal from the
+  // normalized cross-correlation
+  // * min length (frames): minimum length of a sinusoidal track (0 for no
+  // tracking)
+  // * weight of spectral magnitude when associating a peak to an existing track
+  // (relative, but suggested 0 to 1)
+  // * weight of frequency when associating a peak to an existing track
+  // (relativer, suggested 0 to 1)
 
   SineExtraction se(winSize, fftSize, hopSize, 76, 0.7, 15, 0.1, 1.0);
   RealMatrix mag = spec.getMagnitude();

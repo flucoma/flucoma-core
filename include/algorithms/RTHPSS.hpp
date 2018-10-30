@@ -11,16 +11,16 @@ namespace fluid {
 namespace algorithm {
 
 using Eigen::Array;
-using Eigen::ArrayXd;
 using Eigen::ArrayXXcd;
 using Eigen::ArrayXXd;
+using Eigen::ArrayXd;
 using Eigen::Dynamic;
 using Eigen::Map;
 using Eigen::MatrixXd;
 using Eigen::RowMajor;
 
-//using fluid::eigenmappings::ArrayXXcdToFluid;
-//using fluid::medianfilter::MedianFilter;
+// using fluid::eigenmappings::ArrayXXcdToFluid;
+// using fluid::medianfilter::MedianFilter;
 
 class RTHPSS {
 public:

@@ -1,9 +1,8 @@
 #pragma once
 
-
+#include "algorithms/ConvolutionTools.hpp"
 #include "algorithms/FFT.hpp"
 #include "algorithms/Windows.hpp"
-#include "algorithms/ConvolutionTools.hpp"
 #include "data/FluidEigenMappings.hpp"
 #include "data/FluidTensor.hpp"
 #include <Eigen/Core>
@@ -12,12 +11,12 @@
 namespace fluid {
 namespace algorithm {
 
+using algorithm::FFT;
+using algorithm::WindowType;
 using algorithm::correlateReal;
 using algorithm::kEdgeWrapCentre;
-using algorithm::FFT;
-using std::vector;
 using algorithm::windowFuncs;
-using algorithm::WindowType;
+using std::vector;
 
 using Eigen::Array;
 using Eigen::ArrayXcd;
@@ -26,7 +25,6 @@ using Eigen::Dynamic;
 using Eigen::Map;
 using Eigen::RowMajor;
 using Eigen::VectorXd;
-
 
 struct SinePeak {
   int centerBin;
@@ -62,8 +60,9 @@ public:
   }
 
   void processFrame(const ComplexVector &in, ComplexMatrix out) {
-    using ArrayXcdMap = Map<const Array<std::complex<double>, Dynamic, RowMajor>>;
-//    using fluid::eigenmappings::ArrayXXcdToFluid;
+    using ArrayXcdMap =
+        Map<const Array<std::complex<double>, Dynamic, RowMajor>>;
+    //    using fluid::eigenmappings::ArrayXXcdToFluid;
     using Eigen::ArrayXXcd;
 
     const auto &epsilon = std::numeric_limits<double>::epsilon;
@@ -90,9 +89,11 @@ public:
       result.col(1) = resultFrame * (frameResidual * mult).min(1.0);
       mBuf.pop();
     }
-    auto iterator = std::remove_if(mTracks.begin(), mTracks.end(), [&](SineTrack track) {
-      return (track.endFrame >= 0 && track.endFrame <= mCurrentFrame - mMinTrackLength);
-    });
+    auto iterator =
+        std::remove_if(mTracks.begin(), mTracks.end(), [&](SineTrack track) {
+          return (track.endFrame >= 0 &&
+                  track.endFrame <= mCurrentFrame - mMinTrackLength);
+        });
     mTracks.erase(iterator, mTracks.end());
     out = ArrayXXcdToFluid(result)();
     mCurrentFrame++;

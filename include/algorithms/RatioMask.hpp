@@ -1,7 +1,7 @@
 #pragma once
 
-#include <Eigen/Dense>
 #include "data/FluidTensor.hpp"
+#include <Eigen/Dense>
 
 namespace fluid {
 namespace algorithm {
@@ -17,7 +17,6 @@ using ArrayXXdMap =
 
 using ArrayXXcdMap = Map<Eigen::Array<std::complex<double>, Eigen::Dynamic,
                                       Eigen::Dynamic, Eigen::RowMajor>>;
-
 
 class RatioMask {
   const double epsilon = std::numeric_limits<double>::epsilon();
@@ -37,8 +36,9 @@ public:
                               mixture.extent(1));
     ArrayXXdMap targetMagArray(targetMag.data(), targetMag.extent(0),
                                targetMag.extent(1));
-    ArrayXXcd tmp = mixtureArray * (targetMagArray.pow(mExponent) *
-                                    mMultiplier.pow(mExponent)).min(1.0);
+    ArrayXXcd tmp =
+        mixtureArray *
+        (targetMagArray.pow(mExponent) * mMultiplier.pow(mExponent)).min(1.0);
     ArrayXXcdMap(result.data(), mixture.extent(0), mixture.extent(1)) = tmp;
     return result;
   }

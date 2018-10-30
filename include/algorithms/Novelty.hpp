@@ -59,8 +59,8 @@ private:
     using Eigen::ArrayXd;
     using Eigen::Map;
     using Eigen::MatrixXd;
-    using algorithm::windowFuncs;
     using algorithm::WindowType;
+    using algorithm::windowFuncs;
     int h = (mKernelSize - 1) / 2;
     ArrayXd gaussian = Map<ArrayXd>(
         windowFuncs[WindowType::kGaussian](mKernelSize).data(), mKernelSize);
