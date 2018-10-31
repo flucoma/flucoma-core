@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include <Eigen/Eigen>
@@ -6,9 +5,9 @@
 #include <cmath>
 #include <functional>
 
+#include "../public/Windows.hpp"
 #include "ConvolutionTools.hpp"
 #include "Toeplitz.hpp"
-#include "Windows.hpp"
 
 namespace fluid {
 namespace algorithm {

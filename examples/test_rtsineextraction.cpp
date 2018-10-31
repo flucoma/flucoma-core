@@ -1,10 +1,11 @@
-#include "HISSTools_FFT/HISSTools_FFT.h"
-#include "algorithms/ConvolutionTools.hpp"
-#include "algorithms/RTSineExtraction.hpp"
-#include "algorithms/STFT.hpp"
-#include "data/FluidTensor.hpp"
 #include "util/audiofile.hpp"
+
 #include <Eigen/Dense>
+#include <HISSTools_FFT/HISSTools_FFT.h>
+
+#include <algorithms/public/RTSineExtraction.hpp>
+#include <algorithms/public/STFT.hpp>
+#include <data/FluidTensor.hpp>
 
 int main(int argc, char *argv[]) {
   using std::complex;
@@ -19,8 +20,8 @@ int main(int argc, char *argv[]) {
 
   using fluid::FluidTensor;
   using fluid::algorithm::ISTFT;
-  using fluid::algorithm::STFT;
   using fluid::algorithm::Spectrogram;
+  using fluid::algorithm::STFT;
 
   using Eigen::ArrayXXcd;
   using Eigen::ArrayXXd;

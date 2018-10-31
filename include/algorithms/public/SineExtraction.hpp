@@ -1,30 +1,30 @@
 #pragma once
 
-#include "algorithms/ConvolutionTools.hpp"
-#include "algorithms/FFT.hpp"
-#include "algorithms/Windows.hpp"
-#include "data/FluidTensor.hpp"
+#include "../../data/FluidTensor.hpp"
+#include "../util/ConvolutionTools.hpp"
+#include "../util/FFT.hpp"
+#include "Windows.hpp"
 #include <Eigen/Core>
 
 namespace fluid {
 namespace algorithm {
 
+using algorithm::correlateReal;
+using algorithm::FFT;
+using algorithm::kEdgeWrapCentre;
 using Eigen::Array;
-using Eigen::ArrayXXd;
 using Eigen::ArrayXcd;
 using Eigen::ArrayXd;
+using Eigen::ArrayXXd;
 using Eigen::Dynamic;
 using Eigen::Map;
 using Eigen::Matrix;
 using Eigen::MatrixXd;
 using Eigen::RowMajor;
 using Eigen::VectorXd;
-using algorithm::FFT;
-using algorithm::correlateReal;
-using algorithm::kEdgeWrapCentre;
 
-using algorithm::WindowType;
 using algorithm::windowFuncs;
+using algorithm::WindowType;
 using std::vector;
 
 struct SinePeak {

@@ -1,6 +1,7 @@
-#include "algorithms/STFT.hpp"
-#include "data/FluidTensor.hpp"
 #include "util/audiofile.hpp"
+
+#include <algorithms/public/STFT.hpp>
+#include <data/FluidTensor.hpp>
 
 #include <chrono>
 #include <ctime>

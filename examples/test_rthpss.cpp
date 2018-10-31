@@ -1,16 +1,18 @@
-#include "algorithms/RTHPSS.hpp"
-#include "algorithms/STFT.hpp"
-#include "data/FluidEigenMappings.hpp"
-#include "data/FluidTensor.hpp"
 #include "util/audiofile.hpp"
+
+#include <algorithms/public/RTHPSS.hpp>
+#include <algorithms/public/STFT.hpp>
+#include <data/FluidEigenMappings.hpp>
+#include <data/FluidTensor.hpp>
+
 #include <fstream>
 
 using fluid::FluidTensor;
 using fluid::algorithm::FluidToArrayXXd;
 using fluid::algorithm::ISTFT;
 using fluid::algorithm::RTHPSS;
-using fluid::algorithm::STFT;
 using fluid::algorithm::Spectrogram;
+using fluid::algorithm::STFT;
 using fluid::audiofile::AudioFileData;
 using fluid::audiofile::readFile;
 using fluid::audiofile::writeFile;

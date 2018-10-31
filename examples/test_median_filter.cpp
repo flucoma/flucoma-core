@@ -1,5 +1,5 @@
-#include "algorithms/MedianFilter.hpp"
 #include <Eigen/Dense>
+#include <algorithms/util/MedianFilter.hpp>
 
 int main(int argc, char *argv[]) {
   using Eigen::ArrayXd;

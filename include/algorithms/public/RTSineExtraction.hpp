@@ -1,21 +1,21 @@
 #pragma once
 
-#include "algorithms/ConvolutionTools.hpp"
-#include "algorithms/FFT.hpp"
-#include "algorithms/Windows.hpp"
-#include "data/FluidEigenMappings.hpp"
-#include "data/FluidTensor.hpp"
+#include "../../data/FluidEigenMappings.hpp"
+#include "../../data/FluidTensor.hpp"
+#include "../util/ConvolutionTools.hpp"
+#include "../util/FFT.hpp"
+#include "Windows.hpp"
 #include <Eigen/Core>
 #include <queue>
 
 namespace fluid {
 namespace algorithm {
 
-using algorithm::FFT;
-using algorithm::WindowType;
 using algorithm::correlateReal;
+using algorithm::FFT;
 using algorithm::kEdgeWrapCentre;
 using algorithm::windowFuncs;
+using algorithm::WindowType;
 using std::vector;
 
 using Eigen::Array;

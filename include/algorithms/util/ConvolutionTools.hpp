@@ -1,10 +1,9 @@
-
 #pragma once
 
 #include <vector>
 
-#include "HISSTools_FFT/HISSTools_FFT.h"
-#include "SIMDSupport.hpp"
+#include <HISSTools_FFT/HISSTools_FFT.h>
+#include <SIMDSupport.hpp>
 
 namespace fluid {
 namespace algorithm {

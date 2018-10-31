@@ -1,7 +1,7 @@
 #pragma once
 
-#include "MedianFilter.hpp"
-#include "data/FluidEigenMappings.hpp"
+#include "../../data/FluidEigenMappings.hpp"
+#include "../util/MedianFilter.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <iostream>
@@ -10,8 +10,8 @@
 namespace fluid {
 namespace algorithm {
 
-using Eigen::ArrayXXd;
 using Eigen::ArrayXd;
+using Eigen::ArrayXXd;
 using Eigen::Map;
 using Eigen::MatrixXd;
 using std::vector;

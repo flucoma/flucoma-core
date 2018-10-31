@@ -1,8 +1,9 @@
 #pragma once
+
+#include "../../data/FluidEigenMappings.hpp"
+#include "../../data/FluidTensor.hpp"
+#include "../public/Windows.hpp"
 #include "Descriptors.hpp"
-#include "Windows.hpp"
-#include "data/FluidEigenMappings.hpp"
-#include "data/FluidTensor.hpp"
 #include <Eigen/Dense>
 #include <limits>
 
@@ -56,11 +57,11 @@ private:
   Eigen::ArrayXXd mKernel;
 
   void createKernel() {
+    using algorithm::windowFuncs;
+    using algorithm::WindowType;
     using Eigen::ArrayXd;
     using Eigen::Map;
     using Eigen::MatrixXd;
-    using algorithm::WindowType;
-    using algorithm::windowFuncs;
     int h = (mKernelSize - 1) / 2;
     ArrayXd gaussian = Map<ArrayXd>(
         windowFuncs[WindowType::kGaussian](mKernelSize).data(), mKernelSize);

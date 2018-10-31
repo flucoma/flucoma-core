@@ -1,11 +1,12 @@
 #include <iostream>
 #include <string>
 
-#include "algorithms/NMF.hpp"
-#include "algorithms/RatioMask.hpp"
-#include "algorithms/STFT.hpp"
-#include "data/FluidTensor.hpp"
 #include "util/audiofile.hpp"
+
+#include <algorithms/public/NMF.hpp>
+#include <algorithms/public/RatioMask.hpp>
+#include <algorithms/public/STFT.hpp>
+#include <data/FluidTensor.hpp>
 
 int main(int argc, char *argv[]) {
   const auto &epsilon = std::numeric_limits<double>::epsilon;
@@ -26,8 +27,8 @@ int main(int argc, char *argv[]) {
   using fluid::algorithm::ISTFT;
   using fluid::algorithm::NMF;
   using fluid::algorithm::NMFModel;
-  using fluid::algorithm::STFT;
   using fluid::algorithm::Spectrogram;
+  using fluid::algorithm::STFT;
 
   using ComplexMatrix = FluidTensor<complex<double>, 2>;
   using RealVector = FluidTensor<double, 1>;

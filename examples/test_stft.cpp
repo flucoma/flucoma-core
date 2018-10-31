@@ -1,6 +1,7 @@
-#include "algorithms/STFT.hpp"
-#include "data/FluidTensor.hpp"
 #include "util/audiofile.hpp"
+
+#include <algorithms/public/STFT.hpp>
+#include <data/FluidTensor.hpp>
 
 int main(int argc, char *argv[]) {
   using fluid::audiofile::AudioFileData;
@@ -10,8 +11,8 @@ int main(int argc, char *argv[]) {
   using std::vector;
 
   using fluid::algorithm::ISTFT;
-  using fluid::algorithm::STFT;
   using fluid::algorithm::Spectrogram;
+  using fluid::algorithm::STFT;
 
   using fluid::FluidTensor;
   using fluid::FluidTensorView;

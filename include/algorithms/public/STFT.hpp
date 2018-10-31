@@ -5,17 +5,17 @@
 #include <numeric>
 #include <vector>
 
-#include "FFT.hpp"
+#include "../../data/FluidEigenMappings.hpp"
+#include "../../data/FluidTensor.hpp"
+#include "../util/FFT.hpp"
 #include "Windows.hpp"
-#include "data/FluidEigenMappings.hpp"
-#include "data/FluidTensor.hpp"
 
 namespace fluid {
 namespace algorithm {
 
 using Eigen::Array;
-using Eigen::ArrayXXcd;
 using Eigen::ArrayXd;
+using Eigen::ArrayXXcd;
 using Eigen::Dynamic;
 using Eigen::Map;
 using Eigen::MatrixXcd;

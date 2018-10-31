@@ -1,7 +1,8 @@
-#include "algorithms/OnsetSegmentation.hpp"
-#include "algorithms/Windows.hpp"
-#include "data/FluidTensor.hpp"
 #include "util/audiofile.hpp"
+
+#include <algorithms/public/OnsetSegmentation.hpp>
+#include <algorithms/public/Windows.hpp>
+#include <data/FluidTensor.hpp>
 
 using fluid::FluidTensor;
 using fluid::FluidTensorView;
@@ -13,8 +14,8 @@ using RealMatrix = FluidTensor<double, 2>;
 using RealVector = FluidTensor<double, 1>;
 using RealVectorView = FluidTensorView<double, 1>;
 
-using fluid::windows::WindowType;
 using fluid::windows::windowFuncs;
+using fluid::windows::WindowType;
 
 using Eigen::ArrayXXd;
 using std::ofstream;

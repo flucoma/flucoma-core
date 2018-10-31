@@ -1,12 +1,13 @@
-#include "algorithms/NoveltySegmentation.hpp"
-#include "algorithms/STFT.hpp"
-#include "data/FluidTensor.hpp"
 #include "util/audiofile.hpp"
+
+#include <algorithms/public/NoveltySegmentation.hpp>
+#include <algorithms/public/STFT.hpp>
+#include <data/FluidTensor.hpp>
 
 using fluid::FluidTensor;
 using fluid::algorithm::NoveltySegmentation;
-using fluid::algorithm::STFT;
 using fluid::algorithm::Spectrogram;
+using fluid::algorithm::STFT;
 using fluid::audiofile::AudioFileData;
 using fluid::audiofile::readFile;
 using fluid::audiofile::writeFile;

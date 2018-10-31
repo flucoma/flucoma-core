@@ -1,8 +1,9 @@
 #pragma once
-#include "Novelty.hpp"
-#include "algorithms/ConvolutionTools.hpp"
-#include "data/FluidEigenMappings.hpp"
-#include "data/FluidTensor.hpp"
+
+#include "../../data/FluidEigenMappings.hpp"
+#include "../../data/FluidTensor.hpp"
+#include "../util/ConvolutionTools.hpp"
+#include "../util/Novelty.hpp"
 #include <Eigen/Dense>
 
 namespace fluid {
@@ -20,12 +21,12 @@ public:
   }
 
   void process(const RealMatrix &input, RealVector &output) {
+    using algorithm::convolveReal;
+    using algorithm::EdgeMode::kEdgeWrapCentre;
     using Eigen::ArrayXd;
     using Eigen::Map;
     using Eigen::MatrixXd;
     using Eigen::VectorXd;
-    using algorithm::EdgeMode::kEdgeWrapCentre;
-    using algorithm::convolveReal;
     using fluid::algorithm::FluidToMatrixXd;
     using std::vector;
 

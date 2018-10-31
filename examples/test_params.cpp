@@ -1,13 +1,6 @@
-//
-//  testparams.cpp
-//  fdNMF
-//
-//  Created by Owen Green on 30/08/2018.
-//
+#include <clients/nrt/NMFClient.hpp>
 
-#include "clients/nrt/NMFClient.hpp"
-
-#include <stdio.h>
+#include <cstdio>
 
 int main(int argc, char *argv[]) {
   using fluid::nmf::NMFClient;

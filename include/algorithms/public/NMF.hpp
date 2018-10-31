@@ -1,6 +1,6 @@
 #pragma once
 
-#include "data/FluidEigenMappings.hpp"
+#include "../../data/FluidEigenMappings.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <iostream>
@@ -10,8 +10,8 @@ namespace fluid {
 namespace algorithm {
 
 using Eigen::Array;
-using Eigen::ArrayXXd;
 using Eigen::ArrayXd;
+using Eigen::ArrayXXd;
 using Eigen::Dynamic;
 using Eigen::Map;
 using Eigen::MatrixXd;

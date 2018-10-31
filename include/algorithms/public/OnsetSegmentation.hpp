@@ -1,10 +1,10 @@
 
 #pragma once
 
-#include "Descriptors.hpp"
-#include "FFT.hpp"
+#include "../util/ConvolutionTools.hpp"
+#include "../util/Descriptors.hpp"
+#include "../util/FFT.hpp"
 #include "Windows.hpp"
-#include "algorithms/ConvolutionTools.hpp"
 #include <Eigen/Eigen>
 #include <algorithm>
 

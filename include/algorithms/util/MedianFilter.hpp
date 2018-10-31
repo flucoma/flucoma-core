@@ -1,5 +1,6 @@
 #pragma once
-#include "data/FluidTensor.hpp"
+
+#include "../../data/FluidTensor.hpp"
 #include <Eigen/Dense>
 #include <limits>
 

@@ -1,6 +1,8 @@
-#include "data/FluidTensor.hpp"
 #include "util/audiofile.hpp"
+
 #include <Eigen/Dense>
+
+#include <data/FluidTensor.hpp>
 #include <stdio.h>
 
 using fluid::audiofile::AudioFileData;

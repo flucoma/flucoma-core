@@ -4,9 +4,9 @@
 #include <random>
 #include <vector>
 
-#include "HISSTools_AudioFile/IAudioFile.h"
-#include "HISSTools_AudioFile/OAudioFile.h"
-#include <algorithms/TransientSegmentation.hpp>
+#include <HISSTools_AudioFile/IAudioFile.h>
+#include <HISSTools_AudioFile/OAudioFile.h>
+#include <algorithms/public/TransientSegmentation.hpp>
 
 // ******************* Parameters ******************* //
 

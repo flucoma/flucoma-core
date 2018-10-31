@@ -1,11 +1,11 @@
-#include "algorithms/MedianFilter.hpp"
-
-#include "algorithms/HPSS.hpp"
-#include "algorithms/RatioMask.hpp"
-#include "algorithms/STFT.hpp"
-#include "data/FluidEigenMappings.hpp"
-#include "data/FluidTensor.hpp"
 #include "util/audiofile.hpp"
+
+#include <algorithms/public/HPSS.hpp>
+#include <algorithms/public/RatioMask.hpp>
+#include <algorithms/public/STFT.hpp>
+#include <data/FluidEigenMappings.hpp>
+#include <data/FluidTensor.hpp>
+
 #include <fstream>
 
 using fluid::algorithm::FluidToArrayXXd;
@@ -16,8 +16,8 @@ using fluid::audiofile::writeFile;
 using fluid::algorithm::HPSS;
 using fluid::algorithm::HPSSModel;
 using fluid::algorithm::ISTFT;
-using fluid::algorithm::STFT;
 using fluid::algorithm::Spectrogram;
+using fluid::algorithm::STFT;
 
 using RealMatrix = fluid::FluidTensor<double, 2>;
 using RealVector = fluid::FluidTensor<double, 1>;

@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include <algorithm>
@@ -6,15 +5,15 @@
 #include <random>
 #include <vector>
 
-#include "ARModel.hpp"
-#include "Descriptors.hpp"
+#include "../util/ARModel.hpp"
+#include "../util/Descriptors.hpp"
 
 namespace fluid {
 namespace algorithm {
 
+using algorithm::ARModel;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
-using algorithm::ARModel;
 
 using algorithm::Descriptors;
 

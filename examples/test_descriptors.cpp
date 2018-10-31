@@ -1,13 +1,10 @@
-
-#define EIGEN_USE_BLAS
-
 #include <cmath>
 #include <random>
 #include <vector>
 
-#include <algorithms/Descriptors.hpp>
-#include <algorithms/FFT.hpp>
-#include <algorithms/Windows.hpp>
+#include <algorithms/util/Descriptors.hpp>
+#include <algorithms/util/FFT.hpp>
+#include <algorithms/util/Windows.hpp>
 #include <data/FluidEigenMappings.hpp>
 
 using fluid::descriptors::Descriptors;
