@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../data/FluidEigenMappings.hpp"
 #include "../../data/FluidTensor.hpp"
+#include "../util/FluidEigenMappings.hpp"
 #include "../util/ConvolutionTools.hpp"
 #include "../util/Novelty.hpp"
 #include <Eigen/Dense>

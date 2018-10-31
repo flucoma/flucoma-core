@@ -5,8 +5,8 @@
 #include <numeric>
 #include <vector>
 
-#include "../../data/FluidEigenMappings.hpp"
 #include "../../data/FluidTensor.hpp"
+#include "../util/FluidEigenMappings.hpp"
 #include "../util/FFT.hpp"
 #include "Windows.hpp"
 

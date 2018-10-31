@@ -5,7 +5,7 @@
 #include <algorithms/util/Descriptors.hpp>
 #include <algorithms/util/FFT.hpp>
 #include <algorithms/util/Windows.hpp>
-#include <data/FluidEigenMappings.hpp>
+#include <algorithms/util/FluidEigenMappings.hpp>
 
 using fluid::descriptors::Descriptors;
 using fluid::eigenmappings::FluidToArrayXXd;

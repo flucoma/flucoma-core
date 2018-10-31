@@ -1,6 +1,6 @@
 #pragma once
 
-#include "FluidTensor.hpp"
+#include "../../data/FluidTensor.hpp"
 #include <Eigen/Core>
 
 namespace fluid {

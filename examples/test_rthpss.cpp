@@ -2,7 +2,7 @@
 
 #include <algorithms/public/RTHPSS.hpp>
 #include <algorithms/public/STFT.hpp>
-#include <data/FluidEigenMappings.hpp>
+#include <algorithms/util/FluidEigenMappings.hpp>
 #include <data/FluidTensor.hpp>
 
 #include <fstream>

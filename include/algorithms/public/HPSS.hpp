@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../data/FluidEigenMappings.hpp"
+#include "../util/FluidEigenMappings.hpp"
 #include "../util/MedianFilter.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>

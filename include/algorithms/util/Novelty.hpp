@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../../data/FluidEigenMappings.hpp"
 #include "../../data/FluidTensor.hpp"
 #include "../public/Windows.hpp"
 #include "Descriptors.hpp"
+#include "FluidEigenMappings.hpp"
 #include <Eigen/Dense>
 #include <limits>
 
