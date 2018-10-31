@@ -1,16 +1,17 @@
 
 #pragma once
 
-#include "ParameterDescriptorList.hpp"
-#include "ParameterInstance.hpp"
+#include "ParameterDescriptor.hpp"
+//#include "ParameterDescriptorList.hpp"
+#include "FluidParams.hpp"
+//#include "ParameterInstance.hpp"
 #include <vector>
 
 namespace fluid {
 namespace client {
 
 class ParameterInstanceList {
-  using const_iterator = std::vector<ParameterInstance>::const_iterator;
-  using iterator = std::vector<ParameterInstance>::iterator;
+
 
   class ParameterInstance {
     using Type = ParameterDescriptor::Type;
@@ -128,6 +129,10 @@ class ParameterInstanceList {
     long mLong;
   }; // ParameterInstance
   
+  friend ParameterDescriptor;
+  using const_iterator = std::vector<ParameterInstance>::const_iterator;
+  using iterator = std::vector<ParameterInstance>::iterator;
+  
   
 public:
   ParameterInstanceList(const ParameterDescriptorList &descriptor) {
@@ -147,13 +152,23 @@ public:
   }
 
   iterator lookup(std::string name) {
-    for (auto it = begin(); it != end(); it++)
+    for (auto it = begin(); it != end(); ++it)
       if (it->descriptor().getName() == name)
         return it;
 
     return end();
   }
 
+  iterator lookup(ParameterDescriptor& d)
+  {
+    for (auto it = begin(); it != end(); ++it)
+      if(it->descriptor() == d)
+        return it;
+    
+    return end();
+  }
+  
+  
   const_iterator lookup(std::string name) const {
     for (auto it = cbegin(); it != cend(); it++)
       if (it->descriptor().getName() == name)
@@ -162,7 +177,54 @@ public:
     return cend();
   }
 
+  template<typename T>
+  void set(std::string name, T value)
+  {
+    auto i = lookup(name);
+    
+    if(i != end())
+    {
+      i->set(value);
+    }
+  }
+  
+  void reset(std::string name)
+  {
+    auto i = lookup(name);
+    
+    if(i != end())
+    {
+      i->reset();
+    }
+  }
+  
+  double getFloat(std::string name) const
+  {
+    return get(name, &ParameterInstance::getFloat, 0.0);
+  }
+  
+  long getLong(std::string name) const
+  {
+    return get(name, &ParameterInstance::getLong, 0L);
+  }
+  
+  BufferAdaptor *getBuffer(std::string name) const
+  {
+    return get<BufferAdaptor*>(name, &ParameterInstance::getBuffer, nullptr);
+  }
+  
 private:
+  
+  template<typename T>
+  using GetMethod = T (ParameterInstance::*)() const;
+  
+  template<typename T>
+  T get(std::string name, GetMethod<T> Method, T falseReturn) const
+  {
+    const_iterator i = lookup(name);
+    return i != cend()? (*i.*Method)() : falseReturn;
+  }
+  
   std::vector<ParameterInstance> mContainer;
 };
 
