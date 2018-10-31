@@ -159,15 +159,6 @@ public:
     return end();
   }
 
-  iterator lookup(ParameterDescriptor& d)
-  {
-    for (auto it = begin(); it != end(); ++it)
-      if(it->descriptor() == d)
-        return it;
-    
-    return end();
-  }
-  
   
   const_iterator lookup(std::string name) const {
     for (auto it = cbegin(); it != cend(); it++)
@@ -177,6 +168,26 @@ public:
     return cend();
   }
 
+  iterator lookup(ParameterDescriptor& d)
+  {
+    for (auto it = begin(); it != end(); ++it)
+      if(it->descriptor() == d)
+        return it;
+    
+    return end();
+  }
+  
+  const_iterator lookup(ParameterDescriptor& d) const
+  {
+    for (auto it = cbegin(); it != cend(); ++it)
+      if(it->descriptor() == d)
+        return it;
+    
+    return cend();
+  }
+  
+  
+  
   template<typename T>
   void set(std::string name, T value)
   {
