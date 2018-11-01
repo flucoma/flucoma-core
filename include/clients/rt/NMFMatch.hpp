@@ -69,11 +69,11 @@ namespace fluid{
         
         mSTFT  = std::unique_ptr<stft::STFT> (new stft::STFT(winsize,fftsize,hopsize));
         
-        mRank = parameter::lookupParam("maxrank", getParams()).getLong();
+        mMaxRank = parameter::lookupParam("maxrank", getParams()).getLong();
         size_t iterations = parameter::lookupParam("iterations", getParams()).getLong();
         mNMF = std::unique_ptr<NMF>(new NMF(mRank,iterations));
 //        outbuf = parameter::lookupParam("outbuf", getParams()).getBuffer();
-        filbuf = parameter::lookupParam("filterbuf", getParams()).getBuffer();
+        auto filbuf = parameter::lookupParam("filterbuf", getParams()).getBuffer();
         
 //        parameter::BufferAdaptor::Access outputBuffer(outbuf);
         
@@ -81,12 +81,14 @@ namespace fluid{
         
         parameter::BufferAdaptor::Access filterBuffer(filbuf);
 
-        tmpFilt.resize(filterBuffer.numFrames(), filterBuffer.numChans());
+        mRank = std::min(mMaxRank,filterBuffer.numChans());
+        
+        tmpFilt.resize(filterBuffer.numFrames(), mRank);
         tmpOut.resize(mRank);
         
         tmpMagnitude.resize(fftsize / 2 + 1);
         
-        audio::BaseAudioClient<T,U>::reset(1,mRank,mRank);
+        audio::BaseAudioClient<T,U>::reset(1,mMaxRank,mMaxRank);
       }
       
       std::tuple<bool,std::string> sanityCheck()
@@ -166,16 +168,19 @@ namespace fluid{
 //
 //        //rank = filters.numChans();
 //
-        if(filters.numFrames() != ((fftSize.getLong() / 2) + 1))
-        {
-          return {false, "Filters buffer needs to be (fftsize / 2 + 1) frames"};
-        }
+//        if(filters.numFrames() != ((fftSize.getLong() / 2) + 1))
+//        {
+//          return {false, "Filters buffer needs to be (fftsize / 2 + 1) frames"};
+//        }
         
         return {true,"Groovy"};
       }
       
       void process(data_type input, data_type output) override
-      {        
+      {
+        
+        auto filbuf = parameter::lookupParam("filterbuf", getParams()).getBuffer();
+        
         if( filbuf && tmpFilt.size() > 0 )
         {
           parameter::BufferAdaptor::Access filterBuffer(filbuf);
@@ -183,11 +188,17 @@ namespace fluid{
           
           if( !filterBuffer.valid() ){ return; }
           
-          if( mRank != filterBuffer.numChans() )
+          
+          long fftsize = parameter::lookupParam("fftsize", getParams()).getLong();
+          
+          if(filterBuffer.numFrames() != (fftsize / 2) + 1)
+            return;
+          
+          if( mRank != std::min(filterBuffer.numChans(),mMaxRank))
           {
-            mRank = filterBuffer.numChans(); 
-            tmpFilt.resize(filterBuffer.numFrames(), filterBuffer.numChans());
-            tmpOut.resize(filterBuffer.numChans());
+            mRank = std::min(filterBuffer.numChans(),mMaxRank);
+            tmpFilt.resize(filterBuffer.numFrames(), mRank);
+            tmpOut.resize(mRank);
           }
           
           for(size_t i = 0; i < tmpFilt.cols(); ++i)
@@ -203,7 +214,7 @@ namespace fluid{
 //            return hsum? x / hsum : 0;
 //          });
           
-          output.col(0) = tmpOut; 
+          output.col(0)(slice(0,tmpOut.rows())) = tmpOut;
    
         }
       }
@@ -222,11 +233,12 @@ namespace fluid{
       
       std::unique_ptr<stft::STFT> mSTFT; 
       std::unique_ptr<NMF> mNMF;
-      parameter::BufferAdaptor* outbuf = nullptr;
-      parameter::BufferAdaptor* filbuf = nullptr;
+//      parameter::BufferAdaptor* outbuf = nullptr;
+//      parameter::BufferAdaptor* filbuf = nullptr;
       FluidTensor<double, 2> tmpFilt;
       FluidTensor<double, 1> tmpMagnitude;
       FluidTensor<double, 1> tmpOut;
+      size_t mMaxRank;
       size_t mRank;
       std::vector<parameter::Instance> mParams;
     };
