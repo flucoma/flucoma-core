@@ -28,10 +28,11 @@ namespace fluid{
           params.emplace_back("filterbuf","Filters Buffer", parameter::Type::Buffer);
           params.back().setInstantiation(false);
           
-          params.emplace_back("rank","Rank", parameter::Type::Long);
+          params.emplace_back("maxrank","Maximum Rank", parameter::Type::Long);
           params.back().setMin(1).setDefault(1).setInstantiation(true);
           
           params.emplace_back("iterations","Iterations", parameter::Type::Long);
+        
           params.back().setInstantiation(false).setMin(1).setDefault(10).setInstantiation(false);
           
           params.emplace_back("winsize","Window Size", parameter::Type::Long);
@@ -68,11 +69,11 @@ namespace fluid{
         
         mSTFT  = std::unique_ptr<stft::STFT> (new stft::STFT(winsize,fftsize,hopsize));
         
-        mRank = parameter::lookupParam("rank", getParams()).getLong();
+        mMaxRank = parameter::lookupParam("maxrank", getParams()).getLong();
         size_t iterations = parameter::lookupParam("iterations", getParams()).getLong();
         mNMF = std::unique_ptr<NMF>(new NMF(mRank,iterations));
 //        outbuf = parameter::lookupParam("outbuf", getParams()).getBuffer();
-        filbuf = parameter::lookupParam("filterbuf", getParams()).getBuffer();
+        auto filbuf = parameter::lookupParam("filterbuf", getParams()).getBuffer();
         
 //        parameter::BufferAdaptor::Access outputBuffer(outbuf);
         
@@ -80,12 +81,14 @@ namespace fluid{
         
         parameter::BufferAdaptor::Access filterBuffer(filbuf);
 
-        tmpFilt.resize(filterBuffer.numFrames(), filterBuffer.numChans());
+        mRank = std::min(mMaxRank,filterBuffer.numChans());
+        
+        tmpFilt.resize(filterBuffer.numFrames(), mRank);
         tmpOut.resize(mRank);
         
         tmpMagnitude.resize(fftsize / 2 + 1);
         
-        audio::BaseAudioClient<T,U>::reset(1,mRank,mRank);
+        audio::BaseAudioClient<T,U>::reset(1,mMaxRank,mMaxRank);
       }
       
       std::tuple<bool,std::string> sanityCheck()
@@ -150,79 +153,76 @@ namespace fluid{
         parameter::BufferAdaptor::Access filters(parameter::lookupParam("filterbuf", getParams()).getBuffer());
 //        parameter::BufferAdaptor::Access output(parameter::lookupParam("outbuf", getParams()).getBuffer());
         
-        size_t rank = parameter::lookupParam("rank", getParams()).getLong();
+//        size_t rank = parameter::lookupParam("rank", getParams()).getLong();
         size_t iterations = parameter::lookupParam("iterations", getParams()).getLong();
         
-        if(!filters.valid())
-        {
-          return {false, "Filters buffer invalid"};
-        }
-//        
-//        if(!output.valid())
+//        if(!filters.valid())
 //        {
-//          return {false, "Output buffer invalid"};
+//          return {false, "Filters buffer invalid"};
+//        }
+////
+////        if(!output.valid())
+////        {
+////          return {false, "Output buffer invalid"};
+////        }
+//
+//        //rank = filters.numChans();
+//
+//        if(filters.numFrames() != ((fftSize.getLong() / 2) + 1))
+//        {
+//          return {false, "Filters buffer needs to be (fftsize / 2 + 1) frames"};
 //        }
         
-        if(filters.numChans() != rank || filters.numFrames() != ((fftSize.getLong() / 2) + 1))
-        {
-          return {false, "Filters buffer needs to be (fftsize / 2 + 1) frames by rank channels"};
-        }
         return {true,"Groovy"};
       }
       
       void process(data_type input, data_type output) override
-      {        
-        if(filbuf)
+      {
+        
+        auto filbuf = parameter::lookupParam("filterbuf", getParams()).getBuffer();
+        
+        if( filbuf && tmpFilt.size() > 0 )
         {
-          
           parameter::BufferAdaptor::Access filterBuffer(filbuf);
 //          parameter::BufferAdaptor::Access outputBuffer(outbuf);
           
-          if(!filterBuffer.valid())
-          {
-            return;
-          }
+          if( !filterBuffer.valid() ){ return; }
           
+          
+          long fftsize = parameter::lookupParam("fftsize", getParams()).getLong();
+          
+          if(filterBuffer.numFrames() != (fftsize / 2) + 1)
+            return;
+          
+          if( mRank != std::min(filterBuffer.numChans(),mMaxRank))
+          {
+            mRank = std::min(filterBuffer.numChans(),mMaxRank);
+            tmpFilt.resize(filterBuffer.numFrames(), mRank);
+            tmpOut.resize(mRank);
+          }
           
           for(size_t i = 0; i < tmpFilt.cols(); ++i)
             tmpFilt.col(i) = filterBuffer.samps(0,i);
           
-          tmpMagnitude.apply(mSTFT->processFrame(input.row(0)), [](double& x, std::complex<double>& y)->double{
-            x = std::abs(y);
-          });
+          tmpMagnitude.apply(mSTFT->processFrame(input.row(0)),
+                             [](double& x, std::complex<double>& y)->double{ x = std::abs(y);} );
           
           mNMF->processFrame(tmpMagnitude, tmpFilt, tmpOut);
           
-          double hsum = std::accumulate(tmpOut.begin(), tmpOut.end(), 0.0);
+//          double hsum = std::accumulate(tmpOut.begin(), tmpOut.end(), 0.0);
 //          std::transform(tmpOut.begin(), tmpOut.end(), tmpOut.begin(), [&](double& x)->double{
 //            return hsum? x / hsum : 0;
 //          });
           
-          output.col(0) = tmpOut; 
+          output.col(0)(slice(0,tmpOut.rows())) = tmpOut;
    
         }
       }
       
       //Here we gain compensate for the OLA
       void post_process(data_type output) override {}
+      std::vector<parameter::Instance>& getParams() override { return mParams;}
       
-      std::vector<parameter::Instance>& getParams() override
-      {
-        return mParams;
-      }
-      
-//      size_t getWindowSize() override
-//      {
-////        assert(mExtractor);
-////        return mExtractor->inputSize();
-//      }
-//      
-//      size_t getHopSize() override
-//      {
-////        assert(mExtractor);
-////        return mExtractor->hopSize();
-//      }
-//      
     private:
       void newParamSet()
       {
@@ -231,20 +231,15 @@ namespace fluid{
           mParams.emplace_back(d);
       }
       
-      
       std::unique_ptr<stft::STFT> mSTFT; 
       std::unique_ptr<NMF> mNMF;
-      parameter::BufferAdaptor* outbuf = nullptr;
-      parameter::BufferAdaptor* filbuf = nullptr;
+//      parameter::BufferAdaptor* outbuf = nullptr;
+//      parameter::BufferAdaptor* filbuf = nullptr;
       FluidTensor<double, 2> tmpFilt;
       FluidTensor<double, 1> tmpMagnitude;
       FluidTensor<double, 1> tmpOut;
+      size_t mMaxRank;
       size_t mRank;
-//      BufferPointer filterBuffer;
-//      BufferPointer outputBuffer;
-      
-//      std::unique_ptr<TransientSegmentation> mExtractor;
-//      FluidTensor<std::complex<T>,1> mTransients;
       std::vector<parameter::Instance> mParams;
     };
   }//namespace hpss
