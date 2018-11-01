@@ -181,12 +181,15 @@ namespace fluid{
         
         auto filbuf = parameter::lookupParam("filterbuf", getParams()).getBuffer();
         
-        if( filbuf && tmpFilt.size() > 0 )
+        if( filbuf )
         {
           parameter::BufferAdaptor::Access filterBuffer(filbuf);
 //          parameter::BufferAdaptor::Access outputBuffer(outbuf);
           
           if( !filterBuffer.valid() ){ return; }
+          
+          auto f  = filterBuffer.numFrames();
+          auto c  = filterBuffer.numChans();
           
           
           long fftsize = parameter::lookupParam("fftsize", getParams()).getLong();
@@ -195,14 +198,23 @@ namespace fluid{
             return;
           
           if( mRank != std::min(filterBuffer.numChans(),mMaxRank))
-          {
             mRank = std::min(filterBuffer.numChans(),mMaxRank);
+          if(tmpFilt.rows() != filterBuffer.numFrames() || tmpFilt.cols() != mRank)
             tmpFilt.resize(filterBuffer.numFrames(), mRank);
+          if(tmpOut.rows() != mRank)
             tmpOut.resize(mRank);
-          }
+          
           
           for(size_t i = 0; i < tmpFilt.cols(); ++i)
-            tmpFilt.col(i) = filterBuffer.samps(0,i);
+          {
+            
+//            auto f  = filterBuffer.numFrames();
+//            auto c  = filterBuffer.numChans(); 
+          
+            auto x = filterBuffer.samps(0,i);
+            if (x.data())
+              tmpFilt.col(i) = x;
+          }
           
           tmpMagnitude.apply(mSTFT->processFrame(input.row(0)),
                              [](double& x, std::complex<double>& y)->double{ x = std::abs(y);} );
