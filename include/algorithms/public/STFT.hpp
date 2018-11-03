@@ -35,20 +35,20 @@ using std::complex;
 // using fluid::algorithm::MatrixXdToFluid;
 
 struct Spectrogram {
-  using ComplexMatrix = FluidTensor<complex<double>, 2>;
+  //using ComplexMatrix = FluidTensor<complex<double>, 2>;
   using RealMatrix = FluidTensor<double, 2>;
-  ComplexMatrix mData;
-  Spectrogram(ComplexMatrix data) : mData(data) {}
+  ArrayXXcd mData;
+  Spectrogram(MatrixXcd data) : mData(data) {}
   RealMatrix getMagnitude() const {
-    MatrixXcd dataMat = FluidToMatrixXcd(this->mData)();
-    MatrixXd magRealMat = dataMat.cwiseAbs().real();
-    return MatrixXdToFluid(magRealMat)();
+    //MatrixXcd dataMat = FluidToMatrixXcd(this->mData)();
+    ArrayXd magRealMat = mData.abs().real();
+    return ArrayXXdToFluid(magRealMat)();
   }
 
   RealMatrix getPhase() const; // TODO
 
-  long nFrames() const { return this->mData.extent(0); }
-  long nBins() const { return this->mData.extent(1); }
+  long nFrames() const { return mData.rows(); }
+  long nBins() const { return mData.cols(); }
 };
 
 class STFT {
@@ -75,12 +75,13 @@ public:
     padded.segment(halfWindow, audio.size()) =
         Map<const ArrayXd>(audio.data(), audio.size());
     int nFrames = floor((padded.size() - mWindowSize) / mHopSize);
-    MatrixXcd result(nFrames, mFrameSize);
+    ArrayXXcd result(nFrames, mFrameSize);
     for (int i = 0; i < nFrames; i++) {
       result.row(i) =
           mFFT.process(padded.segment(i * mHopSize, mWindowSize) * mWindow);
     }
-    return ComplexMatrix(MatrixXcdToFluid(result)());
+    //return ComplexMatrix(MatrixXcdToFluid(result)());
+    return Spectrogram(result);
   }
 
   ComplexVectorView processFrame(const RealVectorView &frame) {
@@ -134,7 +135,7 @@ public:
     int halfWindow = mWindowSize / 2;
     int outputSize = mWindowSize + (spec.nFrames() - 1) * mHopSize;
     outputSize += mWindowSize + mHopSize;
-    ArrayXXcd specData = FluidToArrayXXcd(spec.mData)();
+    ArrayXXcd specData = spec.mData.array();
     ArrayXd outputPadded = ArrayXd::Zero(outputSize);
     ArrayXd norm = ArrayXd::Zero(outputSize);
     for (int i = 0; i < spec.nFrames(); i++) {
