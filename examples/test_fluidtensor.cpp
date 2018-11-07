@@ -2,6 +2,7 @@
 #include <Eigen/Dense>
 #include "data/FluidTensor.hpp"
 #include "util/audiofile.hpp"
+#include <data/FluidEigenMappings.hpp>
 
 using fluid::audiofile::AudioFileData;
 using fluid::audiofile::readFile;
@@ -24,47 +25,66 @@ void whynoworky(const std::vector<double>& v)
 
 int main(int argc, char* argv[])
 {
-  //Test wrapping interleaved structure, coz I keep getting it wrong
-  //4 channels 3 frames
-  std::vector<double> quad = {0,3,6,9,1,4,7,10,2,5,8,11};
-  
-  
-  FluidTensorView<double,2> quadview(quad.data(),0,3,4);
-  
-  std::cout<< quadview.col(0) << '\n';
-  
-  std::cout<< quadview.col(0)(fluid::slice(1)) << '\n';
-  
-  std::cout<< quadview(fluid::slice(0,2),fluid::slice(1,1) ).col(0) << '\n';
-  
-  
-  //Wrap any old pointer
-    std::vector<double> s = {0,1,2,3,4,5,6,7,8};
-  
-    whynoworky(s);
-  
-  
-//    FluidTensorView<int,2> s_wrap(s.data(),0,9u,1u);
-  
-  FluidTensor<double, 2> iteratorWeirdness(9,1);
-  auto b = iteratorWeirdness(slice(0),slice(0));
-  std::iota(b.begin(),b.end(),0);
-  
-  
-  
-//  whynoworky(iteratorWeirdness);
-  std::cout<< *std::max_element(b.begin(), b.end()) <<'\n';
-  
-//    std::cout << s_wrap << '\n';
-  
-    //zero size, nullptr test
-    FluidTensorView<int,2> wrap_null(nullptr,0,0u,0u);
-    
-  
-  FluidTensor<double, 1> onedinit{{1.,2.,34.,5.,6.,7.}}; 
-  
-  
+//  //Test wrapping interleaved structure, coz I keep getting it wrong
+//  //4 channels 3 frames
+//  std::vector<double> quad = {0,3,6,9,1,4,7,10,2,5,8,11};
+//  
+//  
+//  FluidTensorView<double,2> quadview(quad.data(),0,3,4);
+//  
+//  std::cout<< quadview.col(0) << '\n';
+//  
+//  std::cout<< quadview.col(0)(fluid::slice(1)) << '\n';
+//  
+//  std::cout<< quadview(fluid::slice(0,2),fluid::slice(1,1) ).col(0) << '\n';
+//  
+//  
+//  //Wrap any old pointer
+//    std::vector<double> s = {0,1,2,3,4,5,6,7,8};
+//  
+//    whynoworky(s);
+//  
+//  
+////    FluidTensorView<int,2> s_wrap(s.data(),0,9u,1u);
+//  
+//  FluidTensor<double, 2> iteratorWeirdness(9,1);
+//  auto b = iteratorWeirdness(slice(0),slice(0));
+//  std::iota(b.begin(),b.end(),0);
+//  
+//  
+//  
+////  whynoworky(iteratorWeirdness);
+//  std::cout<< *std::max_element(b.begin(), b.end()) <<'\n';
+//  
+////    std::cout << s_wrap << '\n';
+//  
+//    //zero size, nullptr test
+//    FluidTensorView<int,2> wrap_null(nullptr,0,0u,0u);
+//    
+//  
+//  FluidTensor<double, 1> onedinit{{1.,2.,34.,5.,6.,7.}}; 
+//  
+//  
     FluidTensor<int, 2> threebythree{{0,1,2},{3,4,5},{6,7,8}};
+  
+  std::cout << "++++++++++++++++++" << '\n';
+    std::cout << threebythree << '\n';
+  std::cout << "++++++++++++++++++" << '\n';
+  std::cout << threebythree.transpose() << '\n';
+  
+  std::cout <<"Transpose "  << threebythree.transpose() << '\n';
+  
+  for(auto& x: threebythree.transpose())
+    std::cout  << x << '\t';
+  
+  FluidTensor<double,2> ttt( threebythree.transpose());
+  std::cout <<"Copy "  << ttt << '\n';
+
+  Eigen::MatrixXd transposeCopyTest = fluid::eigenmappings::FluidToMatrixXd(ttt)();
+  
+  std::cout <<"Eigen "  << ttt << '\n';
+
+  
     
     auto col1 = threebythree(slice(0),slice(1,1)); //all the rows, first column
     
@@ -80,8 +100,8 @@ int main(int argc, char* argv[])
         std::cout << j++ << ' '  << i << '\n';
     }
     
-    return 0;
-    
+//    return 0;
+  
     //We can initialize a tensor with some elements using braces:
     fluid::FluidTensor<double,1> tinit{1.0,2.0,3.0};
     std::cout << "Rank: " << tinit.order << " Length: "

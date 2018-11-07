@@ -83,7 +83,7 @@ namespace fluid{
 
         mRank = std::min(mMaxRank,filterBuffer.numChans());
         
-        tmpFilt.resize(filterBuffer.numFrames(), mRank);
+        tmpFilt.resize(mRank,filterBuffer.numFrames());
         tmpOut.resize(mRank);
         
         tmpMagnitude.resize(fftsize / 2 + 1);
@@ -200,12 +200,12 @@ namespace fluid{
           if( mRank != std::min(filterBuffer.numChans(),mMaxRank))
             mRank = std::min(filterBuffer.numChans(),mMaxRank);
           if(tmpFilt.rows() != filterBuffer.numFrames() || tmpFilt.cols() != mRank)
-            tmpFilt.resize(filterBuffer.numFrames(), mRank);
+            tmpFilt.resize(mRank,filterBuffer.numFrames());
           if(tmpOut.rows() != mRank)
             tmpOut.resize(mRank);
           
           
-          for(size_t i = 0; i < tmpFilt.cols(); ++i)
+          for(size_t i = 0; i < tmpFilt.rows(); ++i)
           {
             
 //            auto f  = filterBuffer.numFrames();
@@ -213,11 +213,11 @@ namespace fluid{
           
             auto x = filterBuffer.samps(0,i);
             if (x.data())
-              tmpFilt.col(i) = x;
+              tmpFilt.row(i) = x;
           }
           
           tmpMagnitude.apply(mSTFT->processFrame(input.row(0)),
-                             [](double& x, std::complex<double>& y)->double{ x = std::abs(y);} );
+                             [](double& x, std::complex<double>& y){ x = std::abs(y);} );
           
           mNMF->processFrame(tmpMagnitude, tmpFilt, tmpOut);
           
