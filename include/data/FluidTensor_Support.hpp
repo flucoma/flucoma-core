@@ -339,7 +339,22 @@
                 if(end)
                 {
                     m_indexes[0] = s.extents[0];
-                    m_ptr = base + s.start + (s.strides[0] * s.extents[0]);
+                  
+                  
+
+                    //The size in desc gives the size of the
+                    //overall container, not the size of the slice
+                    //this seems preferable to littering the code with transpose flags
+                    size_t size = 0;
+                  
+                    if(s.strides[N-1] == 1) //Not transposed
+                      size = s.strides[0] * s.extents[0];
+                    else                    //transposed 
+                      size = s.strides[N-1] * s.extents[N-1];
+                  
+                  
+                  
+                    m_ptr = base + s.start + size;
                 }else
                     m_ptr = base + s.start;
             }
