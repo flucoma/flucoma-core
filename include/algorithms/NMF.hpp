@@ -66,15 +66,13 @@ public:
   // processFrame computes activations of a dictionary W in a given frame
   void processFrame(const RealVector x, const RealMatrix W0, RealVector &out,
                     int nIterations = 10) {
-    int rank = W0.extent(1);
-    MatrixXd W = FluidToMatrixXd(W0)();
+    int rank = W0.extent(0);
+    MatrixXd W = FluidToMatrixXd(W0)().transpose();
     VectorXd h =
         MatrixXd::Random(rank, 1) * 0.5 + MatrixXd::Constant(rank, 1, 0.5);
     VectorXd v = ArrayXdConstMap(x.data(), x.extent(0)).matrix();
-
     MatrixXd WT = W.transpose();
-    WT.colwise().normalize();
-
+    W.colwise().normalize();
     VectorXd ones = VectorXd::Ones(x.extent(0));
     while (nIterations--) {
       ArrayXd v1 = (W * h).array() + epsilon();

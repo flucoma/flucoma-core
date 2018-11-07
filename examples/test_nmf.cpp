@@ -69,9 +69,14 @@ int main(int argc, char *argv[]) {
     writeFile(testData, fname.c_str());
   }
   RealMatrix X = testSpec.getMagnitude();
-  fluid::FluidTensor<double, 1> frame (X.row(100));
-  RealVector out(nBins);
-  nmfProcessor2.processFrame(frame, W, out);
+  RealVector out(rank);
+  std::cout<<"rank"<<W.extent(1)<<std::endl;
+  for (int j = 0; j < X.rows(); j++) {
+      fluid::FluidTensor<double, 1> frame (X.row(j));
+      nmfProcessor2.processFrame(frame, W, out);
+      std::cout<<out<<std::endl;
+  }
+
 
   return 0;
 }
