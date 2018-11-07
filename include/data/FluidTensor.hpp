@@ -128,7 +128,9 @@ namespace fluid {
         :m_container(x.size()),m_desc(0,x.descriptor().extents)
         {
             static_assert(std::is_convertible<U,T>(),"Cannot convert between container value types");
-            
+          
+//            std::copy
+          
             std::copy(x.begin(),x.end(),m_container.begin());
             
         }
@@ -556,10 +558,10 @@ namespace fluid {
             for(int i = 0; i < t.rows(); ++i)
             {
                 o  << t.row(i);
-                if(i+1 != t.rows())
-                    o << ',';
+//                if(i+1 != t.rows())
+//                    o << ',';
             }
-            o << '\n';
+         o << '\n';//']';
             return o;
         }
     private:
@@ -1021,16 +1023,16 @@ namespace fluid {
         friend std::ostream& operator<<( std::ostream& o, const FluidTensorView& t ) {
 //            o << '[';
             //T* p = t.m_ref + t.m_desc.start;
-          std::cout << t.rows() << '\n'; 
+//          std::cout << t.rows() << '\n'; 
             for(size_t i = 0; i < t.rows();++i)
             {
                 //FluidTensor_View<T,N-1> row = t.row(i);
-                o << t.row(i) << " ( " << i << " )";
-//                if((i + 1) % (t.rows()-1))
-                    o << ',';
+              o << t.row(i) ;//<< " ( " << i << " )";
+//                if((i + 1) != t.rows())
+//                    o << ',';
             }
 
-            o << '\n';
+          o << '\n'; //']';
             return o;
         }
     private:
@@ -1082,7 +1084,7 @@ namespace fluid {
 
         friend std::ostream& operator<<(std::ostream& o, const FluidTensorView& t)
         {
-            o<< t();
+            o<< t() <<',';
             return o;
         }
     private:
