@@ -3,26 +3,18 @@
 #include <algorithms/public/HPSS.hpp>
 #include <algorithms/public/RatioMask.hpp>
 #include <algorithms/public/STFT.hpp>
-#include <algorithms/util/FluidEigenMappings.hpp>
 #include <data/FluidTensor.hpp>
 
 #include <fstream>
 
-using fluid::algorithm::FluidToArrayXXd;
 using fluid::audiofile::AudioFileData;
 using fluid::audiofile::readFile;
 using fluid::audiofile::writeFile;
 
 using fluid::algorithm::HPSS;
-using fluid::algorithm::HPSSModel;
 using fluid::algorithm::ISTFT;
-using fluid::algorithm::Spectrogram;
 using fluid::algorithm::STFT;
 
-using RealMatrix = fluid::FluidTensor<double, 2>;
-using RealVector = fluid::FluidTensor<double, 1>;
-
-using Eigen::ArrayXXd;
 using fluid::algorithm::RatioMask;
 using std::ofstream;
 
@@ -45,24 +37,33 @@ int main(int argc, char *argv[]) {
   STFT stft(windowSize, fftSize, hopSize);
   ISTFT istft(windowSize, fftSize, hopSize);
   HPSS hpsssProcessor(vSize, hSize);
-  RealVector in(data.audio[0]);
-  Spectrogram spec = stft.process(in);
-  RealMatrix mag = spec.getMagnitude();
+  fluid::FluidTensor<double, 1> in(data.audio[0]);
+  int nFrames = floor((in.size() + hopSize) / hopSize);
 
-  HPSSModel decomposition = hpsssProcessor.process(mag);
-  RatioMask mask = RatioMask(decomposition.getMixEstimate(), 1);
+  // allocation
+  fluid::FluidTensor<std::complex<double>, 2> spec(nFrames, nBins);
+  fluid::FluidTensor<double, 2> mag(nFrames, nBins);
+  fluid::FluidTensor<double, 2> harmMag(nFrames, nBins);
+  fluid::FluidTensor<double, 2> percMag(nFrames, nBins);
+  fluid::FluidTensor<double, 2> mixMag(nFrames, nBins);
+  fluid::FluidTensor<std::complex<double>, 2> harm(nFrames, nBins);
+  fluid::FluidTensor<std::complex<double>, 2> perc(nFrames, nBins);
+  fluid::FluidTensor<double, 1> harmonicAudio(in.size());
+  fluid::FluidTensor<double, 1> percussiveAudio(in.size());
+  // processing
+  stft.process(in, spec);
+  STFT::magnitude(spec, mag);
+  hpsssProcessor.process(mag, harmMag, percMag, mixMag);
+  RatioMask mask = RatioMask(mixMag, 1);
+  mask.process(spec, harmMag, harm);
+  mask.process(spec, percMag, perc);
+  istft.process(harm, harmonicAudio);
+  istft.process(perc, percussiveAudio);
 
-  Spectrogram harmonicSpec =
-      mask.process(spec.mData, decomposition.getHarmonicEstimate());
-  Spectrogram percussiveSpec =
-      mask.process(spec.mData, decomposition.getPercussiveEstimate());
-
-  RealVector harmonicAudio = istft.process(harmonicSpec);
   data.audio[0] = vector<double>(harmonicAudio.data(),
                                  harmonicAudio.data() + harmonicAudio.size());
   writeFile(data, "harmonic.wav");
 
-  RealVector percussiveAudio = istft.process(percussiveSpec);
   data.audio[0] = vector<double>(
       percussiveAudio.data(), percussiveAudio.data() + percussiveAudio.size());
   writeFile(data, "percussive.wav");

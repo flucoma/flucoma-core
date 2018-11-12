@@ -1,6 +1,8 @@
 #pragma once
 
 #include "../../data/FluidTensor.hpp"
+#include "../../data/TensorTypes.hpp"
+#include "../util/FluidEigenMappings.hpp"
 #include <Eigen/Dense>
 
 namespace fluid {
@@ -9,14 +11,6 @@ namespace algorithm {
 using Eigen::ArrayXXcd;
 using Eigen::ArrayXXd;
 using Eigen::Map;
-using RealMatrix = FluidTensor<double, 2>;
-using ComplexMatrix = FluidTensor<std::complex<double>, 2>;
-
-using ArrayXXdMap =
-    Map<Eigen::Array<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>;
-
-using ArrayXXcdMap = Map<Eigen::Array<std::complex<double>, Eigen::Dynamic,
-                                      Eigen::Dynamic, Eigen::RowMajor>>;
 
 class RatioMask {
   const double epsilon = std::numeric_limits<double>::epsilon();
@@ -28,19 +22,19 @@ public:
     mMultiplier = (1 / denominatorArray.max(epsilon));
   }
 
-  ComplexMatrix process(ComplexMatrix mixture, RealMatrix targetMag) {
+  void process(const ComplexMatrix &mixture, RealMatrix targetMag,
+               ComplexMatrix result) {
     assert(mixture.cols() == targetMag.cols());
     assert(mixture.rows() == targetMag.rows());
-    ComplexMatrix result(mixture.extent(0), mixture.extent(1));
-    ArrayXXcdMap mixtureArray(mixture.data(), mixture.extent(0),
-                              mixture.extent(1));
+    // ComplexMatrix result(mixture.extent(0), mixture.extent(1));
+    ArrayXXcdConstMap mixtureArray(mixture.data(), mixture.extent(0),
+                                   mixture.extent(1));
     ArrayXXdMap targetMagArray(targetMag.data(), targetMag.extent(0),
                                targetMag.extent(1));
     ArrayXXcd tmp =
         mixtureArray *
         (targetMagArray.pow(mExponent) * mMultiplier.pow(mExponent)).min(1.0);
     ArrayXXcdMap(result.data(), mixture.extent(0), mixture.extent(1)) = tmp;
-    return result;
   }
 
 private:

@@ -10,7 +10,6 @@ namespace fluid {
 namespace algorithm {
 
 class Descriptors {
-  using RealTensor = fluid::FluidTensor<double, 1>;
   using Real = fluid::FluidTensorView<double, 1>;
 
   // Helper structs

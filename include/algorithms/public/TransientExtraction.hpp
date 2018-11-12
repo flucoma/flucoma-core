@@ -5,6 +5,7 @@
 #include <random>
 #include <vector>
 
+#include "../../data/TensorTypes.hpp"
 #include "../util/ARModel.hpp"
 #include "../util/Descriptors.hpp"
 
@@ -14,8 +15,6 @@ namespace algorithm {
 using algorithm::ARModel;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
-
-using algorithm::Descriptors;
 
 class TransientExtraction {
 
@@ -72,31 +71,34 @@ public:
     return mCount;
   }
 
-  int extract(double *transients, double *residual, const double *input,
-              int inSize) {
-    frame(input, inSize);
+  // int extract(double *transients, double *residual, const double *input,
+  //            int inSize) {
+
+  void process(const RealVector input, RealVector transients,
+               RealVector residual) {
+    int inSize = input.extent(0);
+    frame(input.data(), inSize);
     analyse();
     detection();
-    interpolate(transients, residual);
-
-    return mCount;
+    interpolate(transients.data(), residual.data());
+    // return mCount;
   }
 
-  int extract(double *transients, double *residual, const double *input,
-              int inSize, const double *unknowns) {
-    std::copy(unknowns, unknowns + hopSize(), mDetect.data());
-
+  // int extract(double *transients, double *residual, const double *input,
+  //            int inSize, const double *unknowns) {
+  void process(const RealVector input, const RealVector unknowns,
+               RealVector transients, RealVector residual) {
+    int inSize = input.extent(0);
+    std::copy(unknowns.data(), unknowns.data() + hopSize(), mDetect.data());
     mCount = 0;
     for (int i = 0, size = hopSize(); i < size; i++)
       if (mDetect[i])
         mCount++;
-
-    frame(input, inSize);
+    frame(input.data(), inSize);
     if (mCount)
       analyse();
-    interpolate(transients, residual);
-
-    return mCount;
+    interpolate(transients.data(), residual.data());
+    //return mCount;
   }
 
 private:

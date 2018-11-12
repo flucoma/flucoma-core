@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../data/FluidTensor.hpp"
+#include "../../data/TensorTypes.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/ConvolutionTools.hpp"
 #include "../util/FFT.hpp"
@@ -11,19 +11,9 @@
 namespace fluid {
 namespace algorithm {
 
-using algorithm::correlateReal;
-using algorithm::FFT;
-using algorithm::kEdgeWrapCentre;
-using algorithm::windowFuncs;
-using algorithm::WindowType;
 using std::vector;
-
-using Eigen::Array;
 using Eigen::ArrayXcd;
 using Eigen::ArrayXd;
-using Eigen::Dynamic;
-using Eigen::Map;
-using Eigen::RowMajor;
 using Eigen::VectorXd;
 
 struct SinePeak {
@@ -60,13 +50,13 @@ public:
   }
 
   void processFrame(const ComplexVector &in, ComplexMatrix out) {
-    using ArrayXcdMap =
-        Map<const Array<std::complex<double>, Dynamic, RowMajor>>;
+    // ArrayXcdMap =
+    //    Map<const Array<std::complex<double>, Dynamic, RowMajor>>;
     //    using fluid::eigenmappings::ArrayXXcdToFluid;
     using Eigen::ArrayXXcd;
 
     const auto &epsilon = std::numeric_limits<double>::epsilon;
-    ArrayXcdMap frame(in.data(), mBins);
+    ArrayXcdConstMap frame(in.data(), mBins);
     mBuf.push(frame);
     ArrayXd mag = frame.abs().real();
     ArrayXd correlation = getWindowCorrelation(mag);

@@ -1,9 +1,11 @@
 
 #pragma once
 
+#include "../../data/TensorTypes.hpp"
 #include "../util/ConvolutionTools.hpp"
 #include "../util/Descriptors.hpp"
 #include "../util/FFT.hpp"
+#include "../util/FluidEigenMappings.hpp"
 #include "Windows.hpp"
 #include <Eigen/Eigen>
 #include <algorithm>
@@ -11,16 +13,11 @@
 namespace fluid {
 namespace algorithm {
 
+using Eigen::ArrayXcd;
+using Eigen::ArrayXd;
 using Eigen::Map;
 
 class OnsetSegmentation {
-  using RealVector = fluid::FluidTensor<double, 1>;
-  using RealVectorView = fluid::FluidTensorView<double, 1>;
-  using WindowType = algorithm::WindowType;
-  using ArrayXd = Eigen::ArrayXd;
-  using ArrayXcd = Eigen::ArrayXcd;
-  using ArrayXdMap = Map<Eigen::Array<double, Eigen::Dynamic, Eigen::RowMajor>>;
-  using FFT = algorithm::FFT;
 
 public:
   enum Normalisation {
@@ -46,7 +43,7 @@ public:
                     bool forwardOnly = false)
       : mFFT(FFTSize), mFFTSize(FFTSize), mWindowSize(windowSize),
         mHopSize(hopSize), mFrameDelta(frameDelta),
-        mWindowType(algorithm::WindowType::kHann), mFunction(function),
+        mWindowType(WindowType::kHann), mFunction(function),
         mFilterSize(filterSize), mForwardOnly(forwardOnly),
         mNormalisation(kNone), mThreshold(threshold) {
     assert(mWindowSize <= mFFTSize);
@@ -71,7 +68,7 @@ public:
         mHopSize);
   }
 
-  void process(RealVectorView &input, RealVectorView &output) {
+  void process(const RealVector &input, RealVector output) {
     using algorithm::convolveReal;
     using algorithm::kEdgeWrapCentre;
     int frameSize = inputFrameSize();
@@ -84,7 +81,7 @@ public:
     int nFrames = floor((padded.size() - frameSize) / mHopSize);
     ArrayXd onsetDetectionFunc(nFrames);
     for (int i = 0; i < nFrames; i++) {
-      RealVectorView frame = input(fluid::Slice(i * mHopSize, frameSize));
+      RealVector frame = input(fluid::Slice(i * mHopSize, frameSize));
       onsetDetectionFunc(i) = processFrame(frame);
     }
     if (mFilterSize > 0) {
@@ -106,16 +103,16 @@ public:
     }
   }
 
-  double processFrame(RealVectorView &input) {
+  double processFrame(RealVector &input) {
     processSingleWindow(mFrame1, input.data() + frameDelta());
     processSingleWindow(mFrame2, input.data());
-    RealVectorView frame1View(mFrame1);
-    RealVectorView frame2View(mFrame2);
+    RealVector frame1View(mFrame1);
+    RealVector frame2View(mFrame2);
     return frameComparison(frame1View, frame2View);
   }
 
 private:
-  void processSingleWindow(RealVector &frame, const double *input) {
+  void processSingleWindow(RealVector frame, const double *input) {
     for (auto i = 0; i < frame.size(); i++)
       mFFTBuffer(i) = input[i];
 
@@ -129,12 +126,12 @@ private:
     }
   }
 
-  void clipEpsilon(RealVectorView &input) {
+  void clipEpsilon(RealVector &input) {
     for (auto it = input.begin(); it != input.end(); it++)
       *it = std::max(std::numeric_limits<double>::epsilon(), *it);
   }
 
-  double frameComparison(RealVectorView &vec1, RealVectorView &vec2) {
+  double frameComparison(RealVector &vec1, RealVector &vec2) {
     if (mForwardOnly)
       Descriptors::forwardFilter(vec1, vec2);
 
@@ -144,7 +141,6 @@ private:
     }
 
     // TODO - review this later
-
     clipEpsilon(vec1);
     clipEpsilon(vec2);
 
@@ -173,29 +169,26 @@ private:
     mFrame1.resize(FFTFrameSize);
     mFrame2.resize(FFTFrameSize);
     mFFTBuffer.resize(windowSize());
-
     mWindow = Map<ArrayXd>(
         algorithm::windowFuncs[mWindowType](windowSize()).data(), windowSize());
   }
 
 private:
   FFT mFFT;
-  RealVector mFrame1;
-  RealVector mFrame2;
+  fluid::FluidTensor<double, 1> mFrame1;
+  fluid::FluidTensor<double, 1> mFrame2;
   ArrayXd mFFTBuffer;
   ArrayXd mWindow;
-
   int mFFTSize;
   int mWindowSize;
   int mHopSize;
   int mFrameDelta;
   WindowType mWindowType;
-  double mThreshold;
-  int mFilterSize;
-
   DifferenceFunction mFunction;
+  int mFilterSize;
   bool mForwardOnly;
   Normalisation mNormalisation;
+  double mThreshold;
 };
 
 }; // namespace algorithm

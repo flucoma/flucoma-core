@@ -7,7 +7,7 @@
 #include <HISSTools_AudioFile/IAudioFile.h>
 #include <HISSTools_AudioFile/OAudioFile.h>
 #include <algorithms/public/TransientExtraction.hpp>
-
+#include <data/FluidTensor.hpp>
 // ******************* Parameters ******************* //
 
 // The main blocking parameters (expose in ms for the block and pad, possiby
@@ -122,13 +122,15 @@ int main(int argc, const char *argv[]) {
   int frames = file.getFrames();
   auto samplingRate = file.getSamplingRate();
 
-  std::vector<double> input(frames, 0.0);
-  std::vector<double> corrupted(frames + paramBlockSize, 0.0);
-  std::vector<double> fixed(frames + paramBlockSize, 0.0);
-  std::vector<double> transients(frames + paramBlockSize, 0.0);
+  fluid::FluidTensor<double, 1> input(frames);
+  fluid::FluidTensor<double, 1> corrupted(frames + paramBlockSize);
+  fluid::FluidTensor<double, 1> fixed(frames + paramBlockSize);
+  fluid::FluidTensor<double, 1> transients(frames + paramBlockSize);
 
   file.readChannel(input.data(), frames, 0);
   corruptInput(corrupted.data(), input.data(), frames);
+  writeFile(corruptedOutputPath, corrupted.data(), frames, samplingRate);
+
 
   TransientExtraction extractor(paramOrder, paramIterations, paramRobustFactor,
                                 paramRefine);
@@ -142,8 +144,8 @@ int main(int argc, const char *argv[]) {
 
   for (int i = 0, hopSize = extractor.hopSize(); i < frames; i += hopSize) {
     int size = std::min(extractor.inputSize(), frames - i);
-    extractor.extract(transients.data() + i, fixed.data() + i,
-                      corrupted.data() + i, size);
+    auto frame = fluid::Slice(i, size);
+    extractor.process(corrupted(frame), transients(frame), fixed(frame));
     std::cout << "Done " << (100 * (i + hopSize) / frames) << "%\n";
   }
 

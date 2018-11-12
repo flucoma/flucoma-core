@@ -6,7 +6,6 @@
 
 using fluid::FluidTensor;
 using fluid::algorithm::NoveltySegmentation;
-using fluid::algorithm::Spectrogram;
 using fluid::algorithm::STFT;
 using fluid::audiofile::AudioFileData;
 using fluid::audiofile::readFile;
@@ -35,15 +34,25 @@ int main(int argc, char *argv[]) {
   int filterSize = std::stoi(argv[3]);
   double threshold = std::stod(argv[4]);
   int windowSize = 1024;
+
+
   STFT stft(windowSize, fftSize, hopSize);
-  RealVector in(data.audio[0]);
-  Spectrogram spec = stft.process(in);
-  RealMatrix mag = spec.getMagnitude();
-  RealVector result(spec.nFrames());
+  fluid::FluidTensor<double, 1> in(data.audio[0]);
+  int nFrames = floor((in.size() + hopSize) / hopSize);
+
+  // allocation
+  fluid::FluidTensor<std::complex<double>, 2> spec(nFrames, nBins);
+  fluid::FluidTensor<double, 2> mag(nFrames, nBins);
+  FluidTensor<double, 1> novelty(nFrames);
+
+  // processing
+  stft.process(in, spec);
+  STFT::magnitude(spec, mag);
+
   NoveltySegmentation nov(kernelSize, threshold, filterSize);
-  nov.process(mag, result);
-  for (int i = 0; i < spec.nFrames(); i++) {
-    if (result[i] == 1) {
+  nov.process(mag, novelty);
+  for (int i = 0; i < nFrames; i++) {
+    if (novelty[i] == 1) {
       std::cout << i << std::endl;
     }
   }

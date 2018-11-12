@@ -1,66 +1,23 @@
 #pragma once
 
-#include <Eigen/Core>
-#include <algorithm>
-#include <numeric>
-#include <vector>
-
 #include "../../data/FluidTensor.hpp"
-#include "../util/FluidEigenMappings.hpp"
+#include "../../data/TensorTypes.hpp"
 #include "../util/FFT.hpp"
+#include "../util/FluidEigenMappings.hpp"
 #include "Windows.hpp"
+#include <Eigen/Core>
 
 namespace fluid {
 namespace algorithm {
 
-using Eigen::Array;
 using Eigen::ArrayXd;
 using Eigen::ArrayXXcd;
-using Eigen::Dynamic;
-using Eigen::Map;
+using Eigen::ArrayXXd;
 using Eigen::MatrixXcd;
-using Eigen::MatrixXd;
-using Eigen::RowMajor;
-
-// using algorithm::FFT;
-// using algorithm::IFFT;
-//
-// using algorithm::windowFuncs;
-// using algorithm::WindowType;
-using std::complex;
-
-// using fluid::algorithm::FluidToArrayXXcd;
-// using fluid::algorithm::FluidToMatrixXcd;
-// using fluid::algorithm::MatrixXcdToFluid;
-// using fluid::algorithm::MatrixXdToFluid;
-
-struct Spectrogram {
-  //using ComplexMatrix = FluidTensor<complex<double>, 2>;
-  using RealMatrix = FluidTensor<double, 2>;
-  ArrayXXcd mData;
-  Spectrogram(MatrixXcd data) : mData(data) {}
-  RealMatrix getMagnitude() const {
-    //MatrixXcd dataMat = FluidToMatrixXcd(this->mData)();
-    ArrayXd magRealMat = mData.abs().real();
-    return ArrayXXdToFluid(magRealMat)();
-  }
-
-  RealMatrix getPhase() const; // TODO
-
-  long nFrames() const { return mData.rows(); }
-  long nBins() const { return mData.cols(); }
-};
 
 class STFT {
 
 public:
-  using ComplexMatrix = FluidTensor<complex<double>, 2>;
-  using RealMatrix = FluidTensor<double, 2>;
-  using RealVector = FluidTensor<double, 1>;
-  using RealVectorView = FluidTensorView<double, 1>;
-  using ComplexVectorView = FluidTensorView<complex<double>, 1>;
-  using ArrayXXdConstMap = Map<const Array<double, Dynamic, Dynamic, RowMajor>>;
-
   STFT(size_t windowSize, size_t fftSize, size_t hopSize)
       : mWindowSize(windowSize), mHopSize(hopSize), mFrameSize(fftSize / 2 + 1),
         mFFT(fftSize) {
@@ -68,7 +25,14 @@ public:
                            mWindowSize);
   }
 
-  Spectrogram process(const RealVector &audio) {
+  static void magnitude(const FluidTensorView<complex<double>, 2> &in,
+                        FluidTensorView<double, 2> out) {
+    ArrayXXcd dataMat = FluidToMatrixXcd(in)();
+    ArrayXXd magRealMat = dataMat.abs().real();
+    ArrayXXdMap(out.data(), in.rows(), in.cols()) = magRealMat;
+  }
+
+  void process(const RealVector &audio, ComplexMatrix spectrogram) {
     int halfWindow = mWindowSize / 2;
     ArrayXd padded(audio.size() + mWindowSize + mHopSize);
     padded.fill(0);
@@ -80,23 +44,16 @@ public:
       result.row(i) =
           mFFT.process(padded.segment(i * mHopSize, mWindowSize) * mWindow);
     }
-    //return ComplexMatrix(MatrixXcdToFluid(result)());
-    return Spectrogram(result);
+    ArrayXXcdMap(spectrogram.data(), nFrames, mFrameSize) = result;
   }
 
-  ComplexVectorView processFrame(const RealVectorView &frame) {
+  void processFrame(const RealVector &frame, ComplexVector out) {
     assert(frame.size() == mWindowSize);
-    return ComplexVectorView(
-        mFFT.process((ArrayXXdConstMap(frame.data(), mWindowSize, 1) * mWindow))
-            .data(),
-        0, mFrameSize);
+    ArrayXcdMap(out.data(), mFrameSize) = mFFT.process(
+        (ArrayXXdConstMap(frame.data(), mWindowSize, 1) * mWindow));
   }
 
-  RealVector window() {
-    FluidTensor<double, 1> win(mWindowSize);
-    win = FluidTensorView<double, 1>(mWindow.data(), 0, mWindowSize);
-    return win;
-  }
+  RealVector window() { return RealVector(mWindow.data(), 0, mWindowSize); }
 
 private:
   size_t mWindowSize;
@@ -109,62 +66,45 @@ private:
 class ISTFT {
 
 public:
-  using ComplexMatrix = FluidTensor<complex<double>, 2>;
-  using RealMatrix = FluidTensor<double, 2>;
-  using RealVector = FluidTensor<double, 1>;
-  using RealVectorView = FluidTensorView<double, 1>;
-  using ComplexVectorView = FluidTensorView<complex<double>, 1>;
-
-  using ArrayXXdMap = Map<Array<double, Dynamic, Dynamic, RowMajor>>;
-  using ArrayXcdConstMap =
-      Map<const Array<complex<double>, Dynamic, Dynamic, RowMajor>>;
-
   ISTFT(size_t windowSize, size_t fftSize, size_t hopSize)
       : mWindowSize(windowSize), mHopSize(hopSize), mFrameSize(fftSize / 2 + 1),
         mScale(1 / double(fftSize)), mIFFT(fftSize), mBuffer(mWindowSize) {
     mWindow = Map<ArrayXd>(windowFuncs[WindowType::kHann](mWindowSize).data(),
                            mWindowSize);
     mWindowSquared = mWindow * mWindow;
-    // The 2nd row of our output will be constant, and contain the squared
-    // window, for the normalisation buffer
-    //    ArrayXXdMap(mBuffer.row(1).data(), mWindowSize, 1) = mWindowSquared;
   }
 
-  RealVector process(const Spectrogram &spec) {
+  void process(const ComplexMatrix &spectrogram, RealVector audio) {
     const auto &epsilon = std::numeric_limits<double>::epsilon;
     int halfWindow = mWindowSize / 2;
-    int outputSize = mWindowSize + (spec.nFrames() - 1) * mHopSize;
+    int nFrames = spectrogram.rows();
+    int outputSize = mWindowSize + (nFrames - 1) * mHopSize;
     outputSize += mWindowSize + mHopSize;
-    ArrayXXcd specData = spec.mData.array();
+    ArrayXXcd specData = FluidToArrayXXcd(spectrogram)();
     ArrayXd outputPadded = ArrayXd::Zero(outputSize);
     ArrayXd norm = ArrayXd::Zero(outputSize);
-    for (int i = 0; i < spec.nFrames(); i++) {
+    for (int i = 0; i < nFrames; i++) {
       ArrayXd frame = mIFFT.process(specData.row(i)).segment(0, mWindowSize);
       outputPadded.segment(i * mHopSize, mWindowSize) +=
           frame * mScale * mWindow;
       norm.segment(i * mHopSize, mWindowSize) += mWindow * mWindow;
     }
     outputPadded = outputPadded / norm.max(epsilon());
-    return RealVector(
-        outputPadded
-            .segment(halfWindow, outputPadded.size() - halfWindow - mHopSize)
-            .data(),
-        outputSize - halfWindow - mHopSize);
+    ArrayXdMap(audio.data(), outputSize - halfWindow - mHopSize) =
+        outputPadded.segment(halfWindow,
+                             outputPadded.size() - halfWindow - mHopSize);
   }
 
-  RealVectorView processFrame(const ComplexVectorView &frame) {
+  void processFrame(const ComplexVector &frame, RealVector audio) {
     assert(frame.size() == mFrameSize);
-    ArrayXXdMap(mBuffer.data(), mWindowSize, 1) =
-        mIFFT.process(ArrayXcdConstMap(frame.data(), mFrameSize, 1))
-            .segment(0, mWindowSize) *
-        mWindow * mScale;
-    return mBuffer;
+    mBuffer = mIFFT.process(ArrayXcdConstMap(frame.data(), mFrameSize, 1))
+                  .segment(0, mWindowSize) *
+              mWindow * mScale;
+    ArrayXdMap(audio.data(), mWindowSize) = mBuffer;
   }
 
   RealVector window() {
-    FluidTensor<double, 1> win(mWindowSize);
-    win = FluidTensorView<double, 1>(mWindow.data(), 0, mWindowSize);
-    return win;
+    return  RealVector(mWindow.data(), 0, mWindowSize);
   }
 
 private:
@@ -175,7 +115,7 @@ private:
   ArrayXd mWindowSquared;
   double mScale;
   IFFT mIFFT;
-  RealVector mBuffer;
+  ArrayXd mBuffer;
 };
 
 } // namespace algorithm

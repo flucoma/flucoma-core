@@ -70,7 +70,7 @@ void writeFile(const char *name, const double *output, int size,
 // Main
 
 int main(int argc, const char *argv[]) {
-  using fluid::segmentation::TransientSegmentation;
+  using fluid::algorithm::TransientSegmentation;
 
   if (argc < 3) {
     std::cout << "Not enough file paths specified\n";
@@ -90,8 +90,8 @@ int main(int argc, const char *argv[]) {
   int frames = file.getFrames();
   auto samplingRate = file.getSamplingRate();
 
-  std::vector<double> input(frames, 0.0);
-  std::vector<double> segmentMarkers(frames + paramBlockSize, 0.0);
+  fluid::FluidTensor<double, 1> input(frames);
+  fluid::FluidTensor<double, 1> segmentMarkers(frames + paramBlockSize);
 
   file.readChannel(input.data(), frames, 0);
 
@@ -107,8 +107,8 @@ int main(int argc, const char *argv[]) {
 
   for (int i = 0, hopSize = segmentor.hopSize(); i < frames; i += hopSize) {
     int size = std::min(segmentor.inputSize(), frames - i);
-    const double *markers = segmentor.process(input.data() + i, size);
-    std::copy(markers, markers + hopSize, segmentMarkers.data() + i);
+    auto frame = fluid::Slice(i, size);
+    segmentor.process(input(frame), segmentMarkers(frame));
     std::cout << "Done " << (100 * (i + hopSize) / frames) << "%\n";
   }
 

@@ -1,30 +1,21 @@
 #pragma once
 
-#include "../../data/FluidTensor.hpp"
+#include "../../data/TensorTypes.hpp"
 #include "../util/ConvolutionTools.hpp"
 #include "../util/FFT.hpp"
+#include "../util/FluidEigenMappings.hpp"
 #include "Windows.hpp"
 #include <Eigen/Core>
 
 namespace fluid {
 namespace algorithm {
 
-using algorithm::correlateReal;
-using algorithm::FFT;
-using algorithm::kEdgeWrapCentre;
-using Eigen::Array;
 using Eigen::ArrayXcd;
 using Eigen::ArrayXd;
 using Eigen::ArrayXXd;
-using Eigen::Dynamic;
-using Eigen::Map;
-using Eigen::Matrix;
 using Eigen::MatrixXd;
-using Eigen::RowMajor;
 using Eigen::VectorXd;
 
-using algorithm::windowFuncs;
-using algorithm::WindowType;
 using std::vector;
 
 struct SinePeak {
@@ -41,15 +32,9 @@ struct SineTrack {
   bool assigned;
 };
 
-struct SinesPlusNoiseModel {
-  using RealMatrix = FluidTensor<double, 2>;
-  RealMatrix sines;
-  RealMatrix noise;
-};
 
 class SineExtraction {
 public:
-  using RealMatrix = FluidTensor<double, 2>;
 
   SineExtraction(int windowSize, int fftSize, int hopSize, int bandwidth,
                  double threshold, int minTrackLength, double magWeight,
@@ -64,24 +49,18 @@ public:
     mWNorm = mWindowTransform.square().sum();
   }
 
-  const SinesPlusNoiseModel process(const RealMatrix &X) {
-    using MatrixXdMap = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>;
-    using ArrayXXdMap =
-        Map<const Eigen::Array<double, Dynamic, Dynamic, RowMajor>>;
-    using ArrayXdMap = Map<const Array<double, Dynamic, RowMajor>>;
-
+  void process(const RealMatrix &X, RealMatrix sines, RealMatrix noise,
+               RealMatrix mix) {
     int nFrames = X.rows();
     int nBins = X.cols();
-    ArrayXXdMap input(X.data(), nFrames, nBins);
-    SinesPlusNoiseModel result;
+    ArrayXXdConstMap input(X.data(), nFrames, nBins);
     vector<SineTrack> tracks;
-    result.sines = RealMatrix(nFrames, nBins);
-    result.noise = RealMatrix(nFrames, nBins);
-    MatrixXd sines(nFrames, nBins);
-    MatrixXd noise(nFrames, nBins);
+    MatrixXd tmpSines(nFrames, nBins);
+    MatrixXd tmpNoise(nFrames, nBins);
 
     for (int i = 0; i < nFrames; i++) {
-      ArrayXdMap frame(X.row(i).data(), nBins);
+      //ArrayXdConstMap frame(X.row(i).data(), nBins);
+      ArrayXd frame = input.row(i);
       ArrayXd correlation = getWindowCorrelation(frame);
       vector<int> peaks = findPeaks(correlation, mThreshold);
       peakContinuation(tracks, peaks, frame, i);
@@ -90,15 +69,18 @@ public:
 
     for (int i = 0; i < nFrames; i++) {
       ArrayXd frameSines = additiveSynthesis(sinePeaks[i]);
-      ArrayXd frameResidual = ArrayXdMap(X.row(i).data(), nBins) - frameSines;
+      // TODO: there is some issue with input
+      ArrayXd frameResidual = ArrayXdConstMap(X.row(i).data(), nBins) - frameSines;
       frameResidual = (frameResidual < 0).select(0, frameResidual);
-      sines.row(i) = frameSines;
-      noise.row(i) = frameResidual;
+      tmpSines.row(i) = frameSines;
+      tmpNoise.row(i) = frameResidual;
     }
-    MatrixXdMap(result.sines.data(), nFrames, nBins) = sines;
-    MatrixXdMap(result.noise.data(), nFrames, nBins) = noise;
-
-    return result;
+    ArrayXXdMap outSines = ArrayXXdMap(sines.data(), nFrames, nBins);
+    outSines = tmpSines;
+    ArrayXXdMap outNoise = ArrayXXdMap(noise.data(), nFrames, nBins);
+    outNoise = tmpNoise.array();
+    ArrayXXdMap outMix = ArrayXXdMap(mix.data(), nFrames, nBins);
+    outMix = (tmpSines + tmpNoise).array();
   }
 
 private:
@@ -117,7 +99,7 @@ private:
   double mFreqWeight;
 
   const void peakContinuation(vector<SineTrack> &tracks, vector<int> peaks,
-                              ArrayXd frame, int frameNum) {
+                              const ArrayXd frame, int frameNum) {
     using std::abs;
     using std::get;
     using std::log;
@@ -185,7 +167,7 @@ private:
     return sinePeaks;
   }
 
-  ArrayXd getWindowCorrelation(ArrayXd frame) {
+  ArrayXd getWindowCorrelation(const ArrayXd frame) {
     ArrayXd squareMag = frame.square();
     ArrayXd corr(frame.size());
     ArrayXd spectrumNorm(frame.size());
@@ -217,14 +199,6 @@ private:
     }
     return peaks;
   }
-
-  /*ArrayXd additiveSynthesis(vector<int> peaks, ArrayXd spectrum) {
-    ArrayXd result = ArrayXd::Zero(mFFTSize / 2 + 1);
-    for (auto &p : peaks) {
-      result += synthesizePeak(p, spectrum(p));
-    }
-    return result;
-  }*/
 
   ArrayXd additiveSynthesis(vector<SinePeak> peaks) {
     ArrayXd result = ArrayXd::Zero(mFFTSize / 2 + 1);

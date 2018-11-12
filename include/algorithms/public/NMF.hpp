@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../data/TensorTypes.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -9,62 +10,40 @@
 namespace fluid {
 namespace algorithm {
 
-using Eigen::Array;
 using Eigen::ArrayXd;
 using Eigen::ArrayXXd;
-using Eigen::Dynamic;
-using Eigen::Map;
 using Eigen::MatrixXd;
-using Eigen::RowMajor;
 using Eigen::VectorXd;
-
-// using fluid::eigenmappings::FluidToMatrixXd;
-// using fluid::eigenmappings::MatrixXdToFluid;
-
-struct NMFModel {
-  using RealMatrix = FluidTensor<double, 2>;
-  using RealVector = FluidTensor<double, 1>;
-
-  MatrixXd W;
-  MatrixXd H;
-  MatrixXd V;
-  RealVector divergence;
-  RealMatrix getEstimate(int index) const {
-    assert(index < W.cols());
-    return MatrixXdToFluid((W.col(index) * H.row(index)).transpose())();
-  }
-
-  RealMatrix getMixEstimate() const {
-    RealMatrix result(H.cols(), W.rows());
-    return MatrixXdToFluid((W * H).transpose())();
-  }
-
-  RealMatrix getW() const {
-    RealMatrix result(W.rows(), W.cols());
-    return MatrixXdToFluid(W.transpose())();
-  }
-
-  RealMatrix getH() const {
-    RealMatrix result(H.rows(), H.cols());
-    return MatrixXdToFluid(H.transpose())();
-  }
-};
 
 class NMF {
   double const epsilon = std::numeric_limits<double>::epsilon();
 
 public:
-  using RealMatrix = FluidTensor<double, 2>;
-  using RealVector = FluidTensor<double, 1>;
-  using ArrayXdMap = Map<Array<double, Dynamic, RowMajor>>;
-  using ArrayXdConstMap = Map<const Array<double, Dynamic, RowMajor>>;
 
   NMF(int rank, int nIterations, bool updateW = true, bool updateH = true)
       : mRank(rank), mIterations(nIterations), mUpdateW(updateW),
         mUpdateH(updateH) {}
 
+  static void estimate(const RealMatrix W, const RealMatrix H, int index, RealMatrix V){
+    MatrixXd W1 = FluidToMatrixXd(W)().transpose();
+    MatrixXd H1 = FluidToMatrixXd(H)().transpose();
+    MatrixXd V1 = W1.col(index) * H1.row(index);
+    ArrayXXdMap outV = ArrayXXdMap(V.data(), V.extent(0), V.extent(1));
+    outV = V1.transpose().array();
+  }
+  // TODO: use newer way to map FluidView for rows/columns
+  /*
+  static void estimate(const RealVector W, const RealVector H, RealMatrix V){
+    MatrixXd w = ArrayXdConstMap(W.data(), W.extent(0)).matrix();
+    MatrixXd h = ArrayXdConstMap(H.data(), H.extent(0)).matrix();
+    ArrayXXdMap outV = ArrayXXdMap(V.data(), V.extent(0), V.extent(1));
+    ArrayXXd v1 = (w * h.transpose()).transpose().array();
+    outV = v1;
+  }
+  */
+
   // processFrame computes activations of a dictionary W in a given frame
-  void processFrame(const RealVector x, const RealMatrix W0, RealVector &out,
+  void processFrame(const RealVector x, const RealMatrix W0, RealVector out,
                     int nIterations = 10) {
     MatrixXd W = FluidToMatrixXd(W0)();
     VectorXd h =
@@ -87,11 +66,11 @@ public:
     ArrayXdMap(out.data(), mRank) = h.array();
   }
 
-  const NMFModel process(const RealMatrix &X, RealMatrix W0 = RealMatrix(0, 0),
+  void process(const RealMatrix X, RealMatrix W1, RealMatrix H1,
+                         RealMatrix V1, RealMatrix W0 = RealMatrix(0, 0),
                          RealMatrix H0 = RealMatrix(0, 0)) {
     int nFrames = X.extent(0);
     int nBins = X.extent(1);
-
     MatrixXd W;
     if (W0.extent(0) == 0 && W0.extent(1) == 0) {
       W = MatrixXd::Random(nBins, mRank) * 0.5 +
@@ -110,9 +89,14 @@ public:
       assert(H0.extent(1) == mRank);
       H = FluidToMatrixXd(H0)().transpose();
     }
-
     MatrixXd V = FluidToMatrixXd(X)().transpose();
-    return multiplicativeUpdates(V, W, H);
+    multiplicativeUpdates(V, W, H);
+    ArrayXXdMap outV = ArrayXXdMap(V1.data(), nFrames, nBins);
+    outV = V.transpose();
+    ArrayXXdMap outW = ArrayXXdMap(W1.data(), mRank, nBins);
+    outW = W.transpose();
+    ArrayXXdMap outH = ArrayXXdMap(H1.data(), nFrames, mRank);
+    outH = H.transpose();
   }
 
 private:
@@ -121,9 +105,7 @@ private:
   bool mUpdateW;
   bool mUpdateH;
 
-  NMFModel multiplicativeUpdates(const MatrixXd V, MatrixXd W, MatrixXd H) {
-    NMFModel result;
-    std::vector<double> divergenceCurve;
+  void multiplicativeUpdates(MatrixXd &V, MatrixXd &W, MatrixXd &H) {
     MatrixXd ones = MatrixXd::Ones(V.rows(), V.cols());
     W.colwise().normalize();
     H.rowwise().normalize();
@@ -146,14 +128,12 @@ private:
       }
       MatrixXd R = W * H;
       R = R.cwiseMax(epsilon);
-      // double divergence = (V.cwiseProduct(V.cwiseQuotient(R)) - V + R).sum();
+      double divergence = (V.cwiseProduct(V.cwiseQuotient(R)) - V + R).sum();
       // divergenceCurve.push_back(divergence);
-      // std::cout << "Divergence " << divergence << "\n";
+      //divergenceCurve(mIterations);
+      //std::cout << "Divergence " << divergence << "\n";
     }
-    result.W = W;
-    result.H = H;
-    result.divergence = RealVector(divergenceCurve);
-    return result;
+    V = W * H;
   }
 };
 } // namespace algorithm
