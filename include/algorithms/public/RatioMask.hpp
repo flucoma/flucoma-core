@@ -8,6 +8,9 @@
 namespace fluid {
 namespace algorithm {
 
+using _impl::asEigen;
+using _impl::asFluid;
+
 using Eigen::ArrayXXcd;
 using Eigen::ArrayXXd;
 using Eigen::Map;
@@ -17,9 +20,7 @@ class RatioMask {
 
 public:
   RatioMask(RealMatrix denominator, int exponent) : mExponent(exponent) {
-    ArrayXXdMap denominatorArray(denominator.data(), denominator.extent(0),
-                                 denominator.extent(1));
-    mMultiplier = (1 / denominatorArray.max(epsilon));
+    mMultiplier = (1 / asEigen<Array>(denominator).max(epsilon));
   }
 
   void process(const ComplexMatrix &mixture, RealMatrix targetMag,
@@ -27,14 +28,11 @@ public:
     assert(mixture.cols() == targetMag.cols());
     assert(mixture.rows() == targetMag.rows());
     // ComplexMatrix result(mixture.extent(0), mixture.extent(1));
-    ArrayXXcdConstMap mixtureArray(mixture.data(), mixture.extent(0),
-                                   mixture.extent(1));
-    ArrayXXdMap targetMagArray(targetMag.data(), targetMag.extent(0),
-                               targetMag.extent(1));
     ArrayXXcd tmp =
-        mixtureArray *
-        (targetMagArray.pow(mExponent) * mMultiplier.pow(mExponent)).min(1.0);
-    ArrayXXcdMap(result.data(), mixture.extent(0), mixture.extent(1)) = tmp;
+        asEigen<Array>(mixture) *
+        (asEigen<Array>(targetMag).pow(mExponent) * mMultiplier.pow(mExponent))
+            .min(1.0);
+    result = asFluid(tmp);
   }
 
 private:

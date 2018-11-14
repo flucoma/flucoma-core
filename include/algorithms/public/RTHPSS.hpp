@@ -9,6 +9,8 @@
 namespace fluid {
 namespace algorithm {
 
+using _impl::asEigen;
+using _impl::asFluid;
 using Eigen::ArrayXd;
 using Eigen::ArrayXXcd;
 using Eigen::ArrayXXd;

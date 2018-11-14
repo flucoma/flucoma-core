@@ -13,6 +13,8 @@
 namespace fluid {
 namespace algorithm {
 
+using _impl::asEigen;
+using _impl::asFluid;
 using Eigen::ArrayXcd;
 using Eigen::ArrayXd;
 using Eigen::Map;
@@ -76,8 +78,7 @@ public:
     int rightPadding = mWindowSize;
     ArrayXd padded(input.size() + leftPadding + rightPadding);
     padded.fill(0);
-    padded.segment(leftPadding, input.size()) =
-        Map<const ArrayXd>(input.data(), input.size());
+    padded.segment(leftPadding, input.size()) = asEigen<Array>(input);
     int nFrames = floor((padded.size() - frameSize) / mHopSize);
     ArrayXd onsetDetectionFunc(nFrames);
     for (int i = 0; i < nFrames; i++) {
@@ -113,8 +114,9 @@ public:
 
 private:
   void processSingleWindow(RealVector frame, const double *input) {
-    for (auto i = 0; i < frame.size(); i++)
+    for (auto i = 0; i < frame.size(); i++){
       mFFTBuffer(i) = input[i];
+    }
 
     mFFTBuffer *= mWindow;
     Eigen::Ref<ArrayXcd> fftOut = mFFT.process(Eigen::Ref<ArrayXd>(mFFTBuffer));

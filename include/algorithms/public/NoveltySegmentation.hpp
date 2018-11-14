@@ -9,6 +9,9 @@
 namespace fluid {
 namespace algorithm {
 
+using _impl::asEigen;
+using _impl::asFluid;
+
 class NoveltySegmentation {
 
 public:
@@ -23,7 +26,7 @@ public:
 
     ArrayXd curve(input.extent(0));
     Novelty nov(mKernelSize);
-    nov.process(FluidToArrayXXd(input)(), curve);
+    nov.process(asEigen<Array>(input), curve);
     if (mFilterSize > 0) {
       ArrayXd filter = ArrayXd::Constant(mFilterSize, 1.0 / mFilterSize);
       ArrayXd smoothed = ArrayXd::Zero(curve.size());

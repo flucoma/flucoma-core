@@ -10,8 +10,11 @@
 namespace fluid {
 namespace algorithm {
 
+using _impl::asEigen;
+using _impl::asFluid;
 using Eigen::ArrayXd;
 using Eigen::ArrayXXcd;
+using Eigen::ArrayXcd;
 using Eigen::ArrayXXd;
 using Eigen::MatrixXcd;
 
@@ -27,9 +30,8 @@ public:
 
   static void magnitude(const FluidTensorView<complex<double>, 2> &in,
                         FluidTensorView<double, 2> out) {
-    ArrayXXcd dataMat = FluidToMatrixXcd(in)();
-    ArrayXXd magRealMat = dataMat.abs().real();
-    ArrayXXdMap(out.data(), in.rows(), in.cols()) = magRealMat;
+    ArrayXXd mag = asEigen<Array>(in).abs().real();
+    out = asFluid(mag);
   }
 
   void process(const RealVector &audio, ComplexMatrix spectrogram) {
@@ -44,13 +46,13 @@ public:
       result.row(i) =
           mFFT.process(padded.segment(i * mHopSize, mWindowSize) * mWindow);
     }
-    ArrayXXcdMap(spectrogram.data(), nFrames, mFrameSize) = result;
+    spectrogram = asFluid(result);
   }
 
   void processFrame(const RealVector &frame, ComplexVector out) {
     assert(frame.size() == mWindowSize);
-    ArrayXcdMap(out.data(), mFrameSize) = mFFT.process(
-        (ArrayXXdConstMap(frame.data(), mWindowSize, 1) * mWindow));
+    ArrayXcd spectrum = mFFT.process(asEigen<Array>(frame) * mWindow);
+    out = asFluid(spectrum);
   }
 
   RealVector window() { return RealVector(mWindow.data(), 0, mWindowSize); }
@@ -80,7 +82,7 @@ public:
     int nFrames = spectrogram.rows();
     int outputSize = mWindowSize + (nFrames - 1) * mHopSize;
     outputSize += mWindowSize + mHopSize;
-    ArrayXXcd specData = FluidToArrayXXcd(spectrogram)();
+    ArrayXXcd specData = asEigen<Array>(spectrogram);
     ArrayXd outputPadded = ArrayXd::Zero(outputSize);
     ArrayXd norm = ArrayXd::Zero(outputSize);
     for (int i = 0; i < nFrames; i++) {
@@ -90,22 +92,22 @@ public:
       norm.segment(i * mHopSize, mWindowSize) += mWindow * mWindow;
     }
     outputPadded = outputPadded / norm.max(epsilon());
-    ArrayXdMap(audio.data(), outputSize - halfWindow - mHopSize) =
-        outputPadded.segment(halfWindow,
-                             outputPadded.size() - halfWindow - mHopSize);
+    ArrayXd trimmed = outputPadded.segment(
+        halfWindow, outputPadded.size() - halfWindow - mHopSize);
+    audio = asFluid(trimmed);
+    // ArrayXdMap(audio.data(), outputSize - halfWindow - mHopSize) =
+    //    outputPadded.segment(halfWindow,
+    //                         outputPadded.size() - halfWindow - mHopSize);
   }
 
   void processFrame(const ComplexVector &frame, RealVector audio) {
     assert(frame.size() == mFrameSize);
-    mBuffer = mIFFT.process(ArrayXcdConstMap(frame.data(), mFrameSize, 1))
-                  .segment(0, mWindowSize) *
+    mBuffer = mIFFT.process(asEigen<Array>(frame)).segment(0, mWindowSize) *
               mWindow * mScale;
-    ArrayXdMap(audio.data(), mWindowSize) = mBuffer;
+    audio = asFluid(mBuffer);
   }
 
-  RealVector window() {
-    return  RealVector(mWindow.data(), 0, mWindowSize);
-  }
+  RealVector window() { return RealVector(mWindow.data(), 0, mWindowSize); }
 
 private:
   size_t mWindowSize;

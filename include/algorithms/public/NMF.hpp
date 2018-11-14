@@ -10,6 +10,8 @@
 namespace fluid {
 namespace algorithm {
 
+using _impl::asEigen;
+using _impl::asFluid;
 using Eigen::ArrayXd;
 using Eigen::ArrayXXd;
 using Eigen::MatrixXd;
@@ -19,17 +21,16 @@ class NMF {
   double const epsilon = std::numeric_limits<double>::epsilon();
 
 public:
-
   NMF(int rank, int nIterations, bool updateW = true, bool updateH = true)
       : mRank(rank), mIterations(nIterations), mUpdateW(updateW),
         mUpdateH(updateH) {}
 
-  static void estimate(const RealMatrix W, const RealMatrix H, int index, RealMatrix V){
-    MatrixXd W1 = FluidToMatrixXd(W)().transpose();
-    MatrixXd H1 = FluidToMatrixXd(H)().transpose();
-    MatrixXd V1 = W1.col(index) * H1.row(index);
-    ArrayXXdMap outV = ArrayXXdMap(V.data(), V.extent(0), V.extent(1));
-    outV = V1.transpose().array();
+  static void estimate(const RealMatrix W, const RealMatrix H, int index,
+                       RealMatrix V) {
+    MatrixXd W1 = asEigen<Matrix>(W).transpose();
+    MatrixXd H1 = asEigen<Matrix>(H).transpose();
+    MatrixXd result = (W1.col(index) * H1.row(index)).transpose();
+    V = asFluid(result);
   }
   // TODO: use newer way to map FluidView for rows/columns
   /*
@@ -45,14 +46,12 @@ public:
   // processFrame computes activations of a dictionary W in a given frame
   void processFrame(const RealVector x, const RealMatrix W0, RealVector out,
                     int nIterations = 10) {
-    MatrixXd W = FluidToMatrixXd(W0)();
+    MatrixXd W = asEigen<Matrix>(W0);
     VectorXd h =
         MatrixXd::Random(mRank, 1) * 0.5 + MatrixXd::Constant(mRank, 1, 0.5);
-    VectorXd v = ArrayXdConstMap(x.data(), x.extent(0)).matrix();
-
+    VectorXd v = asEigen<Matrix>(x);
     MatrixXd WT = W.transpose();
     WT.colwise().normalize();
-
     VectorXd ones = VectorXd::Ones(x.extent(0));
     while (nIterations--) {
       ArrayXd v1 = (W * h).array() + epsilon;
@@ -63,12 +62,13 @@ public:
       // double divergence = (v.cwiseProduct(v.cwiseQuotient(r)) - v + r).sum();
       // std::cout<<"Divergence "<<divergence<<std::endl;
     }
-    ArrayXdMap(out.data(), mRank) = h.array();
+    out = asFluid(h);
+    // ArrayXdMap(out.data(), mRank) = h.array();
   }
 
-  void process(const RealMatrix X, RealMatrix W1, RealMatrix H1,
-                         RealMatrix V1, RealMatrix W0 = RealMatrix(0, 0),
-                         RealMatrix H0 = RealMatrix(0, 0)) {
+  void process(const RealMatrix X, RealMatrix W1, RealMatrix H1, RealMatrix V1,
+               RealMatrix W0 = RealMatrix(0, 0),
+               RealMatrix H0 = RealMatrix(0, 0)) {
     int nFrames = X.extent(0);
     int nBins = X.extent(1);
     MatrixXd W;
@@ -78,7 +78,7 @@ public:
     } else {
       assert(W0.extent(0) == mRank);
       assert(W0.extent(1) == nBins);
-      W = FluidToMatrixXd(W0)().transpose();
+      W = asEigen<Matrix>(W0).transpose();
     }
     MatrixXd H;
     if (H0.extent(0) == 0 && H0.extent(1) == 0) {
@@ -87,16 +87,16 @@ public:
     } else {
       assert(H0.extent(0) == nFrames);
       assert(H0.extent(1) == mRank);
-      H = FluidToMatrixXd(H0)().transpose();
+      H = asEigen<Matrix>(H0).transpose();
     }
-    MatrixXd V = FluidToMatrixXd(X)().transpose();
+    MatrixXd V = asEigen<Matrix>(X).transpose();
     multiplicativeUpdates(V, W, H);
-    ArrayXXdMap outV = ArrayXXdMap(V1.data(), nFrames, nBins);
-    outV = V.transpose();
-    ArrayXXdMap outW = ArrayXXdMap(W1.data(), mRank, nBins);
-    outW = W.transpose();
-    ArrayXXdMap outH = ArrayXXdMap(H1.data(), nFrames, mRank);
-    outH = H.transpose();
+    MatrixXd VT = V.transpose();
+    MatrixXd WT = W.transpose();
+    MatrixXd HT = H.transpose();
+    V1 = asFluid(VT);
+    W1 = asFluid(WT);
+    H1 = asFluid(HT);
   }
 
 private:
@@ -130,8 +130,8 @@ private:
       R = R.cwiseMax(epsilon);
       double divergence = (V.cwiseProduct(V.cwiseQuotient(R)) - V + R).sum();
       // divergenceCurve.push_back(divergence);
-      //divergenceCurve(mIterations);
-      //std::cout << "Divergence " << divergence << "\n";
+      // divergenceCurve(mIterations);
+      // std::cout << "Divergence " << divergence << "\n";
     }
     V = W * H;
   }

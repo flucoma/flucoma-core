@@ -15,6 +15,8 @@ namespace algorithm {
 using algorithm::ARModel;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
+using _impl::asEigen;
+using _impl::asFluid;
 
 class TransientExtraction {
 

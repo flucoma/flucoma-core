@@ -10,6 +10,8 @@
 namespace fluid {
 namespace algorithm {
 
+using _impl::asEigen;
+using _impl::asFluid;
 using Eigen::ArrayXcd;
 using Eigen::ArrayXd;
 using Eigen::ArrayXXd;
@@ -32,10 +34,8 @@ struct SineTrack {
   bool assigned;
 };
 
-
 class SineExtraction {
 public:
-
   SineExtraction(int windowSize, int fftSize, int hopSize, int bandwidth,
                  double threshold, int minTrackLength, double magWeight,
                  double freqWeight)
@@ -59,7 +59,7 @@ public:
     MatrixXd tmpNoise(nFrames, nBins);
 
     for (int i = 0; i < nFrames; i++) {
-      //ArrayXdConstMap frame(X.row(i).data(), nBins);
+      // ArrayXdConstMap frame(X.row(i).data(), nBins);
       ArrayXd frame = input.row(i);
       ArrayXd correlation = getWindowCorrelation(frame);
       vector<int> peaks = findPeaks(correlation, mThreshold);
@@ -70,7 +70,8 @@ public:
     for (int i = 0; i < nFrames; i++) {
       ArrayXd frameSines = additiveSynthesis(sinePeaks[i]);
       // TODO: there is some issue with input
-      ArrayXd frameResidual = ArrayXdConstMap(X.row(i).data(), nBins) - frameSines;
+      ArrayXd frameResidual =
+          ArrayXdConstMap(X.row(i).data(), nBins) - frameSines;
       frameResidual = (frameResidual < 0).select(0, frameResidual);
       tmpSines.row(i) = frameSines;
       tmpNoise.row(i) = frameResidual;

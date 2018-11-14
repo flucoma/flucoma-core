@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../../data/TensorTypes.hpp"
-#include "../util/FluidEigenMappings.hpp"
 #include "../util/ConvolutionTools.hpp"
 #include "../util/FFT.hpp"
+#include "../util/FluidEigenMappings.hpp"
 #include "Windows.hpp"
 #include <Eigen/Core>
 #include <queue>
@@ -11,10 +11,12 @@
 namespace fluid {
 namespace algorithm {
 
-using std::vector;
+using _impl::asEigen;
+using _impl::asFluid;
 using Eigen::ArrayXcd;
 using Eigen::ArrayXd;
 using Eigen::VectorXd;
+using std::vector;
 
 struct SinePeak {
   int centerBin;
@@ -50,13 +52,9 @@ public:
   }
 
   void processFrame(const ComplexVector &in, ComplexMatrix out) {
-    // ArrayXcdMap =
-    //    Map<const Array<std::complex<double>, Dynamic, RowMajor>>;
-    //    using fluid::eigenmappings::ArrayXXcdToFluid;
     using Eigen::ArrayXXcd;
-
     const auto &epsilon = std::numeric_limits<double>::epsilon;
-    ArrayXcdConstMap frame(in.data(), mBins);
+    ArrayXcd frame = asEigen<Array>(in);
     mBuf.push(frame);
     ArrayXd mag = frame.abs().real();
     ArrayXd correlation = getWindowCorrelation(mag);
@@ -85,7 +83,7 @@ public:
                   track.endFrame <= mCurrentFrame - mMinTrackLength);
         });
     mTracks.erase(iterator, mTracks.end());
-    out = ArrayXXcdToFluid(result)();
+    out = asFluid(result);
     mCurrentFrame++;
   }
 

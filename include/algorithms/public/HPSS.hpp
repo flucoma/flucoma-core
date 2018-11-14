@@ -11,6 +11,8 @@
 namespace fluid {
 namespace algorithm {
 
+using _impl::asEigen;
+using _impl::asFluid;
 using Eigen::ArrayXd;
 using Eigen::ArrayXXd;
 using Eigen::MatrixXd;
@@ -18,7 +20,6 @@ using std::vector;
 
 class HPSS {
 public:
-
   HPSS(int vSize, int hSize)
       : mVSize(vSize), mHSize(hSize), mVMedianFilter(vSize),
         mHMedianFilter(hSize) {}
@@ -32,7 +33,7 @@ public:
     MatrixXd tmp = MatrixXd::Zero(paddedV, paddedH);
     MatrixXd H = MatrixXd::Zero(paddedV, paddedH);
     MatrixXd P = MatrixXd::Zero(paddedV, paddedH);
-    ArrayXXd tmp1 = FluidToMatrixXd(in)().transpose();
+    ArrayXXd tmp1 = asEigen<Array>(in).transpose();
     tmp.block((mVSize - 1) / 2, (mHSize - 1) / 2, nBins, nFrames) = tmp1;
     for (int i = mHSize / 2; i < nFrames + mHSize / 2; i++) {
       mVMedianFilter.process(tmp.col(i).array(), P.col(i).array());
@@ -44,12 +45,12 @@ public:
     }
     H = H.block((mVSize - 1) / 2, (mHSize - 1) / 2, nBins, nFrames);
     P = P.block((mVSize - 1) / 2, (mHSize - 1) / 2, nBins, nFrames);
-    ArrayXXdMap outHarm = ArrayXXdMap(harm.data(), nFrames, nBins);
-    outHarm = H.transpose();
-    ArrayXXdMap outPerc = ArrayXXdMap(perc.data(), nFrames, nBins);
-    outPerc = P.transpose();
-    ArrayXXdMap outMix = ArrayXXdMap(mixEstimate.data(), nFrames, nBins);
-    outMix = (H + P).transpose();
+    MatrixXd HT = H.transpose();
+    MatrixXd PT = P.transpose();
+    MatrixXd MT = HT + PT;
+    harm = asFluid(HT);
+    perc = asFluid(PT);
+    mixEstimate = asFluid(MT);
   }
 
 private:
