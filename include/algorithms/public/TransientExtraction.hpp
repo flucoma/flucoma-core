@@ -8,15 +8,16 @@
 #include "../../data/TensorTypes.hpp"
 #include "../util/ARModel.hpp"
 #include "../util/Descriptors.hpp"
+#include "../util/FluidEigenMappings.hpp"
 
 namespace fluid {
 namespace algorithm {
 
+using _impl::asEigen;
+using _impl::asFluid;
 using algorithm::ARModel;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
-using _impl::asEigen;
-using _impl::asFluid;
 
 class TransientExtraction {
 
@@ -100,7 +101,7 @@ public:
     if (mCount)
       analyse();
     interpolate(transients.data(), residual.data());
-    //return mCount;
+    // return mCount;
   }
 
 private:
