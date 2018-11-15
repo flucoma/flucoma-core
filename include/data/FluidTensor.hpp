@@ -981,8 +981,8 @@ namespace fluid {
         /**
          Retreive pointer to underlying data.
          **/
-        const T* data()  const { return m_ref + m_desc.start; }
-        pointer data() { return m_ref + m_desc.start; }
+        const T* data()  const { return m_ref ? m_ref + m_desc.start : 0 ; }
+        pointer data()         { return m_ref ? m_ref + m_desc.start : 0 ;  }
         
         /**
          Retreive description of View's shape
