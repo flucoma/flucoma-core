@@ -450,6 +450,10 @@ public:
 
   void fill(T v) { std::fill(mContainer.begin(), mContainer.end(), v); }
 
+  FluidTensorView<T,N> transpose() { return { m_desc.transpose(), data() }; }
+  
+  const FluidTensorView<T,N> transpose() const { return {m_desc.transpose(), data()}; }
+  
   template <typename F> FluidTensor &apply(F f) {
     for (auto i = begin(); i != end(); ++i)
       f(*i);
@@ -835,6 +839,10 @@ public:
   // Fill this view with a value
   void fill(const T x) { std::fill(begin(), end(), x); }
 
+  FluidTensorView<T,N> transpose() { return { m_desc.transpose(), m_ref }; }
+  
+  const FluidTensorView<T,N> transpose() const { return { m_desc.transpose(), m_ref }; }
+  
   /**
    Apply some function to each element of the view.
 

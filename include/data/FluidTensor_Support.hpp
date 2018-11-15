@@ -330,7 +330,16 @@ template <typename T, size_t N> struct SliceIterator {
     std::fill_n(mIndexes.begin(), N, 0);
     if (end) {
       mIndexes[0] = s.extents[0];
-      mPtr = base + s.start + (s.strides[0] * s.extents[0]);
+
+      //The size in desc gives the size of the
+      //overall container, not the size of the slice
+      //this seems preferable to littering the code with transpose flags
+      size_t size = 0;
+      if(s.strides[N-1] == 1) //Not transposed
+        size = s.strides[0] * s.extents[0];
+      else                    //transposed
+        size = s.strides[N-1] * s.extents[N-1];
+      m_ptr = base + s.start + size;
     } else
       mPtr = base + s.start;
   }
@@ -635,6 +644,15 @@ template <size_t N> struct FluidTensorSlice {
     return i * strides[0] + j;
   }
 
+  FluidTensorSlice<N> transpose()
+  {
+    FluidTensorSlice<N> res(*this);
+    std::reverse(res.extents.begin(), res.extents.end());
+    std::reverse(res.strides.begin(), res.strides.end());
+    return res;
+  }
+
+  
   friend void swap(FluidTensorSlice &first, FluidTensorSlice &second) {
     using std::swap;
 
