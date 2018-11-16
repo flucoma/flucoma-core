@@ -159,7 +159,7 @@ namespace fluid {
               if(p.hasChanged() && p.getBuffer())
               {
                 parameter::BufferAdaptor::Access b(p.getBuffer());
-                if(!b.valid())
+                if(!b.exists())
              
                  {
                    std::ostringstream ss;
@@ -278,19 +278,19 @@ namespace fluid {
         parameter::Instance& resynth = parameter::lookupParam("resynthbuf", mParams);
         parameter::BufferAdaptor::Access resynthBuf(resynth.getBuffer());
         
-        if(resynth.hasChanged() && (!resynth.getBuffer() || !resynthBuf.valid()))
+        if(resynth.hasChanged() && !resynthBuf.exists())
         {
           return {false, "Invalid resynthesis buffer supplied", model};
         }
         
-        model.resynthesise = resynth.hasChanged() && resynthBuf.valid();
+        model.resynthesise = resynth.hasChanged() && resynthBuf.exists();
         if(model.resynthesise)
           model.resynth = resynth.getBuffer();
         
         parameter::Instance& dict = parameter::lookupParam("filterbuf", mParams);
         parameter::BufferAdaptor::Access dictBuf(dict.getBuffer());
 
-        if(dict.hasChanged() && (!dict.getBuffer() || !dictBuf.valid()))
+        if(dict.hasChanged() && !dictBuf.exists())
         {
           return {false, "Invalid filters buffer supplied",model};
         }
@@ -308,7 +308,7 @@ namespace fluid {
         parameter::Instance& act = parameter::lookupParam("envbuf", mParams);
         parameter::BufferAdaptor::Access actBuf(act.getBuffer());
 
-        if(act.hasChanged() && (!act.getBuffer() && !actBuf.valid()))
+        if(act.hasChanged() && !actBuf.exists())
         {
           return {false, "Invalid envelope buffer supplied",model};
         }

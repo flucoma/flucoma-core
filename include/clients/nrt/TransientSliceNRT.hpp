@@ -205,7 +205,7 @@ namespace fluid {
               if(p.hasChanged() && p.getBuffer())
               {
                 parameter::BufferAdaptor::Access b(p.getBuffer());
-                if(!b.valid())
+                if(!b.exists())
                  {
                    std::ostringstream ss;
                    ss << "Buffer given for " << p.getDescriptor().getName() << " doesn't exist.";
@@ -290,7 +290,7 @@ namespace fluid {
         parameter::Instance& transBufParam =  mParams[5];
         parameter::BufferAdaptor::Access transBuf(transBufParam.getBuffer());
         
-        if(transBufParam.hasChanged() && (!transBuf.valid()))
+        if(transBufParam.hasChanged() && (!transBuf.exists()))
         {
           return {false, "Invalid transients buffer supplied", model};
         }

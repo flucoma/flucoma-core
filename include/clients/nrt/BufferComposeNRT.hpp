@@ -132,7 +132,7 @@ namespace fluid {
         parameter::BufferAdaptor::Access src1(mParams[0].getBuffer());
         parameter::BufferAdaptor::Access src2(mParams[8].getBuffer());
 
-        if(!(src1.valid() && src2.valid()))
+        if(!(src1.valid() && src1.exists() && src2.valid() && src2.exists()))
         {
           return  { false, "At least one source buffer doesn't exist or can't be accessed.", model };
         }
@@ -151,7 +151,7 @@ namespace fluid {
               if(p.hasChanged() && p.getBuffer())
               {
                 parameter::BufferAdaptor::Access b(p.getBuffer());
-                if(!b.valid())
+                if(!b.exists())
                  {
                    std::ostringstream ss;
                    ss << "Buffer given for " << p.getDescriptor().getName() << " doesn't exist.";
@@ -272,7 +272,7 @@ namespace fluid {
         parameter::Instance& dstParam = parameter::lookupParam("dstbuf", mParams);
 
         parameter::BufferAdaptor::Access dst(dstParam.getBuffer());
-        if(! dst.valid())
+        if(! dst.exists())
         {
           return {false,"Destination buffer invalid",model};
         }

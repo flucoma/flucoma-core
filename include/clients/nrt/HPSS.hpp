@@ -190,7 +190,7 @@ namespace fluid {
               if(p.hasChanged() && p.getBuffer())
               {
                 parameter::BufferAdaptor::Access b(p.getBuffer());
-                if(!b.valid())
+                if(!b.exists())
                  {
                    std::ostringstream ss;
                    ss << "Buffer given for " << p.getDescriptor().getName() << " doesn't exist.";
@@ -266,11 +266,11 @@ namespace fluid {
         parameter::BufferAdaptor::Access percBuf(parameter::lookupParam("percbuf", getParams()).getBuffer());
 
         
-        if(! harmBuf.valid())
+        if(! harmBuf.exists())
         {
           return {false,"Harmonic buffer invalid",model};
         }
-        if(! percBuf.valid())
+        if(! percBuf.exists())
         {
           return {false,"Percussive buffer invalid",model};
         }
@@ -353,7 +353,7 @@ namespace fluid {
         
         if(model.mode == 2 && model.res)
         {
-          if(!resBuf.valid())
+          if(!resBuf.exists())
             return {false, "Residual buffer passed is invalid",model};
           model.returnRes = true;
         }

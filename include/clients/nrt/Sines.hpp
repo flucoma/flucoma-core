@@ -171,7 +171,7 @@ namespace fluid {
               if(p.hasChanged() && p.getBuffer())
               {
                 parameter::BufferAdaptor::Access b(p.getBuffer());
-                if(!b.valid())
+                if(!b.exists())
                  {
                    std::ostringstream ss;
                    ss << "Buffer given for " << p.getDescriptor().getName() << " doesn't exist.";
