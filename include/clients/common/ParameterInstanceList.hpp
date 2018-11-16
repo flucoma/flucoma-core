@@ -38,6 +38,10 @@ class ParameterInstanceList {
         case Type::kBuffer:
           mBuffer = nullptr;
           break;
+        case Type::kEnum:
+          mLong = mDesc.getDefault();          
+          break;
+        
         default:
           break;
       }
@@ -124,9 +128,16 @@ class ParameterInstanceList {
   private:
     const ParameterDescriptor mDesc;
     bool mHasChanged = false;
+    
+    //Menagerie of types
     std::unique_ptr<BufferAdaptor> mBuffer;
     double mFloat;
     long mLong;
+    std::vector<std::string> mEnumStrings;
+    std::vector<long> mLongArray;
+    std::vector<double> mFloatArray;
+    
+    
   }; // ParameterInstance
   
   friend ParameterDescriptor;
