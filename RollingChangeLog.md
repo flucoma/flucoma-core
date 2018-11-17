@@ -1,3 +1,39 @@
+# Alpha-03:
+date:
+
+## New Objects:
+-
+
+## New Features:
+-
+
+## New Examples:
+-
+
+## Bug Fixes:
+-
+
+## Known Bugs Still Unfixed:
+-
+
+===
+
+# Alpha-02a:
+date: November 17th, 2018
+
+## New Examples:
+- new didactic example in bufnmf and nmfmatch
+
+## Bug Fixes:
+- NMFMatch bug fix - cleaner activations and more stable behaviour
+
+## Known Bugs Still Unfixed:
+- debounce in all transient-based code
+
+
+
+===
+
 # Alpha-02:
 date: November 5th, 2018
 
