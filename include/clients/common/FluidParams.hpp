@@ -27,7 +27,7 @@ namespace client {
  their mix-ins
  **/
 
-enum class Type { kFloat, kLong, kBuffer, kEnum };
+//enum class Type { kFloat, kLong, kBuffer, kEnum };
 
 class BufferAdaptor //: public FluidTensorView<float,2>
 {
@@ -117,351 +117,351 @@ private:
   virtual size_t numChans() const = 0;
   virtual size_t rank() const = 0;
 };
-
-struct Descriptor {
-
-  Descriptor(const Descriptor &d) {
-    mName = d.mName;
-    mDisplayName = d.mDisplayName;
-    mInstantiation = d.mInstantiation;
-    mType = d.mType;
-    mMin = d.mMin;
-    mMax = d.mMax;
-    mDefault = d.mDefault;
-    mHasDefault = d.mHasDefault;
-  }
-
-  Descriptor(const Descriptor &&d) {
-    mName = d.mName;
-    mDisplayName = d.mDisplayName;
-    mInstantiation = d.mInstantiation;
-    mType = d.mType;
-    mMin = d.mMin;
-    mMax = d.mMax;
-    mDefault = d.mDefault;
-    mHasDefault = d.mHasDefault;
-  }
-
-  Descriptor &operator=(Descriptor d) {
-    std::swap(*this, d);
-    return *this;
-  }
-
-  Descriptor(std::string name, std::string dispName, Type type)
-      : mName(name), mType(type), mDisplayName(dispName) {
-
-    if (mType == Type::kBuffer) {
-      mMin = 0;
-      mMax = 0;
-    }
-  }
-
-  std::string getDisplayName() const { return mDisplayName; }
-  std::string getName() const { return mName; }
-  Type getType() const { return mType; }
-
-  Descriptor &setMin(double min) {
-    assert(mType != Type::kBuffer);
-    assert(min < mMax);
-    mMin = min;
-    return *this;
-  }
-
-  double getMin() const { return mMin; }
-
-  Descriptor &setMax(double max) {
-    assert(mType != Type::kBuffer);
-    assert(max > mMin);
-    mMax = max;
-    return *this;
-  }
-
-  double getMax() const { return mMax; }
-
-  Descriptor &setClip(double min, double max) {
-    assert(min < max);
-    mMin = min;
-    mMax = max;
-    return *this;
-  }
-
-  Descriptor &setDefault(double def) {
-    assert(mType != Type::kBuffer);
-    assert(def <= mMax);
-    assert(def >= mMin);
-    mDefault = def;
-    mHasDefault = true;
-    return *this;
-  }
-
-  double getDefault() const { return mDefault; }
-
-  Descriptor &setInstantiation(bool i) {
-    mInstantiation = i;
-    return *this;
-  }
-
-  bool instantiation() const { return mInstantiation; }
-  bool hasDefault() const {
-    return mType == Type::kBuffer ? false : mHasDefault;
-  }
-
-  bool hasMin() const {
-    return mType == Type::kBuffer
-               ? false
-               : !(mMin == std::numeric_limits<double>::lowest());
-  }
-
-  bool hasMax() const {
-    return mType == Type::kBuffer
-               ? false
-               : !(mMax == std::numeric_limits<double>::max());
-  }
-
-  bool operator==(const Descriptor &x) const {
-    return mName == x.mName && (hasMin() ? (mMin == x.mMin) : 1) &&
-           (hasMax() ? (mMax == x.mMax) : 1) &&
-           (hasDefault() ? (mDefault == x.mDefault) : 1) &&
-           (mInstantiation == x.mInstantiation) && (mType == x.mType);
-  }
-
-  bool operator!=(const Descriptor &x) const { return !(*this == x); }
-
-  friend std::ostream &operator<<(std::ostream &out, const Descriptor &p) {
-    out << "Parameter " << p.mName << "{ \n";
-    out << "\tType: " << static_cast<std::underlying_type<Type>::type>(p.mType)
-        << '\n';
-    out << "\tInstantiation " << p.mInstantiation << '\n';
-    if (p.hasMin())
-      out << "\tMin " << p.mMin << '\n';
-    if (p.hasMax())
-      out << "\tMax " << p.mMax << '\n';
-    if (p.hasDefault())
-      out << "\tDefault  " << p.mDefault << '\n';
-    out << "}\n";
-
-    return out;
-  }
-
-private:
-  std::string mName;
-  bool mInstantiation = false;
-  client::Type mType;
-  std::string mDisplayName;
-  double mMin = std::numeric_limits<double>::lowest();
-  double mMax = std::numeric_limits<double>::max();
-  double mDefault = 0;
-  bool mHasDefault = false;
-};
-
-class DescriptorList {
-
-private:
-};
-
-class Instance {
-  union Value {
-    BufferAdaptor *vBuffer;
-    double vFloat;
-    long vLong;
-  };
-
-public:
-  enum class RangeErrorType { kNone, kMin, kMax };
-
-  Instance(const Instance &i) = delete;
-  Instance &operator=(Instance i) = delete;
-
-  Instance(const Instance &&i)
-      : mDesc(i.mDesc), mHasChanged(i.mHasChanged), mValue(i.mValue) {}
-
-  Instance(Descriptor desc) : mDesc(desc), mValue{nullptr} {
-    // TODO something that checks 0 is in actual range
-    //      value = mDesc.hasDefault() ? mDesc.getDefault() : 0;
-    if (mDesc.hasDefault()) {
-      switch (mDesc.getType()) {
-      case Type::kFloat:
-        mValue.vFloat = mDesc.getDefault();
-        mHasChanged = false;
-        break;
-      case Type::kLong:
-        mValue.vLong = mDesc.getDefault();
-        mHasChanged = false;
-        break;
-      default:
-        break;
-      }
-    }
-  }
-
-  Instance(Descriptor desc, double v) : mDesc(desc), mValue{0} {
-    switch (mDesc.getType()) {
-    case Type::kFloat:
-      mValue.vFloat = v;
-      mHasChanged = true;
-      break;
-    case Type::kLong:
-      mValue.vLong = v;
-      mHasChanged = true;
-      break;
-    default:
-      assert(false && "Why would you even?");
-      break;
-    }
-  }
-
-  ~Instance() {
-    if (mDesc.getType() == Type::kBuffer && mValue.vBuffer)
-      delete mValue.vBuffer;
-  }
-
-  void reset() {
-    switch (mDesc.getType()) {
-    case Type::kFloat:
-      mValue.vFloat = mDesc.getDefault();
-      break;
-    case Type::kLong:
-      mValue.vLong = mDesc.getDefault();
-      break;
-    case Type::kBuffer:
-      if (mValue.vBuffer)
-        delete mValue.vBuffer;
-      mValue.vBuffer = nullptr;
-      break;
-    default:
-      break;
-    }
-    mHasChanged = false;
-  }
-
-  void setFloat(double v) {
-    switch (mDesc.getType()) {
-    case Type::kFloat:
-      mValue.vFloat = v;
-      break;
-    case Type::kLong:
-      mValue.vLong = static_cast<long>(v);
-      break;
-    default:
-      assert(false && "Don't call this on this type of parameter");
-    }
-    mHasChanged = true;
-  }
-
-  void setLong(long v) {
-    switch (mDesc.getType()) {
-    case Type::kFloat:
-      mValue.vFloat = static_cast<double>(v);
-      break;
-    case Type::kLong:
-      mValue.vLong = v;
-      break;
-    default:
-      assert(false && "Don't call this on this type of parameter");
-    }
-    mHasChanged = true;
-  }
-
-  void setBuffer(BufferAdaptor *p) {
-    switch (mDesc.getType()) {
-    case Type::kBuffer: {
-      if (mValue.vBuffer)
-        delete mValue.vBuffer;
-      mValue.vBuffer = p;
-      break;
-    }
-    default:
-      assert(false && "Don't call this on a non-buffer parameter");
-    }
-    mHasChanged = true;
-  }
-
-  double getFloat() const {
-    switch (mDesc.getType()) {
-    case Type::kFloat:
-      return mValue.vFloat;
-    case Type::kLong:
-      return static_cast<double>(mValue.vLong);
-    default:
-      assert(false && "Don't call this on a non-buffer parameter");
-    }
-    return 0.0;
-  }
-
-  long getLong() const {
-    switch (mDesc.getType()) {
-    case Type::kFloat:
-      return static_cast<long>(mValue.vFloat);
-    case Type::kLong:
-      return mValue.vLong;
-    default:
-      assert(false && "Don't call this on a buffer parameter");
-    }
-    return 0;
-  }
-
-  BufferAdaptor *getBuffer() const {
-    switch (mDesc.getType()) {
-    case Type::kBuffer:
-      return mValue.vBuffer;
-    default:
-      assert(false && "Don't call this on a non-buffer parameter");
-    }
-    return nullptr;
-  }
-
-  std::pair<bool, RangeErrorType> checkRange() {
-    switch (mDesc.getType()) {
-    case Type::kBuffer:
-      return std::make_pair(true, RangeErrorType::kNone);
-      break;
-    case Type::kFloat:
-      if (mDesc.hasMin() && mValue.vFloat < mDesc.getMin()) {
-        mValue.vFloat = mDesc.getMin();
-        return std::make_pair(false, RangeErrorType::kMin);
-      }
-      if (mDesc.hasMax() && mValue.vFloat > mDesc.getMax()) {
-        mValue.vFloat = mDesc.getMax();
-        return std::make_pair(false, RangeErrorType::kMax);
-      }
-      break;
-    case Type::kLong:
-      if (mDesc.hasMin() && mValue.vLong < mDesc.getMin()) {
-        mValue.vLong = static_cast<long>(mDesc.getMin());
-        return std::make_pair(false, RangeErrorType::kMin);
-      }
-      if (mDesc.hasMax() && mValue.vLong > mDesc.getMax()) {
-        mValue.vLong = mDesc.getMax();
-        return std::make_pair(false, RangeErrorType::kMax);
-      }
-      break;
-    default:
-      break;
-    }
-    return std::make_pair(true, RangeErrorType::kNone);
-  }
-
-  bool hasChanged() const { return mHasChanged; }
-  const Descriptor &getDescriptor() const { return mDesc; }
-  bool operator==(Instance &x) const { return mDesc == x.mDesc; }
-  bool operator!=(Instance &x) const { return !(*this == x); }
-
-private:
-  const Descriptor mDesc;
-  //    double value;
-  bool mHasChanged = false;
-  Value mValue;
-};
-
-Instance &lookupParam(std::string key, std::vector<Instance> &params) {
-  auto res = std::find_if(params.begin(), params.end(),
-                          [&](const Instance &i) -> bool {
-                            return i.getDescriptor().getName() == key;
-                          });
-
-  assert(res != params.end()); // harsh, but fair
-  return *res;
-}
+//
+//struct Descriptor {
+//
+//  Descriptor(const Descriptor &d) {
+//    mName = d.mName;
+//    mDisplayName = d.mDisplayName;
+//    mInstantiation = d.mInstantiation;
+//    mType = d.mType;
+//    mMin = d.mMin;
+//    mMax = d.mMax;
+//    mDefault = d.mDefault;
+//    mHasDefault = d.mHasDefault;
+//  }
+//
+//  Descriptor(const Descriptor &&d) {
+//    mName = d.mName;
+//    mDisplayName = d.mDisplayName;
+//    mInstantiation = d.mInstantiation;
+//    mType = d.mType;
+//    mMin = d.mMin;
+//    mMax = d.mMax;
+//    mDefault = d.mDefault;
+//    mHasDefault = d.mHasDefault;
+//  }
+//
+//  Descriptor &operator=(Descriptor d) {
+//    std::swap(*this, d);
+//    return *this;
+//  }
+//
+//  Descriptor(std::string name, std::string dispName, Type type)
+//      : mName(name), mType(type), mDisplayName(dispName) {
+//
+//    if (mType == Type::kBuffer) {
+//      mMin = 0;
+//      mMax = 0;
+//    }
+//  }
+//
+//  std::string getDisplayName() const { return mDisplayName; }
+//  std::string getName() const { return mName; }
+//  Type getType() const { return mType; }
+//
+//  Descriptor &setMin(double min) {
+//    assert(mType != Type::kBuffer);
+//    assert(min < mMax);
+//    mMin = min;
+//    return *this;
+//  }
+//
+//  double getMin() const { return mMin; }
+//
+//  Descriptor &setMax(double max) {
+//    assert(mType != Type::kBuffer);
+//    assert(max > mMin);
+//    mMax = max;
+//    return *this;
+//  }
+//
+//  double getMax() const { return mMax; }
+//
+//  Descriptor &setClip(double min, double max) {
+//    assert(min < max);
+//    mMin = min;
+//    mMax = max;
+//    return *this;
+//  }
+//
+//  Descriptor &setDefault(double def) {
+//    assert(mType != Type::kBuffer);
+//    assert(def <= mMax);
+//    assert(def >= mMin);
+//    mDefault = def;
+//    mHasDefault = true;
+//    return *this;
+//  }
+//
+//  double getDefault() const { return mDefault; }
+//
+//  Descriptor &setInstantiation(bool i) {
+//    mInstantiation = i;
+//    return *this;
+//  }
+//
+//  bool instantiation() const { return mInstantiation; }
+//  bool hasDefault() const {
+//    return mType == Type::kBuffer ? false : mHasDefault;
+//  }
+//
+//  bool hasMin() const {
+//    return mType == Type::kBuffer
+//               ? false
+//               : !(mMin == std::numeric_limits<double>::lowest());
+//  }
+//
+//  bool hasMax() const {
+//    return mType == Type::kBuffer
+//               ? false
+//               : !(mMax == std::numeric_limits<double>::max());
+//  }
+//
+//  bool operator==(const Descriptor &x) const {
+//    return mName == x.mName && (hasMin() ? (mMin == x.mMin) : 1) &&
+//           (hasMax() ? (mMax == x.mMax) : 1) &&
+//           (hasDefault() ? (mDefault == x.mDefault) : 1) &&
+//           (mInstantiation == x.mInstantiation) && (mType == x.mType);
+//  }
+//
+//  bool operator!=(const Descriptor &x) const { return !(*this == x); }
+//
+//  friend std::ostream &operator<<(std::ostream &out, const Descriptor &p) {
+//    out << "Parameter " << p.mName << "{ \n";
+//    out << "\tType: " << static_cast<std::underlying_type<Type>::type>(p.mType)
+//        << '\n';
+//    out << "\tInstantiation " << p.mInstantiation << '\n';
+//    if (p.hasMin())
+//      out << "\tMin " << p.mMin << '\n';
+//    if (p.hasMax())
+//      out << "\tMax " << p.mMax << '\n';
+//    if (p.hasDefault())
+//      out << "\tDefault  " << p.mDefault << '\n';
+//    out << "}\n";
+//
+//    return out;
+//  }
+//
+//private:
+//  std::string mName;
+//  bool mInstantiation = false;
+//  client::Type mType;
+//  std::string mDisplayName;
+//  double mMin = std::numeric_limits<double>::lowest();
+//  double mMax = std::numeric_limits<double>::max();
+//  double mDefault = 0;
+//  bool mHasDefault = false;
+//};
+//
+//class DescriptorList {
+//
+//private:
+//};
+//
+//class Instance {
+//  union Value {
+//    BufferAdaptor *vBuffer;
+//    double vFloat;
+//    long vLong;
+//  };
+//
+//public:
+//  enum class RangeErrorType { kNone, kMin, kMax };
+//
+//  Instance(const Instance &i) = delete;
+//  Instance &operator=(Instance i) = delete;
+//
+//  Instance(const Instance &&i)
+//      : mDesc(i.mDesc), mHasChanged(i.mHasChanged), mValue(i.mValue) {}
+//
+//  Instance(Descriptor desc) : mDesc(desc), mValue{nullptr} {
+//    // TODO something that checks 0 is in actual range
+//    //      value = mDesc.hasDefault() ? mDesc.getDefault() : 0;
+//    if (mDesc.hasDefault()) {
+//      switch (mDesc.getType()) {
+//      case Type::kFloat:
+//        mValue.vFloat = mDesc.getDefault();
+//        mHasChanged = false;
+//        break;
+//      case Type::kLong:
+//        mValue.vLong = mDesc.getDefault();
+//        mHasChanged = false;
+//        break;
+//      default:
+//        break;
+//      }
+//    }
+//  }
+//
+//  Instance(Descriptor desc, double v) : mDesc(desc), mValue{0} {
+//    switch (mDesc.getType()) {
+//    case Type::kFloat:
+//      mValue.vFloat = v;
+//      mHasChanged = true;
+//      break;
+//    case Type::kLong:
+//      mValue.vLong = v;
+//      mHasChanged = true;
+//      break;
+//    default:
+//      assert(false && "Why would you even?");
+//      break;
+//    }
+//  }
+//
+//  ~Instance() {
+//    if (mDesc.getType() == Type::kBuffer && mValue.vBuffer)
+//      delete mValue.vBuffer;
+//  }
+//
+//  void reset() {
+//    switch (mDesc.getType()) {
+//    case Type::kFloat:
+//      mValue.vFloat = mDesc.getDefault();
+//      break;
+//    case Type::kLong:
+//      mValue.vLong = mDesc.getDefault();
+//      break;
+//    case Type::kBuffer:
+//      if (mValue.vBuffer)
+//        delete mValue.vBuffer;
+//      mValue.vBuffer = nullptr;
+//      break;
+//    default:
+//      break;
+//    }
+//    mHasChanged = false;
+//  }
+//
+//  void setFloat(double v) {
+//    switch (mDesc.getType()) {
+//    case Type::kFloat:
+//      mValue.vFloat = v;
+//      break;
+//    case Type::kLong:
+//      mValue.vLong = static_cast<long>(v);
+//      break;
+//    default:
+//      assert(false && "Don't call this on this type of parameter");
+//    }
+//    mHasChanged = true;
+//  }
+//
+//  void setLong(long v) {
+//    switch (mDesc.getType()) {
+//    case Type::kFloat:
+//      mValue.vFloat = static_cast<double>(v);
+//      break;
+//    case Type::kLong:
+//      mValue.vLong = v;
+//      break;
+//    default:
+//      assert(false && "Don't call this on this type of parameter");
+//    }
+//    mHasChanged = true;
+//  }
+//
+//  void setBuffer(BufferAdaptor *p) {
+//    switch (mDesc.getType()) {
+//    case Type::kBuffer: {
+//      if (mValue.vBuffer)
+//        delete mValue.vBuffer;
+//      mValue.vBuffer = p;
+//      break;
+//    }
+//    default:
+//      assert(false && "Don't call this on a non-buffer parameter");
+//    }
+//    mHasChanged = true;
+//  }
+//
+//  double getFloat() const {
+//    switch (mDesc.getType()) {
+//    case Type::kFloat:
+//      return mValue.vFloat;
+//    case Type::kLong:
+//      return static_cast<double>(mValue.vLong);
+//    default:
+//      assert(false && "Don't call this on a non-buffer parameter");
+//    }
+//    return 0.0;
+//  }
+//
+//  long getLong() const {
+//    switch (mDesc.getType()) {
+//    case Type::kFloat:
+//      return static_cast<long>(mValue.vFloat);
+//    case Type::kLong:
+//      return mValue.vLong;
+//    default:
+//      assert(false && "Don't call this on a buffer parameter");
+//    }
+//    return 0;
+//  }
+//
+//  BufferAdaptor *getBuffer() const {
+//    switch (mDesc.getType()) {
+//    case Type::kBuffer:
+//      return mValue.vBuffer;
+//    default:
+//      assert(false && "Don't call this on a non-buffer parameter");
+//    }
+//    return nullptr;
+//  }
+//
+//  std::pair<bool, RangeErrorType> checkRange() {
+//    switch (mDesc.getType()) {
+//    case Type::kBuffer:
+//      return std::make_pair(true, RangeErrorType::kNone);
+//      break;
+//    case Type::kFloat:
+//      if (mDesc.hasMin() && mValue.vFloat < mDesc.getMin()) {
+//        mValue.vFloat = mDesc.getMin();
+//        return std::make_pair(false, RangeErrorType::kMin);
+//      }
+//      if (mDesc.hasMax() && mValue.vFloat > mDesc.getMax()) {
+//        mValue.vFloat = mDesc.getMax();
+//        return std::make_pair(false, RangeErrorType::kMax);
+//      }
+//      break;
+//    case Type::kLong:
+//      if (mDesc.hasMin() && mValue.vLong < mDesc.getMin()) {
+//        mValue.vLong = static_cast<long>(mDesc.getMin());
+//        return std::make_pair(false, RangeErrorType::kMin);
+//      }
+//      if (mDesc.hasMax() && mValue.vLong > mDesc.getMax()) {
+//        mValue.vLong = mDesc.getMax();
+//        return std::make_pair(false, RangeErrorType::kMax);
+//      }
+//      break;
+//    default:
+//      break;
+//    }
+//    return std::make_pair(true, RangeErrorType::kNone);
+//  }
+//
+//  bool hasChanged() const { return mHasChanged; }
+//  const Descriptor &getDescriptor() const { return mDesc; }
+//  bool operator==(Instance &x) const { return mDesc == x.mDesc; }
+//  bool operator!=(Instance &x) const { return !(*this == x); }
+//
+//private:
+//  const Descriptor mDesc;
+//  //    double value;
+//  bool mHasChanged = false;
+//  Value mValue;
+//};
+//
+//Instance &lookupParam(std::string key, std::vector<Instance> &params) {
+//  auto res = std::find_if(params.begin(), params.end(),
+//                          [&](const Instance &i) -> bool {
+//                            return i.getDescriptor().getName() == key;
+//                          });
+//
+//  assert(res != params.end()); // harsh, but fair
+//  return *res;
+//}
 
 // TODO: Come back to this when there's more time and spare neurons
 // Fancy schmancy mixins towards compile-time parameter description goodness
