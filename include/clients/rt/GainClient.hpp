@@ -1,4 +1,4 @@
-/*!
+/*
  @file GainClient.hpp
 
  Simple multi-input client, just does modulation of signal 1 by signal 2, or
@@ -9,20 +9,33 @@
 #define fluid_audio_gainclient_h
 
 #include "BaseAudioClient.hpp"
-#include "clients/common/FluidParams.hpp"
+#include <clients/common/FluidBaseClient.hpp>
+#include <clients/common/ParameterConstraints.hpp>
+#include <clients/common/ParameterDescriptorList.hpp>
 
 namespace fluid {
 namespace client {
+
+enum GainParamTags { kGain, kWindowSize, kMaxSize };
+
+constexpr auto GainParams = std::make_tuple(
+    FloatParam("gain","Gain",1.0),
+    LongParam("winSize","Window Size", 512, LowerLimit<GainParamTags>(kMaxSize)),
+    LongParam("maxSize","", 8192));
+
+
+using Params_t = decltype(GainParams);
 
 /**!
  @class GainAudioClient
 
  Inherits core functionality (incl. variable hop size input ansd output
- buffering) from BaseAudioClient<T>
+ buffering) from BaseAudioClient<T>"
 
  **/
-template <typename T, typename U>
-class GainAudioClient : public BaseAudioClient<T, U> {
+template <typename T, typename U = T>
+class GainAudioClient : public FluidBaseClient<Params_t>,
+                        public BaseAudioClient<T, U> {
   using tensor_type = fluid::FluidTensor<T, 2>;
   using view_type = fluid::FluidTensorView<T, 2>;
 
@@ -31,17 +44,41 @@ public:
   using AudioSignal = typename BaseAudioClient<T, U>::AudioSignal;
   using ScalarSignal = typename BaseAudioClient<T, U>::ScalarSignal;
 
-  static std::vector<client::Descriptor> getParamDescriptors() {
-    static std::vector<client::Descriptor> desc;
+  enum class Params { kGain, kMaxWindow, kWindow, kHop };
 
-    if (desc.size() == 0) {
+  //  static auto descriptors()
+  //  {
+  //
+  //    static auto desc = ParameterDescriptorList<Params>();
+  //
+  //    if(desc.size() == 0)
+  //    {
+  //      desc.add("gain", "Gain", false,Float_t("gain"));
+  //
+  //      desc.add("maxwindow","Maximum Window Size", true,Long_t("maxwindow"));
+  //      desc.add("window","Window Size", false, Long_t("windowsize"));
+  //      desc.add("hopsize","Hop Size", false, Long_t("hopsize"));
+  //
+  ////
+  ///desc.addRelationalConstraint(Params::kWindow,Params::kMaxWindow,std::less_equal<>());
+  ////
+  ///desc.addRelationalConstraint(Params::kHop,Params::kWindow,std::less_equal<>());
+  //    }
+  //
+  //    return desc;
+  //  }
 
-      desc.emplace_back("gain", "Gain", client::Type::kFloat);
-      desc.back().setDefault(1);
-      BaseAudioClient<T, U>::initParamDescriptors(desc);
-    }
-    return desc;
-  }
+  //  static std::vector<client::Descriptor> getParamDescriptors() {
+  //    static std::vector<client::Descriptor> desc;
+  //
+  //    if (desc.size() == 0) {
+  //
+  //      desc.emplace_back("gain", "Gain", client::Type::kFloat);
+  //      desc.back().setDefault(1);
+  //      BaseAudioClient<T, U>::initParamDescriptors(desc);
+  //    }
+  //    return desc;
+  //  }
 
   /**
    No default instances, no copying
@@ -54,12 +91,9 @@ public:
    Construct with a (maximum) chunk size and some input channels
    **/
   GainAudioClient(size_t maxChunkSize)
-      : BaseAudioClient<T, U>(maxChunkSize, 2,
-                              1) //, output(1,chunk_size) //this has two
-                                 // input channels, one output
-  {
-    newParamSet();
-  }
+      : FluidBaseClient<Params_t>(GainParams), BaseAudioClient<T, U>(
+                                                   maxChunkSize, 2, 1) {
+  } //, mParams(descriptors().makeInstances()) {}
 
   using BaseAudioClient<T, U>::channelsIn;
 
@@ -70,7 +104,7 @@ public:
    Takes a view in
 
    **/
-  void process(view_type data, view_type output) override {
+  void process(view_type data, view_type output) {
     // Punishment crashes for the sloppy
     // Data is stored with samples laid out in rows, one channel per row
     assert(output.cols() == data.cols());
@@ -83,33 +117,17 @@ public:
     output.row(0).apply(data.row(1), [](double &x, double g) { x *= g; });
   }
 
-  //        /**
-  //         Having some queriable attribute interface would be longer term goal
-  //         **/
-  //        void set_gain(const T gain)
-  //        {
-  //            m_scalar_gain = gain;
-  //        }
-
   void reset() {
-    mScalarGain = client::lookupParam("gain", mParams).getFloat();
+    //    mParams.reset();
+    //    mScalarGain = client::lookupParam("gain", mParams).getFloat();
     BaseAudioClient<T, U>::reset();
   }
 
-  std::vector<client::Instance> &getParams() override { return mParams; }
-
 private:
-  void newParamSet() {
-    mParams.clear();
-    for (auto &&d : getParamDescriptors())
-      mParams.emplace_back(d);
-  }
-
-  T mScalarGain = 1.;
-  std::vector<client::Instance> mParams;
-
+  //  ParameterInstanceList<Params> mParams;
 }; // class
 } // namespace client
 } // namespace fluid
 
 #endif /* fluid_audio_gainclient_h */
+

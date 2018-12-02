@@ -108,23 +108,23 @@ public:
     //          newParamSet();
   }
 
-  static std::vector<client::Descriptor> &getParamDescriptors() {
-    static std::vector<client::Descriptor> descriptors;
-    if (descriptors.size() == 0) {
-      descriptors.emplace_back("winsize", "Window Size", client::Type::kLong);
-      descriptors.back().setMin(4).setDefault(1024).setInstantiation(true);
-
-      descriptors.emplace_back("hopsize", "Hop Size", client::Type::kLong);
-      descriptors.back().setMin(1).setDefault(512).setInstantiation(true);
-    }
-    return descriptors;
-  }
-
-  static void initParamDescriptors(std::vector<client::Descriptor> &vec) {
-    auto d = getParamDescriptors();
-
-    vec.insert(vec.end(), d.begin(), d.end());
-  }
+//  static std::vector<client::Descriptor> &getParamDescriptors() {
+//    static std::vector<client::Descriptor> descriptors;
+//    if (descriptors.size() == 0) {
+//      descriptors.emplace_back("winsize", "Window Size", client::Type::kLong);
+//      descriptors.back().setMin(4).setDefault(1024).setInstantiation(true);
+//
+//      descriptors.emplace_back("hopsize", "Hop Size", client::Type::kLong);
+//      descriptors.back().setMin(1).setDefault(512).setInstantiation(true);
+//    }
+//    return descriptors;
+//  }
+//
+//  static void initParamDescriptors(std::vector<client::Descriptor> &vec) {
+//    auto d = getParamDescriptors();
+//
+//    vec.insert(vec.end(), d.begin(), d.end());
+//  }
 
   /**
    TODO: This works for Max /PD, but wouldn't for SC. Come up with something
@@ -235,50 +235,50 @@ public:
    Reset everything. Call this from host dsp setup
    **/
 
-  std::tuple<bool, std::string> sanityCheck() {
-    size_t winsize = client::lookupParam("winsize", getParams()).getLong();
-
-    if (winsize > mMaxFrameSize) {
-      return {false, "Window size out of range"};
-    }
-
-    return {true, "All is nice"};
-  }
-
-  virtual void reset(long inputs = -1, long outputs = -1,
-                     long intermediates = -1) {
-
-    mChannelsIn = inputs > -1 ? inputs : mChannelsIn;
-    mChannelsOut = outputs > -1 ? outputs : mChannelsOut;
-    mIntermediateChannels =
-        intermediates > 0 ? intermediates : mIntermediateChannels;
-
-    mFrameTime = 0;
-    mSource.reset(mChannelsIn);
-    mSink.reset(mIntermediateChannels);
-
-    size_t windowSize = getWindowSize();
-    mHopSize = getHopSize();
-
-    if (windowSize != mFrame.cols()) {
-      mFrame = FluidTensor<T, 2>(mChannelsIn, windowSize);
-      mFrameOut = FluidTensor<T, 2>(mIntermediateChannels, windowSize);
-    }
-  }
+//  std::tuple<bool, std::string> sanityCheck() {
+//    size_t winsize = client::lookupParam("winsize", getParams()).getLong();
+//
+//    if (winsize > mMaxFrameSize) {
+//      return {false, "Window size out of range"};
+//    }
+//
+//    return {true, "All is nice"};
+//  }
+//
+//  virtual void reset(long inputs = -1, long outputs = -1,
+//                     long intermediates = -1) {
+//
+//    mChannelsIn = inputs > -1 ? inputs : mChannelsIn;
+//    mChannelsOut = outputs > -1 ? outputs : mChannelsOut;
+//    mIntermediateChannels =
+//        intermediates > 0 ? intermediates : mIntermediateChannels;
+//
+//    mFrameTime = 0;
+//    mSource.reset(mChannelsIn);
+//    mSink.reset(mIntermediateChannels);
+//
+//    size_t windowSize = getWindowSize();
+//    mHopSize = getHopSize();
+//
+//    if (windowSize != mFrame.cols()) {
+//      mFrame = FluidTensor<T, 2>(mChannelsIn, windowSize);
+//      mFrameOut = FluidTensor<T, 2>(mIntermediateChannels, windowSize);
+//    }
+//  }
 
   size_t channelsOut() { return mChannelsOut; }
 
   size_t channelsIn() { return mChannelsIn; }
 
-  virtual size_t getHopSize() {
-    return client::lookupParam("hopsize", getParams()).getLong();
-  }
-
-  virtual size_t getWindowSize() {
-    return client::lookupParam("winsize", getParams()).getLong();
-  }
-
-  virtual std::vector<client::Instance> &getParams() = 0;
+//  virtual size_t getHopSize() {
+//    return client::lookupParam("hopsize", getParams()).getLong();
+//  }
+//
+//  virtual size_t getWindowSize() {
+//    return client::lookupParam("winsize", getParams()).getLong();
+//  }
+//
+//  virtual std::vector<client::Instance> &getParams() = 0;
 
 private:
   size_t mHostBufferSize;

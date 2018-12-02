@@ -87,14 +87,74 @@ struct BufferArrayT: ParamTypeBase{
 //template<std::size_t N>
 //using GetType = typename std::tuple_element<N,AllowedTypes>::type;
 //
-//  ParameterTypes.hpp
-//  fluid_decomposition
-//
-//  Created by Owen Green on 27/11/2018.
-//
-
-#ifndef ParameterTypes_h
-#define ParameterTypes_h
+  
+template <typename T, typename...Constraints>
+using ParamSpec =  std::pair<T,std::tuple<Constraints...>>;
 
 
-#endif /* ParameterTypes_h */
+template<typename...Constraints>
+constexpr ParamSpec<FloatT, Constraints...>FloatParam(const char* name, const char* displayName, FloatT::type defaultValue,  Constraints...c)
+{
+  return {FloatT(name, displayName, defaultValue), std::make_tuple(c...)};
+}
+
+template<typename...Constraints>
+constexpr ParamSpec<LongT, Constraints...>LongParam(const char* name, const char* displayName, LongT::type defaultValue,  Constraints...c)
+{
+  return {LongT(name, displayName, defaultValue), std::make_tuple(c...)};
+}
+
+template<typename...Constraints>
+constexpr ParamSpec<BufferT, Constraints...>BufferParam(const char* name, const char* displayName,  Constraints...c)
+{
+  return {BufferT(name, displayName), std::make_tuple(c...)};
+}
+
+template<typename...Constraints>
+constexpr ParamSpec<EnumT, Constraints...>EnumParam(const char* name, const char* displayName,  Constraints...c)
+{
+  return {BufferT(name, displayName), std::make_tuple(c...)};
+}
+
+template<size_t N ,typename...Constraints>
+constexpr ParamSpec<FloatArrayT, Constraints...>FloatArrayParam(const char* name, const char* displayName, FloatArrayT::type::value_type (&defaultValues) [N], Constraints...c)
+{
+  return {FloatArrayT(name, displayName, defaultValues), std::make_tuple(c...)};
+}
+
+template<size_t N ,typename...Constraints>
+constexpr ParamSpec<LongArrayT, Constraints...>LongArrayParam(const char* name, const char* displayName, LongArrayT::type::value_type (&defaultValues) [N], Constraints...c)
+{
+  return {LongArrayT(name, displayName, defaultValues), std::make_tuple(c...)};
+}
+
+template<typename...Constraints>
+constexpr ParamSpec<BufferArrayT, Constraints...>BufferArrayParam(const char* name, const char* displayName, Constraints...c)
+{
+  return {BufferArrayT(name, displayName), std::make_tuple(c...)};
+}
+
+
+template<typename T, typename...Constraints>
+class ParameterValue
+{
+  using type = T;
+  ParameterValue(Constraints...c)
+  {
+  
+  }
+
+  auto& get() { return mValue; }
+  void set(T value) { mValue = value;  }
+  bool enabled() { return true; }
+  
+private:
+  T mValue;
+  std::tuple <Constraints...> mConstraints;
+};
+
+  
+  
+}
+}
+

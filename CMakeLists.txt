@@ -1,7 +1,13 @@
 cmake_minimum_required (VERSION 3.3)
 project (fluid_decomposition LANGUAGES CXX)
-set(CMAKE_CXX_STANDARD 11)
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+SET(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
+set(CMAKE_OSX_DEPLOYMENT_TARGET "10.7" CACHE STRING "Minimum OS X deployment version")
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic")
 IF(APPLE)
   find_library(ACCELERATE Accelerate)
@@ -24,6 +30,10 @@ target_link_libraries(
   HISSTools_FFT
   INTERFACE ${ACCELERATE}
 )
+
+# set_target_properties(
+#   HISSTools_FFT PROPERTIES FOLDER ThirdParty/FFT
+# )
 
 #HISSTools Audiofile Target
 add_library(
@@ -63,6 +73,9 @@ file(GLOB_RECURSE LIBRARY_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/include/*/*.hpp)
 target_sources(
   FLUID_DECOMPOSITION
   INTERFACE ${LIBRARY_HEADERS}
+)
+target_compile_features(
+  FLUID_DECOMPOSITION INTERFACE cxx_std_14
 )
 target_compile_definitions(
   FLUID_DECOMPOSITION INTERFACE -DEIGEN_USE_BLAS
