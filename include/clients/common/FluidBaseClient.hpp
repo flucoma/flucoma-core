@@ -36,10 +36,10 @@ public:
   constexpr FluidBaseClientImpl(const std::tuple<Ts...> params) : mParams(impl::ParamValueTypes<Ts...>::create(params)) {}
 
   template <size_t N> auto setter() {
-    return [this](auto &&x) { std::get<N>(mParams) = x; };
+    return [this](auto &&x) { std::get<N>(mParams).first = x; };
   }
 
-  template <size_t N> auto get() { return std::get<N>(mParams); }
+  template <size_t N> auto get() { return std::get<N>(mParams).first; }
 
 private:
   ValueTuple mParams;

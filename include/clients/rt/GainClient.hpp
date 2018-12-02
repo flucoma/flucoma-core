@@ -37,7 +37,7 @@ template <typename T, typename U = T>
 class GainAudioClient : public FluidBaseClient<Params_t>,
                         public BaseAudioClient<T, U> {
   using tensor_type = fluid::FluidTensor<T, 2>;
-  using view_type = fluid::FluidTensorView<T, 2>;
+  using view_type = fluid::FluidTensorView<T, 1>;
 
 public:
   using Signal = typename BaseAudioClient<T, U>::template Signal<U>;
@@ -83,16 +83,16 @@ public:
   /**
    No default instances, no copying
    **/
-  GainAudioClient() = delete;
+//  GainAudioClient() = delete;
   GainAudioClient(GainAudioClient &) = delete;
   GainAudioClient operator=(GainAudioClient &) = delete;
 
   /**
    Construct with a (maximum) chunk size and some input channels
    **/
-  GainAudioClient(size_t maxChunkSize)
+  GainAudioClient(/*size_t maxChunkSize*/)
       : FluidBaseClient<Params_t>(GainParams), BaseAudioClient<T, U>(
-                                                   maxChunkSize, 2, 1) {
+                                                   8192, 2, 1) {
   } //, mParams(descriptors().makeInstances()) {}
 
   using BaseAudioClient<T, U>::channelsIn;
@@ -104,17 +104,18 @@ public:
    Takes a view in
 
    **/
-  void process(view_type data, view_type output) {
+  template <size_t NIns, size_t NOuts>
+  void process(view_type (&data) [NIns], view_type (&output) [NOuts]) {
     // Punishment crashes for the sloppy
     // Data is stored with samples laid out in rows, one channel per row
-    assert(output.cols() == data.cols());
-    assert(data.rows() == channelsIn());
+//    assert(output.cols() == data.cols());
+//    assert(data.rows() == channelsIn());
 
     // Copy the input samples
-    output.row(0) = data.row(0);
-
+    output[0] = data[0];
+    double g = get<kGain>();
     // Apply gain from the second channel
-    output.row(0).apply(data.row(1), [](double &x, double g) { x *= g; });
+    output[0].apply([g](double &x) { x *= g; });
   }
 
   void reset() {
