@@ -8,7 +8,9 @@
 #ifndef fluid_audio_gainclient_h
 #define fluid_audio_gainclient_h
 
-#include "BaseAudioClient.hpp"
+
+//#include "BaseAudioClient.hpp"
+#include <clients/common/AudioClient.hpp>
 #include <clients/common/FluidBaseClient.hpp>
 #include <clients/common/ParameterConstraints.hpp>
 #include <clients/common/ParameterDescriptorList.hpp>
@@ -26,23 +28,19 @@ constexpr auto GainParams = std::make_tuple(
 
 using Params_t = decltype(GainParams);
 
-/**!
- @class GainAudioClient
 
- Inherits core functionality (incl. variable hop size input ansd output
- buffering) from BaseAudioClient<T>"
-
- **/
+/// @class GainAudioClient
 template <typename T, typename U = T>
 class GainAudioClient : public FluidBaseClient<Params_t>,
-                        public BaseAudioClient<T, U> {
+                        public AudioIn, public AudioOut {
+                        //public BaseAudioClient<T, U> {
   using tensor_type = fluid::FluidTensor<T, 2>;
   using view_type = fluid::FluidTensorView<T, 1>;
 
 public:
-  using Signal = typename BaseAudioClient<T, U>::template Signal<U>;
-  using AudioSignal = typename BaseAudioClient<T, U>::AudioSignal;
-  using ScalarSignal = typename BaseAudioClient<T, U>::ScalarSignal;
+//  using Signal = typename BaseAudioClient<T, U>::template Signal<U>;
+//  using AudioSignal = typename BaseAudioClient<T, U>::AudioSignal;
+//  using ScalarSignal = typename BaseAudioClient<T, U>::ScalarSignal;
 
   enum class Params { kGain, kMaxWindow, kWindow, kHop };
 
@@ -91,11 +89,11 @@ public:
    Construct with a (maximum) chunk size and some input channels
    **/
   GainAudioClient(/*size_t maxChunkSize*/)
-      : FluidBaseClient<Params_t>(GainParams), BaseAudioClient<T, U>(
-                                                   8192, 2, 1) {
+      : FluidBaseClient<Params_t>(GainParams), AudioIn(2), AudioOut(1)
+      {//, BaseAudioClient<T, U>(8192, 2, 1) {
   } //, mParams(descriptors().makeInstances()) {}
 
-  using BaseAudioClient<T, U>::channelsIn;
+//  using BaseAudioClient<T, U>::channelsIn;
 
   /**
    Do the processing: this is the function that descendents of BaseAudioClient
@@ -121,7 +119,7 @@ public:
   void reset() {
     //    mParams.reset();
     //    mScalarGain = client::lookupParam("gain", mParams).getFloat();
-    BaseAudioClient<T, U>::reset();
+//    BaseAudioClient<T, U>::reset();
   }
 
 private:

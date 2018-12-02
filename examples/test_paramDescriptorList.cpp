@@ -96,7 +96,7 @@ void makeWrapper(const std::tuple<Ts...> &params) {
 
 int main(int argc, char *argv[]) {
   using namespace fluid::client;
-  GainAudioClient<double> g(65363);
+  GainAudioClient<double> g;
 
   makeWrapper<GainAudioClient<double>>(GainParams);
 }
