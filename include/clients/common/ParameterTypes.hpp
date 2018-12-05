@@ -2,7 +2,8 @@
 
 #include "FluidParams.hpp"
 #include <vector>
-
+#include <utility>
+#include <tuple>
 namespace fluid {
 namespace client {
   
@@ -91,7 +92,6 @@ struct BufferArrayT: ParamTypeBase{
 template <typename T, typename...Constraints>
 using ParamSpec =  std::pair<T,std::tuple<Constraints...>>;
 
-
 template<typename...Constraints>
 constexpr ParamSpec<FloatT, Constraints...>FloatParam(const char* name, const char* displayName, FloatT::type defaultValue,  Constraints...c)
 {
@@ -113,7 +113,7 @@ constexpr ParamSpec<BufferT, Constraints...>BufferParam(const char* name, const 
 template<typename...Constraints>
 constexpr ParamSpec<EnumT, Constraints...>EnumParam(const char* name, const char* displayName,  Constraints...c)
 {
-  return {BufferT(name, displayName), std::make_tuple(c...)};
+  return {EnumT(name, displayName), std::make_tuple(c...)};
 }
 
 template<size_t N ,typename...Constraints>
@@ -135,23 +135,39 @@ constexpr ParamSpec<BufferArrayT, Constraints...>BufferArrayParam(const char* na
 }
 
 
-template<typename T, typename...Constraints>
+template<typename T>//, typename...Constraints>
 class ParameterValue
 {
-  using type = T;
-  ParameterValue(Constraints...c)
+public:
+  using type = typename T::type;
+  ParameterValue()//Constraints...c):mConstraints(std::make_tuple(c...))
   {
   
   }
 
-  auto& get() { return mValue; }
-  void set(T value) { mValue = value;  }
-  bool enabled() { return true; }
+  auto& get() const noexcept { return mValue; }
+  void set(type value) { mValue = value; mChanged = true; }
+  bool enabled() const noexcept { return true; }
+  bool changed() const noexcept { return mChanged; }
+  
+//  template<typename...Ts>
+//  T clamp(T value, std::tuple<Ts...>& params)
+//  {
+//    T res;
+//    (void)auto l{(res =    ,0)...}
+//  }
   
 private:
-  T mValue;
-  std::tuple <Constraints...> mConstraints;
+//  template<std::size_t...Is>
+//  void clamp(T v, std::index_sequence<Is...>){
+//    (void)auto l{(res = std::get<Is>(mConstraints)::clamp(value),0)...};
+//  }
+
+  bool mChanged = false;
+  type mValue;
+//  std::tuple <Constraints...> mConstraints;
 };
+
 
   
   
