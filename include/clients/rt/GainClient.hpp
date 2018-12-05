@@ -2,8 +2,7 @@
  @file GainClient.hpp
 
  Simple multi-input client, just does modulation of signal 1 by signal 2, or
- sclar gain change
-
+ scalar gain change
  */
 #ifndef fluid_audio_gainclient_h
 #define fluid_audio_gainclient_h
@@ -21,9 +20,9 @@ namespace client {
 enum GainParamTags { kGain, kWindowSize, kMaxSize };
 
 constexpr auto GainParams = std::make_tuple(
-    FloatParam("gain","Gain",1.0),
-    LongParam("winSize","Window Size", 512, LowerLimit<GainParamTags>(kMaxSize)),
-    LongParam("maxSize","", 8192));
+    FloatParam("gain","Gain",1.0));
+//    LongParam("winSize","Window Size", 512, LowerLimit<GainParamTags>(kMaxSize)),
+//    LongParam("maxSize","", 8192));
 
 
 using Params_t = decltype(GainParams);
@@ -31,16 +30,11 @@ using Params_t = decltype(GainParams);
 
 /// @class GainAudioClient
 template <typename T, typename U = T>
-class GainAudioClient : public FluidBaseClient<Params_t>,
-                        public AudioIn, public AudioOut {
+class GainClient : public FluidBaseClient<Params_t> {
                         //public BaseAudioClient<T, U> {
-  using tensor_type = fluid::FluidTensor<T, 2>;
-  using view_type = fluid::FluidTensorView<T, 1>;
-
+//  using tensor_type = fluid::FluidTensor<T, 2>;
+  using view_type = fluid::FluidTensorView<U, 1>;
 public:
-//  using Signal = typename BaseAudioClient<T, U>::template Signal<U>;
-//  using AudioSignal = typename BaseAudioClient<T, U>::AudioSignal;
-//  using ScalarSignal = typename BaseAudioClient<T, U>::ScalarSignal;
 
   enum class Params { kGain, kMaxWindow, kWindow, kHop };
 
@@ -82,38 +76,39 @@ public:
    No default instances, no copying
    **/
 //  GainAudioClient() = delete;
-  GainAudioClient(GainAudioClient &) = delete;
-  GainAudioClient operator=(GainAudioClient &) = delete;
+  GainClient(GainClient &) = delete;
+  GainClient operator=(GainClient &) = delete;
 
   /**
    Construct with a (maximum) chunk size and some input channels
    **/
-  GainAudioClient(/*size_t maxChunkSize*/)
-      : FluidBaseClient<Params_t>(GainParams), AudioIn(2), AudioOut(1)
-      {//, BaseAudioClient<T, U>(8192, 2, 1) {
-  } //, mParams(descriptors().makeInstances()) {}
+  GainClient() : FluidBaseClient<Params_t>(GainParams)
+  {
+    audioChannelsIn(2);
+    audioChannelsOut(1);
+  }
 
-//  using BaseAudioClient<T, U>::channelsIn;
-
-  /**
-   Do the processing: this is the function that descendents of BaseAudioClient
-   should override
-
-   Takes a view in
-
-   **/
-  template <size_t NIns, size_t NOuts>
-  void process(view_type (&data) [NIns], view_type (&output) [NOuts]) {
+  /// Do the magic: we take vectors of views
+  void process(std::vector<view_type>& input, std::vector<view_type>& output) {
     // Punishment crashes for the sloppy
     // Data is stored with samples laid out in rows, one channel per row
-//    assert(output.cols() == data.cols());
-//    assert(data.rows() == channelsIn());
+    if(!input[0].data())
+        return ;
 
     // Copy the input samples
-    output[0] = data[0];
-    double g = get<kGain>();
-    // Apply gain from the second channel
-    output[0].apply([g](double &x) { x *= g; });
+    output[0] = input[0];
+    
+    //2nd input? -> ar version
+    if(input[1].data())
+    {
+      output[0].apply(input[1],[](U& x, U& y) { x*= y; } );
+    }
+    else
+    {
+      double g = get<kGain>();
+      // Apply gain from the second channel
+      output[0].apply([g](U& x) { x *= g; });
+    }
   }
 
   void reset() {
