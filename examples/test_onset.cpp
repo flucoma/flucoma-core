@@ -1,20 +1,19 @@
-#include "algorithms/OnsetSegmentation.hpp"
-#include "algorithms/Windows.hpp"
-#include "data/FluidTensor.hpp"
 #include "util/audiofile.hpp"
+
+#include <algorithms/public/OnsetSegmentation.hpp>
+#include <algorithms/public/Windows.hpp>
+#include <data/FluidTensor.hpp>
+#include <algorithms/public/STFT.hpp>
 
 using fluid::FluidTensor;
 using fluid::FluidTensorView;
 using fluid::audiofile::AudioFileData;
 using fluid::audiofile::readFile;
 using fluid::audiofile::writeFile;
-using fluid::onset::OnsetSegmentation;
-using RealMatrix = FluidTensor<double, 2>;
-using RealVector = FluidTensor<double, 1>;
-using RealVectorView = FluidTensorView<double, 1>;
-
-using fluid::windows::WindowType;
-using fluid::windows::windowFuncs;
+using fluid::algorithm::OnsetSegmentation;
+using fluid::algorithm::STFT;
+using fluid::algorithm::windowFuncs;
+using fluid::algorithm::WindowType;
 
 using Eigen::ArrayXXd;
 using std::ofstream;
@@ -34,20 +33,29 @@ int main(int argc, char *argv[]) {
   int hopSize = 256;
   int frameDelta = 512;
   int windowSize = 1024;
-  RealVector in(data.audio[0]);
+
   int filterSize = std::stoi(argv[2]);
   double threshold = std::stod(argv[3]);
-
-  RealVectorView inV = RealVectorView(in);
-
+  STFT stft(windowSize, fftSize, hopSize);
   OnsetSegmentation os(
-      fftSize, windowSize, hopSize, frameDelta, WindowType::Hann, threshold,
+      fftSize, windowSize, hopSize, frameDelta, WindowType::kHann, threshold,
       OnsetSegmentation::DifferenceFunction::kL1Norm, filterSize);
-  RealVector result(os.nFrames(in.size()));
-  RealVectorView outV = RealVectorView(result);
-  os.process(inV, outV);
-  for (int i = 0; i < result.size(); i++) {
-    if (result[i] == 1) {
+
+  fluid::FluidTensor<double, 1> in(data.audio[0]);
+  int nFrames = floor((in.size() + hopSize) / hopSize);
+
+  // allocation
+  fluid::FluidTensor<std::complex<double>, 2> spec(nFrames, nBins);
+  fluid::FluidTensor<double, 2> mag(nFrames, nBins);
+  FluidTensor<double, 1> out(os.nFrames(in.size()));
+
+  // processing
+  stft.process(in, spec);
+  STFT::magnitude(spec, mag);
+
+  os.process(in, out);
+  for (int i = 0; i < out.size(); i++) {
+    if (out[i] == 1) {
       std::cout << i << std::endl;
     }
   }

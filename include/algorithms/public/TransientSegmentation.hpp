@@ -1,6 +1,6 @@
-
 #pragma once
 
+#include "../../data/TensorTypes.hpp"
 #include "TransientExtraction.hpp"
 
 namespace fluid {
@@ -23,7 +23,6 @@ public:
   void prepareStream(int blockSize, int padSize) {
     TransientExtraction::prepareStream(blockSize, padSize);
     mDebounce = 0;
-    resizeStorage();
   }
 
   int modelOrder() const { return TransientExtraction::modelOrder(); }
@@ -33,26 +32,22 @@ public:
   int inputSize() const { return TransientExtraction::inputSize(); }
   int analysisSize() const { return TransientExtraction::analysisSize(); }
 
-  const double *process(const double *input, int inSize) {
-    detect(input, inSize);
-
+  void process(const RealVector input, RealVector output) {
+    detect(input.data(), input.extent(0));
     const double *transientDetection = getDetect();
-
     for (int i = 0; i < hopSize(); i++) {
-      mDetect[i] = (transientDetection[i] && !mDebounce);
+      output(i) = (transientDetection[i] && !mDebounce);
       mDebounce = transientDetection[i] ? mHoldTime : std::max(0, --mDebounce);
     }
-
-    return mDetect.data();
   }
 
 private:
-  void resizeStorage() { mDetect.resize(hopSize(), 0.0); }
+  //void resizeStorage() { mDetect.resize(hopSize(), 0.0); }
 
 private:
   int mHoldTime;
   int mDebounce;
-  std::vector<double> mDetect;
+  // std::vector<double> mDetect;
 };
 
 }; // namespace algorithm

@@ -1,33 +1,22 @@
 #pragma once
 
-#include "MedianFilter.hpp"
-#include "data/FluidEigenMappings.hpp"
+#include "../../data/TensorTypes.hpp"
+#include "../util/FluidEigenMappings.hpp"
+#include "../util/MedianFilter.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
-#include <fstream>
-#include <iostream>
 
 namespace fluid {
 namespace algorithm {
 
-using Eigen::Array;
+using _impl::asEigen;
+using _impl::asFluid;
+using Eigen::ArrayXd;
 using Eigen::ArrayXXcd;
 using Eigen::ArrayXXd;
-using Eigen::ArrayXd;
-using Eigen::Dynamic;
-using Eigen::Map;
-using Eigen::MatrixXd;
-using Eigen::RowMajor;
-
-// using fluid::eigenmappings::ArrayXXcdToFluid;
-// using fluid::medianfilter::MedianFilter;
 
 class RTHPSS {
 public:
-  using ComplexVector = FluidTensorView<std::complex<double>, 1>;
-  using ComplexMatrix = FluidTensorView<std::complex<double>, 2>;
-  using ArrayXcdMap = Map<const Array<std::complex<double>, Dynamic, RowMajor>>;
-
   enum HPSSMode { kClassic, kCoupled, kAdvanced };
   RTHPSS(int nBins, int vSize, int hSize, int mode, double hThresholdX1,
          double hThresholdY1, double hThresholdX2, double hThresholdY2,
@@ -67,7 +56,7 @@ public:
     const auto &epsilon = std::numeric_limits<double>::epsilon;
     int h2 = (mHSize - 1) / 2;
     int v2 = (mVSize - 1) / 2;
-    ArrayXcdMap frame(in.data(), mBins);
+    ArrayXcdConstMap frame(in.data(), mBins);
     ArrayXd mag = frame.abs().real();
 
     mV.block(0, 0, mBins, mHSize - 1) = mV.block(0, 1, mBins, mHSize - 1);
@@ -88,7 +77,6 @@ public:
       mH.row(i) = tmpRow.segment(h2, mHSize).transpose();
     }
     ArrayXXcd result(mBins, 3);
-
     ArrayXd harmonicMask = ArrayXd::Ones(mBins);
     ArrayXd percussiveMask = ArrayXd::Ones(mBins);
     ArrayXd residualMask = ArrayXd::Ones(mBins);

@@ -1,10 +1,11 @@
-#include "HISSTools_FFT/HISSTools_FFT.h"
-#include "algorithms/ConvolutionTools.hpp"
-#include "algorithms/RTSineExtraction.hpp"
-#include "algorithms/STFT.hpp"
-#include "data/FluidTensor.hpp"
 #include "util/audiofile.hpp"
+
 #include <Eigen/Dense>
+#include <HISSTools_FFT/HISSTools_FFT.h>
+
+#include <algorithms/public/RTSineExtraction.hpp>
+#include <algorithms/public/STFT.hpp>
+#include <data/FluidTensor.hpp>
 
 int main(int argc, char *argv[]) {
   using std::complex;
@@ -20,15 +21,7 @@ int main(int argc, char *argv[]) {
   using fluid::FluidTensor;
   using fluid::algorithm::ISTFT;
   using fluid::algorithm::STFT;
-  using fluid::algorithm::Spectrogram;
 
-  using Eigen::ArrayXXcd;
-  using Eigen::ArrayXXd;
-  using Eigen::Map;
-  using ComplexMatrix = FluidTensor<std::complex<double>, 2>;
-  using RealMatrix = FluidTensor<double, 2>;
-  using RealVector = FluidTensor<double, 1>;
-  using fluid::algorithm::ArrayXXcdToFluid;
   using fluid::algorithm::RTSineExtraction;
 
   if (argc != 2) {
@@ -48,8 +41,6 @@ int main(int argc, char *argv[]) {
 
   STFT stft(winSize, fftSize, hopSize);
   ISTFT istft(winSize, fftSize, hopSize);
-  RealVector in(data.audio[0]);
-  Spectrogram spec = stft.process(in);
   // parameters after hop size are:
   // * bandwidth - width in bins of the fragment of window transform correlated
   // with each frame should have an effect on cost vs quality
@@ -61,25 +52,33 @@ int main(int argc, char *argv[]) {
   // (relative, but suggested 0 to 1)
   // * weight of frequency when associating a peak to an existing track
   // (relativer, suggested 0 to 1)
-
   RTSineExtraction rtse(winSize, fftSize, hopSize, 76, 0.7, 15, 0.1, 1.0);
+  fluid::FluidTensor<double, 1> in(data.audio[0]);
+  int nFrames = floor((in.size() + hopSize) / hopSize);
+    // allocation
+  fluid::FluidTensor<std::complex<double>, 2> spec(nFrames, nBins);
+  fluid::FluidTensor<double, 2> mag(nFrames, nBins);
+  fluid::FluidTensor<std::complex<double>, 2> sines(nFrames, nBins);
+  fluid::FluidTensor<std::complex<double>, 2> noise(nFrames, nBins);
+  fluid::FluidTensor<double, 1> sinesAudio(in.size());
+  fluid::FluidTensor<double, 1> noiseAudio(in.size());
 
-  ComplexMatrix sinesSpec(spec.mData.rows(), spec.mData.cols());
-  ComplexMatrix noiseSpec(spec.mData.rows(), spec.mData.cols());
-  ComplexMatrix result(nBins, 2);
-  for (int i = 0; i < spec.mData.rows(); i++) {
-    rtse.processFrame(spec.mData.row(i), result);
-    sinesSpec.row(i) = result.col(0);
-    noiseSpec.row(i) = result.col(1);
+  //processing
+  stft.process(in, spec);
+  STFT::magnitude(spec, mag);
+  fluid::FluidTensor<std::complex<double>, 2> result(nBins, 2);
+  for (int i = 0; i < spec.rows(); i++) {
+    rtse.processFrame(spec.row(i), result);
+    sines.row(i) = result.col(0);
+    noise.row(i) = result.col(1);
   }
-  RealVector sinesAudio = istft.process(sinesSpec);
+  istft.process(sines, sinesAudio);
   data.audio[0] =
       vector<double>(sinesAudio.data(), sinesAudio.data() + sinesAudio.size());
   writeFile(data, "sines_rt.wav");
-  RealVector noiseAudio = istft.process(noiseSpec);
+  istft.process(noise, noiseAudio);
   data.audio[0] =
       vector<double>(noiseAudio.data(), noiseAudio.data() + noiseAudio.size());
   writeFile(data, "noise_rt.wav");
-
   return 0;
 }

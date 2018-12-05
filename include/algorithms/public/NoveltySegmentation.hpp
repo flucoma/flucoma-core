@@ -1,16 +1,18 @@
 #pragma once
-#include "Novelty.hpp"
-#include "algorithms/ConvolutionTools.hpp"
-#include "data/FluidEigenMappings.hpp"
-#include "data/FluidTensor.hpp"
+
+#include "../../data/TensorTypes.hpp"
+#include "../util/FluidEigenMappings.hpp"
+#include "../util/ConvolutionTools.hpp"
+#include "../util/Novelty.hpp"
 #include <Eigen/Dense>
 
 namespace fluid {
 namespace algorithm {
 
+using _impl::asEigen;
+using _impl::asFluid;
+
 class NoveltySegmentation {
-  using RealMatrix = FluidTensor<double, 2>;
-  using RealVector = FluidTensor<double, 1>;
 
 public:
   NoveltySegmentation(int kernelSize, double threshold, int filterSize)
@@ -19,29 +21,20 @@ public:
     assert(kernelSize % 2);
   }
 
-  void process(const RealMatrix &input, RealVector &output) {
+  void process(const RealMatrix &input, RealVector output) {
     using Eigen::ArrayXd;
-    using Eigen::Map;
-    using Eigen::MatrixXd;
-    using Eigen::VectorXd;
-    using algorithm::EdgeMode::kEdgeWrapCentre;
-    using algorithm::convolveReal;
-    using fluid::algorithm::FluidToMatrixXd;
-    using std::vector;
 
-    RealVector temp(input.extent(0));
+    ArrayXd curve(input.extent(0));
     Novelty nov(mKernelSize);
-    nov.process(input, temp);
-    ArrayXd curve = Map<ArrayXd>(temp.data(), temp.size());
+    nov.process(asEigen<Array>(input), curve);
     if (mFilterSize > 0) {
       ArrayXd filter = ArrayXd::Constant(mFilterSize, 1.0 / mFilterSize);
       ArrayXd smoothed = ArrayXd::Zero(curve.size());
       convolveReal(smoothed.data(), curve.data(), curve.size(), filter.data(),
-                   filter.size(), kEdgeWrapCentre);
+                   filter.size(), EdgeMode::kEdgeWrapCentre);
       curve = smoothed;
     }
     curve /= curve.maxCoeff();
-
     for (int i = 1; i < curve.size() - 1; i++) {
       if (curve(i) > curve(i - 1) && curve(i) > curve(i + 1) &&
           curve(i) > mThreshold && i > mFilterSize / 2) {

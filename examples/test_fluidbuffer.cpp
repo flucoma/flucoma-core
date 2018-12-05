@@ -1,7 +1,7 @@
 #include <cmath>
 
-#include "algorithms/Windows.hpp"
-#include "data/FluidBuffers.hpp"
+#include <algorithms/public/Windows.hpp>
+#include <data/FluidBuffers.hpp>
 
 using fluid::FluidSource;
 using fluid::FluidTensor;

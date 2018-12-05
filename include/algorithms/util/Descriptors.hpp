@@ -1,7 +1,6 @@
-
 #pragma once
 
-#include "../data/FluidTensor.hpp"
+#include "../../data/FluidTensor.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -11,7 +10,6 @@ namespace fluid {
 namespace algorithm {
 
 class Descriptors {
-  using RealTensor = fluid::FluidTensor<double, 1>;
   using Real = fluid::FluidTensorView<double, 1>;
 
   // Helper structs

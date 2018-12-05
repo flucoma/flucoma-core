@@ -1,13 +1,19 @@
 #pragma once
+
+#include "../../data/FluidTensor.hpp"
+#include "../public/Windows.hpp"
 #include "Descriptors.hpp"
-#include "Windows.hpp"
-#include "data/FluidEigenMappings.hpp"
-#include "data/FluidTensor.hpp"
+#include "FluidEigenMappings.hpp"
 #include <Eigen/Dense>
 #include <limits>
 
 namespace fluid {
 namespace algorithm {
+
+  using Eigen::ArrayXd;
+  using Eigen::ArrayXXd;
+  using Eigen::MatrixXd;
+  using Eigen::VectorXd;
 
 // This implements Foote's novelty curve
 class Novelty {
@@ -20,20 +26,12 @@ public:
     createKernel();
   }
 
-  void process(const RealMatrix &input, RealVector &output) {
-    using Eigen::ArrayXd;
-    using Eigen::MatrixXd;
-    using Eigen::VectorXd;
-    using ArrayXdMap =
-        Eigen::Map<Eigen::Array<double, Eigen::Dynamic, Eigen::RowMajor>>;
-    using fluid::algorithm::Descriptors;
-    using fluid::algorithm::FluidToMatrixXd;
+  void process(const ArrayXXd &input, ArrayXd &output) {
     using std::vector;
-
     const auto &epsilon = std::numeric_limits<double>::epsilon;
-    int nFrames = input.extent(0);
+    int nFrames = input.rows();
     int halfKernel = (mKernelSize - 1) / 2;
-    MatrixXd featureMatrix = FluidToMatrixXd(input)();
+    MatrixXd featureMatrix = input.matrix();
     MatrixXd similarity =
         MatrixXd::Zero(nFrames + mKernelSize, nFrames + mKernelSize);
     MatrixXd tmp = featureMatrix * featureMatrix.transpose();
@@ -41,14 +39,12 @@ public:
     tmp = (tmp.array().rowwise() /= norm.transpose().array()).matrix();
     tmp = (tmp.array().colwise() /= norm.array()).matrix();
     similarity.block(halfKernel, halfKernel, nFrames, nFrames) = tmp;
-    ArrayXd novelty(nFrames);
     for (int i = 0; i < nFrames; i++) {
-      novelty(i) =
+      output(i) =
           (similarity.block(i, i, mKernelSize, mKernelSize).array() * mKernel)
               .sum();
     }
-    novelty = novelty / novelty.maxCoeff();
-    ArrayXdMap(output.data(), nFrames) = novelty;
+    output = output / output.maxCoeff();
   }
 
 private:
@@ -56,13 +52,8 @@ private:
   Eigen::ArrayXXd mKernel;
 
   void createKernel() {
-    using Eigen::ArrayXd;
-    using Eigen::Map;
-    using Eigen::MatrixXd;
-    using algorithm::WindowType;
-    using algorithm::windowFuncs;
     int h = (mKernelSize - 1) / 2;
-    ArrayXd gaussian = Map<ArrayXd>(
+    ArrayXd gaussian = Eigen::Map<ArrayXd>(
         windowFuncs[WindowType::kGaussian](mKernelSize).data(), mKernelSize);
     MatrixXd tmp = gaussian.matrix() * gaussian.matrix().transpose();
     tmp.block(h, 0, h + 1, h) *= -1;

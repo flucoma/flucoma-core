@@ -1,10 +1,10 @@
 #pragma once
 
+#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <map>
 #include <vector>
-#include <cassert>
 
 namespace fluid {
 namespace algorithm {

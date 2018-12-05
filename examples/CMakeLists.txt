@@ -10,7 +10,7 @@ find_library(SNDFILE_LIBRARY NAMES libsndfile.dylib
 
 foreach (EXAMPLE  audiofile;fluidtensor;stft;nmf;
 									fluidbuffer;sineextraction;transient_extractor;
-								median_filter;hpss;rthpss;rtsineextraction;novelty;paramDescriptorList)
+								median_filter;hpss;rthpss;rtsineextraction;novelty;paramDescriptorList;onset;transient_segmentation)
 
 	add_executable (
 			test_${EXAMPLE} test_${EXAMPLE}.cpp
@@ -56,4 +56,8 @@ endforeach (EXAMPLE)
 #
 target_link_libraries(
 	test_transient_extractor PRIVATE HISSTools_AudioFile
+)
+
+target_link_libraries(
+	test_transient_segmentation PRIVATE HISSTools_AudioFile
 )
