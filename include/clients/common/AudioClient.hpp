@@ -8,17 +8,16 @@ namespace client {
 struct Audio {};
 
 struct AudioIn: Audio {
-  constexpr AudioIn(const std::size_t N): channels(N) {}
-  const std::size_t channels;
+  constexpr AudioIn(std::size_t n): channels(n) {}
+  std::size_t channels;
 };
 
 
 struct AudioOut: Audio {
-  constexpr AudioOut(const std::size_t N): channels(N) {}
-  const std::size_t channels;
+  constexpr AudioOut(std::size_t n): channels(n) {}
+  std::size_t channels;
 };
 //
-//template <std::size_t N>
 //struct ControlOut {
 //  static constexpr std::size_t outputs = N;
 //};
