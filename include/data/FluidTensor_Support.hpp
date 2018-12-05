@@ -569,7 +569,7 @@ template <size_t N> struct FluidTensorSlice {
   // Because std::initializer_list doesn't expose constexpr for its
   // size etc (fixed in C++14) we can't use a static_assert
   FluidTensorSlice(size_t s, std::initializer_list<size_t> exts) : start(s) {
-
+    //TODO: we're on  14 now, so this can be enforced statically
     assert(exts.size() == N && "Wrong number of dimensions in extents");
     std::copy(exts.begin(), exts.end(), extents.begin());
     init();
@@ -656,6 +656,12 @@ template <size_t N> struct FluidTensorSlice {
   std::array<std::size_t, N> extents; // number of elements in each dimension
   std::array<std::size_t, N>
       strides; // offset between elements in each dimension
+
+  void reset(std::size_t start, std::initializer_list<std::size_t> exts)
+  {
+    std::copy(exts.begin(), exts.end(), extents.begin());
+    init();
+  }
 
 private:
   // No point calling this before extents have been filled

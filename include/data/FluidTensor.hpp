@@ -712,8 +712,8 @@ public:
    **/
   template <typename... Dims,
             typename = enable_if_t<isIndexSequence<Dims...>()>>
-  FluidTensorView(T *p, size_t start, Dims... dims)
-      : mDesc(start, {static_cast<size_t>(dims)...}), mRef(p) {}
+  FluidTensorView(T *p, std::size_t start, Dims... dims)
+      : mDesc(start, {static_cast<std::size_t>(dims)...}), mRef(p) {}
 
   //        /***********
   //         Construct from a whole FluidTensor
@@ -729,6 +729,15 @@ public:
   **********/
   FluidTensorView(FluidTensor<T, N> &&r) = delete;
 
+
+  ///Repoint a view 
+  template <typename... Dims,
+            typename = enable_if_t<isIndexSequence<Dims...>()>>
+  void reset(T* p, std::size_t start, Dims...dims)
+  {
+    mRef = p;
+    mDesc.reset(start, {static_cast<std::size_t>(dims)...});
+  }
   /****
    Element access operator(), enabled if args can
    be interpreted as indices (viz convertible to size_t)
