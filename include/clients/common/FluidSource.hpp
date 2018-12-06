@@ -6,8 +6,8 @@
  */
 #pragma once
 
-#include <data/FluidTensor.hpp>
 #include <cassert>
+#include <data/FluidTensor.hpp>
 
 namespace fluid {
 
@@ -24,14 +24,13 @@ class FluidSource //: public FluidTensor<T,2>
   using const_view_type = const FluidTensorView<T, 2>;
 
 public:
-  
   FluidSource(FluidSource &) = delete;
   FluidSource &operator=(FluidSource &) = delete;
 
   FluidSource(const size_t size, const size_t channels = 1)
-      : matrix(channels,size), mSize(size), mChannels(channels) {}
+      : matrix(channels, size), mSize(size), mChannels(channels) {}
 
-  FluidSource(): FluidSource(0,1) {};
+  FluidSource() : FluidSource(0, 1){};
 
   tensor_type &data() { return matrix; }
 
@@ -71,24 +70,25 @@ public:
                                                         : blocksize;
 
     // Copy all channels (rows)
-    copyIn(x(Slice(0),Slice(0, size)), offset, size);
-    copyIn(x(Slice(0),Slice(size, blocksize - size)), 0, blocksize - size);
+    copyIn(x(Slice(0), Slice(0, size)), offset, size);
+    copyIn(x(Slice(0), Slice(size, blocksize - size)), 0, blocksize - size);
   }
 
-//  template <typename InputIt>
-//  void push(InputIt in, InputIt end, size_t nsamps, size_t nchans) {
-//    assert(nchans == mChannels);
-//    assert(nsamps <= bufferSize());
-//    size_t blocksize = nsamps;
-//
-//    size_t offset = mCounter;
-//
-//    size_t size = ((offset + blocksize) > bufferSize()) ? bufferSize() - offset
-//                                                        : blocksize;
-//
-//    copyIn(in, end, 0, offset, size);
-//    copyIn(in, end, size, 0, blocksize - size);
-//  }
+  //  template <typename InputIt>
+  //  void push(InputIt in, InputIt end, size_t nsamps, size_t nchans) {
+  //    assert(nchans == mChannels);
+  //    assert(nsamps <= bufferSize());
+  //    size_t blocksize = nsamps;
+  //
+  //    size_t offset = mCounter;
+  //
+  //    size_t size = ((offset + blocksize) > bufferSize()) ? bufferSize() -
+  //    offset
+  //                                                        : blocksize;
+  //
+  //    copyIn(in, end, 0, offset, size);
+  //    copyIn(in, end, size, 0, blocksize - size);
+  //  }
 
   /*!
    Pull a frame of data out of the buffer.
@@ -110,8 +110,8 @@ public:
         (offset + blocksize > bufferSize()) ? bufferSize() - offset : blocksize;
 
     out(Slice(0), Slice(0, size)) = matrix(Slice(0), Slice(offset, size));
-    out(Slice(0),Slice(size, blocksize - size)) =
-        matrix(Slice(0),Slice(0, blocksize - size));
+    out(Slice(0), Slice(size, blocksize - size)) =
+        matrix(Slice(0), Slice(0, blocksize - size));
   }
 
   /*
@@ -132,8 +132,7 @@ public:
     if (channels)
       mChannels = channels;
 
-    if (matrix.cols() != bufferSize() || matrix.rows() != channels)
-    {
+    if (matrix.cols() != bufferSize() || matrix.rows() != channels) {
       matrix.resize(mChannels, bufferSize());
       matrix.fill(0);
       mCounter = 0;
@@ -188,5 +187,4 @@ private:
   size_t mChannels;
   size_t mHostBufferSize = 0;
 };
-} //namespace fluid
-
+} // namespace fluid

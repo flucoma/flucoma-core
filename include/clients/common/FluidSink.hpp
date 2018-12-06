@@ -6,8 +6,8 @@
  */
 #pragma once
 
-#include <data/FluidTensor.hpp>
 #include <cassert>
+#include <data/FluidTensor.hpp>
 
 namespace fluid {
 
@@ -28,7 +28,7 @@ public:
   FluidSink operator=(FluidSink &) = delete;
 
   FluidSink(const size_t size, const size_t channels = 1)
-      : matrix(channels,size), mSize(size), mChannels(channels) {}
+      : matrix(channels, size), mSize(size), mChannels(channels) {}
 
   tensor_type &data() { return matrix; }
 
@@ -66,7 +66,7 @@ public:
    Copy data from the buffer, and zero where it was
    **/
   void pull(view_type out) {
-  
+
     size_t blocksize = out.cols();
     if (blocksize > bufferSize()) {
       return;
@@ -77,25 +77,26 @@ public:
     size_t size =
         offset + blocksize > bufferSize() ? bufferSize() - offset : blocksize;
 
-    outAndZero(out(Slice(0),Slice(0, size)), offset, size);
-    outAndZero(out(Slice(0),Slice(size, blocksize - size)), 0,
+    outAndZero(out(Slice(0), Slice(0, size)), offset, size);
+    outAndZero(out(Slice(0), Slice(size, blocksize - size)), 0,
                blocksize - size);
   }
 
-//  template <typename OutputIt>
-//  void pull(OutputIt out, OutputIt end, size_t nSamps, size_t nChans) {
-//    size_t blocksize = nSamps;
-//    if (blocksize > bufferSize()) {
-//      return;
-//    }
-//
-//    size_t offset = mCounter;
-//    size_t size =
-//        offset + blocksize > bufferSize() ? bufferSize() - offset : blocksize;
-//
-//    out_and_zero(out, end, 0, offset, size);
-//    out_and_zero(out, end, size, 0, blocksize - size);
-//  }
+  //  template <typename OutputIt>
+  //  void pull(OutputIt out, OutputIt end, size_t nSamps, size_t nChans) {
+  //    size_t blocksize = nSamps;
+  //    if (blocksize > bufferSize()) {
+  //      return;
+  //    }
+  //
+  //    size_t offset = mCounter;
+  //    size_t size =
+  //        offset + blocksize > bufferSize() ? bufferSize() - offset :
+  //        blocksize;
+  //
+  //    out_and_zero(out, end, 0, offset, size);
+  //    out_and_zero(out, end, size, 0, blocksize - size);
+  //  }
 
   /*!
    Reset the buffer, resizing if the host buffer size
@@ -107,9 +108,8 @@ public:
     if (channels)
       mChannels = channels;
 
-    if (matrix.cols() != bufferSize() || matrix.rows() != channels)
-    {
-      matrix.resize(mChannels,bufferSize());
+    if (matrix.cols() != bufferSize() || matrix.rows() != channels) {
+      matrix.resize(mChannels, bufferSize());
       matrix.fill(0);
       mCounter = 0;
     }
@@ -160,3 +160,4 @@ private:
   size_t mHostBufferSize = 0;
 };
 } // namespace fluid
+
