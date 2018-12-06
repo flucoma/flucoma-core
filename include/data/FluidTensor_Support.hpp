@@ -600,7 +600,7 @@ template <size_t N> struct FluidTensorSlice {
   template <size_t M, typename... Args>
   FluidTensorSlice(FluidTensorSlice<M> s, const Args... args) {
     start = s.start + doSlice(s, args...);
-    size = extents[0] * strides[0];
+    size = std::accumulate(extents.begin(),extents.end(),1,std::multiplies<std::size_t>());// extents[0] * strides[0];
   }
 
   // Assign operator
