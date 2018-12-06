@@ -27,15 +27,17 @@ struct ParamTypeBase {
 struct FloatT: ParamTypeBase{
   static constexpr Type typeTag  = Type::kFloat;
   using type = float_t;
-  constexpr FloatT(const char* name, const char* displayName, type defaultValue): ParamTypeBase(name) {}
+  constexpr FloatT(const char* name, const char* displayName, type defaultVal): ParamTypeBase(name),defaultValue(defaultVal)  {}
   const std::size_t fixedSize = 1;
+  const type defaultValue;
 };
 
 struct LongT:ParamTypeBase{
   static constexpr Type typeTag = Type::kLong;
   using type = long_t;
-  constexpr LongT(const char* name, const char* displayName, type defaultValue): ParamTypeBase(name){}
+  constexpr LongT(const char* name, const char* displayName, type defaultVal): ParamTypeBase(name), defaultValue(defaultVal) {}
   const std::size_t fixedSize = 1;
+  const type defaultValue;
 };
 
 struct BufferT: ParamTypeBase{
@@ -140,7 +142,7 @@ class ParameterValue
 {
 public:
   using type = typename T::type;
-  ParameterValue()//Constraints...c):mConstraints(std::make_tuple(c...))
+  ParameterValue(const T descriptor):mDescriptor(descriptor), mValue(mDescriptor.defaultValue)
   {
   
   }
@@ -150,22 +152,10 @@ public:
   bool enabled() const noexcept { return true; }
   bool changed() const noexcept { return mChanged; }
   
-//  template<typename...Ts>
-//  T clamp(T value, std::tuple<Ts...>& params)
-//  {
-//    T res;
-//    (void)auto l{(res =    ,0)...}
-//  }
-  
 private:
-//  template<std::size_t...Is>
-//  void clamp(T v, std::index_sequence<Is...>){
-//    (void)auto l{(res = std::get<Is>(mConstraints)::clamp(value),0)...};
-//  }
-
-  bool mChanged = false;
+  const T mDescriptor;
   type mValue;
-//  std::tuple <Constraints...> mConstraints;
+  bool mChanged = false;
 };
 
 

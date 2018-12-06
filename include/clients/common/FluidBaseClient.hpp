@@ -31,7 +31,7 @@ template <typename... Ts> struct ParamValueTypes {
   {
       return std::make_tuple(
         std::make_pair(
-          value_type<Ts>{},
+          value_type<Ts>{std::get<Is>(t).first},
           std::get<Is>(t).second
       )...);
   }
@@ -53,8 +53,7 @@ T clampImpl(T thisParam, Params& allParams, Constraints& c, std::index_sequence<
 {
   T res = thisParam;
 // puts(__PRETTY_FUNCTION__);
-  auto l={(res = std::get<Is>(c).clamp(res,allParams),0)...};
-  static_cast<void>(l); //silence unused variable warning
+  (void)std::initializer_list<int>{(res = std::get<Is>(c).clamp(res,allParams),0)...};
   return res;
 }
 
@@ -93,8 +92,10 @@ public:
     
   }
 
-  template <size_t N> auto get() noexcept { return std::get<N>(mParams).first; }
-
+  template <std::size_t N> auto get() noexcept { return std::get<N>(mParams).first.get(); }
+  template <std::size_t N> bool changed() noexcept {
+    return std::get<N>(mParams).first.changed();
+  }
 
   //Todo: Could this be made more graceful with tag types? Not without CRTP, I suspect
   size_t audioChannelsIn() const noexcept {return mAudioChannelsIn;}
