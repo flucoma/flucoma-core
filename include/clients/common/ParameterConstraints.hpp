@@ -151,8 +151,8 @@ struct PowerOfTwo {
   template<typename Tuple>
   constexpr long clamp(long x, Tuple) {
     int exp=0;
-    std::frexp(x, &exp);
-    return 1 << (exp);
+    double r = std::frexp(x, &exp);
+    return r > 0.5 ? (1 << exp) : (1 << (exp - 1));
   }
 };
 
