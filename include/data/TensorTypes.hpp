@@ -13,4 +13,10 @@ namespace fluid {
   using ComplexMatrix = FluidTensorView<complex<double>, 2>;
 
 
+  template<typename T>
+  using HostVector = FluidTensorView<T,1>;
+
+  template<typename T>
+  using HostMatrix = FluidTensorView<T,2>;
+
 } // namespace fluid
