@@ -135,8 +135,8 @@ template <int... Is> struct LowerLimitImpl {
   T clamp(T& v, Tuple params)
   {
     T res =  maxOf(v,std::get<Is>(params).first.get()...);
-    std::cout << v << ' ' << res <<'\n';
-    return res; 
+//    std::cout << v << ' ' << res <<'\n';
+    return res;
   }
 //
 //  std::tuple<Ts...> mArgs;

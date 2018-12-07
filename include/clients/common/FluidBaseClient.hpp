@@ -87,7 +87,7 @@ public:
       auto xPrime = clamp(static_cast<typename decltype(param)::type>(x),mParams, constraints);//, mParams, constraints);
     
       std::get<N>(mParams).first.set(xPrime);
-      std::cout << std::get<N>(mParams).first << '\n';
+//      std::cout << std::get<N>(mParams).first << '\n';
     };
     
   }
@@ -161,8 +161,6 @@ struct ParameterDescriptors
   }
 
 };
-
-
 
 } // namespace client
 } // namespace fluid
