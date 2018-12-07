@@ -16,31 +16,25 @@ public:
   void process(std::size_t windowSize, std::size_t hopSize, F processFunc) {
 
     assert(windowSize <= maxWindowSize() && "Window bigger than maximum");
-
     for (; mFrameTime < mHostSize; mFrameTime += hopSize) {
       if (mSource) {
         RealMatrix windowIn = mFrameIn(Slice(0), Slice(0, windowSize));
         FluidTensorView<double, 2> windowOut =
             mFrameOut(Slice(0), Slice(0, windowSize));
-
         mSource->pull(windowIn, mFrameTime);
         processFunc(windowIn, windowOut);
-
-        //      std::cout << mFrameTime << ' ' << hopSize <<'\n';
-
         if (mSink)
           mSink->push(windowOut, mFrameTime);
       }
+      
     }
-
     mFrameTime = mFrameTime < mHostSize ? mFrameTime : mFrameTime - mHostSize;
   }
 
   std::size_t hostSize() const noexcept { return mHostSize; }
   void hostSize(std::size_t size) noexcept { mHostSize = size; }
-
+  
   std::size_t maxWindowSize() const noexcept { return mFrameIn.cols(); }
-
   void maxSize(std::size_t frames, std::size_t channelsIn,
                std::size_t channelsOut) {
     if (channelsIn > mFrameIn.rows() || frames > mFrameIn.cols())
@@ -63,15 +57,15 @@ private:
   FluidSink<double> *mSink = nullptr;
 };
 
-template <typename T, typename Client, size_t maxWinParam, size_t winParam,
-          size_t hopParam, size_t FFTParam, bool normalise>
+template <typename T, typename U, typename Client, size_t maxWinParam,
+          size_t winParam, size_t hopParam, size_t FFTParam, bool normalise>
 class STFTBufferedProcess {
-  using View = FluidTensorView<T, 1>;
+  using HostVector = HostVector<U>;
 
 public:
   template <typename F>
-  void process(Client &x, std::vector<View> &input, std::vector<View> &output,
-               F &&processFunc) {
+  void process(Client &x, std::vector<HostVector> &input,
+               std::vector<HostVector> &output, F &&processFunc) {
 
     size_t winSize = x.template get<winParam>();
     size_t hopSize = x.template changed<hopParam>() ? x.template get<hopParam>()
@@ -115,7 +109,7 @@ public:
 
     mBufferedProcess.setBuffers(mInputBuffer, mOutputBuffer);
 
-    mInputBuffer.push(RealMatrix(input[0]));
+    mInputBuffer.push(HostMatrix<U>(input[0]));
 
     mBufferedProcess.process(
         winSize, hopSize,
@@ -166,4 +160,3 @@ private:
 
 } // namespace client
 } // namespace fluid
-
