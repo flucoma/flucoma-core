@@ -9,6 +9,7 @@
 #include <clients/common/AudioClient.hpp>
 #include <clients/common/FluidBaseClient.hpp>
 #include <clients/common/ParameterConstraints.hpp>
+#include <data/TensorTypes.hpp>
 
 namespace fluid {
 namespace client {
@@ -22,28 +23,21 @@ using Params_t = decltype(GainParams);
 /// @class GainAudioClient
 template <typename T, typename U = T>
 class GainClient : public FluidBaseClient<Params_t> {
-  using View = fluid::FluidTensorView<U, 1>;
+  using HostVector = HostVector<U>;
 
 public:
-  enum class Params { kGain, kMaxWindow, kWindow, kHop };
-
-  /**
-   No default instances, no copying
-   **/
+  ///No default instances, no copying
   GainClient(GainClient &) = delete;
   GainClient operator=(GainClient &) = delete;
 
-  /**
-   Construct with a (maximum) chunk size and some input channels
-   **/
+  ///Construct with a (maximum) chunk size and some input channels
   GainClient() : FluidBaseClient<Params_t>(GainParams) {
     audioChannelsIn(2);
     audioChannelsOut(1);
   }
 
-  /// Do the magic: we take vectors of views
-  void process(std::vector<View> &input, std::vector<View> &output) {
-    // Punishment crashes for the sloppy
+  void process(std::vector<HostVector> &input,
+               std::vector<HostVector> &output) {
     // Data is stored with samples laid out in rows, one channel per row
     if (!input[0].data())
       return;
