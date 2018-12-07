@@ -49,7 +49,7 @@ public:
   }
 
 private:
-  std::size_t mFrameTime;
+  std::size_t mFrameTime = 0 ;
   std::size_t mHostSize;
   FluidTensor<double, 2> mFrameIn;
   FluidTensor<double, 2> mFrameOut;
@@ -140,7 +140,7 @@ private:
   bool paramsChanged(std::size_t winSize, std::size_t hopSize,
                      std::size_t fftSize) {
     static std::size_t win, hop, fft;
-    bool res = (win == winSize) && (hop == hopSize) && (fft == fftSize);
+    bool res = (win != winSize) || (hop != hopSize) || (fft != fftSize);
 
     win = winSize;
     hop = hopSize;
