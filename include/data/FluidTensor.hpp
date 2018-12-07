@@ -80,6 +80,7 @@ class FluidTensor //: public FluidTensorBase<T,N>
 
 public:
   static constexpr size_t order = N;
+  using type = std::remove_reference_t<T>;
   // expose this so we can use as an iterator over elements
   using iterator = typename std::vector<T>::iterator;
   using const_iterator = typename std::vector<T>::const_iterator;
@@ -527,11 +528,6 @@ private:
  ****************************************************************/
 template <typename T, size_t N>
 class FluidTensorView { //: public FluidTensorBase<T,N> {
-  static constexpr size_t order = N;
-
-  //        using base_type = typename std::remove_cv<typename
-  //        std::remove_reference<T>::type>::type;
-
 public:
   /*****
    STL style shorthand
@@ -539,6 +535,8 @@ public:
   using pointer = T *;
   using iterator = _impl::SliceIterator<T, N>;
   using const_iterator = _impl::SliceIterator<const T, N>;
+  using type = std::remove_reference_t<T>;
+  static constexpr size_t order = N;
 
   /*****
    No default constructor, doesn't make sense

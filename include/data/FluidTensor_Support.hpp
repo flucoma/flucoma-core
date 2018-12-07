@@ -512,7 +512,13 @@ using FluidTensorInitializer = typename _impl::FluidTensorInit<T, N>::type;
 template <size_t N> struct FluidTensorSlice {
   static constexpr std::size_t order = N;
   // Standard constructors
-  FluidTensorSlice() = default;
+  FluidTensorSlice()
+  {
+    std::fill(extents.begin(),extents.end(),0);
+    std::fill(strides.begin(),strides.end(),0);
+    size  = 0;
+    start = 0;
+  };
   // Copy
   FluidTensorSlice(FluidTensorSlice const &other) = default;
   // Move
