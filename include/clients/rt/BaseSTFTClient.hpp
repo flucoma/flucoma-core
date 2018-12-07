@@ -34,7 +34,7 @@ using Param_t = decltype(STFTParams);
 template <typename T, typename U = T>
 class BaseSTFTClient : public FluidBaseClient<Param_t> {
 
-  using View = FluidTensorView<T, 1>;
+  using HostVector = HostVector<U>;
 
 public:
   BaseSTFTClient(BaseSTFTClient &) = delete;
@@ -45,8 +45,8 @@ public:
     audioChannelsOut(1);
   }
 
-  void process(std::vector<RealVector> &input,
-               std::vector<RealVector> &output) {
+  void process(std::vector<HostVector> &input,
+               std::vector<HostVector> &output) {
 
     if (!input[0].data() || !output[0].data())
       return;
@@ -57,7 +57,7 @@ public:
   }
 
 private:
-  STFTBufferedProcess<double, BaseSTFTClient, kMaxWin, kWinsize, kHopsize,
+  STFTBufferedProcess<T,U, BaseSTFTClient, kMaxWin, kWinsize, kHopsize,
                       kFFTSize, true>
       mSTFTBufferedProcess;
 };
