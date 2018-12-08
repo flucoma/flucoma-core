@@ -128,7 +128,7 @@ public:
    Conversion assignment
    ****/
   template <typename U, template <typename, size_t> class O, size_t M = N>
-  enable_if_t<std::is_same<FluidTensor<U, N>, O<U, M>>() && (N > 1),
+  std::enable_if_t<std::is_same<FluidTensor<U, N>, O<U, M>>() && (N > 1),
               FluidTensor &>
   operator=(const O<U, M> &x) {
 
@@ -137,7 +137,7 @@ public:
   }
 
   template <typename... Dims,
-            typename = enable_if_t<isIndexSequence<Dims...>()>>
+  typename = std::enable_if_t<isIndexSequence<Dims...>()>>
   FluidTensor(Dims... dims) : mDesc(dims...) {
     static_assert(sizeof...(dims) == N, "Number of dimensions doesn't match");
     mContainer.resize(mDesc.size, 0);
@@ -218,7 +218,7 @@ public:
 
    This assumes row-major input, I think
    ****/
-  template <typename U = T, size_t D = N, typename = enable_if_t<D == 2>()>
+  template <typename U = T, size_t D = N, typename = std::enable_if_t<D == 2>()>
   FluidTensor(T **input, size_t dim1, size_t dim2)
       : mContainer(dim1 * dim2, 0), mDesc(0, {dim1, dim2}) {
     for (int i = 0; i < dim1; ++i)
@@ -229,7 +229,7 @@ public:
    T* constructor only for 1D structure
    Allows for strided copying (e.g from interleaved audio)
    ****/
-  template <typename U = T, size_t D = N, typename = enable_if_t<D == 1>()>
+  template <typename U = T, size_t D = N, typename = std::enable_if_t<D == 1>()>
   FluidTensor(T *input, size_t dim, size_t stride = 1)
       : mContainer(dim), mDesc(0, {dim}) {
     for (size_t i = 0, j = 0; i < dim; ++i, j += stride) {
@@ -249,11 +249,11 @@ public:
 
    copies the vector using vector's copy constructor
    ****/
-  template <typename U = T, size_t D = N, typename = enable_if_t<D == 1>()>
+  template <typename U = T, size_t D = N, typename = std::enable_if_t<D == 1>()>
   FluidTensor(std::vector<T> &&input)
       : mContainer(input), mDesc(0, {input.size()}) {}
 
-  template <typename U = T, size_t D = N, typename = enable_if_t<D == 1>()>
+  template <typename U = T, size_t D = N, typename = std::enable_if_t<D == 1>()>
   FluidTensor(std::vector<T> &input)
       : mContainer(input), mDesc(0, {input.size()}) {}
   /***************************************************************
@@ -336,14 +336,14 @@ public:
    ****/
 
   template <typename... Args>
-  enable_if_t<isIndexSequence<Args...>(), T &> operator()(Args... args) {
+  std::enable_if_t<isIndexSequence<Args...>(), T &> operator()(Args... args) {
     assert(_impl::checkBounds(mDesc, args...) && "Arguments out of bounds");
     return *(data() + mDesc(args...));
   }
 
   // const version
   template <typename... Args>
-  enable_if_t<isIndexSequence<Args...>(), const T &>
+  std::enable_if_t<isIndexSequence<Args...>(), const T &>
   operator()(Args... args) const {
     assert(_impl::checkBounds(mDesc, args...) && "Arguments out of bounds");
     return *(data() + mDesc(args...));
@@ -368,7 +368,7 @@ public:
   //         fluid::slices
   //         ****/
   template <typename... Args>
-  enable_if_t<isSliceSequence<Args...>(), const FluidTensorView<const T, N>>
+  std::enable_if_t<isSliceSequence<Args...>(), const FluidTensorView<const T, N>>
   operator()(const Args &... args) const {
     static_assert(sizeof...(Args) == N,
                   "Number of slices must match number of dimensions. Use "
@@ -381,7 +381,7 @@ public:
   }
 
   template <typename... Args>
-  enable_if_t<isSliceSequence<Args...>(), FluidTensorView<T, N>>
+  std::enable_if_t<isSliceSequence<Args...>(), FluidTensorView<T, N>>
   operator()(const Args &... args) {
     static_assert(sizeof...(Args) == N,
                   "Number of slices must match number of dimensions. Use "
@@ -442,7 +442,7 @@ public:
   T *data() { return mContainer.data(); }
 
   template <typename... Dims,
-            typename = enable_if_t<isIndexSequence<Dims...>()>>
+  typename = std::enable_if_t<isIndexSequence<Dims...>()>>
   void resize(Dims... dims) {
     static_assert(sizeof...(dims) == N, "Number of dimensions doesn't match");
     mDesc = FluidTensorSlice<N>(dims...);
@@ -709,7 +709,7 @@ public:
    Wrap around an arbitary pointer, with an offset and some dimensions
    **/
   template <typename... Dims,
-            typename = enable_if_t<isIndexSequence<Dims...>()>>
+  typename = std::enable_if_t<isIndexSequence<Dims...>()>>
   FluidTensorView(T *p, std::size_t start, Dims... dims)
       : mDesc(start, {static_cast<std::size_t>(dims)...}), mRef(p) {}
 
@@ -730,7 +730,7 @@ public:
 
   ///Repoint a view 
   template <typename... Dims,
-            typename = enable_if_t<isIndexSequence<Dims...>()>>
+  typename = std::enable_if_t<isIndexSequence<Dims...>()>>
   void reset(T* p, std::size_t start, Dims...dims)
   {
     mRef = p;
@@ -741,14 +741,14 @@ public:
    be interpreted as indices (viz convertible to size_t)
    ****/
   template <typename... Args>
-  enable_if_t<isIndexSequence<Args...>(), const T &>
+  std::enable_if_t<isIndexSequence<Args...>(), const T &>
   operator()(Args... args) const {
     assert(_impl::checkBounds(mDesc, args...) && "Arguments out of bounds");
     return *(data() + mDesc(args...));
   }
 
   template <typename... Args>
-  enable_if_t<isIndexSequence<Args...>(), T &> operator()(Args... args) {
+  std::enable_if_t<isIndexSequence<Args...>(), T &> operator()(Args... args) {
     assert(_impl::checkBounds(mDesc, args...) && "Arguments out of bounds");
     return *(data() + mDesc(args...));
   }
@@ -758,7 +758,7 @@ public:
    fluid::slice struct and a mixture of integer types and fluid::slices
    ****/
   template <typename... Args>
-  enable_if_t<isSliceSequence<Args...>(), FluidTensorView<T, N>>
+  std::enable_if_t<isSliceSequence<Args...>(), FluidTensorView<T, N>>
   operator()(const Args &... args) const {
     static_assert(sizeof...(Args) == N,
                   "Number of slices must match number of dimensions. Use "

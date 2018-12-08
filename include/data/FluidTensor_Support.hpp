@@ -31,8 +31,8 @@ template <size_t N> struct FluidTensorSlice;
  This gets quite a bit of use below, to avoid specializing whole classes
  for different dimensioned containers.
  ***/
-template <bool B, typename T = void>
-using enable_if_t = typename std::enable_if<B, T>::type;
+//template <bool B, typename T = void>
+//using enable_if_t = typename std::enable_if<B, T>::type;
 
 /****
  All() and Some() are can be used with enable_if_t to check that
@@ -169,7 +169,7 @@ struct FluidTensorInit<T, 0>; // undefined on purpose: things should barf if
 
 // Terminating case, constrained on N==1
 template <std::size_t N, typename I, typename List>
-enable_if_t<(N == 1)>
+  std::enable_if_t<(N == 1)>
 // TODO: add constraint for FluidTensor_Initializer<T> here?
 addExtents(I &first, const List &list) {
   *first++ = list.size(); // deepest nesting
@@ -177,7 +177,7 @@ addExtents(I &first, const List &list) {
 
 // Recursion
 template <std::size_t N, typename I, typename List>
-enable_if_t<(N > 1)>
+  std::enable_if_t<(N > 1)>
 // TODO: add constraint for FluidTensor_Initializer<T> here?
 addExtents(I &first, const List &list) {
   //    assert(check_non_jagged(list));
@@ -539,7 +539,7 @@ template <size_t N> struct FluidTensorSlice {
    **/
   template <typename R,
             typename I = typename std::remove_reference<R>::type::iterator,
-            typename = enable_if_t<
+  typename = std::enable_if_t<
                 IsIteratorType<I, std::forward_iterator_tag>::value>>
   FluidTensorSlice(size_t s, R &&range) : start(s) {
 
@@ -595,7 +595,7 @@ template <size_t N> struct FluidTensorSlice {
   // Construct from a variable number of extents. Do we need this?
   // FluidTensorSlice<2> my_slice(3,4)
   template <typename... Dims,
-            typename = enable_if_t<isIndexSequence<Dims...>()>>
+  typename = std::enable_if_t<isIndexSequence<Dims...>()>>
   FluidTensorSlice(Dims... dims) {
     static_assert(sizeof...(Dims) == N,
                   "Number of arguments must match matrix dimensions");
@@ -621,7 +621,7 @@ template <size_t N> struct FluidTensorSlice {
   // BS claims in CP++PL4 that this would need optimising.
   // How? Avoid copying args? Cache indices?
   template <typename... Dims>
-  enable_if_t<(N > 2) && isIndexSequence<Dims...>(), size_t>
+  std::enable_if_t<(N > 2) && isIndexSequence<Dims...>(), size_t>
   operator()(Dims... dims) const {
     static_assert(sizeof...(Dims) == N, "");
     size_t args[N]{size_t(dims)...};
@@ -631,13 +631,13 @@ template <size_t N> struct FluidTensorSlice {
   // Rather than specialise the whole class again, slimmer versions of
   // operator()  for N = 1 and N = 2 using enable_if idiom
   template <size_t DIM = N>
-  enable_if_t<DIM == 1, size_t> operator()(size_t i) const {
+  std::enable_if_t<DIM == 1, size_t> operator()(size_t i) const {
     return i * strides[0];
   }
 
   // Specialise for N=2
   template <size_t DIM = N>
-  enable_if_t<DIM == 2, size_t> operator()(size_t i, size_t j) const {
+  std::enable_if_t<DIM == 2, size_t> operator()(size_t i, size_t j) const {
     return i * strides[0] + j;
   }
 
