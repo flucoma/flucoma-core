@@ -3,6 +3,39 @@
  **/
 
 #pragma once
+
+#include "FluidMeta.hpp"
+#include <array>  //std::array
+#include <cassert> //assert()
+#include <functional> // less, multiplies
+#include <iterator> //iterator_traiys
+#include <numeric> //accujmuate, innerprodct
+
+
+namespace fluid{
+
+/*****************************
+ slice
+ Used for requesting slices from client code using operater() on FluidTensor and
+ FluidTensorView. Implementation replicates Stroustrup's in C++PL4 (p841) Not
+ sure I like the deliberate wrapping of the unsigned indices though The actual
+ action happens in the FluidTensorSlice template, with some recursive variadic
+ args goodness
+ ********************************/
+struct Slice {
+  //        /static constexpr slice all(0, std::size_t(-1),1);
+
+  Slice() : start(-1), length(-1), stride(1) {}
+
+  explicit Slice(size_t s) : start(s), length(-1), stride(1) {}
+
+  Slice(size_t s, size_t l, size_t n = 1) : start(s), length(l), stride(n) {}
+
+  size_t start;
+  size_t length;
+  size_t stride;
+};
+
 /*****************************
  FluidTensorSlice describes mappings of indices to points in our storage
  ******************************/
@@ -34,40 +67,6 @@ template <size_t N> struct FluidTensorSlice;
 //template <bool B, typename T = void>
 //using enable_if_t = typename std::enable_if<B, T>::type;
 
-/****
- All() and Some() are can be used with enable_if_t to check that
- variadic template arguments satisfy some condition
- These are names that stroustrup uses, however C++17 introduces
- 'conjunction' & 'disjunction' that seem to do the same, but are defined
- slightly differently
-
- So, one example of use is to make sure that all variadic arguments can
- be converted to a given type. Let's say size_t, and again use our function
- foo that returns int
-
- enable_if_t<All(std::is_convertible<size_t, Args>::value...),int>
- foo(){...
-
- We use these for getting different versions of operator() for arguments
- of indices and of slice specifications.
-
- Both All() and Some() use the common trick with variadic template args of
- recursing through the list. You'll see in both cases a 'base case' declared
- as constexpr, which is the function without any args. Then, the template below
- calls itself, consuming one more arg from the list at a time.
- ****/
-// Base case
-constexpr bool all() { return true; }
-// Recurse
-template <typename... Args> constexpr bool all(bool b, Args... args) {
-  return b && all(args...);
-}
-// Base case
-constexpr bool some() { return false; }
-// Recurse
-template <typename... Args> constexpr bool some(bool b, Args... args) {
-  return b || some(args...);
-}
 
 /****
  Convinience constraint for determining if a arg list can be treated as a set of
@@ -743,3 +742,5 @@ template <typename M1, typename M2>
 inline bool sameExtents(const M1 &a, const M2 &b) {
   return sameExtents(a.descriptor(), b.descriptor());
 }
+
+} //namespace fluid

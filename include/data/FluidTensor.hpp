@@ -4,8 +4,10 @@
  *****/
 #pragma once
 
+#include "FluidTensor_Support.hpp"
+
 #include <array>
-#include <assert.h>
+#include <cassert>
 #include <initializer_list>
 #include <iostream>
 #include <numeric>
@@ -29,31 +31,11 @@ template <typename T, size_t N> class FluidTensor; // keep trendy
  ******************************/
 template <typename T, size_t N> class FluidTensorView; // Rename to view?
 
-/*****************************
- slice
- Used for requesting slices from client code using operater() on FluidTensor and
- FluidTensorView. Implementation replicates Stroustrup's in C++PL4 (p841) Not
- sure I like the deliberate wrapping of the unsigned indices though The actual
- action happens in the FluidTensorSlice template, with some recursive variadic
- args goodness
- ********************************/
-struct Slice {
-  //        /static constexpr slice all(0, std::size_t(-1),1);
 
-  Slice() : start(-1), length(-1), stride(1) {}
-
-  explicit Slice(size_t s) : start(s), length(-1), stride(1) {}
-
-  Slice(size_t s, size_t l, size_t n = 1) : start(s), length(l), stride(n) {}
-
-  size_t start;
-  size_t length;
-  size_t stride;
-};
 
 //    slice slice::all(0, std::size_t(-1),1);
 
-#include "FluidTensor_Support.hpp"
+
 
 /********************************************************
  FluidTensor!
