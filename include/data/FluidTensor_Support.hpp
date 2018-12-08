@@ -8,7 +8,6 @@
 #include <array>  //std::array
 #include <cassert> //assert()
 #include <functional> // less, multiplies
-#include <iterator> //iterator_traiys
 #include <numeric> //accujmuate, innerprodct
 
 
@@ -41,33 +40,6 @@ struct Slice {
  ******************************/
 template <size_t N> struct FluidTensorSlice;
 
-/******************************************************************************
- Traits and constraints.
- TODO: move to own header
- *****************************************************************************/
-
-/***
- enable_if_t replicates the same structure in C++14.
- Note that BS calls this Requires() in C++PL4.
-
- It is used to switch functions on and off depending on template arguments.
-
- It defines a type coditionally, depending on whether the boolean condition
- is satisfied. The second argument defines the type it would return.
-
- So, e.g., for a function that returned an int, that we wanted to enable based
- on some template argument N being > 0, we could do
-
- template<size_t N>
- enable_if_t< (N > 0), int> foo(){...
-
- This gets quite a bit of use below, to avoid specializing whole classes
- for different dimensioned containers.
- ***/
-//template <bool B, typename T = void>
-//using enable_if_t = typename std::enable_if<B, T>::type;
-
-
 /****
  Convinience constraint for determining if a arg list can be treated as a set of
  slice specifications. If there is at least once slice instance, and possibly a
@@ -75,8 +47,8 @@ template <size_t N> struct FluidTensorSlice;
  ****/
 template <typename... Args> constexpr bool isSliceSequence() {
   return all((std::is_convertible<Args, size_t>() ||
-              std::is_same<Args, fluid::Slice>())...) &&
-         some(std::is_same<Args, fluid::Slice>()...);
+              std::is_same<Args, Slice>())...) &&
+         some(std::is_same<Args, Slice>()...);
 }
 
 /*****
@@ -86,25 +58,6 @@ template <typename... Args> constexpr bool isIndexSequence() {
   return all(std::is_convertible<Args, size_t>()...);
 }
 
-/***
- Is this type complex? (Not currently used
- template <typename T> struct is_complex:std::false_type{};
- template <typename T> struct is_complex<std::complex<T>>:std::true_type {};
-
- template <typename T>
- using if_complex_get_value_type = typename
- std::conditional<is_complex<T>{},typename T::value_type,T>::type;
- ****/
-
-/****
- Does the iterator of this type fulfill the given itertator category?
- Used by FluidTensorSlice to ensure that we have at least a ForwardIterator
- in its constructor that takes a range
- ****/
-template <typename Iterator, typename IteratorTag>
-using IsIteratorType =
-    std::is_base_of<IteratorTag,
-                    typename std::iterator_traits<Iterator>::iterator_category>;
 
 // Alias integral_constant<size_t,N>
 template <std::size_t N>
@@ -112,12 +65,11 @@ using size_constant = std::integral_constant<std::size_t, N>;
 
 namespace _impl {
 /****************************************************
- * Helper templates for the container. Put into _impl namespace to make clear
- *that these are internal
+ * Helper templates for the container.
  ******************************************************/
 
 /********************
- Check bounds is used to ensure that a set of dimension extents
+ Ensure that a set of dimension extents
  will fit within the FluidTensorSlice being asked for them
  ********************/
 template <size_t N, typename... Dims>
@@ -196,86 +148,6 @@ std::array<size_t, N> deriveExtents(const List &list) {
   return a;
 }
 
-//        /*********
-//         Makes a new FluidTensorSlice based on offsetting into an existing one
-//         *********/
-//        template<size_t D, size_t N>
-//        fluid::FluidTensorSlice<N-1> slice_dim(const
-//        fluid::FluidTensorSlice<N>& inp,size_t idx)
-//        {
-//            static_assert(D<=N, "Requested dimension too big");
-//
-//            fluid::FluidTensorSlice<N-1> r;
-//            r.size = inp.size / inp.extents[D];
-//            r.start = inp.start + idx * inp.strides[D];
-//            auto i = std::copy_n(inp.extents.begin(),D,r.extents.begin());
-//            std::copy_n(inp.extents.begin() + D + 1, N-D-1,i);
-//            auto j = std::copy_n(inp.strides.begin(),D,r.strides.begin());
-//            std::copy_n(inp.strides.begin() + D + 1, N-D-1,j);
-//            return r;
-//        }
-//
-//        /************************************************
-//         doSliceDim does the hard work in making an arbitary
-//         new slice from an existing one, used by the operator()
-//         of FluidTensor and FluidRensorView. These are called by
-//         do_slice, immediately below
-//         ************************************************/
-//        template<size_t N, size_t M>
-//        size_t doSliceDim(const fluid::FluidTensorSlice<M>& original_slice,
-//        fluid::FluidTensorSlice<M>& new_slice, size_t n)
-//        {
-//            return doSliceDim<N>(new_slice, fluid::slice(n, 1, 1));
-//        }
-//
-//        template<size_t N, size_t M, typename T>
-//        size_t doSliceDim(const fluid::FluidTensorSlice<M>& original_slice,
-//        fluid::FluidTensorSlice<M>& new_slice, const T& s)
-//        {
-//            fluid::slice reformed(s);
-//            if(reformed.start >= original_slice.extents[N])
-//                reformed.start = 0;
-//
-//            if(reformed.length > original_slice.extents[N] || reformed.start +
-//            reformed.length > original_slice.extents[N])
-//                reformed.length = original_slice.extents[N] - reformed.start;
-//
-//            if(reformed.start + reformed.length * reformed.stride >
-//            original_slice.extents[N])
-//                reformed.length = ((original_slice.extents[N] -
-//                reformed.start) + reformed.stride -1) / reformed.stride;
-//
-//            new_slice.extents[N] = reformed.length;
-//            new_slice.strides[N] = original_slice.strides[N] *
-//            reformed.stride; new_slice.size = new_slice.extents[0] *
-//            new_slice.strides[0]; return reformed.start *
-//            original_slice.strides[N];
-//        }
-//
-//        /************************************************
-//         do_slice recursively populates a new slice from
-//         an old one, based on some variable number of slicing
-//         args (that should match the number of dimensions of the
-//         container or ref at hand.
-//         ************************************************/
-//        //Terminating conidition
-//        template<size_t N>
-//        size_t do_slice(const fluid::FluidTensorSlice<N>& os,
-//        fluid::FluidTensorSlice<N>& ns)
-//        {
-//            return 0;
-//        }
-//        //Recursion. Works out the offset for a dimension,
-//        //and calls again, for the next dimension
-//        template<size_t N, typename T, typename ...Args>
-//        size_t do_slice(const fluid::FluidTensorSlice<N>& os,
-//        fluid::FluidTensorSlice<N>& ns, const T& s, const Args&... args)
-//        {
-//            //<N - sizeof...(Args) - 1>
-//            size_t m = doSliceDim<N - sizeof...(Args) - 1>(os, ns, s);
-//            size_t n = do_slice(os, ns, args...);
-//            return n+m;
-//        }
 
 /**
  * These templates are for _populating_ our container with the contents of

@@ -1,7 +1,7 @@
 ///A place to keep metaprogramming gizmos. Quite probably with links to the stack overflow answer I got them from ;-)
 #pragma once
 
-
+#include <iterator>
 #include<type_traits>
 
 namespace fluid {
@@ -40,6 +40,16 @@ constexpr bool some() { return false; }
 template <typename... Args> constexpr bool some(bool b, Args... args) {
   return b || some(args...);
 }
+
+/****
+ Does the iterator of this type fulfill the given itertator category?
+ Used by FluidTensorSlice to ensure that we have at least a ForwardIterator
+ in its constructor that takes a range
+ ****/
+template <typename Iterator, typename IteratorTag>
+using IsIteratorType =
+    std::is_base_of<IteratorTag,
+                    typename std::iterator_traits<Iterator>::iterator_category>;
 
 
 //Detcting constexpr: https://stackoverflow.com/a/50169108
