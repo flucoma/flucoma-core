@@ -2,6 +2,7 @@
 
 #include "FluidTensor.hpp"
 #include <complex>
+#include <type_traits>
 
 namespace fluid {
   using std::complex;
@@ -19,4 +20,9 @@ namespace fluid {
   template<typename T>
   using HostMatrix = FluidTensorView<T,2>;
 
+  template<class Matrix, typename T=typename Matrix::type, size_t N=Matrix::order>
+  using IsView = std::is_same< Matrix, FluidTensorView<T,N>>;
+  
+  template<class Matrix, class = std::enable_if_t<IsView<Matrix>::value>>
+  using Data = FluidTensor<typename Matrix::type, Matrix::order>;
 } // namespace fluid

@@ -51,8 +51,8 @@ public:
 private:
   std::size_t mFrameTime = 0 ;
   std::size_t mHostSize;
-  FluidTensor<double, 2> mFrameIn;
-  FluidTensor<double, 2> mFrameOut;
+  Data<RealMatrix> mFrameIn;
+  Data<RealMatrix> mFrameOut;
   FluidSource<double> *mSource = nullptr;
   FluidSink<double> *mSink = nullptr;
 };
@@ -149,8 +149,8 @@ private:
     return res;
   }
 
-  FluidTensor<double, 2> mFrameAndWindow;
-  FluidTensor<std::complex<double>, 2> mSpectrogram;
+  Data<RealMatrix> mFrameAndWindow;
+  Data<ComplexMatrix> mSpectrogram;
   std::unique_ptr<algorithm::STFT> mSTFT;
   std::unique_ptr<algorithm::ISTFT> mISTFT;
   BufferedProcess mBufferedProcess;
