@@ -2,6 +2,7 @@
 
 #include "AudioClient.hpp"
 #include "ParameterTypes.hpp"
+#include <data/FluidMeta.hpp>
 #include <tuple>
 
 
@@ -49,11 +50,10 @@ public:
 //tuple<indices of other params>
 
 template <typename T, typename Params, typename Constraints, size_t...Is>
-T clampImpl(T thisParam, Params& allParams, Constraints& c, std::index_sequence<Is...>)
+T clampImpl(T& thisParam, Params& allParams, Constraints& c, std::index_sequence<Is...>)
 {
   T res = thisParam;
-// puts(__PRETTY_FUNCTION__);
-  (void)std::initializer_list<int>{(res = std::get<Is>(c).clamp(res,allParams),0)...};
+  (void)std::initializer_list<int>{(std::get<Is>(c).clamp(res,allParams),0)...};
   return res;
 }
 
@@ -78,14 +78,17 @@ template <typename... Ts> class FluidBaseClientImpl {
 public:
   using ValueTuple = typename impl::ParamValueTypes<Ts...>::type;
 
-  constexpr FluidBaseClientImpl(const std::tuple<Ts...> params) noexcept : mParams(impl::ParamValueTypes<Ts...>::create(params)) {}
+
+  constexpr FluidBaseClientImpl(const std::tuple<Ts...>& params) noexcept : mParams(impl::ParamValueTypes<Ts...>::create(params)) {
+  }
 
   template <size_t N> auto  setter() noexcept {
     return [this](auto &&x) {
       auto constraints = std::get<N>(mParams).second;
       auto param = std::get<N>(mParams).first;
+
       auto xPrime = clamp(static_cast<typename decltype(param)::type>(x),mParams, constraints);//, mParams, constraints);
-    
+  
       std::get<N>(mParams).first.set(xPrime);
 //      std::cout << std::get<N>(mParams).first << '\n';
     };
@@ -120,12 +123,16 @@ private:
 /// We need a base class templated on Ts... (pairs of parametre types
 /// and constraints), but we have a tuple of these things when we declare them
 /// This metafunction lets us convert between tuple<Ts...> and Ts...
-template <typename Tuple> struct FluidBaseTemplate;
+template <typename Tuple> struct FluidBaseTemplate{
+  static_assert(!isSpecialization<Tuple, std::tuple>(),"Fluid Params: Did you forget to make your params constexpr?");
+};
 
 template <typename... Ts> struct FluidBaseTemplate<const std::tuple<Ts...>> {
   using type = FluidBaseClientImpl<Ts...>;
 };
 } // namespace impl
+
+
 
 template <class Tuple>
 using FluidBaseClient = typename impl::FluidBaseTemplate<Tuple>::type;
@@ -143,24 +150,24 @@ void callOnParams(const std::tuple<Ts...> &t, std::index_sequence<Is...>) {
 
 /// Convert tuple of pairs of descriptors and contrstraints to a tuple of descriptors
 /// (Wrappers have no need for the constraints, and it gets a bit 5D chess to deal with them)
-template<typename...Ts>
-struct ParameterDescriptors
-{
-  using type = std::tuple<typename Ts::first_type...>;
-  
-  static type get(const std::tuple<Ts...>& tree)
-  {
-    return getImpl(tree, std::make_index_sequence<sizeof...(Ts)>()); 
-  }
-  
-  private:
-  template<size_t...Is>
-  static type getImpl(const std::tuple<Ts...>& tree, std::index_sequence<Is...>)
-  {
-    return std::make_tuple(std::get<Is>(tree).first...);
-  }
-
-};
+//template<typename...Ts>
+//struct ParameterDescriptors
+//{
+//  using type = std::tuple<Ts::first_type...>;
+//  
+//  static type get(const std::tuple<Ts...>& tree)
+//  {
+//    return getImpl(tree, std::make_index_sequence<sizeof...(Ts)>()); 
+//  }
+//  
+//  private:
+//  template<size_t...Is>
+//  static type getImpl(const std::tuple<Ts...>& tree, std::index_sequence<Is...>)
+//  {
+//    return std::make_tuple(std::get<Is>(tree).first...);
+//  }
+//
+//};
 
 } // namespace client
 } // namespace fluid

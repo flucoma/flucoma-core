@@ -35,7 +35,7 @@ struct FloatT: ParamTypeBase{
 struct LongT:ParamTypeBase{
   static constexpr Type typeTag = Type::kLong;
   using type = long_t;
-  constexpr LongT(const char* name, const char* displayName, type defaultVal): ParamTypeBase(name), defaultValue(defaultVal) {}
+  constexpr LongT(const char* name, const char* displayName, const type defaultVal): ParamTypeBase(name), defaultValue(defaultVal) {}
   const std::size_t fixedSize = 1;
   const type defaultValue;
 };
@@ -101,7 +101,7 @@ constexpr ParamSpec<FloatT, Constraints...>FloatParam(const char* name, const ch
 }
 
 template<typename...Constraints>
-constexpr ParamSpec<LongT, Constraints...>LongParam(const char* name, const char* displayName, LongT::type defaultValue,  Constraints...c)
+constexpr ParamSpec<LongT, Constraints...>LongParam(const char* name, const char* displayName, const LongT::type defaultValue,  const Constraints...c)
 {
   return {LongT(name, displayName, defaultValue), std::make_tuple(c...)};
 }
