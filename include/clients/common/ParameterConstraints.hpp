@@ -24,7 +24,6 @@ private:
 
 /// Predicates
 
-
 auto makeOdd = [](auto a) { return [=] { return a % 2 ? a - 1 : a; }; };
 auto makePower2 = [](auto a) {
   return [=] {
@@ -46,51 +45,46 @@ auto makePower2 = [](auto a) {
 //  std::tuple<Ts...> mArgs;
 //};
 
-//template <typename F, std::size_t... Is> struct Constraint {
+// template <typename F, std::size_t... Is> struct Constraint {
 //
 //  template <typename T, typename Tuple> static void invoke(T &x, Tuple y) {
 //    F(x, std::get<Is>(y)...);
 //  }
 //};
 
-
 namespace impl {
 
 template <typename T> struct MinImpl {
   constexpr MinImpl(const T m) : value(m) {}
   const T value;
-  template<typename U, typename Tuple>
-  constexpr U clamp(U x, Tuple) { return std::max<U>(x,value);}
+  template <typename U, typename Tuple> constexpr void clamp(U &x, Tuple) {
+    x = std::max<U>(x, value);
+  }
 };
 
 template <typename T> struct MaxImpl {
   constexpr MaxImpl(const T m) : value(m) {}
   const T value;
-  template<typename U, typename Tuple>
-  constexpr U clamp(U x, Tuple) { return std::min<U>(x,value);}
+  template <typename U, typename Tuple> constexpr void clamp(U &x, Tuple) {
+    x = std::min<U>(x, value);
+  }
 };
 
 template <int... Is> struct LowerLimitImpl {
-  template<typename T, typename Tuple>
-  void clamp(T& v, Tuple params)
-  {
-    v =  std::max<T>({v, std::get<Is>(params).first.get()...});
+  template <typename T, typename Tuple> void clamp(T &v, Tuple params) {
+    v = std::max<T>({v, std::get<Is>(params).first.get()...});
   }
 };
 
 template <int... Is> struct UpperLimitImpl {
-  template<typename T, typename Tuple>
-  void clamp(T& v, Tuple params)
-  {
+  template <typename T, typename Tuple> void clamp(T &v, Tuple params) {
     v = std::min<T>({v, std::get<Is>(params).first.get()...});
   }
 };
 
 } // namespace impl
 
-
-template <typename T>
-auto constexpr Min(const T x){
+template <typename T> auto constexpr Min(const T x) {
   return impl::MinImpl<T>(x);
 };
 
@@ -98,20 +92,17 @@ template <typename T> auto constexpr Max(const T x) {
   return impl::MaxImpl<T>(x);
 }
 
-template <int...Is>
-auto constexpr LowerLimit() {
+template <int... Is> auto constexpr LowerLimit() {
   return impl::LowerLimitImpl<Is...>{};
 }
 
-template <int...Is>
-auto constexpr UpperLimit() {
+template <int... Is> auto constexpr UpperLimit() {
   return impl::UpperLimitImpl<Is...>{};
 }
 
 struct PowerOfTwo {
-  template<typename Tuple>
-  constexpr long clamp(long x, Tuple) {
-    int exp=0;
+  template <typename Tuple> constexpr long clamp(long x, Tuple) {
+    int exp = 0;
     double r = std::frexp(x, &exp);
     return r > 0.5 ? (1 << exp) : (1 << (exp - 1));
   }
@@ -119,3 +110,4 @@ struct PowerOfTwo {
 
 } // namespace client
 } // namespace fluid
+
