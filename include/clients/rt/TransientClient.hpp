@@ -1,287 +1,160 @@
 #pragma once
 
-#include "algorithms/TransientExtraction.hpp"
+//#include "BaseAudioClient.hpp"
+#include "BufferedProcess.hpp"
 
-#include "BaseAudioClient.hpp"
-
-#include "clients/common/FluidParams.hpp"
-
+#include <algorithms/public/TransientExtraction.hpp>
+#include <clients/common/FluidBaseClient.hpp>
+#include <clients/common/ParameterConstraints.hpp>
+#include <clients/common/ParameterTypes.hpp>
 #include <complex>
+#include <data/TensorTypes.hpp>
 #include <string>
 #include <tuple>
 
 namespace fluid {
 namespace client {
-template <typename T, typename U>
-class TransientsClient : public client::BaseAudioClient<T, U> {
-  using data_type = FluidTensorView<T, 2>;
-  using complex = FluidTensorView<std::complex<T>, 1>;
+
+enum TransientParamIndex {
+  kOrder,
+  kBlockSize,
+  kPadding,
+  kSkew,
+  kThreshFwd,
+  kThreshBack,
+  kWinSize,
+  kDebounce
+};
+
+auto constexpr TransientParams = std::make_tuple(
+    LongParam("order", "Order", 50, Min(20), LowerLimit<kWinSize>(),UpperLimit<kBlockSize>()),
+    LongParam("blockSize", "Block Size", 256, Min(100), LowerLimit<kOrder>()),
+    LongParam("padding", "Padding", 128, Min(0)),
+    FloatParam("skew", "Skew", 0, Min(-10), Max(10)),
+    FloatParam("threshFwd", "Forward Threshold", 3, Min(0)),
+    FloatParam("threshBack", "Backward Threshold", 1.1, Min(0)),
+    LongParam("winSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
+    LongParam("debounce", "Debounce", 25, Min(0)));
+
+using Param_t = decltype(TransientParams);
+
+template <typename T, typename U = T>
+class TransientClient : public FluidBaseClient<Param_t> {
+  using HostVector = HostVector<U>;
 
 public:
-  static const std::vector<client::Descriptor> &getParamDescriptors() {
-    static std::vector<client::Descriptor> params;
-    if (params.size() == 0) {
-      // Determines input / hop size, can't yet set at perform time
+  TransientClient(TransientClient &) = delete;
+  TransientClient operator=(TransientClient &) = delete;
 
-      params.emplace_back("order", "Order", client::Type::kLong);
-      params.back()
-          .setInstantiation(false)
-          .setMin(20)
-          .setDefault(50)
-          .setInstantiation(true);
-      // order min > paramDetectHalfWindow, or ~40-50 ms,
-
-      //          int paramBlockSize = 2048;  // The main block size for
-      //          processing (higher == longer processing times N^2 but better
-      //          quality)
-      params.emplace_back("blocksize", "Block Size", client::Type::kLong);
-      params.back()
-          .setInstantiation(false)
-          .setMin(100)
-          .setDefault(256)
-          .setInstantiation(true);
-
-      // must be greater than model order
-
-      //          int paramPad = 1024;        // The analysis is done on a
-      //          longer segment than the block, with this many extra values on
-      //          either side
-      // padding min 0
-      params.emplace_back("padding", "Padding", client::Type::kLong);
-      params.back()
-          .setInstantiation(false)
-          .setMin(0)
-          .setDefault(128)
-          .setInstantiation(false);
-
-      // This ensures the analysis is valid across the whole block (some padding
-      // is a good idea, but not too much)
-
-      // The detection parameters
-
-      // Detection is based on absolute forward and backwards prediction errors
-      // in relation to the estimated deviation of the AR model - these
-      // predictions are smoothed with a window and subjected to an on and off
-      // threshold - higher on thresholds make detection less likely and the
-      // reset threshold is used (along with a hold time) to ensure that the
-      // detection does not switch off before the end of a transient
-
-      //'skew', do 2^n -10, 10
-
-      //          double paramDetectPower = 1.0;           // The power factor
-      //          used when windowing - higher makes detection more likely
-      params.emplace_back("skew", "Skew", client::Type::kFloat);
-      params.back()
-          .setInstantiation(false)
-          .setMin(-10)
-          .setMax(10)
-          .setDefault(0)
-          .setInstantiation(false);
-
-      //          double paramDetectThreshHi = 3.0;        // The threshold for
-      //          detection (in multiples of the model deviation)
-      //
-      params.emplace_back("threshfwd", "Forward Threshold",
-                          client::Type::kFloat);
-      params.back()
-          .setInstantiation(false)
-          .setMin(0)
-          .setDefault(3)
-          .setInstantiation(false);
-
-      //          double paramDetectThreshLo = 1.1;        // The reset
-      //          threshold to end a detected segment (in multiples of the model
-      //          deviation)
-      params.emplace_back("threshback", "Backward Threshold",
-                          client::Type::kFloat);
-      params.back()
-          .setInstantiation(false)
-          .setMin(0)
-          .setDefault(1.1)
-          .setInstantiation(false);
-
-      //          double paramDetectHalfWindow = 7;        // Half the window
-      //          size used to smooth detection functions (in samples)
-      // up to model order ~40 = 1ms, 15 default sampples for whole window
-      //
-      params.emplace_back("windowsize", "Window Size(ms)",
-                          client::Type::kFloat);
-      params.back()
-          .setInstantiation(false)
-          .setMin(0)
-          .setDefault(14)
-          .setInstantiation(false);
-
-      //          int paramDetectHold = 25;               // The hold time for
-      //          detection (in samples)
-      // prevents onsets within n samples of an offset, min 0,
-      params.emplace_back("debounce", "Debounce(ms)", client::Type::kFloat);
-      params.back()
-          .setInstantiation(false)
-          .setMin(0)
-          .setDefault(25)
-          .setInstantiation(false);
-    }
-
-    return params;
+  TransientClient() : FluidBaseClient<Param_t>(TransientParams) {
+    audioChannelsIn(1);
+    audioChannelsOut(2);
   }
+  
+  void process(std::vector<HostVector>& input,
+               std::vector<HostVector>& output) {
 
-  TransientsClient() = default;
-  TransientsClient(TransientsClient &) = delete;
-  TransientsClient operator=(TransientsClient &) = delete;
-
-  TransientsClient(size_t maxWindowSize)
-      : // algorithm::STFTCheckParams(windowsize,hopsize,fftsize),
-        client::BaseAudioClient<T, U>(maxWindowSize, 1, 2, 3) {
-    newParamSet();
-  }
-
-  void reset() {
-
+   
+    if(!input[0].data() || (!output[0].data() && !output[1].data()))
+      return;
+    
     static constexpr unsigned iterations = 3;
     static constexpr bool refine = false;
     static constexpr double robustFactor = 3.0;
-    size_t order = client::lookupParam("order", mParams).getLong();
-    size_t blocksize = client::lookupParam("blocksize", mParams).getLong();
-    size_t padding = client::lookupParam("padding", mParams).getLong();
 
-    mExtractor = std::unique_ptr<algorithm::TransientExtraction>(
-        new algorithm::TransientExtraction(order, iterations, robustFactor,
-                                           refine));
+    std::size_t order = get<kOrder>();
+    std::size_t blockSize = get<kBlockSize>();
+    std::size_t padding = get<kPadding>();
+    std::size_t hostVecSize = input[0].size();
+    std::size_t maxWin = 2*blockSize + padding;
 
-    mExtractor->prepareStream(blocksize, padding);
-
-    client::BaseAudioClient<T, U>::reset();
-
-    //
-    //
-    //
-    //        mSeparatedSpectra.resize(fftsize/2+1,2);
-    //        mSines.resize(fftsize/2+1);
-    //        mRes.resize(fftsize/2+1);
-    //        client::BaseAudioClient<T,U>::reset();
-  }
-
-  std::tuple<bool, std::string> sanityCheck() {
-
-    const std::vector<client::Descriptor> &desc = getParamDescriptors();
-    // First, let's make sure that we have a complete of parameters of the right
-    // sort
-    bool sensible =
-        std::equal(mParams.begin(), mParams.end(), desc.begin(),
-                   [](const client::Instance &i, const client::Descriptor &d) {
-                     return i.getDescriptor() == d;
-                   });
-
-    if (!sensible || (desc.size() != mParams.size())) {
-      return {false, "Invalid params passed. Were these generated with "
-                     "newParameterSet()?"};
+    if (!mExtractor.get() || startupParamsChanged(order, blockSize, padding) || hostSizeChanged(hostVecSize)) {
+      mExtractor.reset(new algorithm::TransientExtraction(
+          order, iterations, robustFactor, refine));
+      mExtractor->prepareStream(blockSize, padding);
+      
+      //TODO factor this whole mess away into BufferedProcess
+      
+      mBufferedProcess.maxSize(maxWin, audioChannelsIn(), audioChannelsOut());
+      mInputBuffer.setSize(maxWin);
+      mOutputBuffer.setSize(maxWin);
+      mInputBuffer.setHostBufferSize(hostVecSize);
+      mOutputBuffer.setHostBufferSize(hostVecSize);
+      mInputBuffer.reset(audioChannelsIn());
+      mOutputBuffer.reset(audioChannelsOut());
+      mBufferedProcess.setBuffers(mInputBuffer, mOutputBuffer);
+      mBufferedProcess.hostSize(hostVecSize);
     }
 
-    // Now scan everything for range, until we hit a problem
-    // TODO Factor into client::instance
-    for (auto &&p : mParams) {
-      client::Descriptor d = p.getDescriptor();
-      bool rangeOk;
-      client::Instance::RangeErrorType errorType;
-      std::tie(rangeOk, errorType) = p.checkRange();
-      if (!rangeOk) {
-        std::ostringstream msg;
-        msg << "Parameter " << d.getName();
-        switch (errorType) {
-        case client::Instance::RangeErrorType::kMin:
-          msg << " value below minimum(" << d.getMin() << ")";
-          break;
-        case client::Instance::RangeErrorType::kMax:
-          msg << " value above maximum(" << d.getMin() << ")";
-        default:
-          assert(false && "This should be unreachable");
-        }
-        return {false, msg.str()};
-      }
-    }
+    
+  
+    
+    double skew = std::pow(2, get<kSkew>());
+    double threshFwd = get<kThreshFwd>();
+    double thresBack = get<kThreshBack>();
+    size_t halfWindow = std::round(get<kWinSize>() / 2);
+    size_t debounce = get<kDebounce>();
 
-    size_t halfWindow =
-        std::round(client::lookupParam("windowsize", mParams).getFloat() / 2);
-
-    long order = client::lookupParam("order", mParams).getLong();
-
-    if (order < halfWindow) {
-      return {false, "Model order must be more than half the window size"};
-    }
-
-    long blocksize = client::lookupParam("blocksize", mParams).getLong();
-
-    if (blocksize < order) {
-      return {false, "Block size must be greater than model order"};
-    }
-
-    return {true, "Groovy"};
-  }
-
-  // Here we do an STFT and its inverse
-  void process(data_type input, data_type output) override {
-
-    double skew =
-        std::pow(2, client::lookupParam("skew", getParams()).getFloat());
-    double fwdThresh = client::lookupParam("threshfwd", getParams()).getFloat();
-    double backThresh =
-        client::lookupParam("threshback", getParams()).getFloat();
-    size_t halfWindow = std::round(
-        client::lookupParam("windowsize", getParams()).getFloat() / 2);
-    size_t debounce = client::lookupParam("debounce", getParams()).getLong();
-
-    mExtractor->setDetectionParameters(skew, fwdThresh, backThresh, halfWindow,
+    mExtractor->setDetectionParameters(skew, threshFwd, kThreshBack, halfWindow,
                                        debounce);
 
-    mExtractor->extract(output.row(0).data(), output.row(1).data(),
-                        input.data(), mExtractor->inputSize());
+//    Data<RealVector> in(input[0]);
+//    Data<RealVector> outTrans(in.rows());
+//    Data<RealVector> outRes(in.rows());
+  
+    Data<RealMatrix> in(1,hostVecSize);
 
-    //
-    //        //      mSeparatedSpectra.row(0) = spec;
-    //        //      mSeparatedSpectra.row(1) = spec;
-    //
-    //        output.row(0) = mISTFT->processFrame(mSines);
-    //        output.row(1) = mISTFT->processFrame(mRes);
-  }
-  // Here we gain compensate for the OLA
-  void postProcess(data_type output) override {
-    output.row(0).apply(output.row(2), [](double &x, double g) {
-      if (x) {
-        x /= g ? g : 1;
-      }
+    in.row(0) = input[0]; //need to convert float->double in some hosts
+    mInputBuffer.push(in);
+  
+    mBufferedProcess.process(maxWin, mExtractor->hopSize(), [this](RealMatrix in, RealMatrix out)
+    {
+      mExtractor->process(in.row(0), out.row(0), out.row(1));
     });
-    output.row(1).apply(output.row(2), [](double &x, double g) {
-      if (x) {
-        x /= g ? g : 1;
-      }
-    });
-  }
+    
+    Data<RealMatrix> out(2, hostVecSize);
+    mOutputBuffer.pull(out); 
+    
+//    std::cout << input.size() << ' ' << output.size() << '\n';
 
-  std::vector<client::Instance> &getParams() override { return mParams; }
-
-  size_t getWindowSize() override {
-    assert(mExtractor);
-    return mExtractor->inputSize();
-  }
-
-  size_t getHopSize() override {
-    assert(mExtractor);
-    return mExtractor->hopSize();
+    if(output[0].data()) output[0] = out.row(0);
+    if(output[1].data()) output[1] = out.row(1);
   }
 
 private:
-  void newParamSet() {
-    mParams.clear();
-    for (auto &&d : getParamDescriptors())
-      mParams.emplace_back(d);
+
+  bool hostSizeChanged(size_t hostSize)
+  {
+    static size_t size = 0;
+    bool res = size != hostSize;
+    size = hostSize;
+    return res;
+  }
+
+
+  bool startupParamsChanged(size_t order, size_t blocksize, size_t padding) {
+    static size_t ord = 0;
+    static size_t block = 0;
+    static size_t pad = 0;
+
+    bool res = (ord != order) || (block != blocksize) || (pad != padding);
+
+    ord = order;
+    block = blocksize;
+    pad = padding;
+
+    return res;
   }
 
   std::unique_ptr<algorithm::TransientExtraction> mExtractor;
-  FluidTensor<std::complex<T>, 1> mTransients;
-  FluidTensor<std::complex<T>, 1> mRes;
-  std::vector<client::Instance> mParams;
+  FluidSource<double> mInputBuffer;
+  FluidSink<double> mOutputBuffer;
+  BufferedProcess mBufferedProcess;
+  FluidTensor<T, 1> mTransients;
+  FluidTensor<T, 1> mRes;
+  //  std::vector<client::Instance> mParams;
 };
 
 } // namespace client
 } // namespace fluid
+
