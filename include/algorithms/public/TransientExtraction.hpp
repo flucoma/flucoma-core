@@ -1,14 +1,17 @@
 #pragma once
 
+#include "../../data/TensorTypes.hpp"
+#include "../util/ARModel.hpp"
+#include "../util/Descriptors.hpp"
+#include "../util/FluidEigenMappings.hpp"
+
+#include <Eigen/Core>
+
 #include <algorithm>
 #include <cmath>
 #include <random>
 #include <vector>
 
-#include "../../data/TensorTypes.hpp"
-#include "../util/ARModel.hpp"
-#include "../util/Descriptors.hpp"
-#include "../util/FluidEigenMappings.hpp"
 
 namespace fluid {
 namespace algorithm {
@@ -22,7 +25,7 @@ using Eigen::VectorXd;
 class TransientExtraction {
 
 public:
-  using TensorView = const FluidTensorView<double, 1>;
+//  using TensorView = const FluidTensorView<double, 1>;
   TransientExtraction(size_t order, size_t iterations, double robustFactor,
                       bool refine)
       : mModel(order, iterations, robustFactor),
@@ -211,9 +214,9 @@ private:
     mCount = count;
   }
 
-  template <double Method(const TensorView &)>
+  template <double Method(const RealVector &)>
   double calcStat(const double *input, int size) {
-    TensorView view(const_cast<double *>(input), 0, size);
+    RealVector view(const_cast<double *>(input), 0, size);
     return Method(view);
   }
 
