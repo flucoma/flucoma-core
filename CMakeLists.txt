@@ -72,7 +72,46 @@ file(GLOB_RECURSE LIBRARY_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/include/*/*.hpp)
 
 target_sources(
   FLUID_DECOMPOSITION
-  INTERFACE ${LIBRARY_HEADERS}
+  INTERFACE
+${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/HPSS.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/NMF.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/NoveltySegmentation.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/OnsetSegmentation.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/RTHPSS.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/RTSineExtraction.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/RatioMask.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/STFT.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/SineExtraction.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/TransientExtraction.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/TransientSegmentation.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/Windows.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/AudioClient.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/FluidBaseClient.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/FluidParams.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/FluidSink.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/FluidSource.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/ParameterConstraints.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/ParameterDescriptor.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/ParameterDescriptorList.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/ParameterInstanceList.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/ParameterTypes.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/STFTCheckParams.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/BufferComposeNRT.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/HPSS.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/NMFClient.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/NoveltyClient.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/Sines.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/TransientNRTClient.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/TransientSliceNRT.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/BaseAudioClient.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/BaseSTFTClient.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/BufferedProcess.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/GainClient.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/HPSSClient.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/NMFMatch.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/SinesClient.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/TransientClient.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/TransientSlice.hpp
 )
 target_compile_features(
   FLUID_DECOMPOSITION INTERFACE cxx_std_14
