@@ -602,9 +602,9 @@ private:
   }
 };
 
-template <std::size_t N>
+template <std::size_t N, size_t M >
 inline bool sameExtents(const FluidTensorSlice<N> &a,
-                        const FluidTensorSlice<N> &b) {
+                        const FluidTensorSlice<M> &b) {
   return a.order == b.order &&
          std::equal(a.extents.begin(), a.extents.begin() + N,
                     b.extents.begin());

@@ -88,7 +88,7 @@ public:
    Will fail at compile time if the types aren't convertible
    ***********************************/
   template <typename U, size_t M>
-  FluidTensor(const FluidTensor<U, M> &x)
+  explicit FluidTensor(const FluidTensor<U, M> &x)
       : mContainer(x.size()), mDesc(x.descriptor()) {
     static_assert(std::is_convertible<U, T>(),
                   "Cannot convert between container value types");
@@ -172,7 +172,7 @@ public:
     static_assert(M <= N, "View has too many dimensions");
     static_assert(std::is_convertible<U, T>(), "Cannot convert between types");
 
-    assert(sameExtents(mDesc, x.descriptor()));
+    assert(sameExtents(mDesc, x.descriptor())); //TODO this will barf if they have different orders:  I don't want that
 
     // Let's try this dirty, and just copy size values out of the incoming view,
     // ignoring  whether dimensions match
@@ -514,7 +514,7 @@ public:
   /*****
    STL style shorthand
    *****/
-  using pointer = T *;
+  using pointer = T*;
   using iterator = _impl::SliceIterator<T, N>;
   using const_iterator = _impl::SliceIterator<const T, N>;
   using type = std::remove_reference_t<T>;
@@ -653,32 +653,36 @@ public:
   // Assign from FluidTensor = copy
   // Respect the existing extents, rather than the FluidTensor's
 
-  //        template <typename U>
-  //        FluidTensorView& operator=(FluidTensor<U,N>& x)
-  //        {
-  //            static_assert(std::is_convertible<T,U>(),"Can't convert between
-  //            types"); std::array<size_t,N> a;
-  //
-  //            //Get the element-wise minimum of our extents and x's
-  //            std::transform(mDesc.extents.begin(), mDesc.extents.end(),
-  //            x.descriptor().extents.begin(), a.begin(), [](size_t a, size_t
-  //            b){return std::min(a,b);});
-  //
-  //            size_t count = std::accumulate(a.begin(), a.end(), 1,
-  //            std::multiplies<size_t>());
-  //
-  //            //Have to do this because haven't implemented += for slice
-  //            iterator (yet),
-  //            //so can't stop at arbitary offset from begin
-  //            auto it = x.begin();
-  //            auto ot = begin();
-  //            for(int i = 0; i < count; ++i,++it,++ot)
-  //                *ot = *it;
-  //
-  //            //            std::copy(x.begin(),stop,begin());
-  //
-  //            return *this;
-  //        }
+  template <typename U>
+  FluidTensorView& operator=(FluidTensor<U,N>& x)
+  {
+      static_assert(std::is_convertible<T,U>(),"Can't convert between types");
+//      std::array<size_t,N> a;
+
+      assert(sameExtents(*this, x));
+
+      //Get the element-wise minimum of our extents and x's
+//      std::transform(mDesc.extents.begin(), mDesc.extents.end(),
+//      x.descriptor().extents.begin(), a.begin(), [](size_t a, size_t
+//      b){return std::min(a,b);});
+
+//      size_t count = std::accumulate(a.begin(), a.end(), 1,
+//      std::multiplies<size_t>());
+
+      std::copy(x.begin(), x.end(), begin());
+
+//      //Have to do this because haven't implemented += for slice
+//      iterator (yet),
+//      //so can't stop at arbitary offset from begin
+//      auto it = x.begin();
+//      auto ot = begin();
+//      for(int i = 0; i < count; ++i,++it,++ot)
+//          *ot = *it;
+//
+//      //            std::copy(x.begin(),stop,begin());
+
+      return *this;
+  }
 
   /**********
    Construct from a slice and a pointer. This gets used by
