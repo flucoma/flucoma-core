@@ -49,8 +49,8 @@ public:
     mWNorm = mWindowTransform.square().sum();
   }
 
-  void process(const RealMatrix &X, RealMatrix sines, RealMatrix noise,
-               RealMatrix mix) {
+  void process(const RealMatrixView &X, RealMatrixView sines, RealMatrixView noise,
+               RealMatrixView mix) {
     int nFrames = X.rows();
     int nBins = X.cols();
     ArrayXXdConstMap input(X.data(), nFrames, nBins);

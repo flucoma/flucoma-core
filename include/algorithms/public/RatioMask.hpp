@@ -19,15 +19,15 @@ class RatioMask {
   const double epsilon = std::numeric_limits<double>::epsilon();
 
 public:
-  RatioMask(RealMatrix denominator, int exponent) : mExponent(exponent) {
+  RatioMask(RealMatrixView denominator, int exponent) : mExponent(exponent) {
     mMultiplier = (1 / asEigen<Array>(denominator).max(epsilon));
   }
 
-  void process(const ComplexMatrix &mixture, RealMatrix targetMag,
-               ComplexMatrix result) {
+  void process(const ComplexMatrixView &mixture, RealMatrixView targetMag,
+               ComplexMatrixView result) {
     assert(mixture.cols() == targetMag.cols());
     assert(mixture.rows() == targetMag.rows());
-    // ComplexMatrix result(mixture.extent(0), mixture.extent(1));
+    // ComplexMatrixView result(mixture.extent(0), mixture.extent(1));
     ArrayXXcd tmp =
         asEigen<Array>(mixture) *
         (asEigen<Array>(targetMag).pow(mExponent) * mMultiplier.pow(mExponent))

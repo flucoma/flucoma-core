@@ -25,8 +25,8 @@ public:
       : mRank(rank), mIterations(nIterations), mUpdateW(updateW),
         mUpdateH(updateH) {}
 
-  static void estimate(const RealMatrix W, const RealMatrix H, int index,
-                       RealMatrix V) {
+  static void estimate(const RealMatrixView W, const RealMatrixView H, int index,
+                       RealMatrixView V) {
     MatrixXd W1 = asEigen<Matrix>(W).transpose();
     MatrixXd H1 = asEigen<Matrix>(H).transpose();
     MatrixXd result = (W1.col(index) * H1.row(index)).transpose();
@@ -34,7 +34,7 @@ public:
   }
   // TODO: use newer way to map FluidView for rows/columns
   /*
-  static void estimate(const RealVector W, const RealVector H, RealMatrix V){
+  static void estimate(const RealVectorView W, const RealVectorView H, RealMatrixView V){
     MatrixXd w = ArrayXdConstMap(W.data(), W.extent(0)).matrix();
     MatrixXd h = ArrayXdConstMap(H.data(), H.extent(0)).matrix();
     ArrayXXdMap outV = ArrayXXdMap(V.data(), V.extent(0), V.extent(1));
@@ -44,7 +44,7 @@ public:
   */
 
   // processFrame computes activations of a dictionary W in a given frame
-  void processFrame(const RealVector x, const RealMatrix W0, RealVector out,
+  void processFrame(const RealVectorView x, const RealMatrixView W0, RealVectorView out,
                     int nIterations = 10) {
     MatrixXd W = asEigen<Matrix>(W0);
     VectorXd h =
@@ -66,9 +66,9 @@ public:
     // ArrayXdMap(out.data(), mRank) = h.array();
   }
 
-  void process(const RealMatrix X, RealMatrix W1, RealMatrix H1, RealMatrix V1,
-               RealMatrix W0 = RealMatrix(0, 0),
-               RealMatrix H0 = RealMatrix(0, 0)) {
+  void process(const RealMatrixView X, RealMatrixView W1, RealMatrixView H1, RealMatrixView V1,
+               RealMatrixView W0 = RealMatrixView(0, 0),
+               RealMatrixView H0 = RealMatrixView(0, 0)) {
     int nFrames = X.extent(0);
     int nBins = X.extent(1);
     MatrixXd W;

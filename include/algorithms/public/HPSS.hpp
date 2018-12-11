@@ -24,8 +24,8 @@ public:
       : mVSize(vSize), mHSize(hSize), mVMedianFilter(vSize),
         mHMedianFilter(hSize) {}
 
-  void process(const RealMatrix &in, RealMatrix harm, RealMatrix perc,
-               RealMatrix mixEstimate) {
+  void process(const RealMatrixView &in, RealMatrixView harm, RealMatrixView perc,
+               RealMatrixView mixEstimate) {
     int nFrames = in.extent(0);
     int nBins = in.extent(1);
     int paddedH = mHSize + mHSize * ceil(nFrames / double(mHSize));

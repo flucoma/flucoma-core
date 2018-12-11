@@ -17,8 +17,8 @@ namespace algorithm {
 
 // This implements Foote's novelty curve
 class Novelty {
-  using RealMatrix = FluidTensor<double, 2>;
-  using RealVector = FluidTensor<double, 1>;
+  using RealMatrixView = FluidTensor<double, 2>;
+  using RealVectorView = FluidTensor<double, 1>;
 
 public:
   Novelty(int kernelSize) : mKernelSize(kernelSize) {

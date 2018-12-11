@@ -34,9 +34,9 @@ struct SineTrack {
 
 class RTSineExtraction {
 public:
-  using RealMatrix = FluidTensor<double, 2>;
-  using ComplexVector = FluidTensorView<std::complex<double>, 1>;
-  using ComplexMatrix = FluidTensorView<std::complex<double>, 2>;
+  using RealMatrixView = FluidTensor<double, 2>;
+  using ComplexVectorView = FluidTensorView<std::complex<double>, 1>;
+  using ComplexMatrixView = FluidTensorView<std::complex<double>, 2>;
 
   RTSineExtraction(int windowSize, int fftSize, int hopSize, int bandwidth,
                    double threshold, int minTrackLength, double magWeight,
@@ -51,7 +51,7 @@ public:
     mWNorm = mWindowTransform.square().sum();
   }
 
-  void processFrame(const ComplexVector &in, ComplexMatrix out) {
+  void processFrame(const ComplexVectorView &in, ComplexMatrixView out) {
     using Eigen::ArrayXXcd;
     const auto &epsilon = std::numeric_limits<double>::epsilon;
     ArrayXcd frame = asEigen<Array>(in);
