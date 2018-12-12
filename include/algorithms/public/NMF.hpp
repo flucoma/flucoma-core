@@ -67,8 +67,8 @@ public:
   }
 
   void process(const RealMatrixView X, RealMatrixView W1, RealMatrixView H1, RealMatrixView V1,
-               RealMatrixView W0 = RealMatrixView(0, 0),
-               RealMatrixView H0 = RealMatrixView(0, 0)) {
+               RealMatrixView W0 = RealMatrixView(nullptr, 0, 0, 0),
+               RealMatrixView H0 = RealMatrixView(nullptr, 0, 0, 0)) {
     int nFrames = X.extent(0);
     int nBins = X.extent(1);
     MatrixXd W;
