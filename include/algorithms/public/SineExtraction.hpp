@@ -49,7 +49,7 @@ public:
     mWNorm = mWindowTransform.square().sum();
   }
 
-  void process(const RealMatrixView &X, RealMatrixView sines, RealMatrixView noise,
+  void process(const RealMatrixView X, RealMatrixView sines, RealMatrixView noise,
                RealMatrixView mix) {
     int nFrames = X.rows();
     int nBins = X.cols();
