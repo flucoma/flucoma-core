@@ -23,18 +23,24 @@ public:
          double pThresholdX1, double pThresholdY1, double pThresholdX2,
          double pThresholdY2)
       : mBins(nBins), mVSize(vSize), mHSize(hSize), mMode(mode),
-        mVMedianFilter(vSize), mHMedianFilter(hSize),
-        mHThresholdX1(hThresholdX1), mHThresholdY1(hThresholdY1),
-        mHThresholdX2(hThresholdX2), mHThresholdY2(hThresholdY2),
-        mPThresholdX1(pThresholdX1), mPThresholdY1(pThresholdY1),
-        mPThresholdX2(pThresholdX2), mPThresholdY2(pThresholdY2) {
+        mHThresholdX1(hThresholdX1),
+        mHThresholdY1(hThresholdY1), mHThresholdX2(hThresholdX2),
+        mHThresholdY2(hThresholdY2), mPThresholdX1(pThresholdX1),
+        mPThresholdY1(pThresholdY1), mPThresholdX2(pThresholdX2),
+        mPThresholdY2(pThresholdY2) {
     assert(mVSize % 2);
     assert(mHSize % 2);
     assert(0 <= mMode <= 3);
+
     mH = ArrayXXd::Zero(mBins, hSize);
     mV = ArrayXXd::Zero(mBins, hSize);
     mBuf = ArrayXXcd::Zero(mBins, hSize);
     mHistory = ArrayXXd::Zero(mBins, 2 * hSize);
+
+    for(int i = 0; i < mBins; i++){
+      ArrayXd tmp = ArrayXd::Zero(2 * hSize);
+      mHFilters.emplace_back(MedianFilter(tmp, hSize));
+    }
   }
 
   ArrayXd makeThreshold(double x1, double y1, double x2, double y2) {
@@ -58,7 +64,6 @@ public:
     int v2 = (mVSize - 1) / 2;
     ArrayXcdConstMap frame(in.data(), mBins);
     ArrayXd mag = frame.abs().real();
-
     mV.block(0, 0, mBins, mHSize - 1) = mV.block(0, 1, mBins, mHSize - 1);
     mBuf.block(0, 0, mBins, mHSize - 1) = mBuf.block(0, 1, mBins, mHSize - 1);
     mHistory.block(0, 0, mBins, 2 * mHSize - 1) =
@@ -67,14 +72,16 @@ public:
         ArrayXd::Zero(mVSize + mVSize * int(ceil(mBins / double(mVSize))));
     ArrayXd resultV(padded.size());
     padded.segment(v2, mBins) = mag;
-    mVMedianFilter.process(padded, resultV);
+    MedianFilter mVMedianFilter = MedianFilter(padded, mVSize);
+    mVMedianFilter.process(resultV);
     mV.block(0, mHSize - 1, mBins, 1) = resultV.segment(v2, mBins);
     mBuf.block(0, mHSize - 1, mBins, 1) = frame;
     mHistory.block(0, mHSize + h2 - 1, mBins, 1) = mag;
     ArrayXd tmpRow = ArrayXd::Zero(2 * mHSize);
     for (int i = 0; i < mBins; i++) {
-      mHMedianFilter.process(mHistory.row(i).transpose(), tmpRow);
-      mH.row(i) = tmpRow.segment(h2, mHSize).transpose();
+      mHFilters[i].insertRight(mag(i));
+      mHFilters[i].process(tmpRow);
+      mH.row(i) = tmpRow.segment(mHSize, 2).transpose();
     }
     ArrayXXcd result(mBins, 3);
     ArrayXd harmonicMask = ArrayXd::Ones(mBins);
@@ -156,8 +163,7 @@ private:
   size_t mVSize;
   size_t mHSize;
   int mMode;
-  MedianFilter mVMedianFilter;
-  MedianFilter mHMedianFilter;
+  std::vector<MedianFilter> mHFilters;
   ArrayXXd mH;
   ArrayXXd mV;
   ArrayXXd mHistory;

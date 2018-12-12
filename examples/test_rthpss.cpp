@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
   fluid::FluidTensor<double, 1> residualAudio(in.size());
 
   stft.process(in, spec);
-  for (int i = 0; i < spec.rows(); i++) {
+  for (int i = 0; i < nFrames; i++) {
     hpsssProcessor.processFrame(spec.row(i), result);
     harm.row(i) = result.col(0);
     perc.row(i) = result.col(1);

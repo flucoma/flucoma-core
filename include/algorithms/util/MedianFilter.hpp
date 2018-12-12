@@ -2,7 +2,10 @@
 
 #include "../../data/FluidTensor.hpp"
 #include <Eigen/Dense>
+#include <cassert>
+#include <iostream>
 #include <limits>
+#include <list>
 
 namespace fluid {
 namespace algorithm {
@@ -24,40 +27,67 @@ class MedianFilter {
       int next;
     };
 
-    Block(size_t filterSize)
-        : mFilterSize(filterSize), mLinks(filterSize), mSorted(filterSize) {}
+    Block(double *data, int size)
+        : mData(data), mSize(size), mLinks(size + 1), mSorted(size) {}
 
-    void sortData() {
-      for (int i = 0; i < mFilterSize; i++) {
+    void sort() {
+      for (int i = 0; i < mSize; i++) {
         mSorted[i] = std::make_pair(mData[i], i);
       }
       std::sort(mSorted.begin(), mSorted.end());
     }
 
-    void construct(const double *data) {
-      mData = data;
-      sortData();
-      int a = mFilterSize;
-      for (int i = 0; i < mFilterSize; i++) {
+    double insertRight(double newVal) {
+      double oldVal = mData[0];
+      int insertP = 0, deleteP = 0;
+      for (int i = 0; i < mSize; i++) {
+        if (mSorted[i].second == 0)
+          deleteP = i;
+        else
+          mSorted[i].second--; // decrease pos as we remove first
+        if (mSorted[mSize - i - 1].first > newVal)
+          insertP = mSize - i - 1;
+      }
+      if (newVal > mSorted[mSize - 1].first)
+        insertP = mSize - 1;
+      auto newPair = std::make_pair(newVal, mSize - 1);
+      if (insertP < deleteP) {
+        std::memmove(mSorted.data() + insertP + 1, mSorted.data() + insertP,
+                     (deleteP - insertP) * sizeof(std::pair<double, int>));
+      } else if (insertP > deleteP) {
+        insertP--;
+        std::memmove(mSorted.data() + deleteP, mSorted.data() + deleteP + 1,
+                     (insertP - deleteP) * sizeof(std::pair<double, int>));
+      }
+      mSorted[insertP] = newPair;
+      std::memmove(mData, mData + 1, (mSize - 1) * sizeof(double));
+      mData[mSize - 1] = newVal;
+      init();
+      return oldVal;
+    }
+
+    void init() {
+      int a = mSize;
+      for (int i = 0; i < mSize; i++) {
         int b = mSorted[i].second;
         mLinks[a].next = b;
         mLinks[b].prev = a;
         a = b;
       }
-      mLinks[a].next = mFilterSize;
-      mLinks[mFilterSize].prev = a;
-      mMedianIndex = mSorted[mFilterSize / 2].second;
-      mSmallIndex = mFilterSize / 2;
+      mLinks[a].next = mSize;
+      mLinks[mSize].prev = a;
+      mMedianIndex = mSorted[mSize / 2].second;
+      mSmallIndex = mSize / 2;
     }
 
     void unwind() {
-      for (int i = 0; i < mFilterSize; i++) {
-        int j = mFilterSize - 1 - i;
+      for (int i = 0; i < mSize; i++) {
+        int j = mSize - 1 - i;
         Link l = mLinks[j];
         mLinks[l.prev].next = l.next;
         mLinks[l.next].prev = l.prev;
       }
-      mMedianIndex = mFilterSize;
+      mMedianIndex = mSize;
       mSmallIndex = 0;
     }
 
@@ -93,29 +123,41 @@ class MedianFilter {
     }
 
     double peek() const {
-      return mMedianIndex == mFilterSize ? maxDouble : mData[mMedianIndex];
+      return mMedianIndex == mSize ? maxDouble : mData[mMedianIndex];
     }
 
-    bool atEnd() const { return mMedianIndex == mFilterSize; }
+    bool atEnd() const { return mMedianIndex == mSize; }
 
     bool belowMedian(int i) const {
       return atEnd() || mData[i] < mData[mMedianIndex] ||
              (mData[i] == mData[mMedianIndex] && i < mMedianIndex);
     }
-    size_t mFilterSize;
+
+    friend std::ostream &operator<<(std::ostream &os, const Block &b) {
+      os << "--" << std::endl;
+      for (int i = 0; i < b.mSize; i++)
+        os << b.mData[i] << " ";
+      os << std::endl;
+      for (int i = 0; i < b.mSize; i++)
+        os << b.mSorted[i].first << " " << b.mSorted[i].second << " - ";
+      os << std::endl;
+      for (int i = 0; i < b.mLinks.size(); i++)
+        os << b.mLinks[i].prev << " " << b.mLinks[i].next << " - ";
+      os << std::endl;
+      os << b.mSize << " " << b.mMedianIndex << " " << b.mSmallIndex
+         << std::endl;
+      return os;
+    }
+
+    double *mData;
+    size_t mSize;
     std::vector<Link> mLinks;
-    const double *mData;
     std::vector<std::pair<double, int>> mSorted;
     int mMedianIndex;
     int mSmallIndex;
   };
 
 public:
-  MedianFilter(size_t size)
-      : mSize(size), mHalfSize((size - 1) / 2), a(size), b(size) {
-    assert(mSize % 2);
-  }
-
   void processBlock(double *out, int index) {
     for (int i = 0; i < mSize; i++) {
       a.del(i);
@@ -141,25 +183,51 @@ public:
     }
   }
 
-  void process(const Ref<const ArrayXd> &in, Ref<ArrayXd> out) {
-    // assuming size of in is multiple of block size ...
-    // client code should pad
+  MedianFilter(const Ref<ArrayXd> in, int size)
+      : mSize(size), mHalfSize((size - 1) / 2), a(nullptr, 0), b(nullptr, 0) {
+    assert(mSize % 2);
     int nBlocks = in.size() / mSize;
-    b.construct(in.data() + mSize * 0);
-    out[0] = b.peek();
-    for (int i = 1; i < nBlocks; i++) {
-      std::swap(a, b);
-      b.construct(in.data() + mSize * i);
-      b.unwind();
-      processBlock(out.data(), i);
+    mInput = ArrayXd(in);
+    for (int i = 0; i < nBlocks; i++) {
+      blocks.emplace_back(Block(mInput.data() + mSize * i, mSize));
+      blocks.back().sort();
     }
   }
 
+  void insertRight(double val) {
+    for (auto x = blocks.rbegin(); x != blocks.rend(); x++) {
+      val = x->insertRight(val);
+    }
+  }
+
+  void process(Ref<ArrayXd> out) {
+    // assuming size of in is multiple of block size ...
+    // client code should pad
+    int nBlocks = blocks.size();
+    b = blocks.front();
+    b.init();
+    out[0] = b.peek();
+    int i = 0;
+
+    for (Block &x : blocks) {
+      if (i > 0) {
+        a = b;
+        b = x;
+        b.init();
+        b.unwind();
+        processBlock(out.data(), i);
+      }
+      i++;
+    }
+  }
+  ArrayXd mInput;
+
 private:
-  size_t mSize;
-  size_t mHalfSize;
+  int mSize;
+  int mHalfSize;
   Block a;
   Block b;
+  std::vector<Block> blocks;
 };
 } // namespace algorithm
 } // namespace fluid
