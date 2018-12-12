@@ -52,7 +52,7 @@ public:
     return threshold;
   }
 
-  void processFrame(const ComplexVector &in, ComplexMatrix out) {
+  void processFrame(const ComplexVectorView in, ComplexMatrixView out) {
     const auto &epsilon = std::numeric_limits<double>::epsilon;
     int h2 = (mHSize - 1) / 2;
     int v2 = (mVSize - 1) / 2;

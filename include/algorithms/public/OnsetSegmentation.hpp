@@ -70,7 +70,7 @@ public:
         mHopSize);
   }
 
-  void process(const RealVector &input, RealVector output) {
+  void process(const RealVectorView input, RealVectorView output) {
     using algorithm::convolveReal;
     using algorithm::kEdgeWrapCentre;
     int frameSize = inputFrameSize();
@@ -82,7 +82,7 @@ public:
     int nFrames = floor((padded.size() - frameSize) / mHopSize);
     ArrayXd onsetDetectionFunc(nFrames);
     for (int i = 0; i < nFrames; i++) {
-      RealVector frame = input(fluid::Slice(i * mHopSize, frameSize));
+      RealVectorView frame = input(fluid::Slice(i * mHopSize, frameSize));
       onsetDetectionFunc(i) = processFrame(frame);
     }
     if (mFilterSize > 0) {
@@ -104,16 +104,14 @@ public:
     }
   }
 
-  double processFrame(RealVector &input) {
+  double processFrame(RealVectorView input) {
     processSingleWindow(mFrame1, input.data() + frameDelta());
     processSingleWindow(mFrame2, input.data());
-    RealVector frame1View(mFrame1);
-    RealVector frame2View(mFrame2);
-    return frameComparison(frame1View, frame2View);
+    return frameComparison(mFrame1, mFrame2);
   }
 
 private:
-  void processSingleWindow(RealVector frame, const double *input) {
+  void processSingleWindow(RealVectorView frame, const double *input) {
     for (auto i = 0; i < frame.size(); i++){
       mFFTBuffer(i) = input[i];
     }
@@ -128,12 +126,12 @@ private:
     }
   }
 
-  void clipEpsilon(RealVector &input) {
+  void clipEpsilon(RealVectorView input) {
     for (auto it = input.begin(); it != input.end(); it++)
       *it = std::max(std::numeric_limits<double>::epsilon(), *it);
   }
 
-  double frameComparison(RealVector &vec1, RealVector &vec2) {
+  double frameComparison(RealVectorView vec1, RealVectorView vec2) {
     if (mForwardOnly)
       Descriptors::forwardFilter(vec1, vec2);
 
