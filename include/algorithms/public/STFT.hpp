@@ -93,11 +93,8 @@ public:
     }
     outputPadded = outputPadded / norm.max(epsilon());
     ArrayXd trimmed = outputPadded.segment(
-        halfWindow, outputPadded.size() - halfWindow - mHopSize);
+        halfWindow, audio.size());
     audio = asFluid(trimmed);
-    // ArrayXdMap(audio.data(), outputSize - halfWindow - mHopSize) =
-    //    outputPadded.segment(halfWindow,
-    //                         outputPadded.size() - halfWindow - mHopSize);
   }
 
   void processFrame(const ComplexVectorView frame, RealVectorView audio) {
