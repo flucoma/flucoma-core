@@ -34,7 +34,7 @@ public:
     out = asFluid(mag);
   }
 
-  void process(const RealVectorView &audio, ComplexMatrixView spectrogram) {
+  void process(const RealVectorView audio, ComplexMatrixView spectrogram) {
     int halfWindow = mWindowSize / 2;
     ArrayXd padded(audio.size() + mWindowSize + mHopSize);
     padded.fill(0);
@@ -49,7 +49,7 @@ public:
     spectrogram = asFluid(result);
   }
 
-  void processFrame(const RealVectorView &frame, ComplexVectorView out) {
+  void processFrame(const RealVectorView frame, ComplexVectorView out) {
     assert(frame.size() == mWindowSize);
     ArrayXcd spectrum = mFFT.process(asEigen<Array>(frame) * mWindow);
     out = asFluid(spectrum);
@@ -76,7 +76,7 @@ public:
     mWindowSquared = mWindow * mWindow;
   }
 
-  void process(const ComplexMatrixView &spectrogram, RealVectorView audio) {
+  void process(const ComplexMatrixView spectrogram, RealVectorView audio) {
     const auto &epsilon = std::numeric_limits<double>::epsilon;
     int halfWindow = mWindowSize / 2;
     int nFrames = spectrogram.rows();
@@ -100,7 +100,7 @@ public:
     //                         outputPadded.size() - halfWindow - mHopSize);
   }
 
-  void processFrame(const ComplexVectorView &frame, RealVectorView audio) {
+  void processFrame(const ComplexVectorView frame, RealVectorView audio) {
     assert(frame.size() == mFrameSize);
     mBuffer = mIFFT.process(asEigen<Array>(frame)).segment(0, mWindowSize) *
               mWindow * mScale;

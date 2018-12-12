@@ -51,7 +51,7 @@ public:
     mWNorm = mWindowTransform.square().sum();
   }
 
-  void processFrame(const ComplexVectorView &in, ComplexMatrixView out) {
+  void processFrame(const ComplexVectorView in, ComplexMatrixView out) {
     using Eigen::ArrayXXcd;
     const auto &epsilon = std::numeric_limits<double>::epsilon;
     ArrayXcd frame = asEigen<Array>(in);

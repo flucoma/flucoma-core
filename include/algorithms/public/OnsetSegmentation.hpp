@@ -70,7 +70,7 @@ public:
         mHopSize);
   }
 
-  void process(const RealVectorView &input, RealVectorView output) {
+  void process(const RealVectorView input, RealVectorView output) {
     using algorithm::convolveReal;
     using algorithm::kEdgeWrapCentre;
     int frameSize = inputFrameSize();
@@ -104,12 +104,10 @@ public:
     }
   }
 
-  double processFrame(RealVectorView &input) {
+  double processFrame(RealVectorView input) {
     processSingleWindow(mFrame1, input.data() + frameDelta());
     processSingleWindow(mFrame2, input.data());
-    RealVectorView frame1View(mFrame1);
-    RealVectorView frame2View(mFrame2);
-    return frameComparison(frame1View, frame2View);
+    return frameComparison(mFrame1, mFrame2);
   }
 
 private:
@@ -128,12 +126,12 @@ private:
     }
   }
 
-  void clipEpsilon(RealVectorView &input) {
+  void clipEpsilon(RealVectorView input) {
     for (auto it = input.begin(); it != input.end(); it++)
       *it = std::max(std::numeric_limits<double>::epsilon(), *it);
   }
 
-  double frameComparison(RealVectorView &vec1, RealVectorView &vec2) {
+  double frameComparison(RealVectorView vec1, RealVectorView vec2) {
     if (mForwardOnly)
       Descriptors::forwardFilter(vec1, vec2);
 

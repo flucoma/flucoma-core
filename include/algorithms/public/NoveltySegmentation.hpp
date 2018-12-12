@@ -21,7 +21,7 @@ public:
     assert(kernelSize % 2);
   }
 
-  void process(const RealMatrixView &input, RealVectorView output) {
+  void process(const RealMatrixView input, RealVectorView output) {
     using Eigen::ArrayXd;
 
     ArrayXd curve(input.extent(0));

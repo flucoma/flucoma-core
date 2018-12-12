@@ -24,7 +24,7 @@ public:
       : mVSize(vSize), mHSize(hSize), mVMedianFilter(vSize),
         mHMedianFilter(hSize) {}
 
-  void process(const RealMatrixView &in, RealMatrixView harm, RealMatrixView perc,
+  void process(const RealMatrixView in, RealMatrixView harm, RealMatrixView perc,
                RealMatrixView mixEstimate) {
     int nFrames = in.extent(0);
     int nBins = in.extent(1);
