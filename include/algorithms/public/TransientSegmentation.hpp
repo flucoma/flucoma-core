@@ -35,7 +35,7 @@ public:
   void process(const RealVectorView input, RealVectorView output) {
     detect(input.data(), input.extent(0));
     const double *transientDetection = getDetect();
-    for (int i = 0; i < hopSize(); i++) {
+    for (int i = 0; i < std::min<size_t>(hopSize(), output.size()); i++) {
       output(i) = (transientDetection[i] && !mDebounce);
       mDebounce = transientDetection[i] ? mHoldTime : std::max(0, --mDebounce);
     }
