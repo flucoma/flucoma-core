@@ -94,10 +94,10 @@ public:
       onsetDetectionFunc = smoothed;
     }
     onsetDetectionFunc /= onsetDetectionFunc.maxCoeff();
-    for (int i = 1; i < onsetDetectionFunc.size() - 1; i++) {
+    for (int i = mFilterSize / 2; i < onsetDetectionFunc.size() - 1; i++) {//TODO: review alignment
       if (onsetDetectionFunc(i) > onsetDetectionFunc(i - 1) &&
           onsetDetectionFunc(i) > onsetDetectionFunc(i + 1) &&
-          onsetDetectionFunc(i) > mThreshold && i > mFilterSize / 2) {
+          onsetDetectionFunc(i) > mThreshold) {
         output(i - mFilterSize / 2) = 1;
       } else
         output(i - mFilterSize / 2) = 0;
