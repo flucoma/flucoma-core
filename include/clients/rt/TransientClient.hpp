@@ -39,7 +39,7 @@ auto constexpr TransientParams = std::make_tuple(
 using Param_t = decltype(TransientParams);
 
 template <typename T, typename U = T>
-class TransientClient : public FluidBaseClient<Param_t> {
+class TransientClient : public FluidBaseClient<Param_t>, public AudioIn, public AudioOut {
   using HostVector = HostVector<U>;
 
 public:
@@ -86,39 +86,39 @@ public:
       mBufferedProcess.hostSize(hostVecSize);
     }
 
-    
-  
-    
     double skew = std::pow(2, get<kSkew>());
     double threshFwd = get<kThreshFwd>();
     double thresBack = get<kThreshBack>();
     size_t halfWindow = std::round(get<kWinSize>() / 2);
     size_t debounce = get<kDebounce>();
 
-    mExtractor->setDetectionParameters(skew, threshFwd, kThreshBack, halfWindow,
-                                       debounce);
 
-//    Data<RealVector> in(input[0]);
-//    Data<RealVector> outTrans(in.rows());
-//    Data<RealVector> outRes(in.rows());
+  
+    mExtractor->setDetectionParameters(skew, threshFwd, thresBack, halfWindow,
+                                       debounce);
   
     Data<RealMatrix> in(1,hostVecSize);
 
     in.row(0) = input[0]; //need to convert float->double in some hosts
     mInputBuffer.push(in);
   
-    mBufferedProcess.process(maxWin, mExtractor->hopSize(), [this](RealMatrix in, RealMatrix out)
+    
+  
+    mBufferedProcess.process(mExtractor->inputSize(), mExtractor->hopSize(), [this](RealMatrix in, RealMatrix out)
     {
       mExtractor->process(in.row(0), out.row(0), out.row(1));
     });
     
     Data<RealMatrix> out(2, hostVecSize);
     mOutputBuffer.pull(out); 
-    
-//    std::cout << input.size() << ' ' << output.size() << '\n';
 
     if(output[0].data()) output[0] = out.row(0);
     if(output[1].data()) output[1] = out.row(1);
+  }
+
+  long latency()
+  {
+    return get<kPadding>() + get<kOrder>() + get<kBlockSize>();
   }
 
 private:

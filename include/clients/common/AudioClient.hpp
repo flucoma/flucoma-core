@@ -8,15 +8,25 @@ namespace client {
 struct Audio {};
 
 struct AudioIn: Audio {
-  constexpr AudioIn(std::size_t n): channels(n) {}
-  std::size_t channels;
+//  constexpr AudioIn(std::size_t n): channels(n) {}
+//  std::size_t channels;
 };
 
 
 struct AudioOut: Audio {
-  constexpr AudioOut(std::size_t n): channels(n) {}
-  std::size_t channels;
+//  constexpr AudioOut(std::size_t n): channels(n) {}
+//  std::size_t channels;
 };
+
+template <typename T>
+constexpr bool isAudioIn = std::is_base_of<AudioIn, T>::value;
+
+template <typename T>
+constexpr bool isAudioOut = std::is_base_of<AudioOut, T>::value;
+
+
+
+
 //
 //struct ControlOut {
 //  static constexpr std::size_t outputs = N;

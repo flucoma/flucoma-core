@@ -26,7 +26,13 @@ template <typename... Ts> struct ParamValueTypes {
   
   using type = std::tuple<std::pair<value_type<Ts>,constraints_type<Ts>>...>;
  
- private:
+  static type create(const std::tuple<Ts...> descriptors)
+  {
+//      puts(__PRETTY_FUNCTION__);
+      return ParamValueTypes::createImpl(descriptors, std::index_sequence_for<Ts...>());
+  }
+
+private:
   template <size_t...Is>
   static type createImpl(const std::tuple<Ts...>& t, std::index_sequence<Is...>)
   {
@@ -36,12 +42,7 @@ template <typename... Ts> struct ParamValueTypes {
           std::get<Is>(t).second
       )...);
   }
-public:
-  static type create(const std::tuple<Ts...> descriptors)
-  {
-//      puts(__PRETTY_FUNCTION__);
-      return ParamValueTypes::createImpl(descriptors, std::index_sequence_for<Ts...>());
-  }
+  
 };
 
 //Clamp value given constraints
@@ -134,8 +135,8 @@ template <typename... Ts> struct FluidBaseTemplate<const std::tuple<Ts...>> {
 
 
 
-template <class Tuple>
-using FluidBaseClient = typename impl::FluidBaseTemplate<Tuple>::type;
+template <class ParamTuple>
+using FluidBaseClient = typename impl::FluidBaseTemplate<ParamTuple>::type;
 
 // template <typename... Ts>
 // constexpr FluidClientBase<Ts...> makeClient(std::tuple<Ts...> params) {
