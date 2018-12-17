@@ -70,6 +70,8 @@ std::ostream& operator << (std::ostream& o, ParameterValue<T>& t)
 template <typename... Ts> class FluidBaseClientImpl {
 public:
   using ValueTuple = typename impl::ParamValueTypes<Ts...>::type;
+  using ParamType = const typename std::tuple<Ts...>;
+  using ParamIndexList = typename std::index_sequence_for<Ts...>;
 
   constexpr FluidBaseClientImpl(const std::tuple<Ts...>& params) noexcept : mParams(impl::ParamValueTypes<Ts...>::create(params)) {
   }
