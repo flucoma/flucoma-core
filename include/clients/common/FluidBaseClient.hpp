@@ -5,8 +5,6 @@
 #include <data/FluidMeta.hpp>
 #include <tuple>
 
-
-
 namespace fluid {
 namespace client {
 
@@ -28,7 +26,6 @@ template <typename... Ts> struct ParamValueTypes {
  
   static type create(const std::tuple<Ts...> descriptors)
   {
-//      puts(__PRETTY_FUNCTION__);
       return ParamValueTypes::createImpl(descriptors, std::index_sequence_for<Ts...>());
   }
 
@@ -46,9 +43,6 @@ private:
 };
 
 //Clamp value given constraints
-//Which are a tuple of
-//callable
-//tuple<indices of other params>
 
 template <typename T, typename Params, typename Constraints, size_t...Is>
 T clampImpl(T& thisParam, Params& allParams, Constraints& c, std::index_sequence<Is...>)
@@ -58,17 +52,15 @@ T clampImpl(T& thisParam, Params& allParams, Constraints& c, std::index_sequence
   return res;
 }
 
-
 template <typename T, typename Params, typename...Constraints>
 T clamp(T thisParam, Params& allParams, std::tuple<Constraints...>& c)
 {
   //for each constraint, pass this param,all params
   return clampImpl(thisParam,allParams,c, std::index_sequence_for<Constraints...>());
 }
+
 /// FluidBaseClientImpl
 /// Common functionality for clients
-
-
 template<typename T>
 std::ostream& operator << (std::ostream& o, ParameterValue<T>& t)
 {
@@ -79,7 +71,6 @@ template <typename... Ts> class FluidBaseClientImpl {
 public:
   using ValueTuple = typename impl::ParamValueTypes<Ts...>::type;
 
-
   constexpr FluidBaseClientImpl(const std::tuple<Ts...>& params) noexcept : mParams(impl::ParamValueTypes<Ts...>::create(params)) {
   }
 
@@ -87,11 +78,8 @@ public:
     return [this](auto &&x) {
       auto constraints = std::get<N>(mParams).second;
       auto param = std::get<N>(mParams).first;
-
-      auto xPrime = clamp(static_cast<typename decltype(param)::type>(x),mParams, constraints);//, mParams, constraints);
-  
+      auto xPrime = clamp(static_cast<typename decltype(param)::type>(x),mParams, constraints);
       param.set(xPrime);
-//      std::cout << std::get<N>(mParams).first << '\n';
     };
     
   }
@@ -143,41 +131,9 @@ template <typename... Ts> struct FluidBaseTemplate<const std::tuple<Ts...>> {
 } // namespace impl
 
 
-
 template <class ParamTuple>
 using FluidBaseClient = typename impl::FluidBaseTemplate<ParamTuple>::type;
 
-// template <typename... Ts>
-// constexpr FluidClientBase<Ts...> makeClient(std::tuple<Ts...> params) {
-//  return {params};
-//};
-
-template <template <typename, size_t> class F, typename... Ts,
-          std::size_t... Is>
-void callOnParams(const std::tuple<Ts...> &t, std::index_sequence<Is...>) {
-  auto l = {(F<Ts, Is>(std::get<Is>(t)), 0)...};
-}
-
-/// Convert tuple of pairs of descriptors and contrstraints to a tuple of descriptors
-/// (Wrappers have no need for the constraints, and it gets a bit 5D chess to deal with them)
-//template<typename...Ts>
-//struct ParameterDescriptors
-//{
-//  using type = std::tuple<Ts::first_type...>;
-//  
-//  static type get(const std::tuple<Ts...>& tree)
-//  {
-//    return getImpl(tree, std::make_index_sequence<sizeof...(Ts)>()); 
-//  }
-//  
-//  private:
-//  template<size_t...Is>
-//  static type getImpl(const std::tuple<Ts...>& tree, std::index_sequence<Is...>)
-//  {
-//    return std::make_tuple(std::get<Is>(tree).first...);
-//  }
-//
-//};
 
 } // namespace client
 } // namespace fluid

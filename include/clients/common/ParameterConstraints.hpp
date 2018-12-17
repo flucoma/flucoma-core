@@ -33,25 +33,6 @@ auto makePower2 = [](auto a) {
   };
 };
 
-//
-// template <typename F,typename... Ts> struct EnabledBy {
-//  EnabledBy(std::tuple<Ts...> args, F fun) : mArgs(args){}
-//  template <typename T> static ConstraintResult check(T x, Ts... y) {
-//    return f(x, y...);
-//  }
-
-// private:
-//  F f;
-//  std::tuple<Ts...> mArgs;
-//};
-
-// template <typename F, std::size_t... Is> struct Constraint {
-//
-//  template <typename T, typename Tuple> static void invoke(T &x, Tuple y) {
-//    F(x, std::get<Is>(y)...);
-//  }
-//};
-
 namespace impl {
 
 template <typename T> struct MinImpl {

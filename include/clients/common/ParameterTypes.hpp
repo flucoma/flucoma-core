@@ -1,6 +1,6 @@
 #pragma once
 
-#include "FluidParams.hpp"
+#include <clients/common/BufferAdaptor.hpp>
 #include <vector>
 #include <utility>
 #include <tuple>
@@ -84,12 +84,6 @@ struct BufferArrayT: ParamTypeBase{
   BufferArrayT(const char* name, const char* displayName, const size_t size = 0):ParamTypeBase(name),fixedSize(size){}
   const std::size_t fixedSize;
 };
-
-//using AllowedTypes = std::tuple<FloatParam, LongParam,BufferParam, EnumParam,FloatArrayParam,LongArrayParam,BufferArrayParam>;
-
-//template<std::size_t N>
-//using GetType = typename std::tuple_element<N,AllowedTypes>::type;
-//
   
 template <typename T, typename...Constraints>
 using ParamSpec =  std::pair<T,std::tuple<Constraints...>>;
@@ -137,7 +131,7 @@ constexpr ParamSpec<BufferArrayT, Constraints...>BufferArrayParam(const char* na
 }
 
 
-template<typename T>//, typename...Constraints>
+template<typename T>
 class ParameterValue
 {
 public:
@@ -159,7 +153,6 @@ private:
 };
 
 
-  
   
 }
 }
