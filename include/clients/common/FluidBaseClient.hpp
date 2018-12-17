@@ -105,18 +105,27 @@ public:
   size_t audioChannelsIn() const noexcept {return mAudioChannelsIn;}
   size_t audioChannelsOut() const noexcept {return mAudioChannelsOut;}
   size_t controlChannelsIn() const noexcept {return mControlChannelsIn;}
-  size_t controlChannelsOut() const noexcept {return mControlChnnalesOut;}
+  size_t controlChannelsOut() const noexcept {return mControlChannelsOut;}
+  
+  size_t audioBuffersIn() const noexcept { return mBuffersIn;}
+  size_t audioBuffersOut() const noexcept { return mBuffersOut;}
+  
 protected:
   void audioChannelsIn(const size_t x) noexcept { mAudioChannelsIn = x;}
   void audioChannelsOut(const size_t x )  noexcept { mAudioChannelsOut = x;}
   void controlChannelsIn(const size_t x)  noexcept { mControlChannelsIn = x;}
-  void controlChannelsOut(const size_t x)  noexcept { mControlChnnalesOut = x ;}
+  void controlChannelsOut(const size_t x)  noexcept { mControlChannelsOut = x ;}
+
+  void audioBuffersIn(const size_t x)  noexcept { mBuffersIn = x;}
+  void audioBuffersOut(const size_t x)  noexcept { mBuffersOut = x;}
 
 private:
   size_t mAudioChannelsIn   = 0;
   size_t mAudioChannelsOut  = 0;
   size_t mControlChannelsIn = 0;
-  size_t mControlChnnalesOut= 0;
+  size_t mControlChannelsOut= 0;
+  size_t mBuffersIn = 0 ;
+  size_t mBuffersOut = 0 ;
   ValueTuple mParams;
 };
 

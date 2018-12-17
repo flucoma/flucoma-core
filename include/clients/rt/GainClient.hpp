@@ -23,7 +23,7 @@ using Params_t = decltype(GainParams);
 /// @class GainAudioClient
 template <typename T, typename U = T>
 class GainClient : public FluidBaseClient<Params_t> {
-  using HostVector = HostVector<U>;
+  using HostVector = FluidTensorView<U,1>;
 
 public:
   ///No default instances, no copying

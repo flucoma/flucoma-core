@@ -53,7 +53,7 @@ public:
     // Here we do an STFT and its inverse
     mSTFTBufferedProcess.process(
         *this, input, output,
-        [](ComplexVector in, ComplexVector out) { out = in; });
+        [](ComplexVectorView in, ComplexVectorView out) { out = in; });
   }
 
 private:

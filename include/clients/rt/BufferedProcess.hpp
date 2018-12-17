@@ -10,6 +10,12 @@
 namespace fluid {
 namespace client {
 
+template<typename T>
+using HostVector = FluidTensorView<T,1>;
+
+template<typename T>
+using HostMatrix = FluidTensorView<T,2>;
+
 class BufferedProcess {
 public:
   template <typename F>
@@ -18,8 +24,8 @@ public:
     assert(windowSize <= maxWindowSize() && "Window bigger than maximum");
     for (; mFrameTime < mHostSize; mFrameTime += hopSize) {
       if (mSource) {
-        RealMatrix windowIn = mFrameIn(Slice(0), Slice(0, windowSize));
-        FluidTensorView<double, 2> windowOut =
+        RealMatrixView windowIn = mFrameIn(Slice(0), Slice(0, windowSize));
+        RealMatrixView windowOut =
             mFrameOut(Slice(0), Slice(0, windowSize));
         mSource->pull(windowIn, mFrameTime);
         processFunc(windowIn, windowOut);
@@ -51,8 +57,8 @@ public:
 private:
   std::size_t mFrameTime = 0 ;
   std::size_t mHostSize;
-  Data<RealMatrix> mFrameIn;
-  Data<RealMatrix> mFrameOut;
+  RealMatrix mFrameIn;
+  RealMatrix mFrameOut;
   FluidSource<double> *mSource = nullptr;
   FluidSink<double> *mSink = nullptr;
 };
@@ -113,7 +119,7 @@ public:
 
     mBufferedProcess.process(
         winSize, hopSize,
-        [this, &processFunc](RealMatrix &in, RealMatrix &out) {
+        [this, &processFunc](RealMatrixView in, RealMatrixView out) {
           mSTFT->processFrame(in.row(0), mSpectrogram.row(0));
           processFunc(mSpectrogram.row(0), mSpectrogram.row(1));
           mISTFT->processFrame(mSpectrogram.row(1), out.row(0));
@@ -123,7 +129,7 @@ public:
         });
 
     // TODO: if normalise
-    RealMatrix unnormalisedFrame =
+    RealMatrixView unnormalisedFrame =
         mFrameAndWindow(Slice(0), Slice(0, hostBufferSize));
     mOutputBuffer.pull(unnormalisedFrame);
     unnormalisedFrame.row(0).apply(unnormalisedFrame.row(1),
@@ -149,8 +155,8 @@ private:
     return res;
   }
 
-  Data<RealMatrix> mFrameAndWindow;
-  Data<ComplexMatrix> mSpectrogram;
+  RealMatrix mFrameAndWindow;
+  ComplexMatrix mSpectrogram;
   std::unique_ptr<algorithm::STFT> mSTFT;
   std::unique_ptr<algorithm::ISTFT> mISTFT;
   BufferedProcess mBufferedProcess;

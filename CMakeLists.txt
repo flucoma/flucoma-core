@@ -1,7 +1,7 @@
-cmake_minimum_required (VERSION 3.3)
-project (fluid_decomposition LANGUAGES CXX)
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+cmake_minimum_required (VERSION 3.8)
 
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+project (fluid_decomposition LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -15,6 +15,56 @@ IF(APPLE)
     message(FATAL_ERROR "Accelerate not found")
   ENDIF()
 ENDIF (APPLE)
+
+set(HEADERS "")
+list(APPEND HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/HPSS.hpp"
+include/algorithms/public/NMF.hpp
+include/algorithms/public/NoveltySegmentation.hpp
+include/algorithms/public/OnsetSegmentation.hpp
+include/algorithms/public/RTHPSS.hpp
+include/algorithms/public/RTSineExtraction.hpp
+include/algorithms/public/RatioMask.hpp
+include/algorithms/public/STFT.hpp
+include/algorithms/public/SineExtraction.hpp
+include/algorithms/public/TransientExtraction.hpp
+include/algorithms/public/TransientSegmentation.hpp
+include/algorithms/public/Windows.hpp
+include/clients/common/AudioClient.hpp
+include/clients/common/OfflineClient.hpp
+include/clients/common/FluidBaseClient.hpp
+include/clients/common/FluidParams.hpp
+include/clients/common/FluidSink.hpp
+include/clients/common/FluidSource.hpp
+include/clients/common/ParameterConstraints.hpp
+include/clients/common/ParameterDescriptor.hpp
+include/clients/common/ParameterDescriptorList.hpp
+include/clients/common/ParameterInstanceList.hpp
+include/clients/common/ParameterTypes.hpp
+include/clients/common/STFTCheckParams.hpp
+include/clients/nrt/BufferComposeNRT.hpp
+include/clients/nrt/FluidNRTClientWrapper.hpp
+include/clients/nrt/HPSS.hpp
+include/clients/nrt/NMFClient.hpp
+include/clients/nrt/NoveltyClient.hpp
+include/clients/nrt/Sines.hpp
+include/clients/nrt/TransientNRTClient.hpp
+include/clients/nrt/TransientSliceNRT.hpp
+include/clients/rt/BaseAudioClient.hpp
+include/clients/rt/BaseSTFTClient.hpp
+include/clients/rt/BufferedProcess.hpp
+include/clients/rt/GainClient.hpp
+include/clients/rt/HPSSClient.hpp
+include/clients/rt/NMFMatch.hpp
+include/clients/rt/SinesClient.hpp
+include/clients/rt/TransientClient.hpp
+include/clients/rt/TransientSlice.hpp )
+
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/include  FILES ${HEADERS})
+source_group(3rdparty FILES
+  "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/HISSTools_FFT/HISSTools_FFT.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/HISSTools_FFT/HISSTools_FFT.cpp"
+)
+
 
 ### HISSTools FFT target
 add_library(
@@ -68,7 +118,9 @@ target_include_directories(
 
 #TODO: Not this? We possibly need to seperate public facing headers from
 # obviously implementaion related ones to cut down on noise
-file(GLOB_RECURSE LIBRARY_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/include/*/*.hpp)
+file(GLOB_RECURSE LIBRARY_HEADERS include/*/*.hpp)
+
+
 
 target_sources(
   FLUID_DECOMPOSITION
@@ -86,6 +138,8 @@ ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/TransientExtraction.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/TransientSegmentation.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/Windows.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/AudioClient.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/OfflineClient.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/BufferAdaptor.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/FluidBaseClient.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/FluidParams.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/FluidSink.hpp
@@ -97,6 +151,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/ParameterInstanceList.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/ParameterTypes.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/STFTCheckParams.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/BufferComposeNRT.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/FluidNRTClientWrapper.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/HPSS.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/NMFClient.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/NoveltyClient.hpp
@@ -125,5 +180,7 @@ target_link_libraries(
 add_subdirectory(
   "${CMAKE_CURRENT_SOURCE_DIR}/examples"
 )
+
+
 
 export(TARGETS FLUID_DECOMPOSITION HISSTools_FFT FILE fluid_decomposition-exports.cmake)

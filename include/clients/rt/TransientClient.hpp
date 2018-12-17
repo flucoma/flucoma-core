@@ -40,9 +40,12 @@ using Param_t = decltype(TransientParams);
 
 template <typename T, typename U = T>
 class TransientClient : public FluidBaseClient<Param_t>, public AudioIn, public AudioOut {
-  using HostVector = HostVector<U>;
 
 public:
+
+  using HostVector = HostVector<U>;
+
+
   TransientClient(TransientClient &) = delete;
   TransientClient operator=(TransientClient &) = delete;
 
@@ -97,19 +100,19 @@ public:
     mExtractor->setDetectionParameters(skew, threshFwd, thresBack, halfWindow,
                                        debounce);
   
-    Data<RealMatrix> in(1,hostVecSize);
+    RealMatrix in(1,hostVecSize);
 
     in.row(0) = input[0]; //need to convert float->double in some hosts
     mInputBuffer.push(in);
   
     
   
-    mBufferedProcess.process(mExtractor->inputSize(), mExtractor->hopSize(), [this](RealMatrix in, RealMatrix out)
+    mBufferedProcess.process(mExtractor->inputSize(), mExtractor->hopSize(), [this](RealMatrixView in, RealMatrixView out)
     {
       mExtractor->process(in.row(0), out.row(0), out.row(1));
     });
     
-    Data<RealMatrix> out(2, hostVecSize);
+    RealMatrix out(2, hostVecSize);
     mOutputBuffer.pull(out); 
 
     if(output[0].data()) output[0] = out.row(0);

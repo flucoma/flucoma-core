@@ -80,8 +80,8 @@ public:
   // int extract(double *transients, double *residual, const double *input,
   //            int inSize) {
 
-  void process(const RealVector input, RealVector transients,
-               RealVector residual) {
+  void process(const RealVectorView input, RealVectorView transients,
+               RealVectorView residual) {
     int inSize = input.extent(0);
     frame(input.data(), inSize);
     analyse();
@@ -92,8 +92,8 @@ public:
 
   // int extract(double *transients, double *residual, const double *input,
   //            int inSize, const double *unknowns) {
-  void process(const RealVector input, const RealVector unknowns,
-               RealVector transients, RealVector residual) {
+  void process(const RealVectorView input, const RealVectorView unknowns,
+               RealVectorView transients, RealVectorView residual) {
     int inSize = input.extent(0);
     std::copy(unknowns.data(), unknowns.data() + hopSize(), mDetect.data());
     mCount = 0;
@@ -162,7 +162,7 @@ private:
         click = false;
 
         for (int j = i; (j < i + offHold) && (j < size); j++) {
-          if (mBackwardWindowedError[i] > loThresh) {
+          if (mBackwardWindowedError[j] > loThresh) {
             click = true;
             break;
           }
