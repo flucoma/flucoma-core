@@ -74,14 +74,23 @@ template <typename... Ts>
 class FluidBaseClientImpl<const std::tuple<Ts...>>
 {
 public:
+    
   using ValueTuple = typename impl::ParamValueTypes<Ts...>::type;
   using ParamType = const typename std::tuple<Ts...>;
-  using ParamIndexList = typename std::index_sequence_for<Ts...>;
 
-  constexpr FluidBaseClientImpl(const std::tuple<Ts...>& params) noexcept : mParams(impl::ParamValueTypes<Ts...>::create(params)) {
+  template <template <size_t N, typename T> class Func>
+  static void iterateParameters(ParamType params)
+  {
+    iterateParametersImpl<Func>(params, ParamIndexList());
   }
+    
+  constexpr FluidBaseClientImpl(const std::tuple<Ts...>& params) noexcept :
+    mParams(impl::ParamValueTypes<Ts...>::create(params))
+    {}
 
-  template <size_t N> auto  setter() noexcept {
+  template <size_t N>
+  auto setter() noexcept
+  {
     return [this](auto &&x) {
       auto constraints = std::get<N>(mParams).second;
       auto& param = std::get<N>(mParams).first;
@@ -115,6 +124,15 @@ protected:
   void audioBuffersOut(const size_t x)  noexcept { mBuffersOut = x;}
 
 private:
+    
+  using ParamIndexList = typename std::index_sequence_for<Ts...>;
+    
+  template <template <size_t N, typename T> class Op, size_t... Is>
+  static void iterateParametersImpl(ParamType& params, std::index_sequence<Is...>)
+  {
+    std::initializer_list<int>{ (Op<Is, typename Ts::first_type>()(std::get<Is>(params).first), 0)...};
+  }
+    
   size_t mAudioChannelsIn   = 0;
   size_t mAudioChannelsOut  = 0;
   size_t mControlChannelsIn = 0;
@@ -126,10 +144,8 @@ private:
     
 } // namespace impl
 
-
 template <class ParamTuple>
 using FluidBaseClient = typename impl::FluidBaseClientImpl<ParamTuple>;
-
 
 } // namespace client
 } // namespace fluid
