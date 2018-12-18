@@ -77,6 +77,7 @@ public:
     
   using ValueTuple = typename impl::ParamValueTypes<Ts...>::type;
   using ParamType = const typename std::tuple<Ts...>;
+  using ParamIndexList = typename std::index_sequence_for<Ts...>;
 
   template <template <size_t N, typename T> class Func>
   static void iterateParameters(ParamType params)
@@ -124,8 +125,6 @@ protected:
   void audioBuffersOut(const size_t x)  noexcept { mBuffersOut = x;}
 
 private:
-    
-  using ParamIndexList = typename std::index_sequence_for<Ts...>;
     
   template <template <size_t N, typename T> class Op, size_t... Is>
   static void iterateParametersImpl(ParamType& params, std::index_sequence<Is...>)
