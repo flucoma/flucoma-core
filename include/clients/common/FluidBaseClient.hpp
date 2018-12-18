@@ -39,7 +39,6 @@ private:
           std::get<Is>(t).second
       )...);
   }
-  
 };
 
 //Clamp value given constraints
@@ -67,7 +66,13 @@ std::ostream& operator << (std::ostream& o, ParameterValue<T>& t)
     return o << t.get();
 }
 
-template <typename... Ts> class FluidBaseClientImpl {
+template <typename Tuple> class FluidBaseClientImpl{
+  static_assert(!isSpecialization<Tuple, std::tuple>(),"Fluid Params: Did you forget to make your params constexpr?");
+};
+
+template <typename... Ts>
+class FluidBaseClientImpl<const std::tuple<Ts...>>
+{
 public:
   using ValueTuple = typename impl::ParamValueTypes<Ts...>::type;
   using ParamType = const typename std::tuple<Ts...>;
@@ -118,23 +123,12 @@ private:
   size_t mBuffersOut = 0 ;
   ValueTuple mParams;
 };
-
-/// FluidBaseTemplate
-/// We need a base class templated on Ts... (pairs of parametre types
-/// and constraints), but we have a tuple of these things when we declare them
-/// This metafunction lets us convert between tuple<Ts...> and Ts...
-template <typename Tuple> struct FluidBaseTemplate{
-  static_assert(!isSpecialization<Tuple, std::tuple>(),"Fluid Params: Did you forget to make your params constexpr?");
-};
-
-template <typename... Ts> struct FluidBaseTemplate<const std::tuple<Ts...>> {
-  using type = FluidBaseClientImpl<Ts...>;
-};
+    
 } // namespace impl
 
 
 template <class ParamTuple>
-using FluidBaseClient = typename impl::FluidBaseTemplate<ParamTuple>::type;
+using FluidBaseClient = typename impl::FluidBaseClientImpl<ParamTuple>;
 
 
 } // namespace client
