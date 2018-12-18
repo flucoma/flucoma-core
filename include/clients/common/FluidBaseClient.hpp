@@ -81,9 +81,8 @@ public:
       auto constraints = std::get<N>(mParams).second;
       auto param = std::get<N>(mParams).first;
       auto xPrime = clamp(static_cast<typename decltype(param)::type>(x),mParams, constraints);
-      param.set(xPrime);
+      std::get<N>(mParams).first.set(xPrime);
     };
-    
   }
 
   template <std::size_t N> auto get() noexcept { return std::get<N>(mParams).first.get(); }
