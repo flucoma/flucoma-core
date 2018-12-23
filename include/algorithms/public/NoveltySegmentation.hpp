@@ -23,6 +23,7 @@ public:
 
   void process(const RealMatrix &input, RealVector output) {
     using Eigen::ArrayXd;
+    using Eigen::Array;
 
     ArrayXd curve(input.extent(0));
     Novelty nov(mKernelSize);

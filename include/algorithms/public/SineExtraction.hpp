@@ -53,35 +53,32 @@ public:
                RealMatrix mix) {
     int nFrames = X.rows();
     int nBins = X.cols();
-    ArrayXXdConstMap input(X.data(), nFrames, nBins);
+    ArrayXXd input = asEigen<Array>(X);
     vector<SineTrack> tracks;
     MatrixXd tmpSines(nFrames, nBins);
     MatrixXd tmpNoise(nFrames, nBins);
 
     for (int i = 0; i < nFrames; i++) {
-      // ArrayXdConstMap frame(X.row(i).data(), nBins);
-      ArrayXd frame = input.row(i);
+      ArrayXd frame = input.matrix().row(i);
       ArrayXd correlation = getWindowCorrelation(frame);
       vector<int> peaks = findPeaks(correlation, mThreshold);
       peakContinuation(tracks, peaks, frame, i);
     }
+
     vector<vector<SinePeak>> sinePeaks = filterTracks(tracks, nFrames);
 
     for (int i = 0; i < nFrames; i++) {
+      ArrayXd frame = input.row(i);
       ArrayXd frameSines = additiveSynthesis(sinePeaks[i]);
-      // TODO: there is some issue with input
-      ArrayXd frameResidual =
-          ArrayXdConstMap(X.row(i).data(), nBins) - frameSines;
+      ArrayXd frameResidual = frame - frameSines;
       frameResidual = (frameResidual < 0).select(0, frameResidual);
       tmpSines.row(i) = frameSines;
       tmpNoise.row(i) = frameResidual;
     }
-    ArrayXXdMap outSines = ArrayXXdMap(sines.data(), nFrames, nBins);
-    outSines = tmpSines;
-    ArrayXXdMap outNoise = ArrayXXdMap(noise.data(), nFrames, nBins);
-    outNoise = tmpNoise.array();
-    ArrayXXdMap outMix = ArrayXXdMap(mix.data(), nFrames, nBins);
-    outMix = (tmpSines + tmpNoise).array();
+    MatrixXd tmpMix = tmpSines + tmpNoise;
+    sines = asFluid(tmpSines);
+    noise = asFluid(tmpNoise);
+    mix = asFluid(tmpMix);
   }
 
 private:

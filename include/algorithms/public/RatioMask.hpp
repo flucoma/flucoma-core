@@ -14,6 +14,7 @@ using _impl::asFluid;
 using Eigen::ArrayXXcd;
 using Eigen::ArrayXXd;
 using Eigen::Map;
+using Eigen::Array;
 
 class RatioMask {
   const double epsilon = std::numeric_limits<double>::epsilon();

@@ -12,6 +12,8 @@ namespace algorithm {
 
 using _impl::asEigen;
 using _impl::asFluid;
+using Eigen::Matrix;
+using Eigen::Array;
 using Eigen::ArrayXd;
 using Eigen::ArrayXXd;
 using Eigen::MatrixXd;

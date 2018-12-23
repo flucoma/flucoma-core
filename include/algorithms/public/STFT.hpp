@@ -17,6 +17,8 @@ using Eigen::ArrayXXcd;
 using Eigen::ArrayXcd;
 using Eigen::ArrayXXd;
 using Eigen::MatrixXcd;
+using Eigen::Map;
+using Eigen::Array;
 
 class STFT {
 
