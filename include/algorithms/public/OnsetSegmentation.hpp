@@ -18,6 +18,7 @@ using _impl::asFluid;
 using Eigen::ArrayXcd;
 using Eigen::ArrayXd;
 using Eigen::Map;
+using Eigen::Array;
 
 class OnsetSegmentation {
 

@@ -10,7 +10,7 @@ find_library(SNDFILE_LIBRARY NAMES libsndfile.dylib
 
 foreach (EXAMPLE  audiofile;fluidtensor;stft;nmf;
 									fluidbuffer;sineextraction;transient_extractor;
-								median_filter;hpss;rthpss;rtsineextraction;novelty;paramDescriptorList;onset;transient_segmentation)
+								median_filter;rthpss;rtsineextraction;novelty;paramDescriptorList;onset;transient_segmentation)
 
 	add_executable (
 			test_${EXAMPLE} test_${EXAMPLE}.cpp
