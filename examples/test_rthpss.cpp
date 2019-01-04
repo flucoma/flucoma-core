@@ -36,8 +36,9 @@ int main(int argc, char *argv[]) {
   int windowSize = 2048;
   STFT stft(windowSize, fftSize, hopSize);
   ISTFT istft(windowSize, fftSize, hopSize);
-  RTHPSS hpsssProcessor(nBins, vSize, hSize, 1, 0.2, 0, 0.8, 20, 0.2, 20, 0.8,
-                        -20);
+  RTHPSS hpsssProcessor;
+  hpsssProcessor.init(nBins, vSize, hSize, vSize, hSize, 0, 0.2, 0, 0.8, 20,
+                      0.2, 20, 0.8, -20);
   fluid::FluidTensor<double, 1> in(data.audio[0]);
   int nFrames = floor((in.size() + hopSize) / hopSize);
   fluid::FluidTensor<std::complex<double>, 2> spec(nFrames, nBins);
@@ -54,13 +55,26 @@ int main(int argc, char *argv[]) {
   fluid::FluidTensor<double, 1> percussiveAudio(in.size());
   fluid::FluidTensor<double, 1> residualAudio(in.size());
 
+  //hpsssProcessor.setHSize(13);
+  //hpsssProcessor.setVSize(13);
+
   stft.process(in, spec);
-  for (int i = 0; i < spec.rows(); i++) {
+  for (int i = 0; i < nFrames; i++) {
     hpsssProcessor.processFrame(spec.row(i), result);
     harm.row(i) = result.col(0);
     perc.row(i) = result.col(1);
     residual.row(i) = result.col(2);
   }
+  //hpsssProcessor.setHSize(hSize);
+  //hpsssProcessor.setVSize(vSize);
+  /*
+  for (int i = 0; i < nFrames; i++) {
+    hpsssProcessor.processFrame(spec.row(i), result);
+    harm.row(i) = result.col(0);
+    perc.row(i) = result.col(1);
+    residual.row(i) = result.col(2);
+  }*/
+
   istft.process(harm, harmonicAudio);
   istft.process(perc, percussiveAudio);
   istft.process(residual, residualAudio);

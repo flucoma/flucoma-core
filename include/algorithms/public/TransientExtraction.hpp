@@ -214,9 +214,9 @@ private:
     mCount = count;
   }
 
-  template <double Method(const RealVector &)>
+  template <double Method(const RealVectorView &)>
   double calcStat(const double *input, int size) {
-    RealVector view(const_cast<double *>(input), 0, size);
+    RealVectorView view(const_cast<double *>(input), 0, size);
     return Method(view);
   }
 

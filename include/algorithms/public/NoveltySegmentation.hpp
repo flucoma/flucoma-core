@@ -23,6 +23,7 @@ public:
 
   void process(const RealMatrixView input, RealVectorView output) {
     using Eigen::ArrayXd;
+    using Eigen::Array;
 
     ArrayXd curve(input.extent(0));
     Novelty nov(mKernelSize);
@@ -35,9 +36,9 @@ public:
       curve = smoothed;
     }
     curve /= curve.maxCoeff();
-    for (int i = 1; i < curve.size() - 1; i++) {
+    for (int i = mFilterSize / 2; i < curve.size() - 1; i++) {
       if (curve(i) > curve(i - 1) && curve(i) > curve(i + 1) &&
-          curve(i) > mThreshold && i > mFilterSize / 2) {
+          curve(i) > mThreshold) {
         output(i - mFilterSize / 2) = 1;
       } else
         output(i - mFilterSize / 2) = 0;

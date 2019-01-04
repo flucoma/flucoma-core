@@ -16,6 +16,7 @@ using _impl::asFluid;
 using Eigen::ArrayXcd;
 using Eigen::ArrayXd;
 using Eigen::VectorXd;
+using Eigen::Map;
 using std::vector;
 
 struct SinePeak {
@@ -53,6 +54,7 @@ public:
 
   void processFrame(const ComplexVectorView in, ComplexMatrixView out) {
     using Eigen::ArrayXXcd;
+    using Eigen::Array;
     const auto &epsilon = std::numeric_limits<double>::epsilon;
     ArrayXcd frame = asEigen<Array>(in);
     mBuf.push(frame);
