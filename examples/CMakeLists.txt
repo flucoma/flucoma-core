@@ -20,11 +20,13 @@ foreach (EXAMPLE  audiofile;fluidtensor;stft;nmf;
 		PRIVATE ${SNDFILE_INCLUDE_DIR}
 	)
 	target_link_libraries(
-		test_${EXAMPLE} PRIVATE FLUID_DECOMPOSITION  ${SNDFILE_LIBRARY}
+		test_${EXAMPLE} PRIVATE FLUID_DECOMPOSITION  ${SNDFILE_LIBRARY} HISSTools_FFT
 	)
 	target_compile_options(
 		test_${EXAMPLE} PRIVATE "$<$<NOT:$<CONFIG:DEBUG>>:-mavx>"
 	)
+  source_group(TREE  ${root}  FILES ${HEADERS})
+
 
 endforeach (EXAMPLE)
 
