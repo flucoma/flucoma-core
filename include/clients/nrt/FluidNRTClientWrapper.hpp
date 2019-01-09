@@ -12,7 +12,7 @@ namespace client{
 
 
 template<typename RTClient,  typename Params, Params& Tuple>
-class NRTClientWrapper: public FluidBaseClient<Params>, public OfflineIn, public OfflineOut
+class NRTClientWrapper: /*public FluidBaseClient<Params>,*/ public OfflineIn, public OfflineOut
 {
 
 public:
@@ -24,22 +24,62 @@ public:
   using HostVectorView =  FluidTensorView<float,1>;
   using HostMatrixView =  FluidTensorView<float,2>;
   
-  NRTClientWrapper(): FluidBaseClient<Params>(Tuple)
+  NRTClientWrapper()/*: FluidBaseClient<Params>(Tuple)*/
   {
-    if(isAudioIn<RTClient>)
-      this->audioBuffersIn(mClient.audioChannelsIn());
-    if(isAudioOut<RTClient>)
-      this->audioBuffersOut(mClient.audioChannelsOut());
+//    if(isAudioIn<RTClient>)
+//      this->audioBuffersIn(mClient.audioChannelsIn());
+//    if(isAudioOut<RTClient>)
+//      this->audioBuffersOut(mClient.audioChannelsOut());
   }
 
-  void process(std::vector<BufferProcessSpec>& mInputBuffers, std::vector<BufferProcessSpec>& mOutputBuffers)
+  ///Delegate FluidBaseClient interface back to mClient
+
+  using ValueTuple = typename RTClient::ValueTuple;
+  using ParamType = typename RTClient::ParamType;
+  using ParamIndexList = typename RTClient::ParamIndexList;
+  using UnderlyingTypeTuple = typename RTClient::UnderlyingTypeTuple; 
+  
+  template <template <size_t N, typename T> class Func>
+  static void iterateParameters(ParamType params)
+  {
+    RTClient::template iterateParameters<Func>(params);
+  }
+  
+ auto validateParameters(UnderlyingTypeTuple values)
+ {
+    return mClient.validateParameters(values);
+ }
+ 
+ 
+  template <template <size_t N, typename T> class Func, typename Values>
+  auto setParameterValues(Values *v, bool reportage)
+  {
+    return mClient.template setParameterValues<Func,Values>(v,reportage);
+  }
+
+  template <template <size_t N, typename T> class Func, typename Values>
+  auto checkParameterValues(Values* v) { return mClient.template checkParameterValues<Func,Values>(v); }
+  
+  template <size_t N> auto setter(Result* r) noexcept { return mClient.template setter<N>(r); }
+  template <std::size_t N> auto get() noexcept { return mClient.template get<N>(); }
+  template <std::size_t N> bool changed() noexcept { return mClient.template changed<N>(); }
+  
+  size_t audioChannelsIn() const noexcept {return 0;}
+  size_t audioChannelsOut() const noexcept {return 0;}
+  size_t controlChannelsIn() const noexcept {return 0;}
+  size_t controlChannelsOut() const noexcept {return 0;}
+  ///Map delegate audio channels to audio buffers
+  size_t audioBuffersIn() const noexcept { return mClient.audioChannelsIn();}
+  size_t audioBuffersOut() const noexcept { return mClient.audioChannelsOut();}
+
+  Result process(std::vector<BufferProcessSpec>& mInputBuffers, std::vector<BufferProcessSpec>& mOutputBuffers)
   {
   
     std::vector<long> inFrames;
     std::vector<long> inChans;
 //    std::vector<long> startFrames;
 //    std::vector<long> startChans;
-
+    
     inFrames.reserve(mInputBuffers.size());
     inChans.reserve(mInputBuffers.size());
     //check buffers exist
@@ -47,20 +87,18 @@ public:
     {
       BufferAdaptor::Access thisInput(b.buffer);
       if(!thisInput.exists() && !thisInput.valid())
-        return; //error
+        return {Result::Status::kError, "Input buffer ", b.buffer, " not found or invalid."} ; //error
       
       long requestedFrames= b.nFrames < 0 ? thisInput.numFrames() : b.nFrames;
       if(b.startFrame + requestedFrames > thisInput.numFrames())
-        return; //error
+        return {Result::Status::kError, "Input buffer ", b.buffer, ": not enough frames" };
       
       long requestedChans= b.nChans < 0 ? thisInput.numChans() : b.nChans;
       if(b.startChan + requestedChans > thisInput.numChans())
-        return; //error
+        return {Result::Status::kError, "Input buffer ", b.buffer, ": not enough channels" }; //error
   
       inFrames.push_back(b.nFrames < 0 ? thisInput.numFrames() : b.nFrames);
-//      startFrames.push_back(b.startFrame);
       inChans.push_back(b.nChans < 0 ? thisInput.numChans() : b.nChans);
-//      startChans.push_back(b.startChan);
     }
     
     size_t numFrames = *std::min_element(inFrames.begin(),inFrames.end());
@@ -95,6 +133,7 @@ public:
       for(int j = 0; j < numChannels; ++j)
         thisOutput.samps(j) = outputData[i].row(j);
     }
+    return {}; 
   }
 private:
   RTClient  mClient;
