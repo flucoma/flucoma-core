@@ -22,7 +22,7 @@ using Params_t = decltype(GainParams);
 
 /// @class GainAudioClient
 template <typename T, typename U = T>
-class GainClient : public FluidBaseClient<Params_t> {
+class GainClient : public FluidBaseClient<Params_t>, public AudioIn, public AudioOut   {
   using HostVector = FluidTensorView<U,1>;
 
 public:
@@ -35,6 +35,8 @@ public:
     audioChannelsIn(2);
     audioChannelsOut(1);
   }
+
+  size_t latency() { return 0; }
 
   void process(std::vector<HostVector> &input,
                std::vector<HostVector> &output) {
