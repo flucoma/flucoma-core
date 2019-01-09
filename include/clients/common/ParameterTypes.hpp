@@ -8,15 +8,15 @@ namespace fluid {
 namespace client {
   
 
-enum class Type { kFloat, kLong, kBuffer, kEnum, kFloatArray, kLongArray, kBufferArray};
+enum class TypeTag { kFloat, kLong, kBuffer, kEnum, kFloatArray, kLongArray, kBufferArray};
 
-using float_t = double;
-using long_t = long;
-using enum_t = long;
-using buffer_t = std::unique_ptr<BufferAdaptor>;
-using floatarray_t = std::vector<float_t>;
-using longarray_t = std::vector<long_t>;
-using bufferarray_t = std::vector<buffer_t>;
+using FloatUnderlyingType = double;
+using LongUnderlyingType = intptr_t; //signed int equal to pointer size, k thx
+using EnumUnderlyingType = intptr_t;
+using BufferUnderlyingType = std::unique_ptr<BufferAdaptor>;
+using FloatArrayUnderlyingType = std::vector<FloatUnderlyingType>;
+using LongArrayUnderlyingType = std::vector<LongUnderlyingType>;
+using BufferArrayUnderlyingType = std::vector<BufferUnderlyingType>;
 
 struct ParamTypeBase {
   constexpr ParamTypeBase(const char* n): name(n){}
@@ -25,31 +25,31 @@ struct ParamTypeBase {
 
 
 struct FloatT: ParamTypeBase{
-  static constexpr Type typeTag  = Type::kFloat;
-  using type = float_t;
+  static constexpr TypeTag typeTag  = TypeTag::kFloat;
+  using type = FloatUnderlyingType;
   constexpr FloatT(const char* name, const char* displayName, type defaultVal): ParamTypeBase(name),defaultValue(defaultVal)  {}
   const std::size_t fixedSize = 1;
   const type defaultValue;
 };
 
 struct LongT:ParamTypeBase{
-  static constexpr Type typeTag = Type::kLong;
-  using type = long_t;
+  static constexpr TypeTag typeTag = TypeTag::kLong;
+  using type = LongUnderlyingType;
   constexpr LongT(const char* name, const char* displayName, const type defaultVal): ParamTypeBase(name), defaultValue(defaultVal) {}
   const std::size_t fixedSize = 1;
   const type defaultValue;
 };
 
 struct BufferT: ParamTypeBase{
-  static constexpr Type typeTag = Type::kBuffer;
-  using type = buffer_t;
+  static constexpr TypeTag typeTag = TypeTag::kBuffer;
+  using type = BufferUnderlyingType;
   constexpr BufferT(const char* name, const char* displayName): ParamTypeBase(name){}
   const std::size_t fixedSize = 1;
 }; // no non-relational conditions for buffer?
 
 struct EnumT: ParamTypeBase{
-  static constexpr Type typeTag = Type::kEnum;
-  using type = enum_t;
+  static constexpr TypeTag typeTag = TypeTag::kEnum;
+  using type = EnumUnderlyingType;
   template<std::size_t...N>
   EnumT(const char* name, const char* displayName, const char* (&...string)[N]):ParamTypeBase(name),fixedSize(sizeof...(N))
   {
@@ -62,8 +62,8 @@ struct EnumT: ParamTypeBase{
 };
 
 struct FloatArrayT: ParamTypeBase{
-  static constexpr Type typeTag = Type::kFloatArray;
-  using type = floatarray_t;
+  static constexpr TypeTag typeTag = TypeTag::kFloatArray;
+  using type = FloatArrayUnderlyingType;
   
   template<std::size_t N>
   FloatArrayT(const char* name, const char* displayName, type::value_type (&defaultValues) [N]):ParamTypeBase(name){}
@@ -71,16 +71,16 @@ struct FloatArrayT: ParamTypeBase{
 };
 
 struct LongArrayT: ParamTypeBase{
-  static constexpr Type typeTag = Type::kLongArray;
-  using type = longarray_t;
+  static constexpr TypeTag typeTag = TypeTag::kLongArray;
+  using type = LongArrayUnderlyingType;
   template<std::size_t N>
   LongArrayT(const char* name, const char* displayName, type::value_type (&defaultValues) [N]):ParamTypeBase(name){}
   const std::size_t fixedSize;
 };
 
 struct BufferArrayT: ParamTypeBase{
-  static constexpr Type typeTag = Type::kBufferArray;
-  using type = bufferarray_t;
+  static constexpr TypeTag typeTag = TypeTag::kBufferArray;
+  using type = BufferArrayUnderlyingType;
   BufferArrayT(const char* name, const char* displayName, const size_t size = 0):ParamTypeBase(name),fixedSize(size){}
   const std::size_t fixedSize;
 };
@@ -135,24 +135,25 @@ template<typename T>
 class ParameterValue
 {
 public:
+  using ParameterType = T; 
   using type = typename T::type;
-  ParameterValue(const T descriptor):mDescriptor(descriptor), mValue(mDescriptor.defaultValue)
-  {
   
-  }
+  ParameterValue(const T descriptor, type v): mDescriptor(descriptor), mValue(v) {}
+  
+  ParameterValue(const T descriptor):mDescriptor(descriptor), mValue(mDescriptor.defaultValue)
+  {}
 
   auto& get() const noexcept { return mValue; }
   void set(type value) { mValue = value; mChanged = true; }
   bool enabled() const noexcept { return true; }
   bool changed() const noexcept { return mChanged; }
-  
+  const char* name() const noexcept {return mDescriptor.name;}
+  const T descriptor() const noexcept { return mDescriptor; }
 private:
   const T mDescriptor;
   type mValue;
   bool mChanged = false;
 };
-
-
   
 }
 }

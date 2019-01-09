@@ -1,8 +1,7 @@
 #pragma once
 
-//#include "ParameterDescriptor.hpp"
-//#include "ParameterDescriptorList.hpp"
-//#include "ParameterInstance.hpp"
+#include "ParameterTypes.hpp"
+#include "Result.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -10,17 +9,8 @@
 namespace fluid {
 namespace client {
 
-class ConstraintResult {
-public:
-  ConstraintResult(const bool ok, const char *errorStr) noexcept
-      : mOk(ok), mErrorStr(errorStr) {}
-  operator bool() const noexcept { return mOk; }
-  const char *message() const noexcept { return mErrorStr; }
 
-private:
-  bool mOk;
-  const char *mErrorStr;
-};
+
 
 /// Predicates
 
@@ -38,28 +28,71 @@ namespace impl {
 template <typename T> struct MinImpl {
   constexpr MinImpl(const T m) : value(m) {}
   const T value;
-  template <typename U, typename Tuple> constexpr void clamp(U &x, Tuple) {
+  template <size_t N, typename U, typename Tuple> constexpr void clamp(U &x, Tuple params, Result* r) {
+    U oldX = x;
     x = std::max<U>(x, value);
+    if(r && oldX != x)
+    {
+      r->set(Result::Status::kWarning);
+      r->addMessage(std::get<N>(params).first.name());
+      r->addMessage(" value, "); r->addMessage(oldX);r->addMessage(", below absolute minimum ");r->addMessage(x);
+    }
   }
 };
 
 template <typename T> struct MaxImpl {
   constexpr MaxImpl(const T m) : value(m) {}
   const T value;
-  template <typename U, typename Tuple> constexpr void clamp(U &x, Tuple) {
+  template <size_t N, typename U, typename Tuple> constexpr void clamp(U &x, Tuple params, Result* r) {
+    
+    U oldX = x;
     x = std::min<U>(x, value);
+    if(r && oldX != x)
+    {
+      r->set(Result::Status::kWarning);
+      r->addMessage(std::get<N>(params).first.name());
+      r->addMessage(" value ("); r->addMessage(oldX);r->addMessage(") above absolute maximum (");r->addMessage(x);r->addMessage(')');
+    }
   }
 };
 
 template <int... Is> struct LowerLimitImpl {
-  template <typename T, typename Tuple> void clamp(T &v, Tuple params) {
+  template <size_t N, typename T, typename Tuple> void clamp(T &v, Tuple params, Result* r) {
+    
+    T oldV = v;
+    
     v = std::max<T>({v, std::get<Is>(params).first.get()...});
+    
+    if(r && oldV != v)
+    {
+      r->set(Result::Status::kWarning);
+      std::array<T,sizeof...(Is)> constraintValues {std::get<Is>(params).first.get()...};
+      size_t minPos = std::distance(constraintValues.begin(), std::min_element(constraintValues.begin(), constraintValues.end()));
+      std::array<const char*,sizeof...(Is)> constraintNames {std::get<Is>(params).first.name()...};
+      r->addMessage(std::get<N>(params).first.name());
+      r->addMessage(" value ("); r->addMessage(oldV);r->addMessage(") below parameter ");r->addMessage(constraintNames[minPos]);
+      r->addMessage(" ("); r->addMessage(v);r->addMessage(')');
+    }
   }
 };
 
 template <int... Is> struct UpperLimitImpl {
-  template <typename T, typename Tuple> void clamp(T &v, Tuple params) {
+  template <size_t N, typename T, typename Tuple> void clamp(T &v, Tuple params, Result* r) {
+    
+    T oldV = v;
+    
     v = std::min<T>({v, std::get<Is>(params).first.get()...});
+    
+    if(r && oldV != v)
+    {
+      r->set(Result::Status::kWarning);
+      std::array<T,sizeof...(Is)> constraintValues {std::get<Is>(params).first.get()...};
+      size_t maxPos = std::distance(constraintValues.begin(), std::max_element(constraintValues.begin(), constraintValues.end()));
+      std::array<const char*,sizeof...(Is)> constraintNames  {std::get<Is>(params).first.name()...};
+      r->addMessage(std::get<N>(params).first.name());
+      r->addMessage(" value, "); r->addMessage(oldV);r->addMessage(", above parameter ");r->addMessage(constraintNames[maxPos]);
+      r->addMessage(" ("); r->addMessage(v);r->addMessage(')');
+    }
   }
 };
 
@@ -82,10 +115,19 @@ template <int... Is> auto constexpr UpperLimit() {
 }
 
 struct PowerOfTwo {
-  template <typename Tuple> constexpr long clamp(long x, Tuple) {
+  template <size_t N, typename Tuple> constexpr LongUnderlyingType clamp(LongUnderlyingType x, Tuple params, Result* r) {
+    
     int exp = 0;
-    double r = std::frexp(x, &exp);
-    return r > 0.5 ? (1 << exp) : (1 << (exp - 1));
+    double base = std::frexp(x, &exp);
+    LongUnderlyingType res =  base > 0.5 ? (1 << exp) : (1 << (exp - 1));
+    
+    if(r && res != x)
+    {
+      r->set(Result::Status::kWarning);
+      r->addMessage(std::get<N>(params).first.name());
+      r->addMessage(" value ("); r->addMessage(x);r->addMessage(") adjusted to power of two (");r->addMessage(res);r->addMessage(')');
+    }
+    return res;
   }
 };
 

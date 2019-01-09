@@ -10,7 +10,7 @@ struct OfflineIn: Offline{};
 struct OfflineOut:Offline{};
 
 struct BufferProcessSpec
-{
+{    
   BufferAdaptor* buffer;
   long startFrame = 0;
   long nFrames = -1;

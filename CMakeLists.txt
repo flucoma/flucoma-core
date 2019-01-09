@@ -39,6 +39,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/FluidSink.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/FluidSource.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/ParameterConstraints.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/ParameterTypes.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/Result.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/BufferComposeNRT.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/FluidNRTClientWrapper.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/HPSS.hpp
@@ -99,7 +100,6 @@ target_include_directories(
   INTERFACE
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
-
 target_sources(
   FLUID_DECOMPOSITION INTERFACE ${HEADERS}
 )
