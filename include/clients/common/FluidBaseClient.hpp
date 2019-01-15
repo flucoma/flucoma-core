@@ -58,14 +58,29 @@ T clampImpl(T &thisParam, Params &allParams, Constraints &c,
   return res;
 }
 
-template <size_t N, typename T, typename Params, typename... Constraints>
-T clamp(T thisParam, Params &allParams, std::tuple<Constraints...> &c,
-        Result *r)
+template <typename T>
+struct Clamper
 {
+  template<size_t N,typename Params, typename... Constraints>
+  static T clamp(T thisParam, Params &allParams, std::tuple<Constraints...> &c,
+        Result *r)
+  {
   // for each constraint, pass this param,all params
-  return clampImpl<N>(thisParam, allParams, c,
+    return clampImpl<N>(thisParam, allParams, c,
                    std::index_sequence_for<Constraints...>(), r);
+  }
+};
+
+template<>
+struct Clamper<typename BufferT::type>
+{
+template<size_t N,typename Params, typename... Constraints>
+static typename BufferT::type clamp(typename BufferT::type& thisParam, Params&, std::tuple<Constraints...>, Result* r)
+{
+  return std::move(thisParam);
 }
+};
+
 
 /// FluidBaseClientImpl
 /// Common functionality for clients
@@ -108,8 +123,8 @@ public:
       auto &param       = std::get<N>(mParams).first;
       using ParamType = typename std::remove_reference_t<decltype(param)>::type;
       auto xPrime =
-           clamp<N>(static_cast<ParamType>(x), mParams, constraints, reportage);
-      param.set(xPrime);
+           Clamper<ParamType>::template clamp<N>(x, mParams, constraints, reportage);
+      param.set(std::move(xPrime));
     };
   }
 
@@ -125,7 +140,7 @@ public:
     return setParameterValuesImpl<Func>(v, ParamIndexList(), reportage);
   }
 
-  template <std::size_t N> auto get() noexcept
+  template <std::size_t N> auto& get() noexcept
   {
     return std::get<N>(mParams).first.get();
   }
@@ -183,8 +198,11 @@ private:
   auto validateParametersImpl(ValueTuple &values, std::index_sequence<Is...>)
   {
     std::array<Result, sizeof...(Is)> results;
+    
+    
+    
     std::initializer_list<int>{
-        (clamp<Is>(std::get<Is>(values).first.get(), values,
+        (Clamper<typename std::tuple_element<Is,ValueTuple>::type>::clamp<Is>(std::get<Is>(values).first.get(), values,
                std::get<Is>(values).second, &std::get<Is>(results)),
          0)...};
     return results;
