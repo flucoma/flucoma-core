@@ -21,6 +21,8 @@ public:
 
     Access(const Access &) = delete;
     Access &operator=(const Access &) = delete;
+    Access(Access&&) = default;
+    Access& operator=(Access&&) = default; 
 
     void destroy() {
       if (mAdaptor)
