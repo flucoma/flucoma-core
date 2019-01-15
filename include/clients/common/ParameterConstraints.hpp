@@ -28,7 +28,7 @@ namespace impl {
 template <typename T> struct MinImpl {
   constexpr MinImpl(const T m) : value(m) {}
   const T value;
-  template <size_t N, typename U, typename Tuple> constexpr void clamp(U &x, Tuple params, Result* r) {
+  template <size_t N, typename U, typename Tuple> constexpr void clamp(U &x, Tuple& params, Result* r) {
     U oldX = x;
     x = std::max<U>(x, value);
     if(r && oldX != x)
@@ -43,7 +43,7 @@ template <typename T> struct MinImpl {
 template <typename T> struct MaxImpl {
   constexpr MaxImpl(const T m) : value(m) {}
   const T value;
-  template <size_t N, typename U, typename Tuple> constexpr void clamp(U &x, Tuple params, Result* r) {
+  template <size_t N, typename U, typename Tuple> constexpr void clamp(U &x, Tuple& params, Result* r) {
     
     U oldX = x;
     x = std::min<U>(x, value);
@@ -57,7 +57,7 @@ template <typename T> struct MaxImpl {
 };
 
 template <int... Is> struct LowerLimitImpl {
-  template <size_t N, typename T, typename Tuple> void clamp(T &v, Tuple params, Result* r) {
+  template <size_t N, typename T, typename Tuple> void clamp(T &v, Tuple& params, Result* r) {
     
     T oldV = v;
     
@@ -77,7 +77,7 @@ template <int... Is> struct LowerLimitImpl {
 };
 
 template <int... Is> struct UpperLimitImpl {
-  template <size_t N, typename T, typename Tuple> void clamp(T &v, Tuple params, Result* r) {
+  template <size_t N, typename T, typename Tuple> void clamp(T &v, Tuple& params, Result* r) {
     
     T oldV = v;
     
@@ -115,7 +115,7 @@ template <int... Is> auto constexpr UpperLimit() {
 }
 
 struct PowerOfTwo {
-  template <size_t N, typename Tuple> constexpr LongUnderlyingType clamp(LongUnderlyingType x, Tuple params, Result* r) {
+  template <size_t N, typename Tuple> constexpr LongUnderlyingType clamp(LongUnderlyingType x, Tuple& params, Result* r) {
     
     int exp = 0;
     double base = std::frexp(x, &exp);
