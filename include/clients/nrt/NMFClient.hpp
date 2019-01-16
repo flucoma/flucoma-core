@@ -418,7 +418,7 @@ namespace fluid {
           nmf::NMFModel m = nmf.process(spec.getMagnitude(), seedDicts, seedActs);
           
           //Write W?
-          if(model.returnDictionaries && !model.seedDictionaries)
+          if(model.returnDictionaries && !model.fixDictionaries)
           {
             auto dictionaries = m.getW();
             for (size_t j = 0; j < model.rank; ++j)
@@ -427,7 +427,7 @@ namespace fluid {
           }
           
           //Write H? Need to normalise also
-          if(model.returnActivations && !model.seedActivations)
+          if(model.returnActivations && !model.fixActivations)
           {
             auto activations = m.getH();
             double maxH = *std::max_element(activations.begin(), activations.end());

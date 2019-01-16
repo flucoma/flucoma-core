@@ -5,16 +5,21 @@ date:
 -
 
 ## New Features:
--
+- (Max) init folder to create key shortcuts (shift-F to create a fluid. object)
+- (Max) bufview now has bipolar mode (and a helpfile)
 
 ## New Examples:
--
+- bufcompose macros and folder iterations
 
 ## Bug Fixes:
--
+- Max’s buffer classes small bug which caused crash in specific instantiation order
+- Max’s nmfmatch~ is now behaving with filter buffer changes
+- (Max) bufview works for small buffers
+- bufnmf is now returning updated filter buffers in mode 1
+
 
 ## Known Bugs Still Unfixed:
--
+- debounce on transient code
 
 ===
 
@@ -29,8 +34,6 @@ date: November 17th, 2018
 
 ## Known Bugs Still Unfixed:
 - debounce in all transient-based code
-
-
 
 ===
 
