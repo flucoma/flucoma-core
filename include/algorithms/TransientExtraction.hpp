@@ -145,7 +145,7 @@ private:
 
         for (int j = i; (j < i + offHold) && (j < size); j++)
         {
-          if (mBackwardWindowedError[i] > loThresh)
+          if (mBackwardWindowedError[j] > loThresh)
           {
             click = true;
             break;
