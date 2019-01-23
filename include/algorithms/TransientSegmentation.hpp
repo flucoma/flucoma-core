@@ -17,7 +17,7 @@ public:
 
   void setDetectionParameters(double power, double threshHi, double threshLo, int halfWindow = 7, int hold = 25)
   {
-    TransientExtraction::setDetectionParameters(power, threshHi, threshLo, halfWindow, hold);
+    TransientExtraction::setDetectionParameters(power, threshHi, threshLo, halfWindow, 0);
     mHoldTime = hold;
   }
 
