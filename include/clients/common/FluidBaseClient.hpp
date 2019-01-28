@@ -106,9 +106,9 @@ public:
   using ParamIndexList      = typename std::index_sequence_for<Ts...>;
 
   template <template <size_t N, typename T> class Func>
-  static void iterateParameters(ParamType params)
+  static void iterateParameterDescriptors(ParamType params)
   {
-    iterateParametersImpl<Func>(params, ParamIndexList());
+    iterateParameterDescriptorsImpl<Func>(params, ParamIndexList());
   }
 
   constexpr FluidBaseClientImpl(const std::tuple<Ts...> &params) noexcept
@@ -139,6 +139,13 @@ public:
   {
     return setParameterValuesImpl<Func>(v, ParamIndexList(), reportage);
   }
+  
+  template<template <size_t N, typename T> class Func, typename...Args>
+  void forEachParam(Args&&...args)
+  {
+    forEachParamImpl<Func>(ParamIndexList(),std::forward<Args>(args)...);
+  }
+  
 
   template <std::size_t N> auto& get() noexcept
   {
@@ -198,18 +205,21 @@ private:
   auto validateParametersImpl(ValueTuple &values, std::index_sequence<Is...>)
   {
     std::array<Result, sizeof...(Is)> results;
-    
-    
-    
     std::initializer_list<int>{
         (Clamper<typename std::tuple_element<Is,ValueTuple>::type>::clamp<Is>(std::get<Is>(values).first.get(), values,
                std::get<Is>(values).second, &std::get<Is>(results)),
          0)...};
     return results;
   }
+    
+  template <template <size_t N, typename T> class Func, typename...Args, size_t...Is>
+  void forEachParamImpl(std::index_sequence<Is...>, Args&&...args)
+  {
+    std::initializer_list<int>{(Func<Is,typename Ts::first_type>()(std::forward<Args>(args)...),0)...};
+  }
 
   template <template <size_t N, typename T> class Op, size_t... Is>
-  static void iterateParametersImpl(ParamType &params,
+  static void iterateParameterDescriptorsImpl(ParamType &params,
                                     std::index_sequence<Is...>)
   {
     std::initializer_list<int>{
