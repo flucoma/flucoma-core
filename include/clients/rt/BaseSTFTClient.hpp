@@ -32,7 +32,8 @@ auto constexpr STFTParams = std::make_tuple(
 using Param_t = decltype(STFTParams);
 
 template <typename T, typename U = T>
-class BaseSTFTClient : public FluidBaseClient<Param_t> {
+class BaseSTFTClient : public FluidBaseClient<Param_t>, public AudioIn, public AudioOut
+{
 
   using HostVector = HostVector<U>;
 
@@ -55,7 +56,7 @@ public:
     // Here we do an STFT and its inverse
     mSTFTBufferedProcess.process(
         *this, input, output,
-        [](ComplexVectorView in, ComplexVectorView out) { out = in; });
+        [](ComplexMatrixView in, ComplexMatrixView out) { out = in; });
   }
 
 private:
