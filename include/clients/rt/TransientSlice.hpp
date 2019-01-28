@@ -71,15 +71,19 @@ namespace fluid{
           //          double paramDetectHalfWindow = 7;        // Half the window size used to smooth detection functions (in samples)
           //up to model order ~40 = 1ms, 15 default sampples for whole window
           //
-          params.emplace_back("windowsize","Window Size(ms)", parameter::Type::Float);
+          params.emplace_back("windowsize","Window Size(samples)", parameter::Type::Float);
           params.back().setInstantiation(false).setMin(0).setDefault(14).setInstantiation(false);
           
           
           //          int paramDetectHold = 25;               // The hold time for detection (in samples)
           //prevents onsets within n samples of an offset, min 0,
-          params.emplace_back("debounce","Debounce(ms)", parameter::Type::Float);
+          params.emplace_back("debounce","Debounce(samples)", parameter::Type::Float);
           params.back().setInstantiation(false).setMin(0).setDefault(25).setInstantiation(false);
 
+          //int paramMinSlice = 1000;               // The min slice time  (in samples)
+          //prevents onsets within n samples of an offset, min 0,
+          params.emplace_back("minslice","Minimum Slice(samples)", parameter::Type::Float);
+          params.back().setInstantiation(false).setMin(0).setDefault(1000);
         }
         
         return params;
@@ -174,8 +178,9 @@ namespace fluid{
         double backThresh = parameter::lookupParam("threshback", getParams()).getFloat();
         size_t halfWindow = std::round(parameter::lookupParam("windowsize", getParams()).getFloat() /2);
         size_t debounce = parameter::lookupParam("debounce", getParams()).getLong();
-        
-        mExtractor->setDetectionParameters(skew, fwdThresh, backThresh, halfWindow, debounce);
+        size_t minSlice = parameter::lookupParam("minslice",mParams).getLong();
+
+        mExtractor->setDetectionParameters(skew, fwdThresh, backThresh, halfWindow, debounce, minSlice);
         FluidTensorView<const double,1> markers{mExtractor->process(input.data(), mExtractor->inputSize()),0, mExtractor->hopSize()};
         output.row(0)(fluid::slice(0,mExtractor->hopSize())) = markers;
       }

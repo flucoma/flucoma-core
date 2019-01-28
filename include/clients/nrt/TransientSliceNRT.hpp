@@ -51,6 +51,7 @@ namespace fluid {
         double fwdThresh;
         double backThresh;
         double debounce;
+        double minSlice;
         unsigned iterations = 3;
         double robustFactor = 3.0;
       };
@@ -122,14 +123,19 @@ namespace fluid {
 //          double paramDetectHalfWindow = 7;        // Half the window size used to smooth detection functions (in samples)
           //up to model order ~40 = 1ms, 15 default sampples for whole window
           //
-          params.emplace_back("windowsize","Window Size(ms)", parameter::Type::Float);
+          params.emplace_back("windowsize","Window Size(samples)", parameter::Type::Float);
           params.back().setInstantiation(false).setMin(0).setDefault(14);
 
           
 //          int paramDetectHold = 25;               // The hold time for detection (in samples)
           //prevents onsets within n samples of an offset, min 0,
-          params.emplace_back("debounce","Debounce(ms)", parameter::Type::Float);
+          params.emplace_back("debounce","Debounce(samples)", parameter::Type::Float);
           params.back().setInstantiation(false).setMin(0).setDefault(25);
+            
+            //int paramMinSlice = 1000;               // The min slice time  (in samples)
+            //prevents onsets within n samples of an offset, min 0,
+          params.emplace_back("minslice","Minimum Slice(samples)", parameter::Type::Float);
+          params.back().setInstantiation(false).setMin(0).setDefault(1000);
 
           
 //          // This is broken right now - SET FALSE AND DO NOT EXPOSE - turning it on will produce worse results (should make things better)
@@ -321,6 +327,7 @@ namespace fluid {
         model.fwdThresh = parameter::lookupParam("threshfwd",mParams).getFloat();
         model.backThresh = parameter::lookupParam("threshback",mParams).getFloat();;
         model.debounce = parameter::lookupParam("debounce",mParams).getFloat();;
+        model.minSlice = parameter::lookupParam("minslice",mParams).getFloat();;
         model.blocksize = blocksize;
         model.order = order; 
 
@@ -359,7 +366,7 @@ namespace fluid {
         
         segmentation::TransientSegmentation segmentor(model.order, model.iterations, model.robustFactor);
         segmentor.prepareStream(model.blocksize,model.padding);
-        segmentor.setDetectionParameters(model.skew, model.fwdThresh, model.backThresh, model.halfWindow, model.debounce); 
+        segmentor.setDetectionParameters(model.skew, model.fwdThresh, model.backThresh, model.halfWindow, model.debounce, model.minSlice);
   
 
         size_t hopsize = segmentor.hopSize();

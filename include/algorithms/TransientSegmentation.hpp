@@ -11,19 +11,20 @@ class TransientSegmentation : private transient_extraction::TransientExtraction
 
 public:
 
-  TransientSegmentation(size_t order, size_t iterations, double robustFactor) : TransientExtraction(order, iterations, robustFactor, false), mHoldTime(25), mDebounce(0)
+  TransientSegmentation(size_t order, size_t iterations, double robustFactor) : TransientExtraction(order, iterations, robustFactor, false), mMinSegment(25), mDebounce(0), mLastDetection(false)
   {
   }
 
-  void setDetectionParameters(double power, double threshHi, double threshLo, int halfWindow = 7, int hold = 25)
+  void setDetectionParameters(double power, double threshHi, double threshLo, int halfWindow = 7, int hold = 25, int minSegment = 50)
   {
-    TransientExtraction::setDetectionParameters(power, threshHi, threshLo, halfWindow, 0);
-    mHoldTime = hold;
+    TransientExtraction::setDetectionParameters(power, threshHi, threshLo, halfWindow, hold);
+    mMinSegment = minSegment;
   }
 
   void prepareStream(int blockSize, int padSize)
   {
     TransientExtraction::prepareStream(blockSize, padSize);
+    mLastDetection = false;
     mDebounce = 0;
     resizeStorage();
   }
@@ -43,8 +44,9 @@ public:
     
     for (int i = 0; i < hopSize(); i++)
     {
-      mDetect[i] = (transientDetection[i] && !mDebounce);
-      mDebounce = transientDetection[i] ? mHoldTime : std::max(0, --mDebounce);
+      mDetect[i] = (transientDetection[i] && !mLastDetection && !mDebounce);
+      mDebounce = mDetect[i] ? mMinSegment : std::max(0, --mDebounce);
+      mLastDetection = transientDetection[i];
     }
     
     return mDetect.data();
@@ -59,8 +61,9 @@ private:
 
 private:
 
-  int mHoldTime;
+  int mMinSegment;
   int mDebounce;
+  bool mLastDetection;
   std::vector<double> mDetect;
 };
 
