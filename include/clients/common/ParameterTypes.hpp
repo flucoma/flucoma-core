@@ -16,13 +16,15 @@ using BufferUnderlyingType      = std::unique_ptr<BufferAdaptor>;
 using FloatArrayUnderlyingType  = std::vector<FloatUnderlyingType>;
 using LongArrayUnderlyingType   = std::vector<LongUnderlyingType>;
 using BufferArrayUnderlyingType = std::vector<BufferUnderlyingType>;
+using MagnitudePairsUnderlyingType = std::vector<std::pair<double, double>>;
 
 struct ParamTypeBase
 {
-  constexpr ParamTypeBase(const char *n)
-      : name(n)
+  constexpr ParamTypeBase(const char *n, const char* display)
+      : name(n), displayName(display)
   {}
   const char *name;
+  const char *displayName;
 };
 
 struct FloatT : ParamTypeBase
@@ -30,7 +32,7 @@ struct FloatT : ParamTypeBase
   static constexpr TypeTag typeTag = TypeTag::kFloat;
   using type                       = FloatUnderlyingType;
   constexpr FloatT(const char *name, const char *displayName, type defaultVal)
-      : ParamTypeBase(name)
+      : ParamTypeBase(name, displayName)
       , defaultValue(defaultVal)
   {}
   const std::size_t fixedSize = 1;
@@ -42,7 +44,7 @@ struct LongT : ParamTypeBase
   static constexpr TypeTag typeTag = TypeTag::kLong;
   using type                       = LongUnderlyingType;
   constexpr LongT(const char *name, const char *displayName, const type defaultVal)
-      : ParamTypeBase(name)
+      : ParamTypeBase(name, displayName)
       , defaultValue(defaultVal)
   {}
   const std::size_t fixedSize = 1;
@@ -54,7 +56,7 @@ struct BufferT : ParamTypeBase
   static constexpr TypeTag typeTag = TypeTag::kBuffer;
   using type                       = BufferUnderlyingType;
   constexpr BufferT(const char *name, const char *displayName)
-      : ParamTypeBase(name)
+      : ParamTypeBase(name,displayName)
   {}
   const std::size_t    fixedSize = 1;
   const std::nullptr_t defaultValue{nullptr};
@@ -67,7 +69,7 @@ struct EnumT : ParamTypeBase
   template <std::size_t... N>
   constexpr EnumT(const char *name, const char *displayName, type defaultVal, const char (&... string)[N])
       : strings{string...}
-      , ParamTypeBase(name)
+      , ParamTypeBase(name,displayName)
       , fixedSize(sizeof...(N))
       , defaultValue(defaultVal)
   {
@@ -86,7 +88,7 @@ struct FloatArrayT : ParamTypeBase
 
   template <std::size_t N>
   FloatArrayT(const char *name, const char *displayName, type::value_type (&defaultValues)[N])
-      : ParamTypeBase(name)
+      : ParamTypeBase(name,displayName)
   {}
   const std::size_t fixedSize;
 };
@@ -97,7 +99,7 @@ struct LongArrayT : ParamTypeBase
   using type                       = LongArrayUnderlyingType;
   template <std::size_t N>
   LongArrayT(const char *name, const char *displayName, type::value_type (&defaultValues)[N])
-      : ParamTypeBase(name)
+      : ParamTypeBase(name,displayName)
   {}
   const std::size_t fixedSize;
 };
@@ -107,11 +109,28 @@ struct BufferArrayT : ParamTypeBase
   static constexpr TypeTag typeTag = TypeTag::kBufferArray;
   using type                       = BufferArrayUnderlyingType;
   BufferArrayT(const char *name, const char *displayName, const size_t size = 0)
-      : ParamTypeBase(name)
+      : ParamTypeBase(name,displayName)
       , fixedSize(size)
   {}
   const std::size_t fixedSize;
 };
+
+//Pair of frequency amplitude pairs for HPSS threshold
+struct FloatPairsArrayT: ParamTypeBase
+{
+//  static constexpr TypeTa
+  using type = std::vector<std::pair<FloatUnderlyingType, FloatUnderlyingType>>;
+  
+  
+  constexpr FloatPairsArrayT(const char* name, const char *displayName)
+      : ParamTypeBase(name, displayName)
+  {}
+  const std::size_t fixedSize{2};
+  static constexpr std::initializer_list<std::pair<double,double>> defaultValue{{0.0,1.0},{1.0,1.0}};
+};
+
+//My name's the C++ linker, and I'm a bit of a knob (fixed in C++17)
+constexpr std::initializer_list<std::pair<double,double>> FloatPairsArrayT::defaultValue;
 
 template <typename T, typename... Constraints> using ParamSpec = std::pair<T, std::tuple<Constraints...>>;
 
@@ -152,17 +171,39 @@ constexpr ParamSpec<FloatArrayT, Constraints...> FloatArrayParam(const char *nam
 
 template <size_t N, typename... Constraints>
 constexpr ParamSpec<LongArrayT, Constraints...>
-LongArrayParam(const char *name, const char *displayName, LongArrayT::type::value_type (&defaultValues)[N], Constraints... c)
+LongArrayParam(const char *name, const char *displayName, LongArrayT::type::value_type (&defaultValues)[N], const Constraints... c)
 {
   return {LongArrayT(name, displayName, defaultValues), std::make_tuple(c...)};
 }
 
 template <typename... Constraints>
 constexpr ParamSpec<BufferArrayT, Constraints...> BufferArrayParam(const char *name, const char *displayName,
-                                                                   Constraints... c)
+                                                                   const Constraints... c)
 {
   return {BufferArrayT(name, displayName), std::make_tuple(c...)};
 }
+
+template <typename... Constraints>
+constexpr ParamSpec<FloatPairsArrayT, Constraints...> FloatPairsArrayParam(const char *name, const char *displayName,
+                                                                   const Constraints... c)
+{
+  return {FloatPairsArrayT(name, displayName), std::make_tuple(c...)};
+}
+
+
+
+template<typename T>
+std::ostream& operator <<(std::ostream& o, const std::unique_ptr<T>& p)
+{
+  return o << p.get();
+}
+
+template<typename T, typename U>
+std::ostream& operator <<(std::ostream& o, const std::unique_ptr<T,U>& p)
+{
+  return o << p.get();
+}
+
 
 namespace impl {
 template <typename T> class ParameterValueBase
@@ -179,7 +220,7 @@ public:
   ParameterValueBase(const T descriptor)
       : mDescriptor(descriptor)
       , mValue(mDescriptor.defaultValue)
-  {}
+  {} //std::cout << mDescriptor.name << " " << mValue <<'\n'; }
 
   bool        enabled() const noexcept { return true; }
   bool        changed() const noexcept { return mChanged; }
@@ -188,10 +229,11 @@ public:
 
 private:
   const T mDescriptor;
-  type    mValue;
-
+  
 protected:
   bool mChanged{false};
+  type    mValue;
+
 };
 } // namespace impl
 
@@ -202,16 +244,13 @@ public:
   using type          = typename T::type;
   ParameterValue(const T descriptor)
       : impl::ParameterValueBase<T>(descriptor)
-  {}
-  auto &get() const noexcept { return mValue; }
+  {}//std::cout << descriptor.name << " " << get() <<'\n';  }
+  type &get() noexcept { return impl::ParameterValueBase<T>::mValue; }
   void  set(type &&value)
   {
-    std::swap(mValue,value);
+    std::swap(impl::ParameterValueBase<T>::mValue,value);
     impl::ParameterValueBase<T>::mChanged = true;
   }
-
-private:
-  type mValue;
 };
 
 //template <> class ParameterValue<BufferT> : public impl::ParameterValueBase<BufferT>

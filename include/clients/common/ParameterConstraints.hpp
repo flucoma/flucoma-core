@@ -10,20 +10,9 @@ namespace fluid {
 namespace client {
 
 
-
-
-/// Predicates
+namespace impl {
 
 auto makeOdd = [](auto a) { return [=] { return a % 2 ? a - 1 : a; }; };
-auto makePower2 = [](auto a) {
-  return [=] {
-    int exp;
-    std::frexp(a, &exp);
-    return 1 << (exp - 1);
-  };
-};
-
-namespace impl {
 
 template <typename T> struct MinImpl {
   constexpr MinImpl(const T m) : value(m) {}
@@ -96,6 +85,8 @@ template <int... Is> struct UpperLimitImpl {
   }
 };
 
+
+
 } // namespace impl
 
 template <typename T> auto constexpr Min(const T x) {
@@ -114,6 +105,42 @@ template <int... Is> auto constexpr UpperLimit() {
   return impl::UpperLimitImpl<Is...>{};
 }
 
+
+struct FrequencyAmpPairConstraint
+{
+  using type = typename FloatPairsArrayT::type;
+  
+  constexpr FrequencyAmpPairConstraint(){}
+  
+  template <size_t N, typename Tuple> constexpr void clamp(type &v, Tuple&, Result* r)
+  {
+    //For now I know that array size is 2, just upper and lower vals
+    //TODO: make generic for any old monotonic array of freq-amp pairs, should we need it
+    
+    //Clip freqs to [0,1]
+    v[0].first = std::max<double>(std::min<double>(v[0].first,1),0);
+    v[1].first = std::max<double>(std::min<double>(v[1].first,1),0); 
+    
+    lowerChanged = v[0].first == oldLower;
+    upperChanged = v[1].first == oldUpper;
+    
+    if(lowerChanged && !upperChanged && v[0].first > v[1].first) v[0].first = v[1].first;
+    if(upperChanged && !lowerChanged && v[0].first > v[1].first) v[1].first = v[0].first;
+    //If everything changed (i.e. object creation) and in the wrong order, just swap 'em
+    if(lowerChanged && upperChanged && v[0].first > v[1].first) std::swap(v[0],v[1]);
+    
+    oldLower = v[0].first;
+    oldUpper = v[1].first;
+    
+    
+  }
+private:
+  bool lowerChanged {false};
+  bool upperChanged {false};
+  double oldLower{0};
+  double oldUpper{0};
+};
+
 struct PowerOfTwo {
   template <size_t N, typename Tuple> constexpr LongUnderlyingType clamp(LongUnderlyingType x, Tuple& params, Result* r) {
     
@@ -129,7 +156,15 @@ struct PowerOfTwo {
     }
     return res;
   }
+
 };
+
+struct Odd {
+  template <size_t N, typename Tuple> constexpr LongUnderlyingType clamp(LongUnderlyingType x, Tuple& params, Result* r) {
+    return x % 2 ? x - 1 : x; 
+  }
+};
+  
 
 } // namespace client
 } // namespace fluid
