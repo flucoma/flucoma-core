@@ -77,7 +77,7 @@ public:
     size_t hopSize = x.template changed<hopParam>() ? x.template get<hopParam>()
                                                     : winSize / 2;
     size_t fftSize =
-        x.template changed<FFTParam>() ? x.template get<FFTParam>() : winSize;
+        x.template get<FFTParam>() != -1 ? x.template get<FFTParam>() : winSize;
 
     // TODO: constraints check here: error and bail if unmet
 
@@ -95,6 +95,9 @@ public:
     std::size_t chansIn = x.audioChannelsIn();
     std::size_t chansOut = x.audioChannelsOut();
 
+    assert(chansIn == input.size());
+    assert(chansOut == output.size());
+
     size_t hostBufferSize = input[0].size();
     mBufferedProcess.hostSize(hostBufferSize); // safe assumption?
     mInputBuffer.setHostBufferSize(hostBufferSize);
@@ -108,10 +111,19 @@ public:
     mOutputBuffer.reset(chansOut + 1);
     mBufferedProcess.maxSize(maxWin, chansIn, chansOut + 1);
 
-    if (maxWin > mFrameAndWindow.cols())
-      mFrameAndWindow.resize(chansOut + 1, maxWin);
-    if ((fftSize / 2 + 1) != mSpectrogram.cols())
-      mSpectrogram.resize(2, (fftSize / 2 + 1));
+    if (std::max(maxWin,hostBufferSize) > mFrameAndWindow.cols())
+      mFrameAndWindow.resize(chansOut + 1, std::max(maxWin,hostBufferSize));
+    
+    if ((fftSize / 2 + 1) != mSpectrumIn.cols())
+    {
+      mSpectrumIn.resize(chansIn, (fftSize / 2 + 1));
+    }
+    
+    if ((fftSize / 2 + 1) != mSpectrumOut.cols())
+    {
+      mSpectrumOut.resize(chansOut, (fftSize / 2 + 1));
+    }
+
 
     mBufferedProcess.setBuffers(mInputBuffer, mOutputBuffer);
 
@@ -119,27 +131,30 @@ public:
 
     mBufferedProcess.process(
         winSize, hopSize,
-        [this, &processFunc](RealMatrixView in, RealMatrixView out) {
-          mSTFT->processFrame(in.row(0), mSpectrogram.row(0));
-          processFunc(mSpectrogram.row(0), mSpectrogram.row(1));
-          mISTFT->processFrame(mSpectrogram.row(1), out.row(0));
-          out.row(1) = mSTFT->window();
-          out.row(1).apply(mISTFT->window(),
-                           [](double &x, double &y) { x *= y; });
+        [this, &processFunc, chansIn, chansOut](RealMatrixView in, RealMatrixView out) {
+          for(int i = 0; i < chansIn; ++i)
+            mSTFT->processFrame(in.row(i), mSpectrumIn.row(i));
+          processFunc(mSpectrumIn, mSpectrumOut);
+          for(int i = 0; i < chansOut; ++i)
+            mISTFT->processFrame(mSpectrumOut.row(i), out.row(i));
+          out.row(chansOut) = mSTFT->window();
+          out.row(chansOut).apply(mISTFT->window(),[](double &x, double &y) { x *= y; });
         });
 
     // TODO: if normalise
-    RealMatrixView unnormalisedFrame =
-        mFrameAndWindow(Slice(0), Slice(0, hostBufferSize));
-    mOutputBuffer.pull(unnormalisedFrame);
-    unnormalisedFrame.row(0).apply(unnormalisedFrame.row(1),
-                                   [](double &x, double g) {
-                                     if (x) {
-                                       x /= g ? g : 1;
-                                     }
-                                   });
-    if (output[0].data())
-      output[0] = unnormalisedFrame.row(0);
+    if(normalise)
+    {
+      RealMatrixView unnormalisedFrame = mFrameAndWindow(Slice(0), Slice(0, hostBufferSize));
+      mOutputBuffer.pull(unnormalisedFrame);
+      for(int i = 0; i < chansOut; ++i)
+      {
+
+        unnormalisedFrame.row(i).apply(unnormalisedFrame.row(chansOut),[](double &x, double g) {
+                                         if (x) {  x /= g ? g : 1; }
+                                       });
+        if (output[i].data())  output[i] = unnormalisedFrame.row(i);
+      }
+    }
   }
 
 private:
@@ -156,7 +171,8 @@ private:
   }
 
   RealMatrix mFrameAndWindow;
-  ComplexMatrix mSpectrogram;
+  ComplexMatrix mSpectrumIn;
+  ComplexMatrix mSpectrumOut;
   std::unique_ptr<algorithm::STFT> mSTFT;
   std::unique_ptr<algorithm::ISTFT> mISTFT;
   BufferedProcess mBufferedProcess;
