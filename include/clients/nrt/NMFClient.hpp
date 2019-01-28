@@ -27,10 +27,10 @@ const char* updateStrings[]  {"None", "Seed", "Fix"};
 EnumT p("a","b",0,"nsada","sddsa");
 
 auto constexpr NMFParams = std::make_tuple(
-  BufferParam("resynthBuffer", "Resynthesis Buffer"),
-  BufferParam("filterBuffer", "Filters Buffer"),
+  BufferParam("resynthBuf", "Resynthesis Buffer"),
+  BufferParam("filterBuf", "Filters Buffer"),
   EnumParam("filterUpdate", "Filters Buffer Update", 0, "None","Seed","Fixed"),
-  BufferParam("envBuffer", "Envelopes Buffer"),
+  BufferParam("envBuf", "Envelopes Buffer"),
   EnumParam("envUpdate", "Envelopes Buffer Update", 0, "None","Seed","Fixed"),
   LongParam("rank", "Rank", 5, Min(1)),
   LongParam("iterations", "Iterations", 100, Min(1)),
@@ -70,28 +70,25 @@ public:
 
     BufferAdaptor::Access source(inputs[0].buffer);
 
-
-
     if(!(source.exists() && source.valid()))
       return {Result::Status::kError, "Source Buffer Not Found or Invalid"};
-
 
     size_t nChannels = inputs[0].nChans == -1 ? source.numChans() : inputs[0].nChans;
     size_t nFrames   = inputs[0].nFrames == -1  ? source.numFrames(): inputs[0].nFrames;
     size_t nWindows  = std::floor((nFrames + get<kHopSize>()) / get<kHopSize>());
-    size_t nBins     = get<kFFTSize>() + 1 / 2;
+    size_t nBins     = get<kFFTSize>() / 2 + 1;
 
     bool hasFilters {false};
     const bool seedFilters {get<kFiltersUpdate>() > 0};
     const bool fixFilters  {get<kFiltersUpdate>() == 2};
-
+    
     if(get<kFilters>())
     {
       BufferAdaptor::Access buf(get<kFilters>().get());
-      if(!(buf.exists() && buf.valid()))
+      if(!buf.exists())
         return {Result::Status::kError, "Filter Buffer Supplied But Invalid"};
 
-      if ((get<kFiltersUpdate>() > 0)
+      if (buf.valid() && (get<kFiltersUpdate>() > 0)
           && (buf.numFrames() != nBins || buf.numChans()  != get<kRank>() * nChannels))
             return { Result::Status::kError, "Supplied filter buffer for seeding must be [(FFTSize / 2) + 1] frames long, and have [rank] * [channels] channels"};
       hasFilters = true;
@@ -110,10 +107,10 @@ public:
     if(get<kEnvelopes>())
     {
       BufferAdaptor::Access buf(get<kEnvelopes>().get());
-      if(!(buf.exists() && buf.valid()))
+      if(!buf.exists())
         return {Result::Status::kError, "Envelope Buffer Supplied But Invalid"};
 
-      if ((get<kEnvelopesUpdate>() > 0)
+      if (buf.valid() && (get<kEnvelopesUpdate>() > 0)
          && (buf.numFrames() != (nFrames / get<kHopSize>()) + 1 || buf.numChans()  != get<kRank>() * nChannels))
             return {Result::Status::kError, "Supplied envelope buffer for seeding must be [(num samples / hop "
                     "size)  + 1] frames long, and have [rank] * [channels] channels"};
@@ -130,7 +127,7 @@ public:
     if(get<kResynth>())
     {
       BufferAdaptor::Access buf(get<kResynth>().get());
-      if(!(buf.exists() && buf.valid()))
+      if(!buf.exists())
         return {Result::Status::kError, "Resynthesis Buffer Supplied But Invalid"};
       hasResynth = true;
     }
@@ -223,6 +220,8 @@ public:
         }
       }
     }
+     return {Result::Status::kOk,""}; 
+    
   }
 };
 } // namespace client
