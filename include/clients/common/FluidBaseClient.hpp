@@ -128,16 +128,16 @@ public:
     };
   }
 
-  template <template <size_t N, typename T> class Func, typename Values>
-  std::array<Result, sizeof...(Ts)> checkParameterValues(Values *v)
+  template <template <size_t N, typename T> class Func, typename...Args>
+  std::array<Result, sizeof...(Ts)> checkParameterValues(Args&&...args)
   {
-    return checkParameterValuesImpl<Func, Values>(v, ParamIndexList());
+    return checkParameterValuesImpl<Func>(ParamIndexList(),std::forward<Args>(args)...);
   }
 
-  template <template <size_t N, typename T> class Func, typename Values>
-  std::array<Result, sizeof...(Ts)> setParameterValues(Values *v, bool reportage)
+  template <template <size_t N, typename T> class Func, typename...Args>
+  std::array<Result, sizeof...(Ts)> setParameterValues(bool reportage,Args&&...args)
   {
-    return setParameterValuesImpl<Func>(v, ParamIndexList(), reportage);
+    return setParameterValuesImpl<Func>(ParamIndexList(), reportage,std::forward<Args>(args)...);
   }
   
   template<template <size_t N, typename T> class Func, typename...Args>
@@ -181,37 +181,56 @@ private:
   using ValueType =
       typename impl::ParamValueTypes<Ts...>::template ValueType<T>;
   
+//  template <size_t  Is, typename Tuple>
+//  using ParamTypeAt = typename std::tuple_element<Is, Tuple>::type;
+  
+  template<size_t Is, typename Tuple>
+  auto& ParamValueAt(Tuple& values)
+  {
+    return std::get<Is>(values).first.get();
+  }
+  
+  template<size_t Is, typename Tuple>
+  auto& ConstraintAt(Tuple& values)
+  {
+    return std::get<Is>(values).second;
+  }
+  
   template <size_t N>
-  using ParamTypeAt = typename std::tuple_element<N, ValueTuple>::type::first_type::ParameterType;
+  using ParamDescriptorTypeAt = typename std::tuple_element<N, ValueTuple>::type::first_type::ParameterType;
 
-  template <typename T, template <size_t, typename> class Func, typename Values,
-            size_t N>
-  ValueType<T> makeValue(Values *v)
+  template <size_t N>
+  using ParamTypeAt = typename ParamDescriptorTypeAt<N>::type;
+
+
+  template <typename T, template <size_t, typename> class Func,
+            size_t N,typename...Args>
+  ValueType<T> makeValue(Args&&...args)
   {
     return {std::get<N>(mParams).first.descriptor(),
-            Func<N, ParamTypeAt<N>>()(v)};
+            Func<N, ParamDescriptorTypeAt<N>>()(std::forward<Args>(args)...)};
   }
 
-  template <template <size_t N, typename T> class Func, typename Values,
-            size_t... Is>
-  auto checkParameterValuesImpl(Values *v, std::index_sequence<Is...>)
+  template <template <size_t N, typename T> class Func,
+            size_t... Is,typename...Args>
+  auto checkParameterValuesImpl(std::index_sequence<Is...>, Args&&...args)
   {
     ValueTuple candidateValues = std::make_tuple(std::make_pair(
-        makeValue<Ts, Func, Values, Is>(v), std::get<Is>(mParams).second)...);
-    return validateParametersImpl(candidateValues, ParamIndexList());
+        makeValue<Ts, Func, Is>(std::forward<Args>(args)...), std::get<Is>(mParams).second)...);
+    return validateParametersImpl(ParamIndexList(),candidateValues);
   }
 
   template <size_t... Is>
-  auto validateParametersImpl(ValueTuple &values, std::index_sequence<Is...>)
+  auto validateParametersImpl(std::index_sequence<Is...>,ValueTuple &values)
   {
     std::array<Result, sizeof...(Is)> results;
     std::initializer_list<int>{
-        (Clamper<typename std::tuple_element<Is,ValueTuple>::type>::clamp<Is>(std::get<Is>(values).first.get(), values,
-               std::get<Is>(values).second, &std::get<Is>(results)),
+        (Clamper<ParamTypeAt<Is>>::template clamp<Is>(ParamValueAt<Is>(values), values,
+             ConstraintAt<Is>(values), &std::get<Is>(results)),
          0)...};
     return results;
   }
-    
+  
   template <template <size_t N, typename T> class Func, typename...Args, size_t...Is>
   void forEachParamImpl(std::index_sequence<Is...>, Args&&...args)
   {
@@ -226,12 +245,12 @@ private:
         (Op<Is, typename Ts::first_type>()(std::get<Is>(params).first), 0)...};
   }
 
-  template <template <size_t N, typename T> class Func, typename Values, size_t...Is>
-  auto setParameterValuesImpl(Values* v, std::index_sequence<Is...>, bool reportage)
+  template <template <size_t N, typename T> class Func, typename...Args, size_t...Is>
+  auto setParameterValuesImpl(std::index_sequence<Is...>, bool reportage, Args&&...args)
   {
     static std::array<Result, sizeof...(Ts)> results;
     
-    std::initializer_list<int>{(setter<Is>(reportage ? &results[Is] : nullptr)(Func<Is,ParamTypeAt<Is>>()(v)),0)...};
+    std::initializer_list<int>{(setter<Is>(reportage ? &results[Is] : nullptr)(Func<Is,ParamDescriptorTypeAt<Is>>()(std::forward<Args>(args)...)),0)...};
     
     return results;
   }

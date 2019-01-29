@@ -43,10 +43,10 @@ public:
     return mClient.validateParameters(values);
  }
  
-  template <template <size_t N, typename T> class Func, typename Values>
-  auto setParameterValues(Values *v, bool reportage)
+  template <template <size_t N, typename T> class Func, typename...Args>
+  auto setParameterValues(bool reportage,Args&&...args)
   {
-    return mClient.template setParameterValues<Func,Values>(v,reportage);
+    return mClient.template setParameterValues<Func>(reportage,std::forward<Args>(args)...);
   }
 
   template<template <size_t N, typename T> class Func, typename...Args>
@@ -55,8 +55,8 @@ public:
     mClient.template forEachParam<Func>(std::forward<Args>(args)...); 
   }
 
-  template <template <size_t N, typename T> class Func, typename Values>
-  auto checkParameterValues(Values* v) { return mClient.template checkParameterValues<Func,Values>(v); }
+  template <template <size_t N, typename T> class Func, typename...Args>
+  auto checkParameterValues(Args&&...args) { return mClient.template checkParameterValues<Func>(std::forward<Args>(args)...); }
   
   template <size_t N> auto setter(Result* r) noexcept { return mClient.template setter<N>(r); }
   template <std::size_t N> auto get() noexcept { return mClient.template get<N>(); }
