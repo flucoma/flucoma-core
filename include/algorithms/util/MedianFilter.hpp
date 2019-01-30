@@ -5,7 +5,6 @@
 #include <cassert>
 #include <iostream>
 #include <limits>
-#include <list>
 
 namespace fluid {
 namespace algorithm {
@@ -48,8 +47,8 @@ class MedianFilter {
         if (mSorted[mSize - i - 1].first > newVal)
           insertP = mSize - i - 1;
       }
-      if (newVal > mSorted[mSize - 1].first)
-        insertP = mSize - 1;
+      if (newVal >= mSorted[mSize - 1].first)
+        insertP = mSize; //will be decreased later
       auto newPair = std::make_pair(newVal, mSize - 1);
       if (insertP < deleteP) {
         std::memmove(mSorted.data() + insertP + 1, mSorted.data() + insertP,
