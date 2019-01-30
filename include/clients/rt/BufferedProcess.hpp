@@ -6,6 +6,7 @@
 #include <algorithms/public/STFT.hpp>
 #include <clients/common/FluidSink.hpp>
 #include <clients/common/FluidSource.hpp>
+#include <clients/common/DeriveSTFTParams.hpp>
 
 namespace fluid {
 namespace client {
@@ -73,12 +74,15 @@ public:
   void process(Client &x, std::vector<HostVector> &input,
                std::vector<HostVector> &output, F &&processFunc) {
 
-    size_t winSize = x.template get<winParam>();
-    size_t hopSize = x.template changed<hopParam>() ? x.template get<hopParam>()
-                                                    : winSize / 2;
-    size_t fftSize =
-        x.template get<FFTParam>() != -1 ? x.template get<FFTParam>() : winSize;
-
+//    size_t winSize = x.template get<winParam>();
+//    size_t hopSize = x.template changed<hopParam>() ? x.template get<hopParam>()
+//                                                    : winSize / 2;
+//    size_t fftSize =
+//        x.template get<FFTParam>() != -1 ? x.template get<FFTParam>() : winSize;
+    size_t winSize, hopSize, fftSize;
+    
+    std::tie(winSize, hopSize, fftSize) = impl::deriveSTFTParams<winParam, hopParam, FFTParam>(x); 
+  
     // TODO: constraints check here: error and bail if unmet
 
     bool newParams = paramsChanged(winSize, hopSize, fftSize);
