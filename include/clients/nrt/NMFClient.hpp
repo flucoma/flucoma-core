@@ -4,10 +4,12 @@
 #include <clients/common/ParameterTypes.hpp>
 #include <clients/common/ParameterConstraints.hpp>
 #include <clients/common/OfflineClient.hpp>
+#include <clients/common/DeriveSTFTParams.hpp>
 #include <algorithms/public/NMF.hpp>
 #include <algorithms/public/RatioMask.hpp>
 #include <algorithms/public/STFT.hpp>
 #include <data/FluidTensor.hpp>
+
 
 #include <algorithm> //for max_element
 #include <sstream>   //for ostringstream
@@ -73,10 +75,14 @@ public:
     if(!(source.exists() && source.valid()))
       return {Result::Status::kError, "Source Buffer Not Found or Invalid"};
 
+    size_t winSize, hopSize, fftSize;
+    
+    std::tie(winSize,hopSize,fftSize) = impl::deriveSTFTParams<kWinSize, kHopSize, kFFTSize>(*this);
+
     size_t nChannels = inputs[0].nChans == -1 ? source.numChans() : inputs[0].nChans;
     size_t nFrames   = inputs[0].nFrames == -1  ? source.numFrames(): inputs[0].nFrames;
-    size_t nWindows  = std::floor((nFrames + get<kHopSize>()) / get<kHopSize>());
-    size_t nBins     = get<kFFTSize>() / 2 + 1;
+    size_t nWindows  = std::floor((nFrames + hopSize) / hopSize);
+    size_t nBins     = fftSize / 2 + 1;
 
     bool hasFilters {false};
     const bool seedFilters {get<kFiltersUpdate>() > 0};
@@ -111,7 +117,7 @@ public:
         return {Result::Status::kError, "Envelope Buffer Supplied But Invalid"};
 
       if (buf.valid() && (get<kEnvelopesUpdate>() > 0)
-         && (buf.numFrames() != (nFrames / get<kHopSize>()) + 1 || buf.numChans()  != get<kRank>() * nChannels))
+         && (buf.numFrames() != (nFrames / hopSize) + 1 || buf.numChans()  != get<kRank>() * nChannels))
             return {Result::Status::kError, "Supplied envelope buffer for seeding must be [(num samples / hop "
                     "size)  + 1] frames long, and have [rank] * [channels] channels"};
 
@@ -137,9 +143,9 @@ public:
     if (hasFilters && !get<kFiltersUpdate>())
       BufferAdaptor::Access(get<kFilters>().get()).resize(nBins, nChannels, get<kRank>());
     if (hasEnvelopes && !get<kEnvelopesUpdate>())
-      BufferAdaptor::Access(get<kEnvelopes>().get()).resize((nFrames / get<kHopSize>()) + 1, nChannels, get<kRank>());
+      BufferAdaptor::Access(get<kEnvelopes>().get()).resize((nFrames / hopSize) + 1, nChannels, get<kRank>());
 
-    auto stft = algorithm::STFT(get<kWinSize>(), get<kFFTSize>(), get<kHopSize>());
+    auto stft = algorithm::STFT(winSize, fftSize, hopSize);
 
     auto tmp = FluidTensor<double, 1>(nFrames);
     auto seededFilters = FluidTensor<double, 2>(0, 0);
@@ -153,7 +159,7 @@ public:
     if (seedFilters || fixFilters)
       seededFilters.resize(get<kRank>(), nBins);
     if (seedEnvelopes || fixEnvelopes)
-      seededEnvelopes.resize((nFrames / get<kHopSize>()) + 1, get<kRank>());
+      seededEnvelopes.resize((nFrames / hopSize) + 1, get<kRank>());
 
     for (size_t i = 0; i < nChannels; ++i) {
       //          tmp = sourceData.col(i);
@@ -208,7 +214,7 @@ public:
         auto mask = algorithm::RatioMask{outputMags, 1};
         auto resynthMags = FluidTensor<double,2>(nWindows,nBins);
         auto resynthSpectrum = FluidTensor<std::complex<double>,2>(nWindows,nBins);
-        auto istft = algorithm::ISTFT{get<kWinSize>(), get<kFFTSize>(), get<kHopSize>()};
+        auto istft = algorithm::ISTFT{winSize, fftSize, hopSize};
         auto resynthAudio = FluidTensor<double,1>(nFrames);
         auto resynth = BufferAdaptor::Access{get<kResynth>().get()};
 
@@ -220,8 +226,7 @@ public:
         }
       }
     }
-     return {Result::Status::kOk,""}; 
-    
+     return {Result::Status::kOk,""};
   }
 };
 } // namespace client

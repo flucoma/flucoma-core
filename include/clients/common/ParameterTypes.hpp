@@ -71,7 +71,8 @@ struct EnumT : ParamTypeBase
   constexpr EnumT(const char *name, const char *displayName, type defaultVal, const char (&... string)[N])
       : strings{string...}
       , ParamTypeBase(name, displayName)
-      , fixedSize(sizeof...(N))
+      , fixedSize(1)
+      , numOptions(sizeof...(N))
       , defaultValue(defaultVal)
   {
     static_assert(sizeof...(N) > 0, "Fluid Param: No enum strings supplied!");
@@ -79,6 +80,7 @@ struct EnumT : ParamTypeBase
   }
   const char *strings[16]; // unilateral descision klaxon: if you have more than 16 things in an Enum, you need to rethink
   const std::size_t fixedSize;
+  const std::size_t numOptions;
   const type        defaultValue;
 };
 
@@ -125,7 +127,7 @@ struct FloatPairsArrayT : ParamTypeBase
   constexpr FloatPairsArrayT(const char *name, const char *displayName)
       : ParamTypeBase(name, displayName)
   {}
-  const std::size_t                                                 fixedSize{2};
+  const std::size_t fixedSize{2};
   static constexpr std::initializer_list<std::pair<double, double>> defaultValue{{0.0, 1.0}, {1.0, 1.0}};
 };
 

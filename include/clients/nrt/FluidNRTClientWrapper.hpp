@@ -4,6 +4,7 @@
 #include <clients/common/ParameterTypes.hpp>
 #include <clients/common/BufferAdaptor.hpp>
 #include <clients/common/OfflineClient.hpp>
+#include <clients/common/SpikesToTimes.hpp>
 #include <data/FluidTensor.hpp>
 #include <data/TensorTypes.hpp>
 #include <vector>
@@ -89,7 +90,7 @@ public:
       
       long requestedFrames= b.nFrames < 0 ? thisInput.numFrames() : b.nFrames;
       if(b.startFrame + requestedFrames > thisInput.numFrames())
-        return {Result::Status::kError, "Input buffer ", b.buffer, ": not enough frames" };
+        return {Result::Status::kError, "Input buffer ", b.buffer, ": not enough frames" }; //error
       
       long requestedChans= b.nChans < 0 ? thisInput.numChans() : b.nChans;
       if(b.startChan + requestedChans > thisInput.numChans())
@@ -170,33 +171,7 @@ struct Slicing
     
     client.process(input,output);
     
-    size_t numSpikes =
-        std::accumulate(onsetPoints.begin(), onsetPoints.end(), 0);
-
-    // Arg sort
-    std::vector<size_t> indices(onsetPoints.size());
-    std::iota(indices.begin(), indices.end(), 0);
-    std::sort(indices.begin(), indices.end(), [&onsetPoints](size_t i1, size_t i2) {
-      return onsetPoints[0][i1] > onsetPoints[0][i2];
-    });
-
-    // Now put the gathered indicies into ascending order
-    std::sort(indices.begin(), indices.begin() + numSpikes);
-
-    // Add model offset
-    std::transform(indices.begin(), indices.begin() + numSpikes,
-                   indices.begin(),
-                   [&](size_t x) -> size_t { return x + inputBuffers[0].startFrame; });
-
-    // insert leading <offset> and num_frames
-    indices.insert(indices.begin() + numSpikes, inputBuffers[0].startFrame + nFrames);
-    indices.insert(indices.begin(), inputBuffers[0].startFrame);
-
-
-    BufferAdaptor::Access trans(outputBuffers[0].buffer);
-    trans.resize(numSpikes + 2, 1, 1);
-    trans.samps(0) =
-        FluidTensorView<size_t, 1>{indices.data(), 0, numSpikes + 2};
+    impl::spikesToTimes(onsetPoints.row(0), outputBuffers[0].buffer, 1, inputBuffers[0].startFrame, nFrames);
   }
 };
 
