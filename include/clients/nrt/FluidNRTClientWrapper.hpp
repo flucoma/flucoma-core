@@ -59,7 +59,7 @@ public:
   template <template <size_t N, typename T> class Func, typename...Args>
   auto checkParameterValues(Args&&...args) { return mClient.template checkParameterValues<Func>(std::forward<Args>(args)...); }
   
-  template <size_t N> auto setter(Result* r) noexcept { return mClient.template setter<N>(r); }
+  template <size_t N,typename T> void set(T&& x, Result* r) noexcept { mClient.template set<N>(std::forward<T>(x), r); }
   template <std::size_t N> auto get() noexcept { return mClient.template get<N>(); }
   template <std::size_t N> bool changed() noexcept { return mClient.template changed<N>(); }
   

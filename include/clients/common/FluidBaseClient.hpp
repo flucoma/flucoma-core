@@ -115,9 +115,9 @@ public:
       : mParams(impl::ParamValueTypes<Ts...>::create(params))
   {}
 
-  template <size_t N> auto setter(Result *reportage) noexcept
+  template <size_t N, typename T> void set(T&& x, Result *reportage) noexcept
   {
-    return [this, reportage](auto &&x) {
+//    return [this, reportage](auto &&x) {
       if (reportage) reportage->reset();
       auto  constraints = std::get<N>(mParams).second;
       auto &param       = std::get<N>(mParams).first;
@@ -125,7 +125,7 @@ public:
       auto xPrime =
            Clamper<ParamType>::template clamp<N>(x, mParams, constraints, reportage);
       param.set(std::move(xPrime));
-    };
+//    };
   }
 
   template <template <size_t N, typename T> class Func, typename...Args>
@@ -250,7 +250,7 @@ private:
   {
     static std::array<Result, sizeof...(Ts)> results;
     
-    std::initializer_list<int>{(setter<Is>(reportage ? &results[Is] : nullptr)(Func<Is,ParamDescriptorTypeAt<Is>>()(std::forward<Args>(args)...)),0)...};
+    std::initializer_list<int>{(set<Is>(Func<Is,ParamDescriptorTypeAt<Is>>()(std::forward<Args>(args)...),reportage ? &results[Is] : nullptr),0)...};
     
     return results;
   }
