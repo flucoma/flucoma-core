@@ -28,13 +28,13 @@ public:
             double hThresholdX2, double hThresholdY2, double pThresholdX1,
             double pThresholdY1, double pThresholdX2, double pThresholdY2) {
 
-    assert(mMaxVSize % 2);
-    assert(mMaxHSize % 2);
-    assert(mVSize % 2);
-    assert(mHSize % 2);
-    assert(mHSize < mMaxHSize);
-    assert(mVSize < mMaxVSize);
-    assert(mMode >= 0 && mMode <= 3);
+    assert(maxVSize % 2);
+    assert(maxHSize % 2);
+    assert(vSize % 2);
+    assert(hSize % 2);
+    assert(hSize <= maxHSize);
+    assert(vSize <= maxVSize);
+    assert(mode >= 0 && mode <= 3);
 
     mMaxH = ArrayXXd::Zero(nBins, maxHSize);
     mMaxV = ArrayXXd::Zero(nBins, maxHSize);
@@ -97,7 +97,7 @@ public:
     for (int i = 0; i < mBins; i++) {
       mHFilters[i].insertRight(mag(i));
       mHFilters[i].process(tmpRow);
-      mH.row(i) = tmpRow.segment(mHSize, 2).transpose();
+      mH.row(i) = tmpRow.segment(h2, mHSize).transpose();
     }
     ArrayXXcd result(mBins, 3);
     ArrayXd harmonicMask = ArrayXd::Ones(mBins);
@@ -147,7 +147,7 @@ public:
   }
 
   void setHSize(int newHSize) {
-    assert(newHSize < mMaxHSize);
+    assert(newHSize <= mMaxHSize);
     assert(newHSize % 2);
     mH = mMaxH.block(0, 0, mBins, newHSize);
     mV = mMaxV.block(0, 0, mBins, newHSize);
@@ -165,7 +165,7 @@ public:
   }
 
   void setVSize(int newVSize){
-    assert(newVSize < mMaxVSize);
+    assert(newVSize <= mMaxVSize);
     assert(newVSize % 2);
     mVSize = newVSize;
   }
