@@ -164,16 +164,15 @@ public:
 private:
   bool paramsChanged(std::size_t winSize, std::size_t hopSize,
                      std::size_t fftSize) {
-    static std::size_t win, hop, fft;
-    bool res = (win != winSize) || (hop != hopSize) || (fft != fftSize);
+    bool res = (mWinSize != winSize) || (mHopSize != hopSize) || (mFFTSize != fftSize);
 
-    win = winSize;
-    hop = hopSize;
-    fft = fftSize;
+    mWinSize = winSize;
+    mHopSize = hopSize;
+    mFFTSize = fftSize;
 
     return res;
   }
-
+  
   RealMatrix mFrameAndWindow;
   ComplexMatrix mSpectrumIn;
   ComplexMatrix mSpectrumOut;
@@ -182,6 +181,9 @@ private:
   BufferedProcess mBufferedProcess;
   FluidSource<double> mInputBuffer;
   FluidSink<double> mOutputBuffer;
+  size_t mWinSize{0};
+  size_t mHopSize{0};
+  size_t mFFTSize{0};
 };
 
 } // namespace client

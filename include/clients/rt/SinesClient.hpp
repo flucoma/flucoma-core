@@ -79,25 +79,28 @@ public:
 private:
   bool sinesNeedsInit(int winSize, int hopSize, int fftSize, int bandWidth, int minTrackLen)
   {
-    static int win{0};
-    static int hop{0};
-    static int fft{0};
-    static int bw{0};
-    static int minTrack{0};
 
-    bool res = (win != winSize || hop != hopSize || fft != fftSize || bw != bandWidth || minTrack != minTrackLen);
+    bool res = (mWinSize != winSize || mHopSize != hopSize || mFFTSize != fftSize || mBandwidth != bandWidth ||
+                mMinTrackLen != minTrackLen);
 
-    win      = winSize;
-    hop      = hopSize;
-    fft      = fftSize;
-    bw       = bandWidth;
-    minTrack = minTrackLen;
+    mWinSize     = winSize;
+    mHopSize     = hopSize;
+    mFFTSize     = fftSize;
+    mBandwidth   = bandWidth;
+    mMinTrackLen = minTrackLen;
     return res;
   }
 
   STFTBufferedProcess<T, U, SinesClient, kMaxWinSize, kWinSize, kHopSize, kFFTSize, true> mSTFTBufferedProcess;
   std::unique_ptr<algorithm::RTSineExtraction>                                            mSinesExtractor;
+
+  size_t mWinSize{0};
+  size_t mHopSize{0};
+  size_t mFFTSize{0};
+  size_t mBandwidth{0};
+  size_t mMinTrackLen{0};
 };
 
 } // namespace client
 } // namespace fluid
+

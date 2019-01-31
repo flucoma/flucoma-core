@@ -7,7 +7,6 @@
 #include <clients/common/AudioClient.hpp>
 #include <clients/rt/BufferedProcess.hpp>
 
-
 #include <tuple>
 
 namespace fluid {
@@ -72,7 +71,7 @@ public:
     std::size_t hostVecSize = input[0].size();
     std::size_t maxWin = 2*blockSize + padding;
 
-    if (!mExtractor.get() || startupParamsChanged(order, blockSize, padding) || hostSizeChanged(hostVecSize)) {
+    if (!mExtractor.get() || startupParamsChanged(order, blockSize, padding, hostVecSize)) {
       mExtractor.reset(new algorithm::TransientSegmentation(order, iterations, robustFactor));
       mExtractor->prepareStream(blockSize, padding);
       
@@ -127,26 +126,13 @@ public:
 
 private:
 
-  bool hostSizeChanged(size_t hostSize)
-  {
-    static size_t size = 0;
-    bool res = size != hostSize;
-    size = hostSize;
-    return res;
-  }
+  bool startupParamsChanged(size_t order, size_t blocksize, size_t padding, size_t hostSize) {
+    bool res = (mOrder != order) || (mBlocksize != blocksize) || (mPadding != padding || mHostSize != hostSize);
 
-
-  bool startupParamsChanged(size_t order, size_t blocksize, size_t padding) {
-    static size_t ord = 0;
-    static size_t block = 0;
-    static size_t pad = 0;
-
-    bool res = (ord != order) || (block != blocksize) || (pad != padding);
-
-    ord = order;
-    block = blocksize;
-    pad = padding;
-
+    mOrder = order;
+    mBlocksize = blocksize;
+    mPadding = padding;
+    mHostSize = hostSize;
     return res;
   }
 
@@ -155,6 +141,10 @@ private:
   FluidSink<double> mOutputBuffer;
   BufferedProcess mBufferedProcess;
   FluidTensor<T, 1> mTransients;
+  size_t mHostSize{0};
+  size_t mOrder{0};
+  size_t mBlocksize{0};
+  size_t mPadding{0};
 };
 
 } // namespace client

@@ -87,11 +87,9 @@ private:
 
   bool filterDimensionsChanged(const size_t rank, const size_t nBins)
   {
-    static size_t r{0};
-    static size_t n{0};
-    bool res = {r != rank || n != nBins };
-    r = rank;
-    n = nBins;
+    bool res = {mRank != rank || mNBins != nBins };
+    mRank = rank;
+    mNBins = nBins;
     return res;
   }
 
@@ -101,6 +99,9 @@ private:
   FluidTensor<double, 2> tmpFilt;
   FluidTensor<double, 2> tmpMagnitude;
   FluidTensor<double, 1> tmpOut;
+  
+  size_t mNBins{0};
+  size_t mRank{0};
 };
 } // namespace client
 } // namespace fluid
