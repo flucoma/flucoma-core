@@ -1,25 +1,39 @@
-# Alpha-03:
+# Alpha-04:
 date:
 
 ## New Objects:
--
+
+## New Features:
+
+## New Examples:
+
+## Bug Fixes:
+
+## Known Bugs Still Unfixed:
+
+
+====
+
+# Alpha-03:
+date: 31 Jan 2019
 
 ## New Features:
 - (Max) init folder to create key shortcuts (shift-F to create a fluid. object)
 - (Max) bufview now has bipolar mode (and a helpfile)
+- transientslice and buftransientslice : now a minSlice argument to define the smallest slice available.
 
 ## New Examples:
 - bufcompose macros and folder iterations
+- updating dict (mode 1) example in the helpfile
+- commented nmf in 'real time'
+- commented impact of FFT size on nmf
 
 ## Bug Fixes:
 - Max’s buffer classes small bug which caused crash in specific instantiation order
 - Max’s nmfmatch~ is now behaving with filter buffer changes
 - (Max) bufview works for small buffers
 - bufnmf is now returning updated filter buffers in mode 1
-
-
-## Known Bugs Still Unfixed:
-- debounce on transient code
+- transient and buftransient - quality improved significantly with debounce fix
 
 ===
 
