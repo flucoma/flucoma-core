@@ -21,7 +21,8 @@ enum TransientParamIndex {
   kThreshFwd,
   kThreshBack,
   kWinSize,
-  kDebounce
+  kDebounce,
+  kMinSeg
 };
 
 auto constexpr TransientParams = std::make_tuple(
@@ -32,8 +33,10 @@ auto constexpr TransientParams = std::make_tuple(
     FloatParam("threshFwd", "Forward Threshold", 3, Min(0)),
     FloatParam("threshBack", "Backward Threshold", 1.1, Min(0)),
     LongParam("winSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
-    LongParam("debounce", "Debounce", 25, Min(0)));
-
+    LongParam("debounce", "Debounce", 25, Min(0)),
+    LongParam("minSegment","Minimum Segment",50)
+);
+  
 using ParamT = decltype(TransientParams);
 
 template <typename T, typename U = T>
@@ -91,11 +94,12 @@ public:
     double thresBack = get<kThreshBack>();
     size_t halfWindow = std::round(get<kWinSize>() / 2);
     size_t debounce = get<kDebounce>();
+    size_t minSeg = get<kMinSeg>();
 
 
   
     mExtractor->setDetectionParameters(skew, threshFwd, thresBack, halfWindow,
-                                       debounce);
+                                       debounce, minSeg);
   
     RealMatrix in(1,hostVecSize);
 
