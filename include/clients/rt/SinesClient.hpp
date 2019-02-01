@@ -5,6 +5,7 @@
 #include <clients/common/FluidBaseClient.hpp>
 #include <clients/common/ParameterConstraints.hpp>
 #include <clients/common/ParameterTypes.hpp>
+#include <clients/common/ParameterTrackChanges.hpp>
 #include <clients/rt/BufferedProcess.hpp>
 #include <tuple>
 
@@ -56,7 +57,7 @@ public:
     if (!input[0].data()) return;
     if (!output[0].data() && !output[1].data()) return;
 
-    if (sinesNeedsInit(get<kWinSize>(), get<kHopSize>(), get<kFFTSize>(), get<kBandwidth>(), get<kMinTrackLen>()))
+    if (mTrackValues.changed(get<kWinSize>(), get<kHopSize>(), get<kFFTSize>(), get<kBandwidth>(), get<kMinTrackLen>()))
     {
       mSinesExtractor.reset(new algorithm::RTSineExtraction(get<kWinSize>(), get<kFFTSize>(), get<kHopSize>(),
                                                             get<kBandwidth>(), get<kThreshold>(), get<kMinTrackLen>(),
@@ -77,23 +78,9 @@ public:
   size_t latency() { return get<kHopSize>() * get<kMinTrackLen>(); }
 
 private:
-  bool sinesNeedsInit(int winSize, int hopSize, int fftSize, int bandWidth, int minTrackLen)
-  {
-
-    bool res = (mWinSize != winSize || mHopSize != hopSize || mFFTSize != fftSize || mBandwidth != bandWidth ||
-                mMinTrackLen != minTrackLen);
-
-    mWinSize     = winSize;
-    mHopSize     = hopSize;
-    mFFTSize     = fftSize;
-    mBandwidth   = bandWidth;
-    mMinTrackLen = minTrackLen;
-    return res;
-  }
-
   STFTBufferedProcess<T, U, SinesClient, kMaxWinSize, kWinSize, kHopSize, kFFTSize, true> mSTFTBufferedProcess;
   std::unique_ptr<algorithm::RTSineExtraction>                                            mSinesExtractor;
-
+  ParameterTrackChanges<size_t,size_t,size_t,size_t,size_t> mTrackValues;
   size_t mWinSize{0};
   size_t mHopSize{0};
   size_t mFFTSize{0};
