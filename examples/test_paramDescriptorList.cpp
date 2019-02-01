@@ -2,7 +2,7 @@
 #include <clients/common/ParameterTypes.hpp>
 //#include <clients/rt/GainClient.hpp>
 //#include <clients/rt/BaseSTFTClient.hpp>
-#include <clients/rt/TransientClient.hpp>
+#include <clients/rt/NMFMatch.hpp>
 #include <random>
 
 //#include "clients/common/ParameterInstance.hpp"
@@ -121,19 +121,33 @@ auto makeWrapper(const std::tuple<Ts...> &params) {
 } // namespace client
 } // namespace fluid
 
+
+template<typename...Args>
+void whatHappened(Args&&...args)
+{
+  puts(__PRETTY_FUNCTION__);
+}
+
 int main(int argc, char *argv[]) {
   using namespace fluid::client;
+  
+  NMFMatch<double> b;
+  
+  whatHappened(NMFMatch<double>::AdjustableParams()); 
+  
+  whatHappened(NMFMatch<double>::FixedParams());
+ 
 //  GainClient<double> g;
 //  DummyWrapper<BaseSTFTClient<double>, decltype(STFTParams)> c;
   //makeWrapper<BaseSTFTClient<double>>(STFTParams);
-  DummyWrapper<TransientClient<double>, decltype(TransientParams)> c;
+//  DummyWrapper<TransientClient<double>, decltype(TransientParams)> c;
 //  c.set<0>(100);
 //  c.set<1>(512);
 //  c.set<2>(1024);
 
-std::cout<<c.get<0>()<<'\n';
-c.set<0>(14);
-std::cout<<c.get<0>()<<'\n';
+//std::cout<<c.get<0>()<<'\n';
+//c.set<0>(14);
+//std::cout<<c.get<0>()<<'\n';
 
 
 //  std::default_random_engine g;
