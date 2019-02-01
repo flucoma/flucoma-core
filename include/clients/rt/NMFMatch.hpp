@@ -14,12 +14,12 @@ namespace client {
 enum NMFMatchParamIndex{kFilterbuf,kRank,kIterations,kWinSize,kHopSize,kFFTSize,kMaxWinSize};
 
 auto constexpr NMFMatchParams =
-AddSTFTParams(
+AddSTFTParams<1024,256,-1>(
   std::make_tuple(
     BufferParam("filterBuf", "Filters Buffer"),
     LongParam("rank", "Rank", 1, Min(1)),
-    LongParam("iterations", "Iterations", 10, Min(1)))
-,{1024,256,-1});
+    LongParam<Fixed<true>>("maxRank","Maximum Rank",-1,Min(1)),
+    LongParam("iterations", "Iterations", 10, Min(1))));
 
 using ParamsT = decltype(NMFMatchParams);
 
@@ -30,6 +30,7 @@ public:
 
   NMFMatch():FluidBaseClient<ParamsT>(NMFMatchParams)
   {
+    audioChannelsIn({"Audio In", "Ither thi ng"});
     audioChannelsIn(1);
     controlChannelsOut(1);
   }

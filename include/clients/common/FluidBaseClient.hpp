@@ -4,6 +4,7 @@
 #include "OfflineClient.hpp"
 #include "ParameterConstraints.hpp"
 #include "ParameterTypes.hpp"
+#include "TupleUtilities.hpp"
 #include <data/FluidMeta.hpp>
 #include <tuple>
 
@@ -19,13 +20,17 @@ namespace impl
 /// Converts a structure of parmeter declarations and constraints to a
 /// structure of parameter values and constraints:
 /// tuple<<pair<TypeTag,tuple<Constraints>>>> ->
+
+///tuple<
+///    tuple<Type, tuple<constraints>, FixedFlag>
+
 /// tuple<<pair<Value,tuple<Constraints>>>>
 template <typename... Ts> struct ParamValueTypes {
 
   template <typename T>
-  using ValueType = ParameterValue<std::remove_const_t<typename T::first_type>>;
+  using ValueType = ParameterValue<std::remove_const_t<typename std::tuple_element<0,T>::type>>;
 
-  template <typename T> using ConstraintsType = typename T::second_type;
+  template <typename T> using ConstraintsType = typename std::tuple_element<1,T>::type;
 
   using ValuePlusConstraintsType =
       std::tuple<std::pair<ValueType<Ts>, ConstraintsType<Ts>>...>;
@@ -41,8 +46,8 @@ private:
   static ValuePlusConstraintsType createImpl(const std::tuple<Ts...> &t,
                                              std::index_sequence<Is...>)
   {
-    return std::make_tuple(std::make_pair(ValueType<Ts>{std::get<Is>(t).first},
-                                          std::get<Is>(t).second)...);
+    return std::make_tuple(std::make_pair(ValueType<Ts>{std::get<0>(std::get<Is>(t))},
+                                          std::get<1>(std::get<Is>(t)))...);
   }
 };
 
@@ -96,21 +101,49 @@ template <typename Tuple> class FluidBaseClientImpl
                 "Fluid Params: Did you forget to make your params constexpr?");
 };
 
+///Each parameter descriptor in the base client is a three-element tuple
+///Third element is flag indicating whether fixed (instantiation only) or not
+
+template<bool B>
+struct IsFixed
+{
+  template<typename T>
+  using apply = std::is_same<Fixed<B>, typename std::tuple_element<2, T>::type>;
+};
+
+using IsFixedParamTest = IsFixed<true>;
+using IsAdjustbleParamTest = IsFixed<false>;
+
 template <typename... Ts> class FluidBaseClientImpl<const std::tuple<Ts...>>
 {
 public:
   using ValueTuple =
       typename impl::ParamValueTypes<Ts...>::ValuePlusConstraintsType;
-  using UnderlyingTypeTuple = std::tuple<typename Ts::first_type::type...>;
   using ParamType           = const typename std::tuple<Ts...>;
   using ParamIndexList      = typename std::index_sequence_for<Ts...>;
+
+  using FixedParams   = typename impl::FilterTupleIndices<IsFixedParamTest,std::decay_t<ParamType>,ParamIndexList>::type;
+  using AdjustableParams  = typename impl::FilterTupleIndices<IsAdjustbleParamTest,std::decay_t<ParamType>,ParamIndexList>::type;
+
 
   template <template <size_t N, typename T> class Func>
   static void iterateParameterDescriptors(ParamType params)
   {
     iterateParameterDescriptorsImpl<Func>(params, ParamIndexList());
   }
-
+  
+  template <template <size_t N, typename T> class Func>
+  static void iterateFixedParameterDescriptors(ParamType params)
+  {
+    iterateParameterDescriptorsImpl<Func>(params, FixedParams());
+  }
+  
+  template <template <size_t N, typename T> class Func>
+  static void iterateAdjustableParameterDescriptors(ParamType params)
+  {
+    iterateParameterDescriptorsImpl<Func>(params, AdjustableParams());
+  }
+  
   constexpr FluidBaseClientImpl(const std::tuple<Ts...> &params) noexcept
       : mParams(impl::ParamValueTypes<Ts...>::create(params))
   {}
@@ -168,6 +201,12 @@ public:
   size_t audioBuffersOut() const noexcept { return mBuffersOut; }
 
 protected:
+
+  void audioChannelsIn(std::initializer_list<const char*> strs)
+  {
+  
+  }
+
   void audioChannelsIn(const size_t x) noexcept { mAudioChannelsIn = x; }
   void audioChannelsOut(const size_t x) noexcept { mAudioChannelsOut = x; }
   void controlChannelsIn(const size_t x) noexcept { mControlChannelsIn = x; }
@@ -234,15 +273,17 @@ private:
   template <template <size_t N, typename T> class Func, typename...Args, size_t...Is>
   void forEachParamImpl(std::index_sequence<Is...>, Args&&...args)
   {
-    std::initializer_list<int>{(Func<Is,typename Ts::first_type>()(std::forward<Args>(args)...),0)...};
+    std::initializer_list<int>{(Func<Is,typename std::tuple_element<0,Ts>::type>()(std::forward<Args>(args)...),0)...};
   }
 
   template <template <size_t N, typename T> class Op, size_t... Is>
   static void iterateParameterDescriptorsImpl(ParamType &params,
                                     std::index_sequence<Is...>)
   {
+    puts(__PRETTY_FUNCTION__);
+    
     std::initializer_list<int>{
-        (Op<Is, typename Ts::first_type>()(std::get<Is>(params).first), 0)...};
+        (Op<Is,  ParamDescriptorTypeAt<Is>>()(std::get<0>(std::get<Is>(params))), 0)...};
   }
 
   template <template <size_t N, typename T> class Func, typename...Args, size_t...Is>
@@ -271,9 +312,8 @@ template <class ParamTuple>
 using FluidBaseClient = typename impl::FluidBaseClientImpl<ParamTuple>;
 
 // Used by hosts for detecting client capabilities at compile time
-template <class T>
-using isNonRealTime = typename std::is_base_of<Offline, T>::type;
-template <class T> using isRealTime = typename std::is_base_of<Audio, T>::type;
+template <class T> using isNonRealTime = typename std::is_base_of<Offline, T>::type;
+template <class T> using isRealTime = std::integral_constant<bool, isAudio<T> || isControl<T>>; 
 
 } // namespace client
 } // namespace fluid
