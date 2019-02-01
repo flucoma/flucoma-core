@@ -45,7 +45,6 @@ class TransientsSlice : public FluidBaseClient<ParamT>, public AudioIn, public A
 {
   using HostVector = HostVector<U>;
 
-
 public:
 
   TransientsSlice(): FluidBaseClient<ParamT>(TransientParams)
@@ -54,11 +53,9 @@ public:
     audioChannelsOut(1);
   }
 
-  
   void process(std::vector<HostVector>& input,
                std::vector<HostVector>& output) {
 
-   
     if(!input[0].data() || !output[0].data())
       return;
     
@@ -75,17 +72,7 @@ public:
     if (!mExtractor.get() || mTrackValues.changed(order, blockSize, padding, hostVecSize)) {
       mExtractor.reset(new algorithm::TransientSegmentation(order, iterations, robustFactor));
       mExtractor->prepareStream(blockSize, padding);
-      
-      //TODO factor this whole mess away into BufferedProcess
-      
       mBufferedProcess.maxSize(maxWin, audioChannelsIn(), audioChannelsOut());
-      mInputBuffer.setSize(maxWin);
-      mOutputBuffer.setSize(maxWin);
-      mInputBuffer.setHostBufferSize(hostVecSize);
-      mOutputBuffer.setHostBufferSize(hostVecSize);
-      mInputBuffer.reset(audioChannelsIn());
-      mOutputBuffer.reset(audioChannelsOut());
-      mBufferedProcess.setBuffers(mInputBuffer, mOutputBuffer);
       mBufferedProcess.hostSize(hostVecSize);
     }
 
@@ -96,27 +83,23 @@ public:
     size_t debounce = get<kDebounce>();
     size_t minSeg = get<kMinSeg>();
 
-
-  
     mExtractor->setDetectionParameters(skew, threshFwd, thresBack, halfWindow,
                                        debounce, minSeg);
   
     RealMatrix in(1,hostVecSize);
 
     in.row(0) = input[0]; //need to convert float->double in some hosts
-    mInputBuffer.push(in);
+    mBufferedProcess.push(RealMatrixView(in));
   
-
     mBufferedProcess.process(mExtractor->inputSize(), mExtractor->hopSize(), [this](RealMatrixView in, RealMatrixView out)
     {
       mExtractor->process(in.row(0), out.row(0));
     });
     
     RealMatrix out(1, hostVecSize);
-    mOutputBuffer.pull(out);
+    mBufferedProcess.pull(RealMatrixView(out));
 
     if(output[0].data()) output[0] = out.row(0);
-//    if(output[1].data()) output[1] = out.row(1);
   }
 
   long latency()
@@ -124,13 +107,10 @@ public:
     return get<kPadding>() + get<kOrder>() + get<kBlockSize>();
   }
 
-
 private:
 
   ParameterTrackChanges<size_t,size_t,size_t,size_t> mTrackValues;
   std::unique_ptr<algorithm::TransientSegmentation> mExtractor;
-  FluidSource<double> mInputBuffer;
-  FluidSink<double> mOutputBuffer;
   BufferedProcess mBufferedProcess;
   FluidTensor<T, 1> mTransients;
   size_t mHostSize{0};
