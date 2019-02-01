@@ -11,7 +11,12 @@ void testPseudoEnvironment() {
 
   //  clients
 }
-
+template<typename...Args>
+void whatHappened(Args&&...args)
+{
+  puts(__PRETTY_FUNCTION__);
+  std::initializer_list<int>{(std::cout << args << '\t',0)...};
+}
 namespace fluid {
 namespace client {
 
@@ -118,24 +123,64 @@ auto makeWrapper(const std::tuple<Ts...> &params) {
   return DummyWrapper<Client, typename Ts::first_type...>::makeClass(params);
 }
 
+
+template<typename T>
+struct Fetcher;
+
+template<>
+struct Fetcher<LongT>
+{
+  static size_t value(long* a){return *a;}
+};
+
+
+void fun(size_t a, size_t b)
+{
+  puts(__PRETTY_FUNCTION__);
+  std::cout << a << '\t' << b;
+}
+
+template<typename Client>
+struct ClientFactory
+{
+  static Client create(long ac, long* av)
+  {
+    using FixedParamIndices = typename Client::FixedParams;
+    using ArgIndices = std::make_index_sequence<Client::FixedParams::size()>;
+  
+  
+    return createImpl(ac, av, FixedParamIndices{},ArgIndices{});
+  }
+  
+private:
+  template<size_t...Is, size_t...Js>
+  static auto createImpl(long ac, long* av, std::index_sequence<Is...>, std::index_sequence<Js...>)
+  {
+//    puts(__PRETTY_FUNCTION__);
+//    fun(Fetcher< typename Client::template ParamDescriptorTypeAt<Is> >::value(av + Js)...);
+    Client a{Fetcher< typename Client::template ParamDescriptorTypeAt<Is> >::value(av + Js)...};
+     return a;
+  }
+  
+};
+
+
 } // namespace client
 } // namespace fluid
 
 
-template<typename...Args>
-void whatHappened(Args&&...args)
-{
-  puts(__PRETTY_FUNCTION__);
-}
+
 
 int main(int argc, char *argv[]) {
   using namespace fluid::client;
   
-  NMFMatch<double> b;
+  long a[2]{3,4};
   
-  whatHappened(NMFMatch<double>::AdjustableParams()); 
+  NMFMatch<double> b = (ClientFactory<NMFMatch<double>>::create(2, a));
   
-  whatHappened(NMFMatch<double>::FixedParams());
+//  whatHappened(NMFMatch<double>::AdjustableParams()); 
+//  
+//  whatHappened(NMFMatch<double>::FixedParams());
  
 //  GainClient<double> g;
 //  DummyWrapper<BaseSTFTClient<double>, decltype(STFTParams)> c;

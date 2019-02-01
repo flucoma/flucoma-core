@@ -28,7 +28,7 @@ namespace impl
 template <typename... Ts> struct ParamValueTypes {
 
   template <typename T>
-  using ValueType = ParameterValue<std::remove_const_t<typename std::tuple_element<0,T>::type>>;
+  using ValueType = ParameterValue<std::decay_t<typename std::tuple_element<0,T>::type>>;
 
   template <typename T> using ConstraintsType = typename std::tuple_element<1,T>::type;
 
@@ -95,15 +95,6 @@ std::ostream &operator<<(std::ostream &o, ParameterValue<T> &t)
   return o << t.get();
 }
 
-template <typename Tuple> class FluidBaseClientImpl
-{
-  static_assert(!isSpecialization<Tuple, std::tuple>(),
-                "Fluid Params: Did you forget to make your params constexpr?");
-};
-
-///Each parameter descriptor in the base client is a three-element tuple
-///Third element is flag indicating whether fixed (instantiation only) or not
-
 template<bool B>
 struct IsFixed
 {
@@ -114,51 +105,73 @@ struct IsFixed
 using IsFixedParamTest = IsFixed<true>;
 using IsAdjustbleParamTest = IsFixed<false>;
 
-template <typename... Ts> class FluidBaseClientImpl<const std::tuple<Ts...>>
+
+template <typename Tuple, Tuple&> class FluidBaseClientImpl
+{
+  static_assert(!isSpecialization<Tuple, std::tuple>(),
+                "Fluid Params: Did you forget to make your params constexpr?");
+};
+
+///Each parameter descriptor in the base client is a three-element tuple
+///Third element is flag indicating whether fixed (instantiation only) or not
+
+
+template <template <typename...> class Tuple, typename... Ts, const Tuple<Ts...>& Params> class FluidBaseClientImpl<const Tuple<Ts...>,Params>
 {
 public:
   using ValueTuple =
       typename impl::ParamValueTypes<Ts...>::ValuePlusConstraintsType;
   using ParamType           = const typename std::tuple<Ts...>;
   using ParamIndexList      = typename std::index_sequence_for<Ts...>;
+  template <size_t N>
+  using ParamDescriptorTypeAt = typename std::tuple_element<N, ValueTuple>::type::first_type::ParameterType;
+  template <size_t N> using ParamTypeAt = typename ParamDescriptorTypeAt<N>::type;
 
   using FixedParams   = typename impl::FilterTupleIndices<IsFixedParamTest,std::decay_t<ParamType>,ParamIndexList>::type;
-  using AdjustableParams  = typename impl::FilterTupleIndices<IsAdjustbleParamTest,std::decay_t<ParamType>,ParamIndexList>::type;
+  static constexpr size_t NumFixedParams = FixedParams::size();
+  using MutableParams  = typename impl::FilterTupleIndices<IsAdjustbleParamTest,std::decay_t<ParamType>,ParamIndexList>::type;
+  static constexpr size_t NumMutableParams = MutableParams::size();
+
+
+  template<size_t N>
+  static auto ParameterDefaultAt(ParamType& params)
+  {
+      return std::get<0>(std::get<N>(params)).defaultValue;
+  }
 
 
   template <template <size_t N, typename T> class Func>
-  static void iterateParameterDescriptors(ParamType params)
+  static void iterateParameterDescriptors(ParamType& params)
   {
     iterateParameterDescriptorsImpl<Func>(params, ParamIndexList());
   }
   
   template <template <size_t N, typename T> class Func>
-  static void iterateFixedParameterDescriptors(ParamType params)
+  static void iterateFixedParameterDescriptors(ParamType& params)
   {
     iterateParameterDescriptorsImpl<Func>(params, FixedParams());
   }
   
   template <template <size_t N, typename T> class Func>
-  static void iterateAdjustableParameterDescriptors(ParamType params)
+  static void iterateMutableParameterDescriptors(ParamType& params)
   {
-    iterateParameterDescriptorsImpl<Func>(params, AdjustableParams());
+    iterateParameterDescriptorsImpl<Func>(params, MutableParams());
   }
   
   constexpr FluidBaseClientImpl(const std::tuple<Ts...> &params) noexcept
       : mParams(impl::ParamValueTypes<Ts...>::create(params))
   {}
 
+
   template <size_t N, typename T> void set(T&& x, Result *reportage) noexcept
   {
-//    return [this, reportage](auto &&x) {
-      if (reportage) reportage->reset();
-      auto  constraints = std::get<N>(mParams).second;
-      auto &param       = std::get<N>(mParams).first;
-      using ParamType = typename std::remove_reference_t<decltype(param)>::type;
-      auto xPrime =
-           Clamper<ParamType>::template clamp<N>(x, mParams, constraints, reportage);
-      param.set(std::move(xPrime));
-//    };
+    if (reportage) reportage->reset();
+    auto  constraints = std::get<N>(mParams).second;
+    auto &param       = std::get<N>(mParams).first;
+    using ParamType = typename std::remove_reference_t<decltype(param)>::type;
+    auto xPrime =
+         Clamper<ParamType>::template clamp<N>(x, mParams, constraints, reportage);
+    param.set(std::move(xPrime));
   }
 
   template <template <size_t N, typename T> class Func, typename...Args>
@@ -202,11 +215,6 @@ public:
 
 protected:
 
-  void audioChannelsIn(std::initializer_list<const char*> strs)
-  {
-  
-  }
-
   void audioChannelsIn(const size_t x) noexcept { mAudioChannelsIn = x; }
   void audioChannelsOut(const size_t x) noexcept { mAudioChannelsOut = x; }
   void controlChannelsIn(const size_t x) noexcept { mControlChannelsIn = x; }
@@ -223,25 +231,18 @@ private:
 //  template <size_t  Is, typename Tuple>
 //  using ParamTypeAt = typename std::tuple_element<Is, Tuple>::type;
   
-  template<size_t Is, typename Tuple>
-  auto& ParamValueAt(Tuple& values)
+  template<size_t Is, typename VTuple>
+  auto& ParamValueAt(VTuple& values)
   {
     return std::get<Is>(values).first.get();
   }
   
-  template<size_t Is, typename Tuple>
-  auto& ConstraintAt(Tuple& values)
+  template<size_t Is, typename VTuple>
+  auto& ConstraintAt(VTuple& values)
   {
     return std::get<Is>(values).second;
   }
   
-  template <size_t N>
-  using ParamDescriptorTypeAt = typename std::tuple_element<N, ValueTuple>::type::first_type::ParameterType;
-
-  template <size_t N>
-  using ParamTypeAt = typename ParamDescriptorTypeAt<N>::type;
-
-
   template <typename T, template <size_t, typename> class Func,
             size_t N,typename...Args>
   ValueType<T> makeValue(Args&&...args)
@@ -249,6 +250,7 @@ private:
     return {std::get<N>(mParams).first.descriptor(),
             Func<N, ParamDescriptorTypeAt<N>>()(std::forward<Args>(args)...)};
   }
+
 
   template <template <size_t N, typename T> class Func,
             size_t... Is,typename...Args>
@@ -280,8 +282,6 @@ private:
   static void iterateParameterDescriptorsImpl(ParamType &params,
                                     std::index_sequence<Is...>)
   {
-    puts(__PRETTY_FUNCTION__);
-    
     std::initializer_list<int>{
         (Op<Is,  ParamDescriptorTypeAt<Is>>()(std::get<0>(std::get<Is>(params))), 0)...};
   }
@@ -308,8 +308,10 @@ private:
 
 } // namespace impl
 
-template <class ParamTuple>
-using FluidBaseClient = typename impl::FluidBaseClientImpl<ParamTuple>;
+template <class ParamTuple, ParamTuple& params>
+using FluidBaseClient = typename impl::FluidBaseClientImpl<ParamTuple, params>;
+
+
 
 // Used by hosts for detecting client capabilities at compile time
 template <class T> using isNonRealTime = typename std::is_base_of<Offline, T>::type;

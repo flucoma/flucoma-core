@@ -7,7 +7,7 @@
 #include <clients/common/DeriveSTFTParams.hpp>
 #include <clients/rt/BufferedProcess.hpp>
 #include <algorithms/public/NMF.hpp>
-
+#include <clients/common/ParameterTrackChanges.hpp>
 namespace fluid {
 namespace client {
 
@@ -24,24 +24,22 @@ AddSTFTParams<1024,256,-1>(
 using ParamsT = decltype(NMFMatchParams);
 
 template <typename T, typename U = T>
-class NMFMatch : public FluidBaseClient<ParamsT>, public AudioIn, public ControlOut {
+class NMFMatch : public FluidBaseClient<ParamsT,NMFMatchParams>, public AudioIn, public ControlOut {
   using HostVector = HostVector<U>;
 public:
 
-  NMFMatch():FluidBaseClient<ParamsT>(NMFMatchParams)
+  NMFMatch(size_t maxRank, size_t maxWin):FluidBaseClient<ParamsT,NMFMatchParams>(NMFMatchParams)
   {
-    audioChannelsIn({"Audio In", "Ither thi ng"});
     audioChannelsIn(1);
     controlChannelsOut(1);
   }
-  NMFMatch(NMFMatch &) = delete;
-  NMFMatch operator=(NMFMatch &) = delete;
-
 
   size_t latency() { return get<kWinSize>(); }
 
   Result process(std::vector<HostVector> &input, std::vector<HostVector> &output)
   {
+    if(!input[0].data()) return;
+    
     if (get<kFilterbuf>().get()) {
 
       auto filterBuffer = BufferAdaptor::Access(get<kFilterbuf>().get());
@@ -49,27 +47,27 @@ public:
       if (!filterBuffer.valid()) {
         return {Result::Status::kError,"Filter buffer invalid"};
       }
-      
+
       size_t winSize, hopSize, fftSize;
       std::tie(winSize,hopSize,fftSize) = impl::deriveSTFTParams<kWinSize,kHopSize,kFFTSize>(*this);
-      
+
       size_t nBins = fftSize / 2 + 1;
       size_t rank  = get<kRank>();
-      
+
       if (filterBuffer.numChans() != rank || filterBuffer.numFrames() != nBins)
       {
         return {Result::Status::kError, "Filters buffer needs to be (fftsize / 2 + 1) frames by "
                      "rank channels"};
       }
-      
-      if(filterDimensionsChanged(rank, nBins))
+
+      if(mTrackValues.changed(rank, nBins))
       {
         tmpFilt.resize(nBins,rank);
         tmpMagnitude.resize(1,nBins);
         tmpOut.resize(rank);
         mNMF.reset(new algorithm::NMF(rank, get<kIterations>()));
       }
-      
+
       for (size_t i = 0; i < tmpFilt.cols(); ++i)
         tmpFilt.col(i) = filterBuffer.samps(0, i);
 
@@ -86,14 +84,7 @@ public:
 
 private:
 
-  bool filterDimensionsChanged(const size_t rank, const size_t nBins)
-  {
-    bool res = {mRank != rank || mNBins != nBins };
-    mRank = rank;
-    mNBins = nBins;
-    return res;
-  }
-
+  ParameterTrackChanges<size_t,size_t> mTrackValues;
   STFTBufferedProcess<T, U, NMFMatch, kMaxWinSize, kWinSize, kHopSize, kFFTSize, false> mSTFTProcessor;
   std::unique_ptr<algorithm::NMF> mNMF;
 
