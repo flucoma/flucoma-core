@@ -3,6 +3,7 @@
 #include <algorithms/public/TransientSegmentation.hpp>
 #include <clients/common/ParameterTypes.hpp>
 #include <clients/common/ParameterConstraints.hpp>
+#include <clients/common/ParameterTrackChanges.hpp>
 #include <clients/common/FluidBaseClient.hpp>
 #include <clients/common/AudioClient.hpp>
 #include <clients/rt/BufferedProcess.hpp>
@@ -58,7 +59,7 @@ public:
                std::vector<HostVector>& output) {
 
    
-    if(!input[0].data() || (!output[0].data() && !output[1].data()))
+    if(!input[0].data() || !output[0].data())
       return;
     
     static constexpr unsigned iterations = 3;
@@ -71,7 +72,7 @@ public:
     std::size_t hostVecSize = input[0].size();
     std::size_t maxWin = 2*blockSize + padding;
 
-    if (!mExtractor.get() || startupParamsChanged(order, blockSize, padding, hostVecSize)) {
+    if (!mExtractor.get() || mTrackValues.changed(order, blockSize, padding, hostVecSize)) {
       mExtractor.reset(new algorithm::TransientSegmentation(order, iterations, robustFactor));
       mExtractor->prepareStream(blockSize, padding);
       
@@ -126,16 +127,7 @@ public:
 
 private:
 
-  bool startupParamsChanged(size_t order, size_t blocksize, size_t padding, size_t hostSize) {
-    bool res = (mOrder != order) || (mBlocksize != blocksize) || (mPadding != padding || mHostSize != hostSize);
-
-    mOrder = order;
-    mBlocksize = blocksize;
-    mPadding = padding;
-    mHostSize = hostSize;
-    return res;
-  }
-
+  ParameterTrackChanges<size_t,size_t,size_t,size_t> mTrackValues;
   std::unique_ptr<algorithm::TransientSegmentation> mExtractor;
   FluidSource<double> mInputBuffer;
   FluidSink<double> mOutputBuffer;

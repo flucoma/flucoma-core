@@ -7,6 +7,7 @@
 #include <clients/common/FluidBaseClient.hpp>
 #include <clients/common/ParameterConstraints.hpp>
 #include <clients/common/ParameterTypes.hpp>
+#include <clients/common/ParameterTrackChanges.hpp>
 #include <complex>
 #include <data/TensorTypes.hpp>
 #include <string>
@@ -71,7 +72,7 @@ public:
     std::size_t hostVecSize = input[0].size();
     std::size_t maxWin = 2*blockSize + padding;
 
-    if (!mExtractor.get() || !mExtractor.get() || startupParamsChanged(order, blockSize, padding, hostVecSize)) {
+    if (!mExtractor.get() || !mExtractor.get() || mTrackValues.changed(order, blockSize, padding, hostVecSize)) {
       mExtractor.reset(new algorithm::TransientExtraction(
           order, iterations, robustFactor, refine));
       mExtractor->prepareStream(blockSize, padding);
@@ -135,7 +136,7 @@ private:
     mHostSize = hostSize;
     return res;
   }
-
+  ParameterTrackChanges<size_t,size_t,size_t,size_t> mTrackValues;
   std::unique_ptr<algorithm::TransientExtraction> mExtractor;
   FluidSource<double> mInputBuffer;
   FluidSink<double> mOutputBuffer;

@@ -7,6 +7,7 @@
 #include <clients/common/FluidSink.hpp>
 #include <clients/common/FluidSource.hpp>
 #include <clients/common/DeriveSTFTParams.hpp>
+#include <clients/common/ParameterTrackChanges.hpp>
 
 namespace fluid {
 namespace client {
@@ -85,7 +86,7 @@ public:
   
     // TODO: constraints check here: error and bail if unmet
 
-    bool newParams = paramsChanged(winSize, hopSize, fftSize);
+    bool newParams = mTrackValues.changed(winSize, hopSize, fftSize);
 
     if (!mSTFT.get() || newParams)
       mSTFT.reset(new algorithm::STFT(winSize, fftSize, hopSize));
@@ -173,6 +174,7 @@ private:
     return res;
   }
   
+  ParameterTrackChanges<size_t, size_t, size_t> mTrackValues;
   RealMatrix mFrameAndWindow;
   ComplexMatrix mSpectrumIn;
   ComplexMatrix mSpectrumOut;
