@@ -24,8 +24,10 @@ class FluidSource //: public FluidTensor<T,2>
   using const_view_type = const FluidTensorView<T, 2>;
 
 public:
-  FluidSource(FluidSource &) = delete;
+  FluidSource(const FluidSource &) = delete;
   FluidSource &operator=(FluidSource &) = delete;
+  FluidSource(FluidSource&&) = default;
+  FluidSource& operator=(FluidSource&&) = default; 
 
   FluidSource(const size_t size, const size_t channels = 1)
       : matrix(channels, size), mSize(size), mChannels(channels) {}

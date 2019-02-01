@@ -24,8 +24,10 @@ template <typename T> class FluidSink {
 public:
   FluidSink() : FluidSink(0, 1) {}
 
-  FluidSink(FluidSink &) = delete;
+  FluidSink(const FluidSink &) = delete;
   FluidSink operator=(FluidSink &) = delete;
+  FluidSink(FluidSink&&)=default;
+  FluidSink& operator=(FluidSink&&)=default; 
 
   FluidSink(const size_t size, const size_t channels = 1)
       : matrix(channels, size), mSize(size), mChannels(channels) {}
