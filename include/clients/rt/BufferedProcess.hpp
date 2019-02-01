@@ -22,47 +22,50 @@ class BufferedProcess {
 public:
   template <typename F>
   void process(std::size_t windowSize, std::size_t hopSize, F processFunc) {
-
     assert(windowSize <= maxWindowSize() && "Window bigger than maximum");
     for (; mFrameTime < mHostSize; mFrameTime += hopSize) {
-      if (mSource) {
-        RealMatrixView windowIn = mFrameIn(Slice(0), Slice(0, windowSize));
-        RealMatrixView windowOut =
-            mFrameOut(Slice(0), Slice(0, windowSize));
-        mSource->pull(windowIn, mFrameTime);
-        processFunc(windowIn, windowOut);
-        if (mSink)
-          mSink->push(windowOut, mFrameTime);
-      }
+      RealMatrixView windowIn  = mFrameIn(Slice(0), Slice(0, windowSize));
+      RealMatrixView windowOut = mFrameOut(Slice(0), Slice(0, windowSize));
       
+      mSource.pull(windowIn, mFrameTime);
+      processFunc(windowIn, windowOut);
+      mSink.push(windowOut, mFrameTime);
     }
     mFrameTime = mFrameTime < mHostSize ? mFrameTime : mFrameTime - mHostSize;
   }
 
   std::size_t hostSize() const noexcept { return mHostSize; }
-  void hostSize(std::size_t size) noexcept { mHostSize = size; }
+  void hostSize(std::size_t size) noexcept
+  {
+    mHostSize = size;
+    mSource.setHostBufferSize(size);
+    mSink.setHostBufferSize(size);
+  }
   
   std::size_t maxWindowSize() const noexcept { return mFrameIn.cols(); }
   void maxSize(std::size_t frames, std::size_t channelsIn,
                std::size_t channelsOut) {
+    mSource.setSize(frames);
+    mSource.reset(channelsIn);
+    mSink.setSize(frames);
+    mSink.reset(channelsOut);
+    
     if (channelsIn > mFrameIn.rows() || frames > mFrameIn.cols())
       mFrameIn.resize(channelsIn, frames);
     if (channelsOut > mFrameOut.rows() || frames > mFrameOut.cols())
       mFrameOut.resize(channelsOut, frames);
   }
 
-  void setBuffers(FluidSource<double> &source, FluidSink<double> &sink) {
-    mSource = &source;
-    mSink = &sink;
-  }
+  template<typename T> void push(HostMatrix<T> in) { mSource.push(in);}
+  template<typename T> void pull(HostMatrix<T> out){ mSink.pull(out); }
 
 private:
   std::size_t mFrameTime = 0 ;
   std::size_t mHostSize;
   RealMatrix mFrameIn;
   RealMatrix mFrameOut;
-  FluidSource<double> *mSource = nullptr;
-  FluidSink<double> *mSink = nullptr;
+  FluidSource<double> mSource;
+  FluidSink<double> mSink;
 };
 
 template <typename T, typename U, typename Client, size_t maxWinParam,
@@ -74,18 +77,10 @@ public:
   template <typename F>
   void process(Client &x, std::vector<HostVector> &input,
                std::vector<HostVector> &output, F &&processFunc) {
-
-//    size_t winSize = x.template get<winParam>();
-//    size_t hopSize = x.template changed<hopParam>() ? x.template get<hopParam>()
-//                                                    : winSize / 2;
-//    size_t fftSize =
-//        x.template get<FFTParam>() != -1 ? x.template get<FFTParam>() : winSize;
     size_t winSize, hopSize, fftSize;
     
     std::tie(winSize, hopSize, fftSize) = impl::deriveSTFTParams<winParam, hopParam, FFTParam>(x); 
   
-    // TODO: constraints check here: error and bail if unmet
-
     bool newParams = mTrackValues.changed(winSize, hopSize, fftSize);
 
     if (!mSTFT.get() || newParams)
@@ -105,15 +100,8 @@ public:
 
     size_t hostBufferSize = input[0].size();
     mBufferedProcess.hostSize(hostBufferSize); // safe assumption?
-    mInputBuffer.setHostBufferSize(hostBufferSize);
-    mOutputBuffer.setHostBufferSize(hostBufferSize);
 
     std::size_t maxWin = x.template get<maxWinParam>();
-    mInputBuffer.setSize(maxWin);
-    mOutputBuffer.setSize(maxWin);
-    mInputBuffer.reset(chansIn);
-    // TODO: make explicit the extra channel for post-normalisation
-    mOutputBuffer.reset(chansOut + 1);
     mBufferedProcess.maxSize(maxWin, chansIn, chansOut + 1);
 
     if (std::max(maxWin,hostBufferSize) > mFrameAndWindow.cols())
@@ -129,10 +117,7 @@ public:
       mSpectrumOut.resize(chansOut, (fftSize / 2 + 1));
     }
 
-
-    mBufferedProcess.setBuffers(mInputBuffer, mOutputBuffer);
-
-    mInputBuffer.push(HostMatrix<U>(input[0]));
+    mBufferedProcess.push(HostMatrix<U>(input[0]));
 
     mBufferedProcess.process(
         winSize, hopSize,
@@ -146,11 +131,10 @@ public:
           out.row(chansOut).apply(mISTFT->window(),[](double &x, double &y) { x *= y; });
         });
 
-    // TODO: if normalise
     if(normalise)
     {
       RealMatrixView unnormalisedFrame = mFrameAndWindow(Slice(0), Slice(0, hostBufferSize));
-      mOutputBuffer.pull(unnormalisedFrame);
+      mBufferedProcess.pull(unnormalisedFrame);
       for(int i = 0; i < chansOut; ++i)
       {
 
@@ -163,17 +147,6 @@ public:
   }
 
 private:
-  bool paramsChanged(std::size_t winSize, std::size_t hopSize,
-                     std::size_t fftSize) {
-    bool res = (mWinSize != winSize) || (mHopSize != hopSize) || (mFFTSize != fftSize);
-
-    mWinSize = winSize;
-    mHopSize = hopSize;
-    mFFTSize = fftSize;
-
-    return res;
-  }
-  
   ParameterTrackChanges<size_t, size_t, size_t> mTrackValues;
   RealMatrix mFrameAndWindow;
   ComplexMatrix mSpectrumIn;
@@ -181,8 +154,6 @@ private:
   std::unique_ptr<algorithm::STFT> mSTFT;
   std::unique_ptr<algorithm::ISTFT> mISTFT;
   BufferedProcess mBufferedProcess;
-  FluidSource<double> mInputBuffer;
-  FluidSink<double> mOutputBuffer;
   size_t mWinSize{0};
   size_t mHopSize{0};
   size_t mFFTSize{0};
