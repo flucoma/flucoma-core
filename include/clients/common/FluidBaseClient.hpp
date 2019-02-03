@@ -106,7 +106,7 @@ using IsFixedParamTest = IsFixed<true>;
 using IsAdjustbleParamTest = IsFixed<false>;
 
 
-template <typename Tuple, Tuple&> class FluidBaseClientImpl
+template <typename Tuple> class FluidBaseClientImpl
 {
   static_assert(!isSpecialization<Tuple, std::tuple>(),
                 "Fluid Params: Did you forget to make your params constexpr?");
@@ -116,7 +116,7 @@ template <typename Tuple, Tuple&> class FluidBaseClientImpl
 ///Third element is flag indicating whether fixed (instantiation only) or not
 
 
-template <template <typename...> class Tuple, typename... Ts, const Tuple<Ts...>& Params> class FluidBaseClientImpl<const Tuple<Ts...>,Params>
+template <template <typename...> class Tuple, typename... Ts> class FluidBaseClientImpl<const Tuple<Ts...>>
 {
 public:
   using ValueTuple =
@@ -308,8 +308,8 @@ private:
 
 } // namespace impl
 
-template <class ParamTuple, ParamTuple& params>
-using FluidBaseClient = typename impl::FluidBaseClientImpl<ParamTuple, params>;
+template <class ParamTuple>
+using FluidBaseClient = typename impl::FluidBaseClientImpl<ParamTuple>;
 
 
 

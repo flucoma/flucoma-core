@@ -25,10 +25,12 @@ using ParamsT = decltype(NMFMatchParams);
 
 template <typename T, typename U = T>
 class NMFMatch : public FluidBaseClient<ParamsT,NMFMatchParams>, public AudioIn, public ControlOut {
+class NMFMatch : public FluidBaseClient<ParamsT>, public AudioIn, public ControlOut {
   using HostVector = HostVector<U>;
 public:
 
   NMFMatch(size_t maxRank, size_t maxWin):FluidBaseClient<ParamsT,NMFMatchParams>(NMFMatchParams)
+  NMFMatch(size_t maxRank, size_t maxWin):FluidBaseClient<ParamsT>(NMFMatchParams)
   {
     audioChannelsIn(1);
     controlChannelsOut(1);
