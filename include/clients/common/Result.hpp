@@ -19,7 +19,15 @@ public:
   Result() = default;
   Result(Result& x):mStatus(x.mStatus),mMsg(x.mMsg.str())
   {}
+  
+  Result operator=(Result& r)
+  {
+    return {r}; 
+  };
+
+
   Result(Result&&) = default;
+  Result& operator=(Result&&)=default;
 
   
   bool ok() const noexcept { return (mStatus == Status::kOk); }
