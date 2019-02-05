@@ -24,9 +24,6 @@ namespace client {
 
 enum NMFParamIndex {kResynth,kFilters,kFiltersUpdate,kEnvelopes,kEnvelopesUpdate,kRank,kIterations,kWinSize,kHopSize,kFFTSize};
 
-const char* updateStrings[]  {"None", "Seed", "Fix"};
-
-EnumT p("a","b",0,"nsada","sddsa");
 
 auto constexpr NMFParams = std::make_tuple(
   BufferParam("resynthBuf", "Resynthesis Buffer"),
@@ -36,9 +33,9 @@ auto constexpr NMFParams = std::make_tuple(
   EnumParam("envUpdate", "Envelopes Buffer Update", 0, "None","Seed","Fixed"),
   LongParam("rank", "Rank", 5, Min(1)),
   LongParam("iterations", "Iterations", 100, Min(1)),
-  LongParam("winSize", "Window Size", 1024, UpperLimit<kFFTSize>()),
+  LongParam("winSize", "Window Size", 1024, FFTUpperLimit<kFFTSize>()),
   LongParam("hopSize", "Hop Size", 256),
-  LongParam("fftSize", "FFT Size", 1024, LowerLimit<kWinSize>(),PowerOfTwo()));
+  LongParam("fftSize", "FFT Size", 1024, WinLowerLimit<kWinSize>()));//,PowerOfTwo()));
 
 using NMFParamsT = decltype(NMFParams);
 
@@ -55,13 +52,6 @@ public:
     audioBuffersIn(1);
     audioBuffersOut(0);
   }
-  // no copy this, nor move this
-  NMFClient(NMFClient &) = delete;
-  NMFClient(NMFClient &&) = delete;
-  NMFClient operator=(NMFClient &) = delete;
-  NMFClient operator=(NMFClient &&) = delete;
-  ~NMFClient() = default;
-
 
   /***
    Take some data, NMF it
@@ -69,7 +59,7 @@ public:
   Result process(std::vector<BufferProcessSpec>& inputs, std::vector<BufferProcessSpec>&) {
 
     assert(inputs.size() == 1 );
-
+ 
     BufferAdaptor::Access source(inputs[0].buffer);
 
     if(!(source.exists() && source.valid()))
