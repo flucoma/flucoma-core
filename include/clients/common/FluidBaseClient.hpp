@@ -192,7 +192,13 @@ public:
     forEachParamImpl<Func>(ParamIndexList(),std::forward<Args>(args)...);
   }
   
-
+  template<typename T, template <size_t, typename> class Func, typename...Args>
+  void forEachParamType(Args&&...args)
+  {
+    using Is = typename FilterTupleIndices<IsParamType<T>, std::decay_t<ParamType>, ParamIndexList>::type;
+    forEachParamImpl<Func>(Is{}, std::forward<Args>(args)...);
+  }
+  
   template <std::size_t N> auto& get() noexcept
   {
     return std::get<N>(mParams).first.get();
@@ -210,6 +216,9 @@ public:
   size_t controlChannelsIn() const noexcept { return mControlChannelsIn; }
   size_t controlChannelsOut() const noexcept { return mControlChannelsOut; }
 
+  size_t maxControlChannelsOut() const noexcept { return mMaxControlChannelsOut; }
+  bool   controlTrigger() const noexcept {return mControlTrigger;}
+  
   size_t audioBuffersIn() const noexcept { return mBuffersIn; }
   size_t audioBuffersOut() const noexcept { return mBuffersOut; }
 
@@ -219,11 +228,22 @@ protected:
   void audioChannelsOut(const size_t x) noexcept { mAudioChannelsOut = x; }
   void controlChannelsIn(const size_t x) noexcept { mControlChannelsIn = x; }
   void controlChannelsOut(const size_t x) noexcept { mControlChannelsOut = x; }
+  void maxControlChannelsOut(const size_t x) noexcept {  mMaxControlChannelsOut = x; }
+  
+  void controlTrigger(const bool x ) noexcept {mControlTrigger = x;}
 
   void audioBuffersIn(const size_t x) noexcept { mBuffersIn = x; }
   void audioBuffersOut(const size_t x) noexcept { mBuffersOut = x; }
 
 private:
+
+template<typename T>
+struct IsParamType
+{
+  template <typename U>
+  using apply = std::is_same<T,typename std::tuple_element<0,U>::type>;
+};
+
   template <typename T>
   using ValueType =
       typename impl::ParamValueTypes<Ts...>::template ValueType<T>;
@@ -231,34 +251,35 @@ private:
 //  template <size_t  Is, typename Tuple>
 //  using ParamTypeAt = typename std::tuple_element<Is, Tuple>::type;
   
-  template<size_t Is, typename VTuple>
-  auto& ParamValueAt(VTuple& values)
+  template<size_t N, typename VTuple>
+  ParamTypeAt<N>& ParamValueAt(VTuple& values)
   {
-    return std::get<Is>(values).first.get();
+    return std::get<N>(values).first.get();
   }
   
-  template<size_t Is, typename VTuple>
+  template<size_t N, typename VTuple>
   auto& ConstraintAt(VTuple& values)
   {
-    return std::get<Is>(values).second;
+    return std::get<N>(values).second;
   }
   
   template <typename T, template <size_t, typename> class Func,
             size_t N,typename...Args>
-  ValueType<T> makeValue(Args&&...args)
+  ParameterValue<T> makeValue(Args&&...args)
   {
+   
     return {std::get<N>(mParams).first.descriptor(),
             Func<N, ParamDescriptorTypeAt<N>>()(std::forward<Args>(args)...)};
   }
 
 
-  template <template <size_t N, typename T> class Func,
+  template <template <size_t, typename> class Func,
             size_t... Is,typename...Args>
-  auto checkParameterValuesImpl(std::index_sequence<Is...>, Args&&...args)
+  auto checkParameterValuesImpl(std::index_sequence<Is...> index, Args&&...args)
   {
     ValueTuple candidateValues = std::make_tuple(std::make_pair(
-        makeValue<Ts, Func, Is>(std::forward<Args>(args)...), std::get<Is>(mParams).second)...);
-    return validateParametersImpl(ParamIndexList(),candidateValues);
+        makeValue<ParamDescriptorTypeAt<Is>, Func, Is>(std::forward<Args>(args)...), std::get<Is>(mParams).second)...);
+    return validateParametersImpl(index,candidateValues);
   }
 
   template <size_t... Is>
@@ -272,10 +293,10 @@ private:
     return results;
   }
   
-  template <template <size_t N, typename T> class Func, typename...Args, size_t...Is>
+  template <template <size_t, typename> class Func, typename...Args, size_t...Is>
   void forEachParamImpl(std::index_sequence<Is...>, Args&&...args)
   {
-    std::initializer_list<int>{(Func<Is,typename std::tuple_element<0,Ts>::type>()(std::forward<Args>(args)...),0)...};
+    std::initializer_list<int>{(Func<Is,ParamTypeAt<Is>>()(get<Is>(), std::forward<Args>(args)...),0)...};
   }
 
   template <template <size_t N, typename T> class Op, size_t... Is>
@@ -301,6 +322,8 @@ private:
   size_t     mAudioChannelsOut   = 0;
   size_t     mControlChannelsIn  = 0;
   size_t     mControlChannelsOut = 0;
+  size_t     mMaxControlChannelsOut = 0;
+  bool       mControlTrigger{false};
   size_t     mBuffersIn          = 0;
   size_t     mBuffersOut         = 0;
   ValueTuple mParams;
