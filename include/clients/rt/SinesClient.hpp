@@ -31,7 +31,7 @@ auto constexpr SinesParams = std::make_tuple(
     FloatParam("freqWeight", "Frequency Weighting", 0.1, Min(0.0), Max(1.0)),
     LongParam("winSize", "Window Size", 1024, Min(4)), LongParam("hopSize", "Hop Size", 512),
     LongParam("fftSize", "FFT Size", 8192, LowerLimit<kWinSize>(), PowerOfTwo()),
-    LongParam("maxWinSize", "Maxiumm Window Size", 16384));
+    LongParam<Fixed<true>>("maxWinSize", "Maxiumm Window Size", 16384));
 
 using ParamsT = decltype(SinesParams);
 
@@ -40,15 +40,14 @@ template <typename T, typename U = T> class SinesClient : public FluidBaseClient
   using HostVector = HostVector<U>;
 
 public:
-  SinesClient()
+  SinesClient(long maxWin)
       : FluidBaseClient<ParamsT>(SinesParams)
   {
+    set<kMaxWinSize>(maxWin, nullptr); 
     audioChannelsIn(1);
     audioChannelsOut(2);
   }
 
-  SinesClient(SinesClient &) = delete;
-  SinesClient operator=(SinesClient &) = delete;
 
   // Here we do an STFT and its inverse
   void process(std::vector<HostVector> &input, std::vector<HostVector> &output)
