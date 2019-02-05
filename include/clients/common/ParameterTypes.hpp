@@ -75,7 +75,7 @@ struct EnumT : ParamTypeBase
   static constexpr TypeTag typeTag = TypeTag::kEnum;
   using type                       = EnumUnderlyingType;
   template <std::size_t... N>
-  constexpr EnumT(const char *name, const char *displayName, type defaultVal, const char (&... string)[N], const bool fixed)
+  constexpr EnumT(const char *name, const char *displayName, type defaultVal, const bool fixed, const char (&... string)[N])
       : strings{string...}
       , ParamTypeBase(name, displayName, fixed)
       , fixedSize(1)
@@ -167,7 +167,7 @@ template <typename IsFixed = Fixed<false>,size_t... N>
 constexpr ParamSpec<EnumT,IsFixed> EnumParam(const char *name, const char *displayName, const EnumT::type defaultVal,
                                      const char (&... strings)[N])
 {
-  return {EnumT(name, displayName, defaultVal, strings...,IsFixed::value), std::make_tuple(),IsFixed{}};
+  return {EnumT(name, displayName, defaultVal, IsFixed::value, strings...), std::make_tuple(),IsFixed{}};
 }
 
 template <typename IsFixed = Fixed<false>,size_t N, typename... Constraints>
@@ -218,12 +218,20 @@ public:
   {}
 
   ParameterValueBase(const T descriptor) : mDescriptor(descriptor), mValue(mDescriptor.defaultValue)
-  {} // std::cout << mDescriptor.name << " " << mValue <<'\n'; }
+  {}
 
   bool        enabled() const noexcept { return true; }
   bool        changed() const noexcept { return mChanged; }
   const char *name() const noexcept { return mDescriptor.name; }
   const T     descriptor() const noexcept { return mDescriptor; }
+
+  type &get() noexcept{ return mValue;}
+
+  void  set(type &&value)
+  {
+    mValue = std::move(value);
+    mChanged = true;
+  }
 
 private:
   const T mDescriptor;
@@ -237,19 +245,13 @@ protected:
 template <typename T> class ParameterValue : public impl::ParameterValueBase<T>
 {
 public:
-  using ParameterType = T;
-  using type          = typename T::type;
+  using type          =  typename impl::ParameterValueBase<T>::type;
   ParameterValue(const T descriptor): impl::ParameterValueBase<T>(descriptor)
   {}
   
-  ParameterValue(const T descriptor,type&& value): impl::ParameterValueBase<T>(descriptor,std::move(value)){}
-  
-  
-  type &get() noexcept { return impl::ParameterValueBase<T>::mValue; }
-  void  set(type &&value)
+  ParameterValue(const T descriptor,type&& value):
+    impl::ParameterValueBase<T>(descriptor,std::move(value))
   {
-    std::swap(impl::ParameterValueBase<T>::mValue, value);
-    impl::ParameterValueBase<T>::mChanged = true;
   }
 };
 
