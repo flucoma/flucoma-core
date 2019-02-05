@@ -105,6 +105,22 @@ struct FrameSizeUpperLimitImpl
 };
 
 
+template<int WinSizeIndex>
+struct WinLowerLimitImpl{
+  template<size_t N, typename T, typename Tuple> void clamp(T& FFTSize, Tuple& params, Result* r)
+  {
+    size_t oldFFTSize = FFTSize;
+    size_t winSize = std::get<WinSizeIndex>(params).first.get();
+    FFTSize = FFTSize == -1 ? FFTSize : std::max<size_t>(winSize,FFTSize);
+    if(r && oldFFTSize != FFTSize)
+    {
+      r->set(Result::Status::kWarning);
+      r->addMessage(std::get<N>(params).first.name());
+      r->addMessage(" value ("); r->addMessage(oldFFTSize);r->addMessage(") below window size (");r->addMessage(winSize);r->addMessage(')');
+    }
+  }
+};
+
 template<int FFTIndex>
 struct FFTUpperLimitImpl{
   template<size_t N, typename T, typename Tuple> void clamp(T& winSize, Tuple& params, Result* r)
@@ -116,7 +132,7 @@ struct FFTUpperLimitImpl{
     {
       r->set(Result::Status::kWarning);
       r->addMessage(std::get<N>(params).first.name());
-      r->addMessage(" value ("); r->addMessage(oldWinSize);r->addMessage(") above spectral frame size (");r->addMessage(winSize);r->addMessage(')');
+      r->addMessage(" value ("); r->addMessage(oldWinSize);r->addMessage(") above fft size size (");r->addMessage(winSize);r->addMessage(')');
     }
   }
 };
@@ -209,6 +225,12 @@ template<int FFTIndex> auto constexpr FFTUpperLimit()
 {
   return impl::FFTUpperLimitImpl<FFTIndex>{}; 
 }
+
+template<int WinSizeIndex> auto constexpr WinLowerLimit()
+{
+  return impl::WinLowerLimitImpl<WinSizeIndex>{};
+}
+
 
 } // namespace client
 } // namespace fluid
