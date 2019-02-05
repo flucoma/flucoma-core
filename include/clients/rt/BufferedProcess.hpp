@@ -69,7 +69,7 @@ private:
 };
 
 template <typename T, typename U, typename Client, size_t maxWinParam,
-          size_t winParam, size_t hopParam, size_t FFTParam, bool normalise>
+          size_t winParam, size_t hopParam, size_t FFTParam, bool Normalise, bool Invert = true>
 class STFTBufferedProcess {
   using HostVector = HostVector<U>;
 
@@ -86,7 +86,7 @@ public:
     if (!mSTFT.get() || newParams)
       mSTFT.reset(new algorithm::STFT(winSize, fftSize, hopSize));
 
-    if (!mISTFT.get() || newParams)
+    if (Invert && !mISTFT.get() || newParams)
       mISTFT.reset(new algorithm::ISTFT(winSize, fftSize, hopSize));
 
     if (!input[0].data())
@@ -96,7 +96,7 @@ public:
     std::size_t chansOut = x.audioChannelsOut();
 
     assert(chansIn == input.size());
-    assert(chansOut == output.size());
+    if(Invert) assert(chansOut == output.size());
 
     size_t hostBufferSize = input[0].size();
     mBufferedProcess.hostSize(hostBufferSize); // safe assumption?
@@ -125,19 +125,21 @@ public:
           for(int i = 0; i < chansIn; ++i)
             mSTFT->processFrame(in.row(i), mSpectrumIn.row(i));
           processFunc(mSpectrumIn, mSpectrumOut);
-          for(int i = 0; i < chansOut; ++i)
-            mISTFT->processFrame(mSpectrumOut.row(i), out.row(i));
-          out.row(chansOut) = mSTFT->window();
-          out.row(chansOut).apply(mISTFT->window(),[](double &x, double &y) { x *= y; });
+          if(Invert)
+          {
+            for(int i = 0; i < chansOut; ++i)
+              mISTFT->processFrame(mSpectrumOut.row(i), out.row(i));
+            out.row(chansOut) = mSTFT->window();
+            out.row(chansOut).apply(mISTFT->window(),[](double &x, double &y) { x *= y; });
+          }
         });
 
-    if(normalise)
+    if(Invert && Normalise)
     {
       RealMatrixView unnormalisedFrame = mFrameAndWindow(Slice(0), Slice(0, hostBufferSize));
       mBufferedProcess.pull(unnormalisedFrame);
       for(int i = 0; i < chansOut; ++i)
       {
-
         unnormalisedFrame.row(i).apply(unnormalisedFrame.row(chansOut),[](double &x, double g) {
                                          if (x) {  x /= g ? g : 1; }
                                        });
