@@ -43,53 +43,7 @@ public:
     audioChannelsIn(1);
     audioChannelsOut(3);
   }
-  
-  HPSSClient(HPSSClient &) = delete;
-  HPSSClient operator=(HPSSClient &) = delete;
 
-  // Here we do an STFT and its inverse
-//  void process(data_type input, data_type output)
-//  {
-//    complex spec = mSTFT->processFrame(input.row(0));
-//
-//    //      mHPSS->setHThreshold(client::lookupParam("hthresh",
-//    //      getParams()).getFloat());
-//    //      mHPSS->setPThreshold(client::lookupParam("pthresh",
-//    //      getParams()).getFloat());
-//
-//    if (mode() > 0)
-//    {
-//      mHPSS->setHThresholdX1(client::lookupParam("htf1", getParams()).getFloat());
-//      mHPSS->setHThresholdY1(client::lookupParam("hta1", getParams()).getFloat());
-//      mHPSS->setHThresholdX2(client::lookupParam("htf2", getParams()).getFloat());
-//      mHPSS->setHThresholdY2(client::lookupParam("hta2", getParams()).getFloat());
-//    }
-//
-//    if (mode() == 2)
-//    {
-//      mHPSS->setPThresholdX1(client::lookupParam("ptf1", getParams()).getFloat());
-//      mHPSS->setPThresholdY1(client::lookupParam("pta1", getParams()).getFloat());
-//      mHPSS->setPThresholdX2(client::lookupParam("ptf2", getParams()).getFloat());
-//      mHPSS->setPThresholdY2(client::lookupParam("pta2", getParams()).getFloat());
-//    }
-//
-//    mHPSS->processFrame(spec, mSeparatedSpectra);
-//
-//    mHarms = mSeparatedSpectra.col(0);
-//    mPerc  = mSeparatedSpectra.col(1);
-//    //      mSeparatedSpectra.row(0) = spec;
-//    //      mSeparatedSpectra.row(1) = spec;
-//
-//    output.row(0) = mISTFT->processFrame(mHarms);
-//    output.row(1) = mISTFT->processFrame(mPerc);
-//    if (mode() == 2)
-//    {
-//      mResidual     = mSeparatedSpectra.col(2);
-//      output.row(2) = mISTFT->processFrame(mResidual);
-//    }
-//    output.row(3) = mNormWindow;
-//  }
-//  // Here we gain compensate for the OLA
   size_t latency() { return get<kWinSize>(); }
 
   void process(std::vector<HostVector> &input, std::vector<HostVector> &output)

@@ -1,13 +1,12 @@
 #pragma once
 
-//#include "BaseAudioClient.hpp"
-#include "BufferedProcess.hpp"
 
 #include <algorithms/public/TransientExtraction.hpp>
 #include <clients/common/FluidBaseClient.hpp>
 #include <clients/common/ParameterConstraints.hpp>
 #include <clients/common/ParameterTypes.hpp>
 #include <clients/common/ParameterTrackChanges.hpp>
+#include <clients/rt/BufferedProcess.hpp>
 #include <complex>
 #include <data/TensorTypes.hpp>
 #include <string>
@@ -45,10 +44,6 @@ class TransientClient : public FluidBaseClient<Param_t>, public AudioIn, public 
 public:
 
   using HostVector = HostVector<U>;
-
-
-  TransientClient(TransientClient &) = delete;
-  TransientClient operator=(TransientClient &) = delete;
 
   TransientClient() : FluidBaseClient<Param_t>(TransientParams) {
     audioChannelsIn(1);

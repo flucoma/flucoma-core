@@ -2,7 +2,7 @@
 #pragma once
 
 #include <iterator>
-#include<type_traits>
+#include <type_traits>
 
 namespace fluid {
 

@@ -38,8 +38,6 @@ class BaseSTFTClient : public FluidBaseClient<Param_t>, public AudioIn, public A
   using HostVector = HostVector<U>;
 
 public:
-  BaseSTFTClient(BaseSTFTClient &) = delete;
-  BaseSTFTClient operator=(BaseSTFTClient &) = delete;
 
   BaseSTFTClient() : FluidBaseClient<Param_t>(STFTParams) {
     audioChannelsIn(1);

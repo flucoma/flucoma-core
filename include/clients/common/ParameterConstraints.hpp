@@ -212,7 +212,7 @@ struct PowerOfTwo {
 
 struct Odd {
   template <size_t N, typename Tuple> constexpr LongUnderlyingType clamp(LongUnderlyingType x, Tuple& params, Result* r) {
-    return x % 2 ? x - 1 : x; 
+    return x % 2 ? x : x + 1; 
   }
 };
 

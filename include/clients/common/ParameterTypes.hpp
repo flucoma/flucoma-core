@@ -26,21 +26,20 @@ struct Fixed
 
 struct ParamTypeBase
 {
-  constexpr ParamTypeBase(const char *n, const char *display, const bool fixed)
+  constexpr ParamTypeBase(const char *n, const char *display)
       : name(n)
-      , displayName(display), isFixed(fixed)
+      , displayName(display)
   {}
   const char *name;
   const char *displayName;
-  const char isFixed;
 };
 
 struct FloatT : ParamTypeBase
 {
   static constexpr TypeTag typeTag = TypeTag::kFloat;
   using type                       = FloatUnderlyingType;
-  constexpr FloatT(const char *name, const char *displayName, const type defaultVal, const bool fixed)
-      : ParamTypeBase(name, displayName, fixed)
+  constexpr FloatT(const char *name, const char *displayName, const type defaultVal)
+      : ParamTypeBase(name, displayName)
       , defaultValue(defaultVal)
   {}
   const std::size_t fixedSize = 1;
@@ -51,8 +50,8 @@ struct LongT : ParamTypeBase
 {
   static constexpr TypeTag typeTag = TypeTag::kLong;
   using type                       = LongUnderlyingType;
-  constexpr LongT(const char *name, const char *displayName, const type defaultVal, const bool fixed)
-      : ParamTypeBase(name, displayName,fixed)
+  constexpr LongT(const char *name, const char *displayName, const type defaultVal)
+      : ParamTypeBase(name, displayName)
       , defaultValue(defaultVal)
   {}
   const std::size_t fixedSize = 1;
@@ -63,8 +62,8 @@ struct BufferT : ParamTypeBase
 {
   static constexpr TypeTag typeTag = TypeTag::kBuffer;
   using type                       = BufferUnderlyingType;
-  constexpr BufferT(const char *name, const char *displayName, const bool fixed)
-      : ParamTypeBase(name, displayName, fixed)
+  constexpr BufferT(const char *name, const char *displayName)
+      : ParamTypeBase(name, displayName)
   {}
   const std::size_t    fixedSize = 1;
   const std::nullptr_t defaultValue{nullptr};
@@ -75,9 +74,9 @@ struct EnumT : ParamTypeBase
   static constexpr TypeTag typeTag = TypeTag::kEnum;
   using type                       = EnumUnderlyingType;
   template <std::size_t... N>
-  constexpr EnumT(const char *name, const char *displayName, type defaultVal, const bool fixed, const char (&... string)[N])
+  constexpr EnumT(const char *name, const char *displayName, type defaultVal, const char (&... string)[N])
       : strings{string...}
-      , ParamTypeBase(name, displayName, fixed)
+      , ParamTypeBase(name, displayName)
       , fixedSize(1)
       , numOptions(sizeof...(N))
       , defaultValue(defaultVal)
@@ -97,8 +96,8 @@ struct FloatArrayT : ParamTypeBase
   using type                       = FloatArrayUnderlyingType;
 
   template <std::size_t N>
-  FloatArrayT(const char *name, const char *displayName, type::value_type (&defaultValues)[N], const bool fixed)
-      : ParamTypeBase(name, displayName, fixed)
+  FloatArrayT(const char *name, const char *displayName, type::value_type (&defaultValues)[N])
+      : ParamTypeBase(name, displayName)
   {}
   const std::size_t fixedSize;
 };
@@ -108,8 +107,8 @@ struct LongArrayT : ParamTypeBase
   static constexpr TypeTag typeTag = TypeTag::kLongArray;
   using type                       = LongArrayUnderlyingType;
   template <std::size_t N>
-  LongArrayT(const char *name, const char *displayName, type::value_type (&defaultValues)[N], const bool fixed )
-      : ParamTypeBase(name, displayName, fixed)
+  LongArrayT(const char *name, const char *displayName, type::value_type (&defaultValues)[N])
+      : ParamTypeBase(name, displayName)
   {}
   const std::size_t fixedSize;
 };
@@ -118,8 +117,8 @@ struct BufferArrayT : ParamTypeBase
 {
   static constexpr TypeTag typeTag = TypeTag::kBufferArray;
   using type                       = BufferArrayUnderlyingType;
-  BufferArrayT(const char *name, const char *displayName, const size_t size, const bool fixed)
-      : ParamTypeBase(name, displayName, fixed)
+  BufferArrayT(const char *name, const char *displayName, const size_t size)
+      : ParamTypeBase(name, displayName)
       , fixedSize(size)
   {}
   const std::size_t fixedSize;
@@ -131,12 +130,13 @@ struct FloatPairsArrayT : ParamTypeBase
   //  static constexpr TypeTa
   using type = std::vector<std::pair<FloatUnderlyingType, FloatUnderlyingType>>;
 
-  constexpr FloatPairsArrayT(const char *name, const char *displayName, const bool fixed)
-      : ParamTypeBase(name, displayName, fixed)
+  constexpr FloatPairsArrayT(const char *name, const char *displayName)
+      : ParamTypeBase(name, displayName)
   {}
   const std::size_t fixedSize{2};
   static constexpr std::initializer_list<std::pair<double, double>> defaultValue{{0.0, 1.0}, {1.0, 1.0}};
 };
+
 
 // My name's the C++ linker, and I'm a bit of a knob (fixed in C++17)
 constexpr std::initializer_list<std::pair<double, double>> FloatPairsArrayT::defaultValue;
@@ -147,27 +147,27 @@ template <typename IsFixed = Fixed<false>, typename...Constraints>
 constexpr ParamSpec<FloatT,IsFixed, Constraints...> FloatParam(const char *name, const char *displayName, const FloatT::type defaultValue,
                                                        Constraints... c)
 {
-  return {FloatT(name, displayName, defaultValue, IsFixed::value), std::make_tuple(c...), IsFixed{}};
+  return {FloatT(name, displayName, defaultValue), std::make_tuple(c...), IsFixed{}};
 }
 
 template <typename IsFixed = Fixed<false>, typename... Constraints>
 constexpr ParamSpec<LongT,IsFixed, Constraints...> LongParam(const char *name, const char *displayName,
                                                      const LongT::type defaultValue, Constraints... c)
 {
-  return {LongT(name, displayName, defaultValue, IsFixed::value), std::make_tuple(c...),IsFixed{}};
+  return {LongT(name, displayName, defaultValue), std::make_tuple(c...),IsFixed{}};
 }
 
 template <typename IsFixed = Fixed<false>,typename... Constraints>
 constexpr ParamSpec<BufferT,IsFixed, Constraints...> BufferParam(const char *name, const char *displayName, const Constraints... c)
 {
-  return {BufferT(name, displayName,IsFixed::value), std::make_tuple(c...),IsFixed{}};
+  return {BufferT(name, displayName), std::make_tuple(c...),IsFixed{}};
 }
 
 template <typename IsFixed = Fixed<false>,size_t... N>
 constexpr ParamSpec<EnumT,IsFixed> EnumParam(const char *name, const char *displayName, const EnumT::type defaultVal,
                                      const char (&... strings)[N])
 {
-  return {EnumT(name, displayName, defaultVal, IsFixed::value, strings...), std::make_tuple(),IsFixed{}};
+  return {EnumT(name, displayName, defaultVal, strings...), std::make_tuple(),IsFixed{}};
 }
 
 template <typename IsFixed = Fixed<false>,size_t N, typename... Constraints>
@@ -175,7 +175,7 @@ constexpr ParamSpec<FloatArrayT,IsFixed, Constraints...> FloatArrayParam(const c
                                                                  FloatArrayT::type::value_type (&defaultValues)[N],
                                                                  Constraints... c)
 {
-  return {FloatArrayT(name, displayName, defaultValues,IsFixed::value), std::make_tuple(c...),IsFixed{}};
+  return {FloatArrayT(name, displayName, defaultValues), std::make_tuple(c...),IsFixed{}};
 }
 
 template <typename IsFixed = Fixed<false>,size_t N, typename... Constraints>
@@ -183,21 +183,21 @@ constexpr ParamSpec<LongArrayT,IsFixed, Constraints...> LongArrayParam(const cha
                                                                LongArrayT::type::value_type (&defaultValues)[N],
                                                                const Constraints... c)
 {
-  return {LongArrayT(name, displayName, defaultValues,IsFixed::value), std::make_tuple(c...),IsFixed{}};
+  return {LongArrayT(name, displayName, defaultValues), std::make_tuple(c...),IsFixed{}};
 }
 
 template <typename IsFixed = Fixed<false>,typename... Constraints>
 constexpr ParamSpec<BufferArrayT,IsFixed, Constraints...> BufferArrayParam(const char *name, const char *displayName,
                                                                    const Constraints... c)
 {
-  return {BufferArrayT(name, displayName,IsFixed::value), std::make_tuple(c...),IsFixed{}};
+  return {BufferArrayT(name, displayName,0), std::make_tuple(c...),IsFixed{}};
 }
 
 template <typename IsFixed = Fixed<false>,typename... Constraints>
 constexpr ParamSpec<FloatPairsArrayT,IsFixed, Constraints...> FloatPairsArrayParam(const char *name, const char *displayName,
                                                                            const Constraints... c)
 {
-  return {FloatPairsArrayT(name, displayName,IsFixed::value), std::make_tuple(c...),IsFixed{}};
+  return {FloatPairsArrayT(name, displayName), std::make_tuple(c...),IsFixed{}};
 }
 
 template <typename T> std::ostream &operator<<(std::ostream &o, const std::unique_ptr<T> &p) { return o << p.get(); }
@@ -254,24 +254,6 @@ public:
   {
   }
 };
-
-// template <> class ParameterValue<BufferT> : public impl::ParameterValueBase<BufferT>
-//{
-// public:
-//  using type = typename BufferT::type;
-//  ParameterValue(const BufferT descriptor)
-//      : impl::ParameterValueBase<BufferT>(descriptor)
-//  {}
-//  auto &get() const noexcept { return mValue; }
-//  void  set(type &value)
-//  {
-//    swap(mValue, value);
-//    mChanged = true;
-//  }
-//
-// private:
-//  type mValue;
-//};
 
 } // namespace client
 } // namespace fluid

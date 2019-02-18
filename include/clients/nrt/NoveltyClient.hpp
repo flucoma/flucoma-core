@@ -17,8 +17,8 @@ enum NoveltyParamIndex {kTransBuf, kKernelSize, kThreshold,kFilterSize,kWinSize,
 auto constexpr NoveltyParams = std::make_tuple(
   BufferParam("transBuf", "Indices Buffer"),
   LongParam("kernelSize", "Kernel Size", 3, Min(3), Odd()),
-  FloatParam("threshold", "Threshold", 0.8, Min(0.8)),
-  LongParam("filterSize", "Smoothing Filter Size",1, Min(3), FrameSizeUpperLimit<kWinSize,kFFTSize>()),
+  FloatParam("threshold", "Threshold", 0.8, Min(0.)),
+  LongParam("filterSize", "Smoothing Filter Size",256, Min(3), FrameSizeUpperLimit<kWinSize,kFFTSize>()),
   LongParam("winSize", "Window Size",1024, Min(4), UpperLimit<kFFTSize>()),
   LongParam("hopSize", "Hop Size",512),
   LongParam("fftSize", "FFT Size", 2048,LowerLimit<kWinSize>(),PowerOfTwo()),
@@ -35,12 +35,6 @@ class NoveltyClient: public FluidBaseClient<ParamsT>, public OfflineIn, public O
 {
 
 public:
-
-  // No, you may not  copy this, or move this
-  NoveltyClient(NoveltyClient &) = delete;
-  NoveltyClient(NoveltyClient &&) = delete;
-  NoveltyClient operator=(NoveltyClient &) = delete;
-  NoveltyClient operator=(NoveltyClient &&) = delete;
 
   NoveltyClient():FluidBaseClient<ParamsT>(NoveltyParams)
   {
@@ -74,14 +68,14 @@ public:
     
     size_t winSize, hopSize, fftSize;
     
-    std::tie(winSize,hopSize,fftSize) = impl::deriveSTFTParams<NoveltyClient,kWinSize, kHopSize, kFFTSize>(*this);
+    std::tie(winSize,hopSize,fftSize) = impl::deriveSTFTParams<kWinSize, kHopSize, kFFTSize>(*this);
 
     size_t nChannels = inputs[0].nChans == -1 ? source.numChans() : inputs[0].nChans;
     size_t nFrames   = inputs[0].nFrames == -1  ? source.numFrames(): inputs[0].nFrames;
     size_t nWindows  = std::floor((nFrames + hopSize) / hopSize);
     size_t nBins     = fftSize / 2 + 1;
     
-    FluidTensor<double, 1> monoSource(inputs[0].nFrames);
+    FluidTensor<double, 1> monoSource(nFrames);
 
     // Make a mono sum;
     for (size_t i = 0; i < nChannels; ++i) {
@@ -110,7 +104,7 @@ public:
     processor.process(magnitude, changePoints);
     
     impl::spikesToTimes(changePoints(Slice(0)), get<kTransBuf>().get(), hopSize, inputs[0].startFrame, nFrames);
-
+    return {Result::Status::kOk,""}; 
   }
 };
 } // namespace client
