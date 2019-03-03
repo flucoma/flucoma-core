@@ -12,49 +12,38 @@
 namespace fluid {
 namespace client {
 
-enum NoveltyParamIndex {kTransBuf, kKernelSize, kThreshold,kFilterSize,kWinSize, kHopSize, kFFTSize, kMaxWinSize}; 
+enum NoveltyParamIndex {kSource, kOffset, kNumFrames, kStartChan, kNumChans, kTransBuf, kKernelSize, kThreshold,kFilterSize,kFFT};
 
-auto constexpr NoveltyParams = std::make_tuple(
+auto constexpr NoveltyParams =defineParameters(
+  BufferParam("sourceBuf","Source Buffer"),
+  LongParam("offset","Source Offset",0,Min(0)),
+  LongParam("nFrames","Number Frames",-1),
+  LongParam("startChan","Start Channel",0,Min(0)),
+  LongParam("numChans","Number Channels",-1),
   BufferParam("transBuf", "Indices Buffer"),
   LongParam("kernelSize", "Kernel Size", 3, Min(3), Odd()),
-  FloatParam("threshold", "Threshold", 0.8, Min(0.8)),
-  LongParam("filterSize", "Smoothing Filter Size",1, Min(3), FrameSizeUpperLimit<kWinSize,kFFTSize>()),
-  LongParam("winSize", "Window Size",1024, Min(4), UpperLimit<kFFTSize>()),
-  LongParam("hopSize", "Hop Size",512),
-  LongParam("fftSize", "FFT Size", 2048,LowerLimit<kWinSize>(),PowerOfTwo()),
-  LongParam("maxWinSize", "Maxiumm Window Size", 16384));
+  FloatParam("threshold", "Threshold", 0.8, Min(0.)),
+  LongParam("filterSize", "Smoothing Filter Size",256, Min(1), FrameSizeUpperLimit<kFFT>()),
+  FFTParam("fftSettings", "FFT Settings", 1024, 512, 2048)
+ );
 
-
-using ParamsT = decltype(NoveltyParams);
-
-/**
- Integration class for doing NMF filtering and resynthesis
- **/
-
-class NoveltyClient: public FluidBaseClient<ParamsT>, public OfflineIn, public OfflineOut
+template<typename Params, typename T, typename U>
+class NoveltyClient: public FluidBaseClient<Params>, public OfflineIn, public OfflineOut
 {
 
 public:
 
-  // No, you may not  copy this, or move this
-  NoveltyClient(NoveltyClient &) = delete;
-  NoveltyClient(NoveltyClient &&) = delete;
-  NoveltyClient operator=(NoveltyClient &) = delete;
-  NoveltyClient operator=(NoveltyClient &&) = delete;
+  NoveltyClient(Params& p):FluidBaseClient<Params>{p},mParams{p}
+  {}
+  
 
-  NoveltyClient():FluidBaseClient<ParamsT>(NoveltyParams)
-  {
-    audioBuffersIn(1);
-    audioBuffersOut(0);
-  }
-
-   Result process(std::vector<BufferProcessSpec>& inputs, std::vector<BufferProcessSpec>&)
+  Result process()
   {
   
-    if(!inputs[0].buffer)
+    if(!param<kSource>(mParams).get())
       return {Result::Status::kError, "No input buffer supplied"};
     
-    BufferAdaptor::Access source(inputs[0].buffer);
+    BufferAdaptor::Access source(param<kSource>(mParams).get());
     
     if(!source.exists())
         return {Result::Status::kError, "Input buffer not found"};
@@ -63,39 +52,37 @@ public:
         return {Result::Status::kError, "Can't access input buffer"};
 
     
-    BufferAdaptor::Access idx(get<kTransBuf>().get());
+    BufferAdaptor::Access idx(param<kTransBuf>(mParams).get());
 
     if(!idx.exists())
         return {Result::Status::kError, "Output buffer not found"};
     
-    if(!idx.valid())
-        return {Result::Status::kError, "Can't access output buffer"};
+//    if(!idx.valid())
+//        return {Result::Status::kError, "Can't access output buffer"};
 
     
-    size_t winSize, hopSize, fftSize;
-    
-    std::tie(winSize,hopSize,fftSize) = impl::deriveSTFTParams<NoveltyClient,kWinSize, kHopSize, kFFTSize>(*this);
+    auto& fftParams = param<kFFT>(mParams);
 
-    size_t nChannels = inputs[0].nChans == -1 ? source.numChans() : inputs[0].nChans;
-    size_t nFrames   = inputs[0].nFrames == -1  ? source.numFrames(): inputs[0].nFrames;
-    size_t nWindows  = std::floor((nFrames + hopSize) / hopSize);
-    size_t nBins     = fftSize / 2 + 1;
+    size_t nChannels = param<kNumChans>(mParams)  == -1 ? source.numChans() : param<kNumChans>(mParams);
+    size_t nFrames   = param<kNumFrames>(mParams) == -1 ? source.numFrames(): param<kNumFrames>(mParams);
+    size_t nWindows  = std::floor((nFrames + fftParams.hopSize()) / fftParams.hopSize());
+    size_t nBins     = fftParams.frameSize();
     
-    FluidTensor<double, 1> monoSource(inputs[0].nFrames);
+    FluidTensor<double, 1> monoSource(nFrames);
 
     // Make a mono sum;
     for (size_t i = 0; i < nChannels; ++i) {
       monoSource.apply(
-          source.samps(inputs[0].startFrame, nFrames, inputs[0].startChan + i),
+          source.samps(param<kOffset>(mParams), nFrames, param<kStartChan>(mParams) + i),
           [](double &x, double y) { x += y; });
     }
     
   
-    algorithm::STFT stft(winSize, fftSize, hopSize);
-    algorithm::ISTFT istft(winSize, fftSize, hopSize);
+    algorithm::STFT stft(fftParams.winSize(), fftParams.fftSize(), fftParams.hopSize());
+    algorithm::ISTFT istft(fftParams.winSize(), fftParams.fftSize(), fftParams.hopSize());
 
-    algorithm::NoveltySegmentation processor(get<kKernelSize>(), get<kThreshold>(),
-                                             get<kFilterSize>());
+    algorithm::NoveltySegmentation processor(param<kKernelSize>(mParams), param<kThreshold>(mParams),
+                                             param<kFilterSize>(mParams));
 
     auto spectrum = FluidTensor<std::complex<double>,2>(nWindows,nBins);
     auto magnitude = FluidTensor<double,2>(nWindows,nBins);
@@ -109,9 +96,14 @@ public:
     
     processor.process(magnitude, changePoints);
     
-    impl::spikesToTimes(changePoints(Slice(0)), get<kTransBuf>().get(), hopSize, inputs[0].startFrame, nFrames);
-
+    impl::spikesToTimes(changePoints(Slice(0)), param<kTransBuf>(mParams).get(), fftParams.hopSize(), param<kOffset>(mParams), nFrames);
+    return {Result::Status::kOk,""}; 
   }
+  
+  private:
+    Params& mParams;
+  
+  
 };
 } // namespace client
 } // namespace fluid

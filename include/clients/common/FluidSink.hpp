@@ -24,8 +24,10 @@ template <typename T> class FluidSink {
 public:
   FluidSink() : FluidSink(0, 1) {}
 
-  FluidSink(FluidSink &) = delete;
+  FluidSink(const FluidSink &) = delete;
   FluidSink operator=(FluidSink &) = delete;
+  FluidSink(FluidSink&&)=default;
+  FluidSink& operator=(FluidSink&&)=default; 
 
   FluidSink(const size_t size, const size_t channels = 1)
       : matrix(channels, size), mSize(size), mChannels(channels) {}
@@ -82,22 +84,6 @@ public:
                blocksize - size);
   }
 
-  //  template <typename OutputIt>
-  //  void pull(OutputIt out, OutputIt end, size_t nSamps, size_t nChans) {
-  //    size_t blocksize = nSamps;
-  //    if (blocksize > bufferSize()) {
-  //      return;
-  //    }
-  //
-  //    size_t offset = mCounter;
-  //    size_t size =
-  //        offset + blocksize > bufferSize() ? bufferSize() - offset :
-  //        blocksize;
-  //
-  //    out_and_zero(out, end, 0, offset, size);
-  //    out_and_zero(out, end, size, 0, blocksize - size);
-  //  }
-
   /*!
    Reset the buffer, resizing if the host buffer size
    or user buffer size have changed.
@@ -118,6 +104,10 @@ public:
   void setSize(size_t n) { mSize = n; }
 
   void setHostBufferSize(size_t n) { mHostBufferSize = n; }
+
+  size_t channels() const noexcept { return mChannels; }
+  size_t size() const noexcept { return mSize; }
+  size_t hostBufferSize() const noexcept { return mHostBufferSize; }
 
 private:
   void addIn(const_view_type in, size_t offset, size_t size) {

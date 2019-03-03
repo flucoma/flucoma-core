@@ -40,10 +40,12 @@ ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/FluidSink.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/FluidSource.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/MakeParams.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/ParameterConstraints.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/ParameterSet.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/ParameterTypes.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/ParameterTrackChanges.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/Result.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/SpikesToTimes.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/TupleUtilities.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/BufferComposeNRT.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/FluidNRTClientWrapper.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/HPSS.hpp

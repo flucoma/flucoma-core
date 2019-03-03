@@ -2,7 +2,7 @@
 #include <clients/common/ParameterTypes.hpp>
 //#include <clients/rt/GainClient.hpp>
 //#include <clients/rt/BaseSTFTClient.hpp>
-#include <clients/rt/TransientClient.hpp>
+#include <clients/rt/NMFMatch.hpp>
 #include <random>
 
 //#include "clients/common/ParameterInstance.hpp"
@@ -11,7 +11,12 @@ void testPseudoEnvironment() {
 
   //  clients
 }
-
+template<typename...Args>
+void whatHappened(Args&&...args)
+{
+  puts(__PRETTY_FUNCTION__);
+  std::initializer_list<int>{(std::cout << args << '\t',0)...};
+}
 namespace fluid {
 namespace client {
 
@@ -118,22 +123,76 @@ auto makeWrapper(const std::tuple<Ts...> &params) {
   return DummyWrapper<Client, typename Ts::first_type...>::makeClass(params);
 }
 
+
+template<typename T>
+struct Fetcher;
+
+template<>
+struct Fetcher<LongT>
+{
+  static size_t value(long* a){return *a;}
+};
+
+
+void fun(size_t a, size_t b)
+{
+  puts(__PRETTY_FUNCTION__);
+  std::cout << a << '\t' << b;
+}
+
+template<typename Client>
+struct ClientFactory
+{
+  static Client create(long ac, long* av)
+  {
+    using FixedParamIndices = typename Client::FixedParams;
+    using ArgIndices = std::make_index_sequence<Client::FixedParams::size()>;
+  
+  
+    return createImpl(ac, av, FixedParamIndices{},ArgIndices{});
+  }
+  
+private:
+  template<size_t...Is, size_t...Js>
+  static auto createImpl(long ac, long* av, std::index_sequence<Is...>, std::index_sequence<Js...>)
+  {
+//    puts(__PRETTY_FUNCTION__);
+//    fun(Fetcher< typename Client::template ParamDescriptorTypeAt<Is> >::value(av + Js)...);
+    Client a{Fetcher< typename Client::template ParamDescriptorTypeAt<Is> >::value(av + Js)...};
+     return a;
+  }
+  
+};
+
+
 } // namespace client
 } // namespace fluid
 
+
+
+
 int main(int argc, char *argv[]) {
   using namespace fluid::client;
+  
+  long a[2]{3,4};
+  
+  NMFMatch<double> b = (ClientFactory<NMFMatch<double>>::create(2, a));
+  
+//  whatHappened(NMFMatch<double>::AdjustableParams()); 
+//  
+//  whatHappened(NMFMatch<double>::FixedParams());
+ 
 //  GainClient<double> g;
 //  DummyWrapper<BaseSTFTClient<double>, decltype(STFTParams)> c;
   //makeWrapper<BaseSTFTClient<double>>(STFTParams);
-  DummyWrapper<TransientClient<double>, decltype(TransientParams)> c;
+//  DummyWrapper<TransientClient<double>, decltype(TransientParams)> c;
 //  c.set<0>(100);
 //  c.set<1>(512);
 //  c.set<2>(1024);
 
-std::cout<<c.get<0>()<<'\n';
-c.set<0>(14);
-std::cout<<c.get<0>()<<'\n';
+//std::cout<<c.get<0>()<<'\n';
+//c.set<0>(14);
+//std::cout<<c.get<0>()<<'\n';
 
 
 //  std::default_random_engine g;

@@ -9,31 +9,24 @@
 #include <clients/common/AudioClient.hpp>
 #include <clients/common/FluidBaseClient.hpp>
 #include <clients/common/ParameterConstraints.hpp>
+#include <clients/common/ParameterSet.hpp>
 #include <data/TensorTypes.hpp>
 
 namespace fluid {
 namespace client {
 
-enum GainParamTags { kGain, kWindowSize, kMaxSize };
+enum GainParamTags { kGain };
 
-constexpr auto GainParams = std::make_tuple(FloatParam("gain", "Gain", 1.0));
-
-using Params_t = decltype(GainParams);
+constexpr auto GainParams = defineParameters(FloatParam("gain", "Gain", 1.0));
 
 /// @class GainAudioClient
-template <typename T, typename U = T>
-class GainClient : public FluidBaseClient<Params_t>, public AudioIn, public AudioOut   {
+template <typename Params, typename T, typename U = T>
+class GainClient : public FluidBaseClient<Params>, public AudioIn, public AudioOut   {
   using HostVector = FluidTensorView<U,1>;
-
 public:
-  ///No default instances, no copying
-  GainClient(GainClient &) = delete;
-  GainClient operator=(GainClient &) = delete;
-
-  ///Construct with a (maximum) chunk size and some input channels
-  GainClient() : FluidBaseClient<Params_t>(GainParams) {
-    audioChannelsIn(2);
-    audioChannelsOut(1);
+  GainClient(Params &p) : mParams(p), FluidBaseClient<Params>(p) {
+    FluidBaseClient<Params>::audioChannelsIn(2);
+    FluidBaseClient<Params>::audioChannelsOut(1);
   }
 
   size_t latency() { return 0; }
@@ -51,12 +44,13 @@ public:
     if (input[1].data()) {
       output[0].apply(input[1], [](U &x, U &y) { x *= y; });
     } else {
-      double g = get<kGain>();
+      double g = param<kGain>(mParams);
       // Apply gain from the second channel
       output[0].apply([g](U &x) { x *= g; });
     }
   }
-
+private:
+  Params& mParams;
 }; // class
 } // namespace client
 } // namespace fluid
