@@ -5,6 +5,7 @@
 #include <clients/common/ParameterConstraints.hpp>
 #include <clients/common/OfflineClient.hpp>
 #include <clients/common/DeriveSTFTParams.hpp>
+#include <clients/common/ParameterSet.hpp>
 #include <algorithms/public/NMF.hpp>
 #include <algorithms/public/RatioMask.hpp>
 #include <algorithms/public/STFT.hpp>
@@ -22,10 +23,14 @@
 namespace fluid {
 namespace client {
 
-enum NMFParamIndex {kResynth,kFilters,kFiltersUpdate,kEnvelopes,kEnvelopesUpdate,kRank,kIterations,kWinSize,kHopSize,kFFTSize};
+enum NMFParamIndex {kSource, kOffset, kNumFrames, kStartChan, kNumChans, kResynth,kFilters,kFiltersUpdate,kEnvelopes,kEnvelopesUpdate,kRank,kIterations,kWinSize,kHopSize,kFFTSize};
 
-
-auto constexpr NMFParams = std::make_tuple(
+auto constexpr NMFParams = defineParameters(
+  BufferParam("sourceBuf","Source Buffer"),
+  LongParam("offset","Source Offset",0,Min(0)),
+  LongParam("nFrames","Number Frames",-1),
+  LongParam("startChan","Start Channel",0,Min(0)),
+  LongParam("numChans","Number Channels",-1),
   BufferParam("resynthBuf", "Resynthesis Buffer"),
   BufferParam("filterBuf", "Filters Buffer"),
   EnumParam("filterUpdate", "Filters Buffer Update", 0, "None","Seed","Fixed"),
@@ -37,150 +42,151 @@ auto constexpr NMFParams = std::make_tuple(
   LongParam("hopSize", "Hop Size", 256),
   LongParam("fftSize", "FFT Size", 1024, WinLowerLimit<kWinSize>()));//,PowerOfTwo()));
 
-using NMFParamsT = decltype(NMFParams);
-
-/**
- Integration class for doing NMF filtering and resynthesis
- **/
-
-class NMFClient: public FluidBaseClient<NMFParamsT>, public OfflineIn, public OfflineOut
+template<typename Params, typename T, typename U>
+class NMFClient: public FluidBaseClient<Params>, public OfflineIn, public OfflineOut
 {
+
+private:
+  Params& mParams;
+
 public:
 
-  NMFClient(): FluidBaseClient<NMFParamsT>(NMFParams)
-  {
-    audioBuffersIn(1);
-    audioBuffersOut(0);
-  }
+  NMFClient(Params& p): FluidBaseClient<Params>(p), mParams(p) {}
 
   /***
    Take some data, NMF it
    ***/
-  Result process(std::vector<BufferProcessSpec>& inputs, std::vector<BufferProcessSpec>&) {
+  Result process() {
 
-    assert(inputs.size() == 1 );
+//    assert(inputs.size() == 1 );
+  
+    if(!param<kSource>(*this).get())
+    {
+      return {Result::Status::kError,"No input"};
+    }
+  
  
-    BufferAdaptor::Access source(inputs[0].buffer);
+    BufferAdaptor::Access source(param<kSource>(*this).get());
 
     if(!(source.exists() && source.valid()))
       return {Result::Status::kError, "Source Buffer Not Found or Invalid"};
 
     size_t winSize, hopSize, fftSize;
     
-    std::tie(winSize,hopSize,fftSize) = impl::deriveSTFTParams<kWinSize, kHopSize, kFFTSize>(*this);
+    std::tie(winSize,hopSize,fftSize) = impl::deriveSTFTParams<kWinSize, kHopSize, kFFTSize>(mParams);
 
-    size_t nChannels = inputs[0].nChans == -1 ? source.numChans() : inputs[0].nChans;
-    size_t nFrames   = inputs[0].nFrames == -1  ? source.numFrames(): inputs[0].nFrames;
+    size_t nChannels = param<kNumChans>(*this) == -1 ? source.numChans() : param<kNumChans>(*this);
+    size_t nFrames   = param<kNumFrames>(*this) == -1  ? source.numFrames(): param<kNumFrames>(*this);
     size_t nWindows  = std::floor((nFrames + hopSize) / hopSize);
     size_t nBins     = fftSize / 2 + 1;
 
     bool hasFilters {false};
-    const bool seedFilters {get<kFiltersUpdate>() > 0};
-    const bool fixFilters  {get<kFiltersUpdate>() == 2};
+    const bool seedFilters {param<kFiltersUpdate>(*this) > 0};
+    const bool fixFilters  {param<kFiltersUpdate>(*this) == 2};
     
-    if(get<kFilters>())
+    if(param<kFilters>(*this))
     {
-      BufferAdaptor::Access buf(get<kFilters>().get());
+      BufferAdaptor::Access buf(param<kFilters>(*this).get());
       if(!buf.exists())
         return {Result::Status::kError, "Filter Buffer Supplied But Invalid"};
 
-      if (buf.valid() && (get<kFiltersUpdate>() > 0)
-          && (buf.numFrames() != nBins || buf.numChans()  != get<kRank>() * nChannels))
+      if (buf.valid() && (param<kFiltersUpdate>(*this) > 0)
+          && (buf.numFrames() != nBins || buf.numChans()  != param<kRank>(*this) * nChannels))
             return { Result::Status::kError, "Supplied filter buffer for seeding must be [(FFTSize / 2) + 1] frames long, and have [rank] * [channels] channels"};
       hasFilters = true;
     }
     else
-      if( get<kFiltersUpdate>() > 0)
+      if( param<kFiltersUpdate>(*this) > 0)
         return {Result::Status::kError, "Filter Mode set to Seed or Fix , but no Filter Buffer supplied" };
 
     bool hasEnvelopes {false};
-    const bool seedEnvelopes {get<kEnvelopesUpdate>() > 0};
-    const bool fixEnvelopes {get<kEnvelopesUpdate>() == 2};
+    const bool seedEnvelopes {param<kEnvelopesUpdate>(*this) > 0};
+    const bool fixEnvelopes {param<kEnvelopesUpdate>(*this) == 2};
 
     if(fixEnvelopes && fixFilters)
       return {Result::Status::kError, "It doesn't make any sense to fix both filters and envelopes"};
 
-    if(get<kEnvelopes>())
+    if(param<kEnvelopes>(*this))
     {
-      BufferAdaptor::Access buf(get<kEnvelopes>().get());
+      BufferAdaptor::Access buf(param<kEnvelopes>(*this).get());
       if(!buf.exists())
         return {Result::Status::kError, "Envelope Buffer Supplied But Invalid"};
 
-      if (buf.valid() && (get<kEnvelopesUpdate>() > 0)
-         && (buf.numFrames() != (nFrames / hopSize) + 1 || buf.numChans()  != get<kRank>() * nChannels))
+      if (buf.valid() && (param<kEnvelopesUpdate>(*this) > 0)
+         && (buf.numFrames() != (nFrames / hopSize) + 1 || buf.numChans()  != param<kRank>(*this) * nChannels))
             return {Result::Status::kError, "Supplied envelope buffer for seeding must be [(num samples / hop "
                     "size)  + 1] frames long, and have [rank] * [channels] channels"};
 
       hasEnvelopes = true;
     }
     else
-      if( get<kEnvelopesUpdate>() > 0)
+      if( param<kEnvelopesUpdate>(*this) > 0)
         return {Result::Status::kError, "Envelope Mode set to Seed or Fix , but no Envelope Buffer supplied" };
 
 
     bool hasResynth {false};
 
-    if(get<kResynth>())
+    if(param<kResynth>(*this))
     {
-      BufferAdaptor::Access buf(get<kResynth>().get());
+      BufferAdaptor::Access buf(param<kResynth>(*this).get());
       if(!buf.exists())
         return {Result::Status::kError, "Resynthesis Buffer Supplied But Invalid"};
       hasResynth = true;
     }
 
     if (hasResynth)
-      BufferAdaptor::Access(get<kResynth>().get()).resize(nFrames, nChannels, get<kRank>());
-    if (hasFilters && !get<kFiltersUpdate>())
-      BufferAdaptor::Access(get<kFilters>().get()).resize(nBins, nChannels, get<kRank>());
-    if (hasEnvelopes && !get<kEnvelopesUpdate>())
-      BufferAdaptor::Access(get<kEnvelopes>().get()).resize((nFrames / hopSize) + 1, nChannels, get<kRank>());
+      BufferAdaptor::Access(param<kResynth>(*this).get()).resize(nFrames, nChannels, param<kRank>(*this));
+    if (hasFilters && !param<kFiltersUpdate>(*this))
+      BufferAdaptor::Access(param<kFilters>(*this).get()).resize(nBins, nChannels, param<kRank>(*this));
+    if (hasEnvelopes && !param<kEnvelopesUpdate>(*this))
+      BufferAdaptor::Access(param<kEnvelopes>(*this).get()).resize((nFrames / hopSize) + 1, nChannels, param<kRank>(*this));
 
     auto stft = algorithm::STFT(winSize, fftSize, hopSize);
 
     auto tmp = FluidTensor<double, 1>(nFrames);
     auto seededFilters = FluidTensor<double, 2>(0, 0);
     auto seededEnvelopes = FluidTensor<double, 2>(0, 0);
-    auto outputFilters = FluidTensor<double, 2>(get<kRank>(), nBins);
-    auto outputEnvelopes = FluidTensor<double, 2>(nWindows, get<kRank>());
+    auto outputFilters = FluidTensor<double, 2>(param<kRank>(*this), nBins);
+    auto outputEnvelopes = FluidTensor<double, 2>(nWindows, param<kRank>(*this));
     auto spectrum = FluidTensor<std::complex<double>,2>(nWindows,nBins);
     auto magnitude = FluidTensor<double,2>(nWindows,nBins);
     auto outputMags = FluidTensor<double,2>(nWindows,nBins);
 
     if (seedFilters || fixFilters)
-      seededFilters.resize(get<kRank>(), nBins);
+      seededFilters.resize(param<kRank>(*this), nBins);
     if (seedEnvelopes || fixEnvelopes)
-      seededEnvelopes.resize((nFrames / hopSize) + 1, get<kRank>());
+      seededEnvelopes.resize((nFrames / hopSize) + 1, param<kRank>(*this));
 
     for (size_t i = 0; i < nChannels; ++i) {
       //          tmp = sourceData.col(i);
-      tmp = source.samps(inputs[0].startFrame, nFrames, inputs[0].startChan + i);
+      tmp = source.samps(param<kOffset>(*this), nFrames, param<kStartChan>(*this) + i);
       stft.process(tmp, spectrum);
       algorithm::STFT::magnitude(spectrum,magnitude);
 
       // For multichannel dictionaries, seed data could be all over the place,
       // so we'll build it up by hand :-/
-      for (size_t j = 0; j < get<kRank>(); ++j) {
+      for (size_t j = 0; j < param<kRank>(*this); ++j) {
         if (seedFilters || fixFilters)
         {
-          auto filters = BufferAdaptor::Access{get<kFilters>().get()};
+          auto filters = BufferAdaptor::Access{param<kFilters>(*this).get()};
           seededFilters.row(j) = filters.samps(i, j);
         }
         if (seedEnvelopes || fixEnvelopes)
         {
-          auto envelopes = BufferAdaptor::Access(get<kEnvelopes>().get());
+          auto envelopes = BufferAdaptor::Access(param<kEnvelopes>(*this).get());
           seededEnvelopes.col(j) = envelopes.samps(i, j);
         }
       }
 
-      auto nmf = algorithm::NMF(get<kRank>(), get<kIterations>(), !fixFilters, !fixEnvelopes);
+      auto nmf = algorithm::NMF(param<kRank>(*this), param<kIterations>(*this), !fixFilters, !fixEnvelopes);
 
       nmf.process(magnitude,outputFilters,outputEnvelopes,outputMags,seededFilters, seededEnvelopes);
 
       // Write W?
       if (hasFilters && !fixFilters) {
 //        auto finalFilters = m.getW();
-        auto filters = BufferAdaptor::Access{get<kFilters>().get()};
-        for (size_t j = 0; j < get<kRank>(); ++j)
+        auto filters = BufferAdaptor::Access{param<kFilters>(*this).get()};
+        for (size_t j = 0; j < param<kRank>(*this); ++j)
         {
           filters.samps(i, j) = outputFilters.row(j);
         }
@@ -191,9 +197,11 @@ public:
 //        auto finalEnvelopes = m.getH();
         auto maxH = *std::max_element(outputEnvelopes.begin(), outputEnvelopes.end());
         auto scale = 1. / (maxH);
-        auto envelopes = BufferAdaptor::Access{get<kEnvelopes>().get()};
+        auto envelopes = BufferAdaptor::Access{param<kEnvelopes>(*this).get()};
 
-        for (size_t j = 0; j < get<kRank>(); ++j) {
+        
+
+        for (size_t j = 0; j < param<kRank>(*this); ++j) {
           auto env = envelopes.samps(i, j);
           env = outputEnvelopes.col(j);
           env.apply([scale](float &x) { x *= scale; });
@@ -206,9 +214,9 @@ public:
         auto resynthSpectrum = FluidTensor<std::complex<double>,2>(nWindows,nBins);
         auto istft = algorithm::ISTFT{winSize, fftSize, hopSize};
         auto resynthAudio = FluidTensor<double,1>(nFrames);
-        auto resynth = BufferAdaptor::Access{get<kResynth>().get()};
+        auto resynth = BufferAdaptor::Access{param<kResynth>(*this).get()};
 
-        for (size_t j = 0; j < get<kRank>(); ++j) {
+        for (size_t j = 0; j < param<kRank>(*this); ++j) {
           algorithm::NMF::estimate(outputFilters,outputEnvelopes,j, resynthMags);
           mask.process(spectrum,resynthMags,resynthSpectrum);
           istft.process(resynthSpectrum,resynthAudio);

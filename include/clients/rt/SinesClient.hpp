@@ -3,8 +3,10 @@
 #include <algorithms/public/RTSineExtraction.hpp>
 #include <clients/common/AudioClient.hpp>
 #include <clients/common/FluidBaseClient.hpp>
+#include <clients/nrt/FluidNRTClientWrapper.hpp>
 #include <clients/common/ParameterConstraints.hpp>
 #include <clients/common/ParameterTypes.hpp>
+#include <clients/common/ParameterSet.hpp>
 #include <clients/common/ParameterTrackChanges.hpp>
 #include <clients/rt/BufferedProcess.hpp>
 #include <tuple>
@@ -18,67 +20,62 @@ enum SinesParamIndex {
   kMinTrackLen,
   kMagWeight,
   kFreqWeight,
-  kWinSize,
-  kHopSize,
-  kFFTSize,
-  kMaxWinSize
+  kFFT,
+  kMaxFFTSize
 };
 
-auto constexpr SinesParams = std::make_tuple(
+extern auto constexpr SinesParams = defineParameters(
     LongParam("bandwidth", "Bandwidth", 76, Min(1)), FloatParam("threshold", "Threshold", 0.7, Min(0.0), Max(1.0)),
     LongParam("minTrackLen", "Min Track Length", 15, Min(0)),
     FloatParam("magWeight", "Magnitude Weighting", 0.1, Min(0.0), Max(1.0)),
     FloatParam("freqWeight", "Frequency Weighting", 0.1, Min(0.0), Max(1.0)),
-    LongParam("winSize", "Window Size", 1024, Min(4)), LongParam("hopSize", "Hop Size", 512),
-    LongParam("fftSize", "FFT Size", 8192, LowerLimit<kWinSize>(), PowerOfTwo()),
-    LongParam<Fixed<true>>("maxWinSize", "Maxiumm Window Size", 16384));
+    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024,512,8192),
+    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
 
-using ParamsT = decltype(SinesParams);
+//using ParamsT = decltype(SinesParams);
 
-template <typename T, typename U = T> class SinesClient : public FluidBaseClient<ParamsT>, public AudioIn, public AudioOut
+template <typename Params,typename T, typename U = T> class SinesClient : public FluidBaseClient<Params>, public AudioIn, public AudioOut
 {
   using HostVector = HostVector<U>;
 
+  Params& mParams;
 public:
-  SinesClient(long maxWin)
-      : FluidBaseClient<ParamsT>(SinesParams)
+  SinesClient(Params& p)
+  : FluidBaseClient<Params>(p), mParams(p), mSTFTBufferedProcess{param<kMaxFFTSize>(p),1,2}
   {
-    set<kMaxWinSize>(maxWin, nullptr); 
-    audioChannelsIn(1);
-    audioChannelsOut(2);
+    FluidBaseClient<Params>::audioChannelsIn(1);
+    FluidBaseClient<Params>::audioChannelsOut(2);
   }
-
-
-  // Here we do an STFT and its inverse
+  
   void process(std::vector<HostVector> &input, std::vector<HostVector> &output)
   {
 
     if (!input[0].data()) return;
     if (!output[0].data() && !output[1].data()) return;
 
-    if (mTrackValues.changed(get<kWinSize>(), get<kHopSize>(), get<kFFTSize>(), get<kBandwidth>(), get<kMinTrackLen>()))
+    if (mTrackValues.changed(param<kFFT>(mParams).winSize(), param<kFFT>(mParams).hopSize(), param<kFFT>(mParams).fftSize(), param<kBandwidth>(mParams), param<kMinTrackLen>(mParams)))
     {
-      mSinesExtractor.reset(new algorithm::RTSineExtraction(get<kWinSize>(), get<kFFTSize>(), get<kHopSize>(),
-                                                            get<kBandwidth>(), get<kThreshold>(), get<kMinTrackLen>(),
-                                                            get<kMagWeight>(), get<kFreqWeight>()));
+      mSinesExtractor.reset(new algorithm::RTSineExtraction(param<kFFT>(mParams).winSize(), param<kFFT>(mParams).fftSize(), param<kFFT>(mParams).hopSize(),
+                                                            param<kBandwidth>(mParams), param<kThreshold>(mParams), param<kMinTrackLen>(mParams),
+                                                            param<kMagWeight>(mParams), param<kFreqWeight>(mParams)));
     } else
     {
-      mSinesExtractor->setThreshold(get<kThreshold>());
-      mSinesExtractor->setMagWeight(get<kMagWeight>());
-      mSinesExtractor->setFreqWeight(get<kFreqWeight>());
-      mSinesExtractor->setMinTrackLength(get<kMinTrackLen>());
+      mSinesExtractor->setThreshold(param<kThreshold>(mParams));
+      mSinesExtractor->setMagWeight(param<kMagWeight>(mParams));
+      mSinesExtractor->setFreqWeight(param<kFreqWeight>(mParams));
+      mSinesExtractor->setMinTrackLength(param<kMinTrackLen>(mParams));
     }
 
-    mSTFTBufferedProcess.process(*this, input, output, [this](ComplexMatrixView in, ComplexMatrixView out) {
+    mSTFTBufferedProcess.process(mParams, input, output, [this](ComplexMatrixView in, ComplexMatrixView out) {
       mSinesExtractor->processFrame(in.row(0), out.transpose());
     });
   }
 
-  size_t latency() { return get<kHopSize>() * get<kMinTrackLen>(); }
+  size_t latency() { return param<kFFT>(mParams).winSize() + (param<kFFT>(mParams).hopSize() * param<kMinTrackLen>(mParams)); }
 
 private:
-  STFTBufferedProcess<T, U, SinesClient, kMaxWinSize, kWinSize, kHopSize, kFFTSize, true> mSTFTBufferedProcess;
-  std::unique_ptr<algorithm::RTSineExtraction>                                            mSinesExtractor;
+  STFTBufferedProcess<Params, U, kFFT>  mSTFTBufferedProcess;
+  std::unique_ptr<algorithm::RTSineExtraction>   mSinesExtractor;
   ParameterTrackChanges<size_t,size_t,size_t,size_t,size_t> mTrackValues;
   size_t mWinSize{0};
   size_t mHopSize{0};
@@ -86,6 +83,13 @@ private:
   size_t mBandwidth{0};
   size_t mMinTrackLen{0};
 };
+
+
+template <typename Params, typename T, typename U>
+using NRTSines = NRTStreamAdaptor<SinesClient,Params,T,U,1,2>;
+
+auto constexpr NRTSineParams = impl::makeNRTParams({BufferParam("srcBuf", "Source Buffer")}, {BufferParam("sinesBuf","Sines Buffer"), BufferParam("resBuf", "Residual Buffer")}, SinesParams);
+
 
 } // namespace client
 } // namespace fluid

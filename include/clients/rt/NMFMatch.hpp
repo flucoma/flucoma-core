@@ -2,97 +2,95 @@
 
 #include <clients/common/ParameterTypes.hpp>
 #include <clients/common/ParameterConstraints.hpp>
+#include <clients/common/ParameterSet.hpp>
 #include <clients/common/FluidBaseClient.hpp>
 #include <clients/common/MakeParams.hpp>
 #include <clients/common/DeriveSTFTParams.hpp>
+#include <clients/common/ParameterSet.hpp>
 #include <clients/rt/BufferedProcess.hpp>
 #include <algorithms/public/NMF.hpp>
 #include <clients/common/ParameterTrackChanges.hpp>
 namespace fluid {
 namespace client {
 
-enum NMFMatchParamIndex{kFilterbuf,kMaxRank,kIterations,kWinSize,kHopSize,kFFTSize,kMaxWinSize};
+enum NMFMatchParamIndex{kFilterbuf,kMaxRank,kIterations,kFFT,kMaxFFTSize};
 
-auto constexpr NMFMatchParams =
-AddSTFTParams<1024,256,-1>(
-  std::make_tuple(
-    BufferParam("filterBuf", "Filters Buffer"),
-//    LongParam("rank", "Rank", 1, Min(1),UpperLimit<kMaxRank>()),
-    LongParam<Fixed<true>>("maxRank","Maximum Rank",20,Min(1)),
-    LongParam("iterations", "Iterations", 10, Min(1))));
+auto constexpr NMFMatchParams = defineParameters(
+  BufferParam("filterBuf", "Filters Buffer"),
+  LongParam<Fixed<true>>("maxRank","Maximum Rank",20,Min(1)),
+  LongParam("iterations", "Iterations", 10, Min(1)),
+  FFTParam<kMaxFFTSize>("fftSettings","FFT Settings",1024, -1,-1),
+  LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384)
+);
 
-using ParamsT = decltype(NMFMatchParams);
 
-template <typename T, typename U = T>
-class NMFMatch : public FluidBaseClient<ParamsT>, public AudioIn, public ControlOut {
+template <typename Params, typename T, typename U = T>
+class NMFMatch : public FluidBaseClient<Params>, public AudioIn, public ControlOut {
   using HostVector = HostVector<U>;
 public:
 
-  NMFMatch(const long maxRank, const long maxWin):FluidBaseClient<ParamsT>(NMFMatchParams)
+  NMFMatch(Params& p):FluidBaseClient<Params>{p},mParams{p},mSTFTProcessor(param<kMaxFFTSize>(p),1,0)
   {
-    audioChannelsIn(1);
-    controlChannelsOut(maxRank);
-    set<kMaxRank>(maxRank, nullptr);
-    set<kMaxWinSize>(maxWin,nullptr);
+    FluidBaseClient<Params>::audioChannelsIn(1);
+    FluidBaseClient<Params>::controlChannelsOut(param<kMaxRank>(p));
   }
 
-  size_t latency() { return get<kWinSize>(); }
+  size_t latency() { return param<kFFT>(mParams).winSize(); }
   
   void process(std::vector<HostVector> &input, std::vector<HostVector> &output)
   {
     if(!input[0].data()) return;// {Result::Status::kOk,""};
-    assert(controlChannelsOut() && "No control channels"); 
-    assert(output.size() >= controlChannelsOut() && "Too few output channels");
+    assert(FluidBaseClient<Params>::controlChannelsOut() && "No control channels");
+    assert(output.size() >= FluidBaseClient<Params>::controlChannelsOut() && "Too few output channels");
     
     
-    if (get<kFilterbuf>().get()) {
+    
+    if (param<kFilterbuf>(mParams).get()) {
 
-      auto filterBuffer = BufferAdaptor::Access(get<kFilterbuf>().get());
-
+      auto filterBuffer = BufferAdaptor::Access(param<kFilterbuf>(mParams).get());
+      auto& fftParams = param<kFFT>(mParams);
+    
       if (!filterBuffer.valid()) {
         return ;//{Result::Status::kError,"Filter buffer invalid"};
       }
 
-      size_t winSize, hopSize, fftSize;
-      std::tie(winSize,hopSize,fftSize) = impl::deriveSTFTParams<kWinSize,kHopSize,kFFTSize>(*this);
+      size_t rank  = std::min<size_t>(filterBuffer.numChans(),param<kMaxRank>(mParams));
 
-      size_t nBins = fftSize / 2 + 1;
-      size_t rank  = std::min<size_t>(filterBuffer.numChans(),get<kMaxRank>());
-
-      if (filterBuffer.numFrames() != nBins)
+      if (filterBuffer.numFrames() != fftParams.frameSize())
       {
         return;// {Result::Status::kError, "NMFMatch: Filters buffer needs to be (fftsize / 2 + 1) frames"};
       }
 
-      if(mTrackValues.changed(rank, nBins))
+      if(mTrackValues.changed(rank, fftParams.frameSize()))
       {
-        tmpFilt.resize(nBins,rank);
-        tmpMagnitude.resize(1,nBins);
+        tmpFilt.resize(fftParams.frameSize(),rank);
+        tmpMagnitude.resize(1,fftParams.frameSize());
         tmpOut.resize(rank);
-        mNMF.reset(new algorithm::NMF(rank, get<kIterations>()));
+        mNMF.reset(new algorithm::NMF(rank, param<kIterations>(mParams)));
       }
 
       for (size_t i = 0; i < tmpFilt.cols(); ++i)
         tmpFilt.col(i) = filterBuffer.samps(0, i);
 
-      controlTrigger(false);
-      mSTFTProcessor.process(*this, input, output,
-        [&](ComplexMatrixView in, ComplexMatrixView out)
+//      controlTrigger(false);
+      mSTFTProcessor.processInput(mParams, input,
+        [&](ComplexMatrixView in)
         {
           algorithm::STFT::magnitude(in, tmpMagnitude);
           mNMF->processFrame(tmpMagnitude.row(0), tmpFilt, tmpOut);
-          controlTrigger(true);
-          for(size_t i = 0; i < rank; ++i)
-            output[i](0) = tmpOut(i);
+//          controlTrigger(true);
         });
+      
+        for(size_t i = 0; i < rank; ++i)
+          output[i](0) = tmpOut(i);
     }
     //return;// {Result::Status::kOk};
   }
 
 private:
-
+  Params& mParams;
   ParameterTrackChanges<size_t,size_t> mTrackValues;
-  STFTBufferedProcess<T, U, NMFMatch, kMaxWinSize, kWinSize, kHopSize, kFFTSize, false, false> mSTFTProcessor;
+  STFTBufferedProcess<Params, U, kFFT,false> mSTFTProcessor;
   std::unique_ptr<algorithm::NMF> mNMF;
 
   FluidTensor<double, 2> tmpFilt;
