@@ -552,9 +552,10 @@ template <size_t N> struct FluidTensorSlice {
   std::array<std::size_t, N>
       strides; // offset between elements in each dimension
 
-  void reset(std::size_t start, std::initializer_list<std::size_t> exts)
+  void reset(std::size_t s, std::initializer_list<std::size_t> exts)
   {
     std::copy(exts.begin(), exts.end(), extents.begin());
+    start = s;
     init();
   }
 
