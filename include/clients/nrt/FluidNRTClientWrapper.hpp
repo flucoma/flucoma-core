@@ -1,9 +1,10 @@
 #pragma once
 
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/ParameterTypes.hpp>
 #include <clients/common/BufferAdaptor.hpp>
+#include <clients/common/FluidBaseClient.hpp>
 #include <clients/common/OfflineClient.hpp>
+#include <clients/common/ParameterTypes.hpp>
+#include <clients/common/ParameterSet.hpp>
 #include <clients/common/SpikesToTimes.hpp>
 #include <data/FluidTensor.hpp>
 #include <data/TensorTypes.hpp>
@@ -13,75 +14,95 @@ namespace fluid{
 namespace client{
 
 namespace impl{
-template<typename RTClient, template <typename,typename> class ProcessType>
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+template<typename B>
+auto constexpr makeWrapperInputs(B b)
+{
+    return defineParameters(std::forward<B>(b),
+          LongParam("offset", "Sample Offset",0),
+          LongParam("nFrames","Number Frames",-1),
+          LongParam("startChan","Start Channel",0,Min(0)),
+          LongParam("numChans","Number Channels",-1)
+          );
+}
+
+template<typename...B>
+auto constexpr makeWrapperOutputs(B...b)
+{
+  return defineParameters(std::forward<B>(b)...);
+}
+
+template<typename T,size_t N, size_t...Is>
+auto constexpr spitIns(T(&a)[N],std::index_sequence<Is...>)
+{
+    return makeWrapperInputs(std::forward<T>(a[Is])...);
+}
+
+template<typename T,size_t N, size_t...Is>
+auto constexpr spitOuts(T(&a)[N],std::index_sequence<Is...>)
+{
+    return makeWrapperOutputs(std::forward<T>(a[Is])...);
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+using BufferSpec = ParamSpec<BufferT,Fixed<false>>;
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+template<typename RTParams,size_t Ms>
+auto constexpr makeNRTParams(BufferSpec&& in,BufferSpec(&& out)[Ms],const RTParams &p)
+{
+  return makeWrapperInputs(in).join(spitOuts(out,std::make_index_sequence<Ms>())).template join<Ms + 5>(p);
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+template<template <typename, typename> class AdaptorType,
+  template <typename,typename,typename> class RTClient, typename Params, typename T, typename U, size_t Ins, size_t Outs>
 class NRTClientWrapper: public OfflineIn, public OfflineOut
 {
-public:
   
-  //Host buffers are always float32 (?)
-  using HostVector =  FluidTensor<float,1>;
-  using HostMatrix =  FluidTensor<float,2>;
+public:
 
+  //The client will be accessing its parameter by a bunch of indices that need ofsetting now
+//  using Client = RTClient<impl::ParameterSet_Offset<Params,ParamOffset>,T,U>;
+// None of that for outputs though
+  
+  static constexpr size_t ParamOffset  = (Ins*5) + Outs;
+  using WrappedClient = RTClient<ParameterSet_Offset<Params,ParamOffset>,T,U>;
+
+  //Host buffers are always float32 (?)
+  using HostVector     =  FluidTensor<float,1>;
+  using HostMatrix     =  FluidTensor<float,2>;
   using HostVectorView =  FluidTensorView<float,1>;
   using HostMatrixView =  FluidTensorView<float,2>;
   
-  NRTClientWrapper() = default;
+  NRTClientWrapper(Params& p):
+    mParams{p},
+    mParamsWithOffset{p},
+    mClient{mParamsWithOffset}
+  {}
 
-  ///Delegate FluidBaseClient interface back to mClient
-  using ValueTuple = typename RTClient::ValueTuple;
-  using ParamType = typename RTClient::ParamType;
-  using ParamIndexList = typename RTClient::ParamIndexList;
-  using UnderlyingTypeTuple = typename RTClient::UnderlyingTypeTuple; 
+  template <std::size_t N> auto& get() noexcept { return mParams.template get<N>(); }
+//  template <std::size_t N> bool changed() noexcept { return mParams.template changed<N>(); }
   
-  template <template <size_t N, typename T> class Func>
-  static void iterateParameterDescriptors(ParamType params)
-  {
-    RTClient::template iterateParameterDescriptors<Func>(params);
-  }
-  
- auto validateParameters(UnderlyingTypeTuple values)
- {
-    return mClient.validateParameters(values);
- }
- 
-  template <template <size_t N, typename T> class Func, typename...Args>
-  auto setParameterValues(bool reportage,Args&&...args)
-  {
-    return mClient.template setParameterValues<Func>(reportage,std::forward<Args>(args)...);
-  }
-
-  template<template <size_t N, typename T> class Func, typename...Args>
-  void forEachParam(Args&&...args)
-  {
-    mClient.template forEachParam<Func>(std::forward<Args>(args)...); 
-  }
-
-  template <template <size_t N, typename T> class Func, typename...Args>
-  auto checkParameterValues(Args&&...args) { return mClient.template checkParameterValues<Func>(std::forward<Args>(args)...); }
-  
-  template <size_t N,typename T> void set(T&& x, Result* r) noexcept { mClient.template set<N>(std::forward<T>(x), r); }
-  template <std::size_t N> auto get() noexcept { return mClient.template get<N>(); }
-  template <std::size_t N> bool changed() noexcept { return mClient.template changed<N>(); }
-  
-  size_t audioChannelsIn() const noexcept {return 0;}
-  size_t audioChannelsOut() const noexcept {return 0;}
-  size_t controlChannelsIn() const noexcept {return 0;}
-  size_t controlChannelsOut() const noexcept {return 0;}
+  size_t audioChannelsIn()    const noexcept { return 0; }
+  size_t audioChannelsOut()   const noexcept { return 0; }
+  size_t controlChannelsIn()  const noexcept { return 0; }
+  size_t controlChannelsOut() const noexcept { return 0; }
   ///Map delegate audio channels to audio buffers
-  size_t audioBuffersIn() const noexcept { return mClient.audioChannelsIn();}
-  size_t audioBuffersOut() const noexcept { return mClient.audioChannelsOut();}
+  size_t audioBuffersIn()  const noexcept { return mClient.audioChannelsIn();  }
+  size_t audioBuffersOut() const noexcept { return mClient.audioChannelsOut(); }
 
-  Result process(std::vector<BufferProcessSpec>& inputBuffers, std::vector<BufferProcessSpec>& outputBuffers)
+  Result process()
   {
   
-    std::vector<long> inFrames;
-    std::vector<long> inChans;
-//    std::vector<long> startFrames;
-//    std::vector<long> startChans;
+    auto constexpr inputCounter = std::make_index_sequence<Ins>();
+    auto constexpr outputCounter = std::make_index_sequence<Outs>();
     
-    inFrames.reserve(inputBuffers.size());
-    inChans.reserve(inputBuffers.size());
+    auto inputBuffers  = fetchInputBuffers(inputCounter);
+    auto outputBuffers = fetchOutputBuffers(outputCounter);
+  
+    std::array<long,Ins> inFrames;
+    std::array<long,Ins> inChans;
+    
     //check buffers exist
+    int count = 0;
     for(auto&& b: inputBuffers)
     {
       BufferAdaptor::Access thisInput(b.buffer);
@@ -96,31 +117,61 @@ public:
       if(b.startChan + requestedChans > thisInput.numChans())
         return {Result::Status::kError, "Input buffer ", b.buffer, ": not enough channels" }; //error
   
-      inFrames.push_back(b.nFrames < 0 ? thisInput.numFrames() : b.nFrames);
-      inChans.push_back(b.nChans < 0 ? thisInput.numChans() : b.nChans);
+      inFrames[count] = b.nFrames < 0 ? thisInput.numFrames() : b.nFrames;
+      inChans[count] =  b.nChans < 0 ? thisInput.numChans() : b.nChans ;
+      count++;
     }
     
-    size_t numFrames = *std::min_element(inFrames.begin(),inFrames.end());
+    size_t numFrames   = *std::min_element(inFrames.begin(),inFrames.end());
     size_t numChannels = *std::min_element(inChans.begin(), inChans.end());
+  AdaptorType<HostMatrix,HostVectorView>::process(mClient,inputBuffers,outputBuffers,numFrames,numChannels);
     
-    ProcessType<HostMatrix,HostVectorView>::process(mClient,inputBuffers,outputBuffers,numFrames,numChannels);
-    
-    return {}; 
+    return {Result::Status::kOk,""};
   }
 private:
-  RTClient  mClient;
-};
 
+  template<size_t I>
+  BufferProcessSpec fetchInputBuffer()
+  {
+    return {get<I>().get(),get<I+1>(), get<I+2>(),get<I+3>(),get<I+4>()};
+  }
+  
+  template<size_t...Is>
+  std::array<BufferProcessSpec, sizeof...(Is)> fetchInputBuffers(std::index_sequence<Is...>)
+  {
+    return {fetchInputBuffer<Is*5>()...};
+  }
+  
+  template<size_t...Is>
+  std::array<BufferAdaptor*,sizeof...(Is)> fetchOutputBuffers(std::index_sequence<Is...>)
+  {
+    return {get<Is + (Ins*5)>().get()...};
+  }
+
+  Params&  mParams;
+  ParameterSet_Offset<Params, ParamOffset> mParamsWithOffset;
+  WrappedClient  mClient;
+};
+//////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename HostMatrix, typename HostVectorView>
 struct Streaming
 {
-  template <typename Client>
-  static void process(Client& client, std::vector<BufferProcessSpec>& inputBuffers,std::vector<BufferProcessSpec>& outputBuffers, size_t nFrames, size_t nChans)
+  template <typename Client,typename InputList, typename OutputList>
+  static void process(Client& client, InputList& inputBuffers,OutputList& outputBuffers, size_t nFrames, size_t nChans)
   {
-  
+    //To account for process latency we need to copy the buffers with padding
     std::vector<HostMatrix> outputData;
+    std::vector<HostMatrix> inputData;
+    
     outputData.reserve(outputBuffers.size());
-    std::fill_n(std::back_inserter(outputData), outputBuffers.size(), HostMatrix(nChans,nFrames));
+    inputData.reserve(inputBuffers.size());
+    
+    size_t padding = client.latency();
+    
+    std::fill_n(std::back_inserter(outputData), outputBuffers.size(), HostMatrix(nChans,nFrames + padding));
+    std::fill_n(std::back_inserter(inputData), inputBuffers.size(), HostMatrix(nChans,nFrames + padding));
+    
+  
     for(int i = 0; i < nChans; ++i)
     {
       std::vector<HostVectorView> inputs;
@@ -128,7 +179,8 @@ struct Streaming
       for(int j = 0; j < inputBuffers.size(); ++j)
       {
         BufferAdaptor::Access thisInput(inputBuffers[j].buffer);
-        inputs.emplace_back(thisInput.samps(inputBuffers[j].startFrame,nFrames,inputBuffers[j].startChan + i));
+        inputData[j].row(i)(Slice(0,nFrames)) = thisInput.samps(inputBuffers[j].startFrame,nFrames,inputBuffers[j].startChan + i);
+        inputs.emplace_back(inputData[j].row(i));
       }
       
       std::vector<HostVectorView> outputs;
@@ -141,19 +193,20 @@ struct Streaming
 
     for(int i = 0; i < outputBuffers.size(); ++i)
     {
-      BufferAdaptor::Access thisOutput(outputBuffers[i].buffer);
+      if(!outputBuffers[i]) continue;
+      BufferAdaptor::Access thisOutput(outputBuffers[i]);
       thisOutput.resize(nFrames,nChans,1);
       for(int j = 0; j < nChans; ++j)
-        thisOutput.samps(j) = outputData[i].row(j);
+        thisOutput.samps(j) = outputData[i].row(j)(Slice(padding));
     }
   }
 };
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename HostMatrix,typename HostVectorView>
 struct Slicing
 {
-  template <typename Client>
-  static void process(Client& client, std::vector<BufferProcessSpec>& inputBuffers,std::vector<BufferProcessSpec>& outputBuffers, size_t nFrames, size_t nChans)
+  template <typename Client,typename InputList, typename OutputList>
+  static void process(Client& client, InputList& inputBuffers,OutputList& outputBuffers, size_t nFrames, size_t nChans)
   {
     
     assert(inputBuffers.size() == 1);
@@ -171,15 +224,16 @@ struct Slicing
     
     client.process(input,output);
     
-    impl::spikesToTimes(onsetPoints.row(0), outputBuffers[0].buffer, 1, inputBuffers[0].startFrame, nFrames);
+    impl::spikesToTimes(onsetPoints.row(0), outputBuffers[0], 1, inputBuffers[0].startFrame, nFrames);
   }
 };
 
 } //namespace impl
-
-template<typename RTClient> using NRTStreamAdaptor = impl::NRTClientWrapper<RTClient, impl::Streaming>;
-template<typename RTClient> using NRTSliceAdaptor = impl::NRTClientWrapper<RTClient, impl::Slicing>;
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+template<template <typename,typename,typename> class RTClient,typename Params,typename T, typename U, size_t Ins, size_t Outs>
+using NRTStreamAdaptor = impl::NRTClientWrapper< impl::Streaming,RTClient,Params,T,U,Ins,Outs>;
+template<template <typename,typename,typename> class RTClient,typename Params,typename T, typename U,size_t Ins, size_t Outs>
+using NRTSliceAdaptor  = impl::NRTClientWrapper< impl::Slicing, RTClient,Params,T,U,Ins,Outs>;
 
 } //namespace client
 } //namespace fluid

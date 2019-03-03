@@ -2,6 +2,7 @@
 
 #include "ParameterTypes.hpp"
 #include "Result.hpp"
+#include "ParameterTrackChanges.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -17,7 +18,7 @@ auto makeOdd = [](auto a) { return [=] { return a % 2 ? a - 1 : a; }; };
 template <typename T> struct MinImpl {
   constexpr MinImpl(const T m) : value(m) {}
   const T value;
-  template <size_t N, typename U, typename Tuple> constexpr void clamp(U &x, Tuple& params, Result* r) {
+  template <size_t Offset,size_t N, typename U, typename Tuple> constexpr void clamp(U &x, Tuple& params, Result* r) {
     U oldX = x;
     x = std::max<U>(x, value);
     if(r && oldX != x)
@@ -32,7 +33,7 @@ template <typename T> struct MinImpl {
 template <typename T> struct MaxImpl {
   constexpr MaxImpl(const T m) : value(m) {}
   const T value;
-  template <size_t N, typename U, typename Tuple> constexpr void clamp(U &x, Tuple& params, Result* r) {
+  template <size_t Offset,size_t N, typename U, typename Tuple> constexpr void clamp(U &x, Tuple& params, Result* r) {
     
     U oldX = x;
     x = std::min<U>(x, value);
@@ -46,18 +47,18 @@ template <typename T> struct MaxImpl {
 };
 
 template <int... Is> struct LowerLimitImpl {
-  template <size_t N, typename T, typename Tuple> void clamp(T &v, Tuple& params, Result* r) {
+  template <size_t Offset,size_t N, typename T, typename Tuple> void clamp(T &v, Tuple& params, Result* r) {
     
     T oldV = v;
     
-    v = std::max<T>({v, std::get<Is>(params).first.get()...});
+    v = std::max<T>({v, std::get<Is + Offset>(params).first.get()...});
     
     if(r && oldV != v)
     {
       r->set(Result::Status::kWarning);
-      std::array<T,sizeof...(Is)> constraintValues {std::get<Is>(params).first.get()...};
+      std::array<T,sizeof...(Is)> constraintValues {std::get<Is + Offset>(params).first.get()...};
       size_t minPos = std::distance(constraintValues.begin(), std::min_element(constraintValues.begin(), constraintValues.end()));
-      std::array<const char*,sizeof...(Is)> constraintNames {std::get<Is>(params).first.name()...};
+      std::array<const char*,sizeof...(Is)> constraintNames {std::get<Is + Offset>(params).first.name()...};
       r->addMessage(std::get<N>(params).first.name());
       r->addMessage(" value ("); r->addMessage(oldV);r->addMessage(") below parameter ");r->addMessage(constraintNames[minPos]);
       r->addMessage(" ("); r->addMessage(v);r->addMessage(')');
@@ -66,18 +67,18 @@ template <int... Is> struct LowerLimitImpl {
 };
 
 template <int... Is> struct UpperLimitImpl {
-  template <size_t N, typename T, typename Tuple> void clamp(T &v, Tuple& params, Result* r) {
+  template <size_t Offset, size_t N, typename T, typename Tuple> void clamp(T &v, Tuple& params, Result* r) {
     
     T oldV = v;
     
-    v = std::min<T>({v, std::get<Is>(params).first.get()...});
+    v = std::min<T>({v, std::get<Is + Offset>(params).first.get()...});
     
     if(r && oldV != v)
     {
       r->set(Result::Status::kWarning);
-      std::array<T,sizeof...(Is)> constraintValues {std::get<Is>(params).first.get()...};
+      std::array<T,sizeof...(Is)> constraintValues {std::get<Is + Offset>(params).first.get()...};
       size_t maxPos = std::distance(constraintValues.begin(), std::max_element(constraintValues.begin(), constraintValues.end()));
-      std::array<const char*,sizeof...(Is)> constraintNames  {std::get<Is>(params).first.name()...};
+      std::array<const char*,sizeof...(Is)> constraintNames  {std::get<Is + Offset>(params).first.name()...};
       r->addMessage(std::get<N>(params).first.name());
       r->addMessage(" value, "); r->addMessage(oldV);r->addMessage(", above parameter ");r->addMessage(constraintNames[maxPos]);
       r->addMessage(" ("); r->addMessage(v);r->addMessage(')');
@@ -85,21 +86,19 @@ template <int... Is> struct UpperLimitImpl {
   }
 };
 
-template <int WinIndex, int FFTIndex>
+template <int FFTIndex>
 struct FrameSizeUpperLimitImpl
 {
-  template<size_t N, typename T, typename Tuple> void clamp(T& v, Tuple& params, Result* r)
+  template<size_t Offset, size_t N, typename T, typename Tuple> void clamp(T& v, Tuple& params, Result* r)
   {
     T oldV = v;
-    size_t fftSize = std::get<FFTIndex>(params).first.get();
-    fftSize = fftSize == -1 ? std::get<WinIndex>(params).first.get() : fftSize;
-    v = std::min<T>(v, fftSize / 2 + 1);
+    size_t frameSize = std::get<FFTIndex + Offset>(params).first.get().frameSize();
+    v = std::min<T>(v, frameSize);
     
     if(r && oldV != v)
     {
       r->set(Result::Status::kWarning);
-      r->addMessage(std::get<N>(params).first.name());
-      r->addMessage(" value ("); r->addMessage(oldV);r->addMessage(") above spectral frame size (");r->addMessage(v);r->addMessage(')');
+      r->addMessage(std::get<N>(params).first.name()," value (", oldV,") above spectral frame size (",v,')');
     }
   }
 };
@@ -107,10 +106,10 @@ struct FrameSizeUpperLimitImpl
 
 template<int WinSizeIndex>
 struct WinLowerLimitImpl{
-  template<size_t N, typename T, typename Tuple> void clamp(T& FFTSize, Tuple& params, Result* r)
+  template<size_t Offset, size_t N, typename T, typename Tuple> void clamp(T& FFTSize, Tuple& params, Result* r)
   {
     size_t oldFFTSize = FFTSize;
-    size_t winSize = std::get<WinSizeIndex>(params).first.get();
+    size_t winSize = std::get<WinSizeIndex + Offset>(params).first.get();
     FFTSize = FFTSize == -1 ? FFTSize : std::max<size_t>(winSize,FFTSize);
     if(r && oldFFTSize != FFTSize)
     {
@@ -123,10 +122,10 @@ struct WinLowerLimitImpl{
 
 template<int FFTIndex>
 struct FFTUpperLimitImpl{
-  template<size_t N, typename T, typename Tuple> void clamp(T& winSize, Tuple& params, Result* r)
+  template<size_t Offset, size_t N, typename T, typename Tuple> void clamp(T& winSize, Tuple& params, Result* r)
   {
     size_t oldWinSize = winSize;
-    size_t fftSize = std::get<FFTIndex>(params).first.get();
+    size_t fftSize = std::get<FFTIndex + Offset>(params).first.get();
     winSize = fftSize == -1 ? winSize : std::min<size_t>(winSize,fftSize);
     if(r && oldWinSize != winSize)
     {
@@ -163,7 +162,7 @@ struct FrequencyAmpPairConstraint
   
   constexpr FrequencyAmpPairConstraint(){}
   
-  template <size_t N, typename Tuple> constexpr void clamp(type &v, Tuple&, Result* r)
+  template <size_t Offset, size_t N, typename Tuple> constexpr void clamp(type &v, Tuple&, Result* r)
   {
     //For now I know that array size is 2, just upper and lower vals
     //TODO: make generic for any old monotonic array of freq-amp pairs, should we need it
@@ -172,8 +171,8 @@ struct FrequencyAmpPairConstraint
     v[0].first = std::max<double>(std::min<double>(v[0].first,1),0);
     v[1].first = std::max<double>(std::min<double>(v[1].first,1),0); 
     
-    lowerChanged = v[0].first == oldLower;
-    upperChanged = v[1].first == oldUpper;
+    lowerChanged = v[0].first != oldLower;
+    upperChanged = v[1].first != oldUpper;
     
     if(lowerChanged && !upperChanged && v[0].first > v[1].first) v[0].first = v[1].first;
     if(upperChanged && !lowerChanged && v[0].first > v[1].first) v[1].first = v[0].first;
@@ -192,8 +191,9 @@ private:
   double oldUpper{0};
 };
 
+
 struct PowerOfTwo {
-  template <size_t N, typename Tuple> constexpr LongUnderlyingType clamp(LongUnderlyingType x, Tuple& params, Result* r) {
+  template <size_t Offset, size_t N, typename Tuple> constexpr void clamp(LongUnderlyingType& x, Tuple& params, Result* r) {
     
     int exp = 0;
     double base = std::frexp(x, &exp);
@@ -205,20 +205,20 @@ struct PowerOfTwo {
       r->addMessage(std::get<N>(params).first.name());
       r->addMessage(" value ("); r->addMessage(x);r->addMessage(") adjusted to power of two (");r->addMessage(res);r->addMessage(')');
     }
-    return res;
+    x =  res;
   }
 
 };
 
 struct Odd {
-  template <size_t N, typename Tuple> constexpr LongUnderlyingType clamp(LongUnderlyingType x, Tuple& params, Result* r) {
-    return x % 2 ? x : x + 1; 
+  template <size_t Offset, size_t N, typename Tuple> constexpr void clamp(LongUnderlyingType& x, Tuple& params, Result* r) {
+    x = x % 2 ? x : x + 1;
   }
 };
 
-template <int WinIndex, int FFTIndex> auto constexpr FrameSizeUpperLimit()
+template <int FFTIndex> auto constexpr FrameSizeUpperLimit()
 {
-  return impl::FrameSizeUpperLimitImpl<WinIndex,FFTIndex>{};
+  return impl::FrameSizeUpperLimitImpl<FFTIndex>{};
 }
 
 template<int FFTIndex> auto constexpr FFTUpperLimit()
