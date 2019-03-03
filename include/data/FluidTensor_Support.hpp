@@ -3,71 +3,42 @@
  **/
 
 #pragma once
+
+#include "FluidMeta.hpp"
+#include <array>  //std::array
+#include <cassert> //assert()
+#include <functional> // less, multiplies
+#include <numeric> //accujmuate, innerprodct
+
+
+namespace fluid{
+
+/*****************************
+ slice
+ Used for requesting slices from client code using operater() on FluidTensor and
+ FluidTensorView. Implementation replicates Stroustrup's in C++PL4 (p841) Not
+ sure I like the deliberate wrapping of the unsigned indices though The actual
+ action happens in the FluidTensorSlice template, with some recursive variadic
+ args goodness
+ ********************************/
+struct Slice {
+  //        /static constexpr slice all(0, std::size_t(-1),1);
+
+  Slice() : start(-1), length(-1), stride(1) {}
+
+  explicit Slice(size_t s) : start(s), length(-1), stride(1) {}
+
+  Slice(size_t s, size_t l, size_t n = 1) : start(s), length(l), stride(n) {}
+
+  size_t start;
+  size_t length;
+  size_t stride;
+};
+
 /*****************************
  FluidTensorSlice describes mappings of indices to points in our storage
  ******************************/
 template <size_t N> struct FluidTensorSlice;
-
-/******************************************************************************
- Traits and constraints.
- TODO: move to own header
- *****************************************************************************/
-
-/***
- enable_if_t replicates the same structure in C++14.
- Note that BS calls this Requires() in C++PL4.
-
- It is used to switch functions on and off depending on template arguments.
-
- It defines a type coditionally, depending on whether the boolean condition
- is satisfied. The second argument defines the type it would return.
-
- So, e.g., for a function that returned an int, that we wanted to enable based
- on some template argument N being > 0, we could do
-
- template<size_t N>
- enable_if_t< (N > 0), int> foo(){...
-
- This gets quite a bit of use below, to avoid specializing whole classes
- for different dimensioned containers.
- ***/
-template <bool B, typename T = void>
-using enable_if_t = typename std::enable_if<B, T>::type;
-
-/****
- All() and Some() are can be used with enable_if_t to check that
- variadic template arguments satisfy some condition
- These are names that stroustrup uses, however C++17 introduces
- 'conjunction' & 'disjunction' that seem to do the same, but are defined
- slightly differently
-
- So, one example of use is to make sure that all variadic arguments can
- be converted to a given type. Let's say size_t, and again use our function
- foo that returns int
-
- enable_if_t<All(std::is_convertible<size_t, Args>::value...),int>
- foo(){...
-
- We use these for getting different versions of operator() for arguments
- of indices and of slice specifications.
-
- Both All() and Some() use the common trick with variadic template args of
- recursing through the list. You'll see in both cases a 'base case' declared
- as constexpr, which is the function without any args. Then, the template below
- calls itself, consuming one more arg from the list at a time.
- ****/
-// Base case
-constexpr bool all() { return true; }
-// Recurse
-template <typename... Args> constexpr bool all(bool b, Args... args) {
-  return b && all(args...);
-}
-// Base case
-constexpr bool some() { return false; }
-// Recurse
-template <typename... Args> constexpr bool some(bool b, Args... args) {
-  return b || some(args...);
-}
 
 /****
  Convinience constraint for determining if a arg list can be treated as a set of
@@ -76,8 +47,8 @@ template <typename... Args> constexpr bool some(bool b, Args... args) {
  ****/
 template <typename... Args> constexpr bool isSliceSequence() {
   return all((std::is_convertible<Args, size_t>() ||
-              std::is_same<Args, fluid::Slice>())...) &&
-         some(std::is_same<Args, fluid::Slice>()...);
+              std::is_same<Args, Slice>())...) &&
+         some(std::is_same<Args, Slice>()...);
 }
 
 /*****
@@ -87,25 +58,6 @@ template <typename... Args> constexpr bool isIndexSequence() {
   return all(std::is_convertible<Args, size_t>()...);
 }
 
-/***
- Is this type complex? (Not currently used
- template <typename T> struct is_complex:std::false_type{};
- template <typename T> struct is_complex<std::complex<T>>:std::true_type {};
-
- template <typename T>
- using if_complex_get_value_type = typename
- std::conditional<is_complex<T>{},typename T::value_type,T>::type;
- ****/
-
-/****
- Does the iterator of this type fulfill the given itertator category?
- Used by FluidTensorSlice to ensure that we have at least a ForwardIterator
- in its constructor that takes a range
- ****/
-template <typename Iterator, typename IteratorTag>
-using IsIteratorType =
-    std::is_base_of<IteratorTag,
-                    typename std::iterator_traits<Iterator>::iterator_category>;
 
 // Alias integral_constant<size_t,N>
 template <std::size_t N>
@@ -113,12 +65,11 @@ using size_constant = std::integral_constant<std::size_t, N>;
 
 namespace _impl {
 /****************************************************
- * Helper templates for the container. Put into _impl namespace to make clear
- *that these are internal
+ * Helper templates for the container.
  ******************************************************/
 
 /********************
- Check bounds is used to ensure that a set of dimension extents
+ Ensure that a set of dimension extents
  will fit within the FluidTensorSlice being asked for them
  ********************/
 template <size_t N, typename... Dims>
@@ -169,7 +120,7 @@ struct FluidTensorInit<T, 0>; // undefined on purpose: things should barf if
 
 // Terminating case, constrained on N==1
 template <std::size_t N, typename I, typename List>
-enable_if_t<(N == 1)>
+  std::enable_if_t<(N == 1)>
 // TODO: add constraint for FluidTensor_Initializer<T> here?
 addExtents(I &first, const List &list) {
   *first++ = list.size(); // deepest nesting
@@ -177,7 +128,7 @@ addExtents(I &first, const List &list) {
 
 // Recursion
 template <std::size_t N, typename I, typename List>
-enable_if_t<(N > 1)>
+  std::enable_if_t<(N > 1)>
 // TODO: add constraint for FluidTensor_Initializer<T> here?
 addExtents(I &first, const List &list) {
   //    assert(check_non_jagged(list));
@@ -197,86 +148,6 @@ std::array<size_t, N> deriveExtents(const List &list) {
   return a;
 }
 
-//        /*********
-//         Makes a new FluidTensorSlice based on offsetting into an existing one
-//         *********/
-//        template<size_t D, size_t N>
-//        fluid::FluidTensorSlice<N-1> slice_dim(const
-//        fluid::FluidTensorSlice<N>& inp,size_t idx)
-//        {
-//            static_assert(D<=N, "Requested dimension too big");
-//
-//            fluid::FluidTensorSlice<N-1> r;
-//            r.size = inp.size / inp.extents[D];
-//            r.start = inp.start + idx * inp.strides[D];
-//            auto i = std::copy_n(inp.extents.begin(),D,r.extents.begin());
-//            std::copy_n(inp.extents.begin() + D + 1, N-D-1,i);
-//            auto j = std::copy_n(inp.strides.begin(),D,r.strides.begin());
-//            std::copy_n(inp.strides.begin() + D + 1, N-D-1,j);
-//            return r;
-//        }
-//
-//        /************************************************
-//         doSliceDim does the hard work in making an arbitary
-//         new slice from an existing one, used by the operator()
-//         of FluidTensor and FluidRensorView. These are called by
-//         do_slice, immediately below
-//         ************************************************/
-//        template<size_t N, size_t M>
-//        size_t doSliceDim(const fluid::FluidTensorSlice<M>& original_slice,
-//        fluid::FluidTensorSlice<M>& new_slice, size_t n)
-//        {
-//            return doSliceDim<N>(new_slice, fluid::slice(n, 1, 1));
-//        }
-//
-//        template<size_t N, size_t M, typename T>
-//        size_t doSliceDim(const fluid::FluidTensorSlice<M>& original_slice,
-//        fluid::FluidTensorSlice<M>& new_slice, const T& s)
-//        {
-//            fluid::slice reformed(s);
-//            if(reformed.start >= original_slice.extents[N])
-//                reformed.start = 0;
-//
-//            if(reformed.length > original_slice.extents[N] || reformed.start +
-//            reformed.length > original_slice.extents[N])
-//                reformed.length = original_slice.extents[N] - reformed.start;
-//
-//            if(reformed.start + reformed.length * reformed.stride >
-//            original_slice.extents[N])
-//                reformed.length = ((original_slice.extents[N] -
-//                reformed.start) + reformed.stride -1) / reformed.stride;
-//
-//            new_slice.extents[N] = reformed.length;
-//            new_slice.strides[N] = original_slice.strides[N] *
-//            reformed.stride; new_slice.size = new_slice.extents[0] *
-//            new_slice.strides[0]; return reformed.start *
-//            original_slice.strides[N];
-//        }
-//
-//        /************************************************
-//         do_slice recursively populates a new slice from
-//         an old one, based on some variable number of slicing
-//         args (that should match the number of dimensions of the
-//         container or ref at hand.
-//         ************************************************/
-//        //Terminating conidition
-//        template<size_t N>
-//        size_t do_slice(const fluid::FluidTensorSlice<N>& os,
-//        fluid::FluidTensorSlice<N>& ns)
-//        {
-//            return 0;
-//        }
-//        //Recursion. Works out the offset for a dimension,
-//        //and calls again, for the next dimension
-//        template<size_t N, typename T, typename ...Args>
-//        size_t do_slice(const fluid::FluidTensorSlice<N>& os,
-//        fluid::FluidTensorSlice<N>& ns, const T& s, const Args&... args)
-//        {
-//            //<N - sizeof...(Args) - 1>
-//            size_t m = doSliceDim<N - sizeof...(Args) - 1>(os, ns, s);
-//            size_t n = do_slice(os, ns, args...);
-//            return n+m;
-//        }
 
 /**
  * These templates are for _populating_ our container with the contents of
@@ -330,7 +201,16 @@ template <typename T, size_t N> struct SliceIterator {
     std::fill_n(mIndexes.begin(), N, 0);
     if (end) {
       mIndexes[0] = s.extents[0];
-      mPtr = base + s.start + (s.strides[0] * s.extents[0]);
+
+      //The size in desc gives the size of the
+      //overall container, not the size of the slice
+      //this seems preferable to littering the code with transpose flags
+      size_t size = 0;
+      if(s.strides[N-1] == 1) //Not transposed
+        size = s.strides[0] * s.extents[0];
+      else                    //transposed
+        size = s.strides[N-1] * s.extents[N-1];
+      mPtr = base + s.start + size;
     } else
       mPtr = base + s.start;
   }
@@ -512,7 +392,13 @@ using FluidTensorInitializer = typename _impl::FluidTensorInit<T, N>::type;
 template <size_t N> struct FluidTensorSlice {
   static constexpr std::size_t order = N;
   // Standard constructors
-  FluidTensorSlice() = default;
+  FluidTensorSlice()
+  {
+    std::fill(extents.begin(),extents.end(),0);
+    std::fill(strides.begin(),strides.end(),0);
+    size  = 0;
+    start = 0;
+  };
   // Copy
   FluidTensorSlice(FluidTensorSlice const &other) = default;
   // Move
@@ -533,7 +419,7 @@ template <size_t N> struct FluidTensorSlice {
    **/
   template <typename R,
             typename I = typename std::remove_reference<R>::type::iterator,
-            typename = enable_if_t<
+  typename = std::enable_if_t<
                 IsIteratorType<I, std::forward_iterator_tag>::value>>
   FluidTensorSlice(size_t s, R &&range) : start(s) {
 
@@ -569,7 +455,7 @@ template <size_t N> struct FluidTensorSlice {
   // Because std::initializer_list doesn't expose constexpr for its
   // size etc (fixed in C++14) we can't use a static_assert
   FluidTensorSlice(size_t s, std::initializer_list<size_t> exts) : start(s) {
-
+    //TODO: we're on  14 now, so this can be enforced statically
     assert(exts.size() == N && "Wrong number of dimensions in extents");
     std::copy(exts.begin(), exts.end(), extents.begin());
     init();
@@ -589,7 +475,7 @@ template <size_t N> struct FluidTensorSlice {
   // Construct from a variable number of extents. Do we need this?
   // FluidTensorSlice<2> my_slice(3,4)
   template <typename... Dims,
-            typename = enable_if_t<isIndexSequence<Dims...>()>>
+  typename = std::enable_if_t<isIndexSequence<Dims...>()>>
   FluidTensorSlice(Dims... dims) {
     static_assert(sizeof...(Dims) == N,
                   "Number of arguments must match matrix dimensions");
@@ -600,7 +486,7 @@ template <size_t N> struct FluidTensorSlice {
   template <size_t M, typename... Args>
   FluidTensorSlice(FluidTensorSlice<M> s, const Args... args) {
     start = s.start + doSlice(s, args...);
-    size = extents[0] * strides[0];
+    size = std::accumulate(extents.begin(),extents.end(),1,std::multiplies<std::size_t>());// extents[0] * strides[0];
   }
 
   // Assign operator
@@ -615,7 +501,7 @@ template <size_t N> struct FluidTensorSlice {
   // BS claims in CP++PL4 that this would need optimising.
   // How? Avoid copying args? Cache indices?
   template <typename... Dims>
-  enable_if_t<(N > 2) && isIndexSequence<Dims...>(), size_t>
+  std::enable_if_t<(N > 2) && isIndexSequence<Dims...>(), size_t>
   operator()(Dims... dims) const {
     static_assert(sizeof...(Dims) == N, "");
     size_t args[N]{size_t(dims)...};
@@ -625,16 +511,25 @@ template <size_t N> struct FluidTensorSlice {
   // Rather than specialise the whole class again, slimmer versions of
   // operator()  for N = 1 and N = 2 using enable_if idiom
   template <size_t DIM = N>
-  enable_if_t<DIM == 1, size_t> operator()(size_t i) const {
+  std::enable_if_t<DIM == 1, size_t> operator()(size_t i) const {
     return i * strides[0];
   }
 
   // Specialise for N=2
   template <size_t DIM = N>
-  enable_if_t<DIM == 2, size_t> operator()(size_t i, size_t j) const {
+  std::enable_if_t<DIM == 2, size_t> operator()(size_t i, size_t j) const {
     return i * strides[0] + j;
   }
 
+  FluidTensorSlice<N> transpose()
+  {
+    FluidTensorSlice<N> res(*this);
+    std::reverse(res.extents.begin(), res.extents.end());
+    std::reverse(res.strides.begin(), res.strides.end());
+    return res;
+  }
+
+  
   friend void swap(FluidTensorSlice &first, FluidTensorSlice &second) {
     using std::swap;
 
@@ -656,6 +551,13 @@ template <size_t N> struct FluidTensorSlice {
   std::array<std::size_t, N> extents; // number of elements in each dimension
   std::array<std::size_t, N>
       strides; // offset between elements in each dimension
+
+  void reset(std::size_t s, std::initializer_list<std::size_t> exts)
+  {
+    std::copy(exts.begin(), exts.end(), extents.begin());
+    start = s;
+    init();
+  }
 
 private:
   // No point calling this before extents have been filled
@@ -719,9 +621,9 @@ private:
   }
 };
 
-template <std::size_t N>
+template <std::size_t N, size_t M >
 inline bool sameExtents(const FluidTensorSlice<N> &a,
-                        const FluidTensorSlice<N> &b) {
+                        const FluidTensorSlice<M> &b) {
   return a.order == b.order &&
          std::equal(a.extents.begin(), a.extents.begin() + N,
                     b.extents.begin());
@@ -731,3 +633,5 @@ template <typename M1, typename M2>
 inline bool sameExtents(const M1 &a, const M2 &b) {
   return sameExtents(a.descriptor(), b.descriptor());
 }
+
+} //namespace fluid
