@@ -13,6 +13,7 @@ public:
       if (mAdaptor)
         mAdaptor->acquire();
     }
+    
 
     ~Access() {
       if (mAdaptor)
@@ -30,9 +31,9 @@ public:
       mAdaptor = nullptr;
     }
 
-    bool valid() { return mAdaptor ? mAdaptor->valid() : false; }
+    bool valid() const { return mAdaptor ? mAdaptor->valid() : false; }
     
-    bool exists() { return mAdaptor ? mAdaptor->exists() : false; }
+    bool exists() const  { return mAdaptor ? mAdaptor->exists() : false; }
 
     void resize(size_t frames, size_t channels, size_t rank) {
       if (mAdaptor)
@@ -43,11 +44,17 @@ public:
       assert(mAdaptor);
       return mAdaptor->samps(channel, rankIdx);
     }
-
+    
     FluidTensorView<float, 1> samps(size_t offset, size_t nframes,
                                     size_t chanoffset) {
       assert(mAdaptor);
       return mAdaptor->samps(offset, nframes, chanoffset);
+    }
+    
+    template<typename F, typename...Args>
+    void execute(F&& f, Args&&...args)
+    {
+      f(mAdaptor, std::forward<Args>(args)...);
     }
 
     size_t numFrames() const { return mAdaptor ? mAdaptor->numFrames() : 0; }
