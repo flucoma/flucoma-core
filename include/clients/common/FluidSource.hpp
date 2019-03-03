@@ -143,6 +143,10 @@ public:
 
   void setSize(size_t n) { mSize = n; }
 
+  size_t channels() const noexcept { return mChannels; }
+  size_t size() const noexcept { return mSize; }
+  size_t hostBufferSize() const noexcept { return mHostBufferSize; }
+
 private:
   /*
    Report the size of the whole buffer
