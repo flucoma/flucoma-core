@@ -11,14 +11,14 @@
 namespace fluid {
 namespace client {
 
-enum { kSource, kOffset, kNumFrames, kStartChan, kNChans, kGain, kDest, kDestOffset, kDestStartChan };
+enum { kSource, kOffset, kNumFrames, kStartChan, kNChans, kGain, kDest, kDestOffset, kDestStartChan, kDestGain };
 
 auto constexpr BufComposeParams = defineParameters(
     BufferParam("srcBuf", "Source Buffer"), LongParam("startAt", "Source Offset", 0, Min(0)),
     LongParam("nFrames", "Source Number of Frames", -1), LongParam("startChan", "Source Channel Offset", 0, Min(0)),
     LongParam("nChans", "Source Number of Channels", -1), FloatParam("gain", "Source Gain", 1.0),
     BufferParam("dstBuf", "Destination Buffer"), LongParam("dstStartAt", "Destination Offset", 0),
-    LongParam("dstStartChan", "Destination Channel Offset", 0));
+    LongParam("dstStartChan", "Destination Channel Offset", 0), FloatParam("dstGain", "Destination Gain", 0.0));
 
 template <typename Params, typename T, typename U>
 class BufferComposeClient : public FluidBaseClient<Params>, OfflineIn, OfflineOut
@@ -45,10 +45,10 @@ public:
 
       if (!(source.exists() && source.valid())) return {Result::Status::kError, "Source Buffer Not Found or Invalid"};
 
-      nChannels = param<kNChans>(mParams) == -1 ? source.numChans() : param<kNChans>(mParams);
-      nFrames   = param<kNumFrames>(mParams) == -1 ? source.numFrames() : param<kNumFrames>(mParams);
+      nChannels = param<kNChans>(mParams) == -1 ? source.numChans() - param<kStartChan>(mParams) : param<kNChans>(mParams);
+      nFrames   = param<kNumFrames>(mParams) == -1 ? source.numFrames() - param<kOffset>(mParams) : param<kNumFrames>(mParams);
 
-      if (nChannels == 0 || nFrames == 0) return {Result::Status::kError, "Zero length segment requested"};
+      if (nChannels <= 0 || nFrames <= 0) return {Result::Status::kError, "Zero length segment requested"};
 
       // We don't care if the overall number of frames will overrun, because we'll zero pad, but the
       // offset should be within the source range
@@ -74,24 +74,30 @@ public:
       if (!destination.exists())
         return {Result::Status::kError, "Destination Buffer Not Found or Invalid"};
 
-      dstEnd     = dstStart + std::max(nFrames, destination.numFrames());
+      dstEnd     = dstStart + nFrames;
       dstEndChan = dstStartChan + nChannels;
 
-      destinationResizeNeeded =
-          ((dstEnd > destination.numFrames()) || (dstEndChan > destination.numChans())) ? true : false;
+      destinationResizeNeeded = (dstEnd > destination.numFrames()) || (dstEndChan > destination.numChans());
+        
+        auto applyGain = [this](U&x){x *= param<kDestGain>(mParams);};
 
+        
       if (destinationResizeNeeded) // copy the whole of desintation if we have to resize it
       {
         destinationOrig.resize(dstEndChan, dstEnd);
         if(destination.numChans() > 0 && destination.numFrames() > 0)
-          for (int i = 0; i < dstEndChan; ++i)
-            destinationOrig.row(i)(Slice(0, destination.numFrames())) = destination.samps(i % std::max(1ul,destination.numChans()));
+            for (int i = 0; i < destination.numChans(); ++i) {
+                destinationOrig.row(i)(Slice(0, destination.numFrames())) = destination.samps(i);
+                destinationOrig.row(i)(Slice(0, destination.numFrames())).apply(applyGain);
+            }
 
       } else // just copy what we're affecting
       {
         destinationOrig.resize(nChannels, nFrames);
-        for (int i = 0; i < nChannels; ++i)
+          for (int i = 0; i < nChannels; ++i){
           destinationOrig.row(i) = destination.samps(dstStart, nFrames, dstStartChan + i);
+          destinationOrig.row(i).apply(applyGain);
+          }
       }
     }
 
@@ -127,7 +133,7 @@ public:
       for (int i = 0; i < nChannels; ++i)
         destination.samps(dstStart, nFrames, dstStartChan + i) = destinationOrig.row(i);
     }
-    
+
     return {Result::Status::kOk};
   }
 
@@ -136,4 +142,3 @@ private:
 };
 } // namespace client
 } // namespace fluid
-
