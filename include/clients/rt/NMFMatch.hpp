@@ -4,8 +4,6 @@
 #include <clients/common/ParameterConstraints.hpp>
 #include <clients/common/ParameterSet.hpp>
 #include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/MakeParams.hpp>
-#include <clients/common/DeriveSTFTParams.hpp>
 #include <clients/common/ParameterSet.hpp>
 #include <clients/rt/BufferedProcess.hpp>
 #include <algorithms/public/NMF.hpp>
