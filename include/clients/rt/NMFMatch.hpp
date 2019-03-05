@@ -14,10 +14,10 @@ namespace client {
 enum NMFMatchParamIndex{kFilterbuf,kMaxRank,kIterations,kFFT,kMaxFFTSize};
 
 auto constexpr NMFMatchParams = defineParameters(
-  BufferParam("filterBuf", "Filters Buffer"),
+  BufferParam("filtBuf", "Filters Buffer"),
   LongParam<Fixed<true>>("maxRank","Maximum Rank",20,Min(1)),
-  LongParam("iterations", "Iterations", 10, Min(1)),
-  FFTParam<kMaxFFTSize>("fftSettings","FFT Settings",1024, -1,-1),
+  LongParam("iters", "Iterations", 10, Min(1)),
+  FFTParam<kMaxFFTSize>("fft","FFT Settings",1024, -1,-1),
   LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384)
 );
 
@@ -34,20 +34,20 @@ public:
   }
 
   size_t latency() { return param<kFFT>(mParams).winSize(); }
-  
+
   void process(std::vector<HostVector> &input, std::vector<HostVector> &output)
   {
     if(!input[0].data()) return;// {Result::Status::kOk,""};
     assert(FluidBaseClient<Params>::controlChannelsOut() && "No control channels");
     assert(output.size() >= FluidBaseClient<Params>::controlChannelsOut() && "Too few output channels");
-    
-    
-    
+
+
+
     if (param<kFilterbuf>(mParams).get()) {
 
       auto filterBuffer = BufferAdaptor::Access(param<kFilterbuf>(mParams).get());
       auto& fftParams = param<kFFT>(mParams);
-    
+
       if (!filterBuffer.valid()) {
         return ;//{Result::Status::kError,"Filter buffer invalid"};
       }
@@ -78,7 +78,7 @@ public:
           mNMF->processFrame(tmpMagnitude.row(0), tmpFilt, tmpOut);
 //          controlTrigger(true);
         });
-      
+
         for(size_t i = 0; i < rank; ++i)
           output[i](0) = tmpOut(i);
     }
@@ -94,7 +94,7 @@ private:
   FluidTensor<double, 2> tmpFilt;
   FluidTensor<double, 2> tmpMagnitude;
   FluidTensor<double, 1> tmpOut;
-  
+
   size_t mNBins{0};
   size_t mRank{0};
 };

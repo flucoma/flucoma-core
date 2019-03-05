@@ -27,7 +27,7 @@ enum NMFParamIndex {kSource, kOffset, kNumFrames, kStartChan, kNumChans, kResynt
 auto constexpr NMFParams = defineParameters(
   BufferParam("srcBuf","Source Buffer"),
   LongParam("startAt","Source Offset",0, Min(0)),
-  LongParam("nFrames","Number Frames",-1),
+  LongParam("nFrames","Number of Frames",-1),
   LongParam("startChan","Start Channel",0,Min(0)),
   LongParam("nChans","Number Channels",-1),
   BufferParam("resynthBuf", "Resynthesis Buffer"),

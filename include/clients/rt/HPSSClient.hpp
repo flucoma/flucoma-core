@@ -22,10 +22,10 @@ auto constexpr HPSSParams = defineParameters(
     EnumParam("modeFlag", "Masking Mode", 0, "Classic", "Coupled", "Advanced"),
     FloatPairsArrayParam("hThresh", "Harmonic Filter Thresholds", FrequencyAmpPairConstraint{}),
     FloatPairsArrayParam("pThresh", "Percussive Filter Thresholds", FrequencyAmpPairConstraint{}),
-    FFTParam<kMaxFFT>("fftSettings","FFT Settings", 1024, 512, -1),
+    FFTParam<kMaxFFT>("fft","FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384) ,
-    LongParam<Fixed<true>>("maxHSize", "Maximum Harmonic Filter Size", 101, LowerLimit<kHSize>(), Odd{}),
-    LongParam<Fixed<true>>("maxPSize", "Maximum Percussive Filter Size", 101,LowerLimit<kPSize>(), Odd{})
+    LongParam<Fixed<true>>("maxHarmSize", "Maximum Harmonic Filter Size", 101, LowerLimit<kHSize>(), Odd{}),
+    LongParam<Fixed<true>>("maxPercSize", "Maximum Percussive Filter Size", 101,LowerLimit<kPSize>(), Odd{})
 );
 
 template <typename Params, typename T, typename U = T>
@@ -46,13 +46,13 @@ public:
   }
 
   size_t latency() { return (param<kHSize>(mParams) * param<kFFT>(mParams).hopSize()) +  param<kFFT>(mParams).winSize(); }
-  
+
   void process(std::vector<HostVector> &input, std::vector<HostVector> &output)
   {
     if (!input[0].data()) return;
 
     int nBins = param<kFFT>(mParams).frameSize();
-    
+
     if (mTrackChangesAlgo.changed(nBins, param<kMaxPSize>(mParams), param<kMaxHSize>(mParams)))
     {
         mHPSS.init(nBins, param<kMaxPSize>(mParams), param<kMaxHSize>(mParams), param<kPSize>(mParams), param<kHSize>(mParams),
@@ -65,7 +65,7 @@ public:
       mHPSS.setVSize(param<kPSize>(mParams));
       if(mTrackHSize.changed(param<kHSize>(mParams))) mHPSS.setHSize(param<kHSize>(mParams));
     }
-    
+
     mSTFTBufferedProcess.process(mParams, input, output,
         [&](ComplexMatrixView in, ComplexMatrixView out)
         {
@@ -91,4 +91,3 @@ auto constexpr NRTHPSSParams = impl::makeNRTParams(
 
 } // namespace client
 } // namespace fluid
-

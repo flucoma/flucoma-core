@@ -37,7 +37,7 @@ auto constexpr TransientParams = defineParameters(
     LongParam("debounce", "Debounce", 25, Min(0)),
     LongParam("minSlice","Minimum Segment",1000)
 );
-  
+
 
 template <typename Params, typename T, typename U = T>
 class TransientsSlice : public FluidBaseClient<Params>, public AudioIn, public AudioOut
@@ -58,7 +58,7 @@ public:
 
     if(!input[0].data() || !output[0].data())
       return;
-    
+
     static constexpr unsigned iterations = 3;
     static constexpr bool refine = false;
     static constexpr double robustFactor = 3.0;
@@ -86,17 +86,17 @@ public:
 
     mExtractor->setDetectionParameters(skew, threshFwd, thresBack, halfWindow,
                                        debounce, minSeg);
-  
+
     RealMatrix in(1,hostVecSize);
 
     in.row(0) = input[0]; //need to convert float->double in some hosts
     mBufferedProcess.push(RealMatrixView(in));
-  
+
     mBufferedProcess.process(mExtractor->inputSize(), mExtractor->hopSize(), [this](RealMatrixView in, RealMatrixView out)
     {
       mExtractor->process(in.row(0), out.row(0));
     });
-    
+
     RealMatrix out(1, hostVecSize);
     mBufferedProcess.pull(RealMatrixView(out));
 

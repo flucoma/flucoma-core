@@ -25,11 +25,11 @@ enum SinesParamIndex {
 };
 
 extern auto constexpr SinesParams = defineParameters(
-    LongParam("bandwidth", "Bandwidth", 76, Min(1)), FloatParam("threshold", "Threshold", 0.7, Min(0.0), Max(1.0)),
+    LongParam("bw", "Bandwidth", 76, Min(1)), FloatParam("threshold", "Threshold", 0.7, Min(0.0), Max(1.0)),
     LongParam("minTrackLen", "Min Track Length", 15, Min(0)),
     FloatParam("magWeight", "Magnitude Weighting", 0.1, Min(0.0), Max(1.0)),
     FloatParam("freqWeight", "Frequency Weighting", 0.1, Min(0.0), Max(1.0)),
-    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024,512,8192),
+    FFTParam<kMaxFFTSize>("fft", "FFT Settings", 1024,-1,-1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
 
 //using ParamsT = decltype(SinesParams);
@@ -46,7 +46,7 @@ public:
     FluidBaseClient<Params>::audioChannelsIn(1);
     FluidBaseClient<Params>::audioChannelsOut(2);
   }
-  
+
   void process(std::vector<HostVector> &input, std::vector<HostVector> &output)
   {
 
@@ -93,4 +93,3 @@ auto constexpr NRTSineParams = impl::makeNRTParams({BufferParam("srcBuf", "Sourc
 
 } // namespace client
 } // namespace fluid
-
