@@ -285,6 +285,8 @@ public:
 
   template <std::size_t N> bool changed() noexcept { return std::get<N>(mParams).first.changed(); }
   
+  template <std::size_t N> const char* name() noexcept { return std::get<N>(mParams).first.name(); }
+  
   template <size_t N> auto defaultAt()
   {
     return std::get<N>(mParams).first.descriptor().defaultValue;
