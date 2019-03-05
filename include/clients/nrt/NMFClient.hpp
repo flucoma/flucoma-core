@@ -25,19 +25,19 @@ namespace client {
 enum NMFParamIndex {kSource, kOffset, kNumFrames, kStartChan, kNumChans, kResynth,kFilters,kFiltersUpdate,kEnvelopes,kEnvelopesUpdate,kRank,kIterations,kFFT};
 
 auto constexpr NMFParams = defineParameters(
-  BufferParam("sourceBuf","Source Buffer"),
-  LongParam("offset","Source Offset",0,Min(0)),
+  BufferParam("srcBuf","Source Buffer"),
+  LongParam("startAt","Source Offset",0, Min(0)),
   LongParam("nFrames","Number Frames",-1),
   LongParam("startChan","Start Channel",0,Min(0)),
-  LongParam("numChans","Number Channels",-1),
+  LongParam("nChans","Number Channels",-1),
   BufferParam("resynthBuf", "Resynthesis Buffer"),
-  BufferParam("filterBuf", "Filters Buffer"),
-  EnumParam("filterUpdate", "Filters Buffer Update", 0, "None","Seed","Fixed"),
+  BufferParam("filtBuf", "Filters Buffer"),
+  EnumParam("filtUpdate", "Filters Buffer Update", 0, "None","Seed","Fixed"),
   BufferParam("envBuf", "Envelopes Buffer"),
   EnumParam("envUpdate", "Envelopes Buffer Update", 0, "None","Seed","Fixed"),
   LongParam("rank", "Rank", 5, Min(1)),
-  LongParam("iterations", "Iterations", 100, Min(1)),
-  FFTParam("fftSettings", "FFT Settings", 1024,256,1024)
+  LongParam("iters", "Iterations", 100, Min(1)),
+  FFTParam("fft", "FFT Settings", 1024,-1,-1)
 );//,PowerOfTwo()));
 
 template<typename Params, typename T, typename U>
@@ -57,13 +57,13 @@ public:
   Result process() {
 
 //    assert(inputs.size() == 1 );
-  
+
     if(!param<kSource>(mParams).get())
     {
       return {Result::Status::kError,"No input"};
     }
-  
- 
+
+
     BufferAdaptor::Access source(param<kSource>(mParams).get());
 
     if(!(source.exists() && source.valid()))
@@ -80,7 +80,7 @@ public:
     bool hasFilters {false};
     const bool seedFilters {param<kFiltersUpdate>(mParams) > 0};
     const bool fixFilters  {param<kFiltersUpdate>(mParams) == 2};
-    
+
     if(param<kFilters>(mParams))
     {
       BufferAdaptor::Access buf(param<kFilters>(mParams).get());

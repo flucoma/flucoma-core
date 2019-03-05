@@ -14,11 +14,16 @@ namespace client {
 enum { kSource, kOffset, kNumFrames, kStartChan, kNChans, kGain, kDest, kDestOffset, kDestStartChan, kDestGain };
 
 auto constexpr BufComposeParams = defineParameters(
-    BufferParam("srcBuf", "Source Buffer"), LongParam("startAt", "Source Offset", 0, Min(0)),
-    LongParam("nFrames", "Source Number of Frames", -1), LongParam("startChan", "Source Channel Offset", 0, Min(0)),
-    LongParam("nChans", "Source Number of Channels", -1), FloatParam("gain", "Source Gain", 1.0),
-    BufferParam("dstBuf", "Destination Buffer"), LongParam("dstStartAt", "Destination Offset", 0),
-    LongParam("dstStartChan", "Destination Channel Offset", 0), FloatParam("dstGain", "Destination Gain", 0.0));
+    BufferParam("srcBuf", "Source Buffer"),
+    LongParam("startAt", "Source Offset", 0, Min(0)),
+    LongParam("nFrames", "Source Number of Frames", -1),
+    LongParam("startChan", "Source Channel Offset", 0, Min(0)),
+    LongParam("nChans", "Source Number of Channels", -1),
+    FloatParam("gain", "Source Gain", 1.0),
+    BufferParam("dstBuf", "Destination Buffer"),
+    LongParam("dstStartAt", "Destination Offset", 0),
+    LongParam("dstStartChan", "Destination Channel Offset", 0),
+    FloatParam("dstGain", "Destination Gain", 0.0));
 
 template <typename Params, typename T, typename U>
 class BufferComposeClient : public FluidBaseClient<Params>, OfflineIn, OfflineOut
@@ -78,10 +83,10 @@ public:
       dstEndChan = dstStartChan + nChannels;
 
       destinationResizeNeeded = (dstEnd > destination.numFrames()) || (dstEndChan > destination.numChans());
-        
+
         auto applyGain = [this](U&x){x *= param<kDestGain>(mParams);};
 
-        
+
       if (destinationResizeNeeded) // copy the whole of desintation if we have to resize it
       {
         destinationOrig.resize(std::max<unsigned>(dstEndChan, destination.numChans()), std::max<unsigned>(dstEnd,destination.numFrames()));

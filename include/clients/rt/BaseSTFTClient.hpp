@@ -20,7 +20,7 @@ namespace client {
 enum STFTParamIndex { kFFT, kMaxFFT };
 
 auto constexpr STFTParams = defineParameters(
-    FFTParam<kMaxFFT>("fftSettings","FFT Settings", 1024, -1, -1),
+    FFTParam<kMaxFFT>("fft","FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
 
 template <typename Params, typename T, typename U = T>
@@ -29,19 +29,19 @@ class BaseSTFTClient : public FluidBaseClient<Params>, public AudioIn, public Au
 
   using HostVector = HostVector<U>;
   using B =  FluidBaseClient<Params>;
-  
+
   Params& mParams;
-  
+
 public:
- 
+
   BaseSTFTClient(Params& p) : FluidBaseClient<Params>(p), mParams(p), mSTFTBufferedProcess{param<kMaxFFT>(p),1,1}
   {
     B::audioChannelsIn(1);
     B::audioChannelsOut(1);
   }
-  
+
   size_t latency() { return param<kFFT>(mParams).winSize(); }
-  
+
   void process(std::vector<HostVector> &input,
                std::vector<HostVector> &output) {
 
@@ -57,4 +57,3 @@ private:
 };
 } // namespace client
 } // namespace fluid
-
