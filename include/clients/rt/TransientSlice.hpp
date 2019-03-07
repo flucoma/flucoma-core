@@ -35,7 +35,7 @@ auto constexpr TransientParams = defineParameters(
     FloatParam("threshBack", "Backward Threshold", 1.1, Min(0)),
     LongParam("winSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
     LongParam("debounce", "Debounce", 25, Min(0)),
-    LongParam("minSlice","Minimum Segment",1000)
+    LongParam("minSlice","Minimum Slice Lenght",1000)
 );
 
 

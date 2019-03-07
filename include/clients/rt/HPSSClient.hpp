@@ -17,15 +17,15 @@ namespace client {
 enum HPSSParamIndex { kHSize, kPSize, kMode, kHThresh, kPThresh, kFFT, kMaxFFT, kMaxHSize,kMaxPSize };
 
 auto constexpr HPSSParams = defineParameters(
-    LongParam("harmFiltSize", "Harmonic Filter Size", 17, UpperLimit<kMaxHSize>(),Odd{}, Min(3)),
-    LongParam("percFiltSize", "Percussive Filter Size", 31, UpperLimit<kMaxPSize>(),Odd{}, Min(3)),
+    LongParam("hFiltSize", "Harmonic Filter Size", 17, UpperLimit<kMaxHSize>(),Odd{}, Min(3)),
+    LongParam("pFiltSize", "Percussive Filter Size", 31, UpperLimit<kMaxPSize>(),Odd{}, Min(3)),
     EnumParam("modeFlag", "Masking Mode", 0, "Classic", "Coupled", "Advanced"),
     FloatPairsArrayParam("hThresh", "Harmonic Filter Thresholds", FrequencyAmpPairConstraint{}),
     FloatPairsArrayParam("pThresh", "Percussive Filter Thresholds", FrequencyAmpPairConstraint{}),
     FFTParam<kMaxFFT>("fft","FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384) ,
-    LongParam<Fixed<true>>("maxHarmSize", "Maximum Harmonic Filter Size", 101, LowerLimit<kHSize>(), Odd{}),
-    LongParam<Fixed<true>>("maxPercSize", "Maximum Percussive Filter Size", 101,LowerLimit<kPSize>(), Odd{})
+    LongParam<Fixed<true>>("maxHFlitSize", "Maximum Harmonic Filter Size", 101, LowerLimit<kHSize>(), Odd{}),
+    LongParam<Fixed<true>>("maxPFiltSize", "Maximum Percussive Filter Size", 101,LowerLimit<kPSize>(), Odd{})
 );
 
 template <typename Params, typename T, typename U = T>
@@ -45,7 +45,7 @@ public:
     FluidBaseClient<Params>::audioChannelsOut(3);
   }
 
-  size_t latency() { return (param<kHSize>(mParams) * param<kFFT>(mParams).hopSize()) +  param<kFFT>(mParams).winSize(); }
+  size_t latency() { return ((param<kHSize>(mParams) - 1) * param<kFFT>(mParams).hopSize()) +  param<kFFT>(mParams).winSize(); }
 
   void process(std::vector<HostVector> &input, std::vector<HostVector> &output)
   {
