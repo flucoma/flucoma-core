@@ -125,7 +125,7 @@ private:
 template <typename Params, typename T, typename U>
 using NRTTransientSlice = NRTSliceAdaptor<TransientsSlice,Params,T,U,1,1>;
 
-auto constexpr NRTTransientSliceParams = impl::makeNRTParams({BufferParam("srcBuf", "Source Buffer")}, {BufferParam("idxBuf","Indexes Buffer")}, TransientParams);
+auto constexpr NRTTransientSliceParams = impl::makeNRTParams({BufferParam("srcBuf", "Source Buffer")}, {BufferParam("indBuf","Indices Buffer")}, TransientParams);
 
 
 } // namespace client

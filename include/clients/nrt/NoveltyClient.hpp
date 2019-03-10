@@ -19,10 +19,10 @@ auto constexpr NoveltyParams =defineParameters(
   LongParam("nFrames","Number of Frames",-1),
   LongParam("startChan","Start Channel",0,Min(0)),
   LongParam("numChans","Number of Channels",-1),
-  BufferParam("transBuf", "Indices Buffer"),
+  BufferParam("indBuf", "Indices Buffer"),
   LongParam("kernSize", "Kernel Size", 3, Min(3), Odd()),
   FloatParam("thresh", "Threshold", 0.8, Min(0.)),
-  LongParam("filtSize", "Smoothing Filter Size",256, Min(1), FrameSizeUpperLimit<kFFT>()),
+  LongParam("filtSize", "Smoothing Filter Size", 1, Min(1), FrameSizeUpperLimit<kFFT>()),
   FFTParam("fft", "FFT Settings", 1024, -1, -1)
  );
 
