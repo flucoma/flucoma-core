@@ -27,11 +27,11 @@ enum TransientParamIndex {
 };
 
 auto constexpr TransientParams = defineParameters(
-    LongParam("order", "Order", 50, Min(20), LowerLimit<kWinSize>(),UpperLimit<kBlockSize>()),
+    LongParam("order", "Order", 20, Min(10), LowerLimit<kWinSize>(),UpperLimit<kBlockSize>()),
     LongParam("blockSize", "Block Size", 256, Min(100), LowerLimit<kOrder>()),
-    LongParam("padding", "Padding", 128, Min(0)),
+    LongParam("padSize", "Padding", 128, Min(0)),
     FloatParam("skew", "Skew", 0, Min(-10), Max(10)),
-    FloatParam("threshFwd", "Forward Threshold", 3, Min(0)),
+    FloatParam("threshFwd", "Forward Threshold", 2, Min(0)),
     FloatParam("threshBack", "Backward Threshold", 1.1, Min(0)),
     LongParam("winSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
     LongParam("debounce", "Debounce", 25, Min(0)),
