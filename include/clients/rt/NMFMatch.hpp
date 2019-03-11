@@ -16,7 +16,7 @@ enum NMFMatchParamIndex{kFilterbuf,kMaxRank,kIterations,kFFT,kMaxFFTSize};
 auto constexpr NMFMatchParams = defineParameters(
   BufferParam("filtBuf", "Filters Buffer"),
   LongParam<Fixed<true>>("maxRank","Maximum Rank",20,Min(1)),
-  LongParam("iters", "Iterations", 10, Min(1)),
+  LongParam("nIter", "Iterations", 10, Min(1)),
   FFTParam<kMaxFFTSize>("fft","FFT Settings",1024, -1,-1),
   LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384)
 );
