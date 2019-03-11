@@ -211,20 +211,22 @@ struct Slicing
 
     assert(inputBuffers.size() == 1);
     assert(outputBuffers.size() == 1);
-    HostMatrix monoSource(1,nFrames);
+    size_t padding = client.latency();
+    HostMatrix monoSource(1,nFrames + padding);
+    
     BufferAdaptor::Access src(inputBuffers[0].buffer);
     // Make a mono sum;
     for (size_t i = 0; i < nChans; ++i)
-      monoSource.apply(src.samps(i), [](float &x, float y) { x += y; });
+      monoSource.row(i)(Slice(0,nFrames)).apply(src.samps(i), [](float &x, float y) { x += y; });
 
-    HostMatrix onsetPoints(1,nFrames);
+    HostMatrix onsetPoints(1,nFrames + padding);
 
     std::vector<HostVectorView> input  {monoSource.row(0)};
     std::vector<HostVectorView> output {onsetPoints.row(0)};
 
     client.process(input,output);
 
-    impl::spikesToTimes(onsetPoints.row(0), outputBuffers[0], 1, inputBuffers[0].startFrame, nFrames);
+    impl::spikesToTimes(onsetPoints(0,Slice(padding,nFrames)).row(0), outputBuffers[0], 1, inputBuffers[0].startFrame, nFrames);
   }
 };
 
