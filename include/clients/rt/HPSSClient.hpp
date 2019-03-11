@@ -64,6 +64,18 @@ public:
     {
       mHPSS.setVSize(param<kPSize>(mParams));
       if(mTrackHSize.changed(param<kHSize>(mParams))) mHPSS.setHSize(param<kHSize>(mParams));
+      
+      mHPSS.setHThresholdX1(param<kHThresh>(mParams)[0].first);
+      mHPSS.setHThresholdY1(param<kHThresh>(mParams)[0].second);
+
+      mHPSS.setHThresholdX2(param<kHThresh>(mParams)[1].first);
+      mHPSS.setHThresholdY2(param<kHThresh>(mParams)[1].second);
+
+      mHPSS.setPThresholdX1(param<kPThresh>(mParams)[0].first);
+      mHPSS.setPThresholdY1(param<kPThresh>(mParams)[0].second);
+
+      mHPSS.setPThresholdX2(param<kPThresh>(mParams)[1].first);
+      mHPSS.setPThresholdY2(param<kPThresh>(mParams)[1].second);
     }
 
     mSTFTBufferedProcess.process(mParams, input, output,

@@ -91,19 +91,20 @@ public:
       {
         destinationOrig.resize(std::max<unsigned>(dstEndChan, destination.numChans()), std::max<unsigned>(dstEnd,destination.numFrames()));
         if(destination.numChans() > 0 && destination.numFrames() > 0)
-            for (int i = 0; i < destination.numChans(); ++i) {
+        {
+            for (int i = 0; i < destination.numChans(); ++i) 
                 destinationOrig.row(i)(Slice(0, destination.numFrames())) = destination.samps(i);
-                destinationOrig.row(i)(Slice(0, destination.numFrames())).apply(applyGain);
-            }
+            destinationOrig(Slice(dstStartChan, dstEndChan - dstStartChan), Slice(dstStart, dstEnd - dstStart)).apply(applyGain);
+        }
 
       } else // just copy what we're affecting
       {
         destinationOrig.resize(nChannels, nFrames);
-          for (int i = 0; i < nChannels; ++i)
-          {
+        for (int i = 0; i < nChannels; ++i)
+        {
           destinationOrig.row(i) = destination.samps(dstStart, nFrames, dstStartChan + i);
           destinationOrig.row(i).apply(applyGain);
-          }
+        }
       }
     }
 
