@@ -38,13 +38,17 @@ public:
   // processFrame computes activations of a dictionary W in a given frame
   void processFrame(const RealVectorView x, const RealMatrixView W0, RealVectorView out,
                     int nIterations = 10) {
-    MatrixXd W = asEigen<Matrix>(W0);
+    int rank = W0.extent(0);
+    std::cout<<"rank "<<rank<<std::endl;
+    MatrixXd W = asEigen<Matrix>(W0).transpose();
     VectorXd h =
-        MatrixXd::Random(mRank, 1) * 0.5 + MatrixXd::Constant(mRank, 1, 0.5);
+        MatrixXd::Random(rank, 1) * 0.5 + MatrixXd::Constant(rank, 1, 0.5);
     VectorXd v = asEigen<Matrix>(x);
     MatrixXd WT = W.transpose();
-    WT.colwise().normalize();
+    W.colwise().normalize();
     VectorXd ones = VectorXd::Ones(x.extent(0));
+    std::cout<<W.cols()<<W.rows()<<rank<<std::endl;
+    std::cout<<h.cols()<<h.rows()<<rank<<std::endl;
     while (nIterations--) {
       ArrayXd v1 = (W * h).array() + epsilon;
       ArrayXXd hNum = (WT * (v.array() / v1).matrix()).array();
@@ -55,7 +59,7 @@ public:
       // std::cout<<"Divergence "<<divergence<<std::endl;
     }
     out = asFluid(h);
-    // ArrayXdMap(out.data(), mRank) = h.array();
+    // ArrayXdMap(out.data(), rank) = h.array();
   }
 
   void process(const RealMatrixView X, RealMatrixView W1, RealMatrixView H1, RealMatrixView V1,
