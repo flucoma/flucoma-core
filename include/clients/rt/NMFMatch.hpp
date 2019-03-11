@@ -61,14 +61,14 @@ public:
 
       if(mTrackValues.changed(rank, fftParams.frameSize()))
       {
-        tmpFilt.resize(fftParams.frameSize(),rank);
+        tmpFilt.resize(rank,fftParams.frameSize());
         tmpMagnitude.resize(1,fftParams.frameSize());
         tmpOut.resize(rank);
         mNMF.reset(new algorithm::NMF(rank, param<kIterations>(mParams)));
       }
 
-      for (size_t i = 0; i < tmpFilt.cols(); ++i)
-        tmpFilt.col(i) = filterBuffer.samps(0, i);
+      for (size_t i = 0; i < tmpFilt.rows(); ++i)
+        tmpFilt.row(i) = filterBuffer.samps(0, i);
 
 //      controlTrigger(false);
       mSTFTProcessor.processInput(mParams, input,
