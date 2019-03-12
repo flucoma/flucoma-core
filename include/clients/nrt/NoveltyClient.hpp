@@ -22,7 +22,7 @@ auto constexpr NoveltyParams =defineParameters(
   BufferParam("indBuf", "Indices Buffer"),
   LongParam("kernSize", "Kernel Size", 3, Min(3), Odd()),
   FloatParam("thresh", "Threshold", 0.8, Min(0.)),
-  LongParam("filtSize", "Smoothing Filter Size", 1, Min(1), FrameSizeUpperLimit<kFFT>()),
+  LongParam("filtSize", "Smoothing Filter Size", 3, Min(3), FrameSizeUpperLimit<kFFT>()),
   FFTParam("fft", "FFT Settings", 1024, -1, -1)
  );
 
@@ -51,10 +51,13 @@ public:
         return {Result::Status::kError, "Can't access input buffer"};
 
 
+    {
     BufferAdaptor::Access idx(param<kTransBuf>(mParams).get());
 
     if(!idx.exists())
         return {Result::Status::kError, "Output buffer not found"};
+    
+    }
 
 //    if(!idx.valid())
 //        return {Result::Status::kError, "Can't access output buffer"};
