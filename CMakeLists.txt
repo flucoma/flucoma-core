@@ -108,6 +108,8 @@ target_sources(
 target_compile_features(
   FLUID_DECOMPOSITION INTERFACE cxx_std_14
 )
+
+if(APPLE)
 target_compile_definitions(
   FLUID_DECOMPOSITION INTERFACE -DEIGEN_USE_BLAS
 )
