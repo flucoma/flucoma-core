@@ -53,7 +53,7 @@ public:
 
     int nBins = param<kFFT>(mParams).frameSize();
 
-    if (mTrackChangesAlgo.changed(nBins, param<kMaxPSize>(mParams), param<kMaxHSize>(mParams)))
+    if (mTrackChangesAlgo.changed(nBins, param<kMaxPSize>(mParams), param<kMaxHSize>(mParams), param<kMode>(mParams)))
     {
         mHPSS.init(nBins, param<kMaxPSize>(mParams), param<kMaxHSize>(mParams), param<kPSize>(mParams), param<kHSize>(mParams),
             param<kMode>(mParams), param<kHThresh>(mParams)[0].first, param<kHThresh>(mParams)[0].second,
@@ -88,7 +88,7 @@ public:
 private:
   Params& mParams;
   STFTBufferedProcess<Params, U, kFFT, true> mSTFTBufferedProcess;
-  ParameterTrackChanges<size_t, size_t, size_t> mTrackChangesAlgo;
+  ParameterTrackChanges<size_t, size_t, size_t, size_t> mTrackChangesAlgo;
   ParameterTrackChanges<size_t> mTrackHSize;
   algorithm::RTHPSS mHPSS;
 };
