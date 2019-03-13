@@ -31,13 +31,13 @@ auto constexpr NMFParams = defineParameters(
   LongParam("startChan","Start Channel",0,Min(0)),
   LongParam("nChans","Number Channels",-1),
   BufferParam("resynthBuf", "Resynthesis Buffer"),
-  BufferParam("filtBuf", "Filters Buffer"),
-  EnumParam("filtUpdate", "Filters Buffer Update", 0, "None","Seed","Fixed"),
-  BufferParam("envBuf", "Envelopes Buffer"),
-  EnumParam("envUpdate", "Envelopes Buffer Update", 0, "None","Seed","Fixed"),
-  LongParam("rank", "Rank", 5, Min(1)),
-  LongParam("iters", "Iterations", 100, Min(1)),
-  FFTParam("fft", "FFT Settings", 1024,-1,-1)
+  BufferParam("dictBuf", "Dictionaries Buffer"),
+  EnumParam("dictFlag", "Dictionaries Buffer Update Flag", 0, "None","Seed","Fixed"),
+  BufferParam("actBuf", "Activations Buffer"),
+  EnumParam("actFlag", "Activations Buffer Update Flag", 0, "None","Seed","Fixed"),
+  LongParam("rank", "Rank", 1, Min(1)),
+  LongParam("nIter", "Number of Iterations", 100, Min(1)),
+  FFTParam("fft", "FFT Settings", 1024, -1, -1)
 );//,PowerOfTwo()));
 
 template<typename Params, typename T, typename U>

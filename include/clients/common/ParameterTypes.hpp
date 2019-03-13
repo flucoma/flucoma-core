@@ -135,7 +135,7 @@ struct FloatPairsArrayT : ParamTypeBase
   constexpr FloatPairsArrayT(const char *name, const char *displayName)
       : ParamTypeBase(name, displayName)
   {}
-  const std::size_t fixedSize{2};
+  const std::size_t fixedSize{4};
   static constexpr std::initializer_list<std::pair<double, double>> defaultValue{{0.0, 1.0}, {1.0, 1.0}};
 };
 
@@ -291,7 +291,7 @@ struct FFTParamsT: ParamTypeBase
       : ParamTypeBase(name, displayName), defaultValue{winDefault, hopDefault, fftDefault}
   {}
   
-  const std::size_t    fixedSize = 1;
+  const std::size_t    fixedSize = 3;
   const type defaultValue;
 };
 

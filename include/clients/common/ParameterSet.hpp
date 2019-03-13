@@ -145,10 +145,17 @@ public:
 
   using type = ParameterDescriptorSet<CO,Ts...>;
 
-  static constexpr size_t size = sizeof...(Ts); 
+  static constexpr size_t size = sizeof...(Ts);
+  
+  
 
   constexpr ParameterDescriptorSet(const Ts&&...ts):mDescriptors{std::make_tuple(ts...)}
   {}
+  
+  constexpr size_t count() const noexcept
+  {
+    return countImpl(std::make_index_sequence<size>());
+  }
   
   constexpr const std::tuple<Ts...>&  descriptors() const{ return mDescriptors; }
   
@@ -166,6 +173,13 @@ private:
   mDescriptors{std::tuple_cat(x,y)}
   {}
 
+  template<size_t...Is>
+  constexpr size_t countImpl(std::index_sequence<Is...>) const noexcept 
+  {
+    size_t count{0};
+    std::initializer_list<int>{(count = count +  std::get<0>(std::get<Is>(mDescriptors)).fixedSize ,0)...};
+    return count;
+  }
  
   const std::tuple<Ts...> mDescriptors;
   using DescriptorIndex = std::index_sequence_for<Ts...>;
@@ -202,7 +216,6 @@ public:
   using ParamTypeAt = typename ParamDescriptorTypeAt<N>::type;
 
   using FixedParams = typename impl::FilterTupleIndices<impl::IsFixedParamTest, std::decay_t<Descriptors>, ParamIndexList>::type;
-
 
   static constexpr size_t NumFixedParams = FixedParams::size();
 
