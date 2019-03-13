@@ -39,7 +39,6 @@ public:
   void processFrame(const RealVectorView x, const RealMatrixView W0, RealVectorView out,
                     int nIterations = 10) {
     int rank = W0.extent(0);
-    std::cout<<"rank "<<rank<<std::endl;
     MatrixXd W = asEigen<Matrix>(W0).transpose();
     VectorXd h =
         MatrixXd::Random(rank, 1) * 0.5 + MatrixXd::Constant(rank, 1, 0.5);
@@ -47,16 +46,14 @@ public:
     MatrixXd WT = W.transpose();
     W.colwise().normalize();
     VectorXd ones = VectorXd::Ones(x.extent(0));
-    std::cout<<W.cols()<<W.rows()<<rank<<std::endl;
-    std::cout<<h.cols()<<h.rows()<<rank<<std::endl;
     while (nIterations--) {
       ArrayXd v1 = (W * h).array() + epsilon;
       ArrayXXd hNum = (WT * (v.array() / v1).matrix()).array();
       ArrayXXd hDen = (WT * ones).array();
       h = (h.array() * hNum / hDen.max(epsilon)).matrix();
-      // VectorXd r = W * h;
-      // double divergence = (v.cwiseProduct(v.cwiseQuotient(r)) - v + r).sum();
-      // std::cout<<"Divergence "<<divergence<<std::endl;
+      //VectorXd r = W * h;
+      //double divergence = (v.cwiseProduct(v.cwiseQuotient(r)) - v + r).sum();
+      //std::cout<<"Divergence "<<divergence<<std::endl;
     }
     out = asFluid(h);
     // ArrayXdMap(out.data(), rank) = h.array();
