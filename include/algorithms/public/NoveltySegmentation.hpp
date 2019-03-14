@@ -28,7 +28,7 @@ public:
     ArrayXd curve(input.extent(0));
     Novelty nov(mKernelSize);
     nov.process(asEigen<Array>(input), curve);
-    if (mFilterSize > 0) {
+    if (mFilterSize > 1) {
       ArrayXd filter = ArrayXd::Constant(mFilterSize, 1.0 / mFilterSize);
       ArrayXd smoothed = ArrayXd::Zero(curve.size());
       convolveReal(smoothed.data(), curve.data(), curve.size(), filter.data(),
