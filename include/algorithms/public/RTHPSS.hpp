@@ -75,7 +75,6 @@ public:
     return threshold;
   }
 
-
   void processFrame(const ComplexVectorView in, ComplexMatrixView out) {
     const auto &epsilon = std::numeric_limits<double>::epsilon;
     int h2 = (mHSize - 1) / 2;
@@ -102,7 +101,8 @@ public:
     ArrayXXcd result(mBins, 3);
     ArrayXd harmonicMask = ArrayXd::Ones(mBins);
     ArrayXd percussiveMask = ArrayXd::Ones(mBins);
-    ArrayXd residualMask = ArrayXd::Ones(mBins);
+    ArrayXd residualMask =
+        mMode == kClassic ? ArrayXd::Zero(mBins) : ArrayXd::Ones(mBins);
 
     switch (mMode) {
     case kClassic: {
@@ -146,6 +146,11 @@ public:
     out = asFluid(result);
   }
 
+  void setMode(int mode) {
+    assert(mode > 0 && mode <= 2);
+    mMode = mode;
+  }
+
   void setHSize(int newHSize) {
     assert(newHSize <= mMaxHSize);
     assert(newHSize % 2);
@@ -164,7 +169,7 @@ public:
     mHSize = newHSize;
   }
 
-  void setVSize(int newVSize){
+  void setVSize(int newVSize) {
     assert(newVSize <= mMaxVSize);
     assert(newVSize % 2);
     mVSize = newVSize;
@@ -197,6 +202,8 @@ public:
   void setPThresholdY1(double y) { mPThresholdY1 = y; }
 
   void setPThresholdY2(double y) { mPThresholdY2 = y; }
+
+
 
 private:
   size_t mBins;
