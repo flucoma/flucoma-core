@@ -36,7 +36,7 @@ public:
       curve = smoothed;
     }
     curve /= curve.maxCoeff();
-    for (int i = mFilterSize / 2; i < curve.size() - 1; i++) {
+    for (int i = std::max(mFilterSize / 2, 1); i < curve.size() - 1; i++) {
       if (curve(i) > curve(i - 1) && curve(i) > curve(i + 1) &&
           curve(i) > mThreshold) {
         output(i - mFilterSize / 2) = 1;
