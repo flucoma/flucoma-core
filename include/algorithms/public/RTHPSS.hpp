@@ -102,7 +102,7 @@ public:
     ArrayXd harmonicMask = ArrayXd::Ones(mBins);
     ArrayXd percussiveMask = ArrayXd::Ones(mBins);
     ArrayXd residualMask =
-        mMode == kClassic ? ArrayXd::Zero(mBins) : ArrayXd::Ones(mBins);
+        mMode == kAdvanced ? ArrayXd::Ones(mBins) : ArrayXd::Zero(mBins);
 
     switch (mMode) {
     case kClassic: {
