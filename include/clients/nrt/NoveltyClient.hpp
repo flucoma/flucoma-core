@@ -22,7 +22,7 @@ auto constexpr NoveltyParams =defineParameters(
   BufferParam("indBuf", "Indices Buffer"),
   LongParam("kernSize", "Kernel Size", 3, Min(3), Odd()),
   FloatParam("thresh", "Threshold", 0.8, Min(0.)),
-  LongParam("filtSize", "Smoothing Filter Size", 3, Min(3), FrameSizeUpperLimit<kFFT>()),
+  LongParam("filtSize", "Smoothing Filter Size", 1, FrameSizeUpperLimit<kFFT>()),
   FFTParam("fft", "FFT Settings", 1024, -1, -1)
  );
 
