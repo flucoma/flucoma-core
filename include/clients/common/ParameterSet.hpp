@@ -14,19 +14,19 @@ namespace impl {
 template <typename T>
 struct Clamper
 {
-  template <size_t N, typename Params, typename... Constraints>
+  template <size_t Offset, size_t N, typename Params, typename... Constraints>
   static T clamp(T thisParam, Params &allParams, std::tuple<Constraints...> &c, Result *r)
   {
     // for each constraint, pass this param,all params
-    return clampImpl<N>(thisParam, allParams, c, std::index_sequence_for<Constraints...>(), r);
+    return clampImpl<Offset, N>(thisParam, allParams, c, std::index_sequence_for<Constraints...>(), r);
   }
   
 private:
-  template <size_t N, typename Params, typename Constraints, size_t... Is>
+  template <size_t Offset, size_t N, typename Params, typename Constraints, size_t... Is>
   static T clampImpl(T &thisParam, Params &allParams, Constraints &c, std::index_sequence<Is...>, Result *r)
   {
     T res = thisParam;
-    (void) std::initializer_list<int>{(std::get<Is>(c).template clamp<N>(res, allParams, r), 0)...};
+    (void) std::initializer_list<int>{(std::get<Is>(c).template clamp<Offset, N>(res, allParams, r), 0)...};
     return res;
   }
 };
@@ -34,7 +34,7 @@ private:
 template<>
 struct Clamper<typename BufferT::type>
 {
-  template <size_t N, typename Params, typename... Constraints>
+  template <size_t Offset, size_t N, typename Params, typename... Constraints>
   static typename BufferT::type clamp(typename BufferT::type &thisParam, Params &, std::tuple<Constraints...>, Result *r)
   {
     return std::move(thisParam);
@@ -219,7 +219,7 @@ public:
     auto &constraints = std::get<N>(mParams).second;
     auto &param       = std::get<N>(mParams).first;
     using ParamType   = typename std::remove_reference_t<decltype(param)>::type;
-    auto xPrime       = impl::Clamper<ParamType>::template clamp<N>(x, mParams, constraints, reportage);
+    auto xPrime       = impl::Clamper<ParamType>::template clamp<0, N>(x, mParams, constraints, reportage);
     param.set(std::move(xPrime));
   }
 
@@ -276,7 +276,6 @@ private:
   template <typename T, template <size_t, typename> class Func, size_t N, typename... Args>
   ParameterValue<T> makeValue(Args &&... args)
   {
-
     return {std::get<N>(mParams).first.descriptor(), Func<N, ParamDescriptorTypeAt<N>>()(std::forward<Args>(args)...)};
   }
 
@@ -288,7 +287,7 @@ private:
     ValueTuple candidateValues = std::make_tuple(std::make_pair(
         makeValue<ParamDescriptorTypeAt<Is>, Func, Is>(std::forward<Args>(args)...), std::get<Is>(mParams).second)...);
 
-    std::initializer_list<int>{(impl::Clamper<ParamTypeAt<Is>>::template clamp<Is>(ParamValueAt<Is>(candidateValues), candidateValues, ConstraintAt<Is>(candidateValues), &std::get<Is>(results)), 0)...};
+    std::initializer_list<int>{(impl::Clamper<ParamTypeAt<Is>>::template clamp<0, Is>(ParamValueAt<Is>(candidateValues), candidateValues, ConstraintAt<Is>(candidateValues), &std::get<Is>(results)), 0)...};
     
     return results;
   }

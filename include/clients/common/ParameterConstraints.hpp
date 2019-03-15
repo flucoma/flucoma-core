@@ -19,7 +19,7 @@ struct MinImpl
       : value(m)
   {}
   const T value;
-  template <size_t N, typename U, typename Tuple>
+  template <size_t Offset, size_t N, typename U, typename Tuple>
   constexpr void clamp(U &x, Tuple &params, Result *r)
   {
     U oldX = x;
@@ -43,7 +43,7 @@ struct MaxImpl
       : value(m)
   {}
   const T value;
-  template <size_t N, typename U, typename Tuple>
+  template <size_t Offset, size_t N, typename U, typename Tuple>
   constexpr void clamp(U &x, Tuple &params, Result *r)
   {
 
@@ -65,21 +65,21 @@ struct MaxImpl
 template <int... Is>
 struct LowerLimitImpl
 {
-  template <size_t N, typename T, typename Tuple>
+  template <size_t Offset, size_t N, typename T, typename Tuple>
   void clamp(T &v, Tuple &params, Result *r)
   {
 
     T oldV = v;
 
-    v = std::max<T>({v, std::get<Is>(params).first.get()...});
+    v = std::max<T>({v, std::get<Is + Offset>(params).first.get()...});
 
     if (r && oldV != v)
     {
       r->set(Result::Status::kWarning);
-      std::array<T, sizeof...(Is)> constraintValues{std::get<Is>(params).first.get()...};
+      std::array<T, sizeof...(Is)> constraintValues{std::get<Is + Offset>(params).first.get()...};
       size_t                       minPos =
           std::distance(constraintValues.begin(), std::min_element(constraintValues.begin(), constraintValues.end()));
-      std::array<const char *, sizeof...(Is)> constraintNames{std::get<Is>(params).first.name()...};
+      std::array<const char *, sizeof...(Is)> constraintNames{std::get<Is + Offset>(params).first.name()...};
       r->addMessage(std::get<N>(params).first.name());
       r->addMessage(" value (");
       r->addMessage(oldV);
@@ -95,21 +95,21 @@ struct LowerLimitImpl
 template <int... Is>
 struct UpperLimitImpl
 {
-  template <size_t N, typename T, typename Tuple>
+  template <size_t Offset, size_t N, typename T, typename Tuple>
   void clamp(T &v, Tuple &params, Result *r)
   {
 
     T oldV = v;
 
-    v = std::min<T>({v, std::get<Is>(params).first.get()...});
+    v = std::min<T>({v, std::get<Is + Offset>(params).first.get()...});
 
     if (r && oldV != v)
     {
       r->set(Result::Status::kWarning);
-      std::array<T, sizeof...(Is)> constraintValues{std::get<Is>(params).first.get()...};
+      std::array<T, sizeof...(Is)> constraintValues{std::get<Is + Offset>(params).first.get()...};
       size_t                       maxPos =
           std::distance(constraintValues.begin(), std::max_element(constraintValues.begin(), constraintValues.end()));
-      std::array<const char *, sizeof...(Is)> constraintNames{std::get<Is>(params).first.name()...};
+      std::array<const char *, sizeof...(Is)> constraintNames{std::get<Is + Offset>(params).first.name()...};
       r->addMessage(std::get<N>(params).first.name());
       r->addMessage(" value, ");
       r->addMessage(oldV);
@@ -125,11 +125,11 @@ struct UpperLimitImpl
 template <int FFTIndex>
 struct FrameSizeUpperLimitImpl
 {
-  template <size_t N, typename T, typename Tuple>
+  template <size_t Offset, size_t N, typename T, typename Tuple>
   void clamp(T &v, Tuple &params, Result *r)
   {
     T      oldV      = v;
-    size_t frameSize = std::get<FFTIndex>(params).first.get().frameSize();
+    size_t frameSize = std::get<FFTIndex + Offset>(params).first.get().frameSize();
     v                = std::min<T>(v, frameSize);
 
     if (r && oldV != v)
@@ -143,11 +143,11 @@ struct FrameSizeUpperLimitImpl
 template <int WinSizeIndex>
 struct WinLowerLimitImpl
 {
-  template <size_t N, typename T, typename Tuple>
+  template <size_t Offset, size_t N, typename T, typename Tuple>
   void clamp(T &FFTSize, Tuple &params, Result *r)
   {
     size_t oldFFTSize = FFTSize;
-    size_t winSize    = std::get<WinSizeIndex>(params).first.get();
+    size_t winSize    = std::get<WinSizeIndex + Offset>(params).first.get();
     FFTSize           = FFTSize == -1 ? FFTSize : std::max<size_t>(winSize, FFTSize);
     if (r && oldFFTSize != FFTSize)
     {
@@ -165,11 +165,11 @@ struct WinLowerLimitImpl
 template <int FFTIndex>
 struct FFTUpperLimitImpl
 {
-  template <size_t N, typename T, typename Tuple>
+  template <size_t Offset, size_t N, typename T, typename Tuple>
   void clamp(T &winSize, Tuple &params, Result *r)
   {
     size_t oldWinSize = winSize;
-    size_t fftSize    = std::get<FFTIndex>(params).first.get();
+    size_t fftSize    = std::get<FFTIndex + Offset>(params).first.get();
     winSize           = fftSize == -1 ? winSize : std::min<size_t>(winSize, fftSize);
     if (r && oldWinSize != winSize)
     {
@@ -216,7 +216,7 @@ struct FrequencyAmpPairConstraint
 
   constexpr FrequencyAmpPairConstraint() {}
 
-  template <size_t N, typename Tuple>
+  template <size_t Offset, size_t N, typename Tuple>
   constexpr void clamp(type &v, Tuple &, Result *r)
   {
     // For now I know that array size is 2, just upper and lower vals
@@ -247,7 +247,7 @@ private:
 
 struct PowerOfTwo
 {
-  template <size_t N, typename Tuple>
+  template <size_t Offset, size_t N, typename Tuple>
   constexpr void clamp(LongUnderlyingType &x, Tuple &params, Result *r)
   {
 
@@ -271,7 +271,7 @@ struct PowerOfTwo
 
 struct Odd
 {
-  template <size_t N, typename Tuple>
+  template <size_t Offset, size_t N, typename Tuple>
   constexpr void clamp(LongUnderlyingType &x, Tuple &params, Result *r)
   {
     x = x % 2 ? x : x + 1;
