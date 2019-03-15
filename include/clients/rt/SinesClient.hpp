@@ -42,7 +42,7 @@ class SinesClient : public FluidBaseClient<decltype(SinesParams), SinesParams>, 
 
 public:
   SinesClient(ParamSetType& p)
-  : FluidBaseClient(p), mSTFTBufferedProcess{param<kMaxFFTSize>(p),1,2}
+  : FluidBaseClient(p), mSTFTBufferedProcess{get<kMaxFFTSize>(),1,2}
   {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::audioChannelsOut(2);
@@ -54,17 +54,17 @@ public:
     if (!input[0].data()) return;
     if (!output[0].data() && !output[1].data()) return;
 
-    if (mTrackValues.changed(param<kFFT>(mParams).winSize(), param<kFFT>(mParams).hopSize(), param<kFFT>(mParams).fftSize(), param<kBandwidth>(mParams), param<kMinTrackLen>(mParams)))
+    if (mTrackValues.changed(get<kFFT>().winSize(), get<kFFT>().hopSize(), get<kFFT>().fftSize(), get<kBandwidth>(), get<kMinTrackLen>()))
     {
-      mSinesExtractor.reset(new algorithm::RTSineExtraction(param<kFFT>(mParams).winSize(), param<kFFT>(mParams).fftSize(), param<kFFT>(mParams).hopSize(),
-                                                            param<kBandwidth>(mParams), param<kThreshold>(mParams), param<kMinTrackLen>(mParams),
-                                                            param<kMagWeight>(mParams), param<kFreqWeight>(mParams)));
+      mSinesExtractor.reset(new algorithm::RTSineExtraction(get<kFFT>().winSize(), get<kFFT>().fftSize(), get<kFFT>().hopSize(),
+                                                            get<kBandwidth>(), get<kThreshold>(), get<kMinTrackLen>(),
+                                                            get<kMagWeight>(), get<kFreqWeight>()));
     } else
     {
-      mSinesExtractor->setThreshold(param<kThreshold>(mParams));
-      mSinesExtractor->setMagWeight(param<kMagWeight>(mParams));
-      mSinesExtractor->setFreqWeight(param<kFreqWeight>(mParams));
-      mSinesExtractor->setMinTrackLength(param<kMinTrackLen>(mParams));
+      mSinesExtractor->setThreshold(get<kThreshold>());
+      mSinesExtractor->setMagWeight(get<kMagWeight>());
+      mSinesExtractor->setFreqWeight(get<kFreqWeight>());
+      mSinesExtractor->setMinTrackLength(get<kMinTrackLen>());
     }
 
     mSTFTBufferedProcess.process(mParams, input, output, [this](ComplexMatrixView in, ComplexMatrixView out) {
@@ -72,7 +72,7 @@ public:
     });
   }
 
-  size_t latency() { return param<kFFT>(mParams).winSize() + (param<kFFT>(mParams).hopSize() * param<kMinTrackLen>(mParams)); }
+  size_t latency() { return get<kFFT>().winSize() + (get<kFFT>().hopSize() * get<kMinTrackLen>()); }
 
 private:
   STFTBufferedProcess<ParamSetType, T, kFFT>  mSTFTBufferedProcess;

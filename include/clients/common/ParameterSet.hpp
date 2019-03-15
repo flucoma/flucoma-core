@@ -345,11 +345,5 @@ constexpr impl::ParameterDescriptorSet<Args...> defineParameters(Args &&... args
   return {std::forward<Args>(args)...};
 }
 
-template <size_t N, typename ParamSet>
-auto &param(ParamSet &p)
-{
-  return p.template get<N>();
-}
-
 } // namespace client
 } // namespace fluid

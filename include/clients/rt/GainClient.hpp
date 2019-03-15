@@ -43,10 +43,10 @@ public:
 
     // 2nd input? -> ar version
     if (input[1].data()) {
-      output[0].apply(input[1], [](T &x, T &y) { x *= y; });
+        // Apply gain from the second channel
+        output[0].apply(input[1], [](T &x, T &y) { x *= y; });
     } else {
-      double g = param<kGain>(mParams);
-      // Apply gain from the second channel
+      double g = get<kGain>();
       output[0].apply([g](T &x) { x *= g; });
     }
   }

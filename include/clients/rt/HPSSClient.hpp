@@ -38,45 +38,45 @@ class HPSSClient : public FluidBaseClient<decltype(HPSSParams), HPSSParams>, pub
 public:
 
   HPSSClient(ParamSetType& p)
-    : FluidBaseClient(p), mSTFTBufferedProcess{param<kMaxFFT>(p),1,3}
+    : FluidBaseClient(p), mSTFTBufferedProcess{get<kMaxFFT>(),1,3}
   {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::audioChannelsOut(3);
   }
 
-  size_t latency() { return ((param<kHSize>(mParams) - 1) * param<kFFT>(mParams).hopSize()) +  param<kFFT>(mParams).winSize(); }
+  size_t latency() { return ((get<kHSize>() - 1) * get<kFFT>().hopSize()) +  get<kFFT>().winSize(); }
 
   void process(std::vector<HostVector> &input, std::vector<HostVector> &output)
   {
     if (!input[0].data()) return;
 
-    int nBins = param<kFFT>(mParams).frameSize();
+    int nBins = get<kFFT>().frameSize();
 
-    if (mTrackChangesAlgo.changed(nBins, param<kMaxPSize>(mParams), param<kMaxHSize>(mParams)))
+    if (mTrackChangesAlgo.changed(nBins, get<kMaxPSize>(), get<kMaxHSize>()))
     {
-        mHPSS.init(nBins, param<kMaxPSize>(mParams), param<kMaxHSize>(mParams), param<kPSize>(mParams), param<kHSize>(mParams),
-            param<kMode>(mParams), param<kHThresh>(mParams)[0].first, param<kHThresh>(mParams)[0].second,
-            param<kHThresh>(mParams)[1].first, param<kHThresh>(mParams)[1].second, param<kPThresh>(mParams)[0].first,
-            param<kPThresh>(mParams)[0].second, param<kPThresh>(mParams)[1].first, param<kPThresh>(mParams)[0].second);
+        mHPSS.init(nBins, get<kMaxPSize>(), get<kMaxHSize>(), get<kPSize>(), get<kHSize>(),
+            get<kMode>(), get<kHThresh>()[0].first, get<kHThresh>()[0].second,
+            get<kHThresh>()[1].first, get<kHThresh>()[1].second, get<kPThresh>()[0].first,
+            get<kPThresh>()[0].second, get<kPThresh>()[1].first, get<kPThresh>()[0].second);
     }
     else
     {
-      mHPSS.setVSize(param<kPSize>(mParams));
-      if(mTrackHSize.changed(param<kHSize>(mParams))) mHPSS.setHSize(param<kHSize>(mParams));
+      mHPSS.setVSize(get<kPSize>());
+      if(mTrackHSize.changed(get<kHSize>())) mHPSS.setHSize(get<kHSize>());
       
-      mHPSS.setHThresholdX1(param<kHThresh>(mParams)[0].first);
-      mHPSS.setHThresholdY1(param<kHThresh>(mParams)[0].second);
+      mHPSS.setHThresholdX1(get<kHThresh>()[0].first);
+      mHPSS.setHThresholdY1(get<kHThresh>()[0].second);
 
-      mHPSS.setHThresholdX2(param<kHThresh>(mParams)[1].first);
-      mHPSS.setHThresholdY2(param<kHThresh>(mParams)[1].second);
+      mHPSS.setHThresholdX2(get<kHThresh>()[1].first);
+      mHPSS.setHThresholdY2(get<kHThresh>()[1].second);
 
-      mHPSS.setPThresholdX1(param<kPThresh>(mParams)[0].first);
-      mHPSS.setPThresholdY1(param<kPThresh>(mParams)[0].second);
+      mHPSS.setPThresholdX1(get<kPThresh>()[0].first);
+      mHPSS.setPThresholdY1(get<kPThresh>()[0].second);
 
-      mHPSS.setPThresholdX2(param<kPThresh>(mParams)[1].first);
-      mHPSS.setPThresholdY2(param<kPThresh>(mParams)[1].second);
+      mHPSS.setPThresholdX2(get<kPThresh>()[1].first);
+      mHPSS.setPThresholdY2(get<kPThresh>()[1].second);
       
-      mHPSS.setMode(param<kMode>(mParams)); 
+      mHPSS.setMode(get<kMode>()); 
       
     }
 

@@ -30,13 +30,13 @@ class BaseSTFTClient : public FluidBaseClient<decltype(STFTParams), STFTParams>,
 
 public:
 
-  BaseSTFTClient(ParamSetType& p) : FluidBaseClient(p), mSTFTBufferedProcess{param<kMaxFFT>(p),1,1}
+  BaseSTFTClient(ParamSetType& p) : FluidBaseClient(p), mSTFTBufferedProcess{get<kMaxFFT>(),1,1}
   {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::audioChannelsOut(1);
   }
 
-  size_t latency() { return param<kFFT>(mParams).winSize(); }
+  size_t latency() { return get<kFFT>().winSize(); }
 
   void process(std::vector<HostVector> &input,
                std::vector<HostVector> &output) {

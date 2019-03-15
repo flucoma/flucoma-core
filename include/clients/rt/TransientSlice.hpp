@@ -63,9 +63,9 @@ public:
     static constexpr bool refine = false;
     static constexpr double robustFactor = 3.0;
 
-    std::size_t order = param<kOrder>(mParams);
-    std::size_t blockSize = param<kBlockSize>(mParams);
-    std::size_t padding = param<kPadding>(mParams);
+    std::size_t order = get<kOrder>();
+    std::size_t blockSize = get<kBlockSize>();
+    std::size_t padding = get<kPadding>();
     std::size_t hostVecSize = input[0].size();
     std::size_t maxWin = 2*blockSize + padding;
 
@@ -77,12 +77,12 @@ public:
 
     }
 
-    double skew = std::pow(2, param<kSkew>(mParams));
-    double threshFwd = param<kThreshFwd>(mParams);
-    double thresBack = param<kThreshBack>(mParams);
-    size_t halfWindow = std::round(param<kWinSize>(mParams) / 2);
-    size_t debounce = param<kDebounce>(mParams);
-    size_t minSeg = param<kMinSeg>(mParams);
+    double skew = std::pow(2, get<kSkew>());
+    double threshFwd = get<kThreshFwd>();
+    double thresBack = get<kThreshBack>();
+    size_t halfWindow = std::round(get<kWinSize>() / 2);
+    size_t debounce = get<kDebounce>();
+    size_t minSeg = get<kMinSeg>();
 
     mExtractor->setDetectionParameters(skew, threshFwd, thresBack, halfWindow,
                                        debounce, minSeg);
@@ -105,7 +105,7 @@ public:
 
   long latency()
   {
-    return param<kPadding>(*this) +param<kBlockSize>(*this) -  param<kOrder>(*this);
+    return get<kPadding>() + get<kBlockSize>() -  get<kOrder>();
   }
 
 private:
