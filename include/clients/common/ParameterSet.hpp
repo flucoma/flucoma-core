@@ -55,6 +55,8 @@ std::ostream &operator<<(std::ostream &o, ParameterValue<T> &t)
 template <typename... Ts>
 class ParameterDescriptorSet
 {
+  using DescriptorIndex = std::index_sequence_for<Ts...>;
+
   template <typename T>
   using ValueType = ParameterValue<typename std::tuple_element<0, T>::type>;
   
@@ -106,7 +108,6 @@ private:
   }
   
   const std::tuple<Ts...> mDescriptors;
-  using DescriptorIndex = std::index_sequence_for<Ts...>;
 };
   
 } // namespace impl
@@ -127,7 +128,6 @@ class ParameterSetImpl<const D<Ts...>>
   using IsFixedParamTest   = IsFixed<true>;
   using IsMutableParamTest = IsFixed<false>;
   using ParameterDescType = D<Ts...>;
-  const ParameterDescType mDescriptors;
 
 public:
   
@@ -135,26 +135,24 @@ public:
   using ValueTuple = typename ParameterDescType::ValuePlusConstraintsType;
   using ParamIndexList = typename std::index_sequence_for<Ts...>;
 
-  constexpr ParameterSetImpl(const impl::ParameterDescriptorSet<Ts...> &d, ValueTuple &t)
-      : mDescriptors{d}
-      , mParams{t}
-  {}
-
   template <size_t N>
   using ParamDescriptorTypeAt = typename std::tuple_element<N, ValueTuple>::type::first_type::ParameterType;
 
   template <size_t N>
   using ParamTypeAt = typename ParamDescriptorTypeAt<N>::type;
 
-  using FixedParams =
-      typename impl::FilterTupleIndices<IsFixedParamTest, std::decay_t<Descriptors>, ParamIndexList>::type;
-
+  using FixedParams = typename impl::FilterTupleIndices<IsFixedParamTest, std::decay_t<Descriptors>, ParamIndexList>::type;
+  
+  using MutableParams = typename impl::FilterTupleIndices<IsMutableParamTest, std::decay_t<Descriptors>, ParamIndexList>::type;
+  
   static constexpr size_t NumFixedParams = FixedParams::size();
-
-  using MutableParams =
-      typename impl::FilterTupleIndices<IsMutableParamTest, std::decay_t<Descriptors>, ParamIndexList>::type;
   static constexpr size_t NumMutableParams = MutableParams::size();
 
+  constexpr ParameterSetImpl(const impl::ParameterDescriptorSet<Ts...> &d, ValueTuple &t)
+  : mDescriptors{d}
+  , mParams{t}
+  {}
+  
   template <template <size_t N, typename T> class Func>
   static void iterateParameterDescriptors(Descriptors &d)
   {
@@ -316,11 +314,12 @@ private:
     return results;
   }
 
+  const ParameterDescType mDescriptors;
   ValueTuple& mParams;
 };
 
-template <typename T>
-class ParameterSet : public ParameterSetImpl<T>
+template <typename>
+class ParameterSet
 {};
   
 template <template <typename...> class D, typename... Ts>
