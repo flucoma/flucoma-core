@@ -9,56 +9,7 @@ namespace fluid {
 namespace client {
 namespace impl {
 
-template <size_t, typename... Ts>
-class ParameterDescriptorSet;
-
-template <typename... Ts>
-struct ParamValueTypes
-{
-
-  template <typename T>
-  using ValueType = ParameterValue<typename std::tuple_element<0, T>::type>;
-
-  template <typename T>
-  using ConstraintsType = typename std::tuple_element<1, T>::type;
-
-  using ValuePlusConstraintsType = std::tuple<std::pair<ValueType<Ts>, ConstraintsType<Ts>>...>;
-
-  template <size_t O>
-  constexpr static auto create(const ParameterDescriptorSet<O, Ts...> descriptors)
-  {
-    return ParamValueTypes::createImpl(descriptors, std::index_sequence_for<Ts...>());
-  }
-
-private:
-  template <size_t N, size_t O>
-  constexpr static auto descriptorAt(const ParameterDescriptorSet<O, Ts...> &d)
-  {
-    return std::get<0>(std::get<N>(d.descriptors()));
-  }
-
-  template <size_t N, size_t O>
-  constexpr static auto constraintsAt(const ParameterDescriptorSet<O, Ts...> &d)
-  {
-    return std::get<1>(std::get<N>(d.descriptors()));
-  }
-
-  template <size_t O, size_t... Is>
-  constexpr static auto createImpl(const ParameterDescriptorSet<O, Ts...> &d, std::index_sequence<Is...>)
-  {
-    return std::make_tuple(std::make_pair(ValueType<Ts>(descriptorAt<Is>(d)), constraintsAt<Is>(d))...);
-  }
-};
-
 // Clamp value given constraints
-
-template <size_t Offset, size_t N, typename T, typename Params, typename Constraints, size_t... Is>
-T clampImpl(T &thisParam, Params &allParams, Constraints &c, std::index_sequence<Is...>, Result *r)
-{
-  T res = thisParam;
-  (void) std::initializer_list<int>{(std::get<Is>(c).template clamp<Offset, N>(res, allParams, r), 0)...};
-  return res;
-}
 
 template <typename T, size_t Offset>
 struct Clamper
@@ -67,7 +18,16 @@ struct Clamper
   static T clamp(T thisParam, Params &allParams, std::tuple<Constraints...> &c, Result *r)
   {
     // for each constraint, pass this param,all params
-    return clampImpl<Offset, N>(thisParam, allParams, c, std::index_sequence_for<Constraints...>(), r);
+    return clampImpl<N>(thisParam, allParams, c, std::index_sequence_for<Constraints...>(), r);
+  }
+  
+private:
+  template <size_t N, typename Params, typename Constraints, size_t... Is>
+  static T clampImpl(T &thisParam, Params &allParams, Constraints &c, std::index_sequence<Is...>, Result *r)
+  {
+    T res = thisParam;
+    (void) std::initializer_list<int>{(std::get<Is>(c).template clamp<Offset, N>(res, allParams, r), 0)...};
+    return res;
   }
 };
 
@@ -109,9 +69,18 @@ class ParameterDescriptorSet
   friend class ParameterDescriptorSet;
 
 public:
+    
+  template <typename T>
+  using ValueType = ParameterValue<typename std::tuple_element<0, T>::type>;
+    
+  template <typename T>
+  using ConstraintsType = typename std::tuple_element<1, T>::type;
+    
+  using ValuePlusConstraintsType = std::tuple<std::pair<ValueType<Ts>, ConstraintsType<Ts>>...>;
+
   static constexpr size_t ConstraintOffset = CO;
 
-  constexpr auto createValues() const { return impl::ParamValueTypes<Ts...>::create(*this); }
+  constexpr auto createValues() const { return createImpl(*this, std::index_sequence_for<Ts...>()); }
 
   using type = ParameterDescriptorSet<CO, Ts...>;
 
@@ -144,7 +113,25 @@ private:
     std::initializer_list<int>{(count = count + std::get<0>(std::get<Is>(mDescriptors)).fixedSize, 0)...};
     return count;
   }
-
+  
+  template <size_t N, size_t O>
+  constexpr static auto descriptorAt(const ParameterDescriptorSet<O, Ts...> &d)
+  {
+    return std::get<0>(std::get<N>(d.descriptors()));
+  }
+  
+  template <size_t N, size_t O>
+  constexpr static auto constraintsAt(const ParameterDescriptorSet<O, Ts...> &d)
+  {
+    return std::get<1>(std::get<N>(d.descriptors()));
+  }
+  
+  template <size_t O, size_t... Is>
+  constexpr static auto createImpl(const ParameterDescriptorSet<O, Ts...> &d, std::index_sequence<Is...>)
+  {
+    return std::make_tuple(std::make_pair(ValueType<Ts>(descriptorAt<Is>(d)), constraintsAt<Is>(d))...);
+  }
+  
   const std::tuple<Ts...> mDescriptors;
   using DescriptorIndex = std::index_sequence_for<Ts...>;
 };
@@ -158,17 +145,18 @@ template <template <size_t, typename...> class D, size_t O, typename... Ts>
 class ParameterSet<const D<O, Ts...>>
 {
 
-  const impl::ParameterDescriptorSet<O, Ts...> mDescriptors;
+  using ParameterDescType = D<O, Ts...>;
+  const ParameterDescType mDescriptors;
 
 public:
   constexpr ParameterSet(const impl::ParameterDescriptorSet<O, Ts...> &d)
       : mDescriptors{d}
-      , mParams{impl::ParamValueTypes<Ts...>::create(d)}
+      , mParams{d.createValues()}
   {}
 
   using Descriptors = const std::tuple<Ts...>;
 
-  using ValueTuple = typename impl::ParamValueTypes<Ts...>::ValuePlusConstraintsType;
+  using ValueTuple = typename ParameterDescType::ValuePlusConstraintsType;
 
   using ParamIndexList = typename std::index_sequence_for<Ts...>;
 
@@ -315,18 +303,13 @@ private:
   template <template <size_t, typename> class Func, size_t... Is, typename... Args>
   auto checkParameterValuesImpl(std::index_sequence<Is...> index, Args &&... args)
   {
+    std::array<Result, sizeof...(Is)> results;
+
     ValueTuple candidateValues = std::make_tuple(std::make_pair(
         makeValue<ParamDescriptorTypeAt<Is>, Func, Is>(std::forward<Args>(args)...), std::get<Is>(mParams).second)...);
-    return validateParametersImpl(index, candidateValues);
-  }
 
-  template <size_t... Is>
-  auto validateParametersImpl(std::index_sequence<Is...>, ValueTuple &values)
-  {
-    std::array<Result, sizeof...(Is)> results;
-    std::initializer_list<int>{(impl::Clamper<ParamTypeAt<Is>, O>::template clamp<Is>(
-                                    ParamValueAt<Is>(values), values, ConstraintAt<Is>(values), &std::get<Is>(results)),
-                                0)...};
+    std::initializer_list<int>{(impl::Clamper<ParamTypeAt<Is>, O>::template clamp<Is>(ParamValueAt<Is>(candidateValues), candidateValues, ConstraintAt<Is>(candidateValues), &std::get<Is>(results)), 0)...};
+    
     return results;
   }
 
@@ -403,4 +386,3 @@ auto &param(ParamSet &p)
 
 } // namespace client
 } // namespace fluid
-
