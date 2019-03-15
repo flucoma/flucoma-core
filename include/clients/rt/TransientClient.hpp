@@ -117,11 +117,11 @@ private:
   size_t mPadding{0};
 };
 
-
-template <typename Params, typename T, typename U>
-using NRTTransients = NRTStreamAdaptor<TransientClient,Params,T,U,1,2>;
-
 auto constexpr NRTTransientParams = impl::makeNRTParams({BufferParam("srcBuf", "Source Buffer")}, {BufferParam("transBuf","Transients Buffer"),BufferParam("resBuf","Residual Buffer")}, TransientParams);
+    
+template <typename T>
+using NRTTransients = NRTStreamAdaptor<TransientClient<T>,decltype(NRTTransientParams),NRTTransientParams, 1,2>;
+
 
 
 } // namespace client

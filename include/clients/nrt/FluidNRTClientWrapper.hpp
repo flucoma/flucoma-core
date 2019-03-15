@@ -52,19 +52,25 @@ auto constexpr makeNRTParams(BufferSpec&& in,BufferSpec(&& out)[Ms],const RTPara
   return makeWrapperInputs(in).join(spitOuts(out,std::make_index_sequence<Ms>())).template join<Ms + 5>(p);
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-template<template <typename, typename> class AdaptorType,
-  template <typename,typename,typename> class RTClient, typename Params, typename T, typename U, size_t Ins, size_t Outs>
+template<template <typename, typename> class AdaptorType, class RTClient, typename ParamType, ParamType& PD, size_t Ins, size_t Outs>
 class NRTClientWrapper: public OfflineIn, public OfflineOut
 {
 
 public:
+    
+  using ParamDescType = ParamType;
+  using ParamSetType = ParameterSet<ParamDescType>;
 
+  static auto getParameterDescriptor() { return PD; }
+    
   //The client will be accessing its parameter by a bunch of indices that need ofsetting now
 //  using Client = RTClient<impl::ParameterSet_Offset<Params,ParamOffset>,T,U>;
 // None of that for outputs though
 
   static constexpr size_t ParamOffset  = (Ins*5) + Outs;
-  using WrappedClient = RTClient<ParameterSet_Offset<Params,ParamOffset>,T,U>;
+  using WrappedClient = RTClient;//<ParameterSet_Offset<Params,ParamOffset>,T>;
+  using Params = ParamType;
+  using ParamSet = ParameterSet<ParamType>;
 
   //Host buffers are always float32 (?)
   using HostVector     =  FluidTensor<float,1>;
@@ -72,7 +78,7 @@ public:
   using HostVectorView =  FluidTensorView<float,1>;
   using HostMatrixView =  FluidTensorView<float,2>;
 
-  NRTClientWrapper(Params& p):
+  NRTClientWrapper(ParamSetType& p):
     mParams{p},
     mParamsWithOffset{p},
     mClient{mParamsWithOffset}
@@ -148,8 +154,8 @@ private:
     return {get<Is + (Ins*5)>().get()...};
   }
 
-  Params&  mParams;
-  ParameterSet_Offset<Params, ParamOffset> mParamsWithOffset;
+  ParamSet&  mParams;
+  ParameterSet_Offset<ParamSet, ParamOffset> mParamsWithOffset;
   WrappedClient  mClient;
 };
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -232,10 +238,11 @@ struct Slicing
 
 } //namespace impl
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-template<template <typename,typename,typename> class RTClient,typename Params,typename T, typename U, size_t Ins, size_t Outs>
-using NRTStreamAdaptor = impl::NRTClientWrapper< impl::Streaming,RTClient,Params,T,U,Ins,Outs>;
-template<template <typename,typename,typename> class RTClient,typename Params,typename T, typename U,size_t Ins, size_t Outs>
-using NRTSliceAdaptor  = impl::NRTClientWrapper< impl::Slicing, RTClient,Params,T,U,Ins,Outs>;
-
+template<class RTClient,typename Params, Params& PD, size_t Ins, size_t Outs>
+using NRTStreamAdaptor = impl::NRTClientWrapper<impl::Streaming,RTClient,Params,PD, Ins,Outs>;
+    /*
+template<class RTClient,typename Params,typename T,size_t Ins, size_t Outs>
+using NRTSliceAdaptor = impl::NRTClientWrapper< impl::Slicing, RTClient,Params,Ins,Outs>;
+*/
 } //namespace client
 } //namespace fluid
