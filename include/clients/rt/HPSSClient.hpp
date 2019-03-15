@@ -28,21 +28,20 @@ auto constexpr HPSSParams = defineParameters(
     LongParam<Fixed<true>>("maxPFiltSize", "Maximum Percussive Filter Size", 101,LowerLimit<kPSize>(), Odd{})
 );
 
-template <typename Params, typename T, typename U = T>
-class HPSSClient : public FluidBaseClient<Params>, public AudioIn, public AudioOut
+template <typename T>
+class HPSSClient : public FluidBaseClient<decltype(HPSSParams), HPSSParams>, public AudioIn, public AudioOut
 {
-
-  using data_type  = FluidTensorView<T, 2>;
-  using complex    = FluidTensorView<std::complex<T>, 1>;
-  using HostVector = HostVector<U>;
+  using data_type       = FluidTensorView<T, 2>;
+  using complex         = FluidTensorView<std::complex<T>, 1>;
+  using HostVector      = HostVector<T>;
 
 public:
 
-  HPSSClient(Params& p)
-    : mParams{p}, FluidBaseClient<Params>(p), mSTFTBufferedProcess{param<kMaxFFT>(p),1,3}
+  HPSSClient(ParamSetType& p)
+    : FluidBaseClient(p), mSTFTBufferedProcess{param<kMaxFFT>(p),1,3}
   {
-    FluidBaseClient<Params>::audioChannelsIn(1);
-    FluidBaseClient<Params>::audioChannelsOut(3);
+    FluidBaseClient::audioChannelsIn(1);
+    FluidBaseClient::audioChannelsOut(3);
   }
 
   size_t latency() { return ((param<kHSize>(mParams) - 1) * param<kFFT>(mParams).hopSize()) +  param<kFFT>(mParams).winSize(); }
@@ -89,13 +88,12 @@ public:
   }
 
 private:
-  Params& mParams;
-  STFTBufferedProcess<Params, U, kFFT, true> mSTFTBufferedProcess;
+  STFTBufferedProcess<ParamSetType, T, kFFT, true> mSTFTBufferedProcess;
   ParameterTrackChanges<size_t, size_t, size_t> mTrackChangesAlgo;
   ParameterTrackChanges<size_t> mTrackHSize;
   algorithm::RTHPSS mHPSS;
 };
-
+/*
 template <typename Params, typename T, typename U>
 using NRTHPSS = NRTStreamAdaptor<HPSSClient,Params,T,U,1,3>;
 
@@ -103,6 +101,6 @@ auto constexpr NRTHPSSParams = impl::makeNRTParams(
     {BufferParam("srcBuf", "Source Buffer")},
     {BufferParam("harmBuf","Harmonic Buffer"),BufferParam("percBuf","Percussive Buffer"),BufferParam("resBuf", "Residual Buffer")},
     HPSSParams);
-
+*/
 } // namespace client
 } // namespace fluid

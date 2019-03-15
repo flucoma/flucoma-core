@@ -18,9 +18,10 @@ class FluidBaseClient //<const Tuple<Ts...>>
 {
 public:
   
-  using Params = ParamType;
-    
-  FluidBaseClient(ParameterSet<Params>& p) : mParams(p){}
+  using ParamDescType = ParamType;
+  using ParamSetType = ParameterSet<ParamDescType>;
+
+  FluidBaseClient(ParamSetType& p) : mParams(p){}
   
   template<size_t N>
   auto& get() const
@@ -45,7 +46,7 @@ public:
   size_t audioBuffersIn() const noexcept { return mBuffersIn; }
   size_t audioBuffersOut() const noexcept { return mBuffersOut; }
 
-  static Params& getParameterDescriptor() { return PD; }
+  static ParamDescType& getParameterDescriptor() { return PD; }
 
 protected:
   void audioChannelsIn(const size_t x) noexcept { mAudioChannelsIn = x; }
@@ -59,7 +60,7 @@ protected:
   void audioBuffersIn(const size_t x) noexcept { mBuffersIn = x; }
   void audioBuffersOut(const size_t x) noexcept { mBuffersOut = x; }
 
-  ParameterSet<Params>&   mParams;
+  ParamSetType&   mParams;
 
 private:
   size_t mAudioChannelsIn       = 0;

@@ -22,15 +22,15 @@ auto constexpr NMFMatchParams = defineParameters(
 );
 
 
-template <typename Params, typename T, typename U = T>
-class NMFMatch : public FluidBaseClient<Params>, public AudioIn, public ControlOut {
-  using HostVector = HostVector<U>;
+template <typename T>
+class NMFMatch : public FluidBaseClient<decltype(NMFMatchParams), NMFMatchParams>, public AudioIn, public ControlOut {
+  using HostVector = HostVector<T>;
 public:
 
-  NMFMatch(Params& p):FluidBaseClient<Params>{p},mParams{p},mSTFTProcessor(param<kMaxFFTSize>(p),1,0)
+  NMFMatch(ParamSetType& p) : FluidBaseClient(p), mSTFTProcessor(param<kMaxFFTSize>(p),1,0)
   {
-    FluidBaseClient<Params>::audioChannelsIn(1);
-    FluidBaseClient<Params>::controlChannelsOut(param<kMaxRank>(p));
+    FluidBaseClient::audioChannelsIn(1);
+    FluidBaseClient::controlChannelsOut(param<kMaxRank>(p));
   }
 
   size_t latency() { return param<kFFT>(mParams).winSize(); }
@@ -38,10 +38,8 @@ public:
   void process(std::vector<HostVector> &input, std::vector<HostVector> &output)
   {
     if(!input[0].data()) return;// {Result::Status::kOk,""};
-    assert(FluidBaseClient<Params>::controlChannelsOut() && "No control channels");
-    assert(output.size() >= FluidBaseClient<Params>::controlChannelsOut() && "Too few output channels");
-
-
+    assert(FluidBaseClient::controlChannelsOut() && "No control channels");
+    assert(output.size() >= FluidBaseClient::controlChannelsOut() && "Too few output channels");
 
     if (param<kFilterbuf>(mParams).get()) {
 
@@ -86,9 +84,8 @@ public:
   }
 
 private:
-  Params& mParams;
   ParameterTrackChanges<size_t,size_t> mTrackValues;
-  STFTBufferedProcess<Params, U, kFFT,false> mSTFTProcessor;
+  STFTBufferedProcess<ParamSetType, T, kFFT,false> mSTFTProcessor;
   std::unique_ptr<algorithm::NMF> mNMF;
 
   FluidTensor<double, 2> tmpFilt;

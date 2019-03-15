@@ -23,7 +23,6 @@ constexpr auto GainParams = defineParameters(FloatParam("gain", "Gain", 1.0));
 template <typename T>
 class GainClient : public FluidBaseClient<decltype(GainParams), GainParams>, public AudioIn, public AudioOut
 {
-  using ParamSetType = ParameterSet<FluidBaseClient::Params>;
   using HostVector = FluidTensorView<T,1>;
 public:
   GainClient(ParamSetType &p) : FluidBaseClient(p) {

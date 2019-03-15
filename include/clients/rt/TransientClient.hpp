@@ -46,9 +46,8 @@ class TransientClient : public FluidBaseClient<decltype(TransientParams), Transi
 public:
 
   using HostVector = HostVector<T>;
-  using PS = ParameterSet<Params>;
     
-  TransientClient(PS& p) : FluidBaseClient(p) {
+  TransientClient(ParamSetType& p) : FluidBaseClient(p) {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::audioChannelsOut(2);
   }

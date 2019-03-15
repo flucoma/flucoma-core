@@ -39,18 +39,18 @@ auto constexpr TransientParams = defineParameters(
 );
 
 
-template <typename Params, typename T, typename U = T>
-class TransientsSlice : public FluidBaseClient<Params>, public AudioIn, public AudioOut
-
+template <typename T>
+class TransientsSlice :
+public FluidBaseClient<decltype(TransientParams), TransientParams>, public AudioIn, public AudioOut
 {
-  using HostVector = HostVector<U>;
+  using HostVector = HostVector<T>;
 
 public:
 
-  TransientsSlice(Params& p): mParams{p}, FluidBaseClient<Params>{p}
+  TransientsSlice(ParamSetType& p): FluidBaseClient(p)
   {
-    FluidBaseClient<Params>::audioChannelsIn(1);
-    FluidBaseClient<Params>::audioChannelsOut(1);
+    FluidBaseClient::audioChannelsIn(1);
+    FluidBaseClient::audioChannelsOut(1);
   }
 
   void process(std::vector<HostVector>& input,
@@ -73,7 +73,7 @@ public:
       mExtractor.reset(new algorithm::TransientSegmentation(order, iterations, robustFactor));
       mExtractor->prepareStream(blockSize, padding);
       mBufferedProcess.hostSize(hostVecSize);
-      mBufferedProcess.maxSize(maxWin, FluidBaseClient<Params>::audioChannelsIn(), FluidBaseClient<Params>::audioChannelsOut());
+      mBufferedProcess.maxSize(maxWin, FluidBaseClient::audioChannelsIn(), FluidBaseClient::audioChannelsOut());
 
     }
 
@@ -118,15 +118,14 @@ private:
   size_t mOrder{0};
   size_t mBlocksize{0};
   size_t mPadding{0};
-  Params& mParams;
 };
 
-
+/*
 template <typename Params, typename T, typename U>
 using NRTTransientSlice = NRTSliceAdaptor<TransientsSlice,Params,T,U,1,1>;
 
 auto constexpr NRTTransientSliceParams = impl::makeNRTParams({BufferParam("srcBuf", "Source Buffer")}, {BufferParam("indBuf","Indices Buffer")}, TransientParams);
-
+*/
 
 } // namespace client
 } // namespace fluid

@@ -35,17 +35,17 @@ extern auto constexpr SinesParams = defineParameters(
 
 //using ParamsT = decltype(SinesParams);
 
-template <typename Params,typename T, typename U = T> class SinesClient : public FluidBaseClient<Params>, public AudioIn, public AudioOut
+template <typename T>
+class SinesClient : public FluidBaseClient<decltype(SinesParams), SinesParams>, public AudioIn, public AudioOut
 {
-  using HostVector = HostVector<U>;
+  using HostVector = HostVector<T>;
 
-  Params& mParams;
 public:
-  SinesClient(Params& p)
-  : FluidBaseClient<Params>(p), mParams(p), mSTFTBufferedProcess{param<kMaxFFTSize>(p),1,2}
+  SinesClient(ParamSetType& p)
+  : FluidBaseClient(p), mSTFTBufferedProcess{param<kMaxFFTSize>(p),1,2}
   {
-    FluidBaseClient<Params>::audioChannelsIn(1);
-    FluidBaseClient<Params>::audioChannelsOut(2);
+    FluidBaseClient::audioChannelsIn(1);
+    FluidBaseClient::audioChannelsOut(2);
   }
 
   void process(std::vector<HostVector> &input, std::vector<HostVector> &output)
@@ -75,7 +75,7 @@ public:
   size_t latency() { return param<kFFT>(mParams).winSize() + (param<kFFT>(mParams).hopSize() * param<kMinTrackLen>(mParams)); }
 
 private:
-  STFTBufferedProcess<Params, U, kFFT>  mSTFTBufferedProcess;
+  STFTBufferedProcess<ParamSetType, T, kFFT>  mSTFTBufferedProcess;
   std::unique_ptr<algorithm::RTSineExtraction>   mSinesExtractor;
   ParameterTrackChanges<size_t,size_t,size_t,size_t,size_t> mTrackValues;
   size_t mWinSize{0};
@@ -85,12 +85,12 @@ private:
   size_t mMinTrackLen{0};
 };
 
-
+/*
 template <typename Params, typename T, typename U>
 using NRTSines = NRTStreamAdaptor<SinesClient,Params,T,U,1,2>;
 
 auto constexpr NRTSineParams = impl::makeNRTParams({BufferParam("srcBuf", "Source Buffer")}, {BufferParam("sinesBuf","Sines Buffer"), BufferParam("resBuf", "Residual Buffer")}, SinesParams);
-
+*/
 
 } // namespace client
 } // namespace fluid
