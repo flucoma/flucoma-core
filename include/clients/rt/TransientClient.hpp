@@ -52,10 +52,8 @@ public:
     FluidBaseClient::audioChannelsOut(2);
   }
 
-  void process(std::vector<HostVector>& input,
-               std::vector<HostVector>& output) {
-
-
+  void process(std::vector<HostVector>& input, std::vector<HostVector>& output)
+  {
     if(!input[0].data() || (!output[0].data() && !output[1].data()))
       return;
 
@@ -69,9 +67,9 @@ public:
     std::size_t hostVecSize = input[0].size();
     std::size_t maxWin = 2*blockSize + padding;
 
-    if (!mExtractor.get() || !mExtractor.get() || mTrackValues.changed(order, blockSize, padding, hostVecSize)) {
-      mExtractor.reset(new algorithm::TransientExtraction(
-          order, iterations, robustFactor, refine));
+    if (!mExtractor.get() || !mExtractor.get() || mTrackValues.changed(order, blockSize, padding, hostVecSize))
+    {
+      mExtractor.reset(new algorithm::TransientExtraction(order, iterations, robustFactor, refine));
       mExtractor->prepareStream(blockSize, padding);
       mBufferedProcess.hostSize(hostVecSize);
       mBufferedProcess.maxSize(maxWin, FluidBaseClient::audioChannelsIn(), FluidBaseClient::audioChannelsOut());
@@ -120,7 +118,7 @@ private:
 auto constexpr NRTTransientParams = impl::makeNRTParams({BufferParam("srcBuf", "Source Buffer")}, {BufferParam("transBuf","Transients Buffer"),BufferParam("resBuf","Residual Buffer")}, TransientParams);
     
 template <typename T>
-using NRTTransients = NRTStreamAdaptor<TransientClient<T>,decltype(NRTTransientParams),NRTTransientParams, 1,2>;
+using NRTTransients = NRTStreamAdaptor<TransientClient<T>, decltype(NRTTransientParams), NRTTransientParams, 1, 2>;
 
 
 
