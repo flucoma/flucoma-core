@@ -26,13 +26,13 @@ auto constexpr NoveltyParams =defineParameters(
   FFTParam("fft", "FFT Settings", 1024, -1, -1)
  );
 
-template<typename Params, typename T, typename U>
-class NoveltyClient: public FluidBaseClient<Params>, public OfflineIn, public OfflineOut
+template<typename T>
+class NoveltyClient: public FluidBaseClient<decltype(NoveltyParams), NoveltyParams>, public OfflineIn, public OfflineOut
 {
 
 public:
 
-  NoveltyClient(Params& p):FluidBaseClient<Params>{p},mParams{p}
+  NoveltyClient(ParamSetType& p) : FluidBaseClient(p)
   {}
 
 
@@ -90,7 +90,6 @@ public:
     auto magnitude = FluidTensor<double,2>(nWindows,nBins);
     auto outputMags = FluidTensor<double,2>(nWindows,nBins);
 
-
     stft.process(monoSource, spectrum);
     algorithm::STFT::magnitude(spectrum,magnitude);
 
@@ -101,11 +100,6 @@ public:
     impl::spikesToTimes(changePoints(Slice(0)), param<kTransBuf>(mParams).get(), fftParams.hopSize(), param<kOffset>(mParams), nFrames);
     return {Result::Status::kOk,""};
   }
-
-  private:
-    Params& mParams;
-
-
 };
 } // namespace client
 } // namespace fluid

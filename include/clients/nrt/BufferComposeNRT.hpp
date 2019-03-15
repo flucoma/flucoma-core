@@ -25,16 +25,14 @@ auto constexpr BufComposeParams = defineParameters(
     LongParam("dstStartChan", "Destination Channel Offset", 0),
     FloatParam("dstGain", "Destination Gain", 0.0));
 
-template <typename Params, typename T, typename U>
-class BufferComposeClient : public FluidBaseClient<Params>, OfflineIn, OfflineOut
+template <typename T>
+class BufferComposeClient : public FluidBaseClient<decltype(BufComposeParams), BufComposeParams>, OfflineIn, OfflineOut
 {
-  using HostVector = FluidTensorView<U, 1>;
-  using HostMatrix = FluidTensor<U, 2>;
+  using HostVector = FluidTensorView<T, 1>;
+  using HostMatrix = FluidTensor<T, 2>;
 
 public:
-  BufferComposeClient(Params &p)
-      : mParams{p}
-      , FluidBaseClient<Params>{p}
+  BufferComposeClient(ParamSetType &p) : FluidBaseClient(p)
   {}
 
   Result process()
@@ -84,7 +82,7 @@ public:
 
       destinationResizeNeeded = (dstEnd > destination.numFrames()) || (dstEndChan > destination.numChans());
 
-        auto applyGain = [this](U&x){x *= param<kDestGain>(mParams);};
+        auto applyGain = [this](T&x){x *= param<kDestGain>(mParams);};
 
 
       if (destinationResizeNeeded) // copy the whole of desintation if we have to resize it
@@ -125,7 +123,7 @@ public:
         if (destinationResizeNeeded) { destinationChunk.reset(destinationOrig.row(i).data(), dstStart, nFrames); }
 
         std::transform(sourceChunk.begin(), sourceChunk.end(), destinationChunk.begin(), destinationChunk.begin(),
-                       [gain](U &src, U &dst) { return dst + src * gain; });
+                       [gain](T &src, T &dst) { return dst + src * gain; });
       }
     }
 
@@ -143,9 +141,6 @@ public:
 
     return {Result::Status::kOk};
   }
-
-private:
-  Params &mParams;
 };
 } // namespace client
 } // namespace fluid

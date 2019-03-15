@@ -40,16 +40,14 @@ auto constexpr NMFParams = defineParameters(
   FFTParam("fft", "FFT Settings", 1024, -1, -1)
 );//,PowerOfTwo()));
 
-template<typename Params, typename T, typename U>
-class NMFClient: public FluidBaseClient<Params>, public OfflineIn, public OfflineOut
+template<typename T>
+class NMFClient: public FluidBaseClient<decltype(NMFParams), NMFParams>, public OfflineIn, public OfflineOut
 {
-
-private:
-  Params& mParams;
 
 public:
 
-  NMFClient(Params& p): FluidBaseClient<Params>(p), mParams(p) {}
+  NMFClient(ParamSetType& p): FluidBaseClient(p)
+  {}
 
   /***
    Take some data, NMF it
@@ -62,8 +60,7 @@ public:
     {
       return {Result::Status::kError,"No input"};
     }
-
-
+      
     BufferAdaptor::Access source(param<kSource>(mParams).get());
 
     if(!(source.exists() && source.valid()))
