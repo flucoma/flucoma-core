@@ -68,31 +68,25 @@ class ParameterDescriptorSet
   template <size_t, typename... Us>
   friend class ParameterDescriptorSet;
 
-public:
-    
   template <typename T>
   using ValueType = ParameterValue<typename std::tuple_element<0, T>::type>;
-    
+  
   template <typename T>
   using ConstraintsType = typename std::tuple_element<1, T>::type;
-    
+  
+public:
+  
   using ValuePlusConstraintsType = std::tuple<std::pair<ValueType<Ts>, ConstraintsType<Ts>>...>;
-
-  static constexpr size_t ConstraintOffset = CO;
-
-  constexpr auto createValues() const { return createImpl(*this, std::index_sequence_for<Ts...>()); }
-
   using type = ParameterDescriptorSet<CO, Ts...>;
 
-  static constexpr size_t size = sizeof...(Ts);
-
-  constexpr ParameterDescriptorSet(const Ts &&... ts)
-      : mDescriptors{std::make_tuple(ts...)}
+  constexpr ParameterDescriptorSet(const Ts &&... ts) : mDescriptors{std::make_tuple(ts...)}
   {}
 
-  constexpr size_t count() const noexcept { return countImpl(std::make_index_sequence<size>()); }
+  constexpr size_t count() const noexcept { return countImpl(DescriptorIndex()); }
 
   constexpr const std::tuple<Ts...> &descriptors() const { return mDescriptors; }
+
+  constexpr auto createValues() const { return create(DescriptorIndex()); }
 
   template <size_t Offset = 0, typename... Xs, size_t XOffset>
   constexpr ParameterDescriptorSet<CO + Offset + XOffset, Ts..., Xs...> join(const ParameterDescriptorSet<XOffset, Xs...> x)
@@ -101,6 +95,7 @@ public:
   }
 
 private:
+  
   template <typename... Xs, typename... Ys>
   constexpr ParameterDescriptorSet(const std::tuple<Xs...> &x, const std::tuple<Ys...> &y)
       : mDescriptors{std::tuple_cat(x, y)}
@@ -114,22 +109,22 @@ private:
     return count;
   }
   
-  template <size_t N, size_t O>
-  constexpr static auto descriptorAt(const ParameterDescriptorSet<O, Ts...> &d)
+  template <size_t N>
+  constexpr auto descriptorAt() const
   {
-    return std::get<0>(std::get<N>(d.descriptors()));
+    return std::get<0>(std::get<N>(descriptors()));
   }
   
-  template <size_t N, size_t O>
-  constexpr static auto constraintsAt(const ParameterDescriptorSet<O, Ts...> &d)
+  template <size_t N>
+  constexpr auto constraintsAt() const
   {
-    return std::get<1>(std::get<N>(d.descriptors()));
+    return std::get<1>(std::get<N>(descriptors()));
   }
   
-  template <size_t O, size_t... Is>
-  constexpr static auto createImpl(const ParameterDescriptorSet<O, Ts...> &d, std::index_sequence<Is...>)
+  template <size_t... Is>
+  constexpr auto create(std::index_sequence<Is...>) const
   {
-    return std::make_tuple(std::make_pair(ValueType<Ts>(descriptorAt<Is>(d)), constraintsAt<Is>(d))...);
+    return std::make_tuple(std::make_pair(ValueType<Ts>(descriptorAt<Is>()), constraintsAt<Is>())...);
   }
   
   const std::tuple<Ts...> mDescriptors;
