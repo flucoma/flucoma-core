@@ -46,10 +46,19 @@ auto constexpr spitOuts(T(&a)[N],std::index_sequence<Is...>)
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 using BufferSpec = ParamSpec<BufferT,Fixed<false>>;
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-template<typename RTParams,size_t Ms>
-auto constexpr makeNRTParams(BufferSpec&& in,BufferSpec(&& out)[Ms],const RTParams &p)
+
+template<typename...Ts, typename...Us, typename...Vs>
+auto joinParameterDescriptors(ParameterDescriptorSet<Ts...> x,ParameterDescriptorSet<Us...> y,ParameterDescriptorSet<Vs...> z)
 {
-  return makeWrapperInputs(in).join(spitOuts(out,std::make_index_sequence<Ms>())).template join<Ms + 5>(p);
+  return ParameterDescriptorSet<Ts...,Us...,Vs...>{std::tuple_cat(x.descriptors(),y.descriptors(), z.descriptors())};
+}
+
+
+
+template<typename...Ts,size_t Ms>
+auto constexpr makeNRTParams(BufferSpec&& in,BufferSpec(&& out)[Ms],const ParameterDescriptorSet<Ts...> &p)
+{
+ return  joinParameterDescriptors(makeWrapperInputs(in),spitOuts(out,std::make_index_sequence<Ms>()), p);
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 template<template <typename, typename> class AdaptorType, class RTClient, typename ParamType, ParamType& PD, size_t Ins, size_t Outs>

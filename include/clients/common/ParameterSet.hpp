@@ -77,6 +77,9 @@ public:
 
   constexpr ParameterDescriptorSet(const Ts &&... ts) : mDescriptors{std::make_tuple(ts...)}
   {}
+  
+  constexpr ParameterDescriptorSet(const std::tuple<Ts...>&& t): mDescriptors{t}
+  {}
 
   constexpr size_t count() const noexcept { return countImpl(DescriptorIndex()); }
 
