@@ -382,26 +382,25 @@ std::ostream &operator<<(std::ostream &o, const std::unique_ptr<T, U> &p)
   return o << p.get();
 }
 
-namespace impl {
 template <typename T>
-class ParameterValueBase
+class ParameterValue
 {
 public:
   using ParameterType = T;
   using type          = typename T::type;
 
-  ParameterValueBase(const T descriptor, type &&v)
+  ParameterValue(const T descriptor, type &&v)
       : mDescriptor(descriptor)
       , mValue(std::move(v))
   {}
 
-  ParameterValueBase(const T descriptor)
+  ParameterValue(const T descriptor)
       : mDescriptor(descriptor)
       , mValue(mDescriptor.defaultValue)
   {}
 
-  ParameterValueBase(ParameterValueBase &&) = default;
-  ParameterValueBase &operator=(ParameterValueBase &&) = default;
+  ParameterValue(ParameterValue &&) = default;
+  ParameterValue &operator=(ParameterValue &&) = default;
 
   bool        enabled() const noexcept { return true; }
   bool        changed() const noexcept { return mChanged; }
@@ -428,24 +427,6 @@ private:
 protected:
   bool mChanged{false};
   type mValue;
-};
-} // namespace impl
-
-template <typename T>
-class ParameterValue : public impl::ParameterValueBase<T>
-{
-public:
-  using type = typename impl::ParameterValueBase<T>::type;
-  ParameterValue(const T descriptor)
-      : impl::ParameterValueBase<T>(descriptor)
-  {}
-
-  ParameterValue(const T descriptor, type &&value)
-      : impl::ParameterValueBase<T>(descriptor, std::move(value))
-  {}
-
-  ParameterValue(ParameterValue &&) = default;
-  ParameterValue &operator=(ParameterValue &&) = default;
 };
 
 } // namespace client
