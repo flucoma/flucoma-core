@@ -38,17 +38,19 @@ auto constexpr TransientParams = defineParameters(
     LongParam("winSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
     LongParam("debounce", "Debounce", 25, Min(0)));
 
-template <typename Params, typename T, typename U = T>
-class TransientClient : public FluidBaseClient<Params>, public AudioIn, public AudioOut {
+    
+template <typename T>
+class TransientClient : public FluidBaseClient<decltype(TransientParams), TransientParams>, public AudioIn, public AudioOut
+{
 
 public:
 
-  using HostVector = HostVector<U>;
-  using B = FluidBaseClient<Params>;
-
-  TransientClient(Params& p) : FluidBaseClient<Params>(p) {
-    B::audioChannelsIn(1);
-    B::audioChannelsOut(2);
+  using HostVector = HostVector<T>;
+  using PS = ParameterSet<Params>;
+    
+  TransientClient(PS& p) : FluidBaseClient(p) {
+    FluidBaseClient::audioChannelsIn(1);
+    FluidBaseClient::audioChannelsOut(2);
   }
 
   void process(std::vector<HostVector>& input,
@@ -73,7 +75,7 @@ public:
           order, iterations, robustFactor, refine));
       mExtractor->prepareStream(blockSize, padding);
       mBufferedProcess.hostSize(hostVecSize);
-      mBufferedProcess.maxSize(maxWin, B::audioChannelsIn(), B::audioChannelsOut());
+      mBufferedProcess.maxSize(maxWin, FluidBaseClient::audioChannelsIn(), FluidBaseClient::audioChannelsOut());
     }
 
     double skew = std::pow(2, param<kSkew>(*this));
@@ -105,13 +107,11 @@ public:
   {
     return param<kPadding>(*this) +param<kBlockSize>(*this) -  param<kOrder>(*this);
   }
-
+    
 private:
   ParameterTrackChanges<size_t,size_t,size_t,size_t> mTrackValues;
   std::unique_ptr<algorithm::TransientExtraction> mExtractor;
   BufferedProcess mBufferedProcess;
-  FluidTensor<T, 1> mTransients;
-  FluidTensor<T, 1> mRes;
   size_t mHostSize{0};
   size_t mOrder{0};
   size_t mBlocksize{0};
