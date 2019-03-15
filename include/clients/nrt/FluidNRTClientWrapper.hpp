@@ -89,8 +89,7 @@ public:
 
   NRTClientWrapper(ParamSetType& p):
     mParams{p},
-    mParamsWithOffset{p},
-    mClient{mParamsWithOffset}
+    mClient{p}
   {}
 
   template <std::size_t N> auto& get() noexcept { return mParams.template get<N>(); }
@@ -164,7 +163,6 @@ private:
   }
 
   ParamSet&  mParams;
-  ParameterSet_Offset<ParamSet, ParamOffset> mParamsWithOffset;
   WrappedClient  mClient;
 };
 //////////////////////////////////////////////////////////////////////////////////////////////////////
