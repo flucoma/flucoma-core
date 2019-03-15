@@ -112,10 +112,10 @@ private:
 } // namespace impl
 
 template <typename>
-class ParameterSet;
+class ParameterSetImpl;
 
 template <template <typename...> class D, typename... Ts>
-class ParameterSet<const D<Ts...>>
+class ParameterSetImpl<const D<Ts...>>
 {
   template <bool B>
   struct IsFixed
@@ -130,16 +130,15 @@ class ParameterSet<const D<Ts...>>
   const ParameterDescType mDescriptors;
 
 public:
-  constexpr ParameterSet(const impl::ParameterDescriptorSet<Ts...> &d)
-      : mDescriptors{d}
-      , mParams{d.createValues()}
-  {}
-
+  
   using Descriptors = const std::tuple<Ts...>;
-
   using ValueTuple = typename ParameterDescType::ValuePlusConstraintsType;
-
   using ParamIndexList = typename std::index_sequence_for<Ts...>;
+
+  constexpr ParameterSetImpl(const impl::ParameterDescriptorSet<Ts...> &d, ValueTuple &t)
+      : mDescriptors{d}
+      , mParams{t}
+  {}
 
   template <size_t N>
   using ParamDescriptorTypeAt = typename std::tuple_element<N, ValueTuple>::type::first_type::ParameterType;
@@ -318,9 +317,30 @@ private:
     return results;
   }
 
-  ValueTuple mParams;
+  ValueTuple& mParams;
 };
 
+template <typename T>
+class ParameterSet : public ParameterSetImpl<T>
+{};
+  
+template <template <typename...> class D, typename... Ts>
+class ParameterSet<const D<Ts...>> : public ParameterSetImpl<const D<Ts...>>
+{
+  using ParameterDescType = D<Ts...>;
+  using ValueTuple = typename ParameterDescType::ValuePlusConstraintsType;
+ 
+public:
+  
+  constexpr ParameterSet(const impl::ParameterDescriptorSet<Ts...> &d)
+  : ParameterSetImpl<const ParameterDescType>(d, mParams), mParams{d.createValues()}
+  {}
+  
+private:
+  
+  ValueTuple mParams;
+};
+  
 template <typename... Args>
 constexpr impl::ParameterDescriptorSet<Args...> defineParameters(Args &&... args)
 {
