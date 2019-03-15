@@ -49,16 +49,6 @@ std::ostream &operator<<(std::ostream &o, ParameterValue<T> &t)
   return o << t.get();
 }
 
-template <bool B>
-struct IsFixed
-{
-  template <typename T>
-  using apply = std::is_same<Fixed<B>, typename std::tuple_element<2, T>::type>;
-};
-
-using IsFixedParamTest   = IsFixed<true>;
-using IsMutableParamTest = IsFixed<false>;
-
 /// Each parameter descriptor in the base client is a three-element tuple
 /// Third element is flag indicating whether fixed (instantiation only) or not
 
@@ -124,7 +114,15 @@ class ParameterSet;
 template <template <typename...> class D, typename... Ts>
 class ParameterSet<const D<Ts...>>
 {
-
+  template <bool B>
+  struct IsFixed
+  {
+    template <typename T>
+    using apply = std::is_same<Fixed<B>, typename std::tuple_element<2, T>::type>;
+  };
+  
+  using IsFixedParamTest   = IsFixed<true>;
+  using IsMutableParamTest = IsFixed<false>;
   using ParameterDescType = D<Ts...>;
   const ParameterDescType mDescriptors;
 
@@ -147,12 +145,12 @@ public:
   using ParamTypeAt = typename ParamDescriptorTypeAt<N>::type;
 
   using FixedParams =
-      typename impl::FilterTupleIndices<impl::IsFixedParamTest, std::decay_t<Descriptors>, ParamIndexList>::type;
+      typename impl::FilterTupleIndices<IsFixedParamTest, std::decay_t<Descriptors>, ParamIndexList>::type;
 
   static constexpr size_t NumFixedParams = FixedParams::size();
 
   using MutableParams =
-      typename impl::FilterTupleIndices<impl::IsMutableParamTest, std::decay_t<Descriptors>, ParamIndexList>::type;
+      typename impl::FilterTupleIndices<IsMutableParamTest, std::decay_t<Descriptors>, ParamIndexList>::type;
   static constexpr size_t NumMutableParams = MutableParams::size();
 
   template <template <size_t N, typename T> class Func>
