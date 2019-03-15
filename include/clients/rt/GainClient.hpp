@@ -20,19 +20,21 @@ enum GainParamTags { kGain };
 constexpr auto GainParams = defineParameters(FloatParam("gain", "Gain", 1.0));
 
 /// @class GainAudioClient
-template <typename Params, typename T, typename U = T>
-class GainClient : public FluidBaseClient<Params>, public AudioIn, public AudioOut   {
-  using HostVector = FluidTensorView<U,1>;
+template <typename T>
+class GainClient : public FluidBaseClient<decltype(GainParams), GainParams>, public AudioIn, public AudioOut
+{
+  using ParamSetType = ParameterSet<FluidBaseClient::Params>;
+  using HostVector = FluidTensorView<T,1>;
 public:
-  GainClient(Params &p) : mParams(p), FluidBaseClient<Params>(p) {
-    FluidBaseClient<Params>::audioChannelsIn(2);
-    FluidBaseClient<Params>::audioChannelsOut(1);
+  GainClient(ParamSetType &p) : FluidBaseClient(p) {
+    FluidBaseClient::audioChannelsIn(2);
+    FluidBaseClient::audioChannelsOut(1);
   }
 
   size_t latency() { return 0; }
 
-  void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output) {
+  void process(std::vector<HostVector> &input, std::vector<HostVector> &output)
+  {
     // Data is stored with samples laid out in rows, one channel per row
     if (!input[0].data())
       return;
@@ -42,15 +44,13 @@ public:
 
     // 2nd input? -> ar version
     if (input[1].data()) {
-      output[0].apply(input[1], [](U &x, U &y) { x *= y; });
+      output[0].apply(input[1], [](T &x, T &y) { x *= y; });
     } else {
       double g = param<kGain>(mParams);
       // Apply gain from the second channel
-      output[0].apply([g](U &x) { x *= g; });
+      output[0].apply([g](T &x) { x *= g; });
     }
   }
-private:
-  Params& mParams;
 }; // class
 } // namespace client
 } // namespace fluid
