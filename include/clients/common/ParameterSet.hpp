@@ -53,14 +53,14 @@ template <size_t... Os, typename... Ts>
 class ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>
 {
   template <bool B>
-  struct IsFixed
+  struct FixedParam
   {
     template <typename T>
     using apply = std::is_same<Fixed<B>, typename std::tuple_element<2, T>::type>;
   };
   
-  using IsFixed   = IsFixed<true>;
-  using IsMutable = IsFixed<false>;
+  using IsFixed   = FixedParam<true>;
+  using IsMutable = FixedParam<false>;
   
 public:
   
