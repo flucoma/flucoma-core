@@ -432,47 +432,6 @@ std::ostream &operator<<(std::ostream &o, const std::unique_ptr<T, U> &p)
 {
   return o << p.get();
 }
-/*
-template <typename T>
-class ParameterValue
-{
-public:
-  using ParameterType = T;
-  using type          = typename T::type;
-
-  ParameterValue(const T descriptor, type &&v)
-      : mDescriptor(descriptor)
-      , mValue(std::move(v))
-  {}
-
-  ParameterValue(const T descriptor)
-      : mDescriptor(descriptor)
-      , mValue(mDescriptor.defaultValue)
-  {}
-
-  ParameterValue(ParameterValue &&) = default;
-  ParameterValue &operator=(ParameterValue &&) = default;
-
-  const char *name() const noexcept { return mDescriptor.name; }
-  const T     descriptor() const noexcept { return mDescriptor; }
-
-  type &get() noexcept { return mValue; }
-
-  void set(type &&value)
-  {
-    mValue   = std::move(value);
-  }
-
-  void reset()
-  {
-    mValue   = mDescriptor.defaultValue;
-  }
-
-private:
-    
-  const T mDescriptor;
-  type mValue;
-};*/
 
 } // namespace client
 } // namespace fluid
