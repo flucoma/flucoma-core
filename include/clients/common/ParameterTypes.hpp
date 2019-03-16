@@ -202,14 +202,37 @@ class FFTParams
 {
 public:
   constexpr FFTParams(long win, long hop, long fft)
-      : mWindowSize{win}
-      , mHopSize{hop}
-      , mFFTSize{fft}
-      , trackWin{win}
-      , trackHop{hop}
-      , trackFFT{fft}
+    : mWindowSize{win}
+    , mHopSize{hop}
+    , mFFTSize{fft}
+    , trackWin{win}
+    , trackHop{hop}
+    , trackFFT{fft}
   {}
 
+  constexpr FFTParams(const FFTParams& p) = default;
+  constexpr FFTParams(FFTParams&& p) = default;
+    
+  // Assignment should not change the trackers
+    
+  FFTParams& operator = (FFTParams&& p)
+  {
+    mWindowSize = p.mWindowSize;
+    mHopSize = p.mHopSize;
+    mFFTSize = p.mFFTSize;
+    
+    return *this;
+  }
+    
+  FFTParams& operator = (const FFTParams& p)
+  {
+    mWindowSize = p.mWindowSize;
+    mHopSize = p.mHopSize;
+    mFFTSize = p.mFFTSize;
+    
+    return *this;
+  }
+    
   size_t fftSize() const noexcept { return mFFTSize < 0 ? nextPow2(mWindowSize, true) : mFFTSize; }
   long   fftRaw() const noexcept { return mFFTSize; }
   long   hopRaw() const noexcept { return mHopSize; }
