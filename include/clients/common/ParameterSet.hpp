@@ -41,14 +41,6 @@ struct Clamper<typename BufferT::type>
   }
 };
 
-/// FluidBaseClientImpl
-/// Common functionality for clients
-template <typename T>
-std::ostream &operator<<(std::ostream &o, T &t)
-{
-  return o << t;
-}
-
 /// Each parameter descriptor in the base client is a three-element tuple
 /// Third element is flag indicating whether fixed (instantiation only) or not
 
@@ -71,7 +63,7 @@ class ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>
 public:
   
   template <typename T>
-  using ValueTypeAt           = typename std::tuple_element<0, T>::type::type;
+  using ValueTypeAt     = typename std::tuple_element<0, T>::type::type;
 
   using ValueTuple      = std::tuple<ValueTypeAt<Ts>...>;
   using ValueRefTuple   = std::tuple<ValueTypeAt<Ts>&...>;
