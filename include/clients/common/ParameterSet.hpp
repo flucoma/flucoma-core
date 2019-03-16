@@ -41,13 +41,13 @@ struct Clamper<typename BufferT::type>
   }
 };
 
-/// FluidBaseClientImpl
-/// Common functionality for clients
-template <typename T>
-std::ostream &operator<<(std::ostream &o, T &t)
-{
-  return o << t;
-}
+///// FluidBaseClientImpl
+///// Common functionality for clients
+//template <typename T>
+//std::ostream &operator<<(std::ostream &o, T &t)
+//{
+//  return o << t;
+//}
 
 /// Each parameter descriptor in the base client is a three-element tuple
 /// Third element is flag indicating whether fixed (instantiation only) or not
@@ -78,7 +78,7 @@ public:
   using DescriptorType  = std::tuple<Ts...>;
 
   template <size_t N>
-  using ParamDescriptorTypeAt = typename std::tuple_element<N, ValueTuple>::type;
+  using ParamDescriptorTypeAt = typename std::tuple_element<0,typename std::tuple_element<N, DescriptorType>::type>::type;
   
   using DescIndexList       = std::index_sequence_for<Ts...>;
   using FixedIndexList      = typename impl::FilterTupleIndices<IsFixedParamTest, std::decay_t<DescriptorType>, DescIndexList>::type;
