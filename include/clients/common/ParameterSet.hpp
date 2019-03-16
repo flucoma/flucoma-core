@@ -102,6 +102,12 @@ public:
     iterateImpl<Func>(MutableIndexList());
   }
   
+  template <std::size_t N>
+  const char *name() const noexcept
+  {
+    return std::get<0>(std::get<N>(mDescriptors)).name;
+  }
+  
   const DescriptorType mDescriptors;
   
 private:
@@ -216,13 +222,13 @@ public:
   }
 
   template <std::size_t N>
-  const char *name() noexcept
+  const char *name() const noexcept
   {
-    return std::get<0>(std::get<N>(mDescriptors.mDescriptors)).name;
+    return mDescriptors.template name<N>();
   }
 
   template <size_t N>
-  auto defaultAt()
+  auto defaultAt() const
   {
     return std::get<0>(std::get<N>(mDescriptors.mDescriptors)).defaultValue;
   }
