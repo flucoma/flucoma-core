@@ -68,7 +68,6 @@ struct LowerLimitImpl
   template <size_t Offset, size_t N, typename T, typename Tuple, typename Descriptor>
   void clamp(T &v, Tuple &params, Descriptor& d, Result *r) const
   {
-
     T oldV = v;
 
     v = std::max<T>({v, std::get<Is + Offset>(params).get()...});
@@ -98,7 +97,6 @@ struct UpperLimitImpl
   template <size_t Offset, size_t N, typename T, typename Tuple, typename Descriptor>
   void clamp(T &v, Tuple &params, Descriptor& d, Result *r) const
   {
-
     T oldV = v;
 
     v = std::min<T>({v, std::get<Is + Offset>(params).get()...});
