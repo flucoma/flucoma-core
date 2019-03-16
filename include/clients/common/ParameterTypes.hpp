@@ -432,7 +432,7 @@ std::ostream &operator<<(std::ostream &o, const std::unique_ptr<T, U> &p)
 {
   return o << p.get();
 }
-
+/*
 template <typename T>
 class ParameterValue
 {
@@ -472,7 +472,7 @@ private:
     
   const T mDescriptor;
   type mValue;
-};
+};*/
 
 } // namespace client
 } // namespace fluid
