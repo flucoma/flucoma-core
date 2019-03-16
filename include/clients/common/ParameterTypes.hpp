@@ -453,8 +453,6 @@ public:
   ParameterValue(ParameterValue &&) = default;
   ParameterValue &operator=(ParameterValue &&) = default;
 
-  bool        enabled() const noexcept { return true; }
-  bool        changed() const noexcept { return mChanged; }
   const char *name() const noexcept { return mDescriptor.name; }
   const T     descriptor() const noexcept { return mDescriptor; }
 
@@ -463,20 +461,16 @@ public:
   void set(type &&value)
   {
     mValue   = std::move(value);
-    mChanged = true;
   }
 
   void reset()
   {
     mValue   = mDescriptor.defaultValue;
-    mChanged = true;
   }
 
 private:
+    
   const T mDescriptor;
-
-protected:
-  bool mChanged{false};
   type mValue;
 };
 

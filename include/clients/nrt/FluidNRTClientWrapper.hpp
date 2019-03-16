@@ -89,7 +89,7 @@ public:
 
   NRTClientWrapper(ParamSetInitType& p):
     mParams{p},
-    mClient{p}
+    mClient{p.subset<ParamOffset>()}
   {}
 
   template <std::size_t N> auto& get() noexcept { return mParams.template get<N>(); }
@@ -162,8 +162,8 @@ private:
     return {get<Is + (Ins*5)>().get()...};
   }
 
-  ParamSetType&  mParams;
-  WrappedClient  mClient;
+  ParamSetInitType&   mParams;
+  WrappedClient       mClient;
 };
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename HostMatrix, typename HostVectorView>

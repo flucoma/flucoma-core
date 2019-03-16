@@ -147,12 +147,12 @@ protected:
 
 public:
   
-  using DescriptorType = typename ParameterDescType::DescriptorType;
-  using ValueTuple = std::tuple<ValueType<Ts>...>;
-  using ValueRefTuple = std::tuple<ValueType<Ts>&...>;
-  using ParamIndexList = typename ParameterDescType::DescIndexList;
-  using FixedIndexList = typename ParameterDescType::FixedIndexList;
-  using MutableIndexList = typename ParameterDescType::MutableIndexList;
+  using DescriptorType      = typename ParameterDescType::DescriptorType;
+  using ValueTuple          = std::tuple<ValueType<Ts>...>;
+  using ValueRefTuple       = std::tuple<ValueType<Ts>&...>;
+  using ParamIndexList      = typename ParameterDescType::DescIndexList;
+  using FixedIndexList      = typename ParameterDescType::FixedIndexList;
+  using MutableIndexList    = typename ParameterDescType::MutableIndexList;
 
   template <size_t N>
   using ParamDescriptorTypeAt = typename std::tuple_element<N, ValueTuple>::type::ParameterType;
@@ -223,23 +223,23 @@ public:
   }
 
   template <std::size_t N>
-  bool changed() noexcept
-  {
-    return std::get<N>(mParams).changed();
-  }
-
-  template <std::size_t N>
   const char *name() noexcept
   {
-    return std::get<N>(mParams).name();
+    return std::get<0>(std::get<N>(mDescriptors.mDescriptors)).name;
   }
 
   template <size_t N>
   auto defaultAt()
   {
-    return std::get<N>(mParams).descriptor().defaultValue;
+    return std::get<0>(std::get<N>(mDescriptors.mDescriptors)).defaultValue;
   }
-
+  /*
+  template<size_t offset>
+  auto subset()
+  {
+    return ParameterSetImpl<const ParameterDescType>(mDescriptors, );
+  }*/
+  
 private:
   template <typename T>
   struct IsParamType
@@ -325,7 +325,7 @@ class ParameterSet<const impl::ParameterDescriptorSet<std::index_sequence<Os...>
 public:
   
   constexpr ParameterSet(const ParameterDescType &d)
-  : ParameterSetImpl<const ParameterDescType>(createRefTuple(DescIndexList()), mParams), mParams{create(d, DescIndexList())}
+  : ParameterSetImpl<const ParameterDescType>(d, createRefTuple(DescIndexList())), mParams{create(d, DescIndexList())}
   {}
   
 private:
