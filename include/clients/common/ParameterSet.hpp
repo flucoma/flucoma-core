@@ -41,6 +41,8 @@ struct Clamper<typename BufferT::type>
   }
 };
 
+} // namespace impl
+    
 /// Each parameter descriptor in the base client is a three-element tuple
 /// Third element is flag indicating whether fixed (instantiation only) or not
 
@@ -57,8 +59,8 @@ class ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>
     using apply = std::is_same<Fixed<B>, typename std::tuple_element<2, T>::type>;
   };
   
-  using IsFixedParamTest   = IsFixed<true>;
-  using IsMutableParamTest = IsFixed<false>;
+  using IsFixed   = IsFixed<true>;
+  using IsMutable = IsFixed<false>;
   
 public:
   
@@ -72,9 +74,9 @@ public:
   template <size_t N>
   using ParamDescriptorTypeAt = typename std::tuple_element<0,typename std::tuple_element<N, DescriptorType>::type>::type;
   
-  using DescIndexList       = std::index_sequence_for<Ts...>;
-  using FixedIndexList      = typename impl::FilterTupleIndices<IsFixedParamTest, std::decay_t<DescriptorType>, DescIndexList>::type;
-  using MutableIndexList    = typename impl::FilterTupleIndices<IsMutableParamTest, std::decay_t<DescriptorType>, DescIndexList>::type;
+  using DescIndexList     = std::index_sequence_for<Ts...>;
+  using FixedIndexList    = typename impl::FilterTupleIndices<IsFixed, DescriptorType, DescIndexList>::type;
+  using MutableIndexList  = typename impl::FilterTupleIndices<IsMutable, DescriptorType, DescIndexList>::type;
   
   static constexpr size_t NumFixedParams    = FixedIndexList::size();
   static constexpr size_t NumMutableParams  = MutableIndexList::size();
@@ -111,7 +113,7 @@ public:
   template <std::size_t N>
   const char *name() const noexcept
   {
-    return std::get<0>(std::get<N>(mDescriptors)).name;
+    return get<N>().name;
   }
   
   const DescriptorType mDescriptors;
@@ -132,22 +134,20 @@ private:
     std::initializer_list<int>{(Op<Is, ParamDescriptorTypeAt<Is>>()(std::get<0>(std::get<Is>(mDescriptors))), 0)...};
   }
 };
-  
-} // namespace impl
 
 template <typename>
 class ParameterSetImpl;
 
 template <size_t...Os, typename... Ts>
-class ParameterSetImpl<const impl::ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>>
+class ParameterSetImpl<const ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>>
 {
-  using ParameterDescType = impl::ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>;
+  using ParameterDescType = ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>;
 
 protected:
     template <size_t N>
     constexpr auto descriptorAt() const
     {
-        return std::get<0>(std::get<N>(mDescriptors.mDescriptors));
+        return mDescriptors.template get<N>();
     }
     
 public:
@@ -310,17 +310,14 @@ class ParameterSet
 {};
   
 template <size_t...Os, typename... Ts>
-class ParameterSet<const impl::ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>>
-  : public ParameterSetImpl<const impl::ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>>
+class ParameterSet<const ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>>
+  : public ParameterSetImpl<const ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>>
 {
-  using ParameterDescType = impl::ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>;
+  using ParameterDescType = ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>;
   using Parent = ParameterSetImpl<const ParameterDescType>;
   using DescIndexList = typename ParameterDescType::DescIndexList;
   using ValueTuple = typename ParameterDescType::ValueTuple;
-  
-  template <typename T>
-  using ValueType = typename ParameterDescType::template ValueTypeAt<T>;
-  
+
 public:
   
   constexpr ParameterSet(const ParameterDescType &d)
@@ -344,14 +341,8 @@ private:
   ValueTuple mParams;
 };
     
-template <typename T>
-constexpr size_t zero_all() { return 0u; }
-    
-template<typename... Ts>
-using zero_sequence_for = std::index_sequence<zero_all<Ts>()...>;
-  
 template <typename... Ts>
-using ParamDescTypeFor = impl::ParameterDescriptorSet<zero_sequence_for<Ts...>, std::tuple<Ts...>>;
+using ParamDescTypeFor = ParameterDescriptorSet<impl::zeroSequenceFor<Ts...>, std::tuple<Ts...>>;
     
 template <typename... Args>
 constexpr ParamDescTypeFor<Args...> defineParameters(Args &&... args)
