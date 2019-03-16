@@ -144,9 +144,14 @@ protected:
   
   template <typename T>
   using ValueType = typename std::tuple_element<0, T>::type::type;
+  
+  template <size_t N>
+  constexpr auto descriptorAt() const
+  {
+    return std::get<0>(std::get<N>(mDescriptors.mDescriptors));
+  }
 
 public:
-  
   using DescriptorType      = typename ParameterDescType::DescriptorType;
   using ValueTuple          = std::tuple<ValueType<Ts>...>;
   using ValueRefTuple       = std::tuple<ValueType<Ts>&...>;
@@ -263,7 +268,7 @@ private:
   template <size_t... Is>
   void resetImpl(std::index_sequence<Is...>)
   {
-    std::initializer_list<int>{std::get<Is>(mParams) = std::get(mDescriptors, 0)...};
+    std::initializer_list<int>{(std::get<Is>(mParams) = descriptorAt<Is>().defaultValue, 0)...};
   }
 
   template <typename T, template <size_t, typename> class Func, size_t N, typename... Args>
@@ -314,7 +319,10 @@ template <size_t...Os, typename... Ts>
 class ParameterSet<const impl::ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>>
   : public ParameterSetImpl<const impl::ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>>
 {
+  
+  
   using ParameterDescType = impl::ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>;
+  using Parent = ParameterSetImpl<const ParameterDescType>;
   using DescIndexList = typename ParameterDescType::DescIndexList;
   using ValueTuple = typename ParameterSetImpl<const ParameterDescType>::ValueTuple;
   
@@ -329,16 +337,10 @@ public:
   
 private:
   
-  template <size_t N>
-  constexpr auto descriptorAt(const ParameterDescType &d) const
-  {
-    return std::get<0>(std::get<N>(d.mDescriptors));
-  }
-  
   template <size_t... Is>
   constexpr auto create(const ParameterDescType &d, std::index_sequence<Is...>) const
   {
-    return std::make_tuple(ValueType<Ts>(descriptorAt<Is>(d).defaultValue)...);
+    return std::make_tuple(Parent::template descriptorAt<Is>().defaultValue...);
   }
   
   template <size_t... Is>
