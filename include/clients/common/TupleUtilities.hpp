@@ -88,6 +88,41 @@ struct JoinOffsetSequence<std::index_sequence<Is...>, std::index_sequence<Js...>
 };
 
 
+template<size_t, typename>
+struct OffsetSequence;
+
+template<size_t O, size_t...Is>
+struct OffsetSequence<O, std::index_sequence<Is...>>
+{
+  using type = std::index_sequence<(Is + O)...>;
+};
+
+template<size_t, typename>
+struct SplitIndexSequence;
+
+template<size_t N, size_t...Is>
+struct SplitIndexSequence<N,std::index_sequence<Is...>>
+{
+  using type = typename OffsetSequence<N,std::make_index_sequence<(sizeof...(Is) - N)>>::type;
+};
+
+
+template <size_t N, typename Tuple>
+constexpr auto RefTupleFrom(Tuple& t )
+{
+  return RefTupleFromImpl(t, typename SplitIndexSequence<N,std::make_index_sequence<std::tuple_size<Tuple>::value>>::type());
+}
+
+
+template <size_t N, typename Tuple, size_t...Is>
+constexpr auto RefTupleFromImpl(Tuple& t, SplitIndexSequence<Is...>)
+{
+  return std::tie(std::get<Is>(t)...);
+}
+
+
+
+
 // template<typename Op,typename Tuple,typename...Args,size_t...Is>
 // void forEachInTuple ( Tuple<Args...> a, std::index_sequence<Is...>)
 //{
