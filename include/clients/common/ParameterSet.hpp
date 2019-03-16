@@ -58,17 +58,60 @@ class ParameterDescriptorSet;
 template <size_t... Os, typename... Ts>
 class ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>
 {
-public:
+  template <bool B>
+  struct IsFixed
+  {
+    template <typename T>
+    using apply = std::is_same<Fixed<B>, typename std::tuple_element<2, T>::type>;
+  };
   
-  using DescriptorIndex = std::index_sequence_for<Ts...>;
+  using IsFixedParamTest   = IsFixed<true>;
+  using IsMutableParamTest = IsFixed<false>;
+  
+  template <typename T>
+  using ValueType = ParameterValue<typename std::tuple_element<0, T>::type>;
+
+  using ValueTuple = std::tuple<ValueType<Ts>...>;
+
+  template <size_t N>
+  using ParamDescriptorTypeAt = typename std::tuple_element<N, ValueTuple>::type::ParameterType;
+  
+public:
+
+  using DescriptorType = std::tuple<Ts...>;
+
+  using DescIndexList = std::index_sequence_for<Ts...>;
+  using FixedIndexList = typename impl::FilterTupleIndices<IsFixedParamTest, std::decay_t<DescriptorType>, DescIndexList>::type;
+  using MutableIndexList = typename impl::FilterTupleIndices<IsMutableParamTest, std::decay_t<DescriptorType>, DescIndexList>::type;
+  
+  static constexpr size_t NumFixedParams = FixedIndexList::size();
+  static constexpr size_t NumMutableParams = MutableIndexList::size();
 
   constexpr ParameterDescriptorSet(const Ts &&... ts) : mDescriptors{std::make_tuple(ts...)} {}
   constexpr ParameterDescriptorSet(const std::tuple<Ts...>&& t): mDescriptors{t} {}
 
-  constexpr size_t count() const noexcept { return countImpl(DescriptorIndex()); }
+  constexpr size_t count() const noexcept { return countImpl(DescIndexList()); }
   
-  const std::tuple<Ts...> mDescriptors;
-
+  template <template <size_t N, typename T> class Func>
+  void iterate() const
+  {
+    iterateImpl<Func>(DescIndexList());
+  }
+  
+  template <template <size_t N, typename T> class Func>
+  void iterateFixed() const
+  {
+    iterateImpl<Func>(FixedIndexList());
+  }
+  
+  template <template <size_t N, typename T> class Func>
+  void iterateMutable() const
+  {
+    iterateImpl<Func>(MutableIndexList());
+  }
+  
+  const DescriptorType mDescriptors;
+  
 private:
 
   template <size_t... Is>
@@ -78,6 +121,13 @@ private:
     std::initializer_list<int>{(count = count + std::get<0>(std::get<Is>(mDescriptors)).fixedSize, 0)...};
     return count;
   }
+  
+  template <template <size_t N, typename T> class Op, size_t... Is>
+  void iterateImpl(std::index_sequence<Is...>) const
+  {
+    std::initializer_list<int>{(Op<Is, ParamDescriptorTypeAt<Is>>()(std::get<0>(std::get<Is>(mDescriptors))), 0)...};
+  }
+
 };
   
 } // namespace impl
@@ -88,25 +138,21 @@ class ParameterSetImpl;
 template <size_t...Os, typename... Ts>
 class ParameterSetImpl<const impl::ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>>
 {
-  template <bool B>
-  struct IsFixed
-  {
-    template <typename T>
-    using apply = std::is_same<Fixed<B>, typename std::tuple_element<2, T>::type>;
-  };
-  
-  using IsFixedParamTest   = IsFixed<true>;
-  using IsMutableParamTest = IsFixed<false>;
   using ParameterDescType = impl::ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>;
+  
+protected:
   
   template <typename T>
   using ValueType = ParameterValue<typename std::tuple_element<0, T>::type>;
 
 public:
   
-  using Descriptors = const std::tuple<Ts...>;
+  using DescriptorType = typename ParameterDescType::DescriptorType;
   using ValueTuple = std::tuple<ValueType<Ts>...>;
-  using ParamIndexList = typename std::index_sequence_for<Ts...>;
+  using ValueRefTuple = std::tuple<ValueType<Ts>&...>;
+  using ParamIndexList = typename ParameterDescType::DescIndexList;
+  using FixedIndexList = typename ParameterDescType::FixedIndexList;
+  using MutableIndexList = typename ParameterDescType::MutableIndexList;
 
   template <size_t N>
   using ParamDescriptorTypeAt = typename std::tuple_element<N, ValueTuple>::type::ParameterType;
@@ -114,36 +160,11 @@ public:
   template <size_t N>
   using ParamTypeAt = typename ParamDescriptorTypeAt<N>::type;
 
-  using FixedParams = typename impl::FilterTupleIndices<IsFixedParamTest, std::decay_t<Descriptors>, ParamIndexList>::type;
-  
-  using MutableParams = typename impl::FilterTupleIndices<IsMutableParamTest, std::decay_t<Descriptors>, ParamIndexList>::type;
-  
-  static constexpr size_t NumFixedParams = FixedParams::size();
-  static constexpr size_t NumMutableParams = MutableParams::size();
-
-  constexpr ParameterSetImpl(const ParameterDescType &d, ValueTuple &t)
+  constexpr ParameterSetImpl(const ParameterDescType &d, ValueRefTuple t)
   : mDescriptors{d}
   , mParams{t}
   {}
   
-  template <template <size_t N, typename T> class Func>
-  static void iterateParameterDescriptors(const ParameterDescType &d)
-  {
-    iterateParameterDescriptorsImpl<Func>(d.mDescriptors, ParamIndexList());
-  }
-
-  template <template <size_t N, typename T> class Func>
-  static void iterateFixedParameterDescriptors(const ParameterDescType &d)
-  {
-    iterateParameterDescriptorsImpl<Func>(d.mDescriptors, FixedParams());
-  }
-
-  template <template <size_t N, typename T> class Func>
-  static void iterateMutableParameterDescriptors(const ParameterDescType &d)
-  {
-    iterateParameterDescriptorsImpl<Func>(d.mDescriptors, MutableParams());
-  }
-
   template <template <size_t N, typename T> class Func, typename... Args>
   std::array<Result, sizeof...(Ts)> checkParameterValues(Args &&... args)
   {
@@ -159,13 +180,13 @@ public:
   template <template <size_t N, typename T> class Func, typename... Args>
   std::array<Result, sizeof...(Ts)> setFixedParameterValues(bool reportage, Args &&... args)
   {
-    return setParameterValuesImpl<Func>(FixedParams(), reportage, std::forward<Args>(args)...);
+    return setParameterValuesImpl<Func>(FixedIndexList(), reportage, std::forward<Args>(args)...);
   }
 
   template <template <size_t N, typename T> class Func, typename... Args>
   std::array<Result, sizeof...(Ts)> setMutableParameterValues(bool reportage, Args &&... args)
   {
-    return setParameterValuesImpl<Func>(MutableParams(), reportage, std::forward<Args>(args)...);
+    return setParameterValuesImpl<Func>(MutableIndexList(), reportage, std::forward<Args>(args)...);
   }
 
   template <template <size_t N, typename T> class Func, typename... Args>
@@ -177,7 +198,7 @@ public:
   template <typename T, template <size_t, typename> class Func, typename... Args>
   void forEachParamType(Args &&... args)
   {
-    using Is = typename impl::FilterTupleIndices<IsParamType<T>, std::decay_t<Descriptors>, ParamIndexList>::type;
+    using Is = typename impl::FilterTupleIndices<IsParamType<T>, std::decay_t<DescriptorType>, ParamIndexList>::type;
     forEachParamImpl<Func>(Is{}, std::forward<Args>(args)...);
   }
 
@@ -256,7 +277,7 @@ private:
   {
     std::array<Result, sizeof...(Is)> results;
 
-    ValueTuple candidateValues = std::make_tuple(std::make_pair(
+    ValueRefTuple candidateValues = std::make_tuple(std::make_pair(
         makeValue<ParamDescriptorTypeAt<Is>, Func, Is>(std::forward<Args>(args)...), std::get<Is>(mParams).second)...);
 
     std::initializer_list<int>{(impl::Clamper<ParamTypeAt<Is>>::template clamp<Os, Is>(ParamValueAt<Is>(candidateValues), candidateValues, constraintAt<Is>(candidateValues), &std::get<Is>(results)), 0)...};
@@ -268,12 +289,6 @@ private:
   void forEachParamImpl(std::index_sequence<Is...>, Args &&... args)
   {
     std::initializer_list<int>{(Func<Is, ParamDescriptorTypeAt<Is>>()(get<Is>(), std::forward<Args>(args)...), 0)...};
-  }
-
-  template <template <size_t N, typename T> class Op, size_t... Is>
-  static void iterateParameterDescriptorsImpl(Descriptors &d, std::index_sequence<Is...>)
-  {
-    std::initializer_list<int>{(Op<Is, ParamDescriptorTypeAt<Is>>()(std::get<0>(std::get<Is>(d))), 0)...};
   }
 
   template <template <size_t, typename> class Func, typename... Args, size_t... Is>
@@ -289,7 +304,7 @@ private:
   }
 
   const ParameterDescType mDescriptors;
-  ValueTuple& mParams;
+  ValueRefTuple mParams;
 };
 
 template <typename>
@@ -301,16 +316,16 @@ class ParameterSet<const impl::ParameterDescriptorSet<std::index_sequence<Os...>
   : public ParameterSetImpl<const impl::ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>>
 {
   using ParameterDescType = impl::ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>;
-  using DescriptorIndex = typename ParameterDescType::DescriptorIndex;
+  using DescIndexList = typename ParameterDescType::DescIndexList;
   using ValueTuple = typename ParameterSetImpl<const ParameterDescType>::ValueTuple;
-
+  
   template <typename T>
-  using ValueType = ParameterValue<typename std::tuple_element<0, T>::type>;
+  using ValueType = typename ParameterSetImpl<const ParameterDescType>::template ValueType<T>;
   
 public:
   
   constexpr ParameterSet(const ParameterDescType &d)
-  : ParameterSetImpl<const ParameterDescType>(d, mParams), mParams{create(d, DescriptorIndex())}
+  : ParameterSetImpl<const ParameterDescType>(createRefTuple(DescIndexList()), mParams), mParams{create(d, DescIndexList())}
   {}
   
 private:
@@ -325,6 +340,12 @@ private:
   constexpr auto create(const ParameterDescType &d, std::index_sequence<Is...>) const
   {
     return std::make_tuple(ValueType<Ts>(descriptorAt<Is>(d))...);
+  }
+  
+  template <size_t... Is>
+  constexpr auto createRefTuple(std::index_sequence<Is...>)
+  {
+    return std::tie(std::get<Is>(mParams)...);
   }
   
   ValueTuple mParams;
