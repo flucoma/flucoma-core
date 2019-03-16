@@ -52,8 +52,11 @@ std::ostream &operator<<(std::ostream &o, ParameterValue<T> &t)
 /// Each parameter descriptor in the base client is a three-element tuple
 /// Third element is flag indicating whether fixed (instantiation only) or not
 
-template <typename... Ts>
-class ParameterDescriptorSet
+template <typename>
+class ParameterDescriptorSet;
+
+template <size_t... Of, typename... Ts>
+class ParameterDescriptorSet<std::pair<std::index_sequence<Of...>, std::tuple<Ts...>>>
 {
   using DescriptorIndex = std::index_sequence_for<Ts...>;
 
@@ -115,8 +118,8 @@ private:
 template <typename>
 class ParameterSetImpl;
 
-template <template <typename...> class D, typename... Ts>
-class ParameterSetImpl<const D<Ts...>>
+template <template <typename T> class D, size_t...Of, typename... Ts>
+class ParameterSetImpl<const D<std::pair<std::index_sequence<Of...>, std::tuple<Ts...>>>>
 {
   template <bool B>
   struct IsFixed
@@ -127,7 +130,7 @@ class ParameterSetImpl<const D<Ts...>>
   
   using IsFixedParamTest   = IsFixed<true>;
   using IsMutableParamTest = IsFixed<false>;
-  using ParameterDescType = D<Ts...>;
+  using ParameterDescType = D<std::pair<std::index_sequence<Of...>, std::tuple<Ts...>>>;
 
 public:
   
@@ -214,10 +217,11 @@ public:
   void set(T &&x, Result *reportage) noexcept
   {
     if (reportage) reportage->reset();
-    auto &constraints = std::get<N>(mParams).second;
-    auto &param       = std::get<N>(mParams).first;
-    using ParamType   = typename std::remove_reference_t<decltype(param)>::type;
-    auto xPrime       = impl::Clamper<ParamType>::template clamp<0, N>(x, mParams, constraints, reportage);
+    auto &constraints   = std::get<N>(mParams).second;
+    auto &param         = std::get<N>(mParams).first;
+    using ParamType     = typename std::remove_reference_t<decltype(param)>::type;
+    const size_t offset = std::get<N>(std::make_tuple(Of...));
+    auto xPrime         = impl::Clamper<ParamType>::template clamp<offset, N>(x, mParams, constraints, reportage);
     param.set(std::move(xPrime));
   }
 
@@ -285,7 +289,7 @@ private:
     ValueTuple candidateValues = std::make_tuple(std::make_pair(
         makeValue<ParamDescriptorTypeAt<Is>, Func, Is>(std::forward<Args>(args)...), std::get<Is>(mParams).second)...);
 
-    std::initializer_list<int>{(impl::Clamper<ParamTypeAt<Is>>::template clamp<0, Is>(ParamValueAt<Is>(candidateValues), candidateValues, ConstraintAt<Is>(candidateValues), &std::get<Is>(results)), 0)...};
+    std::initializer_list<int>{(impl::Clamper<ParamTypeAt<Is>>::template clamp<Of, Is>(ParamValueAt<Is>(candidateValues), candidateValues, ConstraintAt<Is>(candidateValues), &std::get<Is>(results)), 0)...};
     
     return results;
   }
@@ -322,15 +326,15 @@ template <typename>
 class ParameterSet
 {};
   
-template <template <typename...> class D, typename... Ts>
-class ParameterSet<const D<Ts...>> : public ParameterSetImpl<const D<Ts...>>
+template <template <typename T> class D, typename U, typename... Ts>
+class ParameterSet<const D<U>> : public ParameterSetImpl<const D<U>>
 {
-  using ParameterDescType = D<Ts...>;
+  using ParameterDescType = D<U>;
   using ValueTuple = typename ParameterDescType::ValuePlusConstraintsType;
  
 public:
   
-  constexpr ParameterSet(const impl::ParameterDescriptorSet<Ts...> &d)
+  constexpr ParameterSet(const impl::ParameterDescriptorSet<U> &d)
   : ParameterSetImpl<const ParameterDescType>(d, mParams), mParams{d.createValues()}
   {}
   
@@ -338,9 +342,18 @@ private:
   
   ValueTuple mParams;
 };
+    
+template <typename T>
+constexpr size_t zero_all() { return 0u; }
+    
+template<typename... Ts>
+using zero_sequence_for = std::index_sequence<zero_all<Ts>()...>;
   
+template <typename... Ts>
+using ParamDescTypeFor = impl::ParameterDescriptorSet<std::pair<zero_sequence_for<Ts...>, std::tuple<Ts...>>>;
+    
 template <typename... Args>
-constexpr impl::ParameterDescriptorSet<Args...> defineParameters(Args &&... args)
+constexpr ParamDescTypeFor<Args...> defineParameters(Args &&... args)
 {
   return {std::forward<Args>(args)...};
 }
