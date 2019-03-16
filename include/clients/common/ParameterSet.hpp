@@ -278,9 +278,8 @@ private:
   {
     std::array<Result, sizeof...(Is)> results;
 
-    ValueRefTuple candidateValues = std::make_tuple(std::make_pair(
-        makeValue<ParamDescriptorTypeAt<Is>, Func, Is>(std::forward<Args>(args)...), std::get<Is>(mParams).second)...);
-
+    ValueTuple candidateValues = std::make_tuple(makeValue<ParamDescriptorTypeAt<Is>, Func, Is>(std::forward<Args>(args...))...);
+        
     std::initializer_list<int>{(impl::Clamper<ParamTypeAt<Is>>::template clamp<Os, Is>(ParamValueAt<Is>(candidateValues), candidateValues, constraintAt<Is>(candidateValues), &std::get<Is>(results)), 0)...};
     
     return results;
