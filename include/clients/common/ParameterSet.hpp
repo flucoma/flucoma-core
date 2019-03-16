@@ -148,7 +148,7 @@ public:
   static constexpr size_t NumFixedParams = FixedParams::size();
   static constexpr size_t NumMutableParams = MutableParams::size();
 
-  constexpr ParameterSetImpl(const impl::ParameterDescriptorSet<Ts...> &d, ValueTuple &t)
+  constexpr ParameterSetImpl(const ParameterDescType &d, ValueTuple &t)
   : mDescriptors{d}
   , mParams{t}
   {}
