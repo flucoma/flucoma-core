@@ -131,7 +131,31 @@ struct FloatPairsArrayT : ParamTypeBase
 {
   struct FloatPairsArrayType
   {
-    std::vector<std::pair<FloatUnderlyingType, FloatUnderlyingType>> value;
+  
+    constexpr FloatPairsArrayType(std::array<std::pair<double,double>,2> x): value{x}
+    {}
+  
+
+    FloatPairsArrayType(const FloatPairsArrayType& x) = default;
+    
+  
+
+    constexpr FloatPairsArrayType(FloatPairsArrayType&& x)
+    {
+        *this = std::move(x);
+    }
+
+    FloatPairsArrayType& operator=(FloatPairsArrayType&& x)
+    {
+      value = x.value;
+      lowerChanged = x.lowerChanged;
+      upperChanged = x.upperChanged;
+      oldLower = x.oldLower;
+      oldUpper = x.oldUpper;
+    }
+    
+
+    std::array<std::pair<FloatUnderlyingType, FloatUnderlyingType>,2> value;
     bool   lowerChanged{false};
     bool   upperChanged{false};
     double oldLower{0};
@@ -144,12 +168,12 @@ struct FloatPairsArrayT : ParamTypeBase
   constexpr FloatPairsArrayT(const char *name, const char *displayName)
       : ParamTypeBase(name, displayName)
   {}
-  const std::size_t                                                 fixedSize{4};
-  static constexpr std::initializer_list<std::pair<double, double>> defaultValue{{0.0, 1.0}, {1.0, 1.0}};
+  const std::size_t         fixedSize{4};
+  const std::array<std::pair<double,double>,2> defaultValue{{{0.0, 1.0}, {1.0, 1.0}}};
 };
 
 // My name's the C++ linker, and I'm a bit of a knob (fixed in C++17)
-constexpr std::initializer_list<std::pair<double, double>> FloatPairsArrayT::defaultValue;
+//constexpr std::initializer_list<std::pair<double, double>> FloatPairsArrayT::defaultValue;
 
 template <bool>
 struct ConstrainMaxFFTSize;
