@@ -203,7 +203,7 @@ public:
     if (reportage) reportage->reset();
     auto &constraints   = constraintAt<N>();
     auto &param         = std::get<N>(mParams);
-    using ParamType     = typename std::remove_reference_t<decltype(param)>::type;
+    using ParamType     = std::remove_reference_t<decltype(param)>;
     const size_t offset = std::get<N>(std::make_tuple(Os...));
     auto xPrime         = impl::Clamper<ParamType>::template clamp<offset, N>(x, mParams, constraints, reportage);
     param = std::move(xPrime);
