@@ -46,7 +46,7 @@ class NMFClient: public FluidBaseClient<decltype(NMFParams), NMFParams>, public 
 
 public:
 
-  NMFClient(ParamSetType& p): FluidBaseClient(p)
+  NMFClient(ParamSetInitType& p): FluidBaseClient(p)
   {}
 
   /***

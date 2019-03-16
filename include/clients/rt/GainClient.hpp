@@ -25,7 +25,7 @@ class GainClient : public FluidBaseClient<decltype(GainParams), GainParams>, pub
 {
   using HostVector = FluidTensorView<T,1>;
 public:
-  GainClient(ParamSetType &p) : FluidBaseClient(p) {
+  GainClient(ParamSetInitType &p) : FluidBaseClient(p) {
     FluidBaseClient::audioChannelsIn(2);
     FluidBaseClient::audioChannelsOut(1);
   }

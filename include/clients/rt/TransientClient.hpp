@@ -47,7 +47,7 @@ public:
 
   using HostVector = HostVector<T>;
     
-  TransientClient(ParamSetType& p) : FluidBaseClient(p) {
+  TransientClient(ParamSetInitType& p) : FluidBaseClient(p) {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::audioChannelsOut(2);
   }

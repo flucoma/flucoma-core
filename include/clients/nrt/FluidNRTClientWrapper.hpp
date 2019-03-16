@@ -69,6 +69,7 @@ public:
     
   using ParamDescType = ParamType;
   using ParamSetType = ParameterSet<ParamDescType>;
+  using ParamSetInitType = ParameterSetImpl<ParamDescType>;
 
   static auto getParameterDescriptor() { return PD; }
     
@@ -78,8 +79,6 @@ public:
 
   static constexpr size_t ParamOffset  = (Ins*5) + Outs;
   using WrappedClient = RTClient;//<ParameterSet_Offset<Params,ParamOffset>,T>;
-  using Params = ParamType;
-  using ParamSet = ParameterSet<ParamType>;
 
   //Host buffers are always float32 (?)
   using HostVector     =  FluidTensor<float,1>;
@@ -87,7 +86,7 @@ public:
   using HostVectorView =  FluidTensorView<float,1>;
   using HostMatrixView =  FluidTensorView<float,2>;
 
-  NRTClientWrapper(ParamSetType& p):
+  NRTClientWrapper(ParamSetInitType& p):
     mParams{p},
     mClient{p}
   {}
@@ -162,7 +161,7 @@ private:
     return {get<Is + (Ins*5)>().get()...};
   }
 
-  ParamSet&  mParams;
+  ParamSetType&  mParams;
   WrappedClient  mClient;
 };
 //////////////////////////////////////////////////////////////////////////////////////////////////////

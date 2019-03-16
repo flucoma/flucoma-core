@@ -41,7 +41,7 @@ class SinesClient : public FluidBaseClient<decltype(SinesParams), SinesParams>, 
   using HostVector = HostVector<T>;
 
 public:
-  SinesClient(ParamSetType& p)
+  SinesClient(ParamSetInitType& p)
   : FluidBaseClient(p), mSTFTBufferedProcess{get<kMaxFFTSize>(),1,2}
   {
     FluidBaseClient::audioChannelsIn(1);
@@ -75,7 +75,7 @@ public:
   size_t latency() { return get<kFFT>().winSize() + (get<kFFT>().hopSize() * get<kMinTrackLen>()); }
 
 private:
-  STFTBufferedProcess<ParamSetType, T, kFFT>  mSTFTBufferedProcess;
+  STFTBufferedProcess<ParamSetInitType, T, kFFT>  mSTFTBufferedProcess;
   std::unique_ptr<algorithm::RTSineExtraction>   mSinesExtractor;
   ParameterTrackChanges<size_t,size_t,size_t,size_t,size_t> mTrackValues;
   size_t mWinSize{0};
