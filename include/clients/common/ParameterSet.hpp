@@ -14,19 +14,19 @@ namespace impl {
 template <typename T>
 struct Clamper
 {
-  template <size_t Offset, size_t N, typename Params, typename... Constraints>
-  static T clamp(T thisParam, Params &allParams, const std::tuple<Constraints...> &c, Result *r)
+  template <size_t Offset, size_t N, typename Params, typename... Constraints, typename Descriptors>
+  static T clamp(T thisParam, Params &allParams, const std::tuple<Constraints...> &c, const Descriptors& d, Result *r)
   {
     // for each constraint, pass this param,all params
-    return clampImpl<Offset, N>(thisParam, allParams, c, std::index_sequence_for<Constraints...>(), r);
+    return clampImpl<Offset, N>(thisParam, allParams, c, d, std::index_sequence_for<Constraints...>() ,r);
   }
   
 private:
-  template <size_t Offset, size_t N, typename Params, typename Constraints, size_t... Is>
-  static T clampImpl(T &thisParam, Params &allParams, Constraints &c, std::index_sequence<Is...>, Result *r)
+  template <size_t Offset, size_t N, typename Params, typename Constraints, typename Descriptors, size_t... Is>
+  static T clampImpl(T &thisParam, Params &allParams, Constraints &c, const Descriptors& d, std::index_sequence<Is...>, Result *r)
   {
     T res = thisParam;
-    (void) std::initializer_list<int>{(std::get<Is>(c).template clamp<Offset, N>(res, allParams, r), 0)...};
+    (void) std::initializer_list<int>{(std::get<Is>(c).template clamp<Offset, N>(res, allParams, d, r), 0)...};
     return res;
   }
 };
@@ -34,8 +34,8 @@ private:
 template<>
 struct Clamper<typename BufferT::type>
 {
-  template <size_t Offset, size_t N, typename Params, typename... Constraints>
-  static typename BufferT::type clamp(typename BufferT::type &thisParam, Params &, const std::tuple<Constraints...>, Result *r)
+  template <size_t Offset, size_t N, typename Params, typename... Constraints,typename Descriptors>
+  static typename BufferT::type clamp(typename BufferT::type &thisParam, Params &, const std::tuple<Constraints...>, const Descriptors& d,  Result *r)
   {
     return std::move(thisParam);
   }
@@ -100,6 +100,12 @@ public:
   void iterateMutable() const
   {
     iterateImpl<Func>(MutableIndexList());
+  }
+  
+  template <size_t N>
+  auto& get() const
+  {
+    return std::get<0>(std::get<N>(mDescriptors));
   }
   
   const DescriptorType mDescriptors;
@@ -205,7 +211,7 @@ public:
     auto &param         = std::get<N>(mParams);
     using ParamType     = std::remove_reference_t<decltype(param)>;
     const size_t offset = std::get<N>(std::make_tuple(Os...));
-    auto xPrime         = impl::Clamper<ParamType>::template clamp<offset, N>(x, mParams, constraints, reportage);
+    auto xPrime         = impl::Clamper<ParamType>::template clamp<offset, N>(x, mParams, constraints,mDescriptors, reportage);
     param = std::move(xPrime);
   }
 
