@@ -27,7 +27,7 @@ struct MinImpl
     if (r && oldX != x)
     {
       r->set(Result::Status::kWarning);
-      r->addMessage(std::get<N>(params).name());
+      r->addMessage(d.template name<N>());
       r->addMessage(" value, ");
       r->addMessage(oldX);
       r->addMessage(", below absolute minimum ");
@@ -52,7 +52,7 @@ struct MaxImpl
     if (r && oldX != x)
     {
       r->set(Result::Status::kWarning);
-      r->addMessage(std::get<N>(params).name());
+      r->addMessage(d.template name<N>());
       r->addMessage(" value (");
       r->addMessage(oldX);
       r->addMessage(") above absolute maximum (");
@@ -70,16 +70,16 @@ struct LowerLimitImpl
   {
     T oldV = v;
 
-    v = std::max<T>({v, std::get<Is + Offset>(params).get()...});
+    v = std::max<T>({v, std::get<Is + Offset>(params)...});
 
     if (r && oldV != v)
     {
       r->set(Result::Status::kWarning);
-      std::array<T, sizeof...(Is)> constraintValues{std::get<Is + Offset>(params).get()...};
+      std::array<T, sizeof...(Is)> constraintValues{std::get<Is + Offset>(params)...};
       size_t                       minPos =
           std::distance(constraintValues.begin(), std::min_element(constraintValues.begin(), constraintValues.end()));
-      std::array<const char *, sizeof...(Is)> constraintNames{std::get<Is + Offset>(params).name()...};
-      r->addMessage(std::get<N>(params).name());
+      std::array<const char *, sizeof...(Is)> constraintNames{d.template name<Is + Offset>()...};
+      r->addMessage(d.template name<N>());
       r->addMessage(" value (");
       r->addMessage(oldV);
       r->addMessage(") below parameter ");
@@ -99,16 +99,16 @@ struct UpperLimitImpl
   {
     T oldV = v;
 
-    v = std::min<T>({v, std::get<Is + Offset>(params).get()...});
+    v = std::min<T>({v, std::get<Is + Offset>(params)...});
 
     if (r && oldV != v)
     {
       r->set(Result::Status::kWarning);
-      std::array<T, sizeof...(Is)> constraintValues{std::get<Is + Offset>(params).get()...};
+      std::array<T, sizeof...(Is)> constraintValues{std::get<Is + Offset>(params)...};
       size_t                       maxPos =
           std::distance(constraintValues.begin(), std::max_element(constraintValues.begin(), constraintValues.end()));
-      std::array<const char *, sizeof...(Is)> constraintNames{std::get<Is + Offset>(params).name()...};
-      r->addMessage(std::get<N>(params).name());
+      std::array<const char *, sizeof...(Is)> constraintNames{d.template name<Is + Offset>()...};
+      r->addMessage(d.template name<N>());
       r->addMessage(" value, ");
       r->addMessage(oldV);
       r->addMessage(", above parameter ");
@@ -127,13 +127,13 @@ struct FrameSizeUpperLimitImpl
   void clamp(T &v, Tuple &params, Descriptor& d, Result *r) const
   {
     T      oldV      = v;
-    size_t frameSize = std::get<FFTIndex + Offset>(params).get().frameSize();
+    size_t frameSize = std::get<FFTIndex + Offset>(params).frameSize();
     v                = std::min<T>(v, frameSize);
 
     if (r && oldV != v)
     {
       r->set(Result::Status::kWarning);
-      r->addMessage(std::get<N>(params).name(), " value (", oldV, ") above spectral frame size (", v, ')');
+      r->addMessage(d.template name<N>(), " value (", oldV, ") above spectral frame size (", v, ')');
     }
   }
 };
@@ -145,12 +145,12 @@ struct WinLowerLimitImpl
   void clamp(T &FFTSize, Tuple &params, Descriptor& d, Result *r) const
   {
     size_t oldFFTSize = FFTSize;
-    size_t winSize    = std::get<WinSizeIndex + Offset>(params).get();
+    size_t winSize    = std::get<WinSizeIndex + Offset>(params);
     FFTSize           = FFTSize == -1 ? FFTSize : std::max<size_t>(winSize, FFTSize);
     if (r && oldFFTSize != FFTSize)
     {
       r->set(Result::Status::kWarning);
-      r->addMessage(std::get<N>(params).name());
+      r->addMessage(d.template name<N>());
       r->addMessage(" value (");
       r->addMessage(oldFFTSize);
       r->addMessage(") below window size (");
@@ -167,12 +167,12 @@ struct FFTUpperLimitImpl
   void clamp(T &winSize, Tuple &params, Descriptor& d, Result *r) const
   {
     size_t oldWinSize = winSize;
-    size_t fftSize    = std::get<FFTIndex + Offset>(params).get();
+    size_t fftSize    = std::get<FFTIndex + Offset>(params);
     winSize           = fftSize == -1 ? winSize : std::min<size_t>(winSize, fftSize);
     if (r && oldWinSize != winSize)
     {
       r->set(Result::Status::kWarning);
-      r->addMessage(std::get<N>(params).name());
+      r->addMessage(d.template name<N>());
       r->addMessage(" value (");
       r->addMessage(oldWinSize);
       r->addMessage(") above fft size size (");
@@ -251,7 +251,7 @@ struct PowerOfTwo
     if (r && res != x)
     {
       r->set(Result::Status::kWarning);
-      r->addMessage(std::get<N>(params).name());
+      r->addMessage(d.template name<N>());
       r->addMessage(" value (");
       r->addMessage(x);
       r->addMessage(") adjusted to power of two (");
