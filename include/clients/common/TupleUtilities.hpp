@@ -24,6 +24,7 @@ struct Filter<I, false>
   using type = std::index_sequence<>;
 };
 
+
 /// Joining index_seqs together.
 /// This is heavily based on how Eric Neibler's meta does it, except I didn't have
 /// the patience to go all the way up to a ten element list (the longer ones help compile times)
@@ -76,6 +77,16 @@ struct FilterTupleIndices<Op, List<Args...>, std::index_sequence<Is...>>
 
   using type = typename Join<typename Filter<Is, call<std::decay_t<Args>>::value>::type...>::type;
 };
+
+template <typename, typename>
+struct JoinOffsetSequence;
+
+template <size_t...Is, size_t...Js>
+struct JoinOffsetSequence<std::index_sequence<Is...>, std::index_sequence<Js...>>
+{
+  using type = std::index_sequence<Is..., (Js + sizeof...(Is))...>;
+};
+
 
 // template<typename Op,typename Tuple,typename...Args,size_t...Is>
 // void forEachInTuple ( Tuple<Args...> a, std::index_sequence<Is...>)
