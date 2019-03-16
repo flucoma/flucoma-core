@@ -20,14 +20,14 @@ struct MinImpl
   {}
   const T value;
   template <size_t Offset, size_t N, typename U, typename Tuple>
-  constexpr void clamp(U &x, Tuple &params, Result *r)
+  constexpr void clamp(U &x, Tuple &params, Result *r) const
   {
     U oldX = x;
     x      = std::max<U>(x, value);
     if (r && oldX != x)
     {
       r->set(Result::Status::kWarning);
-      r->addMessage(std::get<N>(params).first.name());
+      r->addMessage(std::get<N>(params).name());
       r->addMessage(" value, ");
       r->addMessage(oldX);
       r->addMessage(", below absolute minimum ");
@@ -44,7 +44,7 @@ struct MaxImpl
   {}
   const T value;
   template <size_t Offset, size_t N, typename U, typename Tuple>
-  constexpr void clamp(U &x, Tuple &params, Result *r)
+  constexpr void clamp(U &x, Tuple &params, Result *r) const
   {
 
     U oldX = x;
@@ -52,7 +52,7 @@ struct MaxImpl
     if (r && oldX != x)
     {
       r->set(Result::Status::kWarning);
-      r->addMessage(std::get<N>(params).first.name());
+      r->addMessage(std::get<N>(params).name());
       r->addMessage(" value (");
       r->addMessage(oldX);
       r->addMessage(") above absolute maximum (");
@@ -66,21 +66,21 @@ template <int... Is>
 struct LowerLimitImpl
 {
   template <size_t Offset, size_t N, typename T, typename Tuple>
-  void clamp(T &v, Tuple &params, Result *r)
+  void clamp(T &v, Tuple &params, Result *r) const
   {
 
     T oldV = v;
 
-    v = std::max<T>({v, std::get<Is + Offset>(params).first.get()...});
+    v = std::max<T>({v, std::get<Is + Offset>(params).get()...});
 
     if (r && oldV != v)
     {
       r->set(Result::Status::kWarning);
-      std::array<T, sizeof...(Is)> constraintValues{std::get<Is + Offset>(params).first.get()...};
+      std::array<T, sizeof...(Is)> constraintValues{std::get<Is + Offset>(params).get()...};
       size_t                       minPos =
           std::distance(constraintValues.begin(), std::min_element(constraintValues.begin(), constraintValues.end()));
-      std::array<const char *, sizeof...(Is)> constraintNames{std::get<Is + Offset>(params).first.name()...};
-      r->addMessage(std::get<N>(params).first.name());
+      std::array<const char *, sizeof...(Is)> constraintNames{std::get<Is + Offset>(params).name()...};
+      r->addMessage(std::get<N>(params).name());
       r->addMessage(" value (");
       r->addMessage(oldV);
       r->addMessage(") below parameter ");
@@ -96,21 +96,21 @@ template <int... Is>
 struct UpperLimitImpl
 {
   template <size_t Offset, size_t N, typename T, typename Tuple>
-  void clamp(T &v, Tuple &params, Result *r)
+  void clamp(T &v, Tuple &params, Result *r) const
   {
 
     T oldV = v;
 
-    v = std::min<T>({v, std::get<Is + Offset>(params).first.get()...});
+    v = std::min<T>({v, std::get<Is + Offset>(params).get()...});
 
     if (r && oldV != v)
     {
       r->set(Result::Status::kWarning);
-      std::array<T, sizeof...(Is)> constraintValues{std::get<Is + Offset>(params).first.get()...};
+      std::array<T, sizeof...(Is)> constraintValues{std::get<Is + Offset>(params).get()...};
       size_t                       maxPos =
           std::distance(constraintValues.begin(), std::max_element(constraintValues.begin(), constraintValues.end()));
-      std::array<const char *, sizeof...(Is)> constraintNames{std::get<Is + Offset>(params).first.name()...};
-      r->addMessage(std::get<N>(params).first.name());
+      std::array<const char *, sizeof...(Is)> constraintNames{std::get<Is + Offset>(params).name()...};
+      r->addMessage(std::get<N>(params).name());
       r->addMessage(" value, ");
       r->addMessage(oldV);
       r->addMessage(", above parameter ");
@@ -126,7 +126,7 @@ template <int FFTIndex>
 struct FrameSizeUpperLimitImpl
 {
   template <size_t Offset, size_t N, typename T, typename Tuple>
-  void clamp(T &v, Tuple &params, Result *r)
+  void clamp(T &v, Tuple &params, Result *r) const
   {
     T      oldV      = v;
     size_t frameSize = std::get<FFTIndex + Offset>(params).first.get().frameSize();
@@ -144,7 +144,7 @@ template <int WinSizeIndex>
 struct WinLowerLimitImpl
 {
   template <size_t Offset, size_t N, typename T, typename Tuple>
-  void clamp(T &FFTSize, Tuple &params, Result *r)
+  void clamp(T &FFTSize, Tuple &params, Result *r) const
   {
     size_t oldFFTSize = FFTSize;
     size_t winSize    = std::get<WinSizeIndex + Offset>(params).first.get();
@@ -166,7 +166,7 @@ template <int FFTIndex>
 struct FFTUpperLimitImpl
 {
   template <size_t Offset, size_t N, typename T, typename Tuple>
-  void clamp(T &winSize, Tuple &params, Result *r)
+  void clamp(T &winSize, Tuple &params, Result *r) const
   {
     size_t oldWinSize = winSize;
     size_t fftSize    = std::get<FFTIndex + Offset>(params).first.get();
@@ -217,7 +217,7 @@ struct FrequencyAmpPairConstraint
   constexpr FrequencyAmpPairConstraint() {}
 
   template <size_t Offset, size_t N, typename Tuple>
-  constexpr void clamp(type &v, Tuple &, Result *r)
+  constexpr void clamp(type &v, Tuple &, Result *r) const
   {
     // For now I know that array size is 2, just upper and lower vals
     // TODO: make generic for any old monotonic array of freq-amp pairs, should we need it
@@ -239,16 +239,17 @@ struct FrequencyAmpPairConstraint
   }
 
 private:
-  bool   lowerChanged{false};
-  bool   upperChanged{false};
-  double oldLower{0};
-  double oldUpper{0};
+  // TODO: doesn't seem like this should be happening
+  mutable bool   lowerChanged{false};
+  mutable bool   upperChanged{false};
+  mutable double oldLower{0};
+  mutable double oldUpper{0};
 };
 
 struct PowerOfTwo
 {
   template <size_t Offset, size_t N, typename Tuple>
-  constexpr void clamp(LongUnderlyingType &x, Tuple &params, Result *r)
+  constexpr void clamp(LongUnderlyingType &x, Tuple &params, Result *r) const
   {
 
     int                exp  = 0;
@@ -272,7 +273,7 @@ struct PowerOfTwo
 struct Odd
 {
   template <size_t Offset, size_t N, typename Tuple>
-  constexpr void clamp(LongUnderlyingType &x, Tuple &params, Result *r)
+  constexpr void clamp(LongUnderlyingType &x, Tuple &params, Result *r) const
   {
     x = x % 2 ? x : x + 1;
   }

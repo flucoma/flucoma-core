@@ -149,7 +149,7 @@ template <>
 struct ConstrainMaxFFTSize<false>
 {
   template <long N, typename T>
-  size_t clamp(long x, T &constraints)
+  size_t clamp(long x, T &constraints) const
   {
     return x;
   }
@@ -159,9 +159,9 @@ template <>
 struct ConstrainMaxFFTSize<true>
 {
   template <long N, typename T>
-  size_t clamp(long x, T &constraints)
+  size_t clamp(long x, T &constraints) const
   {
-    return std::min<long>(x, std::get<N>(constraints).first.get());
+    return std::min<long>(x, std::get<N>(constraints).get());
   }
 };
 
@@ -172,6 +172,9 @@ public:
       : mWindowSize{win}
       , mHopSize{hop}
       , mFFTSize{fft}
+      , trackWin{win}
+      , trackHop{hop}
+      , trackFFT{fft}
   {}
 
   size_t fftSize() const noexcept { return mFFTSize < 0 ? nextPow2(mWindowSize, true) : mFFTSize; }
@@ -208,21 +211,14 @@ public:
   template <int MaxFFTIndex = -1>
   struct FFTSettingsConstraint
   {
-
-    constexpr FFTSettingsConstraint(const long windef, const long hopdef, const long fftdef)
-        : trackWin{windef}
-        , trackHop{hopdef}
-        , trackFFT{fftdef}
-    {}
-
     template <size_t Offset, size_t N, typename Tuple>
-    constexpr void clamp(FFTParams &v, Tuple &allParams, Result *r)
+    constexpr void clamp(FFTParams &v, Tuple &allParams, Result *r) const
     {
       FFTParams input = v;
 
-      bool winChanged = trackWin.changed(v.winSize());
-      bool fftChanged = trackFFT.changed(v.fftRaw());
-      bool hopChanged = trackHop.changed(v.hopRaw());
+      bool winChanged = v.trackWin.changed(v.winSize());
+      bool fftChanged = v.trackFFT.changed(v.fftRaw());
+      bool hopChanged = v.trackHop.changed(v.hopRaw());
 
       if (winChanged) v.setWin(std::max(v.winSize(), 4ul));
 
@@ -237,7 +233,7 @@ public:
           // This is all about making drag behaviour in GUI elements sensible
           // If we drag down we want it to leap down by powers of 2, but with a lower bound
           // at th nearest power of 2 >= winSize
-          bool up = trackFFT.template direction<0>() > 0;
+          bool up = v.trackFFT.template direction<0>() > 0;
           v.setFFT(v.nextPow2(v.fftRaw(), up));
           v.setFFT(std::max(v.fftRaw(), v.nextPow2(v.winSize(), true)));
         }
@@ -262,9 +258,9 @@ public:
         v.setFFT(v.fftRaw() < 0 ? v.fftRaw() : clippedFFT);
       }
 
-      trackWin.changed(v.winSize());
-      trackFFT.changed(v.fftRaw());
-      trackHop.changed(v.hopRaw());
+      v.trackWin.changed(v.winSize());
+      v.trackFFT.changed(v.fftRaw());
+      v.trackHop.changed(v.hopRaw());
 
       if (v != input && r)
       {
@@ -274,9 +270,6 @@ public:
         if (fftSizeWasClipped) r->addMessage("FFT and / or window clipped to maximum (", clippedFFT, ")");
       }
     }
-    ParameterTrackChanges<int> trackWin;
-    ParameterTrackChanges<int> trackHop;
-    ParameterTrackChanges<int> trackFFT;
   };
 
 private:
@@ -284,6 +277,10 @@ private:
   long mHopSize;
   long mFFTSize;
   bool mHopChanged{false};
+
+  ParameterTrackChanges<int> trackWin;
+  ParameterTrackChanges<int> trackHop;
+  ParameterTrackChanges<int> trackFFT;
 };
 
 struct FFTParamsT : ParamTypeBase
@@ -365,7 +362,7 @@ constexpr ParamSpec<FFTParamsT, Fixed<false>, FFTParams::FFTSettingsConstraint<M
 FFTParam(const char *name, const char *displayName, int winDefault, int hopDefault, int fftDefault, const Constraints... c)
 {
   return {FFTParamsT(name, displayName, winDefault, hopDefault, fftDefault),
-          std::tuple_cat(std::make_tuple(FFTParams::FFTSettingsConstraint<MaxFFTIndex>(winDefault, hopDefault, fftDefault)),
+          std::tuple_cat(std::make_tuple(FFTParams::FFTSettingsConstraint<MaxFFTIndex>()),
                          std::make_tuple(c...)),
           Fixed<false>{}};
 }

@@ -33,7 +33,6 @@ extern auto constexpr SinesParams = defineParameters(
     FFTParam<kMaxFFTSize>("fft", "FFT Settings", 1024,-1,-1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
 
-//using ParamsT = decltype(SinesParams);
 
 template <typename T>
 class SinesClient : public FluidBaseClient<decltype(SinesParams), SinesParams>, public AudioIn, public AudioOut

@@ -15,7 +15,7 @@ template <typename T>
 struct Clamper
 {
   template <size_t Offset, size_t N, typename Params, typename... Constraints>
-  static T clamp(T thisParam, Params &allParams, std::tuple<Constraints...> &c, Result *r)
+  static T clamp(T thisParam, Params &allParams, const std::tuple<Constraints...> &c, Result *r)
   {
     // for each constraint, pass this param,all params
     return clampImpl<Offset, N>(thisParam, allParams, c, std::index_sequence_for<Constraints...>(), r);
@@ -35,7 +35,7 @@ template<>
 struct Clamper<typename BufferT::type>
 {
   template <size_t Offset, size_t N, typename Params, typename... Constraints>
-  static typename BufferT::type clamp(typename BufferT::type &thisParam, Params &, std::tuple<Constraints...>, Result *r)
+  static typename BufferT::type clamp(typename BufferT::type &thisParam, Params &, const std::tuple<Constraints...>, Result *r)
   {
     return std::move(thisParam);
   }
@@ -58,17 +58,13 @@ class ParameterDescriptorSet;
 template <size_t... Os, typename... Ts>
 class ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>
 {
-  using DescriptorIndex = std::index_sequence_for<Ts...>;
-
   template <typename T>
   using ValueType = ParameterValue<typename std::tuple_element<0, T>::type>;
   
-  template <typename T>
-  using ConstraintsType = typename std::tuple_element<1, T>::type;
-  
 public:
   
-  using ValuePlusConstraintsType = std::tuple<std::pair<ValueType<Ts>, ConstraintsType<Ts>>...>;
+  using DescriptorIndex = std::index_sequence_for<Ts...>;
+  using ValueTuple = std::tuple<ValueType<Ts>...>;
 
   constexpr ParameterDescriptorSet(const Ts &&... ts) : mDescriptors{std::make_tuple(ts...)}
   {}
@@ -79,9 +75,7 @@ public:
   constexpr size_t count() const noexcept { return countImpl(DescriptorIndex()); }
 
   constexpr const std::tuple<Ts...> &descriptors() const { return mDescriptors; }
-
-  constexpr auto createValues() const { return create(DescriptorIndex()); }
-
+  
 private:
 
   template <size_t... Is>
@@ -90,24 +84,6 @@ private:
     size_t count{0};
     std::initializer_list<int>{(count = count + std::get<0>(std::get<Is>(mDescriptors)).fixedSize, 0)...};
     return count;
-  }
-  
-  template <size_t N>
-  constexpr auto descriptorAt() const
-  {
-    return std::get<0>(std::get<N>(descriptors()));
-  }
-  
-  template <size_t N>
-  constexpr auto constraintsAt() const
-  {
-    return std::get<1>(std::get<N>(descriptors()));
-  }
-  
-  template <size_t... Is>
-  constexpr auto create(std::index_sequence<Is...>) const
-  {
-    return std::make_tuple(std::make_pair(ValueType<Ts>(descriptorAt<Is>()), constraintsAt<Is>())...);
   }
   
   const std::tuple<Ts...> mDescriptors;
@@ -135,11 +111,11 @@ class ParameterSetImpl<const impl::ParameterDescriptorSet<std::index_sequence<Os
 public:
   
   using Descriptors = const std::tuple<Ts...>;
-  using ValueTuple = typename ParameterDescType::ValuePlusConstraintsType;
+  using ValueTuple = typename ParameterDescType::ValueTuple;
   using ParamIndexList = typename std::index_sequence_for<Ts...>;
 
   template <size_t N>
-  using ParamDescriptorTypeAt = typename std::tuple_element<N, ValueTuple>::type::first_type::ParameterType;
+  using ParamDescriptorTypeAt = typename std::tuple_element<N, ValueTuple>::type::ParameterType;
 
   template <size_t N>
   using ParamTypeAt = typename ParamDescriptorTypeAt<N>::type;
@@ -217,8 +193,8 @@ public:
   void set(T &&x, Result *reportage) noexcept
   {
     if (reportage) reportage->reset();
-    auto &constraints   = std::get<N>(mParams).second;
-    auto &param         = std::get<N>(mParams).first;
+    auto &constraints   = constraintAt<N>();
+    auto &param         = std::get<N>(mParams);
     using ParamType     = typename std::remove_reference_t<decltype(param)>::type;
     const size_t offset = std::get<N>(std::make_tuple(Os...));
     auto xPrime         = impl::Clamper<ParamType>::template clamp<offset, N>(x, mParams, constraints, reportage);
@@ -228,25 +204,25 @@ public:
   template <std::size_t N>
   auto &get() noexcept
   {
-    return std::get<N>(mParams).first.get();
+    return std::get<N>(mParams).get();
   }
 
   template <std::size_t N>
   bool changed() noexcept
   {
-    return std::get<N>(mParams).first.changed();
+    return std::get<N>(mParams).changed();
   }
 
   template <std::size_t N>
   const char *name() noexcept
   {
-    return std::get<N>(mParams).first.name();
+    return std::get<N>(mParams).name();
   }
 
   template <size_t N>
   auto defaultAt()
   {
-    return std::get<N>(mParams).first.descriptor().defaultValue;
+    return std::get<N>(mParams).descriptor().defaultValue;
   }
 
 private:
@@ -260,25 +236,25 @@ private:
   template <size_t N, typename VTuple>
   ParamTypeAt<N> &ParamValueAt(VTuple &values)
   {
-    return std::get<N>(values).first.get();
+    return std::get<N>(values).get();
   }
-
-  template <size_t N, typename VTuple>
-  auto &ConstraintAt(VTuple &values)
+  
+  template <size_t N>
+  constexpr auto& constraintAt() const
   {
-    return std::get<N>(values).second;
+    return std::get<1>(std::get<N>(mDescriptors.descriptors()));
   }
 
   template <size_t... Is>
   void resetImpl(std::index_sequence<Is...>)
   {
-    std::initializer_list<int>{(std::get<Is>(mParams).first.reset(), 0)...};
+    std::initializer_list<int>{(std::get<Is>(mParams).reset(), 0)...};
   }
 
   template <typename T, template <size_t, typename> class Func, size_t N, typename... Args>
   ParameterValue<T> makeValue(Args &&... args)
   {
-    return {std::get<N>(mParams).first.descriptor(), Func<N, ParamDescriptorTypeAt<N>>()(std::forward<Args>(args)...)};
+    return {std::get<N>(mParams).descriptor(), Func<N, ParamDescriptorTypeAt<N>>()(std::forward<Args>(args)...)};
   }
 
   template <template <size_t, typename> class Func, size_t... Is, typename... Args>
@@ -289,7 +265,7 @@ private:
     ValueTuple candidateValues = std::make_tuple(std::make_pair(
         makeValue<ParamDescriptorTypeAt<Is>, Func, Is>(std::forward<Args>(args)...), std::get<Is>(mParams).second)...);
 
-    std::initializer_list<int>{(impl::Clamper<ParamTypeAt<Is>>::template clamp<Os, Is>(ParamValueAt<Is>(candidateValues), candidateValues, ConstraintAt<Is>(candidateValues), &std::get<Is>(results)), 0)...};
+    std::initializer_list<int>{(impl::Clamper<ParamTypeAt<Is>>::template clamp<Os, Is>(ParamValueAt<Is>(candidateValues), candidateValues, constraintAt<Is>(candidateValues), &std::get<Is>(results)), 0)...};
     
     return results;
   }
@@ -331,15 +307,31 @@ class ParameterSet<const impl::ParameterDescriptorSet<std::index_sequence<Os...>
   : public ParameterSetImpl<const impl::ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>>
 {
   using ParameterDescType = impl::ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>;
-  using ValueTuple = typename ParameterDescType::ValuePlusConstraintsType;
- 
+  using ValueTuple = typename ParameterDescType::ValueTuple;
+  using DescriptorIndex = typename ParameterDescType::DescriptorIndex;
+  
+  template <typename T>
+  using ValueType = ParameterValue<typename std::tuple_element<0, T>::type>;
+  
 public:
   
   constexpr ParameterSet(const ParameterDescType &d)
-  : ParameterSetImpl<const ParameterDescType>(d, mParams), mParams{d.createValues()}
+  : ParameterSetImpl<const ParameterDescType>(d, mParams), mParams{create(d, DescriptorIndex())}
   {}
   
 private:
+  
+  template <size_t N>
+  constexpr auto descriptorAt(const ParameterDescType &d) const
+  {
+    return std::get<0>(std::get<N>(d.descriptors()));
+  }
+  
+  template <size_t... Is>
+  constexpr auto create(const ParameterDescType &d, std::index_sequence<Is...>) const
+  {
+    return std::make_tuple(ValueType<Ts>(descriptorAt<Is>(d))...);
+  }
   
   ValueTuple mParams;
 };
