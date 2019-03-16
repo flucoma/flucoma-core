@@ -192,7 +192,7 @@ struct ConstrainMaxFFTSize<true>
   template <long N, typename T>
   size_t clamp(long x, T &constraints) const
   {
-    return std::min<long>(x, std::get<N>(constraints).get());
+    return std::min<long>(x, std::get<N>(constraints));
   }
 };
 
@@ -266,7 +266,7 @@ public:
   struct FFTSettingsConstraint
   {
     template <size_t Offset, size_t N, typename Tuple>
-    constexpr void clamp(FFTParams &v, Tuple &allParams, Result *r) const
+    constexpr void clamp(FFTParams &v, Tuple &allParams, Descriptor& d, Result *r) const
     {
       FFTParams input = v;
 

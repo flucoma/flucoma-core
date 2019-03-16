@@ -19,8 +19,8 @@ struct MinImpl
       : value(m)
   {}
   const T value;
-  template <size_t Offset, size_t N, typename U, typename Tuple>
-  constexpr void clamp(U &x, Tuple &params, Result *r) const
+  template <size_t Offset, size_t N, typename U, typename Tuple, typename Descriptor>
+  constexpr void clamp(U &x, Tuple &params, Descriptor& d, Result *r) const
   {
     U oldX = x;
     x      = std::max<U>(x, value);
@@ -43,8 +43,8 @@ struct MaxImpl
       : value(m)
   {}
   const T value;
-  template <size_t Offset, size_t N, typename U, typename Tuple>
-  constexpr void clamp(U &x, Tuple &params, Result *r) const
+  template <size_t Offset, size_t N, typename U, typename Tuple, typename Descriptor>
+  constexpr void clamp(U &x, Tuple &params, Descriptor& d, Result *r) const
   {
 
     U oldX = x;
@@ -65,8 +65,8 @@ struct MaxImpl
 template <int... Is>
 struct LowerLimitImpl
 {
-  template <size_t Offset, size_t N, typename T, typename Tuple>
-  void clamp(T &v, Tuple &params, Result *r) const
+  template <size_t Offset, size_t N, typename T, typename Tuple, typename Descriptor>
+  void clamp(T &v, Tuple &params, Descriptor& d, Result *r) const
   {
 
     T oldV = v;
@@ -95,8 +95,8 @@ struct LowerLimitImpl
 template <int... Is>
 struct UpperLimitImpl
 {
-  template <size_t Offset, size_t N, typename T, typename Tuple>
-  void clamp(T &v, Tuple &params, Result *r) const
+  template <size_t Offset, size_t N, typename T, typename Tuple, typename Descriptor>
+  void clamp(T &v, Tuple &params, Descriptor& d, Result *r) const
   {
 
     T oldV = v;
@@ -125,8 +125,8 @@ struct UpperLimitImpl
 template <int FFTIndex>
 struct FrameSizeUpperLimitImpl
 {
-  template <size_t Offset, size_t N, typename T, typename Tuple>
-  void clamp(T &v, Tuple &params, Result *r) const
+  template <size_t Offset, size_t N, typename T, typename Tuple, typename Descriptor>
+  void clamp(T &v, Tuple &params, Descriptor& d, Result *r) const
   {
     T      oldV      = v;
     size_t frameSize = std::get<FFTIndex + Offset>(params).get().frameSize();
@@ -143,8 +143,8 @@ struct FrameSizeUpperLimitImpl
 template <int WinSizeIndex>
 struct WinLowerLimitImpl
 {
-  template <size_t Offset, size_t N, typename T, typename Tuple>
-  void clamp(T &FFTSize, Tuple &params, Result *r) const
+  template <size_t Offset, size_t N, typename T, typename Tuple, typename Descriptor>
+  void clamp(T &FFTSize, Tuple &params, Descriptor& d, Result *r) const
   {
     size_t oldFFTSize = FFTSize;
     size_t winSize    = std::get<WinSizeIndex + Offset>(params).get();
@@ -165,8 +165,8 @@ struct WinLowerLimitImpl
 template <int FFTIndex>
 struct FFTUpperLimitImpl
 {
-  template <size_t Offset, size_t N, typename T, typename Tuple>
-  void clamp(T &winSize, Tuple &params, Result *r) const
+  template <size_t Offset, size_t N, typename T, typename Tuple, typename Descriptor>
+  void clamp(T &winSize, Tuple &params, Descriptor& d, Result *r) const
   {
     size_t oldWinSize = winSize;
     size_t fftSize    = std::get<FFTIndex + Offset>(params).get();
@@ -216,8 +216,8 @@ struct FrequencyAmpPairConstraint
 
   constexpr FrequencyAmpPairConstraint() {}
 
-  template <size_t Offset, size_t N, typename Tuple>
-  constexpr void clamp(type &v, Tuple &, Result *r) const
+  template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
+  constexpr void clamp(type &v, Tuple &, Descriptor &, Result *r) const
   {
     auto& vals = v.value;
     // For now I know that array size is 2, just upper and lower vals
@@ -242,8 +242,8 @@ struct FrequencyAmpPairConstraint
 
 struct PowerOfTwo
 {
-  template <size_t Offset, size_t N, typename Tuple>
-  constexpr void clamp(LongUnderlyingType &x, Tuple &params, Result *r) const
+  template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
+  constexpr void clamp(LongUnderlyingType &x, Tuple &params, Descriptor& d, Result *r) const
   {
 
     int                exp  = 0;
@@ -266,8 +266,8 @@ struct PowerOfTwo
 
 struct Odd
 {
-  template <size_t Offset, size_t N, typename Tuple>
-  constexpr void clamp(LongUnderlyingType &x, Tuple &params, Result *r) const
+  template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
+  constexpr void clamp(LongUnderlyingType &x, Tuple &params, Descriptor& d, Result *r) const
   {
     x = x % 2 ? x : x + 1;
   }
