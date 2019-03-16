@@ -265,8 +265,8 @@ public:
   template <int MaxFFTIndex = -1>
   struct FFTSettingsConstraint
   {
-    template <size_t Offset, size_t N, typename Tuple>
-    constexpr void clamp(FFTParams &v, Tuple &allParams, Descriptor& d, Result *r) const
+    template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
+    constexpr void clamp(FFTParams &v, Tuple &allParams, Descriptor &d, Result *r) const 
     {
       FFTParams input = v;
 
