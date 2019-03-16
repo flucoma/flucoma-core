@@ -129,13 +129,13 @@ struct FrameSizeUpperLimitImpl
   void clamp(T &v, Tuple &params, Result *r) const
   {
     T      oldV      = v;
-    size_t frameSize = std::get<FFTIndex + Offset>(params).first.get().frameSize();
+    size_t frameSize = std::get<FFTIndex + Offset>(params).get().frameSize();
     v                = std::min<T>(v, frameSize);
 
     if (r && oldV != v)
     {
       r->set(Result::Status::kWarning);
-      r->addMessage(std::get<N>(params).first.name(), " value (", oldV, ") above spectral frame size (", v, ')');
+      r->addMessage(std::get<N>(params).name(), " value (", oldV, ") above spectral frame size (", v, ')');
     }
   }
 };
@@ -147,12 +147,12 @@ struct WinLowerLimitImpl
   void clamp(T &FFTSize, Tuple &params, Result *r) const
   {
     size_t oldFFTSize = FFTSize;
-    size_t winSize    = std::get<WinSizeIndex + Offset>(params).first.get();
+    size_t winSize    = std::get<WinSizeIndex + Offset>(params).get();
     FFTSize           = FFTSize == -1 ? FFTSize : std::max<size_t>(winSize, FFTSize);
     if (r && oldFFTSize != FFTSize)
     {
       r->set(Result::Status::kWarning);
-      r->addMessage(std::get<N>(params).first.name());
+      r->addMessage(std::get<N>(params).name());
       r->addMessage(" value (");
       r->addMessage(oldFFTSize);
       r->addMessage(") below window size (");
@@ -169,12 +169,12 @@ struct FFTUpperLimitImpl
   void clamp(T &winSize, Tuple &params, Result *r) const
   {
     size_t oldWinSize = winSize;
-    size_t fftSize    = std::get<FFTIndex + Offset>(params).first.get();
+    size_t fftSize    = std::get<FFTIndex + Offset>(params).get();
     winSize           = fftSize == -1 ? winSize : std::min<size_t>(winSize, fftSize);
     if (r && oldWinSize != winSize)
     {
       r->set(Result::Status::kWarning);
-      r->addMessage(std::get<N>(params).first.name());
+      r->addMessage(std::get<N>(params).name());
       r->addMessage(" value (");
       r->addMessage(oldWinSize);
       r->addMessage(") above fft size size (");
@@ -253,7 +253,7 @@ struct PowerOfTwo
     if (r && res != x)
     {
       r->set(Result::Status::kWarning);
-      r->addMessage(std::get<N>(params).first.name());
+      r->addMessage(std::get<N>(params).name());
       r->addMessage(" value (");
       r->addMessage(x);
       r->addMessage(") adjusted to power of two (");
