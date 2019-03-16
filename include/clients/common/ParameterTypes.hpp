@@ -132,18 +132,16 @@ struct FloatPairsArrayT : ParamTypeBase
   struct FloatPairsArrayType
   {
   
-    constexpr FloatPairsArrayType(std::array<std::pair<double,double>,2> x): value{x}
+    constexpr FloatPairsArrayType(const double x0, const double y0, const double x1, const double y1): value{{{x0,y0},{x1,y1}}}
     {}
   
-
-    FloatPairsArrayType(const FloatPairsArrayType& x) = default;
-    
+    constexpr FloatPairsArrayType(const std::array<std::pair<FloatUnderlyingType, FloatUnderlyingType>,2> x): value{x}
+    {}
   
-
-    constexpr FloatPairsArrayType(FloatPairsArrayType&& x)
-    {
-        *this = std::move(x);
-    }
+    FloatPairsArrayType(const FloatPairsArrayType& x) = default;
+    FloatPairsArrayType& operator=(const FloatPairsArrayType&)=default;
+    
+    constexpr FloatPairsArrayType(FloatPairsArrayType&& x) { *this = std::move(x); }
 
     FloatPairsArrayType& operator=(FloatPairsArrayType&& x)
     {
@@ -152,9 +150,9 @@ struct FloatPairsArrayT : ParamTypeBase
       upperChanged = x.upperChanged;
       oldLower = x.oldLower;
       oldUpper = x.oldUpper;
+      return *this;
     }
-    
-
+  
     std::array<std::pair<FloatUnderlyingType, FloatUnderlyingType>,2> value;
     bool   lowerChanged{false};
     bool   upperChanged{false};
@@ -169,7 +167,7 @@ struct FloatPairsArrayT : ParamTypeBase
       : ParamTypeBase(name, displayName)
   {}
   const std::size_t         fixedSize{4};
-  const std::array<std::pair<double,double>,2> defaultValue{{{0.0, 1.0}, {1.0, 1.0}}};
+  const FloatPairsArrayType defaultValue{0.0, 1.0, 1.0, 1.0};
 };
 
 // My name's the C++ linker, and I'm a bit of a knob (fixed in C++17)

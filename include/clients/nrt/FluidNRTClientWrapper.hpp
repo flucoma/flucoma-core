@@ -47,18 +47,19 @@ auto constexpr spitOuts(T(&a)[N],std::index_sequence<Is...>)
 using BufferSpec = ParamSpec<BufferT,Fixed<false>>;
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<typename...Ts, typename...Us, typename...Vs>
-auto joinParameterDescriptors(ParameterDescriptorSet<Ts...> x,ParameterDescriptorSet<Us...> y,ParameterDescriptorSet<Vs...> z)
+template<size_t...Is, size_t...Js,typename...Ts, typename...Us>
+constexpr auto joinParameterDescriptors(ParameterDescriptorSet<std::index_sequence<Is...>,std::tuple<Ts...>> x,ParameterDescriptorSet<std::index_sequence<Js...>,std::tuple<Us...>> y)
 {
-  return ParameterDescriptorSet<Ts...,Us...,Vs...>{std::tuple_cat(x.descriptors(),y.descriptors(), z.descriptors())};
+  return ParameterDescriptorSet<
+            typename JoinOffsetSequence<std::index_sequence<Is...>, std::index_sequence<Js...>>::type,
+        std::tuple<Ts...,Us...>> {std::tuple_cat(x.mDescriptors,y.mDescriptors)};
 }
-
 
 
 template<typename...Ts,size_t Ms>
 auto constexpr makeNRTParams(BufferSpec&& in,BufferSpec(&& out)[Ms],const ParameterDescriptorSet<Ts...> &p)
 {
- return  joinParameterDescriptors(makeWrapperInputs(in),spitOuts(out,std::make_index_sequence<Ms>()), p);
+  return  joinParameterDescriptors(joinParameterDescriptors(makeWrapperInputs(in),spitOuts(out, std::make_index_sequence<Ms>())),p);
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 template<template <typename, typename> class AdaptorType, class RTClient, typename ParamType, ParamType& PD, size_t Ins, size_t Outs>
