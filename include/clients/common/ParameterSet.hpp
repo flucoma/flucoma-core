@@ -271,20 +271,14 @@ private:
     std::initializer_list<int>{(std::get<Is>(mParams) = descriptorAt<Is>().defaultValue, 0)...};
   }
 
-  template <typename T, template <size_t, typename> class Func, size_t N, typename... Args>
-  T makeValue(Args &&... args)
-  {
-    return {std::get<N>(mParams).descriptor(), Func<N, ParamDescriptorTypeAt<N>>()(std::forward<Args>(args)...)};
-  }
-
   template <template <size_t, typename> class Func, size_t... Is, typename... Args>
   auto checkParameterValuesImpl(std::index_sequence<Is...> index, Args &&... args)
   {
     std::array<Result, sizeof...(Is)> results;
 
-    ValueTuple candidateValues = std::make_tuple(makeValue<ParamDescriptorTypeAt<Is>, Func, Is>(std::forward<Args>(args)...)...);
+    ValueTuple candidateValues = std::make_tuple( Func<Is, ParamDescriptorTypeAt<Is>>()(std::forward<Args>(args)...)...);
       
-    std::initializer_list<int>{(impl::Clamper<ParamTypeAt<Is>>::template clamp<Os, Is>(ParamValueAt<Is>(candidateValues), candidateValues, constraintAt<Is>(), &std::get<Is>(results)), 0)...};
+    std::initializer_list<int>{(impl::Clamper<ParamTypeAt<Is>>::template clamp<Os, Is>(ParamValueAt<Is>(candidateValues), candidateValues, constraintAt<Is>(),mDescriptors,&std::get<Is>(results)), 0)...};
     
     return results;
   }
