@@ -93,14 +93,13 @@ private:
   ParameterTrackChanges<size_t> mTrackHSize;
   algorithm::RTHPSS mHPSS;
 };
-/*
-template <typename Params, typename T, typename U>
-using NRTHPSS = NRTStreamAdaptor<HPSSClient,Params,T,U,1,3>;
 
 auto constexpr NRTHPSSParams = impl::makeNRTParams(
-    {BufferParam("srcBuf", "Source Buffer")},
-    {BufferParam("harmBuf","Harmonic Buffer"),BufferParam("percBuf","Percussive Buffer"),BufferParam("resBuf", "Residual Buffer")},
-    HPSSParams);
-*/
+  {BufferParam("srcBuf", "Source Buffer")},
+  {BufferParam("harmBuf","Harmonic Buffer"),BufferParam("percBuf","Percussive Buffer"),BufferParam("resBuf", "Residual Buffer")}, HPSSParams);
+    
+template <typename T>
+using NRTHPSS = NRTStreamAdaptor<HPSSClient<T>, decltype(NRTHPSSParams), NRTHPSSParams, 1, 3>;
+
 } // namespace client
 } // namespace fluid

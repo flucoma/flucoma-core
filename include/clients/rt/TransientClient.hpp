@@ -120,7 +120,5 @@ auto constexpr NRTTransientParams = impl::makeNRTParams({BufferParam("srcBuf", "
 template <typename T>
 using NRTTransients = NRTStreamAdaptor<TransientClient<T>, decltype(NRTTransientParams), NRTTransientParams, 1, 2>;
 
-
-
 } // namespace client
 } // namespace fluid

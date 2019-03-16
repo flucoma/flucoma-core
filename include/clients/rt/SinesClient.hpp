@@ -84,12 +84,11 @@ private:
   size_t mMinTrackLen{0};
 };
 
-/*
-template <typename Params, typename T, typename U>
-using NRTSines = NRTStreamAdaptor<SinesClient,Params,T,U,1,2>;
-
 auto constexpr NRTSineParams = impl::makeNRTParams({BufferParam("srcBuf", "Source Buffer")}, {BufferParam("sinesBuf","Sines Buffer"), BufferParam("resBuf", "Residual Buffer")}, SinesParams);
-*/
+    
+template <typename T>
+using NRTSines = NRTStreamAdaptor<SinesClient<T>, decltype(NRTSineParams), NRTSineParams, 1, 2>;
+
 
 } // namespace client
 } // namespace fluid

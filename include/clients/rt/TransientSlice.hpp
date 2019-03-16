@@ -120,12 +120,10 @@ private:
   size_t mPadding{0};
 };
 
-/*
-template <typename Params, typename T, typename U>
-using NRTTransientSlice = NRTSliceAdaptor<TransientsSlice,Params,T,U,1,1>;
-
 auto constexpr NRTTransientSliceParams = impl::makeNRTParams({BufferParam("srcBuf", "Source Buffer")}, {BufferParam("indBuf","Indices Buffer")}, TransientParams);
-*/
+    
+template <typename T>
+using NRTTransientSlice = NRTSliceAdaptor<TransientsSlice<T>, decltype(NRTTransientSliceParams), NRTTransientSliceParams, 1, 1>;
 
 } // namespace client
 } // namespace fluid

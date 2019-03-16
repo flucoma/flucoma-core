@@ -250,10 +250,10 @@ struct Slicing
 } //namespace impl
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class RTClient,typename Params, Params& PD, size_t Ins, size_t Outs>
-using NRTStreamAdaptor = impl::NRTClientWrapper<impl::Streaming,RTClient,Params,PD, Ins,Outs>;
-    /*
-template<class RTClient,typename Params,typename T,size_t Ins, size_t Outs>
-using NRTSliceAdaptor = impl::NRTClientWrapper< impl::Slicing, RTClient,Params,Ins,Outs>;
-*/
+using NRTStreamAdaptor = impl::NRTClientWrapper<impl::Streaming, RTClient, Params, PD, Ins, Outs>;
+    
+template<class RTClient,typename Params, Params& PD, size_t Ins, size_t Outs>
+using NRTSliceAdaptor = impl::NRTClientWrapper<impl::Slicing, RTClient, Params, PD, Ins, Outs>;
+
 } //namespace client
 } //namespace fluid
