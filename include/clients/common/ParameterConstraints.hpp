@@ -27,11 +27,7 @@ struct MinImpl
     if (r && oldX != x)
     {
       r->set(Result::Status::kWarning);
-      r->addMessage(d.template name<N>());
-      r->addMessage(" value, ");
-      r->addMessage(oldX);
-      r->addMessage(", below absolute minimum ");
-      r->addMessage(x);
+      r->addMessage(d.template name<N>()," value, ",oldX, ", below absolute minimum ", x);
     }
   }
 };
@@ -52,12 +48,7 @@ struct MaxImpl
     if (r && oldX != x)
     {
       r->set(Result::Status::kWarning);
-      r->addMessage(d.template name<N>());
-      r->addMessage(" value (");
-      r->addMessage(oldX);
-      r->addMessage(") above absolute maximum (");
-      r->addMessage(x);
-      r->addMessage(')');
+      r->addMessage(d.template name<N>()," value (",oldX,") above absolute maximum (",x,')');
     }
   }
 };
@@ -79,14 +70,7 @@ struct LowerLimitImpl
       size_t                       minPos =
           std::distance(constraintValues.begin(), std::min_element(constraintValues.begin(), constraintValues.end()));
       std::array<const char *, sizeof...(Is)> constraintNames{d.template name<Is + Offset>()...};
-      r->addMessage(d.template name<N>());
-      r->addMessage(" value (");
-      r->addMessage(oldV);
-      r->addMessage(") below parameter ");
-      r->addMessage(constraintNames[minPos]);
-      r->addMessage(" (");
-      r->addMessage(v);
-      r->addMessage(')');
+      r->addMessage(d.template name<N>()," value (", oldV,") below parameter ", constraintNames[minPos], " (",v,')');
     }
   }
 };
@@ -108,14 +92,7 @@ struct UpperLimitImpl
       size_t                       maxPos =
           std::distance(constraintValues.begin(), std::max_element(constraintValues.begin(), constraintValues.end()));
       std::array<const char *, sizeof...(Is)> constraintNames{d.template name<Is + Offset>()...};
-      r->addMessage(d.template name<N>());
-      r->addMessage(" value, ");
-      r->addMessage(oldV);
-      r->addMessage(", above parameter ");
-      r->addMessage(constraintNames[maxPos]);
-      r->addMessage(" (");
-      r->addMessage(v);
-      r->addMessage(')');
+      r->addMessage(d.template name<N>()," value, ",oldV,", above parameter ",constraintNames[maxPos]," (",v,')');
     }
   }
 };
@@ -134,50 +111,6 @@ struct FrameSizeUpperLimitImpl
     {
       r->set(Result::Status::kWarning);
       r->addMessage(d.template name<N>(), " value (", oldV, ") above spectral frame size (", v, ')');
-    }
-  }
-};
-
-template <int WinSizeIndex>
-struct WinLowerLimitImpl
-{
-  template <size_t Offset, size_t N, typename T, typename Tuple, typename Descriptor>
-  void clamp(T &FFTSize, Tuple &params, Descriptor& d, Result *r) const
-  {
-    size_t oldFFTSize = FFTSize;
-    size_t winSize    = std::get<WinSizeIndex + Offset>(params);
-    FFTSize           = FFTSize == -1 ? FFTSize : std::max<size_t>(winSize, FFTSize);
-    if (r && oldFFTSize != FFTSize)
-    {
-      r->set(Result::Status::kWarning);
-      r->addMessage(d.template name<N>());
-      r->addMessage(" value (");
-      r->addMessage(oldFFTSize);
-      r->addMessage(") below window size (");
-      r->addMessage(winSize);
-      r->addMessage(')');
-    }
-  }
-};
-
-template <int FFTIndex>
-struct FFTUpperLimitImpl
-{
-  template <size_t Offset, size_t N, typename T, typename Tuple, typename Descriptor>
-  void clamp(T &winSize, Tuple &params, Descriptor& d, Result *r) const
-  {
-    size_t oldWinSize = winSize;
-    size_t fftSize    = std::get<FFTIndex + Offset>(params);
-    winSize           = fftSize == -1 ? winSize : std::min<size_t>(winSize, fftSize);
-    if (r && oldWinSize != winSize)
-    {
-      r->set(Result::Status::kWarning);
-      r->addMessage(d.template name<N>());
-      r->addMessage(" value (");
-      r->addMessage(oldWinSize);
-      r->addMessage(") above fft size size (");
-      r->addMessage(winSize);
-      r->addMessage(')');
     }
   }
 };
@@ -251,12 +184,7 @@ struct PowerOfTwo
     if (r && res != x)
     {
       r->set(Result::Status::kWarning);
-      r->addMessage(d.template name<N>());
-      r->addMessage(" value (");
-      r->addMessage(x);
-      r->addMessage(") adjusted to power of two (");
-      r->addMessage(res);
-      r->addMessage(')');
+      r->addMessage(d.template name<N>()," value (",x,") adjusted to power of two (",res,')');
     }
     x = res;
   }
@@ -275,18 +203,6 @@ template <int FFTIndex>
 auto constexpr FrameSizeUpperLimit()
 {
   return impl::FrameSizeUpperLimitImpl<FFTIndex>{};
-}
-
-template <int FFTIndex>
-auto constexpr FFTUpperLimit()
-{
-  return impl::FFTUpperLimitImpl<FFTIndex>{};
-}
-
-template <int WinSizeIndex>
-auto constexpr WinLowerLimit()
-{
-  return impl::WinLowerLimitImpl<WinSizeIndex>{};
 }
 
 } // namespace client
