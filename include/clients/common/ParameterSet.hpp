@@ -233,12 +233,13 @@ public:
   {
     return std::get<0>(std::get<N>(mDescriptors.mDescriptors)).defaultValue;
   }
-  /*
+  
   template<size_t offset>
   auto subset()
   {
-    return ParameterSetImpl<const ParameterDescType>(mDescriptors, );
-  }*/
+    return impl::RefTupleFrom<offset>(mParams);
+  }
+  
   
 private:
   template <typename T>

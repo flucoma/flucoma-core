@@ -71,6 +71,8 @@ public:
   using ParamDescType = ParamType;
   using ParamSetType = ParameterSet<ParamDescType>;
   using ParamSetInitType = ParameterSetImpl<ParamDescType>;
+  using RTParamDescType = typename RTClient::ParamDescType;
+  using RTParamSetInitType = RTClient::ParameterSetImpl<RTParamDescType>;
 
   static auto getParameterDescriptor() { return PD; }
     
@@ -87,9 +89,10 @@ public:
   using HostVectorView =  FluidTensorView<float,1>;
   using HostMatrixView =  FluidTensorView<float,2>;
 
-  NRTClientWrapper(ParamSetInitType& p):
-    mParams{p},
-    mClient{p.subset<ParamOffset>()}
+  NRTClientWrapper(ParamSetInitType& p)
+    : mParams{p}
+    , mRealTimeParams
+    , mClient{RTParamSetInitType(RTClient::getDesceiptorType(), p.subset<ParamOffset>()})
   {}
 
   template <std::size_t N> auto& get() noexcept { return mParams.template get<N>(); }
@@ -161,9 +164,10 @@ private:
   {
     return {get<Is + (Ins*5)>().get()...};
   }
-
-  ParamSetInitType&   mParams;
-  WrappedClient       mClient;
+    
+  RTClient::ParamSetInitType    mRealTimeParams;
+  ParamSetInitType&             mParams;
+  WrappedClient                 mClient;
 };
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename HostMatrix, typename HostVectorView>
