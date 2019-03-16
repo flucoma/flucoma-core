@@ -106,7 +106,6 @@ struct SplitIndexSequence<N,std::index_sequence<Is...>>
   using type = typename OffsetSequence<N,std::make_index_sequence<(sizeof...(Is) - N)>>::type;
 };
 
-
 template <size_t N, typename Tuple>
 constexpr auto RefTupleFrom(Tuple& t )
 {
@@ -119,9 +118,6 @@ constexpr auto RefTupleFromImpl(Tuple& t, SplitIndexSequence<Is...>)
 {
   return std::tie(std::get<Is>(t)...);
 }
-
-
-
 
 // template<typename Op,typename Tuple,typename...Args,size_t...Is>
 // void forEachInTuple ( Tuple<Args...> a, std::index_sequence<Is...>)

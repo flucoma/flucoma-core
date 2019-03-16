@@ -72,7 +72,7 @@ public:
   using ParamSetType = ParameterSet<ParamDescType>;
   using ParamSetInitType = ParameterSetImpl<ParamDescType>;
   using RTParamDescType = typename RTClient::ParamDescType;
-  using RTParamSetInitType = RTClient::ParameterSetImpl<RTParamDescType>;
+  using RTParamSetInitType = ParameterSetImpl<typename RTClient::ParamDescType>;
 
   static auto getParameterDescriptor() { return PD; }
     
@@ -91,8 +91,8 @@ public:
 
   NRTClientWrapper(ParamSetInitType& p)
     : mParams{p}
-    , mRealTimeParams
-    , mClient{RTParamSetInitType(RTClient::getDesceiptorType(), p.subset<ParamOffset>()})
+    , mRealTimeParams{RTClient::getParameterDescriptor(), p.template subset<ParamOffset>()}
+    , mClient{mRealTimeParams}
   {}
 
   template <std::size_t N> auto& get() noexcept { return mParams.template get<N>(); }
@@ -165,9 +165,9 @@ private:
     return {get<Is + (Ins*5)>().get()...};
   }
     
-  RTClient::ParamSetInitType    mRealTimeParams;
-  ParamSetInitType&             mParams;
-  WrappedClient                 mClient;
+  RTParamSetInitType    mRealTimeParams;
+  ParamSetInitType&     mParams;
+  WrappedClient         mClient;
 };
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename HostMatrix, typename HostVectorView>
