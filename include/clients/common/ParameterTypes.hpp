@@ -129,8 +129,17 @@ struct BufferArrayT : ParamTypeBase
 // Pair of frequency amplitude pairs for HPSS threshold
 struct FloatPairsArrayT : ParamTypeBase
 {
+  struct FloatPairsArrayType
+  {
+    std::vector<std::pair<FloatUnderlyingType, FloatUnderlyingType>> value;
+    bool   lowerChanged{false};
+    bool   upperChanged{false};
+    double oldLower{0};
+    double oldUpper{0};
+  };
+    
   //  static constexpr TypeTa
-  using type = std::vector<std::pair<FloatUnderlyingType, FloatUnderlyingType>>;
+  using type = FloatPairsArrayType;
 
   constexpr FloatPairsArrayT(const char *name, const char *displayName)
       : ParamTypeBase(name, displayName)

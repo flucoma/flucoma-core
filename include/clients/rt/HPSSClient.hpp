@@ -55,26 +55,26 @@ public:
     if (mTrackChangesAlgo.changed(nBins, get<kMaxPSize>(), get<kMaxHSize>()))
     {
         mHPSS.init(nBins, get<kMaxPSize>(), get<kMaxHSize>(), get<kPSize>(), get<kHSize>(),
-            get<kMode>(), get<kHThresh>()[0].first, get<kHThresh>()[0].second,
-            get<kHThresh>()[1].first, get<kHThresh>()[1].second, get<kPThresh>()[0].first,
-            get<kPThresh>()[0].second, get<kPThresh>()[1].first, get<kPThresh>()[0].second);
+            get<kMode>(), get<kHThresh>().value[0].first, get<kHThresh>().value[0].second,
+            get<kHThresh>().value[1].first, get<kHThresh>().value[1].second, get<kPThresh>().value[0].first,
+            get<kPThresh>().value[0].second, get<kPThresh>().value[1].first, get<kPThresh>().value[0].second);
     }
     else
     {
       mHPSS.setVSize(get<kPSize>());
       if(mTrackHSize.changed(get<kHSize>())) mHPSS.setHSize(get<kHSize>());
       
-      mHPSS.setHThresholdX1(get<kHThresh>()[0].first);
-      mHPSS.setHThresholdY1(get<kHThresh>()[0].second);
+      mHPSS.setHThresholdX1(get<kHThresh>().value[0].first);
+      mHPSS.setHThresholdY1(get<kHThresh>().value[0].second);
 
-      mHPSS.setHThresholdX2(get<kHThresh>()[1].first);
-      mHPSS.setHThresholdY2(get<kHThresh>()[1].second);
+      mHPSS.setHThresholdX2(get<kHThresh>().value[1].first);
+      mHPSS.setHThresholdY2(get<kHThresh>().value[1].second);
 
-      mHPSS.setPThresholdX1(get<kPThresh>()[0].first);
-      mHPSS.setPThresholdY1(get<kPThresh>()[0].second);
+      mHPSS.setPThresholdX1(get<kPThresh>().value[0].first);
+      mHPSS.setPThresholdY1(get<kPThresh>().value[0].second);
 
-      mHPSS.setPThresholdX2(get<kPThresh>()[1].first);
-      mHPSS.setPThresholdY2(get<kPThresh>()[1].second);
+      mHPSS.setPThresholdX2(get<kPThresh>().value[1].first);
+      mHPSS.setPThresholdY2(get<kPThresh>().value[1].second);
       
       mHPSS.setMode(get<kMode>()); 
       

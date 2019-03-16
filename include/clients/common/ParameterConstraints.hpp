@@ -219,31 +219,25 @@ struct FrequencyAmpPairConstraint
   template <size_t Offset, size_t N, typename Tuple>
   constexpr void clamp(type &v, Tuple &, Result *r) const
   {
+    auto& vals = v.value;
     // For now I know that array size is 2, just upper and lower vals
     // TODO: make generic for any old monotonic array of freq-amp pairs, should we need it
 
     // Clip freqs to [0,1]
-    v[0].first = std::max<double>(std::min<double>(v[0].first, 1), 0);
-    v[1].first = std::max<double>(std::min<double>(v[1].first, 1), 0);
+    vals[0].first = std::max<double>(std::min<double>(vals[0].first, 1), 0);
+    vals[1].first = std::max<double>(std::min<double>(vals[1].first, 1), 0);
 
-    lowerChanged = v[0].first != oldLower;
-    upperChanged = v[1].first != oldUpper;
+    v.lowerChanged = vals[0].first != v.oldLower;
+    v.upperChanged = vals[1].first != v.oldUpper;
 
-    if (lowerChanged && !upperChanged && v[0].first > v[1].first) v[0].first = v[1].first;
-    if (upperChanged && !lowerChanged && v[0].first > v[1].first) v[1].first = v[0].first;
+    if (v.lowerChanged && !v.upperChanged && vals[0].first > vals[1].first) vals[0].first = vals[1].first;
+    if (v.upperChanged && !v.lowerChanged && vals[0].first > vals[1].first) vals[1].first = vals[0].first;
     // If everything changed (i.e. object creation) and in the wrong order, just swap 'em
-    if (lowerChanged && upperChanged && v[0].first > v[1].first) std::swap(v[0], v[1]);
+    if (v.lowerChanged && v.upperChanged && vals[0].first > vals[1].first) std::swap(vals[0], vals[1]);
 
-    oldLower = v[0].first;
-    oldUpper = v[1].first;
+    v.oldLower = vals[0].first;
+    v.oldUpper = vals[1].first;
   }
-
-private:
-  // TODO: doesn't seem like this should be happening
-  mutable bool   lowerChanged{false};
-  mutable bool   upperChanged{false};
-  mutable double oldLower{0};
-  mutable double oldUpper{0};
 };
 
 struct PowerOfTwo
