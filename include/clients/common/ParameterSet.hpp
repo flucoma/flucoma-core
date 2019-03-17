@@ -27,6 +27,20 @@ class ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>
   using IsFixed   = FixedParam<true>;
   using IsMutable = FixedParam<false>;
   
+  struct IsRelational
+  {
+    template <typename T>
+    using apply = std::is_base_of<impl::Relational, T>;
+  };
+  
+  struct IsNonRelational
+  {
+    template <typename T>
+    using apply = std::integral_constant<bool, !(std::is_base_of<impl::Relational,T>::value)>;
+  };
+
+  
+  
 public:
   
   template <typename T>
@@ -43,6 +57,13 @@ public:
   using FixedIndexList    = typename impl::FilterTupleIndices<IsFixed, DescriptorType, IndexList>::type;
   using MutableIndexList  = typename impl::FilterTupleIndices<IsMutable, DescriptorType, IndexList>::type;
   
+  template<typename T, typename List>
+  using RelationalConstraintList = typename impl::FilterTupleIndices<IsRelational,T,List>::type;
+
+  template<typename T, typename List>
+  using NonRelationalConstraintList = typename impl::FilterTupleIndices<IsNonRelational,T,List>::type;
+
+
   static constexpr size_t NumFixedParams    = FixedIndexList::size();
   static constexpr size_t NumMutableParams  = MutableIndexList::size();
 
@@ -121,7 +142,7 @@ protected:
     {
         return mDescriptors.template get<N>();
     }
-    
+  
 public:
   
   using DescriptorType      = typename DescriptorSetType::DescriptorType;
@@ -130,6 +151,13 @@ public:
   using IndexList           = typename DescriptorSetType::IndexList;
   using FixedIndexList      = typename DescriptorSetType::FixedIndexList;
   using MutableIndexList    = typename DescriptorSetType::MutableIndexList;
+
+  template<typename T, typename List>
+  using RelationalConstraintList = typename DescriptorSetType::template RelationalConstraintList<T,List>;
+
+  template<typename T, typename List>
+  using NonRelationalConstraintList =  typename DescriptorSetType::template NonRelationalConstraintList<T,List>;
+
 
   template <size_t N>
   using DescriptorTypeAt = typename DescriptorSetType::template DescriptorTypeAt<N>;
@@ -271,6 +299,20 @@ private:
   {
     // for each constraint, pass this param,all params
     return constrainImpl<Offset, N>(thisParam, c, std::index_sequence_for<Constraints...>(), r);
+    
+    switch(C)
+    {
+      kAll:
+         constrainImpl<Offset, N>(thisParam,c, std::index_sequence_for<Constraints...>(), r);
+         break;
+      kNonRelational:
+        constrainImpl<Offset, N>(thisParam,c, NonRelationalConstraintList<std::tuple<Constraints...> ,std::index_sequence_for<Constraints...>>(), r);
+        break;
+      kRelational:
+        constrainImpl<Offset, N>(thisParam,c, RelationalConstraintList<std::tuple<Constraints...> ,std::index_sequence_for<Constraints...>>(), r);
+        break;
+    }
+    
   }
   
   template <size_t Offset, size_t N, typename T, typename Constraints, size_t... Is>
