@@ -7,42 +7,7 @@
 
 namespace fluid {
 namespace client {
-namespace impl {
 
-// Clamp value given constraints
-
-template <typename T>
-struct Clamper
-{
-  template <size_t Offset, size_t N, typename Params, typename... Constraints, typename Descriptors>
-  static T clamp(T thisParam, Params &allParams, const std::tuple<Constraints...> &c, const Descriptors& d, Result *r)
-  {
-    // for each constraint, pass this param,all params
-    return clampImpl<Offset, N>(thisParam, allParams, c, d, std::index_sequence_for<Constraints...>() ,r);
-  }
-  
-private:
-  template <size_t Offset, size_t N, typename Params, typename Constraints, typename Descriptors, size_t... Is>
-  static T clampImpl(T &thisParam, Params &allParams, Constraints &c, const Descriptors& d, std::index_sequence<Is...>, Result *r)
-  {
-    T res = thisParam;
-    (void) std::initializer_list<int>{(std::get<Is>(c).template clamp<Offset, N>(res, allParams, d, r), 0)...};
-    return res;
-  }
-};
-
-template<>
-struct Clamper<typename BufferT::type>
-{
-  template <size_t Offset, size_t N, typename Params, typename... Constraints,typename Descriptors>
-  static typename BufferT::type clamp(typename BufferT::type &thisParam, Params &, const std::tuple<Constraints...>, const Descriptors& d,  Result *r)
-  {
-    return std::move(thisParam);
-  }
-};
-
-} // namespace impl
-    
 /// Each parameter descriptor in the base client is a three-element tuple
 /// Third element is flag indicating whether fixed (instantiation only) or not
 
@@ -215,10 +180,10 @@ public:
     if (reportage) reportage->reset();
     auto &constraints   = constraintAt<N>();
     auto &param         = std::get<N>(mParams);
-    using ParamType     = std::remove_reference_t<decltype(param)>;
     const size_t offset = std::get<N>(std::make_tuple(Os...));
-    auto xPrime         = impl::Clamper<ParamType>::template clamp<offset, N>(x, mParams, constraints,mDescriptors, reportage);
-    param = std::move(xPrime);
+    ParamTypeAt<N> x0   = std::move(x);
+    ParamTypeAt<N> x1   = constrain<offset, N>(x0, mParams, constraints, reportage);
+    param = std::move(x1);
   }
 
   template <std::size_t N>
@@ -277,8 +242,8 @@ private:
     std::array<Result, sizeof...(Is)> results;
 
     ValueTuple candidateValues = std::make_tuple( Func<Is, ParamDescriptorTypeAt<Is>>()(std::forward<Args>(args)...)...);
-      
-    std::initializer_list<int>{(impl::Clamper<ParamTypeAt<Is>>::template clamp<Os, Is>(ParamValueAt<Is>(candidateValues), candidateValues, constraintAt<Is>(),mDescriptors,&std::get<Is>(results)), 0)...};
+
+    std::initializer_list<int>{(constrain<Os, Is>(ParamValueAt<Is>(candidateValues), candidateValues, constraintAt<Is>(),mDescriptors,&std::get<Is>(results)), 0)...};
     
     return results;
   }
@@ -300,7 +265,28 @@ private:
 
     return results;
   }
-
+  
+  template <size_t Offset, size_t N, typename Params, typename... Constraints>
+  typename BufferT::type constrain(typename BufferT::type &thisParam, Params &, const std::tuple<Constraints...>,  Result *r)
+  {
+    return std::move(thisParam);
+  }
+  
+  template <size_t Offset, size_t N, typename T, typename Params, typename... Constraints>
+  T constrain(T thisParam, Params &allParams, const std::tuple<Constraints...> &c, Result *r)
+  {
+    // for each constraint, pass this param,all params
+    return constrainImpl<Offset, N>(thisParam, allParams, c, std::index_sequence_for<Constraints...>(), r);
+  }
+  
+  template <size_t Offset, size_t N, typename T, typename Params, typename Constraints, size_t... Is>
+  T constrainImpl(T &thisParam, Params &allParams, Constraints &c, std::index_sequence<Is...>, Result *r)
+  {
+    T res = thisParam;
+    (void) std::initializer_list<int>{(std::get<Is>(c).template clamp<Offset, N>(res, allParams, mDescriptors, r), 0)...};
+    return res;
+  }
+  
   const ParameterDescType mDescriptors;
   ValueRefTuple mParams;
 };
