@@ -47,7 +47,7 @@ public:
   size_t audioBuffersIn() const noexcept { return mBuffersIn; }
   size_t audioBuffersOut() const noexcept { return mBuffersOut; }
 
-  static ParamDescType& getParameterDescriptor() { return PD; }
+  constexpr static ParamDescType& getParameterDescriptors() { return PD; }
 
 protected:
   void audioChannelsIn(const size_t x) noexcept { mAudioChannelsIn = x; }

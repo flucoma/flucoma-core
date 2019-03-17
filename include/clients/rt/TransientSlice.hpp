@@ -120,7 +120,7 @@ private:
   size_t mPadding{0};
 };
 
-auto constexpr NRTTransientSliceParams = impl::makeNRTParams({BufferParam("srcBuf", "Source Buffer")}, {BufferParam("indBuf","Indices Buffer")}, TransientParams);
+auto constexpr NRTTransientSliceParams = makeNRTParams<TransientsSlice>({BufferParam("srcBuf", "Source Buffer")}, {BufferParam("indBuf","Indices Buffer")});
     
 template <typename T>
 using NRTTransientSlice = NRTSliceAdaptor<TransientsSlice<T>, decltype(NRTTransientSliceParams), NRTTransientSliceParams, 1, 1>;

@@ -55,12 +55,6 @@ constexpr auto joinParameterDescriptors(ParameterDescriptorSet<std::index_sequen
         std::tuple<Ts...,Us...>> {std::tuple_cat(x.mDescriptors,y.mDescriptors)};
 }
 
-
-template<typename...Ts,size_t Ms>
-auto constexpr makeNRTParams(BufferSpec&& in,BufferSpec(&& out)[Ms],const ParameterDescriptorSet<Ts...> &p)
-{
-  return  joinParameterDescriptors(joinParameterDescriptors(makeWrapperInputs(in),spitOuts(out, std::make_index_sequence<Ms>())),p);
-}
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 template<template <typename, typename> class AdaptorType, class RTClient, typename ParamType, ParamType& PD, size_t Ins, size_t Outs>
 class NRTClientWrapper: public OfflineIn, public OfflineOut
@@ -74,7 +68,7 @@ public:
   using RTParamDescType = typename RTClient::ParamDescType;
   using RTParamSetViewType = ParameterSetView<typename RTClient::ParamDescType>;
 
-  static auto getParameterDescriptor() { return PD; }
+  constexpr static auto getParameterDescriptors() { return PD; }
     
   //The client will be accessing its parameter by a bunch of indices that need ofsetting now
 //  using Client = RTClient<impl::ParameterSet_Offset<Params,ParamOffset>,T,U>;
@@ -91,7 +85,7 @@ public:
 
   NRTClientWrapper(ParamSetViewType& p)
     : mParams{p}
-    , mRealTimeParams{RTClient::getParameterDescriptor(), p.template subset<ParamOffset>()}
+    , mRealTimeParams{RTClient::getParameterDescriptors(), p.template subset<ParamOffset>()}
     , mClient{mRealTimeParams}
   {}
 
@@ -249,11 +243,20 @@ struct Slicing
 
 } //namespace impl
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class RTClient,typename Params, Params& PD, size_t Ins, size_t Outs>
+    
+template<class RTClient, typename Params, Params& PD, size_t Ins, size_t Outs>
 using NRTStreamAdaptor = impl::NRTClientWrapper<impl::Streaming, RTClient, Params, PD, Ins, Outs>;
     
 template<class RTClient,typename Params, Params& PD, size_t Ins, size_t Outs>
 using NRTSliceAdaptor = impl::NRTClientWrapper<impl::Slicing, RTClient, Params, PD, Ins, Outs>;
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template<template <typename T> typename RTClient, size_t Ms>
+auto constexpr makeNRTParams(impl::BufferSpec&& in, impl::BufferSpec(&& out)[Ms])
+{
+  return impl::joinParameterDescriptors(impl::joinParameterDescriptors(impl::makeWrapperInputs(in), impl::spitOuts(out, std::make_index_sequence<Ms>())), RTClient<double>::getParameterDescriptors());
+}
+   
 } //namespace client
 } //namespace fluid
