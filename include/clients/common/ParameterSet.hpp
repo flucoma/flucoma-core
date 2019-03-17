@@ -167,9 +167,9 @@ public:
   , mParams{t}
   {}
   
-  std::array<Result, sizeof...(Ts)> checkParameterValues()
+  std::array<Result, sizeof...(Ts)> constrainParameterValues()
   {
-    return checkParameterValuesImpl(IndexList());
+    return constrainParameterValuesImpl(IndexList());
   }
 
   template <template <size_t N, typename T> class Func, typename... Args>
@@ -265,17 +265,6 @@ private:
     std::initializer_list<int>{(std::get<Is>(mParams) = descriptorAt<Is>().defaultValue, 0)...};
   }
 
-  template <size_t... Is>
-  auto checkParameterValuesImpl(std::index_sequence<Is...>)
-  {
-    std::array<Result, sizeof...(Is)> results;
-
-    std::initializer_list<int>{(constrain<Os, Is, kRelational>(ParamValueAt<Is>(mParams), constraintAt<Is>(), &std::get<Is>(results)), 0)...};
-    std::initializer_list<int>{(constrain<Os, Is, kNonRelational>(ParamValueAt<Is>(mParams), constraintAt<Is>(), &std::get<Is>(results)), 0)...};
-    
-    return results;
-  }
-
   template <template <size_t, typename> class Func, typename... Args, size_t... Is>
   void forEachParamImpl(std::index_sequence<Is...>, Args &&... args)
   {
@@ -317,6 +306,17 @@ private:
     T res = thisParam;
     (void) std::initializer_list<int>{(std::get<Is>(c).template clamp<Offset, N>(res, mParams, mDescriptors, r), 0)...};
     return res;
+  }
+    
+  template <size_t... Is>
+  auto constrainParameterValuesImpl(std::index_sequence<Is...>)
+  {
+    std::array<Result, sizeof...(Is)> results;
+        
+    std::initializer_list<int>{(constrain<Os, Is, kRelational>(ParamValueAt<Is>(mParams), constraintAt<Is>(), &std::get<Is>(results)), 0)...};
+    std::initializer_list<int>{(constrain<Os, Is, kNonRelational>(ParamValueAt<Is>(mParams), constraintAt<Is>(), &std::get<Is>(results)), 0)...};
+        
+    return results;
   }
   
 protected:
