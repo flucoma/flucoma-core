@@ -300,8 +300,8 @@ private:
     switch(C)
     {
       case kAll:            return constrainImpl<Offset, N>(thisParam, c, Idx(), r);
-      case kNonRelational:  return constrainImpl<Offset, N>(thisParam, c, NonRelationalList<CT,Idx>(), r);
-      case kRelational:     return constrainImpl<Offset, N>(thisParam, c, RelationalList<CT,Idx>(), r);
+      case kNonRelational:  return constrainImpl<Offset, N>(thisParam, c, NonRelationalList<CT, Idx>(), r);
+      case kRelational:     return constrainImpl<Offset, N>(thisParam, c, RelationalList<CT, Idx>(), r);
     }
   }
   
