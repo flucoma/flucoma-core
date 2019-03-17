@@ -235,7 +235,7 @@ public:
   long   fftRaw() const noexcept { return mFFTSize; }
   long   hopRaw() const noexcept { return mHopSize; }
   size_t winSize() const noexcept { return mWindowSize; }
-  size_t hopSize() { return mHopSize > 0 ? mHopSize : mWindowSize >> 1; }
+  size_t hopSize() const noexcept { return mHopSize > 0 ? mHopSize : mWindowSize >> 1; }
   size_t frameSize() const { return (fftSize() >> 1) + 1; }
 
   void setWin(long win) { mWindowSize = win; }

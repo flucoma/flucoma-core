@@ -70,7 +70,7 @@ public:
   }
     
   template <size_t N>
-  auto& get() const
+  const auto& get() const
   {
     return std::get<0>(std::get<N>(mDescriptors));
   }
@@ -188,7 +188,7 @@ public:
   }
 
   template <std::size_t N>
-  auto &get() const noexcept
+  const auto &get() const
   {
     return std::get<N>(mParams);
   }
