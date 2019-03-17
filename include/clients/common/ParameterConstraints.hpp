@@ -150,9 +150,10 @@ struct FrequencyAmpPairConstraint
   constexpr FrequencyAmpPairConstraint() {}
 
   template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
-  constexpr void clamp(type &v, Tuple &, Descriptor &, Result *r) const
+  constexpr void clamp(type &v, Tuple &allParams, Descriptor &, Result *r) const
   {
     auto& vals = v.value;
+    auto& inParams = std::get<N>(allParams);
     // For now I know that array size is 2, just upper and lower vals
     // TODO: make generic for any old monotonic array of freq-amp pairs, should we need it
 
@@ -160,16 +161,16 @@ struct FrequencyAmpPairConstraint
     vals[0].first = std::max<double>(std::min<double>(vals[0].first, 1), 0);
     vals[1].first = std::max<double>(std::min<double>(vals[1].first, 1), 0);
 
-    v.lowerChanged = vals[0].first != v.oldLower;
-    v.upperChanged = vals[1].first != v.oldUpper;
+    inParams.lowerChanged = vals[0].first != inParams.oldLower;
+    inParams.upperChanged = vals[1].first != inParams.oldUpper;
 
     if (v.lowerChanged && !v.upperChanged && vals[0].first > vals[1].first) vals[0].first = vals[1].first;
     if (v.upperChanged && !v.lowerChanged && vals[0].first > vals[1].first) vals[1].first = vals[0].first;
     // If everything changed (i.e. object creation) and in the wrong order, just swap 'em
     if (v.lowerChanged && v.upperChanged && vals[0].first > vals[1].first) std::swap(vals[0], vals[1]);
 
-    v.oldLower = vals[0].first;
-    v.oldUpper = vals[1].first;
+    inParams.oldLower = vals[0].first;
+    inParams.oldUpper = vals[1].first;
   }
 };
 
