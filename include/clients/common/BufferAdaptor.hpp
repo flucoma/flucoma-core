@@ -10,10 +10,10 @@ public:
   class Access
   {
   public:
-    Access(BufferAdaptor *adaptor)
-        : mAdaptor(adaptor)
+    Access(BufferAdaptor *adaptor) : mAdaptor(nullptr)
     {
-      if (mAdaptor) mAdaptor->acquire();
+      if (adaptor && adaptor->acquire()
+        mAdaptor = adaptor;
     }
 
     ~Access()
@@ -71,12 +71,8 @@ public:
     //      destroy();
   }
 
-  bool operator==(BufferAdaptor &rhs) const { return equal(&rhs); }
-  bool operator!=(BufferAdaptor &rhs) const { return !(*this == rhs); }
-
 private:
-  virtual bool equal(BufferAdaptor *rhs) const                     = 0;
-  virtual void acquire()                                           = 0;
+  virtual bool acquire()                                           = 0;
   virtual void release()                                           = 0;
   virtual bool valid() const                                       = 0;
   virtual bool exists() const                                      = 0;
