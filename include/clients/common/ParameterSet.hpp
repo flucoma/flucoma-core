@@ -288,16 +288,18 @@ private:
   template <size_t Offset, size_t N, ConstraintTypes C, typename T, typename... Constraints>
   T constrain(T thisParam, const std::tuple<Constraints...> &c, Result *r)
   {
+    // for each constraint, pass this param,all params
+    using CT  = std::tuple<Constraints...>;
+    using Idx = std::index_sequence_for<Constraints...>;
     switch(C)
     {
       case kAll:
-        return constrainImpl<Offset, N>(thisParam, c , std::index_sequence_for<Constraints...>(), r);
+         return constrainImpl<Offset, N>(thisParam,c, Idx(), r);
       case kNonRelational:
-        return constrainImpl<Offset, N>(thisParam, c, NonRelationalConstraintList<std::tuple<Constraints...>, std::index_sequence_for<Constraints...>>(), r);
+        return constrainImpl<Offset, N>(thisParam,c, NonRelationalConstraintList<CT,Idx>(), r);
       case kRelational:
-        return constrainImpl<Offset, N>(thisParam, c , RelationalConstraintList<std::tuple<Constraints...>, std::index_sequence_for<Constraints...>>(), r);
+        return constrainImpl<Offset, N>(thisParam,c, RelationalConstraintList<CT,Idx>(), r);
     }
-    
   }
   
   template <size_t Offset, size_t N, typename T, typename Constraints, size_t... Is>
