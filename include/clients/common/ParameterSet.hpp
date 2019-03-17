@@ -180,9 +180,8 @@ public:
     auto &constraints   = constraintAt<N>();
     auto &param         = std::get<N>(mParams);
     const size_t offset = std::get<N>(std::make_tuple(Os...));
-    ParamType x0        = x ;
-    ParamType x1        = constrain<offset, N>(x0, mParams, constraints, reportage);
-    param = x1;
+    ParamType x0        = x;
+    param               = constrain<offset, N>(x0, mParams, constraints, reportage);
   }
 
   template <std::size_t N>
