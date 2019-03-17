@@ -14,7 +14,7 @@ enum class TypeTag { kFloat, kLong, kBuffer, kEnum, kFloatArray, kLongArray, kBu
 using FloatUnderlyingType          = double;
 using LongUnderlyingType           = intptr_t; // signed int equal to pointer size, k thx
 using EnumUnderlyingType           = intptr_t;
-using BufferUnderlyingType         = std::unique_ptr<BufferAdaptor>;
+using BufferUnderlyingType         = std::shared_ptr<BufferAdaptor>;
 using FloatArrayUnderlyingType     = std::vector<FloatUnderlyingType>;
 using LongArrayUnderlyingType      = std::vector<LongUnderlyingType>;
 using BufferArrayUnderlyingType    = std::vector<BufferUnderlyingType>;
