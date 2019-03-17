@@ -12,7 +12,7 @@ public:
   public:
     Access(BufferAdaptor *adaptor) : mAdaptor(nullptr)
     {
-      if (adaptor && adaptor->acquire()
+      if (adaptor && adaptor->acquire())
         mAdaptor = adaptor;
     }
 
