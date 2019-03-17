@@ -127,10 +127,7 @@ public:
   template <size_t N>
   using ParamDescriptorTypeAt = typename ParameterDescType::template ParamDescriptorTypeAt<N>;
 
-  template <size_t N>
-  using ParamTypeAt = typename ParamDescriptorTypeAt<N>::type;
-
-  constexpr ParameterSetImpl(const ParameterDescType &d, ValueRefTuple t)
+  constexpr ParameterSetView(const ParameterDescType &d, ValueRefTuple t)
   : mDescriptors{d}
   , mParams{t}
   {}
@@ -177,12 +174,14 @@ public:
   template <size_t N, typename T>
   void set(T &&x, Result *reportage) noexcept
   {
+    using ParamType = typename ParamDescriptorTypeAt<N>::type;
+      
     if (reportage) reportage->reset();
     auto &constraints   = constraintAt<N>();
     auto &param         = std::get<N>(mParams);
     const size_t offset = std::get<N>(std::make_tuple(Os...));
-    ParamTypeAt<N> x0   = std::move(x);
-    ParamTypeAt<N> x1   = constrain<offset, N>(x0, mParams, constraints, reportage);
+    ParamType x0        = std::move(x);
+    ParamType x1        = constrain<offset, N>(x0, mParams, constraints, reportage);
     param = std::move(x1);
   }
 
@@ -219,7 +218,7 @@ private:
   };
 
   template <size_t N, typename VTuple>
-  ParamTypeAt<N> &ParamValueAt(VTuple &values)
+  auto &ParamValueAt(VTuple &values)
   {
     return std::get<N>(values);
   }
@@ -243,7 +242,7 @@ private:
 
     ValueTuple candidateValues = std::make_tuple( Func<Is, ParamDescriptorTypeAt<Is>>()(std::forward<Args>(args)...)...);
 
-    std::initializer_list<int>{(constrain<Os, Is>(ParamValueAt<Is>(candidateValues), candidateValues, constraintAt<Is>(),mDescriptors,&std::get<Is>(results)), 0)...};
+    std::initializer_list<int>{(constrain<Os, Is>(ParamValueAt<Is>(candidateValues), candidateValues, constraintAt<Is>(), &std::get<Is>(results)), 0)...};
     
     return results;
   }
