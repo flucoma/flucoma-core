@@ -13,7 +13,7 @@ struct BufferProcessSpec
 {
   BufferProcessSpec() = default;
 
-  BufferProcessSpec(BufferAdaptor* b, int o, int nf, int co, int nc):
+  BufferProcessSpec(BufferAdaptor* b, long o, long nf, long co, long nc):
   buffer{b},startFrame{o}, nFrames{nf}, startChan{co}, nChans{nc}
   {}
 
