@@ -162,10 +162,16 @@ public:
   constexpr ParameterSetView(const DescriptorSetType &d, ValueRefTuple t)
   : mDescriptors{d}
   , mParams{t}
-  , mConstrainOnSet(false)
+  , mKeepConstrained(false)
   {}
   
-  void setConstrainOnSet(bool constrain) { mConstrainOnSet = constrain; }
+  void keepConstrained(bool keep)
+  {
+    if (keep && !mKeepConstrained)
+      constrainParameterValues();
+      
+    mKeepConstrained = keep;
+  }
     
   std::array<Result, sizeof...(Ts)> constrainParameterValues()
   {
@@ -212,7 +218,7 @@ public:
     auto &constraints   = constraintAt<N>();
     auto &param         = std::get<N>(mParams);
     const size_t offset = std::get<N>(std::make_tuple(Os...));
-    param               = mConstrainOnSet ? constrain<offset, N, kAll>(x, constraints, reportage) : x;
+    param               = mKeepConstrained ? constrain<offset, N, kAll>(x, constraints, reportage) : x;
   }
 
   template <std::size_t N>
@@ -322,7 +328,7 @@ protected:
 private:
   
   ValueRefTuple mParams;
-  bool          mConstrainOnSet;
+  bool          mKeepConstrained;
 };
 
 template <typename>
