@@ -137,11 +137,11 @@ class ParameterSetView<const ParameterDescriptorSet<std::index_sequence<Os...>, 
   };
     
 protected:
-    template <size_t N>
-    constexpr auto descriptorAt() const
-    {
-        return mDescriptors.template get<N>();
-    }
+  template <size_t N>
+  constexpr auto descriptorAt() const
+  {
+    return mDescriptors.template get<N>();
+  }
   
 public:
   
@@ -158,15 +158,17 @@ public:
   template<typename T, typename List>
   using NonRelationalConstraintList =  typename DescriptorSetType::template NonRelationalConstraintList<T,List>;
 
-
   template <size_t N>
   using DescriptorTypeAt = typename DescriptorSetType::template DescriptorTypeAt<N>;
 
   constexpr ParameterSetView(const DescriptorSetType &d, ValueRefTuple t)
   : mDescriptors{d}
   , mParams{t}
+  , mConstrainOnSet(false)
   {}
   
+  void setConstrainOnSet(bool constrain) { mConstrainOnSet = constrain; }
+    
   std::array<Result, sizeof...(Ts)> constrainParameterValues()
   {
     return constrainParameterValuesImpl(IndexList());
@@ -212,7 +214,7 @@ public:
     auto &constraints   = constraintAt<N>();
     auto &param         = std::get<N>(mParams);
     const size_t offset = std::get<N>(std::make_tuple(Os...));
-    param               = constrain<offset, N, kAll>(x, constraints, reportage);
+    param               = mConstrainOnSet ? constrain<offset, N, kAll>(x, constraints, reportage) : x;
   }
 
   template <std::size_t N>
@@ -324,6 +326,7 @@ protected:
 private:
   
   ValueRefTuple mParams;
+  bool          mConstrainOnSet;
 };
 
 template <typename>
