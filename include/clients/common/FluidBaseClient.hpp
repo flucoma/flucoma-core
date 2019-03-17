@@ -20,9 +20,9 @@ public:
   
   using ParamDescType = ParamType;
   using ParamSetType = ParameterSet<ParamDescType>;
-  using ParamSetInitType = ParameterSetImpl<ParamDescType>;
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
     
-  FluidBaseClient(ParamSetInitType& p) : mParams(p){}
+  FluidBaseClient(ParamSetViewType& p) : mParams(p){}
   
   template<size_t N>
   auto& get() const
@@ -61,7 +61,7 @@ protected:
   void audioBuffersIn(const size_t x) noexcept { mBuffersIn = x; }
   void audioBuffersOut(const size_t x) noexcept { mBuffersOut = x; }
 
-  ParamSetInitType&   mParams;
+  ParamSetViewType&   mParams;
 
 private:
   size_t mAudioChannelsIn       = 0;

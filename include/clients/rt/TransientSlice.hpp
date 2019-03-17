@@ -47,7 +47,7 @@ public FluidBaseClient<decltype(TransientParams), TransientParams>, public Audio
 
 public:
 
-  TransientsSlice(ParamSetInitType& p): FluidBaseClient(p)
+  TransientsSlice(ParamSetViewType& p): FluidBaseClient(p)
   {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::audioChannelsOut(1);

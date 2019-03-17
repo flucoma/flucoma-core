@@ -32,7 +32,7 @@ class NoveltyClient: public FluidBaseClient<decltype(NoveltyParams), NoveltyPara
 
 public:
 
-  NoveltyClient(ParamSetInitType& p) : FluidBaseClient(p)
+  NoveltyClient(ParamSetViewType& p) : FluidBaseClient(p)
   {}
 
 

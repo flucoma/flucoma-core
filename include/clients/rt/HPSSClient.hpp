@@ -37,7 +37,7 @@ class HPSSClient : public FluidBaseClient<decltype(HPSSParams), HPSSParams>, pub
 
 public:
 
-  HPSSClient(ParamSetInitType& p)
+  HPSSClient(ParamSetViewType& p)
     : FluidBaseClient(p), mSTFTBufferedProcess{get<kMaxFFT>(),1,3}
   {
     FluidBaseClient::audioChannelsIn(1);
@@ -88,7 +88,7 @@ public:
   }
 
 private:
-  STFTBufferedProcess<ParamSetInitType, T, kFFT, true> mSTFTBufferedProcess;
+  STFTBufferedProcess<ParamSetViewType, T, kFFT, true> mSTFTBufferedProcess;
   ParameterTrackChanges<size_t, size_t, size_t> mTrackChangesAlgo;
   ParameterTrackChanges<size_t> mTrackHSize;
   algorithm::RTHPSS mHPSS;

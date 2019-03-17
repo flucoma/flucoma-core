@@ -30,7 +30,7 @@ class BaseSTFTClient : public FluidBaseClient<decltype(STFTParams), STFTParams>,
 
 public:
 
-  BaseSTFTClient(ParamSetInitType& p) : FluidBaseClient(p), mSTFTBufferedProcess{get<kMaxFFT>(),1,1}
+  BaseSTFTClient(ParamSetViewType& p) : FluidBaseClient(p), mSTFTBufferedProcess{get<kMaxFFT>(),1,1}
   {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::audioChannelsOut(1);
@@ -49,7 +49,7 @@ public:
   }
 
 private:
-  STFTBufferedProcess<ParamSetInitType, T, kFFT, true> mSTFTBufferedProcess;
+  STFTBufferedProcess<ParamSetViewType, T, kFFT, true> mSTFTBufferedProcess;
 };
 } // namespace client
 } // namespace fluid

@@ -32,7 +32,7 @@ class BufferComposeClient : public FluidBaseClient<decltype(BufComposeParams), B
   using HostMatrix = FluidTensor<T, 2>;
 
 public:
-  BufferComposeClient(ParamSetInitType &p) : FluidBaseClient(p)
+  BufferComposeClient(ParamSetViewType &p) : FluidBaseClient(p)
   {}
 
   Result process()

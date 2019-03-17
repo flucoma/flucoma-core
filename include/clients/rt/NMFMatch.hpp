@@ -27,7 +27,7 @@ class NMFMatch : public FluidBaseClient<decltype(NMFMatchParams), NMFMatchParams
   using HostVector = HostVector<T>;
 public:
 
-  NMFMatch(ParamSetInitType& p) : FluidBaseClient(p), mSTFTProcessor(get<kMaxFFTSize>(),1,0)
+  NMFMatch(ParamSetViewType& p) : FluidBaseClient(p), mSTFTProcessor(get<kMaxFFTSize>(),1,0)
   {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::controlChannelsOut(get<kMaxRank>());
@@ -85,7 +85,7 @@ public:
 
 private:
   ParameterTrackChanges<size_t,size_t> mTrackValues;
-  STFTBufferedProcess<ParamSetInitType, T, kFFT,false> mSTFTProcessor;
+  STFTBufferedProcess<ParamSetViewType, T, kFFT,false> mSTFTProcessor;
   std::unique_ptr<algorithm::NMF> mNMF;
 
   FluidTensor<double, 2> tmpFilt;

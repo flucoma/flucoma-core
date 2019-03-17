@@ -70,9 +70,9 @@ public:
     
   using ParamDescType = ParamType;
   using ParamSetType = ParameterSet<ParamDescType>;
-  using ParamSetInitType = ParameterSetImpl<ParamDescType>;
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
   using RTParamDescType = typename RTClient::ParamDescType;
-  using RTParamSetInitType = ParameterSetImpl<typename RTClient::ParamDescType>;
+  using RTParamSetViewType = ParameterSetView<typename RTClient::ParamDescType>;
 
   static auto getParameterDescriptor() { return PD; }
     
@@ -89,7 +89,7 @@ public:
   using HostVectorView =  FluidTensorView<float,1>;
   using HostMatrixView =  FluidTensorView<float,2>;
 
-  NRTClientWrapper(ParamSetInitType& p)
+  NRTClientWrapper(ParamSetViewType& p)
     : mParams{p}
     , mRealTimeParams{RTClient::getParameterDescriptor(), p.template subset<ParamOffset>()}
     , mClient{mRealTimeParams}
@@ -165,8 +165,8 @@ private:
     return {get<Is + (Ins*5)>().get()...};
   }
     
-  RTParamSetInitType    mRealTimeParams;
-  ParamSetInitType&     mParams;
+  RTParamSetViewType    mRealTimeParams;
+  ParamSetViewType&     mParams;
   WrappedClient         mClient;
 };
 //////////////////////////////////////////////////////////////////////////////////////////////////////

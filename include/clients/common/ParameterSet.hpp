@@ -101,10 +101,10 @@ private:
 };
 
 template <typename>
-class ParameterSetImpl;
+class ParameterSetView;
 
 template <size_t...Os, typename... Ts>
-class ParameterSetImpl<const ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>>
+class ParameterSetView<const ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>>
 {
   using ParameterDescType = ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>;
 
@@ -296,17 +296,17 @@ class ParameterSet
   
 template <size_t...Os, typename... Ts>
 class ParameterSet<const ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>>
-  : public ParameterSetImpl<const ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>>
+  : public ParameterSetView<const ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>>
 {
   using ParameterDescType = ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>;
-  using Parent = ParameterSetImpl<const ParameterDescType>;
+  using Parent = ParameterSetView<const ParameterDescType>;
   using DescIndexList = typename ParameterDescType::DescIndexList;
   using ValueTuple = typename ParameterDescType::ValueTuple;
 
 public:
   
   constexpr ParameterSet(const ParameterDescType &d)
-  : ParameterSetImpl<const ParameterDescType>(d, createRefTuple(DescIndexList())), mParams{create(d, DescIndexList())}
+  : ParameterSetView<const ParameterDescType>(d, createRefTuple(DescIndexList())), mParams{create(d, DescIndexList())}
   {}
   
 private:
