@@ -106,7 +106,7 @@ class ParameterSetView;
 template <size_t...Os, typename... Ts>
 class ParameterSetView<const ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>>
 {
-  using ParameterDescType = ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>;
+  using DescriptorSetType = ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>;
 
 protected:
     template <size_t N>
@@ -117,17 +117,17 @@ protected:
     
 public:
   
-  using DescriptorType      = typename ParameterDescType::DescriptorType;
-  using ValueTuple          = typename ParameterDescType::ValueTuple;
-  using ValueRefTuple       = typename ParameterDescType::ValueRefTuple;
-  using ParamIndexList      = typename ParameterDescType::DescIndexList;
-  using FixedIndexList      = typename ParameterDescType::FixedIndexList;
-  using MutableIndexList    = typename ParameterDescType::MutableIndexList;
+  using DescriptorType      = typename DescriptorSetType::DescriptorType;
+  using ValueTuple          = typename DescriptorSetType::ValueTuple;
+  using ValueRefTuple       = typename DescriptorSetType::ValueRefTuple;
+  using ParamIndexList      = typename DescriptorSetType::DescIndexList;
+  using FixedIndexList      = typename DescriptorSetType::FixedIndexList;
+  using MutableIndexList    = typename DescriptorSetType::MutableIndexList;
 
   template <size_t N>
-  using ParamDescriptorTypeAt = typename ParameterDescType::template ParamDescriptorTypeAt<N>;
+  using ParamDescriptorTypeAt = typename DescriptorSetType::template ParamDescriptorTypeAt<N>;
 
-  constexpr ParameterSetView(const ParameterDescType &d, ValueRefTuple t)
+  constexpr ParameterSetView(const DescriptorSetType &d, ValueRefTuple t)
   : mDescriptors{d}
   , mParams{t}
   {}
@@ -286,7 +286,12 @@ private:
     return res;
   }
   
-  const ParameterDescType mDescriptors;
+protected:
+  
+  const DescriptorSetType mDescriptors;
+
+private:
+  
   ValueRefTuple mParams;
 };
 
@@ -298,23 +303,42 @@ template <size_t...Os, typename... Ts>
 class ParameterSet<const ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>>
   : public ParameterSetView<const ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>>
 {
-  using ParameterDescType = ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>;
-  using Parent = ParameterSetView<const ParameterDescType>;
-  using DescIndexList = typename ParameterDescType::DescIndexList;
-  using ValueTuple = typename ParameterDescType::ValueTuple;
+  using DescriptorSetType = ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>;
+  using ViewType = ParameterSetView<const DescriptorSetType>;
+  using IndexList = typename DescriptorSetType::DescIndexList;
+  using ValueTuple = typename DescriptorSetType::ValueTuple;
 
 public:
   
-  constexpr ParameterSet(const ParameterDescType &d)
-  : ParameterSetView<const ParameterDescType>(d, createRefTuple(DescIndexList())), mParams{create(d, DescIndexList())}
+  constexpr ParameterSet(const DescriptorSetType &d)
+    : ViewType(d, createRefTuple(IndexList())), mParams{create(d, IndexList())}
   {}
   
+  // Copy construct / assign
+  
+  ParameterSet(ParameterSet& p)
+    : ViewType(p.mDescriptors, createRefTuple(IndexList())), mParams{p.mParams}
+  {}
+  
+  ParameterSet& operator =(const ParameterSet&p)
+  {
+    *(static_cast<ViewType>(this)) = ViewType(p.mDescriptors, createRefTuple(IndexList()));
+    mParams = p.mParams;
+    
+    return *this;
+  }
+  
+  // Move construct /assign
+
+  ParameterSet(ParameterSet&&) = default;
+  ParameterSet& operator =(ParameterSet&&) = default;
+ 
 private:
   
   template <size_t... Is>
-  constexpr auto create(const ParameterDescType &d, std::index_sequence<Is...>) const
+  constexpr auto create(const DescriptorSetType &d, std::index_sequence<Is...>) const
   {
-    return std::make_tuple(Parent::template descriptorAt<Is>().defaultValue...);
+    return std::make_tuple(ViewType::template descriptorAt<Is>().defaultValue...);
   }
   
   template <size_t... Is>
