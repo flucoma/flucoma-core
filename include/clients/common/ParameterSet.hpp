@@ -139,10 +139,9 @@ public:
   , mParams{t}
   {}
   
-  template <template <size_t N, typename T> class Func, typename... Args>
   std::array<Result, sizeof...(Ts)> checkParameterValues()
   {
-    return checkParameterValuesImpl<Func>(IndexList());
+    return checkParameterValuesImpl(IndexList());
   }
 
   template <template <size_t N, typename T> class Func, typename... Args>
