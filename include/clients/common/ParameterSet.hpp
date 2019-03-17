@@ -180,9 +180,9 @@ public:
     auto &constraints   = constraintAt<N>();
     auto &param         = std::get<N>(mParams);
     const size_t offset = std::get<N>(std::make_tuple(Os...));
-    ParamType x0        = std::move(x);
+    ParamType x0        = x ;
     ParamType x1        = constrain<offset, N>(x0, mParams, constraints, reportage);
-    param = std::move(x1);
+    param = x1;
   }
 
   template <std::size_t N>
@@ -268,7 +268,7 @@ private:
   template <size_t Offset, size_t N, typename Params, typename... Constraints>
   typename BufferT::type constrain(typename BufferT::type &thisParam, Params &, const std::tuple<Constraints...>,  Result *r)
   {
-    return std::move(thisParam);
+    return thisParam; 
   }
   
   template <size_t Offset, size_t N, typename T, typename Params, typename... Constraints>
