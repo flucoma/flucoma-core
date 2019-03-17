@@ -318,8 +318,8 @@ private:
   {
     std::array<Result, sizeof...(Is)> results;
         
-    std::initializer_list<int>{(constrain<Os, Is, kNonRelational>(ParamValueAt<Is>(mParams), constraintAt<Is>(), &std::get<Is>(results)), 0)...};
-    std::initializer_list<int>{(constrain<Os, Is, kRelational>(ParamValueAt<Is>(mParams), constraintAt<Is>(), &std::get<Is>(results)), 0)...};
+    std::initializer_list<int>{(ParamValueAt<Is>(mParams) = constrain<Os, Is, kNonRelational>(ParamValueAt<Is>(mParams), constraintAt<Is>(), &std::get<Is>(results)), 0)...};
+    std::initializer_list<int>{(ParamValueAt<Is>(mParams) = constrain<Os, Is, kRelational>(ParamValueAt<Is>(mParams), constraintAt<Is>(), &std::get<Is>(results)), 0)...};
         
     return results;
   }
