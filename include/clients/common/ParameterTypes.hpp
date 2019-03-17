@@ -333,9 +333,9 @@ private:
   long mFFTSize;
   bool mHopChanged{false};
 
-  ParameterTrackChanges<int> trackWin;
-  ParameterTrackChanges<int> trackHop;
-  ParameterTrackChanges<int> trackFFT;
+  ParameterTrackChanges<long> trackWin;
+  ParameterTrackChanges<long> trackHop;
+  ParameterTrackChanges<long> trackFFT;
 };
 
 struct FFTParamsT : ParamTypeBase

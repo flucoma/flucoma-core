@@ -252,7 +252,7 @@ using NRTSliceAdaptor = impl::NRTClientWrapper<impl::Slicing, RTClient, Params, 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<template <typename T> typename RTClient, size_t Ms>
+template<template <typename T> class RTClient, size_t Ms>
 auto constexpr makeNRTParams(impl::BufferSpec&& in, impl::BufferSpec(&& out)[Ms])
 {
   return impl::joinParameterDescriptors(impl::joinParameterDescriptors(impl::makeWrapperInputs(in), impl::spitOuts(out, std::make_index_sequence<Ms>())), RTClient<double>::getParameterDescriptors());
