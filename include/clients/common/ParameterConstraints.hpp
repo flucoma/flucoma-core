@@ -13,10 +13,7 @@ namespace client {
 namespace impl {
 
 struct Relational {};
-    
-template <typename T>
-constexpr bool isRelational = std::is_base_of<Relational, T>::value;
-    
+      
 template <typename T>
 struct MinImpl
 {

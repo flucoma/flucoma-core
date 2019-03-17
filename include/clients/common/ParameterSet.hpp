@@ -39,8 +39,6 @@ class ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>
     using apply = std::integral_constant<bool, !(std::is_base_of<impl::Relational,T>::value)>;
   };
 
-  
-  
 public:
   
   template <typename T>
@@ -58,10 +56,10 @@ public:
   using MutableIndexList  = typename impl::FilterTupleIndices<IsMutable, DescriptorType, IndexList>::type;
   
   template<typename T, typename List>
-  using RelationalConstraintList = typename impl::FilterTupleIndices<IsRelational,T,List>::type;
+  using RelationalList = typename impl::FilterTupleIndices<IsRelational,T,List>::type;
 
   template<typename T, typename List>
-  using NonRelationalConstraintList = typename impl::FilterTupleIndices<IsNonRelational,T,List>::type;
+  using NonRelationalList = typename impl::FilterTupleIndices<IsNonRelational,T,List>::type;
 
 
   static constexpr size_t NumFixedParams    = FixedIndexList::size();
@@ -153,10 +151,10 @@ public:
   using MutableIndexList    = typename DescriptorSetType::MutableIndexList;
 
   template<typename T, typename List>
-  using RelationalConstraintList = typename DescriptorSetType::template RelationalConstraintList<T,List>;
+  using RelationalList = typename DescriptorSetType::template RelationalList<T,List>;
 
   template<typename T, typename List>
-  using NonRelationalConstraintList =  typename DescriptorSetType::template NonRelationalConstraintList<T,List>;
+  using NonRelationalList =  typename DescriptorSetType::template NonRelationalList<T,List>;
 
   template <size_t N>
   using DescriptorTypeAt = typename DescriptorSetType::template DescriptorTypeAt<N>;
@@ -288,17 +286,13 @@ private:
   template <size_t Offset, size_t N, ConstraintTypes C, typename T, typename... Constraints>
   T constrain(T thisParam, const std::tuple<Constraints...> &c, Result *r)
   {
-    // for each constraint, pass this param,all params
     using CT  = std::tuple<Constraints...>;
     using Idx = std::index_sequence_for<Constraints...>;
     switch(C)
     {
-      case kAll:
-         return constrainImpl<Offset, N>(thisParam,c, Idx(), r);
-      case kNonRelational:
-        return constrainImpl<Offset, N>(thisParam,c, NonRelationalConstraintList<CT,Idx>(), r);
-      case kRelational:
-        return constrainImpl<Offset, N>(thisParam,c, RelationalConstraintList<CT,Idx>(), r);
+      case kAll:            return constrainImpl<Offset, N>(thisParam, c, Idx(), r);
+      case kNonRelational:  return constrainImpl<Offset, N>(thisParam, c, NonRelationalList<CT,Idx>(), r);
+      case kRelational:     return constrainImpl<Offset, N>(thisParam, c, RelationalList<CT,Idx>(), r);
     }
   }
   
