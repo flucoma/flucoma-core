@@ -108,6 +108,13 @@ class ParameterSetView<const ParameterDescriptorSet<std::index_sequence<Os...>, 
 {
   using DescriptorSetType = ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>;
 
+  enum ConstraintTypes
+  {
+    kAll,
+    kNonRelational,
+    kRelational,
+  };
+    
 protected:
     template <size_t N>
     constexpr auto descriptorAt() const
@@ -133,9 +140,9 @@ public:
   {}
   
   template <template <size_t N, typename T> class Func, typename... Args>
-  std::array<Result, sizeof...(Ts)> checkParameterValues(Args &&... args)
+  std::array<Result, sizeof...(Ts)> checkParameterValues()
   {
-    return checkParameterValuesImpl<Func>(ParamIndexList(), std::forward<Args>(args)...);
+    return checkParameterValuesImpl<Func>(ParamIndexList());
   }
 
   template <template <size_t N, typename T> class Func, typename... Args>
@@ -181,7 +188,7 @@ public:
     auto &param         = std::get<N>(mParams);
     const size_t offset = std::get<N>(std::make_tuple(Os...));
     ParamType x0        = x;
-    param               = constrain<offset, N>(x0, mParams, constraints, reportage);
+    param               = constrain<offset, N, kAll>(x0, mParams, constraints, reportage);
   }
 
   template <std::size_t N>
@@ -234,14 +241,12 @@ private:
     std::initializer_list<int>{(std::get<Is>(mParams) = descriptorAt<Is>().defaultValue, 0)...};
   }
 
-  template <template <size_t, typename> class Func, size_t... Is, typename... Args>
-  auto checkParameterValuesImpl(std::index_sequence<Is...> index, Args &&... args)
+  template <template <size_t, typename> class Func, size_t... Is>
+  auto checkParameterValuesImpl(std::index_sequence<Is...>)
   {
     std::array<Result, sizeof...(Is)> results;
 
-    ValueTuple candidateValues = std::make_tuple( Func<Is, ParamDescriptorTypeAt<Is>>()(std::forward<Args>(args)...)...);
-
-    std::initializer_list<int>{(constrain<Os, Is>(ParamValueAt<Is>(candidateValues), candidateValues, constraintAt<Is>(), &std::get<Is>(results)), 0)...};
+    std::initializer_list<int>{(constrain<Os, Is>(ParamValueAt<Is>(mParams), mParams, constraintAt<Is>(), &std::get<Is>(results)), 0)...};
     
     return results;
   }
@@ -263,25 +268,19 @@ private:
 
     return results;
   }
-  
-  template <size_t Offset, size_t N, typename Params, typename... Constraints>
-  typename BufferT::type constrain(typename BufferT::type &thisParam, Params &, const std::tuple<Constraints...>,  Result *r)
-  {
-    return thisParam; 
-  }
-  
-  template <size_t Offset, size_t N, typename T, typename Params, typename... Constraints>
-  T constrain(T thisParam, Params &allParams, const std::tuple<Constraints...> &c, Result *r)
+    
+  template <size_t Offset, size_t N, ConstraintTypes C, typename T, typename... Constraints>
+  T constrain(T thisParam, const std::tuple<Constraints...> &c, Result *r)
   {
     // for each constraint, pass this param,all params
-    return constrainImpl<Offset, N>(thisParam, allParams, c, std::index_sequence_for<Constraints...>(), r);
+    return constrainImpl<Offset, N>(thisParam, c, std::index_sequence_for<Constraints...>(), r);
   }
   
-  template <size_t Offset, size_t N, typename T, typename Params, typename Constraints, size_t... Is>
-  T constrainImpl(T &thisParam, Params &allParams, Constraints &c, std::index_sequence<Is...>, Result *r)
+  template <size_t Offset, size_t N, typename T, typename Constraints, size_t... Is>
+  T constrainImpl(T &thisParam, Constraints &c, std::index_sequence<Is...>, Result *r)
   {
     T res = thisParam;
-    (void) std::initializer_list<int>{(std::get<Is>(c).template clamp<Offset, N>(res, allParams, mDescriptors, r), 0)...};
+    (void) std::initializer_list<int>{(std::get<Is>(c).template clamp<Offset, N>(res, mParams, mDescriptors, r), 0)...};
     return res;
   }
   
