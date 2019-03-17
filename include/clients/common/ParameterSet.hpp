@@ -165,12 +165,15 @@ public:
   , mKeepConstrained(false)
   {}
   
-  void keepConstrained(bool keep)
+  auto keepConstrained(bool keep)
   {
+    std::array<Result, sizeof...(Ts)> results;
+    
     if (keep && !mKeepConstrained)
-      constrainParameterValues();
+      results = constrainParameterValues();
       
     mKeepConstrained = keep;
+    return results;
   }
     
   std::array<Result, sizeof...(Ts)> constrainParameterValues()
