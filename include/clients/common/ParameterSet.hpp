@@ -53,9 +53,9 @@ public:
   template <size_t N>
   using ParamDescriptorTypeAt = typename std::tuple_element<0,typename std::tuple_element<N, DescriptorType>::type>::type;
   
-  using DescIndexList     = std::index_sequence_for<Ts...>;
-  using FixedIndexList    = typename impl::FilterTupleIndices<IsFixed, DescriptorType, DescIndexList>::type;
-  using MutableIndexList  = typename impl::FilterTupleIndices<IsMutable, DescriptorType, DescIndexList>::type;
+  using IndexList         = std::index_sequence_for<Ts...>;
+  using FixedIndexList    = typename impl::FilterTupleIndices<IsFixed, DescriptorType, IndexList>::type;
+  using MutableIndexList  = typename impl::FilterTupleIndices<IsMutable, DescriptorType, IndexList>::type;
   
   template<typename T, typename List>
   using RelationalConstraintList = typename impl::FilterTupleIndices<IsRelational,T,List>::type;
@@ -70,12 +70,12 @@ public:
   constexpr ParameterDescriptorSet(const Ts &&... ts) : mDescriptors{std::make_tuple(ts...)} {}
   constexpr ParameterDescriptorSet(const std::tuple<Ts...>&& t): mDescriptors{t} {}
 
-  constexpr size_t count() const noexcept { return countImpl(DescIndexList()); }
+  constexpr size_t count() const noexcept { return countImpl(IndexList()); }
   
   template <template <size_t N, typename T> class Func>
   void iterate() const
   {
-    iterateImpl<Func>(DescIndexList());
+    iterateImpl<Func>(IndexList());
   }
   
   template <template <size_t N, typename T> class Func>
@@ -148,7 +148,7 @@ public:
   using DescriptorType      = typename DescriptorSetType::DescriptorType;
   using ValueTuple          = typename DescriptorSetType::ValueTuple;
   using ValueRefTuple       = typename DescriptorSetType::ValueRefTuple;
-  using ParamIndexList      = typename DescriptorSetType::DescIndexList;
+  using IndexList           = typename DescriptorSetType::IndexList;
   using FixedIndexList      = typename DescriptorSetType::FixedIndexList;
   using MutableIndexList    = typename DescriptorSetType::MutableIndexList;
 
@@ -170,13 +170,13 @@ public:
   template <template <size_t N, typename T> class Func, typename... Args>
   std::array<Result, sizeof...(Ts)> checkParameterValues()
   {
-    return checkParameterValuesImpl<Func>(ParamIndexList());
+    return checkParameterValuesImpl<Func>(IndexList());
   }
 
   template <template <size_t N, typename T> class Func, typename... Args>
   std::array<Result, sizeof...(Ts)> setParameterValues(bool reportage, Args &&... args)
   {
-    return setParameterValuesImpl<Func>(ParamIndexList(), reportage, std::forward<Args>(args)...);
+    return setParameterValuesImpl<Func>(IndexList(), reportage, std::forward<Args>(args)...);
   }
 
   template <template <size_t N, typename T> class Func, typename... Args>
@@ -194,17 +194,17 @@ public:
   template <template <size_t N, typename T> class Func, typename... Args>
   void forEachParam(Args &&... args)
   {
-    forEachParamImpl<Func>(ParamIndexList(), std::forward<Args>(args)...);
+    forEachParamImpl<Func>(IndexList(), std::forward<Args>(args)...);
   }
 
   template <typename T, template <size_t, typename> class Func, typename... Args>
   void forEachParamType(Args &&... args)
   {
-    using Is = typename impl::FilterTupleIndices<IsParamType<T>, std::decay_t<DescriptorType>, ParamIndexList>::type;
+    using Is = typename impl::FilterTupleIndices<IsParamType<T>, std::decay_t<DescriptorType>, IndexList>::type;
     forEachParamImpl<Func>(Is{}, std::forward<Args>(args)...);
   }
 
-  void reset() { resetImpl(ParamIndexList()); }
+  void reset() { resetImpl(IndexList()); }
 
   template <size_t N, typename T>
   void set(T &&x, Result *reportage) noexcept
@@ -345,7 +345,7 @@ class ParameterSet<const ParameterDescriptorSet<std::index_sequence<Os...>, std:
 {
   using DescriptorSetType = ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>;
   using ViewType = ParameterSetView<const DescriptorSetType>;
-  using IndexList = typename DescriptorSetType::DescIndexList;
+  using IndexList = typename DescriptorSetType::IndexList;
   using ValueTuple = typename DescriptorSetType::ValueTuple;
 
 public:
