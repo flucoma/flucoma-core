@@ -52,13 +52,7 @@ public:
       assert(mAdaptor);
       return mAdaptor->samps(offset, nframes, chanoffset);
     }
-
-    template <typename F, typename... Args>
-    void execute(F &&f, Args &&... args)
-    {
-      f(mAdaptor, std::forward<Args>(args)...);
-    }
-
+      
     size_t numFrames() const { return mAdaptor ? mAdaptor->numFrames() : 0; }
 
     size_t numChans() const { return mAdaptor ? mAdaptor->numChans() : 0; }
