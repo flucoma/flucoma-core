@@ -297,20 +297,14 @@ private:
   template <size_t Offset, size_t N, ConstraintTypes C, typename T, typename... Constraints>
   T constrain(T thisParam, const std::tuple<Constraints...> &c, Result *r)
   {
-    // for each constraint, pass this param,all params
-    return constrainImpl<Offset, N>(thisParam, c, std::index_sequence_for<Constraints...>(), r);
-    
     switch(C)
     {
-      kAll:
-         constrainImpl<Offset, N>(thisParam,c, std::index_sequence_for<Constraints...>(), r);
-         break;
-      kNonRelational:
-        constrainImpl<Offset, N>(thisParam,c, NonRelationalConstraintList<std::tuple<Constraints...> ,std::index_sequence_for<Constraints...>>(), r);
-        break;
-      kRelational:
-        constrainImpl<Offset, N>(thisParam,c, RelationalConstraintList<std::tuple<Constraints...> ,std::index_sequence_for<Constraints...>>(), r);
-        break;
+      case kAll:
+        return constrainImpl<Offset, N>(thisParam, c , std::index_sequence_for<Constraints...>(), r);
+      case kNonRelational:
+        return constrainImpl<Offset, N>(thisParam, c, NonRelationalConstraintList<std::tuple<Constraints...>, std::index_sequence_for<Constraints...>>(), r);
+      case kRelational:
+        return constrainImpl<Offset, N>(thisParam, c , RelationalConstraintList<std::tuple<Constraints...>, std::index_sequence_for<Constraints...>>(), r);
     }
     
   }
