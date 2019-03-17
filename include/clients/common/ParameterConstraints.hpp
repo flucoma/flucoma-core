@@ -12,6 +12,11 @@ namespace client {
 
 namespace impl {
 
+struct Relational {};
+    
+template <typename T>
+constexpr bool isRelational = std::is_base_of<Relational, T>::value;
+    
 template <typename T>
 struct MinImpl
 {
@@ -54,7 +59,7 @@ struct MaxImpl
 };
 
 template <int... Is>
-struct LowerLimitImpl
+struct LowerLimitImpl : public Relational
 {
   template <size_t Offset, size_t N, typename T, typename Tuple, typename Descriptor>
   void clamp(T &v, Tuple &params, Descriptor& d, Result *r) const
@@ -76,7 +81,7 @@ struct LowerLimitImpl
 };
 
 template <int... Is>
-struct UpperLimitImpl
+struct UpperLimitImpl : public Relational
 {
   template <size_t Offset, size_t N, typename T, typename Tuple, typename Descriptor>
   void clamp(T &v, Tuple &params, Descriptor& d, Result *r) const
@@ -98,7 +103,7 @@ struct UpperLimitImpl
 };
 
 template <int FFTIndex>
-struct FrameSizeUpperLimitImpl
+struct FrameSizeUpperLimitImpl : public Relational
 {
   template <size_t Offset, size_t N, typename T, typename Tuple, typename Descriptor>
   void clamp(T &v, Tuple &params, Descriptor& d, Result *r) const
