@@ -94,9 +94,7 @@ private:
   algorithm::RTHPSS mHPSS;
 };
 
-auto constexpr NRTHPSSParams = impl::makeNRTParams(
-  {BufferParam("srcBuf", "Source Buffer")},
-  {BufferParam("harmBuf","Harmonic Buffer"),BufferParam("percBuf","Percussive Buffer"),BufferParam("resBuf", "Residual Buffer")}, HPSSParams);
+auto constexpr NRTHPSSParams = makeNRTParams<HPSSClient>({BufferParam("srcBuf", "Source Buffer")},  {BufferParam("harmBuf","Harmonic Buffer"), BufferParam("percBuf","Percussive Buffer"), BufferParam("resBuf", "Residual Buffer")});
     
 template <typename T>
 using NRTHPSS = NRTStreamAdaptor<HPSSClient<T>, decltype(NRTHPSSParams), NRTHPSSParams, 1, 3>;
