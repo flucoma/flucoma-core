@@ -147,7 +147,7 @@ public:
   }
 
   void setMode(int mode) {
-    assert(mode > 0 && mode <= 2);
+    assert(mode >= 0 && mode <= 2);
     mMode = mode;
   }
 
