@@ -179,8 +179,8 @@ struct ConstrainMaxFFTSize;
 template <>
 struct ConstrainMaxFFTSize<false>
 {
-  template <long N, typename T>
-  size_t clamp(long x, T &constraints) const
+  template <intptr_t N, typename T>
+  size_t clamp(intptr_t x, T &constraints) const
   {
     return x;
   }
@@ -189,17 +189,17 @@ struct ConstrainMaxFFTSize<false>
 template <>
 struct ConstrainMaxFFTSize<true>
 {
-  template <long N, typename T>
-  size_t clamp(long x, T &constraints) const
+  template <intptr_t N, typename T>
+  size_t clamp(intptr_t x, T &constraints) const
   {
-    return std::min<long>(x, std::get<N>(constraints));
+    return std::min<intptr_t>(x, std::get<N>(constraints));
   }
 };
 
 class FFTParams
 {
 public:
-  constexpr FFTParams(long win, long hop, long fft)
+  constexpr FFTParams(intptr_t win, intptr_t hop, intptr_t fft)
     : mWindowSize{win}
     , mHopSize{hop}
     , mFFTSize{fft}
@@ -232,17 +232,17 @@ public:
   }
     
   size_t fftSize() const noexcept { return mFFTSize < 0 ? nextPow2(mWindowSize, true) : mFFTSize; }
-  long   fftRaw() const noexcept { return mFFTSize; }
-  long   hopRaw() const noexcept { return mHopSize; }
+  intptr_t   fftRaw() const noexcept { return mFFTSize; }
+  intptr_t   hopRaw() const noexcept { return mHopSize; }
   size_t winSize() const noexcept { return mWindowSize; }
   size_t hopSize() const noexcept { return mHopSize > 0 ? mHopSize : mWindowSize >> 1; }
   size_t frameSize() const { return (fftSize() >> 1) + 1; }
 
-  void setWin(long win) { mWindowSize = win; }
-  void setFFT(long fft) { mFFTSize = fft; }
-  void setHop(long hop) { mHopSize = hop; }
+  void setWin(intptr_t win) { mWindowSize = win; }
+  void setFFT(intptr_t fft) { mFFTSize = fft; }
+  void setHop(intptr_t hop) { mHopSize = hop; }
 
-  long nextPow2(u_int32_t x, bool up) const
+  intptr_t nextPow2(u_int32_t x, bool up) const
   {
     /// http://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
     if (!x) return x;
@@ -298,11 +298,11 @@ public:
 
       //      //If both have changed at once (e.g. startup), then we need to prioritse something
       //      if(winChanged && fftChanged && v.fftRaw() > 0)
-      //          v.setFFT(v.fftRaw() < 0 ? -1 : v.nextPow2(std::max<long>(v.winSize(), inParams.fftRaw()),trackFFT.template
+      //          v.setFFT(v.fftRaw() < 0 ? -1 : v.nextPow2(std::max<intptr_t>(v.winSize(), inParams.fftRaw()),trackFFT.template
       //          direction<0>() > 0));
       //
       constexpr bool HasMaxFFT = MaxFFTIndex > 0;
-      constexpr long I         = MaxFFTIndex + Offset;
+      constexpr intptr_t I         = MaxFFTIndex + Offset;
 
       // Now check (optionally) against MaxFFTSize
       size_t clippedFFT = ConstrainMaxFFTSize<HasMaxFFT>{}.template clamp<I, Tuple>(v.fftSize(), allParams);
@@ -328,14 +328,14 @@ public:
   };
 
 private:
-  long mWindowSize;
-  long mHopSize;
-  long mFFTSize;
+  intptr_t mWindowSize;
+  intptr_t mHopSize;
+  intptr_t mFFTSize;
   bool mHopChanged{false};
 
-  ParameterTrackChanges<long> trackWin;
-  ParameterTrackChanges<long> trackHop;
-  ParameterTrackChanges<long> trackFFT;
+  ParameterTrackChanges<intptr_t> trackWin;
+  ParameterTrackChanges<intptr_t> trackHop;
+  ParameterTrackChanges<intptr_t> trackFFT;
 };
 
 struct FFTParamsT : ParamTypeBase
@@ -412,7 +412,7 @@ FloatPairsArrayParam(const char *name, const char *displayName, const Constraint
   return {FloatPairsArrayT(name, displayName), std::make_tuple(c...), IsFixed{}};
 }
 
-template <long MaxFFTIndex = -1, typename... Constraints>
+template <intptr_t MaxFFTIndex = -1, typename... Constraints>
 constexpr ParamSpec<FFTParamsT, Fixed<false>, FFTParams::FFTSettingsConstraint<MaxFFTIndex>, Constraints...>
 FFTParam(const char *name, const char *displayName, int winDefault, int hopDefault, int fftDefault, const Constraints... c)
 {

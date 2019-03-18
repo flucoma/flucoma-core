@@ -103,7 +103,7 @@ public:
     if(output[0].data()) output[0] = out.row(0);
   }
 
-  long latency()
+  size_t latency()
   {
     return get<kPadding>() + get<kBlockSize>() -  get<kOrder>();
   }

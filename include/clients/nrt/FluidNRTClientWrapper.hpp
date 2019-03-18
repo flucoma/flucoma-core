@@ -109,8 +109,8 @@ public:
     auto inputBuffers  = fetchInputBuffers(inputCounter);
     auto outputBuffers = fetchOutputBuffers(outputCounter);
 
-    std::array<long,Ins> inFrames;
-    std::array<long,Ins> inChans;
+    std::array<intptr_t,Ins> inFrames;
+    std::array<intptr_t,Ins> inChans;
 
     //check buffers exist
     int count = 0;
@@ -120,11 +120,11 @@ public:
       if(!thisInput.exists() && !thisInput.valid())
         return {Result::Status::kError, "Input buffer ", b.buffer, " not found or invalid."} ; //error
 
-      long requestedFrames= b.nFrames < 0 ? thisInput.numFrames() : b.nFrames;
+      intptr_t requestedFrames= b.nFrames < 0 ? thisInput.numFrames() : b.nFrames;
       if(b.startFrame + requestedFrames > thisInput.numFrames())
         return {Result::Status::kError, "Input buffer ", b.buffer, ": not enough frames" }; //error
 
-      long requestedChans= b.nChans < 0 ? thisInput.numChans() : b.nChans;
+      intptr_t requestedChans= b.nChans < 0 ? thisInput.numChans() : b.nChans;
       if(b.startChan + requestedChans > thisInput.numChans())
         return {Result::Status::kError, "Input buffer ", b.buffer, ": not enough channels" }; //error
 
