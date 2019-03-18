@@ -117,7 +117,7 @@ public:
     for(auto&& b: inputBuffers)
     {
       BufferAdaptor::Access thisInput(b.buffer);
-      if(!thisInput.exists() && !thisInput.valid())
+      if(!(thisInput.exists() && thisInput.valid()))
         return {Result::Status::kError, "Input buffer ", b.buffer, " not found or invalid."} ; //error
 
       intptr_t requestedFrames= b.nFrames < 0 ? thisInput.numFrames() : b.nFrames;
