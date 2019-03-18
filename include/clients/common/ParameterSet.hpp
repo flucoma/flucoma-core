@@ -61,13 +61,13 @@ public:
   template<typename T, typename List>
   using NonRelationalList = typename impl::FilterTupleIndices<IsNonRelational,T,List>::type;
 
-
   static constexpr size_t NumFixedParams    = FixedIndexList::size();
   static constexpr size_t NumMutableParams  = MutableIndexList::size();
 
   constexpr ParameterDescriptorSet(const Ts &&... ts) : mDescriptors{std::make_tuple(ts...)} {}
   constexpr ParameterDescriptorSet(const std::tuple<Ts...>&& t): mDescriptors{t} {}
 
+  constexpr size_t size() const noexcept { return sizeof...(Ts); }
   constexpr size_t count() const noexcept { return countImpl(IndexList()); }
   
   template <template <size_t N, typename T> class Func>
