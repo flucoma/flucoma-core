@@ -422,6 +422,31 @@ FFTParam(const char *name, const char *displayName, int winDefault, int hopDefau
           Fixed<false>{}};
 }
 
+namespace impl
+{
+  template<typename T>
+  struct ParamLiteralType
+  {
+    using type = typename T::type;
+  };
+  
+  template<>
+  struct ParamLiteralType<FloatPairsArrayT>
+  {
+    using type = FloatUnderlyingType;
+  };
+  
+  template<>
+  struct ParamLiteralType<FFTParamsT>
+  {
+    using type = LongUnderlyingType;
+  };
+}
+
+template<typename T>
+using ParamLiteralType = typename impl::ParamLiteralType<T>::type;
+
+
 template <typename T>
 std::ostream &operator<<(std::ostream &o, const std::unique_ptr<T> &p)
 {
