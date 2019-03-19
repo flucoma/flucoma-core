@@ -425,42 +425,55 @@ FFTParam(const char *name, const char *displayName, int winDefault, int hopDefau
 namespace impl
 {
   template<typename T>
-  struct ParamLiteralTypeImpl
+  struct ParamLiterals
   {
     using type = typename T::type;
+    static std::array<type, 1> getLiteral(const type& p) { return {p}; }
   };
   
   template<>
-  struct ParamLiteralTypeImpl<FloatPairsArrayT>
+  struct ParamLiterals<FloatPairsArrayT>
   {
     using type = FloatUnderlyingType;
+    
+    static std::array<type, 4> getLiteral(const FloatPairsArrayT::type& p)
+    {
+        auto v = p.value;
+        return { v[0].first, v[0].second, v[1].first, v[1].second };
+    }
   };
   
   template<>
-  struct ParamLiteralTypeImpl<FFTParamsT>
+  struct ParamLiterals<FFTParamsT>
   {
     using type = LongUnderlyingType;
+    
+    static std::array<type, 4> getLiteral(const FFTParams& p)
+    {
+      return { p.winSize(), p.hopSize(), p.fftSize()};
+    }
   };
 }
 
 template<typename T>
-using ParamLiteralType = typename impl::ParamLiteralTypeImpl<T>::type;
+using ParamLiteralType = typename impl::ParamLiterals<T>::type;
 
 template <typename T, size_t N>
-class ParamArraySetter
+class ParamLiteralConvertor
 {
-  using ReturnType = typename T::type;
+  using ValueType = typename T::type;
   using ArrayType = std::array<ParamLiteralType<T>, N>;
  
 public:
     
-  ReturnType value() { return make(std::make_index_sequence<N>()); }
+  void set(const ValueType &v) { impl::ParamLiterals<T>::getLiteral(v); }
+  ValueType value() { return make(std::make_index_sequence<N>()); }
   ParamLiteralType<T>& operator[](size_t idx) { return mArray[idx]; }
     
 private:
     
   template <size_t... Is>
-  ReturnType make(std::index_sequence<Is...>) { return {mArray[Is]...}; }
+  ValueType make(std::index_sequence<Is...>) { return {mArray[Is]...}; }
     
   ArrayType mArray;
 };
