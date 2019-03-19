@@ -9,8 +9,6 @@
 namespace fluid {
 namespace client {
 
-enum class TypeTag { kFloat, kLong, kBuffer, kEnum, kFloatArray, kLongArray, kBufferArray };
-
 using FloatUnderlyingType          = double;
 using LongUnderlyingType           = intptr_t; // signed int equal to pointer size, k thx
 using EnumUnderlyingType           = intptr_t;
@@ -38,8 +36,7 @@ struct ParamTypeBase
 
 struct FloatT : ParamTypeBase
 {
-  static constexpr TypeTag typeTag = TypeTag::kFloat;
-  using type                       = FloatUnderlyingType;
+  using type  = FloatUnderlyingType;
   constexpr FloatT(const char *name, const char *displayName, const type defaultVal)
       : ParamTypeBase(name, displayName)
       , defaultValue(defaultVal)
@@ -50,8 +47,7 @@ struct FloatT : ParamTypeBase
 
 struct LongT : ParamTypeBase
 {
-  static constexpr TypeTag typeTag = TypeTag::kLong;
-  using type                       = LongUnderlyingType;
+  using type  = LongUnderlyingType;
   constexpr LongT(const char *name, const char *displayName, const type defaultVal)
       : ParamTypeBase(name, displayName)
       , defaultValue(defaultVal)
@@ -62,8 +58,7 @@ struct LongT : ParamTypeBase
 
 struct BufferT : ParamTypeBase
 {
-  static constexpr TypeTag typeTag = TypeTag::kBuffer;
-  using type                       = BufferUnderlyingType;
+  using type  = BufferUnderlyingType;
   constexpr BufferT(const char *name, const char *displayName)
       : ParamTypeBase(name, displayName)
   {}
@@ -73,8 +68,7 @@ struct BufferT : ParamTypeBase
 
 struct EnumT : ParamTypeBase
 {
-  static constexpr TypeTag typeTag = TypeTag::kEnum;
-  using type                       = EnumUnderlyingType;
+  using type  = EnumUnderlyingType;
   template <std::size_t... N>
   constexpr EnumT(const char *name, const char *displayName, type defaultVal, const char (&... string)[N])
       : strings{string...}
@@ -94,9 +88,7 @@ struct EnumT : ParamTypeBase
 
 struct FloatArrayT : ParamTypeBase
 {
-  static constexpr TypeTag typeTag = TypeTag::kFloatArray;
-  using type                       = FloatArrayUnderlyingType;
-
+  using type  = FloatArrayUnderlyingType;
   template <std::size_t N>
   FloatArrayT(const char *name, const char *displayName, type::value_type (&defaultValues)[N])
       : ParamTypeBase(name, displayName)
@@ -106,8 +98,8 @@ struct FloatArrayT : ParamTypeBase
 
 struct LongArrayT : ParamTypeBase
 {
-  static constexpr TypeTag typeTag = TypeTag::kLongArray;
-  using type                       = LongArrayUnderlyingType;
+  
+  using type  = LongArrayUnderlyingType;
   template <std::size_t N>
   LongArrayT(const char *name, const char *displayName, type::value_type (&defaultValues)[N])
       : ParamTypeBase(name, displayName)
@@ -117,8 +109,8 @@ struct LongArrayT : ParamTypeBase
 
 struct BufferArrayT : ParamTypeBase
 {
-  static constexpr TypeTag typeTag = TypeTag::kBufferArray;
-  using type                       = BufferArrayUnderlyingType;
+  
+  using type  = BufferArrayUnderlyingType;
   BufferArrayT(const char *name, const char *displayName, const size_t size)
       : ParamTypeBase(name, displayName)
       , fixedSize(size)
@@ -302,7 +294,7 @@ public:
       //          direction<0>() > 0));
       //
       constexpr bool HasMaxFFT = MaxFFTIndex > 0;
-      constexpr intptr_t I         = MaxFFTIndex + Offset;
+      constexpr intptr_t I     = MaxFFTIndex + Offset;
 
       // Now check (optionally) against MaxFFTSize
       size_t clippedFFT = ConstrainMaxFFTSize<HasMaxFFT>{}.template clamp<I, Tuple>(v.fftSize(), allParams);
