@@ -425,26 +425,26 @@ FFTParam(const char *name, const char *displayName, int winDefault, int hopDefau
 namespace impl
 {
   template<typename T>
-  struct ParamLiteralType
+  struct ParamLiteralTypeImpl
   {
     using type = typename T::type;
   };
   
   template<>
-  struct ParamLiteralType<FloatPairsArrayT>
+  struct ParamLiteralTypeImpl<FloatPairsArrayT>
   {
     using type = FloatUnderlyingType;
   };
   
   template<>
-  struct ParamLiteralType<FFTParamsT>
+  struct ParamLiteralTypeImpl<FFTParamsT>
   {
     using type = LongUnderlyingType;
   };
 }
 
 template<typename T>
-using ParamLiteralType = typename impl::ParamLiteralType<T>::type;
+using ParamLiteralType = typename impl::ParamLiteralTypeImpl<T>::type;
 
 
 template <typename T>
