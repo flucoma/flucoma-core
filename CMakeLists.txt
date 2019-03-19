@@ -75,13 +75,13 @@ target_link_libraries(
 
 #HISSTools Audiofile Target
 add_library(
-  HISSTools_AudioFile
-  "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/HISSTools_AudioFile/IAudioFile.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/HISSTools_AudioFile/OAudioFile.h"
+  HISSTools_AudioFile INTERFACE
 )
 target_sources(
   HISSTools_AudioFile
-  PRIVATE
+  INTERFACE
+  "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/HISSTools_AudioFile/IAudioFile.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/HISSTools_AudioFile/OAudioFile.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/HISSTools_AudioFile/BaseAudioFile.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/HISSTools_AudioFile/IAudioFile.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/HISSTools_AudioFile/OAudioFile.cpp"
@@ -115,4 +115,4 @@ add_subdirectory(
   "${CMAKE_CURRENT_SOURCE_DIR}/examples"
 )
 
-export(TARGETS FLUID_DECOMPOSITION HISSTools_FFT FILE fluid_decomposition-exports.cmake)
+export(TARGETS FLUID_DECOMPOSITION HISSTools_FFT HISSTools_AudioFile FILE fluid_decomposition-exports.cmake)
