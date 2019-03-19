@@ -84,6 +84,16 @@ struct EnumT : ParamTypeBase
   const std::size_t fixedSize;
   const std::size_t numOptions;
   const type        defaultValue;
+  
+  struct EnumConstraint
+  {
+    template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
+    constexpr void clamp(EnumUnderlyingType &v, Tuple &allParams, Descriptor &d, Result *r) const
+    {
+      auto& e = d.template get<N>();
+      v = std::max<EnumUnderlyingType>(0,std::min<EnumUnderlyingType>(v, e.numOptions - 1));
+    }
+  };
 };
 
 struct FloatArrayT : ParamTypeBase
@@ -367,11 +377,11 @@ constexpr ParamSpec<BufferT, IsFixed, Constraints...> BufferParam(const char *na
   return {BufferT(name, displayName), std::make_tuple(c...), IsFixed{}};
 }
 
-template <typename IsFixed = Fixed<false>, size_t... N>
-constexpr ParamSpec<EnumT, IsFixed> EnumParam(const char *name, const char *displayName, const EnumT::type defaultVal,
+template <typename IsFixed = Fixed<false>, size_t... N >
+constexpr ParamSpec<EnumT, IsFixed,EnumT::EnumConstraint> EnumParam(const char *name, const char *displayName, const EnumT::type defaultVal,
                                               const char (&... strings)[N])
 {
-  return {EnumT(name, displayName, defaultVal, strings...), std::make_tuple(), IsFixed{}};
+  return {EnumT(name, displayName, defaultVal, strings...), std::make_tuple(EnumT::EnumConstraint()), IsFixed{}};
 }
 
 template <typename IsFixed = Fixed<false>, size_t N, typename... Constraints>
