@@ -18,7 +18,7 @@ auto constexpr NoveltyParams =defineParameters(
   LongParam("startAt","Source Offset",0,Min(0)),
   LongParam("nFrames","Number of Frames",-1),
   LongParam("startChan","Start Channel",0,Min(0)),
-  LongParam("numChans","Number of Channels",-1),
+  LongParam("nChans","Number of Channels",-1),
   BufferParam("indBuf", "Indices Buffer"),
   LongParam("kernSize", "Kernel Size", 3, Min(3), Odd()),
   FloatParam("thresh", "Threshold", 0.8, Min(0.)),
@@ -56,7 +56,7 @@ public:
 
     if(!idx.exists())
         return {Result::Status::kError, "Output buffer not found"};
-    
+
     }
 
 //    if(!idx.valid())
