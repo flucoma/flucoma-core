@@ -446,6 +446,24 @@ namespace impl
 template<typename T>
 using ParamLiteralType = typename impl::ParamLiteralTypeImpl<T>::type;
 
+template <typename T, size_t N>
+class ParamArraySetter
+{
+  using ReturnType = typename T::type;
+  using ArrayType = std::array<ParamLiteralType<T>, N>;
+ 
+public:
+    
+  ReturnType value() { return make(std::make_index_sequence<N>()); }
+  ParamLiteralType<T>& operator[](size_t idx) { return mArray[idx]; }
+    
+private:
+    
+  template <size_t... Is>
+  ReturnType make(std::index_sequence<Is...>) { return {mArray[Is]...}; }
+    
+  ArrayType mArray;
+};
 
 template <typename T>
 std::ostream &operator<<(std::ostream &o, const std::unique_ptr<T> &p)
