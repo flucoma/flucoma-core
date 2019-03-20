@@ -450,7 +450,7 @@ namespace impl
   {
     using type = LongUnderlyingType;
     
-    static std::array<type, 4> getLiteral(const FFTParams& p)
+    static std::array<type, 3> getLiteral(const FFTParams& p)
     {
       return { p.winSize(), p.hopSize(), p.fftSize()};
     }
@@ -467,7 +467,7 @@ public:
   using LiteralType = typename impl::ParamLiterals<T>::type;
   using ArrayType = std::array<LiteralType, N>;
     
-  void set(const ValueType &v) { impl::ParamLiterals<T>::getLiteral(v); }
+  void set(const ValueType &v) { mArray = impl::ParamLiterals<T>::getLiteral(v); }
   ValueType value() { return make(std::make_index_sequence<N>()); }
   LiteralType& operator[](size_t idx) { return mArray[idx]; }
     
