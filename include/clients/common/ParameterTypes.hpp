@@ -455,20 +455,19 @@ namespace impl
   };
 }
 
-template<typename T>
-using ParamLiteralType = typename impl::ParamLiterals<T>::type;
-
 template <typename T, size_t N>
 class ParamLiteralConvertor
 {
-  using ValueType = typename T::type;
-  using ArrayType = std::array<ParamLiteralType<T>, N>;
- 
+    
 public:
+    
+  using ValueType = typename T::type;
+  using LiteralType = typename impl::ParamLiterals<T>::type;
+  using ArrayType = std::array<LiteralType, N>;
     
   void set(const ValueType &v) { impl::ParamLiterals<T>::getLiteral(v); }
   ValueType value() { return make(std::make_index_sequence<N>()); }
-  ParamLiteralType<T>& operator[](size_t idx) { return mArray[idx]; }
+  LiteralType& operator[](size_t idx) { return mArray[idx]; }
     
 private:
     
