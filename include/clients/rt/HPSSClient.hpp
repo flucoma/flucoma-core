@@ -23,61 +23,60 @@ auto constexpr HPSSParams = defineParameters(
     FloatPairsArrayParam("hThresh", "Harmonic Filter Thresholds", FrequencyAmpPairConstraint{}),
     FloatPairsArrayParam("pThresh", "Percussive Filter Thresholds", FrequencyAmpPairConstraint{}),
     FFTParam<kMaxFFT>("fft","FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384) ,
-    LongParam<Fixed<true>>("maxHFlitSize", "Maximum Harmonic Filter Size", 101, LowerLimit<kHSize>(), Odd{}),
+    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(32), PowerOfTwo{}),
+    LongParam<Fixed<true>>("maxHFiltSize", "Maximum Harmonic Filter Size", 101, LowerLimit<kHSize>(), Odd{}),
     LongParam<Fixed<true>>("maxPFiltSize", "Maximum Percussive Filter Size", 101,LowerLimit<kPSize>(), Odd{})
 );
 
-template <typename Params, typename T, typename U = T>
-class HPSSClient : public FluidBaseClient<Params>, public AudioIn, public AudioOut
+template <typename T>
+class HPSSClient : public FluidBaseClient<decltype(HPSSParams), HPSSParams>, public AudioIn, public AudioOut
 {
-
-  using data_type  = FluidTensorView<T, 2>;
-  using complex    = FluidTensorView<std::complex<T>, 1>;
-  using HostVector = HostVector<U>;
+  using data_type       = FluidTensorView<T, 2>;
+  using complex         = FluidTensorView<std::complex<T>, 1>;
+  using HostVector      = HostVector<T>;
 
 public:
 
-  HPSSClient(Params& p)
-    : mParams{p}, FluidBaseClient<Params>(p), mSTFTBufferedProcess{param<kMaxFFT>(p),1,3}
+  HPSSClient(ParamSetViewType& p)
+    : FluidBaseClient(p), mSTFTBufferedProcess{get<kMaxFFT>(),1,3}
   {
-    FluidBaseClient<Params>::audioChannelsIn(1);
-    FluidBaseClient<Params>::audioChannelsOut(3);
+    FluidBaseClient::audioChannelsIn(1);
+    FluidBaseClient::audioChannelsOut(3);
   }
 
-  size_t latency() { return ((param<kHSize>(mParams) - 1) * param<kFFT>(mParams).hopSize()) +  param<kFFT>(mParams).winSize(); }
+  size_t latency() { return ((get<kHSize>() - 1) * get<kFFT>().hopSize()) +  get<kFFT>().winSize(); }
 
   void process(std::vector<HostVector> &input, std::vector<HostVector> &output)
   {
     if (!input[0].data()) return;
 
-    int nBins = param<kFFT>(mParams).frameSize();
+    int nBins = get<kFFT>().frameSize();
 
-    if (mTrackChangesAlgo.changed(nBins, param<kMaxPSize>(mParams), param<kMaxHSize>(mParams)))
+    if (mTrackChangesAlgo.changed(nBins, get<kMaxPSize>(), get<kMaxHSize>()))
     {
-        mHPSS.init(nBins, param<kMaxPSize>(mParams), param<kMaxHSize>(mParams), param<kPSize>(mParams), param<kHSize>(mParams),
-            param<kMode>(mParams), param<kHThresh>(mParams)[0].first, param<kHThresh>(mParams)[0].second,
-            param<kHThresh>(mParams)[1].first, param<kHThresh>(mParams)[1].second, param<kPThresh>(mParams)[0].first,
-            param<kPThresh>(mParams)[0].second, param<kPThresh>(mParams)[1].first, param<kPThresh>(mParams)[0].second);
+        mHPSS.init(nBins, get<kMaxPSize>(), get<kMaxHSize>(), get<kPSize>(), get<kHSize>(),
+            get<kMode>(), get<kHThresh>().value[0].first, get<kHThresh>().value[0].second,
+            get<kHThresh>().value[1].first, get<kHThresh>().value[1].second, get<kPThresh>().value[0].first,
+            get<kPThresh>().value[0].second, get<kPThresh>().value[1].first, get<kPThresh>().value[0].second);
     }
     else
     {
-      mHPSS.setVSize(param<kPSize>(mParams));
-      if(mTrackHSize.changed(param<kHSize>(mParams))) mHPSS.setHSize(param<kHSize>(mParams));
+      mHPSS.setVSize(get<kPSize>());
+      if(mTrackHSize.changed(get<kHSize>())) mHPSS.setHSize(get<kHSize>());
       
-      mHPSS.setHThresholdX1(param<kHThresh>(mParams)[0].first);
-      mHPSS.setHThresholdY1(param<kHThresh>(mParams)[0].second);
+      mHPSS.setHThresholdX1(get<kHThresh>().value[0].first);
+      mHPSS.setHThresholdY1(get<kHThresh>().value[0].second);
 
-      mHPSS.setHThresholdX2(param<kHThresh>(mParams)[1].first);
-      mHPSS.setHThresholdY2(param<kHThresh>(mParams)[1].second);
+      mHPSS.setHThresholdX2(get<kHThresh>().value[1].first);
+      mHPSS.setHThresholdY2(get<kHThresh>().value[1].second);
 
-      mHPSS.setPThresholdX1(param<kPThresh>(mParams)[0].first);
-      mHPSS.setPThresholdY1(param<kPThresh>(mParams)[0].second);
+      mHPSS.setPThresholdX1(get<kPThresh>().value[0].first);
+      mHPSS.setPThresholdY1(get<kPThresh>().value[0].second);
 
-      mHPSS.setPThresholdX2(param<kPThresh>(mParams)[1].first);
-      mHPSS.setPThresholdY2(param<kPThresh>(mParams)[1].second);
+      mHPSS.setPThresholdX2(get<kPThresh>().value[1].first);
+      mHPSS.setPThresholdY2(get<kPThresh>().value[1].second);
       
-      mHPSS.setMode(param<kMode>(mParams)); 
+      mHPSS.setMode(get<kMode>()); 
       
     }
 
@@ -89,20 +88,16 @@ public:
   }
 
 private:
-  Params& mParams;
-  STFTBufferedProcess<Params, U, kFFT, true> mSTFTBufferedProcess;
+  STFTBufferedProcess<ParamSetViewType, T, kFFT, true> mSTFTBufferedProcess;
   ParameterTrackChanges<size_t, size_t, size_t> mTrackChangesAlgo;
   ParameterTrackChanges<size_t> mTrackHSize;
   algorithm::RTHPSS mHPSS;
 };
 
-template <typename Params, typename T, typename U>
-using NRTHPSS = NRTStreamAdaptor<HPSSClient,Params,T,U,1,3>;
-
-auto constexpr NRTHPSSParams = impl::makeNRTParams(
-    {BufferParam("srcBuf", "Source Buffer")},
-    {BufferParam("harmBuf","Harmonic Buffer"),BufferParam("percBuf","Percussive Buffer"),BufferParam("resBuf", "Residual Buffer")},
-    HPSSParams);
+auto constexpr NRTHPSSParams = makeNRTParams<HPSSClient>({BufferParam("srcBuf", "Source Buffer")},  {BufferParam("harmBuf","Harmonic Buffer"), BufferParam("percBuf","Percussive Buffer"), BufferParam("resBuf", "Residual Buffer")});
+    
+template <typename T>
+using NRTHPSS = NRTStreamAdaptor<HPSSClient<T>, decltype(NRTHPSSParams), NRTHPSSParams, 1, 3>;
 
 } // namespace client
 } // namespace fluid

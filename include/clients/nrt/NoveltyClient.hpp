@@ -18,7 +18,7 @@ auto constexpr NoveltyParams =defineParameters(
   LongParam("startAt","Source Offset",0,Min(0)),
   LongParam("nFrames","Number of Frames",-1),
   LongParam("startChan","Start Channel",0,Min(0)),
-  LongParam("numChans","Number of Channels",-1),
+  LongParam("nChans","Number of Channels",-1),
   BufferParam("indBuf", "Indices Buffer"),
   LongParam("kernSize", "Kernel Size", 3, Min(3), Odd()),
   FloatParam("thresh", "Threshold", 0.8, Min(0.)),
@@ -26,23 +26,23 @@ auto constexpr NoveltyParams =defineParameters(
   FFTParam("fft", "FFT Settings", 1024, -1, -1)
  );
 
-template<typename Params, typename T, typename U>
-class NoveltyClient: public FluidBaseClient<Params>, public OfflineIn, public OfflineOut
+template<typename T>
+class NoveltyClient: public FluidBaseClient<decltype(NoveltyParams), NoveltyParams>, public OfflineIn, public OfflineOut
 {
 
 public:
 
-  NoveltyClient(Params& p):FluidBaseClient<Params>{p},mParams{p}
+  NoveltyClient(ParamSetViewType& p) : FluidBaseClient(p)
   {}
 
 
   Result process()
   {
 
-    if(!param<kSource>(mParams).get())
+    if(!get<kSource>().get())
       return {Result::Status::kError, "No input buffer supplied"};
 
-    BufferAdaptor::Access source(param<kSource>(mParams).get());
+    BufferAdaptor::Access source(get<kSource>().get());
 
     if(!source.exists())
         return {Result::Status::kError, "Input buffer not found"};
@@ -52,21 +52,21 @@ public:
 
 
     {
-    BufferAdaptor::Access idx(param<kTransBuf>(mParams).get());
+    BufferAdaptor::Access idx(get<kTransBuf>().get());
 
     if(!idx.exists())
         return {Result::Status::kError, "Output buffer not found"};
-    
+
     }
 
 //    if(!idx.valid())
 //        return {Result::Status::kError, "Can't access output buffer"};
 
 
-    auto& fftParams = param<kFFT>(mParams);
+    auto& fftParams = get<kFFT>();
 
-    size_t nChannels = param<kNumChans>(mParams)  == -1 ? source.numChans() : param<kNumChans>(mParams);
-    size_t nFrames   = param<kNumFrames>(mParams) == -1 ? source.numFrames(): param<kNumFrames>(mParams);
+    size_t nChannels = get<kNumChans>()  == -1 ? source.numChans() : get<kNumChans>();
+    size_t nFrames   = get<kNumFrames>() == -1 ? source.numFrames(): get<kNumFrames>();
     size_t nWindows  = std::floor((nFrames + fftParams.hopSize()) / fftParams.hopSize());
     size_t nBins     = fftParams.frameSize();
 
@@ -75,7 +75,7 @@ public:
     // Make a mono sum;
     for (size_t i = 0; i < nChannels; ++i) {
       monoSource.apply(
-          source.samps(param<kOffset>(mParams), nFrames, param<kStartChan>(mParams) + i),
+          source.samps(get<kOffset>(), nFrames, get<kStartChan>() + i),
           [](double &x, double y) { x += y; });
     }
 
@@ -83,13 +83,12 @@ public:
     algorithm::STFT stft(fftParams.winSize(), fftParams.fftSize(), fftParams.hopSize());
     algorithm::ISTFT istft(fftParams.winSize(), fftParams.fftSize(), fftParams.hopSize());
 
-    algorithm::NoveltySegmentation processor(param<kKernelSize>(mParams), param<kThreshold>(mParams),
-                                             param<kFilterSize>(mParams));
+    algorithm::NoveltySegmentation processor(get<kKernelSize>(), get<kThreshold>(),
+                                             get<kFilterSize>());
 
     auto spectrum = FluidTensor<std::complex<double>,2>(nWindows,nBins);
     auto magnitude = FluidTensor<double,2>(nWindows,nBins);
     auto outputMags = FluidTensor<double,2>(nWindows,nBins);
-
 
     stft.process(monoSource, spectrum);
     algorithm::STFT::magnitude(spectrum,magnitude);
@@ -98,14 +97,9 @@ public:
 
     processor.process(magnitude, changePoints);
 
-    impl::spikesToTimes(changePoints(Slice(0)), param<kTransBuf>(mParams).get(), fftParams.hopSize(), param<kOffset>(mParams), nFrames);
+    impl::spikesToTimes(changePoints(Slice(0)), get<kTransBuf>().get(), fftParams.hopSize(), get<kOffset>(), nFrames);
     return {Result::Status::kOk,""};
   }
-
-  private:
-    Params& mParams;
-
-
 };
 } // namespace client
 } // namespace fluid

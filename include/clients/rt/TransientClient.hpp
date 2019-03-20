@@ -38,23 +38,22 @@ auto constexpr TransientParams = defineParameters(
     LongParam("winSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
     LongParam("debounce", "Debounce", 25, Min(0)));
 
-template <typename Params, typename T, typename U = T>
-class TransientClient : public FluidBaseClient<Params>, public AudioIn, public AudioOut {
+    
+template <typename T>
+class TransientClient : public FluidBaseClient<decltype(TransientParams), TransientParams>, public AudioIn, public AudioOut
+{
 
 public:
 
-  using HostVector = HostVector<U>;
-  using B = FluidBaseClient<Params>;
-
-  TransientClient(Params& p) : FluidBaseClient<Params>(p) {
-    B::audioChannelsIn(1);
-    B::audioChannelsOut(2);
+  using HostVector = HostVector<T>;
+    
+  TransientClient(ParamSetViewType& p) : FluidBaseClient(p) {
+    FluidBaseClient::audioChannelsIn(1);
+    FluidBaseClient::audioChannelsOut(2);
   }
 
-  void process(std::vector<HostVector>& input,
-               std::vector<HostVector>& output) {
-
-
+  void process(std::vector<HostVector>& input, std::vector<HostVector>& output)
+  {
     if(!input[0].data() || (!output[0].data() && !output[1].data()))
       return;
 
@@ -62,25 +61,25 @@ public:
     static constexpr bool refine = false;
     static constexpr double robustFactor = 3.0;
 
-    std::size_t order = param<kOrder>(*this);
-    std::size_t blockSize = param<kBlockSize>(*this);
-    std::size_t padding = param<kPadding>(*this);
+    std::size_t order = get<kOrder>();
+    std::size_t blockSize = get<kBlockSize>();
+    std::size_t padding = get<kPadding>();
     std::size_t hostVecSize = input[0].size();
     std::size_t maxWin = 2*blockSize + padding;
 
-    if (!mExtractor.get() || !mExtractor.get() || mTrackValues.changed(order, blockSize, padding, hostVecSize)) {
-      mExtractor.reset(new algorithm::TransientExtraction(
-          order, iterations, robustFactor, refine));
+    if (!mExtractor.get() || !mExtractor.get() || mTrackValues.changed(order, blockSize, padding, hostVecSize))
+    {
+      mExtractor.reset(new algorithm::TransientExtraction(order, iterations, robustFactor, refine));
       mExtractor->prepareStream(blockSize, padding);
       mBufferedProcess.hostSize(hostVecSize);
-      mBufferedProcess.maxSize(maxWin, B::audioChannelsIn(), B::audioChannelsOut());
+      mBufferedProcess.maxSize(maxWin, FluidBaseClient::audioChannelsIn(), FluidBaseClient::audioChannelsOut());
     }
 
-    double skew = std::pow(2, param<kSkew>(*this));
-    double threshFwd = param<kThreshFwd>(*this);
-    double thresBack = param<kThreshBack>(*this);
-    size_t halfWindow = std::round(param<kWinSize>(*this) / 2);
-    size_t debounce = param<kDebounce>(*this);
+    double skew = std::pow(2, get<kSkew>());
+    double threshFwd = get<kThreshFwd>();
+    double thresBack = get<kThreshBack>();
+    size_t halfWindow = std::round(get<kWinSize>() / 2);
+    size_t debounce = get<kDebounce>();
 
     mExtractor->setDetectionParameters(skew, threshFwd, thresBack, halfWindow, debounce);
 
@@ -101,29 +100,25 @@ public:
     if(output[1].data()) output[1] = out.row(1);
   }
 
-  long latency()
+  size_t latency()
   {
-    return param<kPadding>(*this) +param<kBlockSize>(*this) -  param<kOrder>(*this);
+    return get<kPadding>() + get<kBlockSize>() -  get<kOrder>();
   }
-
+    
 private:
   ParameterTrackChanges<size_t,size_t,size_t,size_t> mTrackValues;
   std::unique_ptr<algorithm::TransientExtraction> mExtractor;
   BufferedProcess mBufferedProcess;
-  FluidTensor<T, 1> mTransients;
-  FluidTensor<T, 1> mRes;
   size_t mHostSize{0};
   size_t mOrder{0};
   size_t mBlocksize{0};
   size_t mPadding{0};
 };
 
-
-template <typename Params, typename T, typename U>
-using NRTTransients = NRTStreamAdaptor<TransientClient,Params,T,U,1,2>;
-
-auto constexpr NRTTransientParams = impl::makeNRTParams({BufferParam("srcBuf", "Source Buffer")}, {BufferParam("transBuf","Transients Buffer"),BufferParam("resBuf","Residual Buffer")}, TransientParams);
-
+auto constexpr NRTTransientParams = makeNRTParams<TransientClient>({BufferParam("srcBuf", "Source Buffer")}, {BufferParam("transBuf","Transients Buffer"), BufferParam("resBuf","Residual Buffer")});
+    
+template <typename T>
+using NRTTransients = NRTStreamAdaptor<TransientClient<T>, decltype(NRTTransientParams), NRTTransientParams, 1, 2>;
 
 } // namespace client
 } // namespace fluid

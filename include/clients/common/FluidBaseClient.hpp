@@ -13,16 +13,19 @@
 namespace fluid {
 namespace client {
 
-template <typename Params>
+template<typename ParamType, ParamType& PD>
 class FluidBaseClient //<const Tuple<Ts...>>
 {
 public:
-  FluidBaseClient(Params &p)
-      : mParams(p)
-  {}
-
-  template <size_t N>
-  auto &get() const
+  
+  using ParamDescType = ParamType;
+  using ParamSetType = ParameterSet<ParamDescType>;
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+    
+  FluidBaseClient(ParamSetViewType& p) : mParams(p){}
+  
+  template<size_t N>
+  auto& get() const
   {
     return mParams.template get<N>();
   }
@@ -44,6 +47,8 @@ public:
   size_t audioBuffersIn() const noexcept { return mBuffersIn; }
   size_t audioBuffersOut() const noexcept { return mBuffersOut; }
 
+  constexpr static ParamDescType& getParameterDescriptors() { return PD; }
+
 protected:
   void audioChannelsIn(const size_t x) noexcept { mAudioChannelsIn = x; }
   void audioChannelsOut(const size_t x) noexcept { mAudioChannelsOut = x; }
@@ -56,7 +61,7 @@ protected:
   void audioBuffersIn(const size_t x) noexcept { mBuffersIn = x; }
   void audioBuffersOut(const size_t x) noexcept { mBuffersOut = x; }
 
-  Params &mParams;
+  ParamSetViewType&   mParams;
 
 private:
   size_t mAudioChannelsIn       = 0;

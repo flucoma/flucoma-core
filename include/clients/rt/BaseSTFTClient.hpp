@@ -23,24 +23,20 @@ auto constexpr STFTParams = defineParameters(
     FFTParam<kMaxFFT>("fft","FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
 
-template <typename Params, typename T, typename U = T>
-class BaseSTFTClient : public FluidBaseClient<Params>, public AudioIn, public AudioOut
+template <typename T>
+class BaseSTFTClient : public FluidBaseClient<decltype(STFTParams), STFTParams>, public AudioIn, public AudioOut
 {
-
-  using HostVector = HostVector<U>;
-  using B =  FluidBaseClient<Params>;
-
-  Params& mParams;
+  using HostVector = HostVector<T>;
 
 public:
 
-  BaseSTFTClient(Params& p) : FluidBaseClient<Params>(p), mParams(p), mSTFTBufferedProcess{param<kMaxFFT>(p),1,1}
+  BaseSTFTClient(ParamSetViewType& p) : FluidBaseClient(p), mSTFTBufferedProcess{get<kMaxFFT>(),1,1}
   {
-    B::audioChannelsIn(1);
-    B::audioChannelsOut(1);
+    FluidBaseClient::audioChannelsIn(1);
+    FluidBaseClient::audioChannelsOut(1);
   }
 
-  size_t latency() { return param<kFFT>(mParams).winSize(); }
+  size_t latency() { return get<kFFT>().winSize(); }
 
   void process(std::vector<HostVector> &input,
                std::vector<HostVector> &output) {
@@ -53,7 +49,7 @@ public:
   }
 
 private:
-  STFTBufferedProcess<Params,  U, kFFT, true> mSTFTBufferedProcess;
+  STFTBufferedProcess<ParamSetViewType, T, kFFT, true> mSTFTBufferedProcess;
 };
 } // namespace client
 } // namespace fluid

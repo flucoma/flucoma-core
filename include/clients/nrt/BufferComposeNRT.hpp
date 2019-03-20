@@ -25,56 +25,54 @@ auto constexpr BufComposeParams = defineParameters(
     LongParam("dstStartChan", "Destination Channel Offset", 0),
     FloatParam("dstGain", "Destination Gain", 0.0));
 
-template <typename Params, typename T, typename U>
-class BufferComposeClient : public FluidBaseClient<Params>, OfflineIn, OfflineOut
+template <typename T>
+class BufferComposeClient : public FluidBaseClient<decltype(BufComposeParams), BufComposeParams>, OfflineIn, OfflineOut
 {
-  using HostVector = FluidTensorView<U, 1>;
-  using HostMatrix = FluidTensor<U, 2>;
+  using HostVector = FluidTensorView<T, 1>;
+  using HostMatrix = FluidTensor<T, 2>;
 
 public:
-  BufferComposeClient(Params &p)
-      : mParams{p}
-      , FluidBaseClient<Params>{p}
+  BufferComposeClient(ParamSetViewType &p) : FluidBaseClient(p)
   {}
 
   Result process()
   {
 
-    if (!param<kSource>(mParams).get()) { return {Result::Status::kError, "No input"}; }
+    if (!get<kSource>().get()) { return {Result::Status::kError, "No input"}; }
 
     size_t nChannels{0};
     size_t nFrames{0};
 
     {
-      BufferAdaptor::Access source(param<kSource>(mParams).get());
+      BufferAdaptor::Access source(get<kSource>().get());
 
       if (!(source.exists() && source.valid())) return {Result::Status::kError, "Source Buffer Not Found or Invalid"};
 
-      nChannels = param<kNChans>(mParams) == -1 ? source.numChans() - param<kStartChan>(mParams) : param<kNChans>(mParams);
-      nFrames   = param<kNumFrames>(mParams) == -1 ? source.numFrames() - param<kOffset>(mParams) : param<kNumFrames>(mParams);
+      nChannels = get<kNChans>() == -1 ? source.numChans() - get<kStartChan>() : get<kNChans>();
+      nFrames   = get<kNumFrames>() == -1 ? source.numFrames() - get<kOffset>() : get<kNumFrames>();
 
       if (nChannels <= 0 || nFrames <= 0) return {Result::Status::kError, "Zero length segment requested"};
 
       // We don't care if the overall number of frames will overrun, because we'll zero pad, but the
       // offset should be within the source range
-      if (param<kOffset>(mParams) >= source.numFrames())
-        return {Result::Status::kError, "Start frame (", param<kOffset>(mParams), ") out of range."};
+      if (get<kOffset>() >= source.numFrames())
+        return {Result::Status::kError, "Start frame (", get<kOffset>(), ") out of range."};
 
       // We don't care if the overall number of channels will overrun, because we'll loop, but the
       // offset should be within the source range
-      if (param<kStartChan>(mParams) >= source.numChans())
-        return {Result::Status::kError, "Start channel ", param<kStartChan>(mParams), " out of range."};
+      if (get<kStartChan>() >= source.numChans())
+        return {Result::Status::kError, "Start channel ", get<kStartChan>(), " out of range."};
     }
 
-    auto       dstStart     = param<kDestOffset>(mParams);
-    auto       dstStartChan = param<kDestStartChan>(mParams);
+    auto       dstStart     = get<kDestOffset>();
+    auto       dstStartChan = get<kDestStartChan>();
     auto       dstEnd{0};
     auto       dstEndChan{0};
     bool       destinationResizeNeeded{false};
     HostMatrix destinationOrig(0, 0);
 
     {
-      BufferAdaptor::Access destination(param<kDest>(mParams).get());
+      BufferAdaptor::Access destination(get<kDest>().get());
 
       if (!destination.exists())
         return {Result::Status::kError, "Destination Buffer Not Found or Invalid"};
@@ -84,7 +82,7 @@ public:
 
       destinationResizeNeeded = (dstEnd > destination.numFrames()) || (dstEndChan > destination.numChans());
 
-        auto applyGain = [this](U&x){x *= param<kDestGain>(mParams);};
+        auto applyGain = [this](T&x){x *= get<kDestGain>();};
 
 
       if (destinationResizeNeeded) // copy the whole of desintation if we have to resize it
@@ -112,24 +110,24 @@ public:
     // we need to (possibly) resize the desintation buffer which could
     // (possibly)  also be one of the sources
     {
-      BufferAdaptor::Access source(param<kSource>(mParams).get());
-      auto                  gain = param<kGain>(mParams);
+      BufferAdaptor::Access source(get<kSource>().get());
+      auto                  gain = get<kGain>();
       // iterates through the copying of the first source
       for (size_t i = dstStartChan, j = 0; j < nChannels; ++i, ++j)
       {
         // Special repeating channel voodoo
         HostVector sourceChunk{
-            source.samps(param<kOffset>(mParams), std::min(nFrames, source.numFrames()), (param<kStartChan>(mParams) + j) % source.numChans())};
+            source.samps(get<kOffset>(), std::min(nFrames, source.numFrames()), (get<kStartChan>() + j) % source.numChans())};
 
         HostVector destinationChunk{destinationOrig.row(j)};
         if (destinationResizeNeeded) { destinationChunk.reset(destinationOrig.row(i).data(), dstStart, nFrames); }
 
         std::transform(sourceChunk.begin(), sourceChunk.end(), destinationChunk.begin(), destinationChunk.begin(),
-                       [gain](U &src, U &dst) { return dst + src * gain; });
+                       [gain](T &src, T &dst) { return dst + src * gain; });
       }
     }
 
-    BufferAdaptor::Access destination(param<kDest>(mParams).get());
+    BufferAdaptor::Access destination(get<kDest>().get());
 
     if (destinationResizeNeeded)
     {
@@ -143,9 +141,6 @@ public:
 
     return {Result::Status::kOk};
   }
-
-private:
-  Params &mParams;
 };
 } // namespace client
 } // namespace fluid

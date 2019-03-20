@@ -46,25 +46,36 @@ auto constexpr spitOuts(T(&a)[N],std::index_sequence<Is...>)
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 using BufferSpec = ParamSpec<BufferT,Fixed<false>>;
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-template<typename RTParams,size_t Ms>
-auto constexpr makeNRTParams(BufferSpec&& in,BufferSpec(&& out)[Ms],const RTParams &p)
+
+template<size_t...Is, size_t...Js,typename...Ts, typename...Us>
+constexpr auto joinParameterDescriptors(ParameterDescriptorSet<std::index_sequence<Is...>,std::tuple<Ts...>> x,ParameterDescriptorSet<std::index_sequence<Js...>,std::tuple<Us...>> y)
 {
-  return makeWrapperInputs(in).join(spitOuts(out,std::make_index_sequence<Ms>())).template join<Ms + 5>(p);
+  return ParameterDescriptorSet<
+            typename JoinOffsetSequence<std::index_sequence<Is...>, std::index_sequence<Js...>>::type,
+        std::tuple<Ts...,Us...>> {std::tuple_cat(x.mDescriptors,y.mDescriptors)};
 }
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-template<template <typename, typename> class AdaptorType,
-  template <typename,typename,typename> class RTClient, typename Params, typename T, typename U, size_t Ins, size_t Outs>
+template<template <typename, typename> class AdaptorType, class RTClient, typename ParamType, ParamType& PD, size_t Ins, size_t Outs>
 class NRTClientWrapper: public OfflineIn, public OfflineOut
 {
 
 public:
+    
+  using ParamDescType = ParamType;
+  using ParamSetType = ParameterSet<ParamDescType>;
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  using RTParamDescType = typename RTClient::ParamDescType;
+  using RTParamSetViewType = ParameterSetView<typename RTClient::ParamDescType>;
 
+  constexpr static auto getParameterDescriptors() { return PD; }
+    
   //The client will be accessing its parameter by a bunch of indices that need ofsetting now
 //  using Client = RTClient<impl::ParameterSet_Offset<Params,ParamOffset>,T,U>;
 // None of that for outputs though
 
   static constexpr size_t ParamOffset  = (Ins*5) + Outs;
-  using WrappedClient = RTClient<ParameterSet_Offset<Params,ParamOffset>,T,U>;
+  using WrappedClient = RTClient;//<ParameterSet_Offset<Params,ParamOffset>,T>;
 
   //Host buffers are always float32 (?)
   using HostVector     =  FluidTensor<float,1>;
@@ -72,10 +83,10 @@ public:
   using HostVectorView =  FluidTensorView<float,1>;
   using HostMatrixView =  FluidTensorView<float,2>;
 
-  NRTClientWrapper(Params& p):
-    mParams{p},
-    mParamsWithOffset{p},
-    mClient{mParamsWithOffset}
+  NRTClientWrapper(ParamSetViewType& p)
+    : mParams{p}
+    , mRealTimeParams{RTClient::getParameterDescriptors(), p.template subset<ParamOffset>()}
+    , mClient{mRealTimeParams}
   {}
 
   template <std::size_t N> auto& get() noexcept { return mParams.template get<N>(); }
@@ -98,22 +109,22 @@ public:
     auto inputBuffers  = fetchInputBuffers(inputCounter);
     auto outputBuffers = fetchOutputBuffers(outputCounter);
 
-    std::array<long,Ins> inFrames;
-    std::array<long,Ins> inChans;
+    std::array<intptr_t,Ins> inFrames;
+    std::array<intptr_t,Ins> inChans;
 
     //check buffers exist
     int count = 0;
     for(auto&& b: inputBuffers)
     {
       BufferAdaptor::Access thisInput(b.buffer);
-      if(!thisInput.exists() && !thisInput.valid())
+      if(!(thisInput.exists() && thisInput.valid()))
         return {Result::Status::kError, "Input buffer ", b.buffer, " not found or invalid."} ; //error
 
-      long requestedFrames= b.nFrames < 0 ? thisInput.numFrames() : b.nFrames;
+      intptr_t requestedFrames= b.nFrames < 0 ? thisInput.numFrames() : b.nFrames;
       if(b.startFrame + requestedFrames > thisInput.numFrames())
         return {Result::Status::kError, "Input buffer ", b.buffer, ": not enough frames" }; //error
 
-      long requestedChans= b.nChans < 0 ? thisInput.numChans() : b.nChans;
+      intptr_t requestedChans= b.nChans < 0 ? thisInput.numChans() : b.nChans;
       if(b.startChan + requestedChans > thisInput.numChans())
         return {Result::Status::kError, "Input buffer ", b.buffer, ": not enough channels" }; //error
 
@@ -147,10 +158,10 @@ private:
   {
     return {get<Is + (Ins*5)>().get()...};
   }
-
-  Params&  mParams;
-  ParameterSet_Offset<Params, ParamOffset> mParamsWithOffset;
-  WrappedClient  mClient;
+    
+  RTParamSetViewType    mRealTimeParams;
+  ParamSetViewType&     mParams;
+  WrappedClient         mClient;
 };
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename HostMatrix, typename HostVectorView>
@@ -232,10 +243,20 @@ struct Slicing
 
 } //namespace impl
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-template<template <typename,typename,typename> class RTClient,typename Params,typename T, typename U, size_t Ins, size_t Outs>
-using NRTStreamAdaptor = impl::NRTClientWrapper< impl::Streaming,RTClient,Params,T,U,Ins,Outs>;
-template<template <typename,typename,typename> class RTClient,typename Params,typename T, typename U,size_t Ins, size_t Outs>
-using NRTSliceAdaptor  = impl::NRTClientWrapper< impl::Slicing, RTClient,Params,T,U,Ins,Outs>;
+    
+template<class RTClient, typename Params, Params& PD, size_t Ins, size_t Outs>
+using NRTStreamAdaptor = impl::NRTClientWrapper<impl::Streaming, RTClient, Params, PD, Ins, Outs>;
+    
+template<class RTClient,typename Params, Params& PD, size_t Ins, size_t Outs>
+using NRTSliceAdaptor = impl::NRTClientWrapper<impl::Slicing, RTClient, Params, PD, Ins, Outs>;
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template<template <typename T> class RTClient, size_t Ms>
+auto constexpr makeNRTParams(impl::BufferSpec&& in, impl::BufferSpec(&& out)[Ms])
+{
+  return impl::joinParameterDescriptors(impl::joinParameterDescriptors(impl::makeWrapperInputs(in), impl::spitOuts(out, std::make_index_sequence<Ms>())), RTClient<double>::getParameterDescriptors());
+}
+   
 } //namespace client
 } //namespace fluid

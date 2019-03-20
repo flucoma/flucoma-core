@@ -39,18 +39,18 @@ auto constexpr TransientParams = defineParameters(
 );
 
 
-template <typename Params, typename T, typename U = T>
-class TransientsSlice : public FluidBaseClient<Params>, public AudioIn, public AudioOut
-
+template <typename T>
+class TransientsSlice :
+public FluidBaseClient<decltype(TransientParams), TransientParams>, public AudioIn, public AudioOut
 {
-  using HostVector = HostVector<U>;
+  using HostVector = HostVector<T>;
 
 public:
 
-  TransientsSlice(Params& p): mParams{p}, FluidBaseClient<Params>{p}
+  TransientsSlice(ParamSetViewType& p): FluidBaseClient(p)
   {
-    FluidBaseClient<Params>::audioChannelsIn(1);
-    FluidBaseClient<Params>::audioChannelsOut(1);
+    FluidBaseClient::audioChannelsIn(1);
+    FluidBaseClient::audioChannelsOut(1);
   }
 
   void process(std::vector<HostVector>& input,
@@ -63,9 +63,9 @@ public:
     static constexpr bool refine = false;
     static constexpr double robustFactor = 3.0;
 
-    std::size_t order = param<kOrder>(mParams);
-    std::size_t blockSize = param<kBlockSize>(mParams);
-    std::size_t padding = param<kPadding>(mParams);
+    std::size_t order = get<kOrder>();
+    std::size_t blockSize = get<kBlockSize>();
+    std::size_t padding = get<kPadding>();
     std::size_t hostVecSize = input[0].size();
     std::size_t maxWin = 2*blockSize + padding;
 
@@ -73,16 +73,16 @@ public:
       mExtractor.reset(new algorithm::TransientSegmentation(order, iterations, robustFactor));
       mExtractor->prepareStream(blockSize, padding);
       mBufferedProcess.hostSize(hostVecSize);
-      mBufferedProcess.maxSize(maxWin, FluidBaseClient<Params>::audioChannelsIn(), FluidBaseClient<Params>::audioChannelsOut());
+      mBufferedProcess.maxSize(maxWin, FluidBaseClient::audioChannelsIn(), FluidBaseClient::audioChannelsOut());
 
     }
 
-    double skew = std::pow(2, param<kSkew>(mParams));
-    double threshFwd = param<kThreshFwd>(mParams);
-    double thresBack = param<kThreshBack>(mParams);
-    size_t halfWindow = std::round(param<kWinSize>(mParams) / 2);
-    size_t debounce = param<kDebounce>(mParams);
-    size_t minSeg = param<kMinSeg>(mParams);
+    double skew = std::pow(2, get<kSkew>());
+    double threshFwd = get<kThreshFwd>();
+    double thresBack = get<kThreshBack>();
+    size_t halfWindow = std::round(get<kWinSize>() / 2);
+    size_t debounce = get<kDebounce>();
+    size_t minSeg = get<kMinSeg>();
 
     mExtractor->setDetectionParameters(skew, threshFwd, thresBack, halfWindow,
                                        debounce, minSeg);
@@ -103,9 +103,9 @@ public:
     if(output[0].data()) output[0] = out.row(0);
   }
 
-  long latency()
+  size_t latency()
   {
-    return param<kPadding>(*this) +param<kBlockSize>(*this) -  param<kOrder>(*this);
+    return get<kPadding>() + get<kBlockSize>() -  get<kOrder>();
   }
 
 private:
@@ -118,15 +118,12 @@ private:
   size_t mOrder{0};
   size_t mBlocksize{0};
   size_t mPadding{0};
-  Params& mParams;
 };
 
-
-template <typename Params, typename T, typename U>
-using NRTTransientSlice = NRTSliceAdaptor<TransientsSlice,Params,T,U,1,1>;
-
-auto constexpr NRTTransientSliceParams = impl::makeNRTParams({BufferParam("srcBuf", "Source Buffer")}, {BufferParam("indBuf","Indices Buffer")}, TransientParams);
-
+auto constexpr NRTTransientSliceParams = makeNRTParams<TransientsSlice>({BufferParam("srcBuf", "Source Buffer")}, {BufferParam("indBuf","Indices Buffer")});
+    
+template <typename T>
+using NRTTransientSlice = NRTSliceAdaptor<TransientsSlice<T>, decltype(NRTTransientSliceParams), NRTTransientSliceParams, 1, 1>;
 
 } // namespace client
 } // namespace fluid

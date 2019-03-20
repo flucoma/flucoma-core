@@ -6,22 +6,19 @@
 namespace fluid {
 namespace client {
 
-namespace impl {
-template <typename T>
-using makeInt = int;
-}
-
 template <typename... Args>
 class ParameterTrackChanges
 {
+  template <typename T>
+  using makeInt = int;
+    
   using type    = std::tuple<Args...>;
-  using signums = std::tuple<impl::makeInt<Args>...>;
+  using signums = std::tuple<makeInt<Args>...>;
   using indices = std::index_sequence_for<Args...>;
 
 public:
   ParameterTrackChanges() = default;
-  constexpr ParameterTrackChanges(const Args... args)
-      : mValues{args...}
+  constexpr ParameterTrackChanges(const Args... args) : mValues{args...}
   {}
 
   bool changed(Args... args) { return changedImpl(std::forward<Args>(args)..., indices()); }

@@ -154,7 +154,7 @@ private:
 
   FFTParams setup(Params &p, std::vector<HostVector> &input)
   {
-    FFTParams fftParams = param<FFTParamsIndex>(p);
+    FFTParams fftParams = p.template get<FFTParamsIndex>();
     bool newParams = mTrackValues.changed(fftParams.winSize(), fftParams.hopSize(), fftParams.fftSize());
     size_t hostBufferSize = input[0].size();
     if(mTrackHostVS.changed(hostBufferSize))
