@@ -236,9 +236,9 @@ public:
   size_t fftSize() const noexcept { return mFFTSize < 0 ? nextPow2(mWindowSize, true) : mFFTSize; }
   intptr_t   fftRaw() const noexcept { return mFFTSize; }
   intptr_t   hopRaw() const noexcept { return mHopSize; }
-  size_t winSize() const noexcept { return mWindowSize; }
-  size_t hopSize() const noexcept { return mHopSize > 0 ? mHopSize : mWindowSize >> 1; }
-  size_t frameSize() const { return (fftSize() >> 1) + 1; }
+  intptr_t winSize() const noexcept { return mWindowSize; }
+  intptr_t hopSize() const noexcept { return mHopSize > 0 ? mHopSize : mWindowSize >> 1; }
+  intptr_t frameSize() const { return (fftSize() >> 1) + 1; }
 
   void setWin(intptr_t win) { mWindowSize = win; }
   void setFFT(intptr_t fft) { mFFTSize = fft; }
@@ -277,7 +277,7 @@ public:
       bool fftChanged = inParams.trackFFT.changed(v.fftRaw());
       bool hopChanged = inParams.trackHop.changed(v.hopRaw());
 
-      if (winChanged) v.setWin(std::max(v.winSize(), 4ul));
+      if (winChanged) v.setWin(std::max<intptr_t>(v.winSize(), 4));
 
       if (winChanged && !fftChanged) v.setWin(v.fftRaw() < 0 ? v.winSize() : std::min<size_t>(v.winSize(), v.fftRaw()));
 
@@ -311,7 +311,7 @@ public:
       bool   fftSizeWasClipped{clippedFFT != v.fftSize()};
       if (fftSizeWasClipped)
       {
-        v.setWin(std::min(v.winSize(), clippedFFT));
+        v.setWin(std::min<intptr_t>(v.winSize(), clippedFFT));
         v.setFFT(v.fftRaw() < 0 ? v.fftRaw() : clippedFFT);
       }
 
