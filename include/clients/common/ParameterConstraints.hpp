@@ -29,7 +29,7 @@ struct MinImpl
     if (r && oldX != x)
     {
       r->set(Result::Status::kWarning);
-      r->addMessage(d.template name<N>()," value, ",oldX, ", below absolute minimum ", x);
+      r->addMessage(d.template get<N>().name," value, ",oldX, ", below absolute minimum ", x);
     }
   }
 };
@@ -50,7 +50,7 @@ struct MaxImpl
     if (r && oldX != x)
     {
       r->set(Result::Status::kWarning);
-      r->addMessage(d.template name<N>()," value (",oldX,") above absolute maximum (",x,')');
+      r->addMessage(d.template get<N>().name," value (",oldX,") above absolute maximum (",x,')');
     }
   }
 };
@@ -71,8 +71,8 @@ struct LowerLimitImpl : public Relational
       std::array<T, sizeof...(Is)> constraintValues{std::get<Is + Offset>(params)...};
       size_t                       minPos =
           std::distance(constraintValues.begin(), std::min_element(constraintValues.begin(), constraintValues.end()));
-      std::array<const char *, sizeof...(Is)> constraintNames{d.template name<Is + Offset>()...};
-      r->addMessage(d.template name<N>()," value (", oldV,") below parameter ", constraintNames[minPos], " (",v,')');
+      std::array<const char *, sizeof...(Is)> constraintNames{d.template get<Is + Offset>().name...};
+      r->addMessage(d.template get<N>().name," value (", oldV,") below parameter ", constraintNames[minPos], " (",v,')');
     }
   }
 };
@@ -93,8 +93,8 @@ struct UpperLimitImpl : public Relational
       std::array<T, sizeof...(Is)> constraintValues{std::get<Is + Offset>(params)...};
       size_t                       maxPos =
           std::distance(constraintValues.begin(), std::max_element(constraintValues.begin(), constraintValues.end()));
-      std::array<const char *, sizeof...(Is)> constraintNames{d.template name<Is + Offset>()...};
-      r->addMessage(d.template name<N>()," value, ",oldV,", above parameter ",constraintNames[maxPos]," (",v,')');
+      std::array<const char *, sizeof...(Is)> constraintNames{d.template get<Is + Offset>().name...};
+      r->addMessage(d.template get<N>().name," value, ",oldV,", above parameter ",constraintNames[maxPos]," (",v,')');
     }
   }
 };
@@ -112,7 +112,7 @@ struct FrameSizeUpperLimitImpl : public Relational
     if (r && oldV != v)
     {
       r->set(Result::Status::kWarning);
-      r->addMessage(d.template name<N>(), " value (", oldV, ") above spectral frame size (", v, ')');
+      r->addMessage(d.template get<N>().name, " value (", oldV, ") above spectral frame size (", v, ')');
     }
   }
 };
@@ -187,7 +187,7 @@ struct PowerOfTwo
     if (r && res != x)
     {
       r->set(Result::Status::kWarning);
-      r->addMessage(d.template name<N>()," value (",x,") adjusted to power of two (",res,')');
+      r->addMessage(d.template get<N>().name," value (",x,") adjusted to power of two (",res,')');
     }
     x = res;
   }
