@@ -1,5 +1,6 @@
 #pragma once
 
+
 #include <algorithms/public/TransientExtraction.hpp>
 #include <clients/common/FluidBaseClient.hpp>
 #include <clients/common/ParameterConstraints.hpp>
@@ -28,9 +29,9 @@ enum TransientParamIndex {
 };
 
 auto constexpr TransientParams = defineParameters(
-    LongParam<Fixed<true>>("order", "Order", 20, Min(10), LowerLimit<kWinSize>(),UpperLimit<kBlockSize>()),
-    LongParam<Fixed<true>>("blockSize", "Block Size", 256, Min(100), LowerLimit<kOrder>()),
-    LongParam<Fixed<true>>("padSize", "Padding", 128, Min(0)),
+    LongParam("order", "Order", 20, Min(10), LowerLimit<kWinSize>(),UpperLimit<kBlockSize>()),
+    LongParam("blockSize", "Block Size", 256, Min(100), LowerLimit<kOrder>()),
+    LongParam("padSize", "Padding", 128, Min(0)),
     FloatParam("skew", "Skew", 0, Min(-10), Max(10)),
     FloatParam("threshFwd", "Forward Threshold", 2, Min(0)),
     FloatParam("threshBack", "Backward Threshold", 1.1, Min(0)),
@@ -66,7 +67,7 @@ public:
     std::size_t hostVecSize = input[0].size();
     std::size_t maxWin = 2*blockSize + padding;
 
-    if (!mExtractor.get() ||  mTrackValues.changed(order, blockSize, padding, hostVecSize))
+    if (!mExtractor.get() || !mExtractor.get() || mTrackValues.changed(order, blockSize, padding, hostVecSize))
     {
       mExtractor.reset(new algorithm::TransientExtraction(order, iterations, robustFactor, refine));
       mExtractor->prepareStream(blockSize, padding);
