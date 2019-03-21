@@ -61,9 +61,10 @@ public:
     //assert(output.size() == 7); // TODO
     int size = x.size();
     double xSum = x.sum();
+    ArrayXd xSquare = x.square();
     ArrayXd lin = ArrayXd::LinSpaced(size, 0, size - 1);
     double centroid = (x * lin).sum() / xSum;
-    double spread = (x * (lin - centroid).square()).sum() / xSum;
+    double spread = sqrt((x * (lin - centroid).square()).sum() / xSum);
     double skewness =
         (x * (lin - centroid).pow(3)).sum() / (spread * sqrt(spread) * xSum);
     double kurtosis =
@@ -71,15 +72,16 @@ public:
     double flatness = exp(x.log().mean()) / x.mean();
     double rolloff = size - 1;
     double cumSum = 0;
-    double target = 0.95 * xSum;
+    double target = 0.95 *  xSquare.sum();
     for (int i = 0; cumSum <= target && i < size; i++) {
-      cumSum += x(i);
+      cumSum += xSquare(i);
       if (cumSum > target) {
-        rolloff = i - (cumSum - target) / x(i);
+        rolloff = i - (cumSum - target) / xSquare(i);
         break;
       }
     }
-    double crest = x.maxCoeff() / sqrt(x.square().mean());
+    //double crest = x.maxCoeff() / sqrt(x.square().mean());
+    double crest = x.maxCoeff() / x.mean();
     mOutputBuffer(0) = centroid;
     mOutputBuffer(1) = spread;
     mOutputBuffer(2) = skewness;
