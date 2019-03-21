@@ -64,7 +64,7 @@ public:
     ArrayXd xSquare = x.square();
     ArrayXd lin = ArrayXd::LinSpaced(size, 0, size - 1);
     double centroid = (x * lin).sum() / xSum;
-    double spread = sqrt((x * (lin - centroid).square()).sum() / xSum);
+    double spread = (x * (lin - centroid).square()).sum() / xSum;
     double skewness =
         (x * (lin - centroid).pow(3)).sum() / (spread * sqrt(spread) * xSum);
     double kurtosis =
@@ -83,7 +83,7 @@ public:
     //double crest = x.maxCoeff() / sqrt(x.square().mean());
     double crest = x.maxCoeff() / x.mean();
     mOutputBuffer(0) = centroid;
-    mOutputBuffer(1) = spread;
+    mOutputBuffer(1) = sqrt(spread);
     mOutputBuffer(2) = skewness;
     mOutputBuffer(3) = kurtosis;
     mOutputBuffer(4) = flatness;
