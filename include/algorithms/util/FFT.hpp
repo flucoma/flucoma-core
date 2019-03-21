@@ -9,25 +9,25 @@ namespace algorithm {
 class FFT {
 
 public:
-  FFT(size_t size)
-      : mSize(size), mFrameSize(size / 2 + 1), mLog2Size(log2(size)),
-        mOutputBuffer(mFrameSize) {
-    hisstools_create_setup(&mSetup, mLog2Size);
-    mSplit.realp = new double[(1 << (mLog2Size - 1)) + 1];
-    mSplit.imagp = new double[(1 << (mLog2Size - 1)) + 1];
-  }
-
-  ~FFT() {
-    if (mSplit.realp)
-      delete[] mSplit.realp;
-    if (mSplit.imagp)
-      delete[] mSplit.imagp;
-  }
-
   using ArrayXcd = Eigen::ArrayXcd;
   using ArrayXcdRef = Eigen::Ref<ArrayXcd>;
   using ArrayXd = Eigen::ArrayXd;
   using ArrayXdRef = Eigen::Ref<const ArrayXd>;
+
+  FFT(size_t size)
+      : mMaxSize(size), mSize(size), mFrameSize(size / 2 + 1),
+        mLog2Size(log2(size)), mOutputBuffer(mFrameSize),
+        mRealBuffer(mFrameSize), mImagBuffer(mFrameSize) {
+    hisstools_create_setup(&mSetup, mLog2Size);
+    mSplit.realp = mRealBuffer.data();
+    mSplit.imagp = mImagBuffer.data();
+  }
+
+  void resize(size_t newSize) {
+    assert(newSize <= mMaxSize);
+    mFrameSize = newSize / 2 + 1;
+    mLog2Size = log2(newSize);
+  }
 
   Eigen::Ref<ArrayXcd> process(const ArrayXdRef &input) {
     hisstools_rfft(mSetup, input.data(), &mSplit, input.size(), mLog2Size);
@@ -38,10 +38,11 @@ public:
       mOutputBuffer(i) =
           0.5 * std::complex<double>(mSplit.realp[i], mSplit.imagp[i]);
     }
-    return mOutputBuffer;
+    return mOutputBuffer.segment(0, mFrameSize);
   }
 
 protected:
+  size_t mMaxSize;
   size_t mSize;
   size_t mFrameSize;
   size_t mLog2Size;
@@ -51,6 +52,8 @@ protected:
 
 private:
   ArrayXcd mOutputBuffer;
+  ArrayXd mRealBuffer;
+  ArrayXd mImagBuffer;
 };
 
 class IFFT : FFT {
@@ -61,14 +64,14 @@ public:
   using ArrayXcdRef = Eigen::Ref<const ArrayXcd>;
   using ArrayXdRef = Eigen::Ref<ArrayXd>;
 
-  ArrayXdRef process(const ArrayXcdRef &input) {
+  Eigen::Ref<ArrayXd> process(const Eigen::Ref<const ArrayXcd> &input) {
     for (int i = 0; i < input.size(); i++) {
       mSplit.realp[i] = input[i].real();
       mSplit.imagp[i] = input[i].imag();
     }
     mSplit.imagp[0] = mSplit.realp[mFrameSize - 1];
     hisstools_rifft(mSetup, &mSplit, mOutputBuffer.data(), mLog2Size);
-    return mOutputBuffer;
+    return mOutputBuffer.segment(0, mFrameSize);
   }
 
 private:

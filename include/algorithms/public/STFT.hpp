@@ -36,6 +36,13 @@ public:
     out = asFluid(mag);
   }
 
+  static void magnitude(const FluidTensorView<complex<double>, 1> &in,
+                        FluidTensorView<double, 1> out) {
+    ArrayXd mag = asEigen<Array>(in).abs().real();
+    out = asFluid(mag);
+  }
+
+
   void process(const RealVectorView audio, ComplexMatrixView spectrogram) {
     int halfWindow = mWindowSize / 2;
     ArrayXd padded(audio.size() + mWindowSize + mHopSize);

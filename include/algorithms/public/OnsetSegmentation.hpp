@@ -3,87 +3,97 @@
 
 #include "../../data/TensorTypes.hpp"
 #include "../util/ConvolutionTools.hpp"
-#include "../util/Descriptors.hpp"
 #include "../util/FFT.hpp"
 #include "../util/FluidEigenMappings.hpp"
-#include "Windows.hpp"
+#include "OnsetDetectionFuncs.hpp"
+#include "WindowFuncs.hpp"
 #include <Eigen/Eigen>
 #include <algorithm>
+#include <cassert>
+#include <deque>
 
 namespace fluid {
 namespace algorithm {
 
 using _impl::asEigen;
 using _impl::asFluid;
+using Eigen::Array;
 using Eigen::ArrayXcd;
 using Eigen::ArrayXd;
 using Eigen::Map;
-using Eigen::Array;
 
 class OnsetSegmentation {
 
 public:
-  enum Normalisation {
-    kNone,
-    kAmplitude,
-    kPower,
-  };
-
-  enum DifferenceFunction {
-    kL1Norm,
-    kL2Norm,
-    kLogDifference,
-    kFoote,
-    kItakuraSaito,
-    kKullbackLiebler,
-    kSymmetricKullbackLiebler,
-    kModifiedKullbackLiebler
-  };
-
-  OnsetSegmentation(int FFTSize, int windowSize, int hopSize, int frameDelta,
-                    WindowType windowType, double threshold,
-                    DifferenceFunction function, int filterSize,
-                    bool forwardOnly = false)
-      : mFFT(FFTSize), mFFTSize(FFTSize), mWindowSize(windowSize),
-        mHopSize(hopSize), mFrameDelta(frameDelta),
-        mWindowType(WindowType::kHann), mFunction(function),
-        mFilterSize(filterSize), mForwardOnly(forwardOnly),
-        mNormalisation(kNone), mThreshold(threshold) {
-    assert(mWindowSize <= mFFTSize);
-    assert(mFrameDelta <= mWindowSize);
-    resizeStorage();
+  OnsetSegmentation(int maxSize)
+      : mMaxSize(maxSize), mWindowStorage(maxSize), mFFT(maxSize),
+        mFFTSize(1024), mWindowSize(1024), mHopSize(256), mFrameDelta(0),
+        mWindowType(WindowTypes::kHann), mFunction(0), mFilterSize(5),
+        mThreshold(0.1), mDebounce(2), mDebounceCount(1), mPrevFuncVal(0),
+        mFilter(mFilterSize, 0), mSorting(mFilterSize) {
+    mFFT.resize(mFFTSize);
+    makeWindow();
+    initFilter();
   }
 
-  void setParameters(DifferenceFunction function, bool forwardOnly,
-                     Normalisation normalisation) {
+  void initFilter() {
+    mFilter = std::deque<double>(mFilterSize, 0);
+    std::iota(mSorting.begin(), mSorting.end(), 0);
+  }
+
+  void sortFilter() {
+    for (int i = 1; i < mFilter.size(); ++i) {
+      for (int j = i; j > 0 && mFilter[mSorting[j - 1]] > mFilter[mSorting[j]];
+           --j) {
+        std::swap(mSorting[j - 1], mSorting[j]);
+      }
+    }
+  }
+
+  void makeWindow() {
+    mWindowStorage.setZero();
+    windows[mWindowType](mWindowSize, mWindowStorage);
+    mWindow = mWindowStorage.segment(0, mWindowSize);
+    prevFrame = ArrayXcd::Zero(mWindowSize / 2 + 1);
+    prevPrevFrame = ArrayXcd::Zero(mWindowSize / 2 + 1);
+  }
+
+  void updateParameters(int fftSize, int windowSize, int hopSize,
+                        int frameDelta, int function, int filterSize,
+                        double threshold, int debounce) {
+    assert(fftSize <= mMaxSize);
+    assert(windowSize <= mMaxSize);
+    assert(windowSize <= fftSize);
+    assert(hopSize <= mMaxSize);
+    assert(frameDelta <= windowSize);
+    assert(filterSize % 2);
+
+    if (fftSize != mFFTSize) {
+      mFFTSize = fftSize;
+      mFFT.resize(mFFTSize);
+    }
+    if (windowSize != mWindowSize) {
+      mWindowSize = windowSize;
+      makeWindow();
+    }
+    mHopSize = hopSize;
+    mFrameDelta = frameDelta;
+    mFilterSize = filterSize;
+    mThreshold = threshold;
     mFunction = function;
-    mForwardOnly = forwardOnly;
-    mNormalisation = normalisation;
+    mDebounce = debounce;
   }
 
-  int FFTSize() const { return mFFTSize; }
-  int windowSize() const { return mWindowSize; }
-  int frameDelta() const { return mFrameDelta; }
-  int inputFrameSize() const { return windowSize() + frameDelta(); }
-  int nFrames(int inputSize) const {
-    return floor(
-        (inputSize + inputFrameSize() / 2 + mWindowSize - inputFrameSize()) /
-        mHopSize);
-  }
-
+  // TODO: review for new version
   void process(const RealVectorView input, RealVectorView output) {
     using algorithm::convolveReal;
     using algorithm::kEdgeWrapCentre;
-    int frameSize = inputFrameSize();
-    int leftPadding = frameSize / 2;
-    int rightPadding = mWindowSize;
-    ArrayXd padded(input.size() + leftPadding + rightPadding);
-    padded.fill(0);
-    padded.segment(leftPadding, input.size()) = asEigen<Array>(input);
-    int nFrames = floor((padded.size() - frameSize) / mHopSize);
+    int nFrames =
+        floor((input.size() + mWindowSize / 2 - mFrameDelta) / mHopSize);
     ArrayXd onsetDetectionFunc(nFrames);
     for (int i = 0; i < nFrames; i++) {
-      RealVectorView frame = input(fluid::Slice(i * mHopSize, frameSize));
+      RealVectorView frame =
+          input(fluid::Slice(i * mHopSize, mWindowSize + mFrameDelta));
       onsetDetectionFunc(i) = processFrame(frame);
     }
     if (mFilterSize > 0) {
@@ -95,7 +105,7 @@ public:
       onsetDetectionFunc = smoothed;
     }
     onsetDetectionFunc /= onsetDetectionFunc.maxCoeff();
-    for (int i = mFilterSize / 2; i < onsetDetectionFunc.size() - 1; i++) {//TODO: review alignment
+    for (int i = mFilterSize / 2; i < onsetDetectionFunc.size() - 1; i++) {
       if (onsetDetectionFunc(i) > onsetDetectionFunc(i - 1) &&
           onsetDetectionFunc(i) > onsetDetectionFunc(i + 1) &&
           onsetDetectionFunc(i) > mThreshold) {
@@ -106,90 +116,59 @@ public:
   }
 
   double processFrame(RealVectorView input) {
-    processSingleWindow(mFrame1, input.data() + frameDelta());
-    processSingleWindow(mFrame2, input.data());
-    return frameComparison(mFrame1, mFrame2);
-  }
-
-private:
-  void processSingleWindow(RealVectorView frame, const double *input) {
-    for (auto i = 0; i < frame.size(); i++){
-      mFFTBuffer(i) = input[i];
+    ArrayXd in = asEigen<Array>(input);
+    double funcVal = 0;
+    double filteredFuncVal = 0;
+    double detected = 0.;
+    ArrayXcd frame = mFFT.process(in.segment(0, mWindowSize) * mWindow);
+    if (mFunction > 1 && mFunction < 5 & mFrameDelta != 0) {
+      ArrayXcd frame2 =
+          mFFT.process(in.segment(mFrameDelta, mWindowSize) * mWindow);
+      funcVal = onsetDetectionFuncs[static_cast<ODF>(mFunction)](frame2, frame,
+                                                                 frame);
+    } else {
+      funcVal = onsetDetectionFuncs[static_cast<ODF>(mFunction)](
+          frame, prevFrame, prevPrevFrame);
     }
+    filteredFuncVal = funcVal - mFilter[mSorting[(mFilterSize - 1) / 2]];
+    mFilter.push_back(funcVal);
+    mFilter.pop_front();
+    sortFilter();
+    prevPrevFrame = prevFrame;
+    prevFrame = frame;
 
-    mFFTBuffer *= mWindow;
-    Eigen::Ref<ArrayXcd> fftOut = mFFT.process(Eigen::Ref<ArrayXd>(mFFTBuffer));
-
-    for (auto i = 0; i < frame.size(); i++) {
-      const double real = fftOut(i).real();
-      const double imag = fftOut(i).imag();
-      frame(i) = sqrt(real * real + imag * imag);
+    if (filteredFuncVal > mThreshold && mPrevFuncVal < mThreshold &&
+        mDebounceCount == 0) {
+      detected = 1.0;
+      mDebounceCount = mDebounce;
+    } else {
+      if (mDebounceCount > 0)
+        mDebounceCount--;
     }
-  }
-
-  void clipEpsilon(RealVectorView input) {
-    for (auto it = input.begin(); it != input.end(); it++)
-      *it = std::max(std::numeric_limits<double>::epsilon(), *it);
-  }
-
-  double frameComparison(RealVectorView vec1, RealVectorView vec2) {
-    if (mForwardOnly)
-      Descriptors::forwardFilter(vec1, vec2);
-
-    if (mNormalisation != kNone) {
-      Descriptors::normalise(vec1, mNormalisation == kPower);
-      Descriptors::normalise(vec2, mNormalisation == kPower);
-    }
-
-    // TODO - review this later
-    clipEpsilon(vec1);
-    clipEpsilon(vec2);
-
-    switch (mFunction) {
-    case kL1Norm:
-      return Descriptors::differenceL1Norm(vec1, vec2);
-    case kL2Norm:
-      return Descriptors::differenceL2Norm(vec1, vec2);
-    case kLogDifference:
-      return Descriptors::differenceLog(vec1, vec2);
-    case kFoote:
-      return Descriptors::differenceFT(vec1, vec2);
-    case kItakuraSaito:
-      return Descriptors::differenceIS(vec1, vec2);
-    case kKullbackLiebler:
-      return Descriptors::differenceKL(vec1, vec2);
-    case kSymmetricKullbackLiebler:
-      return Descriptors::differenceSKL(vec1, vec2);
-    case kModifiedKullbackLiebler:
-      return Descriptors::differenceMKL(vec1, vec2);
-    }
-  }
-
-  void resizeStorage() {
-    int FFTFrameSize = FFTSize() / 2 + 1;
-    mFrame1.resize(FFTFrameSize);
-    mFrame2.resize(FFTFrameSize);
-    mFFTBuffer.resize(windowSize());
-    mWindow = Map<ArrayXd>(
-        algorithm::windowFuncs[mWindowType](windowSize()).data(), windowSize());
+    mPrevFuncVal = filteredFuncVal;
+    return detected;
   }
 
 private:
   FFT mFFT;
-  fluid::FluidTensor<double, 1> mFrame1;
-  fluid::FluidTensor<double, 1> mFrame2;
-  ArrayXd mFFTBuffer;
+  ArrayXd mWindowStorage;
   ArrayXd mWindow;
+  int mMaxSize;
   int mFFTSize;
   int mWindowSize;
   int mHopSize;
   int mFrameDelta;
-  WindowType mWindowType;
-  DifferenceFunction mFunction;
+  WindowTypes mWindowType;
+  int mFunction;
   int mFilterSize;
-  bool mForwardOnly;
-  Normalisation mNormalisation;
   double mThreshold;
+  int mDebounce;
+  int mDebounceCount;
+  std::deque<double> mFilter;
+  std::vector<int> mSorting;
+  ArrayXcd prevFrame;
+  ArrayXcd prevPrevFrame;
+  double mPrevFuncVal;
 };
 
 }; // namespace algorithm
