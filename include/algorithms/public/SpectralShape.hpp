@@ -80,8 +80,8 @@ public:
         break;
       }
     }
-    //double crest = x.maxCoeff() / sqrt(x.square().mean());
-    double crest = x.maxCoeff() / x.sum();
+    double crest = x.maxCoeff() / sqrt(x.square().mean());
+    
     mOutputBuffer(0) = centroid;
     mOutputBuffer(1) = sqrt(spread);
     mOutputBuffer(2) = skewness;
