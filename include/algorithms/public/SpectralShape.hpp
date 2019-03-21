@@ -81,7 +81,7 @@ public:
       }
     }
     //double crest = x.maxCoeff() / sqrt(x.square().mean());
-    double crest = x.maxCoeff() / x.mean();
+    double crest = x.maxCoeff() / x.sum();
     mOutputBuffer(0) = centroid;
     mOutputBuffer(1) = sqrt(spread);
     mOutputBuffer(2) = skewness;
