@@ -64,7 +64,7 @@ public:
     if (mBufferParamsTracker.changed(hostVecSize, get<kFFT>().winSize(),
                                      get<kFrameDelta>())) {
       mBufferedProcess.hostSize(hostVecSize);
-      mBufferedProcess.maxSize(totalWindow, FluidBaseClient::audioChannelsIn(),
+      mBufferedProcess.maxSize(totalWindow, totalWindow, FluidBaseClient::audioChannelsIn(),
                                FluidBaseClient::audioChannelsOut());
       mTmp.resize(1, hostVecSize);
     }
@@ -80,7 +80,7 @@ public:
     RealMatrix out(1, hostVecSize);
     int frameOffset = 0; // in case kHopSize < hostVecSize
     mBufferedProcess.push(RealMatrixView(in));
-    mBufferedProcess.process(totalWindow, get<kFFT>().hopSize(),
+    mBufferedProcess.process(totalWindow, totalWindow, get<kFFT>().hopSize(),
                              [&, this](RealMatrixView in, RealMatrixView) {
                                out.row(0)(frameOffset) =
                                    mAlgorithm.processFrame(in.row(0));
