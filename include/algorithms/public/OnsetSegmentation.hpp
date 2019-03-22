@@ -71,6 +71,7 @@ public:
     if (fftSize != mFFTSize) {
       mFFTSize = fftSize;
       mFFT.resize(mFFTSize);
+      makeWindow();
     }
     if (windowSize != mWindowSize) {
       mWindowSize = windowSize;
