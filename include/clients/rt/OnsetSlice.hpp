@@ -28,13 +28,13 @@ enum OnsetParamIndex {
 
 auto constexpr OnsetParams = defineParameters(
     LongParam("function", "Function", 0, Min(0), Max(9)),
-    FloatParam("threshold", "Threshold", 0.5, Min(0)),
+    FloatParam("thresh", "Threshold", 0.5, Min(0)),
     LongParam("debounce", "Debounce", 2, Min(0)),
-    LongParam("filterSize", "Filter Size", 5, Min(0), Odd(), Max(101)),
+    LongParam("filtSize", "Filter Size", 5, Min(0), Odd(), Max(101)),
     // LongParam("frameDelta", "Frame Delta", 0, Min(0),
     // UpperLimit<kWinSize>()),
     LongParam("frameDelta", "Frame Delta", 0, Min(0)),
-    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, 512, 1024),
+    FFTParam<kMaxFFTSize>("fft", "FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
 
 template <typename T>
