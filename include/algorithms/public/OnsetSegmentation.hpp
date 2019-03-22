@@ -54,8 +54,8 @@ public:
     mWindowStorage.setZero();
     windows[mWindowType](mWindowSize, mWindowStorage);
     mWindow = mWindowStorage.segment(0, mWindowSize);
-    prevFrame = ArrayXcd::Zero(mWindowSize / 2 + 1);
-    prevPrevFrame = ArrayXcd::Zero(mWindowSize / 2 + 1);
+    prevFrame = ArrayXcd::Zero(mFFTSize / 2 + 1);
+    prevPrevFrame = ArrayXcd::Zero(mFFTSize / 2 + 1);
   }
 
   void updateParameters(int fftSize, int windowSize, int hopSize,
