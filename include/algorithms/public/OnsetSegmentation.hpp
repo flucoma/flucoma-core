@@ -38,6 +38,7 @@ public:
 
   void initFilter() {
     mFilter = std::deque<double>(mFilterSize, 0);
+    mSorting = std::vector<int>(mFilterSize);
     std::iota(mSorting.begin(), mSorting.end(), 0);
   }
 
@@ -77,9 +78,14 @@ public:
       mWindowSize = windowSize;
       makeWindow();
     }
+
     mHopSize = hopSize;
     mFrameDelta = frameDelta;
-    mFilterSize = filterSize;
+    if(mFilterSize != filterSize)
+    {
+        mFilterSize = filterSize;
+        initFilter();
+    }
     mThreshold = threshold;
     mFunction = function;
     mDebounce = debounce;
