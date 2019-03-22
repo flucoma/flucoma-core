@@ -121,7 +121,7 @@ public:
     double filteredFuncVal = 0;
     double detected = 0.;
     ArrayXcd frame = mFFT.process(in.segment(0, mWindowSize) * mWindow);
-    if (mFunction > 1 && mFunction < 5 & mFrameDelta != 0) {
+    if (mFunction > 1 && mFunction < 5 && mFrameDelta != 0) {
       ArrayXcd frame2 =
           mFFT.process(in.segment(mFrameDelta, mWindowSize) * mWindow);
       funcVal = onsetDetectionFuncs[static_cast<ODF>(mFunction)](frame2, frame,
