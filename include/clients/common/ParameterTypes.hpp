@@ -452,7 +452,7 @@ namespace impl
     
     static std::array<type, 3> getLiteral(const FFTParams& p)
     {
-      return { p.winSize(), p.hopSize(), p.fftSize()};
+      return { p.winSize(), p.hopRaw(), p.fftRaw()};
     }
   };
 }
