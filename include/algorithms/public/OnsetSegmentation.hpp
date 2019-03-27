@@ -38,6 +38,7 @@ public:
 
   void initFilter() {
     mFilter = std::deque<double>(mFilterSize, 0);
+    mSorting = std::vector<int>(mFilterSize);
     std::iota(mSorting.begin(), mSorting.end(), 0);
   }
 
@@ -54,8 +55,8 @@ public:
     mWindowStorage.setZero();
     windows[mWindowType](mWindowSize, mWindowStorage);
     mWindow = mWindowStorage.segment(0, mWindowSize);
-    prevFrame = ArrayXcd::Zero(mWindowSize / 2 + 1);
-    prevPrevFrame = ArrayXcd::Zero(mWindowSize / 2 + 1);
+    prevFrame = ArrayXcd::Zero(mFFTSize / 2 + 1);
+    prevPrevFrame = ArrayXcd::Zero(mFFTSize / 2 + 1);
   }
 
   void updateParameters(int fftSize, int windowSize, int hopSize,
@@ -71,14 +72,20 @@ public:
     if (fftSize != mFFTSize) {
       mFFTSize = fftSize;
       mFFT.resize(mFFTSize);
+      makeWindow();
     }
     if (windowSize != mWindowSize) {
       mWindowSize = windowSize;
       makeWindow();
     }
+
     mHopSize = hopSize;
     mFrameDelta = frameDelta;
-    mFilterSize = filterSize;
+    if(mFilterSize != filterSize)
+    {
+        mFilterSize = filterSize;
+        initFilter();
+    }
     mThreshold = threshold;
     mFunction = function;
     mDebounce = debounce;
@@ -121,7 +128,7 @@ public:
     double filteredFuncVal = 0;
     double detected = 0.;
     ArrayXcd frame = mFFT.process(in.segment(0, mWindowSize) * mWindow);
-    if (mFunction > 1 && mFunction < 5 & mFrameDelta != 0) {
+    if (mFunction > 1 && mFunction < 5 && mFrameDelta != 0) {
       ArrayXcd frame2 =
           mFFT.process(in.segment(mFrameDelta, mWindowSize) * mWindow);
       funcVal = onsetDetectionFuncs[static_cast<ODF>(mFunction)](frame2, frame,

@@ -93,13 +93,7 @@ public:
   {
     return std::get<0>(std::get<N>(mDescriptors));
   }
-  
-  template <std::size_t N>
-  const char *name() const noexcept
-  {
-    return get<N>().name;
-  }
-  
+
   const DescriptorType mDescriptors;
   
 private:
@@ -125,8 +119,6 @@ class ParameterSetView;
 template <size_t...Os, typename... Ts>
 class ParameterSetView<const ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>>
 {
-  using DescriptorSetType = ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>;
-
   enum ConstraintTypes
   {
     kAll,
@@ -135,14 +127,15 @@ class ParameterSetView<const ParameterDescriptorSet<std::index_sequence<Os...>, 
   };
     
 protected:
+
+  using DescriptorSetType = ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>;
+    
   template <size_t N>
   constexpr auto descriptor() const
   {
     return mDescriptors.template get<N>();
   }
-  
-public:
-  
+    
   using DescriptorType      = typename DescriptorSetType::DescriptorType;
   using ValueTuple          = typename DescriptorSetType::ValueTuple;
   using ValueRefTuple       = typename DescriptorSetType::ValueRefTuple;
@@ -158,6 +151,8 @@ public:
 
   template <size_t N>
   using ParamType = typename DescriptorSetType::template ParamType<N>;
+
+public:
 
   constexpr ParameterSetView(const DescriptorSetType &d, ValueRefTuple t)
   : mDescriptors{d}
@@ -229,19 +224,7 @@ public:
   {
     return std::get<N>(mParams);
   }
-
-  template <std::size_t N>
-  const char *name() const noexcept
-  {
-    return mDescriptors.template name<N>();
-  }
-
-  template <size_t N>
-  auto defaultValue() const
-  {
-    return std::get<0>(std::get<N>(mDescriptors.mDescriptors)).defaultValue;
-  }
-  
+ 
   template<size_t offset>
   auto subset()
   {

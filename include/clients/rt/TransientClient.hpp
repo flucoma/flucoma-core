@@ -65,14 +65,15 @@ public:
     std::size_t blockSize = get<kBlockSize>();
     std::size_t padding = get<kPadding>();
     std::size_t hostVecSize = input[0].size();
-    std::size_t maxWin = 2*blockSize + padding;
+    std::size_t maxWinIn = 2*blockSize + padding;
+    std::size_t maxWinOut = blockSize - order;
 
     if (!mExtractor.get() || !mExtractor.get() || mTrackValues.changed(order, blockSize, padding, hostVecSize))
     {
       mExtractor.reset(new algorithm::TransientExtraction(order, iterations, robustFactor, refine));
       mExtractor->prepareStream(blockSize, padding);
       mBufferedProcess.hostSize(hostVecSize);
-      mBufferedProcess.maxSize(maxWin, FluidBaseClient::audioChannelsIn(), FluidBaseClient::audioChannelsOut());
+      mBufferedProcess.maxSize(maxWinIn, maxWinOut, FluidBaseClient::audioChannelsIn(), FluidBaseClient::audioChannelsOut());
     }
 
     double skew = std::pow(2, get<kSkew>());
@@ -88,7 +89,7 @@ public:
     in.row(0) = input[0]; //need to convert float->double in some hosts
     mBufferedProcess.push(RealMatrixView(in));
 
-    mBufferedProcess.process(mExtractor->inputSize(), mExtractor->hopSize(), [this](RealMatrixView in, RealMatrixView out)
+    mBufferedProcess.process(mExtractor->inputSize(), mExtractor->hopSize(), mExtractor->hopSize(), [this](RealMatrixView in, RealMatrixView out)
     {
       mExtractor->process(in.row(0), out.row(0), out.row(1));
     });

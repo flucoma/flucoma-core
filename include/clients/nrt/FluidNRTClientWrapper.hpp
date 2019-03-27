@@ -22,7 +22,7 @@ auto constexpr makeWrapperInputs(B b)
           LongParam("startAt", "Source Offset",0, Min(0)),
           LongParam("nFrames","Number of Frames", -1),
           LongParam("startChan","Start Channel",0, Min(0)),
-          LongParam("numChans","Number of Channels", -1)
+          LongParam("nChans","Number of Channels", -1)
           );
 }
 
@@ -61,7 +61,7 @@ class NRTClientWrapper: public OfflineIn, public OfflineOut
 {
 
 public:
-    
+
   using ParamDescType = ParamType;
   using ParamSetType = ParameterSet<ParamDescType>;
   using ParamSetViewType = ParameterSetView<ParamDescType>;
@@ -69,7 +69,7 @@ public:
   using RTParamSetViewType = ParameterSetView<typename RTClient::ParamDescType>;
 
   constexpr static auto getParameterDescriptors() { return PD; }
-    
+
   //The client will be accessing its parameter by a bunch of indices that need ofsetting now
 //  using Client = RTClient<impl::ParameterSet_Offset<Params,ParamOffset>,T,U>;
 // None of that for outputs though
@@ -158,7 +158,7 @@ private:
   {
     return {get<Is + (Ins*5)>().get()...};
   }
-    
+
   RTParamSetViewType    mRealTimeParams;
   ParamSetViewType&     mParams;
   WrappedClient         mClient;
@@ -224,7 +224,7 @@ struct Slicing
     assert(outputBuffers.size() == 1);
     size_t padding = client.latency();
     HostMatrix monoSource(1,nFrames + padding);
-    
+
     BufferAdaptor::Access src(inputBuffers[0].buffer);
     // Make a mono sum;
     for (size_t i = 0; i < nChans; ++i)
@@ -243,10 +243,10 @@ struct Slicing
 
 } //namespace impl
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-    
+
 template<class RTClient, typename Params, Params& PD, size_t Ins, size_t Outs>
 using NRTStreamAdaptor = impl::NRTClientWrapper<impl::Streaming, RTClient, Params, PD, Ins, Outs>;
-    
+
 template<class RTClient,typename Params, Params& PD, size_t Ins, size_t Outs>
 using NRTSliceAdaptor = impl::NRTClientWrapper<impl::Slicing, RTClient, Params, PD, Ins, Outs>;
 
@@ -257,6 +257,6 @@ auto constexpr makeNRTParams(impl::BufferSpec&& in, impl::BufferSpec(&& out)[Ms]
 {
   return impl::joinParameterDescriptors(impl::joinParameterDescriptors(impl::makeWrapperInputs(in), impl::spitOuts(out, std::make_index_sequence<Ms>())), RTClient<double>::getParameterDescriptors());
 }
-   
+
 } //namespace client
 } //namespace fluid
