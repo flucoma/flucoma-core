@@ -27,6 +27,7 @@ public:
     assert(newSize <= mMaxSize);
     mFrameSize = newSize / 2 + 1;
     mLog2Size = log2(newSize);
+    mSize = newSize;
   }
 
   Eigen::Ref<ArrayXcd> process(const ArrayXdRef &input) {
@@ -71,7 +72,7 @@ public:
     }
     mSplit.imagp[0] = mSplit.realp[mFrameSize - 1];
     hisstools_rifft(mSetup, &mSplit, mOutputBuffer.data(), mLog2Size);
-    return mOutputBuffer.segment(0, mFrameSize);
+    return mOutputBuffer.segment(0, mSize);
   }
 
 private:
