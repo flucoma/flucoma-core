@@ -81,13 +81,13 @@ public:
       }
     }
     double crest = x.maxCoeff() / sqrt(x.square().mean());
-    
+
     mOutputBuffer(0) = centroid;
     mOutputBuffer(1) = sqrt(spread);
     mOutputBuffer(2) = skewness;
     mOutputBuffer(3) = kurtosis;
-    mOutputBuffer(4) = flatness;
-    mOutputBuffer(5) = rolloff;
+    mOutputBuffer(4) = rolloff;
+    mOutputBuffer(5) = flatness;
     mOutputBuffer(6) = crest;
   }
 
