@@ -87,8 +87,8 @@ public:
     mOutputBuffer(2) = skewness;
     mOutputBuffer(3) = kurtosis;
     mOutputBuffer(4) = rolloff;
-    mOutputBuffer(5) = flatness;
-    mOutputBuffer(6) = crest;
+    mOutputBuffer(5) = 20 * std::log10(std::max(flatness, epsilon));
+    mOutputBuffer(6) = 20 * std::log10(std::max(crest, epsilon));
   }
 
   void processFrame(const RealVector &input, RealVectorView output) {
