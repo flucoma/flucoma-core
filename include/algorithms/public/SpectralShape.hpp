@@ -57,8 +57,8 @@ public:
     output = asFluid(result);
   }*/
 
-  void processFrame(Ref<ArrayXd> x) {
-    //assert(output.size() == 7); // TODO
+  void processFrame(Ref<ArrayXd> in) {
+    ArrayXd x = in.max(std::numeric_limits<double>::epsilon());
     int size = x.size();
     double xSum = x.sum();
     ArrayXd xSquare = x.square();
