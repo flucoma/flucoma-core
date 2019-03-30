@@ -35,7 +35,8 @@ auto constexpr OnsetParams = defineParameters(
     // UpperLimit<kWinSize>()),
     LongParam("frameDelta", "Frame Delta", 0, Min(0)),
     FFTParam<kMaxFFTSize>("fft", "FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
+    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4), PowerOfTwo{})
+  );
 
 template <typename T>
 class OnsetSlice : public FluidBaseClient<decltype(OnsetParams), OnsetParams>,

@@ -23,7 +23,7 @@ auto constexpr HPSSParams = defineParameters(
     FloatPairsArrayParam("hThresh", "Harmonic Filter Thresholds", FrequencyAmpPairConstraint{}),
     FloatPairsArrayParam("pThresh", "Percussive Filter Thresholds", FrequencyAmpPairConstraint{}),
     FFTParam<kMaxFFT>("fft","FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(32), PowerOfTwo{}),
+    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4), PowerOfTwo{}),
     LongParam<Fixed<true>>("maxHFiltSize", "Maximum Harmonic Filter Size", 101, LowerLimit<kHSize>(), Odd{}),
     LongParam<Fixed<true>>("maxPFiltSize", "Maximum Percussive Filter Size", 101,LowerLimit<kPSize>(), Odd{})
 );

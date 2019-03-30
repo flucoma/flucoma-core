@@ -21,7 +21,8 @@ enum STFTParamIndex { kFFT, kMaxFFT };
 
 auto constexpr STFTParams = defineParameters(
     FFTParam<kMaxFFT>("fft","FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
+    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4), PowerOfTwo{})
+  );
 
 template <typename T>
 class BaseSTFTClient : public FluidBaseClient<decltype(STFTParams), STFTParams>, public AudioIn, public AudioOut

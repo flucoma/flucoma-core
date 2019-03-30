@@ -31,7 +31,8 @@ extern auto constexpr SinesParams = defineParameters(
     FloatParam("magWeight", "Magnitude Weighting", 0.1, Min(0.0), Max(1.0)),
     FloatParam("freqWeight", "Frequency Weighting", 0.1, Min(0.0), Max(1.0)),
     FFTParam<kMaxFFTSize>("fft", "FFT Settings", 1024,-1,-1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
+    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4), PowerOfTwo{})
+  );
 
 
 template <typename T>
