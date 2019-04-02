@@ -25,12 +25,12 @@ enum SinesParamIndex {
 };
 
 extern auto constexpr SinesParams = defineParameters(
-    LongParam("bw", "Bandwidth", 76, Min(1)),
-    FloatParam("thresh", "Threshold", 0.7, Min(0.0), Max(1.0)),
+    LongParam("bandwidth", "Bandwidth", 76, Min(1)),
+    FloatParam("threshold", "Threshold", 0.7, Min(0.0), Max(1.0)),
     LongParam("minTrackLen", "Min Track Length", 15, Min(0)),
     FloatParam("magWeight", "Magnitude Weighting", 0.1, Min(0.0), Max(1.0)),
     FloatParam("freqWeight", "Frequency Weighting", 0.1, Min(0.0), Max(1.0)),
-    FFTParam<kMaxFFTSize>("fft", "FFT Settings", 1024,-1,-1),
+    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024,-1,-1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4), PowerOfTwo{})
   );
 
@@ -85,8 +85,8 @@ private:
   size_t mMinTrackLen{0};
 };
 
-auto constexpr NRTSineParams = makeNRTParams<SinesClient>({BufferParam("srcBuf", "Source Buffer")}, {BufferParam("sinesBuf","Sines Buffer"), BufferParam("resBuf", "Residual Buffer")});
-    
+auto constexpr NRTSineParams = makeNRTParams<SinesClient>({BufferParam("source", "Source Buffer")}, {BufferParam("sines","Sines Buffer"), BufferParam("residual", "Residual Buffer")});
+
 template <typename T>
 using NRTSines = NRTStreamAdaptor<SinesClient<T>, decltype(NRTSineParams), NRTSineParams, 1, 2>;
 

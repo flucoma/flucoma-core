@@ -19,10 +19,10 @@ template<typename B>
 auto constexpr makeWrapperInputs(B b)
 {
     return defineParameters(std::forward<B>(b),
-          LongParam("startAt", "Source Offset",0, Min(0)),
-          LongParam("nFrames","Number of Frames", -1),
+          LongParam("startFrame", "Source Offset",0, Min(0)),
+          LongParam("numFrames","Number of Frames", -1),
           LongParam("startChan","Start Channel",0, Min(0)),
-          LongParam("nChans","Number of Channels", -1)
+          LongParam("numChans","Number of Channels", -1)
           );
 }
 

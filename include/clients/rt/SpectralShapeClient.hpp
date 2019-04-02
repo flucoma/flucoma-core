@@ -18,7 +18,7 @@ using algorithm::SpectralShape;
 enum SpectralShapeParamIndex { kFFT, kMaxFFTSize };
 
 auto constexpr SpectralShapeParams = defineParameters(
-    FFTParam<kMaxFFTSize>("fft", "FFT Settings", 1024, -1, -1),
+    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4), PowerOfTwo{})
   );
 

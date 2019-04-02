@@ -25,20 +25,20 @@ namespace client {
 enum NMFParamIndex {kSource, kOffset, kNumFrames, kStartChan, kNumChans, kResynth,kFilters,kFiltersUpdate,kEnvelopes,kEnvelopesUpdate,kRank,kIterations,kFFT};
 
 auto constexpr NMFParams = defineParameters(
-  BufferParam("srcBuf","Source Buffer"),
-  LongParam("startAt","Source Offset",0, Min(0)),
-  LongParam("nFrames","Number of Frames",-1),
+  BufferParam("source","Source Buffer"),
+  LongParam("startFrame","Source Offset",0, Min(0)),
+  LongParam("numFrames","Number of Frames",-1),
   LongParam("startChan","Start Channel",0,Min(0)),
-  LongParam("nChans","Number Channels",-1),
-  BufferParam("resynthBuf", "Resynthesis Buffer"),
-  BufferParam("dictBuf", "Dictionaries Buffer"),
-  EnumParam("dictFlag", "Dictionaries Buffer Update Flag", 0, "None","Seed","Fixed"),
-  BufferParam("actBuf", "Activations Buffer"),
-  EnumParam("actFlag", "Activations Buffer Update Flag", 0, "None","Seed","Fixed"),
+  LongParam("numChans","Number Channels",-1),
+  BufferParam("resynth", "Resynthesis Buffer"),
+  BufferParam("bases", "Bases Buffer"),
+  EnumParam("basesMode", "Bases Buffer Update Mode", 0, "None","Seed","Fixed"),
+  BufferParam("activations", "Activations Buffer"),
+  EnumParam("actMode", "Activations Buffer Update Mode", 0, "None","Seed","Fixed"),
   LongParam("rank", "Rank", 1, Min(1)),
-  LongParam("nIter", "Number of Iterations", 100, Min(1)),
-  FFTParam("fft", "FFT Settings", 1024, -1, -1)
-);//,PowerOfTwo()));
+  LongParam("numIter", "Number of Iterations", 100, Min(1)),
+  FFTParam("fftSettings", "FFT Settings", 1024, -1, -1)
+);
 
 template<typename T>
 class NMFClient: public FluidBaseClient<decltype(NMFParams), NMFParams>, public OfflineIn, public OfflineOut
@@ -60,7 +60,7 @@ public:
     {
       return {Result::Status::kError,"No input"};
     }
-      
+
     BufferAdaptor::Access source(get<kSource>().get());
 
     if(!(source.exists() && source.valid()))

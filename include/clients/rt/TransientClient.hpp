@@ -38,7 +38,7 @@ auto constexpr TransientParams = defineParameters(
     LongParam("winSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
     LongParam("debounce", "Debounce", 25, Min(0)));
 
-    
+
 template <typename T>
 class TransientClient : public FluidBaseClient<decltype(TransientParams), TransientParams>, public AudioIn, public AudioOut
 {
@@ -46,7 +46,7 @@ class TransientClient : public FluidBaseClient<decltype(TransientParams), Transi
 public:
 
   using HostVector = HostVector<T>;
-    
+
   TransientClient(ParamSetViewType& p) : FluidBaseClient(p) {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::audioChannelsOut(2);
@@ -105,7 +105,7 @@ public:
   {
     return get<kPadding>() + get<kBlockSize>() -  get<kOrder>();
   }
-    
+
 private:
   ParameterTrackChanges<size_t,size_t,size_t,size_t> mTrackValues;
   std::unique_ptr<algorithm::TransientExtraction> mExtractor;
@@ -116,8 +116,8 @@ private:
   size_t mPadding{0};
 };
 
-auto constexpr NRTTransientParams = makeNRTParams<TransientClient>({BufferParam("srcBuf", "Source Buffer")}, {BufferParam("transBuf","Transients Buffer"), BufferParam("resBuf","Residual Buffer")});
-    
+auto constexpr NRTTransientParams = makeNRTParams<TransientClient>({BufferParam("source", "Source Buffer")}, {BufferParam("transients","Transients Buffer"), BufferParam("residual","Residual Buffer")});
+
 template <typename T>
 using NRTTransients = NRTStreamAdaptor<TransientClient<T>, decltype(NRTTransientParams), NRTTransientParams, 1, 2>;
 

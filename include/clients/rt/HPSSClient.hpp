@@ -17,15 +17,15 @@ namespace client {
 enum HPSSParamIndex { kHSize, kPSize, kMode, kHThresh, kPThresh, kFFT, kMaxFFT, kMaxHSize,kMaxPSize };
 
 auto constexpr HPSSParams = defineParameters(
-    LongParam("hFiltSize", "Harmonic Filter Size", 17, UpperLimit<kMaxHSize>(),Odd{}, Min(3)),
-    LongParam("pFiltSize", "Percussive Filter Size", 31, UpperLimit<kMaxPSize>(),Odd{}, Min(3)),
-    EnumParam("modeFlag", "Masking Mode", 0, "Classic", "Coupled", "Advanced"),
-    FloatPairsArrayParam("hThresh", "Harmonic Filter Thresholds", FrequencyAmpPairConstraint{}),
-    FloatPairsArrayParam("pThresh", "Percussive Filter Thresholds", FrequencyAmpPairConstraint{}),
-    FFTParam<kMaxFFT>("fft","FFT Settings", 1024, -1, -1),
+    LongParam("harmFilterSize", "Harmonic Filter Size", 17, UpperLimit<kMaxHSize>(),Odd{}, Min(3)),
+    LongParam("percFilterSize", "Percussive Filter Size", 31, UpperLimit<kMaxPSize>(),Odd{}, Min(3)),
+    EnumParam("maskingMode", "Masking Mode", 0, "Classic", "Coupled", "Advanced"),
+    FloatPairsArrayParam("harmThresh", "Harmonic Filter Thresholds", FrequencyAmpPairConstraint{}),
+    FloatPairsArrayParam("percThresh", "Percussive Filter Thresholds", FrequencyAmpPairConstraint{}),
+    FFTParam<kMaxFFT>("fftSettings","FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4), PowerOfTwo{}),
-    LongParam<Fixed<true>>("maxHFiltSize", "Maximum Harmonic Filter Size", 101, LowerLimit<kHSize>(), Odd{}),
-    LongParam<Fixed<true>>("maxPFiltSize", "Maximum Percussive Filter Size", 101,LowerLimit<kPSize>(), Odd{})
+    LongParam<Fixed<true>>("maxHarmFilterSize", "Maximum Harmonic Filter Size", 101, LowerLimit<kHSize>(), Odd{}),
+    LongParam<Fixed<true>>("maxPercFilterSize", "Maximum Percussive Filter Size", 101,LowerLimit<kPSize>(), Odd{})
 );
 
 template <typename T>
@@ -63,7 +63,7 @@ public:
     {
       mHPSS.setVSize(get<kPSize>());
       if(mTrackHSize.changed(get<kHSize>())) mHPSS.setHSize(get<kHSize>());
-      
+
       mHPSS.setHThresholdX1(get<kHThresh>().value[0].first);
       mHPSS.setHThresholdY1(get<kHThresh>().value[0].second);
 
@@ -75,9 +75,9 @@ public:
 
       mHPSS.setPThresholdX2(get<kPThresh>().value[1].first);
       mHPSS.setPThresholdY2(get<kPThresh>().value[1].second);
-      
-      mHPSS.setMode(get<kMode>()); 
-      
+
+      mHPSS.setMode(get<kMode>());
+
     }
 
     mSTFTBufferedProcess.process(mParams, input, output,
@@ -94,8 +94,8 @@ private:
   algorithm::RTHPSS mHPSS;
 };
 
-auto constexpr NRTHPSSParams = makeNRTParams<HPSSClient>({BufferParam("srcBuf", "Source Buffer")},  {BufferParam("harmBuf","Harmonic Buffer"), BufferParam("percBuf","Percussive Buffer"), BufferParam("resBuf", "Residual Buffer")});
-    
+auto constexpr NRTHPSSParams = makeNRTParams<HPSSClient>({BufferParam("source", "Source Buffer")},  {BufferParam("harmonic","Harmonic Buffer"), BufferParam("percussive","Percussive Buffer"), BufferParam("residual", "Residual Buffer")});
+
 template <typename T>
 using NRTHPSS = NRTStreamAdaptor<HPSSClient<T>, decltype(NRTHPSSParams), NRTHPSSParams, 1, 3>;
 

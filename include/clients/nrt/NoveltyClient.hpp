@@ -14,16 +14,16 @@ namespace client {
 enum NoveltyParamIndex {kSource, kOffset, kNumFrames, kStartChan, kNumChans, kTransBuf, kKernelSize, kThreshold,kFilterSize,kFFT};
 
 auto constexpr NoveltyParams =defineParameters(
-  BufferParam("srcBuf","Source Buffer"),
-  LongParam("startAt","Source Offset",0,Min(0)),
-  LongParam("nFrames","Number of Frames",-1),
+  BufferParam("source","Source Buffer"),
+  LongParam("startFrame","Source Offset",0,Min(0)),
+  LongParam("numFrames","Number of Frames",-1),
   LongParam("startChan","Start Channel",0,Min(0)),
-  LongParam("nChans","Number of Channels",-1),
-  BufferParam("indBuf", "Indices Buffer"),
-  LongParam("kernSize", "Kernel Size", 3, Min(3), Odd()),
-  FloatParam("thresh", "Threshold", 0.8, Min(0.)),
-  LongParam("filtSize", "Smoothing Filter Size", 1, FrameSizeUpperLimit<kFFT>()),
-  FFTParam("fft", "FFT Settings", 1024, -1, -1)
+  LongParam("numChans","Number of Channels",-1),
+  BufferParam("indices", "Indices Buffer"),
+  LongParam("kernelSize", "Kernel Size", 3, Min(3), Odd()),
+  FloatParam("threshold", "Threshold", 0.8, Min(0.)),
+  LongParam("filterSize", "Smoothing Filter Size", 1, FrameSizeUpperLimit<kFFT>()),
+  FFTParam("fftSettings", "FFT Settings", 1024, -1, -1)
  );
 
 template<typename T>
