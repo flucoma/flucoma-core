@@ -4,10 +4,14 @@ Nicol-LoopE-M.wav
   - Jean-Sébastien Nicol (drums) recorded by Pierre Alexandre Tremblay at Université de Montréal, 1998
 
 Tremblay-AaS-AcousticStrums-M.wav
-  - sound sources for the piece 'Attempts at Stillness', Pierre Alexandre Tremblay, 2017
-
 Tremblay-AaS-SynthTwoVoices-M.wav
   - sound sources for the piece 'Attempts at Stillness', Pierre Alexandre Tremblay, 2017
+
+Tremblay-ASWINE-ScratchySynth-M.wav
+  - sound source for the piece 'asinglewordisnotenough', Pierre Alexandre Tremblay, 2015
+
+Tremblay-BaB-HumDC-M.wav
+  - sound source for the piece 'Bucolic & Broken', Pierre Alexandre Tremblay, 2017
 
 Tremblay-BaB-SoundfielGolcarWithDog.wav
   - soundfield recording, Golcar, UK, 4th March 2017, for the piece 'Bucolic & Broken', Pierre Alexandre Tremblay, 2017
@@ -17,6 +21,14 @@ Tremblay-BeatRemember.wav
 
 Tremblay-CF-ChurchBells.wav
   - sound sources for the piece 'La cloche fêlée', recorded in Ephraim Scott Memorial Presbyterian Church, Montreal, by Pierre Alexandre Tremblay, 2003
+
+Tremblay-ComplexDescent-M.wav
+Tremblay-FMTri-M.wav
+Tremblay-FMTriDist-M.wav
+Tremblay-Iterative-M.wav
+Tremblay-SlideChoirAdd-M.wav
+Tremblay-SlideChoirSin-M.wav
+  - examples devised as difficult to segment. Some might end up in a piece.
 
 Tremblay-SA-UprightPianoPedalWide.wav
   - sound sources for the piece 'Still, Again', Pierre Alexandre Tremblay, 2013
