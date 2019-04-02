@@ -13,24 +13,34 @@ date:
 
 
 ===
-# Alpha-04: Refactor Break All
+# Alpha-04: Post-Refactor-Major-BreakAll-Release
 date:
 
+## New Environment:
+- EXPERIMENTAL: early release of a basic command-line interface for the buffer objects. Check the readme for the (very small) set of indications of how it works.
+
 ## New Objects:
+- OnsetSlice and BufOnsetSlice: a collection of 10 different onset detection functions for real-time and buffers.
+- SpectralShape: a real-time spectral descriptor object, giving the 7 most common spectral shape descriptors (centroid, spread, skewness, etc.)
 
 ## New Features:
-- BREAKING CHANGE: process method is significantly different - it doesn't exist anymore in Max (bang)
+- BREAKING CHANGE: ‘process' method is significantly different - it doesn't exist anymore in Max (bang)
 - BREAKING CHANGE (MAX): all parameters are now attributes
+- All parameters of are now modulatable - new maxima parameters to set the ranges of those modulations are instantiation only.
 - BREAKING CHANGE (MAX): fft parameters are now a single list
-- Warning attribute for all objects (in max, window, in SC turn verbose up (see manual))
-- BREAKING CHANGE: bufcompose is now single in single out with clearer syntax (and state and reset in MAX)
+- BREAKING CHANGE: all parameters have been renamed in a consistent, verbose way.
+- Warning attribute for all objects (in max, window, in SC turn verbose up (see manual)): reports warnings when attribute values try to go out of range
+- BREAKING CHANGE: bufcompose is now single-in, single-out and has clearer syntax (and state and reset in MAX)
+- SC: Buf* have a completion action, as well as clean update of the modified buffers.
 
 ## New Examples:
 
 ## Bug Fixes:
+- complete C++ code rewrite under the hood, therefore many, many fixes and some likely new bugs
 
 ## Known Bugs Still Unfixed:
-
+- MAX: autocompletion of @arguments and in/outlet assist strings are on their way, but not yet implemented.
+- HPSS: percussive filter above 35 generate noises and glitches
 
 ====
 
