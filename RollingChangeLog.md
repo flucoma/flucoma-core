@@ -14,7 +14,7 @@ date:
 
 ===
 # Alpha-04: Post-Refactor-Major-BreakAll-Release
-date:
+date: 4/4/2019
 
 ## New Environment:
 - EXPERIMENTAL: early release of a basic command-line interface for the buffer objects. Check the readme for the (very small) set of indications of how it works.
@@ -34,6 +34,7 @@ date:
 - SC: Buf* have a completion action, as well as clean update of the modified buffers.
 
 ## New Examples:
+- both: 2-pass mass bufcompose for a folder, that makes it 60x faster in Max and 4x in SC (we're working on the latter)
 
 ## Bug Fixes:
 - complete C++ code rewrite under the hood, therefore many, many fixes and some likely new bugs
