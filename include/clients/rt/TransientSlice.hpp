@@ -68,8 +68,8 @@ public:
     std::size_t padding = get<kPadding>();
     std::size_t hostVecSize = input[0].size();
     std::size_t maxWinIn = 2*blockSize + padding;
-    std::size_t maxWinOut = blockSize - padding;
-      
+    std::size_t maxWinOut = maxWinIn; //blockSize - padding;
+    
     if (!mExtractor.get() || mTrackValues.changed(order, blockSize, padding, hostVecSize)) {
       mExtractor.reset(new algorithm::TransientSegmentation(order, iterations, robustFactor));
       mExtractor->prepareStream(blockSize, padding);
