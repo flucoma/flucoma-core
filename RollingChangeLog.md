@@ -13,6 +13,36 @@ date:
 
 
 ===
+# Alpha-05:
+date:
+
+## New Objects:
+
+## New Features:
+
+## New Examples:
+
+## Bug Fixes:
+
+## Known Bugs Still Unfixed:
+
+
+===
+# Alpha-04a: quick bug fix and stereo toy examples of buf* processes
+date: 7/4/2019
+
+## New Examples:
+- stereo toy examples to test and showcase behaviour of stereo buf* processes.
+
+## Bug Fixes:
+- stereo inputs to buf* slicing code were crashing the processes. now fixed.
+- (MAX) NMF example folder updated
+
+## Known Bugs Still Unfixed:
+- MAX: autocompletion of @arguments and in/outlet assist strings are on their way, but not yet implemented.
+- HPSS: percussive filter above 35 generate noises and glitches
+
+===
 # Alpha-04: Post-Refactor-Major-BreakAll-Release
 date: 4/4/2019
 
