@@ -53,7 +53,9 @@ ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/BufferedProcess.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/GainClient.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/HPSSClient.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/NMFMatch.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/OnsetSlice.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/SinesClient.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/SpectralShapeClient.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/TransientClient.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/TransientSlice.hpp )
 
@@ -111,8 +113,8 @@ target_compile_definitions(
 target_link_libraries(
   FLUID_DECOMPOSITION INTERFACE HISSTools_FFT
 )
-add_subdirectory(
-  "${CMAKE_CURRENT_SOURCE_DIR}/examples"
-)
+# add_subdirectory(
+#   "${CMAKE_CURRENT_SOURCE_DIR}/examples"
+# )
 
 export(TARGETS FLUID_DECOMPOSITION HISSTools_FFT HISSTools_AudioFile FILE fluid_decomposition-exports.cmake)
