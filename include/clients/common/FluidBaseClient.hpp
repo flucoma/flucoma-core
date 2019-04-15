@@ -22,12 +22,12 @@ public:
   using ParamSetType = ParameterSet<ParamDescType>;
   using ParamSetViewType = ParameterSetView<ParamDescType>;
     
-  FluidBaseClient(ParamSetViewType& p) : mParams(p){}
+  FluidBaseClient(ParamSetViewType& p) : mParams(std::ref(p)){}
   
   template<size_t N>
   auto& get() const
   {
-    return mParams.template get<N>();
+    return mParams.get().template get<N>();
   }
 
   template <size_t N, typename T>
@@ -61,7 +61,7 @@ protected:
   void audioBuffersIn(const size_t x) noexcept { mBuffersIn = x; }
   void audioBuffersOut(const size_t x) noexcept { mBuffersOut = x; }
 
-  ParamSetViewType&   mParams;
+  std::reference_wrapper<ParamSetViewType>   mParams;
 
 private:
   size_t mAudioChannelsIn       = 0;
