@@ -8,6 +8,7 @@
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
 #include "../rt/BufferedProcess.hpp"
+#include "../nrt/FluidNRTClientWrapper.hpp"
 #include <tuple>
 
 namespace fluid {
@@ -62,7 +63,10 @@ public:
   }
 
   size_t latency() { return get<kFFT>().winSize(); }
-
+  
+  size_t controlRate() {return get<kFFT>().hopSize();}
+  
+  
 private:
   ParameterTrackChanges<size_t> mWinSizeTracker;
   STFTBufferedProcess<ParamSetViewType, T, kFFT> mSTFTBufferedProcess;
@@ -70,6 +74,13 @@ private:
   FluidTensor<double, 1> mMagnitude;
   FluidTensor<double, 1> mDescriptors;
 };
+
+auto constexpr NRTSpectralShapeParams = makeNRTParams<SpectralShapeClient>({BufferParam("source", "Source Buffer")},
+                              {BufferParam("features", "Features Buffer")});
+  
+template <typename T>
+using NRTSpectralShapeClient = NRTControlAdaptor<SpectralShapeClient<T>, decltype(NRTSpectralShapeParams), NRTSpectralShapeParams, 1, 3>;
+
 
 } // namespace client
 } // namespace fluid
