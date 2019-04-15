@@ -56,11 +56,20 @@ constexpr auto joinParameterDescriptors(ParameterDescriptorSet<std::index_sequen
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
+template<typename HostMatrix,typename HostVectorView>
+struct StreamingControl;
+
 template<template <typename, typename> class AdaptorType, class RTClient, typename ParamType, ParamType& PD, size_t Ins, size_t Outs>
 class NRTClientWrapper: public OfflineIn, public OfflineOut
 {
-
 public:
+  //Host buffers are always float32 (?)
+  using HostVector     =  FluidTensor<float,1>;
+  using HostMatrix     =  FluidTensor<float,2>;
+  using HostVectorView =  FluidTensorView<float,1>;
+  using HostMatrixView =  FluidTensorView<float,2>;
+  static constexpr auto isControl = std::is_same<AdaptorType<HostMatrix,HostVectorView>,StreamingControl<HostMatrix,HostVectorView>>();
+  static constexpr auto  decideOuts  =  isControl ? 1: Outs;
 
   using ParamDescType = ParamType;
   using ParamSetType = ParameterSet<ParamDescType>;
@@ -74,14 +83,8 @@ public:
 //  using Client = RTClient<impl::ParameterSet_Offset<Params,ParamOffset>,T,U>;
 // None of that for outputs though
 
-  static constexpr size_t ParamOffset  = (Ins*5) + Outs;
+  static constexpr size_t ParamOffset  = (Ins*5) + decideOuts;
   using WrappedClient = RTClient;//<ParameterSet_Offset<Params,ParamOffset>,T>;
-
-  //Host buffers are always float32 (?)
-  using HostVector     =  FluidTensor<float,1>;
-  using HostMatrix     =  FluidTensor<float,2>;
-  using HostVectorView =  FluidTensorView<float,1>;
-  using HostMatrixView =  FluidTensorView<float,2>;
 
   NRTClientWrapper(ParamSetViewType& p)
     : mParams{p}
@@ -96,15 +99,16 @@ public:
   size_t audioChannelsOut()   const noexcept { return 0; }
   size_t controlChannelsIn()  const noexcept { return 0; }
   size_t controlChannelsOut() const noexcept { return 0; }
-  ///Map delegate audio channels to audio buffers
+  ///Map delegate audio / control channels to audio buffers
   size_t audioBuffersIn()  const noexcept { return mClient.audioChannelsIn();  }
-  size_t audioBuffersOut() const noexcept { return mClient.audioChannelsOut(); }
+  size_t audioBuffersOut() const noexcept { return isControl ? 1 : mClient.audioChannelsOut(); }
 
   Result process()
   {
 
+    
     auto constexpr inputCounter = std::make_index_sequence<Ins>();
-    auto constexpr outputCounter = std::make_index_sequence<Outs>();
+    auto constexpr outputCounter = std::make_index_sequence<decideOuts>();
 
     auto inputBuffers  = fetchInputBuffers(inputCounter);
     auto outputBuffers = fetchOutputBuffers(outputCounter);
@@ -135,7 +139,7 @@ public:
 
     size_t numFrames   = *std::min_element(inFrames.begin(),inFrames.end());
     size_t numChannels = *std::min_element(inChans.begin(), inChans.end());
-  AdaptorType<HostMatrix,HostVectorView>::process(mClient,inputBuffers,outputBuffers,numFrames,numChannels);
+    AdaptorType<HostMatrix,HostVectorView>::process(mClient,inputBuffers,outputBuffers,numFrames,numChannels);
 
     return {Result::Status::kOk,""};
   }
@@ -168,7 +172,7 @@ template<typename HostMatrix, typename HostVectorView>
 struct Streaming
 {
   template <typename Client,typename InputList, typename OutputList>
-  static void process(Client& client, InputList& inputBuffers,OutputList& outputBuffers, size_t nFrames, size_t nChans)
+  static void process(Client& client, InputList& inputBuffers,OutputList& outputBuffers, size_t nFrames, size_t nChans, size_t outputDownsampleFactor = 1)
   {
     //To account for process latency we need to copy the buffers with padding
     std::vector<HostMatrix> outputData;
@@ -214,6 +218,67 @@ struct Streaming
 };
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename HostMatrix,typename HostVectorView>
+struct StreamingControl
+{
+  template <typename Client,typename InputList, typename OutputList>
+  static void process(Client& client, InputList& inputBuffers,OutputList& outputBuffers, size_t nFrames, size_t nChans)
+  {
+        //To account for process latency we need to copy the buffers with padding
+      std::vector<HostMatrix> inputData;
+      size_t nFeatures = client.controlChannelsOut();
+//      outputData.reserve(nFeatures);
+      inputData.reserve(inputBuffers.size());
+
+      size_t padding = client.latency();
+      size_t controlRate = client.controlRate();
+      size_t nHops = (nFrames + padding) / controlRate;
+
+      //in contrast to the plain streaming case, we're going to call process() iteratively with a vector size = the control vector size, so we get KR where expected
+      //TODO make this whole mess less baroque and opaque
+
+      std::fill_n(std::back_inserter(inputData), inputBuffers.size(), HostMatrix(nChans,nFrames+padding));
+      HostMatrix outputData(nChans * nFeatures, nHops);
+
+      //Copy input data
+      for(int i = 0; i < nChans; ++i)
+      {
+        for(int j = 0; j < inputBuffers.size(); ++j)
+        {
+          BufferAdaptor::Access thisInput(inputBuffers[j].buffer);
+          inputData[j].row(i)(Slice(0,nFrames)) = thisInput.samps(inputBuffers[j].startFrame,nFrames,inputBuffers[j].startChan + i);
+        }
+      }
+    
+    for(int i = 0; i < nChans; ++i)
+    {
+      for(int j = 0; j < nHops; ++j )
+      {
+        size_t t = j * controlRate;
+        std::vector<HostVectorView> inputs;
+        inputs.reserve(inputBuffers.size());
+        std::vector<HostVectorView> outputs;
+        outputs.reserve(outputBuffers.size());
+        for(int k = 0; k < inputBuffers.size(); ++k)  inputs.emplace_back(inputData[k].row(i)(Slice(t,controlRate)));
+        for(int k = 0; k < nFeatures; ++k) outputs.emplace_back(outputData.row(k + i*nFeatures)(Slice(j,1))); 
+        client.process(inputs,outputs);
+      }
+    }
+    
+    BufferAdaptor::Access thisOutput(outputBuffers[0]);
+    thisOutput.resize(nHops - 1,nChans * nFeatures,1);
+
+    for(int i = 0; i < nFeatures; ++i)
+    {
+      for(int j = 0; j < nChans; ++j)
+        thisOutput.samps(i + j * nFeatures) = outputData.row(i + j * nFeatures)(Slice(1));
+    }
+    
+  }
+};
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+template<typename HostMatrix,typename HostVectorView>
 struct Slicing
 {
   template <typename Client,typename InputList, typename OutputList>
@@ -249,6 +314,10 @@ using NRTStreamAdaptor = impl::NRTClientWrapper<impl::Streaming, RTClient, Param
 
 template<class RTClient,typename Params, Params& PD, size_t Ins, size_t Outs>
 using NRTSliceAdaptor = impl::NRTClientWrapper<impl::Slicing, RTClient, Params, PD, Ins, Outs>;
+
+template<class RTClient,typename Params, Params& PD, size_t Ins, size_t Outs>
+using NRTControlAdaptor = impl::NRTClientWrapper<impl::StreamingControl, RTClient, Params, PD, Ins, Outs>;
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
