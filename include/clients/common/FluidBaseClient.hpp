@@ -49,6 +49,9 @@ public:
 
   constexpr static ParamDescType& getParameterDescriptors() { return PD; }
 
+  const double sampleRate() const noexcept { return mSampleRate; };
+  void  sampleRate(double sr) { mSampleRate = sr; }
+
 protected:
   void audioChannelsIn(const size_t x) noexcept { mAudioChannelsIn = x; }
   void audioChannelsOut(const size_t x) noexcept { mAudioChannelsOut = x; }
@@ -72,6 +75,7 @@ private:
   bool   mControlTrigger{false};
   size_t mBuffersIn  = 0;
   size_t mBuffersOut = 0;
+  double mSampleRate = 0;
 };
 
 // Used by hosts for detecting client capabilities at compile time
