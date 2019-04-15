@@ -186,6 +186,7 @@ struct Streaming
     std::fill_n(std::back_inserter(outputData), outputBuffers.size(), HostMatrix(nChans,nFrames + padding));
     std::fill_n(std::back_inserter(inputData), inputBuffers.size(), HostMatrix(nChans,nFrames + padding));
 
+    double sampleRate{0};
 
     for(int i = 0; i < nChans; ++i)
     {
@@ -194,6 +195,7 @@ struct Streaming
       for(int j = 0; j < inputBuffers.size(); ++j)
       {
         BufferAdaptor::Access thisInput(inputBuffers[j].buffer);
+        if (i==0 && j==0) sampleRate = thisInput.sampleRate();
         inputData[j].row(i)(Slice(0,nFrames)) = thisInput.samps(inputBuffers[j].startFrame,nFrames,inputBuffers[j].startChan + i);
         inputs.emplace_back(inputData[j].row(i));
       }
@@ -210,7 +212,7 @@ struct Streaming
     {
       if(!outputBuffers[i]) continue;
       BufferAdaptor::Access thisOutput(outputBuffers[i]);
-      thisOutput.resize(nFrames,nChans,1);
+      thisOutput.resize(nFrames,nChans,1,sampleRate);
       for(int j = 0; j < nChans; ++j)
         thisOutput.samps(j) = outputData[i].row(j)(Slice(padding));
     }
@@ -238,13 +240,14 @@ struct StreamingControl
 
       std::fill_n(std::back_inserter(inputData), inputBuffers.size(), HostMatrix(nChans,nFrames+padding));
       HostMatrix outputData(nChans * nFeatures, nHops);
-
+      double sampleRate{0};
       //Copy input data
       for(int i = 0; i < nChans; ++i)
       {
         for(int j = 0; j < inputBuffers.size(); ++j)
         {
           BufferAdaptor::Access thisInput(inputBuffers[j].buffer);
+          if(i==0 && j==0) sampleRate = thisInput.sampleRate();
           inputData[j].row(i)(Slice(0,nFrames)) = thisInput.samps(inputBuffers[j].startFrame,nFrames,inputBuffers[j].startChan + i);
         }
       }
@@ -265,7 +268,7 @@ struct StreamingControl
     }
     
     BufferAdaptor::Access thisOutput(outputBuffers[0]);
-    thisOutput.resize(nHops - 1,nChans * nFeatures,1);
+    thisOutput.resize(nHops - 1,nChans * nFeatures,1,sampleRate / controlRate);
 
     for(int i = 0; i < nFeatures; ++i)
     {

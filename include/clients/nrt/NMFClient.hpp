@@ -66,7 +66,7 @@ public:
     if(!(source.exists() && source.valid()))
       return {Result::Status::kError, "Source Buffer Not Found or Invalid"};
 
-
+    double sampleRate = source.sampleRate();
     auto fftParams = get<kFFT>();
 
     size_t nChannels = get<kNumChans>() == -1 ? source.numChans() : get<kNumChans>();
@@ -128,12 +128,14 @@ public:
       hasResynth = true;
     }
 
+    
+
     if (hasResynth)
-      BufferAdaptor::Access(get<kResynth>().get()).resize(nFrames, nChannels, get<kRank>());
+      BufferAdaptor::Access(get<kResynth>().get()).resize(nFrames, nChannels, get<kRank>(),sampleRate);
     if (hasFilters && !get<kFiltersUpdate>())
-      BufferAdaptor::Access(get<kFilters>().get()).resize(nBins, nChannels, get<kRank>());
+      BufferAdaptor::Access(get<kFilters>().get()).resize(nBins, nChannels, get<kRank>(),0);
     if (hasEnvelopes && !get<kEnvelopesUpdate>())
-      BufferAdaptor::Access(get<kEnvelopes>().get()).resize((nFrames / fftParams.hopSize()) + 1, nChannels, get<kRank>());
+      BufferAdaptor::Access(get<kEnvelopes>().get()).resize((nFrames / fftParams.hopSize()) + 1, nChannels, get<kRank>(),0);
 
     auto stft = algorithm::STFT(fftParams.winSize(), fftParams.fftSize(), fftParams.hopSize());
 
