@@ -23,7 +23,7 @@ using Eigen::RowVectorXd;
 using Eigen::VectorXd;
 
 class SpectralShape {
-  double const epsilon = std::numeric_limits<double>::epsilon();
+
 
 public:
   SpectralShape(size_t maxFrame) : mMagBuffer(maxFrame), mOutputBuffer(7) {}
@@ -58,7 +58,8 @@ public:
   }*/
 
   void processFrame(Ref<ArrayXd> in) {
-    ArrayXd x = in.max(std::numeric_limits<double>::epsilon());
+    double const epsilon = std::numeric_limits<double>::epsilon();
+    ArrayXd x = in.max(epsilon);
     int size = x.size();
     double xSum = x.sum();
     ArrayXd xSquare = x.square();

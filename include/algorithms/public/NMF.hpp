@@ -20,7 +20,6 @@ using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
 class NMF {
-  double const epsilon = std::numeric_limits<double>::epsilon();
 
 public:
   NMF(int rank, int nIterations, bool updateW = true, bool updateH = true)
@@ -38,6 +37,7 @@ public:
   // processFrame computes activations of a dictionary W in a given frame
   void processFrame(const RealVectorView x, const RealMatrixView W0, RealVectorView out,
                     int nIterations = 10) {
+    double const epsilon = std::numeric_limits<double>::epsilon();
     int rank = W0.extent(0);
     MatrixXd W = asEigen<Matrix>(W0).transpose();
     VectorXd h =
@@ -62,6 +62,7 @@ public:
   void process(const RealMatrixView X, RealMatrixView W1, RealMatrixView H1, RealMatrixView V1,
                RealMatrixView W0 = RealMatrixView(nullptr, 0, 0, 0),
                RealMatrixView H0 = RealMatrixView(nullptr, 0, 0, 0)) {
+    double const epsilon = std::numeric_limits<double>::epsilon();
     int nFrames = X.extent(0);
     int nBins = X.extent(1);
     MatrixXd W;
