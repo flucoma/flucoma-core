@@ -278,8 +278,9 @@ public:
       bool hopChanged = inParams.trackHop.changed(v.hopRaw());
 
       if (winChanged) v.setWin(std::max<intptr_t>(v.winSize(), 4));
+      if (fftChanged && v.fftRaw() >= 0) v.setFFT(std::max<intptr_t>(v.fftRaw(), 4));
 
-      if (winChanged && !fftChanged) v.setWin(v.fftRaw() < 0 ? v.winSize() : std::min<size_t>(v.winSize(), v.fftRaw()));
+      if (winChanged && !fftChanged) v.setWin(v.fftRaw() < 0 ? v.winSize() : std::min<intptr_t>(v.winSize(), v.fftRaw()));
 
       if (fftChanged)
       {
@@ -307,7 +308,7 @@ public:
       constexpr intptr_t I     = MaxFFTIndex + Offset;
 
       // Now check (optionally) against MaxFFTSize
-      size_t clippedFFT = ConstrainMaxFFTSize<HasMaxFFT>{}.template clamp<I, Tuple>(v.fftSize(), allParams);
+      size_t clippedFFT = std::max<intptr_t>(ConstrainMaxFFTSize<HasMaxFFT>{}.template clamp<I, Tuple>(v.fftSize(), allParams),4);
       bool   fftSizeWasClipped{clippedFFT != v.fftSize()};
       if (fftSizeWasClipped)
       {
