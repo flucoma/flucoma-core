@@ -25,7 +25,7 @@ class FluidSource //: public FluidTensor<T,2>
 
 public:
   FluidSource(const FluidSource &) = delete;
-  FluidSource &operator=(FluidSource &) = delete;
+  FluidSource &operator=(const FluidSource &) = delete;
   FluidSource(FluidSource&&) = default;
   FluidSource& operator=(FluidSource&&) = default; 
 

@@ -21,12 +21,19 @@ public:
   }
 
   Result() = default;
-  Result(Result &x)
+  Result(const Result &x)
       : mStatus(x.mStatus)
       , mMsg(x.mMsg.str())
   {}
 
-  Result operator=(Result &r) { return {r}; };
+  Result& operator=(const Result &r)
+  {
+    if(&r == this) return *this;
+    
+    mStatus = r.mStatus;
+    mMsg = std::stringstream(r.mMsg.str());
+    return *this;
+  };
 
   Result(Result &&) = default;
   Result &operator=(Result &&) = default;

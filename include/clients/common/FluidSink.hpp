@@ -25,7 +25,7 @@ public:
   FluidSink() : FluidSink(0, 1) {}
 
   FluidSink(const FluidSink &) = delete;
-  FluidSink operator=(FluidSink &) = delete;
+  FluidSink& operator=(const FluidSink &) = delete;
   FluidSink(FluidSink&&)=default;
   FluidSink& operator=(FluidSink&&)=default; 
 
