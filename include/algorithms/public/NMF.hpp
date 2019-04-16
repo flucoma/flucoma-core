@@ -100,6 +100,7 @@ private:
   bool mUpdateH;
 
   void multiplicativeUpdates(MatrixXd &V, MatrixXd &W, MatrixXd &H) {
+    double const epsilon = std::numeric_limits<double>::epsilon();
     MatrixXd ones = MatrixXd::Ones(V.rows(), V.cols());
     W.colwise().normalize();
     H.rowwise().normalize();
