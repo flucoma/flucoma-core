@@ -53,6 +53,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/BufferedProcess.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/GainClient.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/HPSSClient.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/NMFMatch.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/NMFFilter.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/OnsetSlice.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/SinesClient.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/SpectralShapeClient.hpp
