@@ -23,21 +23,22 @@ auto constexpr NMFMatchParams = defineParameters(
 
 
 template <typename T>
-class NMFMatch : public FluidBaseClient<decltype(NMFMatchParams), NMFMatchParams>, public AudioIn, public ControlOut {
+class NMFMatch : public FluidBaseClient<decltype(NMFMatchParams), NMFMatchParams>, public AudioIn, public ControlOut
+{
   using HostVector = HostVector<T>;
 public:
 
   NMFMatch(ParamSetViewType& p) : FluidBaseClient(p), mSTFTProcessor(get<kMaxFFTSize>(),1,0)
   {
-    FluidBaseClient::audioChannelsIn(1);
-    FluidBaseClient::controlChannelsOut(get<kMaxRank>());
+    audioChannelsIn(1);
+    controlChannelsOut(get<kMaxRank>());
   }
 
   size_t latency() { return get<kFFT>().winSize(); }
 
   void process(std::vector<HostVector> &input, std::vector<HostVector> &output)
   {
-    if(!input[0].data()) return;// {Result::Status::kOk,""};
+    if(!input[0].data()) return;
     assert(FluidBaseClient::controlChannelsOut() && "No control channels");
     assert(output.size() >= FluidBaseClient::controlChannelsOut() && "Too few output channels");
 
@@ -47,14 +48,14 @@ public:
       auto& fftParams = get<kFFT>();
 
       if (!filterBuffer.valid()) {
-        return ;//{Result::Status::kError,"Filter buffer invalid"};
+        return ;
       }
 
       size_t rank  = std::min<size_t>(filterBuffer.numChans(),get<kMaxRank>());
 
       if (filterBuffer.numFrames() != fftParams.frameSize())
       {
-        return;// {Result::Status::kError, "NMFMatch: Filters buffer needs to be (fftsize / 2 + 1) frames"};
+        return;
       }
 
       if(mTrackValues.changed(rank, fftParams.frameSize()))
@@ -80,7 +81,6 @@ public:
         for(size_t i = 0; i < rank; ++i)
           output[i](0) = tmpOut(i);
     }
-    //return;// {Result::Status::kOk};
   }
 
 private:
