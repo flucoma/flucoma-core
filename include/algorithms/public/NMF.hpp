@@ -36,19 +36,19 @@ public:
 
   // processFrame computes activations of a dictionary W in a given frame
   void processFrame(const RealVectorView x, const RealMatrixView W0, RealVectorView out,
-                    int nIterations = 10) {
+                    int nIterations = 10, RealVectorView v = RealVectorView(nullptr, 0, 0)) {
     double const epsilon = std::numeric_limits<double>::epsilon();
     int rank = W0.extent(0);
     MatrixXd W = asEigen<Matrix>(W0).transpose();
     VectorXd h =
         MatrixXd::Random(rank, 1) * 0.5 + MatrixXd::Constant(rank, 1, 0.5);
-    VectorXd v = asEigen<Matrix>(x);
+    VectorXd v0 = asEigen<Matrix>(x);
     MatrixXd WT = W.transpose();
     W.colwise().normalize();
     VectorXd ones = VectorXd::Ones(x.extent(0));
     while (nIterations--) {
       ArrayXd v1 = (W * h).array() + epsilon;
-      ArrayXXd hNum = (WT * (v.array() / v1).matrix()).array();
+      ArrayXXd hNum = (WT * (v0.array() / v1).matrix()).array();
       ArrayXXd hDen = (WT * ones).array();
       h = (h.array() * hNum / hDen.max(epsilon)).matrix();
       //VectorXd r = W * h;
@@ -56,6 +56,10 @@ public:
       //std::cout<<"Divergence "<<divergence<<std::endl;
     }
     out = asFluid(h);
+    if(v.extent(0)>0) {
+      ArrayXd v2 = (W * h).array();
+      v = asFluid(v2);
+    }
     // ArrayXdMap(out.data(), rank) = h.array();
   }
 
