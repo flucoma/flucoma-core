@@ -7,8 +7,8 @@
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
-#include "../rt/BufferedProcess.hpp"
 #include "../nrt/FluidNRTClientWrapper.hpp"
+#include "../rt/BufferedProcess.hpp"
 #include <tuple>
 
 namespace fluid {
@@ -20,8 +20,8 @@ enum SpectralShapeParamIndex { kFFT, kMaxFFTSize };
 
 auto constexpr SpectralShapeParams = defineParameters(
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4), PowerOfTwo{})
-  );
+    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
+                           PowerOfTwo{}));
 
 template <typename T>
 class SpectralShapeClient
@@ -63,10 +63,9 @@ public:
   }
 
   size_t latency() { return get<kFFT>().winSize(); }
-  
-  size_t controlRate() {return get<kFFT>().hopSize();}
-  
-  
+
+  size_t controlRate() { return get<kFFT>().hopSize(); }
+
 private:
   ParameterTrackChanges<size_t> mWinSizeTracker;
   STFTBufferedProcess<ParamSetViewType, T, kFFT> mSTFTBufferedProcess;
@@ -75,12 +74,14 @@ private:
   FluidTensor<double, 1> mDescriptors;
 };
 
-auto constexpr NRTSpectralShapeParams = makeNRTParams<SpectralShapeClient>({BufferParam("source", "Source Buffer")},
-                              {BufferParam("features", "Features Buffer")});
-  
-template <typename T>
-using NRTSpectralShapeClient = NRTControlAdaptor<SpectralShapeClient<T>, decltype(NRTSpectralShapeParams), NRTSpectralShapeParams, 1, 3>;
+auto constexpr NRTSpectralShapeParams = makeNRTParams<SpectralShapeClient>(
+    {BufferParam("source", "Source Buffer")},
+    {BufferParam("features", "Features Buffer")});
 
+template <typename T>
+using NRTSpectralShapeClient =
+    NRTControlAdaptor<SpectralShapeClient<T>, decltype(NRTSpectralShapeParams),
+                      NRTSpectralShapeParams, 1, 1>;
 
 } // namespace client
 } // namespace fluid
