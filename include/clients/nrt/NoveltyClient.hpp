@@ -97,7 +97,7 @@ public:
 
     processor.process(magnitude, changePoints);
 
-    impl::spikesToTimes(changePoints(Slice(0)), get<kTransBuf>().get(), fftParams.hopSize(), get<kOffset>(), nFrames);
+    impl::spikesToTimes(changePoints(Slice(0)), get<kTransBuf>().get(), fftParams.hopSize(), get<kOffset>(), nFrames, source.sampleRate());
     return {Result::Status::kOk,""};
   }
 };

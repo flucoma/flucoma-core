@@ -11,7 +11,7 @@ namespace client{
 namespace impl{
 
   template<typename T>
-  void spikesToTimes(FluidTensorView<T,1> changePoints, BufferAdaptor* output, size_t hopSize, size_t timeOffset, size_t numFrames)
+  void spikesToTimes(FluidTensorView<T,1> changePoints, BufferAdaptor* output, size_t hopSize, size_t timeOffset, size_t numFrames, double sampleRate)
   {
     size_t numSpikes =
         std::accumulate(changePoints.begin(), changePoints.end(), 0);
@@ -40,9 +40,9 @@ namespace impl{
 
     auto idx = BufferAdaptor::Access(output); 
 
-    idx.resize(numSpikes + 2, 1, 1,0);
+    idx.resize(numSpikes + 2, 1, 1,sampleRate);
 
-    idx.samps(0) = FluidTensorView<size_t, 1>{indices.data(), 0, numSpikes + 2};
+    idx.samps(0) = FluidTensorView<size_t, 1>{indices.data(), numSpikes + 2};
   }
 }
 }

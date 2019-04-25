@@ -133,9 +133,9 @@ public:
     if (hasResynth)
       BufferAdaptor::Access(get<kResynth>().get()).resize(nFrames, nChannels, get<kRank>(),sampleRate);
     if (hasFilters && !get<kFiltersUpdate>())
-      BufferAdaptor::Access(get<kFilters>().get()).resize(nBins, nChannels, get<kRank>(),0);
+      BufferAdaptor::Access(get<kFilters>().get()).resize(nBins, nChannels, get<kRank>(),sampleRate / fftParams.fftSize());
     if (hasEnvelopes && !get<kEnvelopesUpdate>())
-      BufferAdaptor::Access(get<kEnvelopes>().get()).resize((nFrames / fftParams.hopSize()) + 1, nChannels, get<kRank>(),0);
+      BufferAdaptor::Access(get<kEnvelopes>().get()).resize((nFrames / fftParams.hopSize()) + 1, nChannels, get<kRank>(),sampleRate / fftParams.hopSize());
 
     auto stft = algorithm::STFT(fftParams.winSize(), fftParams.fftSize(), fftParams.hopSize());
 
