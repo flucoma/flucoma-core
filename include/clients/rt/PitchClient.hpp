@@ -92,7 +92,7 @@ auto constexpr NRTPitchParams =
 template <typename T>
 using NRTPitchClient =
     NRTControlAdaptor<PitchClient<T>, decltype(NRTPitchParams), NRTPitchParams,
-                      1, 3>;
+                      1, 1>;
 
 } // namespace client
 } // namespace fluid
