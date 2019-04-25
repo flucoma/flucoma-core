@@ -311,11 +311,11 @@ private:
 protected:
   
   std::reference_wrapper<const DescriptorSetType> mDescriptors;
-
+  bool          mKeepConstrained;
 private:
   
   ValueRefTuple mParams;
-  bool          mKeepConstrained;
+  
 };
 
 template <typename>
@@ -341,13 +341,15 @@ public:
   
   ParameterSet(ParameterSet& p)
     : ViewType(p.mDescriptors.get(), createRefTuple(IndexList())), mParams{p.mParams}
-  {}
+  {
+    this->mKeepConstrained = p.mKeepConstrained; 
+  }
   
   ParameterSet& operator =(const ParameterSet&p)
   {
-    *(static_cast<ViewType*>(this)) = ViewType(p.mDescriptors, createRefTuple(IndexList()));
+    *(static_cast<ViewType*>(this)) = ViewType(p.mDescriptors.get(), createRefTuple(IndexList()));
     mParams = p.mParams;
-    
+    this->mKeepConstrained = p.mKeepConstrained;
     return *this;
   }
   
