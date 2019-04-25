@@ -134,7 +134,7 @@ protected:
   template <size_t N>
   constexpr auto descriptor() const
   {
-    return mDescriptors.template get<N>();
+    return mDescriptors.get().template get<N>();
   }
     
   using DescriptorType      = typename DescriptorSetType::DescriptorType;
@@ -156,7 +156,7 @@ protected:
 public:
 
   constexpr ParameterSetView(const DescriptorSetType &d, ValueRefTuple t)
-  : mDescriptors{d}
+  : mDescriptors{std::cref(d)}
   , mParams{t}
   , mKeepConstrained(false)
   {}
@@ -249,7 +249,7 @@ private:
   template <size_t N>
   constexpr auto& constraint() const
   {
-    return std::get<1>(std::get<N>(mDescriptors.mDescriptors));
+    return std::get<1>(std::get<N>(mDescriptors.get().mDescriptors));
   }
 
   template <size_t... Is>
@@ -293,7 +293,7 @@ private:
   T constrainImpl(T &thisParam, Constraints &c, std::index_sequence<Is...>, Result *r)
   {
     T res = thisParam;
-    (void) std::initializer_list<int>{(std::get<Is>(c).template clamp<Offset, N>(res, mParams, mDescriptors, r), 0)...};
+    (void) std::initializer_list<int>{(std::get<Is>(c).template clamp<Offset, N>(res, mParams, mDescriptors.get(), r), 0)...};
     return res;
   }
     
@@ -310,7 +310,7 @@ private:
   
 protected:
   
-  const DescriptorSetType mDescriptors;
+  std::reference_wrapper<const DescriptorSetType> mDescriptors;
 
 private:
   
@@ -339,17 +339,17 @@ public:
   
   // Copy construct / assign
   
-//  ParameterSet(ParameterSet& p)
-//    : ViewType(p.mDescriptors.get(), createRefTuple(IndexList())), mParams{p.mParams}
-//  {}
-//  
-//  ParameterSet& operator =(const ParameterSet&p)
-//  {
-//    *(static_cast<ViewType*>(this)) = ViewType(p.mDescriptors, createRefTuple(IndexList()));
-//    mParams = p.mParams;
-//    
-//    return *this;
-//  }
+  ParameterSet(ParameterSet& p)
+    : ViewType(p.mDescriptors.get(), createRefTuple(IndexList())), mParams{p.mParams}
+  {}
+  
+  ParameterSet& operator =(const ParameterSet&p)
+  {
+    *(static_cast<ViewType*>(this)) = ViewType(p.mDescriptors, createRefTuple(IndexList()));
+    mParams = p.mParams;
+    
+    return *this;
+  }
   
   // Move construct /assign
 

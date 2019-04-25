@@ -77,7 +77,7 @@ public:
   using RTParamDescType = typename RTClient::ParamDescType;
   using RTParamSetViewType = ParameterSetView<typename RTClient::ParamDescType>;
 
-  constexpr static auto getParameterDescriptors() { return PD; }
+  constexpr static decltype(auto) getParameterDescriptors() { return PD; }
 
   //The client will be accessing its parameter by a bunch of indices that need ofsetting now
 //  using Client = RTClient<impl::ParameterSet_Offset<Params,ParamOffset>,T,U>;
