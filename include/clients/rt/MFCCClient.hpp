@@ -55,7 +55,8 @@ public:
     mBands = FluidTensor<double, 1>(get<kNBands>());
     mCoefficients = FluidTensor<double, 1>(get<kNCoefs>());
     FluidBaseClient::audioChannelsIn(1);
-    FluidBaseClient::controlChannelsOut(get<kMaxNBands>());
+    FluidBaseClient::controlChannelsOut(get<kOutput>() == 0 ? get<kMaxNBands>()
+                                                            : get<kNCoefs>());
   }
 
   void process(std::vector<HostVector> &input,
