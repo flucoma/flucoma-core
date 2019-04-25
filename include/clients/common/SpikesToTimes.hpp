@@ -42,7 +42,7 @@ namespace impl{
 
     idx.resize(numSpikes + 2, 1, 1,sampleRate);
 
-    idx.samps(0) = FluidTensorView<size_t, 1>{indices.data(), numSpikes + 2};
+    idx.samps(0) = FluidTensorView<size_t, 1>{indices.data(), 0, numSpikes + 2};
   }
 }
 }
