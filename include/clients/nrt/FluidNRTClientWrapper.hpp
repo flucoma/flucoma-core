@@ -134,11 +134,13 @@ public:
 
       inFrames[count] = b.nFrames < 0 ? thisInput.numFrames() : b.nFrames;
       inChans[count] =  b.nChans < 0 ? thisInput.numChans() : b.nChans ;
+      mClient.sampleRate(thisInput.sampleRate());
       count++;
     }
 
     size_t numFrames   = *std::min_element(inFrames.begin(),inFrames.end());
     size_t numChannels = *std::min_element(inChans.begin(), inChans.end());
+    
     AdaptorType<HostMatrix,HostVectorView>::process(mClient,inputBuffers,outputBuffers,numFrames,numChannels);
 
     return {Result::Status::kOk,""};
