@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 SET(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic")
 IF(APPLE)
   set(CMAKE_OSX_DEPLOYMENT_TARGET "10.7" CACHE STRING "Minimum OS X deployment version")
 	set(CMAKE_OSX_ARCHITECTURES x86_64;i386)
@@ -95,13 +95,13 @@ target_sources(
 add_library(
   FLUID_DECOMPOSITION INTERFACE
 )
+
 target_include_directories(
   FLUID_DECOMPOSITION
-  SYSTEM INTERFACE
-  "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty"
   INTERFACE
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
+
 target_sources(
   FLUID_DECOMPOSITION INTERFACE ${HEADERS}
 )
@@ -111,11 +111,25 @@ target_compile_features(
 target_compile_definitions(
   FLUID_DECOMPOSITION INTERFACE -DEIGEN_USE_BLAS
 )
-target_link_libraries(
-  FLUID_DECOMPOSITION INTERFACE HISSTools_FFT
-)
-# add_subdirectory(
-#   "${CMAKE_CURRENT_SOURCE_DIR}/examples"
+# target_link_libraries(
+#   FLUID_DECOMPOSITION INTERFACE HISSTools_FFT
 # )
+
+target_compile_options(
+    FLUID_DECOMPOSITION
+    INTERFACE
+    "$<$<NOT:$<CONFIG:DEBUG>>: -mavx -msse -msse2 -msse3 -msse4>"
+)
+
+target_include_directories(
+  FLUID_DECOMPOSITION
+  SYSTEM INTERFACE
+  "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty"
+)
+
+
+add_subdirectory(
+  "${CMAKE_CURRENT_SOURCE_DIR}/examples" EXCLUDE_FROM_ALL
+)
 
 export(TARGETS FLUID_DECOMPOSITION HISSTools_FFT HISSTools_AudioFile FILE fluid_decomposition-exports.cmake)
