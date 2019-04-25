@@ -19,7 +19,7 @@ namespace client {
 enum PitchParamIndex { kAlgorithm, kFFT, kMaxFFTSize };
 
 auto constexpr PitchParams = defineParameters(
-    LongParam("algorithm", "Algorithm", 2, Min(0), Max(2)),
+    EnumParam("algorithm", "Algorithm", 2, "Cepstrum", "Harmonic Product Spectrum", "YinFFT"),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
                            PowerOfTwo{}));
