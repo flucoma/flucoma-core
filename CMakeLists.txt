@@ -115,11 +115,11 @@ target_compile_definitions(
 #   FLUID_DECOMPOSITION INTERFACE HISSTools_FFT
 # )
 
-target_compile_options(
-    FLUID_DECOMPOSITION
-    INTERFACE
-    "$<$<NOT:$<CONFIG:DEBUG>>: -mavx -msse -msse2 -msse3 -msse4>"
-)
+# target_compile_options(
+#     FLUID_DECOMPOSITION
+#     INTERFACE
+#     "$<$<NOT:$<CONFIG:DEBUG>>: -mavx -msse -msse2 -msse3 -msse4>"
+# )
 
 target_include_directories(
   FLUID_DECOMPOSITION
