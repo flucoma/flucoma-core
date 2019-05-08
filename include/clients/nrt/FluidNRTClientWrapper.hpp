@@ -120,9 +120,16 @@ public:
     int count = 0;
     for(auto&& b: inputBuffers)
     {
+      if(!b.buffer)
+        return {Result::Status::kError, "Input buffer not set"}; //error
+      
       BufferAdaptor::Access thisInput(b.buffer);
-      if(!(thisInput.exists() && thisInput.valid()))
-        return {Result::Status::kError, "Input buffer ", b.buffer, " not found or invalid."} ; //error
+      
+      if(!thisInput.exists())
+        return {Result::Status::kError, "Input buffer ", b.buffer, "."} ; //error
+
+      if(!thisInput.valid())
+        return {Result::Status::kError, "Input buffer ", b.buffer, "invalid (possibly zero-size?)"} ; //error
 
       intptr_t requestedFrames= b.nFrames < 0 ? thisInput.numFrames() : b.nFrames;
       if(b.startFrame + requestedFrames > thisInput.numFrames())
@@ -137,6 +144,10 @@ public:
       mClient.sampleRate(thisInput.sampleRate());
       count++;
     }
+    
+    if(std::all_of(outputBuffers.begin(), outputBuffers.end(),[](auto& b){return b == nullptr; }))
+      return {Result::Status::kError, "No valid output has been set" }; //error
+    
 
     size_t numFrames   = *std::min_element(inFrames.begin(),inFrames.end());
     size_t numChannels = *std::min_element(inChans.begin(), inChans.end());
