@@ -52,7 +52,7 @@ constexpr auto joinParameterDescriptors(ParameterDescriptorSet<std::index_sequen
 {
   return ParameterDescriptorSet<
             typename JoinOffsetSequence<std::index_sequence<Is...>, std::index_sequence<Js...>>::type,
-        std::tuple<Ts...,Us...>> {std::tuple_cat(x.mDescriptors,y.mDescriptors)};
+        std::tuple<Ts...,Us...>> {std::tuple_cat(x.descriptors(),y.descriptors())};
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -77,7 +77,7 @@ public:
   using RTParamDescType = typename RTClient::ParamDescType;
   using RTParamSetViewType = ParameterSetView<typename RTClient::ParamDescType>;
 
-  constexpr static decltype(auto) getParameterDescriptors() { return PD; }
+  constexpr static ParamDescType& getParameterDescriptors() { return PD; }
 
   //The client will be accessing its parameter by a bunch of indices that need ofsetting now
 //  using Client = RTClient<impl::ParameterSet_Offset<Params,ParamOffset>,T,U>;

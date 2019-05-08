@@ -95,10 +95,12 @@ public:
     return std::get<0>(std::get<N>(mDescriptors));
   }
 
-  const DescriptorType mDescriptors;
+  constexpr const DescriptorType& descriptors() const { return mDescriptors; }
   
 private:
 
+  const DescriptorType mDescriptors;
+  
   template <size_t... Is>
   constexpr size_t countImpl(std::index_sequence<Is...>) const noexcept
   {
@@ -249,7 +251,7 @@ private:
   template <size_t N>
   constexpr auto& constraint() const
   {
-    return std::get<1>(std::get<N>(mDescriptors.get().mDescriptors));
+    return std::get<1>(std::get<N>(mDescriptors.get().descriptors()));
   }
 
   template <size_t... Is>
