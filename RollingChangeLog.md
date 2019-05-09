@@ -9,23 +9,31 @@ date:
 
 ## Bug Fixes:
 
-## Known Bugs Still Unfixed:
+## Known Bugs:
 
 
 ===
-# Alpha-05:
-date:
+# Alpha-05: yet more new cool objects
+date: 9 May 2019
 
 ## New Objects:
+- bufSpectralShape: the buffer version of the same object
+- NMFFilter: running real-time nmf on seeding bases passed as a buffer
+- Pitch/BufPitch: pitch and confidence descriptor (3 different algorithms)
 
 ## New Features:
-
-## New Examples:
+- (MAX) reset message in buf* objects now reset to instantiation values rather than defaults
+- (CLI) basic help is working (-h) to read the name of the parameters
 
 ## Bug Fixes:
+- (SC) fftSize below 4 are now rejected as advertised
+- (SC) fixed the error handling of all buf* objects - getting a useful message instead of errors on the error string
 
-## Known Bugs Still Unfixed:
-
+## Known Bugs:
+- MAX+CLI: buf* will be capped by maxfftsize default
+- HPSS: percussive filter above 35 generate noises and glitches
+- (buf)transient will hang the application if the order is set too high
+- small noise when starting fft processes, sometimes (hard to reproduce)
 
 ===
 # Alpha-04a: quick bug fix and stereo toy examples of buf* processes
