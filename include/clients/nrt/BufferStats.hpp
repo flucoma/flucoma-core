@@ -10,23 +10,23 @@ namespace client {
 
 enum BufferStatsParamIndex {
   kSource,
+  kStats,
   kNumDerivatives,
   kLow,
   kMiddle,
-  kHigh,
-  kStats
+  kHigh
 };
 
 auto constexpr BufferStatsParams = defineParameters(
     BufferParam("source", "Source Buffer"),
-    LongParam("numDerivatves", "Number of derivatives", 0, Min(0), Max(2)),
+    BufferParam("stats", "Stats Buffer"),
+    LongParam("numDerivatives", "Number of derivatives", 0, Min(0), Max(2)),
     LongParam("low", "Low percentile", 0, Min(0), Max(100),
               UpperLimit<kMiddle>()),
-    LongParam("middle", "Middle percentile", 0, Min(0), Max(100),
+    LongParam("middle", "Middle percentile", 50, Min(0), Max(100),
               LowerLimit<kLow>(), UpperLimit<kHigh>()),
-    LongParam("high", "High percentile", 0, Min(0), Max(100),
-              LowerLimit<kMiddle>()),
-    BufferParam("stats", "Stats Buffer"));
+    LongParam("high", "High percentile", 100, Min(0), Max(100),
+              LowerLimit<kMiddle>()));
 
 template <typename T>
 class BufferStats
