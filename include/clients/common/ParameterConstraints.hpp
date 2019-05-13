@@ -117,6 +117,25 @@ struct FrameSizeUpperLimitImpl : public Relational
   }
 };
 
+template <int MaxFFTSizeIndex>
+struct MaxFrameSizeUpperLimitImpl : public Relational
+{
+  template <size_t Offset, size_t N, typename T, typename Tuple, typename Descriptor>
+  void clamp(T &v, Tuple &params, Descriptor& d, Result *r) const
+  {
+    T      oldV      = v;
+    size_t frameSize = (std::get<MaxFFTIndex + Offset>(params) + 1) / 2;
+    v                = std::min<T>(v, frameSize);
+
+    if (r && oldV != v)
+    {
+      r->set(Result::Status::kWarning);
+      r->addMessage(d.template get<N>().name, " value (", oldV, ") above maximum spectral frame size (", v, ')');
+    }
+  }
+};
+
+
 } // namespace impl
 
 template <typename T>
@@ -207,6 +226,13 @@ auto constexpr FrameSizeUpperLimit()
 {
   return impl::FrameSizeUpperLimitImpl<FFTIndex>{};
 }
+
+template <int MaxFFTIndex>
+auto constexpr MaxFrameSizeUpperLimit()
+{
+  return impl::FrameSizeUpperLimitImpl<MaxFFTIndex>{};
+}
+
 
 } // namespace client
 } // namespace fluid
