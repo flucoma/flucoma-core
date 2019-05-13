@@ -124,7 +124,7 @@ struct MaxFrameSizeUpperLimitImpl : public Relational
   void clamp(T &v, Tuple &params, Descriptor& d, Result *r) const
   {
     T      oldV      = v;
-    size_t frameSize = (std::get<MaxFFTIndex + Offset>(params) + 1) / 2;
+    size_t frameSize = (std::get<MaxFFTSizeIndex + Offset>(params) + 1) / 2;
     v                = std::min<T>(v, frameSize);
 
     if (r && oldV != v)
