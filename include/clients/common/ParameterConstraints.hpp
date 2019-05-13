@@ -230,7 +230,7 @@ auto constexpr FrameSizeUpperLimit()
 template <int MaxFFTIndex>
 auto constexpr MaxFrameSizeUpperLimit()
 {
-  return impl::FrameSizeUpperLimitImpl<MaxFFTIndex>{};
+  return impl::MaxFrameSizeUpperLimitImpl<MaxFFTIndex>{};
 }
 
 
