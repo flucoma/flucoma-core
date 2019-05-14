@@ -57,7 +57,7 @@ private:
   ArrayXd mImagBuffer;
 };
 
-class IFFT : FFT {
+class IFFT : public FFT {
 
 public:
   IFFT(size_t size) : FFT(size), mOutputBuffer(size) {}
