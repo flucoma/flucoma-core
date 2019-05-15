@@ -206,7 +206,7 @@ public:
         auto mask = algorithm::RatioMask{outputMags, 1};
         auto resynthMags = FluidTensor<double,2>(nWindows,nBins);
         auto resynthSpectrum = FluidTensor<std::complex<double>,2>(nWindows,nBins);
-        auto istft = algorithm::ISTFT{fftParams.winSize(), fftParams.fftSize(), fftParams.hopSize()};
+        auto istft = algorithm::ISTFT{static_cast<size_t>(fftParams.winSize()), static_cast<size_t>(fftParams.fftSize()), static_cast<size_t>(fftParams.hopSize())};
         auto resynthAudio = FluidTensor<double,1>(nFrames);
         auto resynth = BufferAdaptor::Access{get<kResynth>().get()};
 
