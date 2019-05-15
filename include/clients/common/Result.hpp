@@ -70,19 +70,19 @@ class MessageList
 {
 public:
   template <typename... Args>
-  void warn(Args &&... args)
+  void addWarn(Args &&... args)
   {
     add<Result::Status::kWarning>(std::forward<Args>(args)...);
   }
 
   template <typename... Args>
-  void error(Args &&... args)
+  void addError(Args &&... args)
   {
     add<Result::Status::kError>(std::forward<Args>(args)...);
   }
 
   template <typename... Args>
-  void info(Args &&... args)
+  void addInfo(Args &&... args)
   {
     add<Result::Status::kOk>(std::forward<Args>(args)...);
   }
