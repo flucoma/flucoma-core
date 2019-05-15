@@ -19,17 +19,16 @@ using Eigen::Ref;
 
 class Stats {
 public:
-  Stats():mNumDerivatives(0), mLow(0), mMiddle(0.5), mHigh(1){}
+  Stats() : mNumDerivatives(0), mLow(0), mMiddle(0.5), mHigh(1) {}
+  
   void init(int numDerivatives, double low, double mid, double high) {
     assert(numDerivatives <= 2);
     mNumDerivatives = numDerivatives;
-    mLow = low;
-    mMiddle = mid;
-    mHigh = high;
+    mLow = low / 100.0;
+    mMiddle = mid / 100.0;
+    mHigh = high / 100.0;
   }
-int numStats(){
-    return 7;
-  }
+  int numStats() { return 7; }
 
   Ref<ArrayXd> computeStats(Ref<ArrayXd> input) {
     int length = input.size();
@@ -63,7 +62,7 @@ int numStats(){
         ArrayXd diff2 =
             diff1.segment(1, length - 2) - diff1.segment(0, length - 2);
         ArrayXd d2 = computeStats(diff2);
-        out(Slice(2* numStats(), numStats())) = asFluid(d2);
+        out(Slice(2 * numStats(), numStats())) = asFluid(d2);
       }
     }
   }
