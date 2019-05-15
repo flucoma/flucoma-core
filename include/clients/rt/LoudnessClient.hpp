@@ -17,20 +17,20 @@ namespace client {
 using algorithm::Loudness;
 
 enum LoudnessParamIndex {
-  kWindowSize,
-  kHopSize,
   kKWeighting,
   kTruePeak,
+  kWindowSize,
+  kHopSize,
   kMaxWindowSize
 };
 
 auto constexpr LoudnessParams = defineParameters(
-    LongParam("windowSize", "Window Size", 17640),
-    LongParam("hopSize", "Hop Size", 4410),
-    LongParam("kWeighting", "Apply K-Weighting", 1, Min(0), Max(1)),
-    LongParam("truePeak", "Compute True Peak", 0, Min(0), Max(1)),
-    LongParam("maxWindowSize", "Max Window Size",
-              32768)); // 17640 next power of two
+    EnumParam("kWeighting", "Apply K-Weighting", 1, "Off","On"),
+    EnumParam("truePeak", "Compute True Peak", 1, "Off","On"),
+    LongParam("winSize", "Window Size", 1024, UpperLimit<kMaxWindowSize>()),
+    LongParam("hopSize", "Hop Size", 512, Min(1)),
+    LongParam<Fixed<true>>("maxWinSize", "Max Window Size",
+              16384, Min(4), PowerOfTwo{})); // 17640 next power of two
 
 template <typename T>
 class LoudnessClient
