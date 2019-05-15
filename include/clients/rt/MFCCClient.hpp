@@ -74,7 +74,7 @@ public:
       mBands.resize(get<kNBands>());
       mCoefficients.resize(get<kNCoefs>());
       mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
-                     get<kFFT>().frameSize(), sampleRate());
+                     get<kFFT>().frameSize(), sampleRate(), true);
       mDCT.init(get<kNBands>(), get<kNCoefs>());
     }
 

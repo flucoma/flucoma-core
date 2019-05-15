@@ -69,7 +69,7 @@ public:
       mMagnitude.resize(get<kFFT>().frameSize());
       mBands.resize(get<kNBands>());
       mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
-                     get<kFFT>().frameSize(), sampleRate());
+                     get<kFFT>().frameSize(), sampleRate(), false);
     }
 
     mSTFTBufferedProcess.processInput(

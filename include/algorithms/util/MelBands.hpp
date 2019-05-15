@@ -27,7 +27,7 @@ public:
   }
 
   void init(double lo, double hi, int nBands, int nBins,
-            double sampleRate) {
+            double sampleRate, bool logOutput) {
     assert(hi > lo);
     assert(nBands > 1);
     mLo = lo;
@@ -49,20 +49,22 @@ public:
       ArrayXd upper = ramps.row(i + 2) / melD(i + 1);
       mFilters.row(i) = lower.min(upper).max(0);
     }
-    //ArrayXd enorm =
-    //    2.0 / (melFreqs.segment(2, mBands) - melFreqs.segment(0, mBands));
-    //mFilters = (mFilters.array().colwise() *= enorm).matrix();
-    //mFilters = (mFilters.array().colwise() *= enorm).matrix();
+    ArrayXd enorm =
+        2.0 / (melFreqs.segment(2, mBands) - melFreqs.segment(0, mBands));
+    mFilters = (mFilters.array().colwise() *= enorm).matrix();
     // mOutputBuffer = ArrayXd::Zero(mBands);
+    mLogOutput = logOutput;
   }
 
   // Eigen::Ref<ArrayXd> processFrame(Eigen::Ref<const ArrayXd> input) {
   void processFrame(const RealVector in, RealVectorView out) {
+    double const epsilon = std::numeric_limits<double>::epsilon();
     assert(in.size() == mBins);
     ArrayXd frame = asEigen<Array>(in);
     // mOutputBuffer = mFilters * input.matrix();
     // return mOutputBuffer;
     ArrayXd result = (mFilters * frame.matrix()).array();
+    if(mLogOutput) result = result.max(epsilon).log();
     out = asFluid(result);
   }
 
@@ -72,6 +74,7 @@ public:
   int mBands;
   double mSampleRate;
   MatrixXd mFilters;
+  bool mLogOutput;
 
 private:
   // ArrayXd mOutputBuffer;
