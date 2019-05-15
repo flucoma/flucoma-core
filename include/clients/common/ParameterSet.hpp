@@ -188,7 +188,8 @@ public:
   template <template <size_t N, typename T> class Func, typename... Args>
   std::array<Result, sizeof...(Ts)> setFixedParameterValues(bool reportage, Args &&... args)
   {
-    return setParameterValuesImpl<Func>(FixedIndexList(), reportage, std::forward<Args>(args)...);
+    auto res =  setParameterValuesImpl<Func>(FixedIndexList(), reportage, std::forward<Args>(args)...);
+    return constrainParameterValuesImpl(IndexList());
   }
 
   template <template <size_t N, typename T> class Func, typename... Args>
