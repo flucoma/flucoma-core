@@ -69,17 +69,17 @@ public:
   void initFilters() {
     mHiPass1.init(mHiPassFreq);
     mHiPass2.init(mHiPassFreq);
-    mSlide.init(mRampUpTime, mRampDownTime);
+    mSlide.init(mRampUpTime, mRampDownTime, -144);
   }
 
-  int refineStart(int nSamples) {
+  int refineStart(int start, int nSamples) {
     if (nSamples < 2)
-      return nSamples;
-    ArrayXd diff = mInputBuffer.segment(1, nSamples - 1) -
-                   mInputBuffer.segment(0, nSamples - 1);
+      return start + nSamples;
+    ArrayXd diff = mInputBuffer.segment(start + 1, nSamples) -
+                   mInputBuffer.segment(start, nSamples - 1);
     ArrayXd::Index index;
     diff.maxCoeff(&index);
-    return index;
+    return start + index;
   }
 
   void updateCounters(bool nextState) {
@@ -134,13 +134,15 @@ public:
       // establish and refine
       if (!mOutputState && mOnStateCount > mMinTimeAboveThreshold &&
           mFillCount >= mLatency) {
-        int onsetIndex = refineStart(mUpwardLookupTime);
+        int onsetIndex = refineStart(mLatency - mMinTimeAboveThreshold - mUpwardLookupTime, mUpwardLookupTime);
+        int numSamples = onsetIndex - mMinTimeAboveThreshold;
         mOutputBuffer.segment(onsetIndex, mLatency - onsetIndex) = 1;
         mEventCount = mOnStateCount;
         mOutputState = true; // we are officially on
       } else if (mOutputState && mOffStateCount > mMinTimeBelowThreshold &&
                  mFillCount >= mLatency) {
-        int offsetIndex = refineStart(mDownwardLookupTime);
+
+        int offsetIndex = refineStart(mLatency - mMinTimeBelowThreshold - mDownwardLookupTime, mDownwardLookupTime);
         mOutputBuffer.segment(offsetIndex, mLatency - offsetIndex) = 0;
         mSilenceCount = mOffStateCount;
         mOutputState = false; // we are officially off

@@ -24,8 +24,8 @@ int main(int argc, char *argv[]) {
 
   const char *inputPath = argv[1];
   double hiPassFreq = std::stod(argv[2]);
-  double rampUpTime = std::stod(argv[3]);
-  double rampDownTime = std::stod(argv[4]);
+  double rampUpTime = std::stoi(argv[3]);
+  double rampDownTime = std::stoi(argv[4]);
   double onThreshold = std::stod(argv[5]);
   double minTimeAboveThreshold = std::stod(argv[6]);
   double minEventDuration = std::stod(argv[7]);
@@ -52,8 +52,8 @@ int main(int argc, char *argv[]) {
 
   es.init(
           hiPassFreq / samplingRate,                        // hz to fraction
-          std::round(rampUpTime * samplingRate),            // secs to samples
-          std::round(rampDownTime * samplingRate),          // secs to samples
+          rampUpTime,
+          rampDownTime,
           onThreshold,                                      // dB
           std::round(minTimeAboveThreshold * samplingRate), // secs to samples
           std::round(minEventDuration * samplingRate),      // secs to samples
@@ -67,6 +67,7 @@ int main(int argc, char *argv[]) {
   file.readChannel(in.data(), frames, 0);
   fluid::FluidTensor<double, 1> out(frames);
   for (int i = 0; i < in.size(); i++) {
+    //std::cout << i << std::endl;
     es.processSample(in(fluid::Slice(i, 1)), out(fluid::Slice(i, 1)));
   }
 
