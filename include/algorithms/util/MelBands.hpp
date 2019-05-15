@@ -49,9 +49,10 @@ public:
       ArrayXd upper = ramps.row(i + 2) / melD(i + 1);
       mFilters.row(i) = lower.min(upper).max(0);
     }
-    ArrayXd enorm =
-        2.0 / (melFreqs.segment(2, mBands) - melFreqs.segment(0, mBands));
-    mFilters = (mFilters.array().colwise() *= enorm).matrix();
+    //ArrayXd enorm =
+    //    2.0 / (melFreqs.segment(2, mBands) - melFreqs.segment(0, mBands));
+    //mFilters = (mFilters.array().colwise() *= enorm).matrix();
+    //mFilters = (mFilters.array().colwise() *= enorm).matrix();
     // mOutputBuffer = ArrayXd::Zero(mBands);
   }
 
