@@ -22,8 +22,9 @@ class EnvelopeSegmentation {
 
 public:
   EnvelopeSegmentation(size_t maxSize, int outputType)
-      : mMaxSize(maxSize), mHiPassFreq(0.2), mRampUpTime(100),
-        mRampDownTime(100), mOnThreshold(-33), mMinTimeAboveThreshold(440),
+      : mMaxSize(maxSize), mHiPassFreq(0.2), mRampUpTime(100), mRampUpTime2(50),
+        mRampDownTime(100), mRampDownTime2(50), mOnThreshold(-33),
+        mRetriggerThreshold(-33), mMinTimeAboveThreshold(440),
         mMinEventDuration(440), mUpwardLookupTime(24), mOffThreshold(-42),
         mMinTimeBelowThreshold(10), mMinSilenceDuration(10),
         mDownwardLookupTime(10), mOutputType(outputType), mOnStateCount(0),
@@ -33,15 +34,19 @@ public:
     initBuffers();
     initFilters();
   }
-  void init(double hiPassFreq, int rampUpTime, int rampDownTime,
-            double onThreshold, int minTimeAboveThreshold, int minEventDuration,
-            int upwardLookupTime, double offThreshold,
+  void init(double hiPassFreq, int rampUpTime, int rampUpTime2,
+            int rampDownTime, int rampDownTime2, double onThreshold,
+            double retriggerThreshold, int minTimeAboveThreshold,
+            int minEventDuration, int upwardLookupTime, double offThreshold,
             int minTimeBelowThreshold, int minSilenceDuration,
             int downwardLookupTime) {
     mHiPassFreq = hiPassFreq;
     mRampUpTime = rampUpTime;
+    mRampUpTime2 = rampUpTime2;
     mRampDownTime = rampDownTime;
+    mRampDownTime2 = rampDownTime2;
     mOnThreshold = onThreshold;
+    mRetriggerThreshold = retriggerThreshold;
     mMinTimeAboveThreshold = minTimeAboveThreshold;
     mMinEventDuration = minEventDuration;
     mUpwardLookupTime = upwardLookupTime;
@@ -50,8 +55,8 @@ public:
     mMinSilenceDuration = minSilenceDuration;
     mDownwardLookupTime = downwardLookupTime;
     mDownwardLatency = std::max(minTimeBelowThreshold, mDownwardLookupTime);
-    mLatency = std::max(mMinTimeAboveThreshold + mUpwardLookupTime,
-                        mDownwardLatency);
+    mLatency =
+        std::max(mMinTimeAboveThreshold + mUpwardLookupTime, mDownwardLatency);
     if (mLatency == 0)
       mLatency = 1;
     std::cout << "latency " << mLatency << std::endl;
@@ -64,6 +69,7 @@ public:
     mOutputBuffer = mInputStorage.segment(0, std::max(mLatency, 1));
     mInputState = false;
     mOutputState = false;
+    retriggerState = false;
     mFillCount = 0;
   }
 
@@ -71,6 +77,7 @@ public:
     mHiPass1.init(mHiPassFreq);
     mHiPass2.init(mHiPassFreq);
     mSlide.init(mRampUpTime, mRampDownTime, -144);
+    mSlide2.init(mRampUpTime2, mRampDownTime2, -144);
   }
 
   int refineStart(int start, int nSamples, bool direction = true) {
@@ -111,6 +118,7 @@ public:
         std::max(std::abs(filtered), 6.3095734448019e-08); // -144dB
     double dB = 20 * std::log10(rectified);
     double smoothed = mSlide.processSample(dB);
+    double smoothed2 = mSlide2.processSample(dB);
     bool forcedState = false;
     // case 1: we are waiting for event to finish
     if (mOutputState && mEventCount > 0) {
@@ -139,11 +147,25 @@ public:
       if (mInputState && smoothed < mOffThreshold)
         nextState = false;
       updateCounters(nextState);
-      mOutputBuffer(mLatency - 1) = mOutputState ? 1 : 0;
+      if (mInputState && mOutputState &&
+          (smoothed2 - smoothed) > mRetriggerThreshold ) {
+            if(!retriggerState){
+              mOutputBuffer(mLatency - 1) = 0;
+              retriggerState = true;
+            }
+            else{
+              mOutputBuffer(mLatency - 1) = 1;
+            }
+      } else {
+        retriggerState = false;
+        mOutputBuffer(mLatency - 1) = mOutputState ? 1 : 0;
+      }
       // establish and refine
       if (!mOutputState && mOnStateCount > mMinTimeAboveThreshold &&
           mFillCount >= mLatency) {
-        int onsetIndex = refineStart(mLatency - mMinTimeAboveThreshold - mUpwardLookupTime, mUpwardLookupTime, true);
+        int onsetIndex =
+            refineStart(mLatency - mMinTimeAboveThreshold - mUpwardLookupTime,
+                        mUpwardLookupTime, true);
         int numSamples = onsetIndex - mMinTimeAboveThreshold;
         mOutputBuffer.segment(onsetIndex, mLatency - onsetIndex) = 1;
         mEventCount = mOnStateCount;
@@ -151,7 +173,8 @@ public:
       } else if (mOutputState && mOffStateCount > mDownwardLatency &&
                  mFillCount >= mLatency) {
 
-        int offsetIndex = refineStart(mLatency - mDownwardLatency, mDownwardLookupTime, false);
+        int offsetIndex = refineStart(mLatency - mDownwardLatency,
+                                      mDownwardLookupTime, false);
         mOutputBuffer.segment(offsetIndex, mLatency - offsetIndex) = 0;
         mSilenceCount = mOffStateCount;
         mOutputState = false; // we are officially off
@@ -169,7 +192,10 @@ public:
       output(0) = std::pow(10, smoothed / 20);
       break;
     case 3:
-      output(0) =  mInputBuffer(1) - mInputBuffer(0);
+      output(0) = std::pow(10, smoothed2 / 20);
+      break;
+    case 4:
+      output(0) = mInputBuffer(1) - mInputBuffer(0);
     }
     if (mLatency > 1) {
       mOutputBuffer.segment(0, mLatency - 1) =
@@ -189,8 +215,12 @@ private:
   int mFillCount;
   double mHiPassFreq;
   int mRampUpTime;
+  int mRampUpTime2;
   int mRampDownTime;
+  int mRampDownTime2;
   double mOnThreshold;
+  double mRetriggerThreshold;
+  bool retriggerState;
   int mMinTimeAboveThreshold;
   int mMinEventDuration;
   int mDownwardLookupTime;
@@ -209,6 +239,7 @@ private:
   ButterworthHPFilter mHiPass1;
   ButterworthHPFilter mHiPass2;
   SlideUDFilter mSlide;
+  SlideUDFilter mSlide2;
   int mOnStateCount;
   int mOffStateCount;
   int mEventCount;
