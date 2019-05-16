@@ -49,8 +49,9 @@ public:
     mMinTimeBelowThreshold = minTimeBelowThreshold,
     mMinSilenceDuration = minSilenceDuration;
     mDownwardLookupTime = downwardLookupTime;
+    mDownwardLatency = std::max(minTimeBelowThreshold, mDownwardLookupTime);
     mLatency = std::max(mMinTimeAboveThreshold + mUpwardLookupTime,
-                        mMinTimeBelowThreshold + mDownwardLookupTime);
+                        mDownwardLatency);
     if (mLatency == 0)
       mLatency = 1;
     std::cout << "latency " << mLatency << std::endl;
@@ -72,13 +73,17 @@ public:
     mSlide.init(mRampUpTime, mRampDownTime, -144);
   }
 
-  int refineStart(int start, int nSamples) {
+  int refineStart(int start, int nSamples, bool direction = true) {
     if (nSamples < 2)
       return start + nSamples;
-    ArrayXd diff = mInputBuffer.segment(start + 1, nSamples) -
+    ArrayXd diff = mInputBuffer.segment(start + 1, nSamples - 1) -
                    mInputBuffer.segment(start, nSamples - 1);
+
     ArrayXd::Index index;
-    diff.maxCoeff(&index);
+    if (direction)
+      diff.maxCoeff(&index);
+    else
+      diff.minCoeff(&index);
     return start + index;
   }
 
@@ -134,15 +139,15 @@ public:
       // establish and refine
       if (!mOutputState && mOnStateCount > mMinTimeAboveThreshold &&
           mFillCount >= mLatency) {
-        int onsetIndex = refineStart(mLatency - mMinTimeAboveThreshold - mUpwardLookupTime, mUpwardLookupTime);
+        int onsetIndex = refineStart(mLatency - mMinTimeAboveThreshold - mUpwardLookupTime, mUpwardLookupTime, true);
         int numSamples = onsetIndex - mMinTimeAboveThreshold;
         mOutputBuffer.segment(onsetIndex, mLatency - onsetIndex) = 1;
         mEventCount = mOnStateCount;
         mOutputState = true; // we are officially on
-      } else if (mOutputState && mOffStateCount > mMinTimeBelowThreshold &&
+      } else if (mOutputState && mOffStateCount > mDownwardLatency &&
                  mFillCount >= mLatency) {
 
-        int offsetIndex = refineStart(mLatency - mMinTimeBelowThreshold - mDownwardLookupTime, mDownwardLookupTime);
+        int offsetIndex = refineStart(mLatency - mDownwardLatency, mDownwardLookupTime, false);
         mOutputBuffer.segment(offsetIndex, mLatency - offsetIndex) = 0;
         mSilenceCount = mOffStateCount;
         mOutputState = false; // we are officially off
@@ -185,6 +190,7 @@ private:
   int mMinTimeAboveThreshold;
   int mMinEventDuration;
   int mDownwardLookupTime;
+  int mDownwardLatency;
   double mOffThreshold;
   int mMinTimeBelowThreshold;
   int mMinSilenceDuration;
