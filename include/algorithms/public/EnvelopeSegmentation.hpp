@@ -76,14 +76,18 @@ public:
   int refineStart(int start, int nSamples, bool direction = true) {
     if (nSamples < 2)
       return start + nSamples;
-    ArrayXd diff = mInputBuffer.segment(start + 1, nSamples - 1) -
+    /*ArrayXd diff = mInputBuffer.segment(start + 1, nSamples - 1) -
                    mInputBuffer.segment(start, nSamples - 1);
-
+    */
+    ArrayXd seg = mInputBuffer.segment(start, nSamples);
     ArrayXd::Index index;
+    /*
     if (direction)
       diff.maxCoeff(&index);
     else
       diff.minCoeff(&index);
+      */
+    seg.minCoeff(&index);
     return start + index;
   }
 
