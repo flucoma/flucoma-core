@@ -126,7 +126,7 @@ public:
       BufferAdaptor::Access thisInput(b.buffer);
       
       if(!thisInput.exists())
-        return {Result::Status::kError, "Input buffer ", b.buffer, "."} ; //error
+        return {Result::Status::kError, "Input buffer ", b.buffer, " not found."} ; //error
 
       if(!thisInput.valid())
         return {Result::Status::kError, "Input buffer ", b.buffer, "invalid (possibly zero-size?)"} ; //error
@@ -145,8 +145,32 @@ public:
       count++;
     }
     
-    if(std::all_of(outputBuffers.begin(), outputBuffers.end(),[](auto& b){return b == nullptr; }))
+    if(std::all_of(outputBuffers.begin(), outputBuffers.end(),[](auto& b){
+      
+      if(!b) return true;
+      
+      BufferAdaptor::Access buf(b);
+      return !buf.exists();
+    }))
       return {Result::Status::kError, "No valid output has been set" }; //error
+    
+    
+    Result r{Result::Status::kOk,""};
+    
+    //Remove non-existent output buffers from the output buffers vector, so clients don't try and use them
+    std::transform(outputBuffers.begin(), outputBuffers.end(),outputBuffers.begin(), [&r](auto& b)->BufferAdaptor*
+    {
+      
+      if(!b) return nullptr;
+      BufferAdaptor::Access buf(b);
+      if(! buf.exists())
+      {
+        r.set(Result::Status::kWarning);
+        r.addMessage("One or more of your output buffers doesn't exist\n");
+      }
+      return buf.exists()? b : nullptr;
+    }); 
+
     
 
     size_t numFrames   = *std::min_element(inFrames.begin(),inFrames.end());
@@ -154,7 +178,7 @@ public:
     
     AdaptorType<HostMatrix,HostVectorView>::process(mClient,inputBuffers,outputBuffers,numFrames,numChannels);
 
-    return {Result::Status::kOk,""};
+    return r;
   }
 private:
 
