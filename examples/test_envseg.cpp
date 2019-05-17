@@ -17,8 +17,8 @@ int main(int argc, char *argv[]) {
   using std::cout;
   using std::vector;
 
-  if (argc <= 17) {
-    cout << "usage: test_envseg in.wav ... (17 parameters)\n";
+  if (argc <= 18) {
+    cout << "usage: test_envseg in.wav ... (18 parameters)\n";
     return 1;
   }
 
@@ -29,17 +29,18 @@ int main(int argc, char *argv[]) {
   double rampDownTime = std::stod(argv[5]);
   double rampDownTime2 = std::stod(argv[6]);
   double onThreshold = std::stod(argv[7]);
-  double retriggerThreshold = std::stod(argv[8]);
-  double minTimeAboveThreshold = std::stod(argv[9]);
-  double minEventDuration = std::stod(argv[10]);
-  double upwardLookupTime = std::stod(argv[11]);
-  double offThreshold = std::stod(argv[12]);
-  double minTimeBelowThreshold = std::stod(argv[13]);
-  double minSilenceDuration = std::stod(argv[14]);
-  double downwardLookupTime = std::stod(argv[15]);
+  double relOnThreshold = std::stod(argv[8]);
+  double relOffThreshold = std::stod(argv[9]);
+  double minTimeAboveThreshold = std::stod(argv[10]);
+  double minEventDuration = std::stod(argv[11]);
+  double upwardLookupTime = std::stod(argv[12]);
+  double offThreshold = std::stod(argv[13]);
+  double minTimeBelowThreshold = std::stod(argv[14]);
+  double minSilenceDuration = std::stod(argv[15]);
+  double downwardLookupTime = std::stod(argv[16]);
 
-  double maxLatency = std::stod(argv[16]);
-  int outputType = std::stoi(argv[17]);
+  double maxLatency = std::stod(argv[17]);
+  int outputType = std::stoi(argv[18]);
 
   HISSTools::IAudioFile file(inputPath);
 
@@ -60,7 +61,8 @@ int main(int argc, char *argv[]) {
           rampDownTime,
           rampDownTime2,
           onThreshold,
-          retriggerThreshold,                                      // dB
+          relOnThreshold,                                      // dB
+          relOffThreshold,                                      // dB
           std::round(minTimeAboveThreshold * samplingRate), // secs to samples
           std::round(minEventDuration * samplingRate),      // secs to samples
           std::round(upwardLookupTime * samplingRate),      // secs to samples
