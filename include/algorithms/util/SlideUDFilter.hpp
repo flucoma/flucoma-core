@@ -15,10 +15,12 @@ public:
 
   double processSample(double x) {
     double y;
-    if (x > x0)
+    if (x > y0){
       y = y0 + mBUp * (x - y0);
-    else
+    }
+    else{
       y = y0 + mBDown * (x - y0);
+    }
     x0 = x;
     y0 = y;
     return y;
