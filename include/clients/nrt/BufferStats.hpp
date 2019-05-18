@@ -66,6 +66,16 @@ public:
     if (!dest.exists())
       return {Result::Status::kError, "Output buffer not found"};
 
+    if (get<kOffset>() >= source.numFrames())
+        return {Result::Status::kError, "Start frame (", get<kOffset>(), ") out of range."};
+
+    if (get<kOffset>()+get<kNumFrames>() >= source.numFrames())
+            return {Result::Status::kError, "Start frame + num frames (", get<kOffset>()+get<kNumFrames>(), ") out of range."};
+
+    if (get<kStartChan>() >= source.numChans())
+        return {Result::Status::kError, "Start channel ", get<kStartChan>(), " out of range."};
+
+
     /*if (!dest.valid())
       return {Result::Status::kError, "Can't access output buffer"};*/
 
@@ -73,6 +83,7 @@ public:
         get<kNumFrames>() == -1 ? source.numFrames() : get<kNumFrames>();
     int numChannels =
         get<kNumChans>() == -1 ? source.numChans() : get<kNumChans>();
+    if (numChannels <= 0 || numFrames <= 0) return {Result::Status::kError, "Zero length segment requested"};
     int outputSize = processor.numStats() * (get<kNumDerivatives>() + 1);
     dest.resize(outputSize, numChannels, 1, source.sampleRate());
 
