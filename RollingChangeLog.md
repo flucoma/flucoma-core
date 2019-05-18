@@ -2,8 +2,15 @@
 date:
 
 ## New Objects:
+- BufStats: computes various statistics on time-series (as buffer channel) and their time derivative
+- MelBands/BufMelBands:
+- MFCC/BufMFCC:
+- NoveltySlice:
+- AmpSeg/BufAmpSeg:
+- Loudness/BufLoudness:
 
 ## New Features:
+- (MAX) skeleton of reference to allow attributes and arguments autocompletion (with quirks) to help coding
 
 ## New Examples:
 
