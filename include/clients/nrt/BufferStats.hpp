@@ -71,15 +71,15 @@ public:
               ") out of range."};
 
     int numFrames =
-        get<kNumFrames>() == -1 ? source.numFrames() : get<kNumFrames>();
+        get<kNumFrames>() == -1 ? (source.numFrames() - get<kOffset>()) : get<kNumFrames>();
     int numChannels =
-        get<kNumChans>() == -1 ? source.numChans() : get<kNumChans>();
+        get<kNumChans>() == -1 ? (source.numChans() - get<kStartChan>()) : get<kNumChans>();
 
-    if (get<kOffset>() + numFrames >= source.numFrames())
+    if (get<kOffset>() + numFrames > source.numFrames())
       return {Result::Status::kError, "Start frame + num frames (",
               get<kOffset>() + get<kNumFrames>(), ") out of range."};
 
-    if (numChannels >= source.numChans())
+    if (get<kStartChan>() + numChannels > source.numChans())
       return {Result::Status::kError, "Start channel ", get<kStartChan>(),
               " out of range."};
 
