@@ -67,6 +67,9 @@ public:
     initBuffers();
     initFilters();
   }
+
+  int getLatency() { return mLatency; }
+
   void initBuffers() {
     mInputBuffer = mInputStorage.segment(0, std::max(mLatency, 1));
     mOutputBuffer = mInputStorage.segment(0, std::max(mLatency, 1));
@@ -113,9 +116,16 @@ public:
     }
   }
 
-  void processSample(const RealVectorView input,
-                     RealVectorView output) { // size is supposed to be 1
-    double in = input(0);
+  bool shouldRetrigger(double relEnv) {
+    if (mInputState && mOutputState && relEnv > mRelOnThreshold &&
+        !mRetriggerState) {
+      mRetriggerState = true;
+    }
+    return mRetriggerState;
+  }
+
+  double processSample(const double in) { // size is supposed to be 1
+    //double in = input(0);
     double filtered = mHiPass2.processSample(mHiPass1.processSample(in));
     double rectified =
         std::max(std::abs(filtered), 6.3095734448019e-08); // -144dB
@@ -130,7 +140,7 @@ public:
         mEventCount = 0;
       } else {
         forcedState = true;
-        mOutputBuffer(mLatency - 1) = 1;
+        mOutputBuffer(mLatency - 1) = shouldRetrigger(relEnv) ? 0 : 1;
         mEventCount++;
       }
       // case 2: we are waiting for silence to finish
@@ -151,10 +161,8 @@ public:
       if (mInputState && smoothed < mOffThreshold)
         nextState = false;
       updateCounters(nextState);
-      if (mInputState && mOutputState && relEnv > mRelOnThreshold &&
-          !mRetriggerState) {
+      if (shouldRetrigger(relEnv)) {
         mOutputBuffer(mLatency - 1) = 0;
-        mRetriggerState = true;
       } else {
         mOutputBuffer(mLatency - 1) = mOutputState ? 1 : 0;
       }
@@ -180,21 +188,22 @@ public:
       }
       mInputState = nextState;
     }
+    double output;
     switch (mOutputType) {
     case 0:
-      output(0) = mOutputBuffer(0);
+      output = mOutputBuffer(0);
       break;
     case 1:
-      output(0) = filtered;
+      output = filtered;
       break;
     case 2:
-      output(0) = std::pow(10.0, smoothed / 20.0);
+      output = std::pow(10.0, smoothed / 20.0);
       break;
     case 3:
-      output(0) = std::pow(10.0, relEnv / 20.0);
+      output = std::pow(10.0, relEnv / 20.0);
       break;
     case 4:
-      output(0) = mInputBuffer(1) - mInputBuffer(0);
+      output = mInputBuffer(1) - mInputBuffer(0);
     }
     if (mLatency > 1) {
       mOutputBuffer.segment(0, mLatency - 1) =
@@ -206,6 +215,7 @@ public:
     mInputBuffer(mLatency - 1) = smoothed;
     if (mFillCount < mLatency)
       mFillCount++;
+    return output;
   }
 
 private:
