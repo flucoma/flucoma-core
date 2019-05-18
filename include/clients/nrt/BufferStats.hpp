@@ -10,6 +10,10 @@ namespace client {
 
 enum BufferStatsParamIndex {
   kSource,
+  kOffset,
+  kNumFrames,
+  kStartChan,
+  kNumChans,
   kStats,
   kNumDerivatives,
   kLow,
@@ -19,14 +23,18 @@ enum BufferStatsParamIndex {
 
 auto constexpr BufferStatsParams = defineParameters(
     BufferParam("source", "Source Buffer"),
+    LongParam("startFrame", "Source Offset", 0, Min(0)),
+    LongParam("numFrames", "Number of Frames", -1),
+    LongParam("startChan", "Start Channel", 0, Min(0)),
+    LongParam("numChans", "Number of Channels", -1),
     BufferParam("stats", "Stats Buffer"),
     LongParam("numDerivatives", "Number of derivatives", 0, Min(0), Max(2)),
     FloatParam("low", "Low percentile", 0, Min(0), Max(100),
-              UpperLimit<kMiddle>()),
+               UpperLimit<kMiddle>()),
     FloatParam("middle", "Middle percentile", 50, Min(0), Max(100),
-              LowerLimit<kLow>(), UpperLimit<kHigh>()),
+               LowerLimit<kLow>(), UpperLimit<kHigh>()),
     FloatParam("high", "High percentile", 100, Min(0), Max(100),
-              LowerLimit<kMiddle>()));
+               LowerLimit<kMiddle>()));
 
 template <typename T>
 class BufferStats
@@ -39,7 +47,6 @@ public:
 
   Result process() {
     algorithm::Stats processor;
-
 
     if (!get<kSource>().get())
       return {Result::Status::kError, "No input buffer supplied"};
@@ -61,19 +68,25 @@ public:
 
     /*if (!dest.valid())
       return {Result::Status::kError, "Can't access output buffer"};*/
-    int numFrames = source.numFrames();
-    int numChannels = source.numChans();
+
+    int numFrames =
+        get<kNumFrames>() == -1 ? source.numFrames() : get<kNumFrames>();
+    int numChannels =
+        get<kNumChans>() == -1 ? source.numChans() : get<kNumChans>();
     int outputSize = processor.numStats() * (get<kNumDerivatives>() + 1);
     dest.resize(outputSize, numChannels, 1, source.sampleRate());
 
     processor.init(get<kNumDerivatives>(), get<kLow>(), get<kMiddle>(),
                    get<kHigh>());
     for (int i = 0; i < numChannels; i++) {
-        auto sourceChannel = FluidTensor<double,1>(source.numFrames());
-        auto destChannel = FluidTensor<double,1>(outputSize);
-        for (int j = 0; j < numFrames; j++) sourceChannel(j) = source.samps(i)(j);
-        processor.process(sourceChannel, destChannel);
-        for (int j = 0; j < outputSize; j++)  dest.samps(i)(j) = destChannel(j);
+      auto sourceChannel = FluidTensor<double, 1>(source.numFrames());
+      auto destChannel = FluidTensor<double, 1>(outputSize);
+      for (int j = 0; j < numFrames; j++)
+        sourceChannel(j) =
+            source.samps(get<kOffset>(), numFrames, get<kStartChan>() + i)(j);
+      processor.process(sourceChannel, destChannel);
+      for (int j = 0; j < outputSize; j++)
+        dest.samps(i)(j) = destChannel(j);
     }
 
     return {Result::Status::kOk, ""};
