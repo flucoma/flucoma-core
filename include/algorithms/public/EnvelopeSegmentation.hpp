@@ -188,10 +188,10 @@ public:
       output(0) = filtered;
       break;
     case 2:
-      output(0) = std::pow(10, smoothed / 20);
+      output(0) = std::pow(10.0, smoothed / 20.0);
       break;
     case 3:
-      output(0) = relEnv;
+      output(0) = std::pow(10.0, relEnv / 20.0);
       break;
     case 4:
       output(0) = mInputBuffer(1) - mInputBuffer(0);
