@@ -28,12 +28,12 @@ auto constexpr BufferStatsParams = defineParameters(
     LongParam("startChan", "Start Channel", 0, Min(0)),
     LongParam("numChans", "Number of Channels", -1),
     BufferParam("stats", "Stats Buffer"),
-    LongParam("numDerivatives", "Number of derivatives", 0, Min(0), Max(2)),
-    FloatParam("low", "Low percentile", 0, Min(0), Max(100),
+    LongParam("numDerivs", "Number of Derivatives", 0, Min(0), Max(2)),
+    FloatParam("low", "Low Percentile", 0, Min(0), Max(100),
                UpperLimit<kMiddle>()),
-    FloatParam("middle", "Middle percentile", 50, Min(0), Max(100),
+    FloatParam("middle", "Middle Percentile", 50, Min(0), Max(100),
                LowerLimit<kLow>(), UpperLimit<kHigh>()),
-    FloatParam("high", "High percentile", 100, Min(0), Max(100),
+    FloatParam("high", "High Percentile", 100, Min(0), Max(100),
                LowerLimit<kMiddle>()));
 
 template <typename T>
