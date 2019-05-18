@@ -79,7 +79,7 @@ public:
     processor.init(get<kNumDerivatives>(), get<kLow>(), get<kMiddle>(),
                    get<kHigh>());
     for (int i = 0; i < numChannels; i++) {
-      auto sourceChannel = FluidTensor<double, 1>(source.numFrames());
+      auto sourceChannel = FluidTensor<double, 1>(numFrames);
       auto destChannel = FluidTensor<double, 1>(outputSize);
       for (int j = 0; j < numFrames; j++)
         sourceChannel(j) =
