@@ -90,7 +90,9 @@ public:
       get<kRelOffThreshold>(),
       get<kHiPassFreq>()))
       {
-      mAlgorithm.init(get<kHiPassFreq>(), get<kAbsRampUpTime>(),
+      double hiPassFreq = get<kHiPassFreq>() / sampleRate();
+      if (hiPassFreq >1) hiPassFreq = 1;
+      mAlgorithm.init(hiPassFreq, get<kAbsRampUpTime>(),
                       get<kRelRampUpTime>(), get<kAbsRampDownTime>(),
                       get<kRelRampDownTime>(), get<kAbsOnThreshold>(),
                       get<kRelOnThreshold>(), get<kRelOffThreshold>(),
