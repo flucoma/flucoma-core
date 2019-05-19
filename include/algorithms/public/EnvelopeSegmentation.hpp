@@ -62,7 +62,7 @@ public:
         std::max(mMinTimeAboveThreshold + mUpwardLookupTime, mDownwardLatency);
     if (mLatency == 0)
       mLatency = 1;
-    std::cout << "latency " << mLatency << std::endl;
+    // std::cout << "latency " << mLatency << std::endl;
     assert(mLatency <= mMaxSize);
     initBuffers();
     initFilters();
