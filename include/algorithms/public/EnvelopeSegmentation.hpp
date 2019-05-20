@@ -62,7 +62,7 @@ public:
         std::max(mMinTimeAboveThreshold + mUpwardLookupTime, mDownwardLatency);
     if (mLatency == 0)
       mLatency = 1;
-    // std::cout << "latency " << mLatency << std::endl;
+    //std::cout << "latency " << mLatency << std::endl;
     assert(mLatency <= mMaxSize);
     initBuffers();
     initFilters();
@@ -117,11 +117,12 @@ public:
   }
 
   bool shouldRetrigger(double relEnv) {
-    if (mInputState && mOutputState && relEnv > mRelOnThreshold &&
-        !mRetriggerState) {
+    if(mRetriggerState) return false;
+    if (mInputState && mOutputState && relEnv > mRelOnThreshold) {
       mRetriggerState = true;
+      return true;
     }
-    return mRetriggerState;
+    return false;
   }
 
   double processSample(const double in) { // size is supposed to be 1
@@ -177,7 +178,7 @@ public:
         int numSamples = onsetIndex - mMinTimeAboveThreshold;
         mOutputBuffer.segment(onsetIndex, mLatency - onsetIndex) = 1;
         mEventCount = mOnStateCount;
-        mOutputState = true; // we are officially on
+        mOutputState  = true; // we are officially on
       } else if (mOutputState && mOffStateCount > mDownwardLatency &&
                  mFillCount >= mLatency) {
         int offsetIndex = refineStart(mLatency - mDownwardLatency,
