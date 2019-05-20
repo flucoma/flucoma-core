@@ -73,7 +73,7 @@ public:
       return;
     size_t hostVecSize = input[0].size();
 
-    if (mTrackValues.changed(
+    if (!mAlgorithm.initialized() || mTrackValues.changed(
       get<kAbsRampUpTime>(),
       get<kAbsRampDownTime>(),
       get<kAbsOnThreshold>(),

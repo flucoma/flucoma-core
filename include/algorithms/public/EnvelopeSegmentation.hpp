@@ -29,11 +29,9 @@ public:
         mUpwardLookupTime(24), mOffThreshold(-42), mMinTimeBelowThreshold(10),
         mMinSilenceDuration(10), mDownwardLookupTime(10),
         mOutputType(outputType), mOnStateCount(0), mOffStateCount(0),
-        mEventCount(0), mSilenceCount(0) {
+        mEventCount(0), mSilenceCount(0), mInitialized(false) {
     mInputStorage = ArrayXd(maxSize);
     mOutputStorage = ArrayXd(maxSize);
-    initBuffers();
-    initFilters();
   }
   void init(double hiPassFreq, int rampUpTime, int rampUpTime2,
             int rampDownTime, int rampDownTime2, double onThreshold,
@@ -60,19 +58,22 @@ public:
     mDownwardLatency = std::max(minTimeBelowThreshold, mDownwardLookupTime);
     mLatency =
         std::max(mMinTimeAboveThreshold + mUpwardLookupTime, mDownwardLatency);
-    if (mLatency == 0)
+    if (mLatency <= 0)
       mLatency = 1;
     //std::cout << "latency " << mLatency << std::endl;
     assert(mLatency <= mMaxSize);
     initBuffers();
     initFilters();
+    mInitialized = true;
   }
 
   int getLatency() { return mLatency; }
-
+  bool initialized(){
+    return mInitialized;
+  }
   void initBuffers() {
     mInputBuffer = mInputStorage.segment(0, std::max(mLatency, 1));
-    mOutputBuffer = mInputStorage.segment(0, std::max(mLatency, 1));
+    mOutputBuffer = mOutputStorage.segment(0, std::max(mLatency, 1));
     mInputState = false;
     mOutputState = false;
     mRetriggerState = false;
@@ -127,6 +128,7 @@ public:
 
   double processSample(const double in) { // size is supposed to be 1
     //double in = input(0);
+    assert(mInitialized);
     double filtered = mHiPass2.processSample(mHiPass1.processSample(in));
     double rectified =
         std::max(std::abs(filtered), 6.3095734448019e-08); // -144dB
@@ -255,6 +257,7 @@ private:
   int mOffStateCount;
   int mEventCount;
   int mSilenceCount;
+  bool mInitialized;
 }; // namespace algorithm
 }; // namespace algorithm
 }; // namespace fluid
