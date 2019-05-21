@@ -9,6 +9,7 @@
 #include <data/FluidTensor.hpp>
 #include <data/TensorTypes.hpp>
 #include <vector>
+#include <thread>
 
 namespace fluid{
 namespace client{
@@ -366,6 +367,81 @@ auto constexpr makeNRTParams(impl::BufferSpec&& in, impl::BufferSpec(&& out)[Ms]
 {
   return impl::joinParameterDescriptors(impl::joinParameterDescriptors(impl::makeWrapperInputs(in), impl::spitOuts(out, std::make_index_sequence<Ms>())), RTClient<double>::getParameterDescriptors());
 }
+  
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+  
+template<typename NRTClient>
+class NRTTheadingAdaptor : public OfflineIn, public OfflineOut // FIX - is this right?
+{
+public:
+    
+  using ParamDescType = typename NRTClient::ParamDescType;
+  using ParamSetType = typename NRTClient::ParamSetType;
+  using ParamSetViewType = typename NRTClient::ParamSetViewType;
+
+  constexpr static ParamDescType& getParameterDescriptors() { return NRTClient::getParameterDescriptors(); }
+
+  enum ProcessState { kNoProcess, kProcessing, kDone };
+
+  NRTTheadingAdaptor(ParamSetViewType& p)
+   : mWrapperParams{p}
+   , mProcessingParams(getParameterDescriptors())
+   , mClient{mProcessingParams}
+  {}
+    
+  static void threadedProcessEntry(NRTTheadingAdaptor* owner)
+  {
+    owner->threadedProcess();
+  }
+    
+  Result process()
+  {
+    ProcessState state = mState;
+      
+    if (state != kNoProcess)
+        return Result(Result::Status::kError, "already processing");
+      
+    // FIX - how to copy params from a view????
+    //mProcessingParams = mWrapperParams;
+    
+    // FIX - copy those buffers!
+      
+    mThread = std::thread(threadedProcessEntry, this);
+    mState = kProcessing;
+      
+    return Result();
+  }
+    
+  ProcessState checkProgress()
+  {
+    ProcessState state = mState;
+      
+    if (state == kDone)
+    {
+      mThread.join();
+        
+      // FIX - copy buffers and delete local buffers
+        
+      mState = kNoProcess;
+    }
+      
+    return state;
+  }
+    
+private:
+  
+  void threadedProcess()
+  {
+    mClient.process();
+    mState = kDone;
+  }
+    
+  ParamSetViewType mWrapperParams;
+  ParamSetType mProcessingParams;
+  std::thread mThread;
+  NRTClient mClient;
+  ProcessState mState = kNoProcess;
+};
 
 } //namespace client
 } //namespace fluid

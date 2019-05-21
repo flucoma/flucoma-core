@@ -9,7 +9,7 @@
 #include <algorithms/public/RatioMask.hpp>
 #include <algorithms/public/STFT.hpp>
 #include <data/FluidTensor.hpp>
-
+#include "FluidNRTClientWrapper.hpp"
 
 #include <algorithm> //for max_element
 #include <sstream>   //for ostringstream
@@ -221,5 +221,9 @@ public:
     return {Result::Status::kOk,""};
   }
 };
+    
+template <typename T>
+using NRTThreadedNMF = NRTTheadingAdaptor<NMFClient<T>>;
+    
 } // namespace client
 } // namespace fluid
