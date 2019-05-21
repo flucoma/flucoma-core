@@ -373,7 +373,7 @@ auto constexpr makeNRTParams(impl::BufferSpec&& in, impl::BufferSpec(&& out)[Ms]
 enum ProcessState { kNoProcess, kProcessing, kDone };
 
 template<typename NRTClient>
-class NRTTheadingAdaptor : public OfflineIn, public OfflineOut // FIX - is this right?
+class NRTTheadingAdaptor : public OfflineIn, public OfflineOut
 {
 public:
     
@@ -383,6 +383,13 @@ public:
 
   constexpr static ParamDescType& getParameterDescriptors() { return NRTClient::getParameterDescriptors(); }
 
+  size_t audioChannelsIn()    const noexcept { return 0; }
+  size_t audioChannelsOut()   const noexcept { return 0; }
+  size_t controlChannelsIn()  const noexcept { return 0; }
+  size_t controlChannelsOut() const noexcept { return 0; }
+  size_t audioBuffersIn()  const noexcept { return mClient.audioBuffersIn();  }
+  size_t audioBuffersOut() const noexcept { return mClient.audioBuffersOut(); }
+`
   NRTTheadingAdaptor(ParamSetViewType& p)
    : mWrapperParams{p}
    , mProcessingParams(getParameterDescriptors())
