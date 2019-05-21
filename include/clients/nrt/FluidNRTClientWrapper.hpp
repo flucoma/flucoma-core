@@ -370,6 +370,8 @@ auto constexpr makeNRTParams(impl::BufferSpec&& in, impl::BufferSpec(&& out)[Ms]
   
 //////////////////////////////////////////////////////////////////////////////////////////////////////
   
+enum ProcessState { kNoProcess, kProcessing, kDone };
+
 template<typename NRTClient>
 class NRTTheadingAdaptor : public OfflineIn, public OfflineOut // FIX - is this right?
 {
@@ -380,8 +382,6 @@ public:
   using ParamSetViewType = typename NRTClient::ParamSetViewType;
 
   constexpr static ParamDescType& getParameterDescriptors() { return NRTClient::getParameterDescriptors(); }
-
-  enum ProcessState { kNoProcess, kProcessing, kDone };
 
   NRTTheadingAdaptor(ParamSetViewType& p)
    : mWrapperParams{p}
