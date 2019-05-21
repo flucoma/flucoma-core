@@ -389,7 +389,7 @@ public:
   size_t controlChannelsOut() const noexcept { return 0; }
   size_t audioBuffersIn()  const noexcept { return mClient.audioBuffersIn();  }
   size_t audioBuffersOut() const noexcept { return mClient.audioBuffersOut(); }
-`
+
   NRTTheadingAdaptor(ParamSetViewType& p)
    : mWrapperParams{p}
    , mProcessingParams(getParameterDescriptors())
