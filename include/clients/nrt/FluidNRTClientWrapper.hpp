@@ -406,7 +406,10 @@ public:
     ProcessState state = mState;
       
     if (state != kNoProcess)
-        return Result(Result::Status::kError, "already processing");
+      return Result(Result::Status::kError, "already processing");
+      
+    if (mSynchronous)
+      return mClient.process();
       
     // FIX - how to copy params from a view????
     //mProcessingParams = mWrapperParams;
@@ -419,7 +422,7 @@ public:
     return Result();
   }
     
-  ProcessState checkProgress()
+  ProcessState checkProgress(Result& result)
   {
     ProcessState state = mState;
       
@@ -435,6 +438,11 @@ public:
     return state;
   }
     
+  void setSynchronous(bool synchronous)
+  {
+    mSynchronous = synchronous;
+  }
+    
 private:
   
   void threadedProcess()
@@ -448,6 +456,7 @@ private:
   std::thread mThread;
   NRTClient mClient;
   ProcessState mState = kNoProcess;
+  bool mSynchronous = false;
 };
 
 } //namespace client
