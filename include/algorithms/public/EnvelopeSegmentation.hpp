@@ -143,7 +143,8 @@ public:
         mEventCount = 0;
       } else {
         forcedState = true;
-        mOutputBuffer(mLatency - 1) = shouldRetrigger(relEnv) ? 0 : 1;
+        //mOutputBuffer(mLatency - 1) = shouldRetrigger(relEnv) ? 0 : 1;
+        mOutputBuffer(mLatency - 1) = 1;
         mEventCount++;
       }
       // case 2: we are waiting for silence to finish
