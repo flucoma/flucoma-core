@@ -45,10 +45,9 @@ public:
         if(numChans() != src.numChans() || numFrames() != src.numFrames() || mRank != src.rank())
           src.resize(numFrames(),numChans(),mRank,mSampleRate);
         
-        for(int i = 0; i < mData.rows(); ++i)
-        {
-          src.samps(i / mRank,mData.cols()) = mData.row(i);
-        }
+        for(int i = 0; i < numChans(); ++i)
+            for(int j = 0; j < mRank; ++j)
+                src.samps(i / mRank,j) = samps(i / mRank,j);
       }
       //TODO feedback failure to user somehow: I need a message queue
       return;
