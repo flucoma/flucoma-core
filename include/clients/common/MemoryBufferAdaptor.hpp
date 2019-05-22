@@ -9,7 +9,7 @@ class MemoryBufferAdaptor: public BufferAdaptor
 {
 public:
     
-   MemoryBufferAdaptor(size_t chans, size_t frames, double sampleRate) : mData(chans,frames)
+   MemoryBufferAdaptor(size_t chans, size_t frames, double sampleRate) : mData(frames,chans)
    {}
 
    // N.B. -cannot copy const BufferAdaptors at the moment
@@ -23,13 +23,13 @@ public:
       if(this != &other)
       {
         BufferAdaptor::Access src(&other);
-        mData.resize(src.numChans() * src.rank(),src.numFrames());
+        mData.resize(src.numFrames(),src.numChans() * src.rank());
         mExists = src.exists();
         mValid = src.valid();
         mRank = src.rank();
         mSampleRate = src.sampleRate();
-        for(size_t i = 0; i < numChans() * mRank; i++)
-          mData.row(i) = src.samps(i / mRank, i % mRank);
+        for(size_t i = 0; i < mData.cols(); i++)
+          mData.col(i) = src.samps(0, src.numFrames(), i);
         mOrigin = &other;
       }
       return *this;
@@ -40,18 +40,17 @@ public:
     if(mOrigin)
     {
       BufferAdaptor::Access src(mOrigin);
-      if(src.exists() && src.valid())
+      if(src.exists())
       {
         if(numChans() != src.numChans() || numFrames() != src.numFrames() || mRank != src.rank())
           src.resize(numFrames(),numChans(),mRank,mSampleRate);
         
-        for(int i = 0; i < numChans(); ++i)
-          for(int j = 0; j < mRank; ++j)
-            src.samps(i / mRank,j) = samps(i / mRank,j);
+        if(src.valid())
+          for(int i = 0; i < numChans(); ++i)
+              src.samps(0,numFrames(),i) = samps(0,numFrames(),i);
       }
       //TODO feedback failure to user somehow: I need a message queue
-      return;
-
+      
     }
   }
 
@@ -64,7 +63,7 @@ public:
    {
      mRank = rank;
      mSampleRate = sampleRate;
-     mData.resize(channels * rank, frames);
+     mData.resize(frames,channels * rank);
    }
     
    // Return a slice of the buffer
