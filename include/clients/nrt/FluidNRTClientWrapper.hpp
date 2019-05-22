@@ -2,6 +2,7 @@
 
 #include <clients/common/BufferAdaptor.hpp>
 #include <clients/common/FluidBaseClient.hpp>
+#include <clients/common/MemoryBufferAdaptor.hpp>
 #include <clients/common/OfflineClient.hpp>
 #include <clients/common/ParameterTypes.hpp>
 #include <clients/common/ParameterSet.hpp>
