@@ -46,8 +46,8 @@ public:
           src.resize(numFrames(),numChans(),mRank,mSampleRate);
         
         for(int i = 0; i < numChans(); ++i)
-            for(int j = 0; j < mRank; ++j)
-                src.samps(i / mRank,j) = samps(i / mRank,j);
+          for(int j = 0; j < mRank; ++j)
+            src.samps(i / mRank,j) = samps(i / mRank,j);
       }
       //TODO feedback failure to user somehow: I need a message queue
       return;
