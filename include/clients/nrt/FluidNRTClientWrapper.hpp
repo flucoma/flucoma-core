@@ -405,9 +405,18 @@ public:
   template<size_t N, typename T>
   struct BufferCopy
   {
-    void operator()(typename T::type param, NRTTheadingAdaptor *adaptor)
+    void operator()(typename T::type& param, NRTTheadingAdaptor *adaptor)
     {
       param = std::shared_ptr<BufferAdaptor>(new MemoryBufferAdaptor(*(adaptor->mHostParams.template get<N>()).get()));
+    }
+  };
+    
+  template<size_t N, typename T>
+  struct BufferDelete
+  {
+    void operator()(typename T::type& param)
+    {
+      param.reset();
     }
   };
     
@@ -439,9 +448,7 @@ public:
     if (state == kDone)
     {
       mThread.join();
-        
-      // FIX - write buffers then delete local buffers
-        
+      mProcessParams.template forEachParamType<BufferT, BufferDelete>();  
       mState = kNoProcess;
     }
       
