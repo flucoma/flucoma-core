@@ -48,7 +48,7 @@ public:
         
         if(src.valid())
           for(int i = 0; i < numChans(); ++i)
-            for(int j = 0; i < mRank;  ++j)
+            for(int j = 0; j < mRank; ++j)
               src.samps(i, j) = samps(i, j);
       }
       //TODO feedback failure to user somehow: I need a message queue
