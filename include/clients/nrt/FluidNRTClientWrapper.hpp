@@ -408,11 +408,13 @@ public:
     if (state != kNoProcess)
       return Result(Result::Status::kError, "already processing");
       
+    mProcessParams = mHostParams;
+      
+    // Use parameters directly if processing synchronously
+      
     if (mSynchronous)
       return mClient.process();
       
-    mProcessParams = mHostParams;
-    
     // FIX - copy/replace those buffers!
       
     mThread = std::thread(threadedProcessEntry, this);
