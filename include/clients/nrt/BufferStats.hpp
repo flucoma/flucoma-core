@@ -4,6 +4,7 @@
 #include <clients/common/FluidBaseClient.hpp>
 #include <clients/common/ParameterConstraints.hpp>
 #include <clients/common/ParameterTypes.hpp>
+#include "FluidNRTClientWrapper.hpp"
 
 namespace fluid {
 namespace client {
@@ -105,5 +106,9 @@ public:
     return {Result::Status::kOk, ""};
   }
 };
+    
+template <typename T>
+using NRTThreadedBufferStats = NRTThreadingAdaptor<BufferStats<T>>;
+    
 } // namespace client
 } // namespace fluid

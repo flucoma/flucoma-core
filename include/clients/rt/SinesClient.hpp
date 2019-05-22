@@ -90,6 +90,8 @@ auto constexpr NRTSineParams = makeNRTParams<SinesClient>({BufferParam("source",
 template <typename T>
 using NRTSines = NRTStreamAdaptor<SinesClient<T>, decltype(NRTSineParams), NRTSineParams, 1, 2>;
 
+template <typename T>
+using NRTThreadedSines = NRTThreadingAdaptor<NRTSines<T>>;
 
 } // namespace client
 } // namespace fluid

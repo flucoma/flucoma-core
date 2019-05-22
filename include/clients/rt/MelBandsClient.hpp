@@ -101,5 +101,9 @@ template <typename T>
 using NRTMelBandsClient =
     NRTControlAdaptor<MelBandsClient<T>, decltype(NRTMelBandsParams),
                       NRTMelBandsParams, 1, 1>;
+ 
+template <typename T>
+using NRTThreadedMelBandsClient = NRTThreadingAdaptor<NRTMelBandsClient<T>>;
+    
 } // namespace client
 } // namespace fluid

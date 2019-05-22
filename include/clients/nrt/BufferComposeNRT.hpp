@@ -7,6 +7,7 @@
 #include <clients/common/Result.hpp>
 #include <data/FluidTensor.hpp>
 #include <data/TensorTypes.hpp>
+#include "FluidNRTClientWrapper.hpp"
 
 namespace fluid {
 namespace client {
@@ -142,5 +143,9 @@ public:
     return {Result::Status::kOk};
   }
 };
+    
+template <typename T>
+using NRTThreadedBufferCompose = NRTThreadingAdaptor<BufferComposeClient<T>>;
+    
 } // namespace client
 } // namespace fluid

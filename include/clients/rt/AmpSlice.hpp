@@ -127,5 +127,9 @@ auto constexpr NRTAmpSliceParams =
 template <typename T>
 using NRTAmpSlice = NRTSliceAdaptor<AmpSlice<T>, decltype(NRTAmpSliceParams),
                                     NRTAmpSliceParams, 1, 1>;
+ 
+template <typename T>
+using NRTThreadedAmpSlice = NRTThreadingAdaptor<NRTAmpSlice<T>>;
+    
 } // namespace client
 } // namespace fluid

@@ -126,5 +126,8 @@ auto constexpr NRTTransientSliceParams = makeNRTParams<TransientsSlice>({BufferP
 template <typename T>
 using NRTTransientSlice = NRTSliceAdaptor<TransientsSlice<T>, decltype(NRTTransientSliceParams), NRTTransientSliceParams, 1, 1>;
 
+template <typename T>
+using NRTThreadedTransientSlice = NRTThreadingAdaptor<NRTTransientSlice<T>>;
+
 } // namespace client
 } // namespace fluid

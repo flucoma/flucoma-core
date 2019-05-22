@@ -223,7 +223,7 @@ public:
 };
     
 template <typename T>
-using NRTThreadedNMF = NRTTheadingAdaptor<NMFClient<T>>;
+using NRTThreadedNMF = NRTThreadingAdaptor<NMFClient<T>>;
     
 } // namespace client
 } // namespace fluid

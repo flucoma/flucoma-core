@@ -69,7 +69,7 @@ public:
     
    // Return a slice of the buffer
    FluidTensorView<float, 1> samps(size_t channel, size_t rankIdx = 0) { return mData.col(channel * mRank + rankIdx); }
-   FluidTensorView<float, 1> samps(size_t offset, size_t nframes, size_t chanoffset) { return mData(Slice(offset, nframes), Slice(chanoffset, 1)).col(0); }
+   FluidTensorView<float, 1> samps(size_t offset, size_t nframes, size_t chanoffset) { return mData(Slice(offset, nframes), Slice(chanoffset, 1)).row(0); }
    size_t numFrames() const override { return mData.cols(); }
    size_t numChans() const override { return mRank ? (mData.rows() / mRank) : 0; }
    size_t rank() const override { return mRank; }

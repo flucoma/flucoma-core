@@ -371,10 +371,8 @@ auto constexpr makeNRTParams(impl::BufferSpec&& in, impl::BufferSpec(&& out)[Ms]
   
 //////////////////////////////////////////////////////////////////////////////////////////////////////
   
-enum ProcessState { kNoProcess, kProcessing, kDone };
-
 template<typename NRTClient>
-class NRTTheadingAdaptor : public OfflineIn, public OfflineOut
+class NRTThreadingAdaptor : public OfflineIn, public OfflineOut
 {
 public:
     
@@ -391,13 +389,13 @@ public:
   size_t audioBuffersIn()  const noexcept { return mClient.audioBuffersIn();  }
   size_t audioBuffersOut() const noexcept { return mClient.audioBuffersOut(); }
 
-  NRTTheadingAdaptor(ParamSetType& p)
+  NRTThreadingAdaptor(ParamSetType& p)
    : mHostParams{p}
    , mProcessParams(getParameterDescriptors())
    , mClient{mProcessParams}
   {}
     
-  static void threadedProcessEntry(NRTTheadingAdaptor* owner)
+  static void threadedProcessEntry(NRTThreadingAdaptor* owner)
   {
     owner->threadedProcess();
   }
@@ -405,7 +403,7 @@ public:
   template<size_t N, typename T>
   struct BufferCopy
   {
-    void operator()(typename T::type& param, NRTTheadingAdaptor *adaptor)
+    void operator()(typename T::type& param, NRTThreadingAdaptor *adaptor)
     {
       param = std::shared_ptr<BufferAdaptor>(new MemoryBufferAdaptor(*(adaptor->mHostParams.template get<N>()).get()));
     }

@@ -82,6 +82,9 @@ template <typename T>
 using NRTSpectralShapeClient =
     NRTControlAdaptor<SpectralShapeClient<T>, decltype(NRTSpectralShapeParams),
                       NRTSpectralShapeParams, 1, 1>;
+    
+template <typename T>
+using NRTThreadedSpectralShapeClient = NRTThreadingAdaptor<NRTSpectralShapeClient<T>>;
 
 } // namespace client
 } // namespace fluid

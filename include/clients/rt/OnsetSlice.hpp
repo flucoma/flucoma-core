@@ -107,6 +107,9 @@ template <typename T>
 using NRTOnsetSlice =
     NRTSliceAdaptor<OnsetSlice<T>, decltype(NRTOnsetSliceParams),
                     NRTOnsetSliceParams, 1, 1>;
+    
+template <typename T>
+using NRTThreadingOnsetSlice = NRTThreadingAdaptor<NRTOnsetSlice<T>>;
 
 } // namespace client
 } // namespace fluid

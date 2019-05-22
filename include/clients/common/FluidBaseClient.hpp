@@ -13,6 +13,8 @@
 namespace fluid {
 namespace client {
 
+enum ProcessState { kNoProcess, kProcessing, kDone };
+
 template<typename ParamType, ParamType& PD>
 class FluidBaseClient //<const Tuple<Ts...>>
 {

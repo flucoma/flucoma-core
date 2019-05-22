@@ -108,6 +108,9 @@ auto constexpr NRTMFCCParams =
 template <typename T>
 using NRTMFCCClient = NRTControlAdaptor<MFCCClient<T>, decltype(NRTMFCCParams),
                                         NRTMFCCParams, 1, 1>;
+    
+template <typename T>
+using NRTThreadedMFCCClient = NRTThreadingAdaptor<NRTMFCCClient<T>>;
 
 } // namespace client
 } // namespace fluid

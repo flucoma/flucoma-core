@@ -94,5 +94,8 @@ using NRTLoudnessClient =
     NRTControlAdaptor<LoudnessClient<T>, decltype(NRTLoudnessParams),
                       NRTLoudnessParams, 1, 1>;
 
+template <typename T>
+using NRTThreadedLoudnessClient = NRTThreadingAdaptor<NRTLoudnessClient<T>>;
+    
 } // namespace client
 } // namespace fluid

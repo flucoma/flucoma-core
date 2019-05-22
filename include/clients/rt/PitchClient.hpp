@@ -94,5 +94,8 @@ using NRTPitchClient =
     NRTControlAdaptor<PitchClient<T>, decltype(NRTPitchParams), NRTPitchParams,
                       1, 1>;
 
+template <typename T>
+using NRTThreadedPitchClient = NRTThreadingAdaptor<NRTPitchClient<T>>;
+    
 } // namespace client
 } // namespace fluid

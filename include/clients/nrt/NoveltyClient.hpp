@@ -7,6 +7,7 @@
 #include <clients/common/SpikesToTimes.hpp>
 #include <algorithms/public/NoveltySegmentation.hpp>
 #include <algorithms/public/STFT.hpp>
+#include "FluidNRTClientWrapper.hpp"
 
 namespace fluid {
 namespace client {
@@ -101,5 +102,9 @@ public:
     return {Result::Status::kOk,""};
   }
 };
+    
+template <typename T>
+using NRTThreadedNoveltyClient = NRTThreadingAdaptor<NoveltyClient<T>>;
+    
 } // namespace client
 } // namespace fluid

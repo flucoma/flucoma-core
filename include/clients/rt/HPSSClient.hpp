@@ -98,6 +98,9 @@ auto constexpr NRTHPSSParams = makeNRTParams<HPSSClient>({BufferParam("source", 
 
 template <typename T>
 using NRTHPSS = NRTStreamAdaptor<HPSSClient<T>, decltype(NRTHPSSParams), NRTHPSSParams, 1, 3>;
+    
+template <typename T>
+using NRTThreadedHPSS = NRTThreadingAdaptor<NRTHPSS<T>>;
 
 } // namespace client
 } // namespace fluid
