@@ -390,10 +390,10 @@ public:
   size_t audioBuffersIn()  const noexcept { return mClient.audioBuffersIn();  }
   size_t audioBuffersOut() const noexcept { return mClient.audioBuffersOut(); }
 
-  NRTTheadingAdaptor(ParamSetViewType& p)
-   : mWrapperParams{p}
-   , mProcessingParams(getParameterDescriptors())
-   , mClient{mProcessingParams}
+  NRTTheadingAdaptor(ParamSetType& p)
+   , mHostParams{p}
+   , mProcessParams(getParameterDescriptors())
+   , mClient{mProcessParams}
   {}
     
   static void threadedProcessEntry(NRTTheadingAdaptor* owner)
@@ -411,10 +411,9 @@ public:
     if (mSynchronous)
       return mClient.process();
       
-    // FIX - how to copy params from a view????
-    //mProcessingParams = mWrapperParams;
+    mProcessParams = mHostParams;
     
-    // FIX - copy those buffers!
+    // FIX - copy/replace those buffers!
       
     mThread = std::thread(threadedProcessEntry, this);
     mState = kProcessing;
@@ -430,7 +429,7 @@ public:
     {
       mThread.join();
         
-      // FIX - copy buffers and delete local buffers
+      // FIX - write buffers then delete local buffers
         
       mState = kNoProcess;
     }
@@ -451,12 +450,14 @@ private:
     mState = kDone;
   }
     
-  ParamSetViewType mWrapperParams;
-  ParamSetType mProcessingParams;
+  ParamSetType& mHostParams;
+  ParamSetType mProcessParams;
+    
   std::thread mThread;
-  NRTClient mClient;
   ProcessState mState = kNoProcess;
   bool mSynchronous = false;
+    
+  NRTClient mClient;
 };
 
 } //namespace client
