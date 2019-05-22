@@ -416,9 +416,9 @@ public:
       return mClient.process();
       
     // FIX - copy/replace those buffers!
-      
-    mThread = std::thread(threadedProcessEntry, this);
+    
     mState = kProcessing;
+    mThread = std::thread(threadedProcessEntry, this);
       
     return Result();
   }
