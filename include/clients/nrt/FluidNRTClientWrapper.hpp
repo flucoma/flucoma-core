@@ -397,7 +397,8 @@ public:
     
   ~NRTThreadingAdaptor()
   {
-    //mThread.join();
+    while (mState != kNoProcess)
+      std::this_thread::sleep_for(10ms);
   }
     
   static void threadedProcessEntry(NRTThreadingAdaptor* owner)
