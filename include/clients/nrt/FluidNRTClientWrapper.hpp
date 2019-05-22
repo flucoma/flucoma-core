@@ -397,7 +397,7 @@ public:
     
   ~NRTThreadingAdaptor()
   {
-    mThread.join();
+    //mThread.join();
   }
     
   static void threadedProcessEntry(NRTThreadingAdaptor* owner)
@@ -410,7 +410,8 @@ public:
   {
     void operator()(typename T::type& param, NRTThreadingAdaptor *adaptor)
     {
-      param = std::shared_ptr<BufferAdaptor>(new MemoryBufferAdaptor(*(adaptor->mHostParams.template get<N>()).get()));
+      if (adaptor->mHostParams.template get<N>())
+        param = std::shared_ptr<BufferAdaptor>(new MemoryBufferAdaptor(adaptor->mHostParams.template get<N>()));
     }
   };
     
@@ -453,6 +454,7 @@ public:
       mThread.join();
       mProcessParams.template forEachParamType<BufferT, BufferDelete>();  
       mState = kNoProcess;
+      result = mResult;
     }
       
     return state;
@@ -467,7 +469,7 @@ private:
   
   void threadedProcess()
   {
-    mClient.process();
+    mResult = mClient.process();
     mState = kDone;
   }
     
@@ -477,6 +479,8 @@ private:
   std::thread mThread;
   ProcessState mState = kNoProcess;
   bool mSynchronous = false;
+    
+  Result mResult;
     
   NRTClient mClient;
 };

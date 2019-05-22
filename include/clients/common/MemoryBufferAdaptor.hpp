@@ -14,15 +14,15 @@ public:
 
    // N.B. -cannot copy const BufferAdaptors at the moment
     
-   MemoryBufferAdaptor(BufferAdaptor& other) { *this = other; }
+  MemoryBufferAdaptor(std::shared_ptr<BufferAdaptor>& other) { *this = other; }
 
   // N.B.  -cannot get access to a const BufferAdaptor at the moment
 
-   MemoryBufferAdaptor& operator=(BufferAdaptor& other)
+   MemoryBufferAdaptor& operator=(std::shared_ptr<BufferAdaptor>& other)
    {
-      if(this != &other)
+      if(this != other.get())
       {
-        BufferAdaptor::Access src(&other);
+        BufferAdaptor::Access src(other.get());
         mData.resize(src.numFrames(),src.numChans() * src.rank());
         mExists = src.exists();
         mValid = src.valid();
@@ -30,16 +30,17 @@ public:
         mSampleRate = src.sampleRate();
         for(size_t i = 0; i < mData.cols(); i++)
           mData.col(i) = src.samps(0, src.numFrames(), i);
-        mOrigin = &other;
+        mOrigin = other;
+        mWrite = false;
       }
       return *this;
    }
 
   ~MemoryBufferAdaptor()
   {
-    if(mOrigin)
+    if(mWrite && mOrigin)
     {
-      BufferAdaptor::Access src(mOrigin);
+      BufferAdaptor::Access src(mOrigin.get());
       if(src.exists())
       {
         if(numChans() != src.numChans() || numFrames() != src.numFrames() || mRank != src.rank())
@@ -47,7 +48,8 @@ public:
         
         if(src.valid())
           for(int i = 0; i < numChans(); ++i)
-              src.samps(0,numFrames(),i) = samps(0,numFrames(),i);
+            for(int j = 0; i < mRank;  ++j)
+              src.samps(i, j) = samps(i, j);
       }
       //TODO feedback failure to user somehow: I need a message queue
       
@@ -61,6 +63,7 @@ public:
     
    void resize(size_t frames, size_t channels, size_t rank, double sampleRate) override
    {
+     mWrite = true;
      mRank = rank;
      mSampleRate = sampleRate;
      mData.resize(frames,channels * rank);
@@ -68,18 +71,19 @@ public:
     
    // Return a slice of the buffer
    FluidTensorView<float, 1> samps(size_t channel, size_t rankIdx = 0) { return mData.col(channel * mRank + rankIdx); }
-   FluidTensorView<float, 1> samps(size_t offset, size_t nframes, size_t chanoffset) { return mData(Slice(offset, nframes), Slice(chanoffset, 1)).row(0); }
-   size_t numFrames() const override { return mData.cols(); }
-   size_t numChans() const override { return mRank ? (mData.rows() / mRank) : 0; }
+   FluidTensorView<float, 1> samps(size_t offset, size_t nframes, size_t chanoffset) { return mData(Slice(offset, nframes), Slice(chanoffset, 1)).col(0); }
+   size_t numFrames() const override { return mData.rows(); }
+   size_t numChans() const override { return mRank ? (mData.cols() / mRank) : 0; }
    size_t rank() const override { return mRank; }
    double sampleRate() const { return mSampleRate; }
   
   private:
-    BufferAdaptor* mOrigin;
+    std::shared_ptr<BufferAdaptor> mOrigin;
     FluidTensor<float, 2> mData;
     double mSampleRate;
     bool mValid{true};
     bool mExists{true};
+    bool mWrite{false};
     int mRank{1};
 };
     
