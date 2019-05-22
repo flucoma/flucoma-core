@@ -30,9 +30,31 @@ public:
         mSampleRate = src.sampleRate();
         for(size_t i = 0; i < numChans() * mRank; i++)
           mData.row(i) = src.samps(i / mRank, i % mRank);
+        mOrigin = &other;
       }
       return *this;
    }
+
+  ~MemoryBufferAdaptor()
+  {
+    if(mOrigin)
+    {
+      BufferAdaptor::Access src(mOrigin);
+      if(src.exists() && src.valid())
+      {
+        if(numChans() != src.numChans() || numFrames() != src.numFrames() || mRank != src.rank())
+          src.resize(numFrames(),numChans(),mRank,mSampleRate);
+        
+        for(int i = 0; i < mData.rows(); ++i)
+        {
+          src.samps(i / mRank,mData.cols()) = mData.row(i);
+        }
+      }
+      //TODO feedback failure to user somehow: I need a message queue
+      return;
+
+    }
+  }
 
    bool acquire() override { return true; }
    void release() override {}
@@ -55,6 +77,7 @@ public:
    double sampleRate() const { return mSampleRate; }
   
   private:
+    BufferAdaptor* mOrigin;
     FluidTensor<float, 2> mData;
     double mSampleRate;
     bool mValid{true};
