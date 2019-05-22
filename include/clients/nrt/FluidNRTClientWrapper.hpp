@@ -398,7 +398,12 @@ public:
   ~NRTThreadingAdaptor()
   {
     while (mState != kNoProcess)
-      std::this_thread::sleep_for(10ms);
+    {
+      Result res;
+      std::chrono::duration<double, std::milli> dur(10.0);
+      std::this_thread::sleep_for(dur);
+      checkProgress(res);
+    }
   }
     
   static void threadedProcessEntry(NRTThreadingAdaptor* owner)
