@@ -401,6 +401,15 @@ public:
   {
     owner->threadedProcess();
   }
+
+  template<size_t N, typename T>
+  struct BufferCopy
+  {
+    void operator()(typename T::type param, NRTTheadingAdaptor *adaptor)
+    {
+      param = std::shared_ptr<BufferAdaptor>(new MemoryBufferAdaptor(*(adaptor->mHostParams.template get<N>()).get()));
+    }
+  };
     
   Result process()
   {
@@ -416,8 +425,7 @@ public:
     if (mSynchronous)
       return mClient.process();
       
-    // FIX - copy/replace those buffers!
-    
+    mProcessParams.template forEachParamType<BufferT, BufferCopy>(this);
     mState = kProcessing;
     mThread = std::thread(threadedProcessEntry, this);
       
