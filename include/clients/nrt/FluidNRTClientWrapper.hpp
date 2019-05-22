@@ -391,7 +391,7 @@ public:
   size_t audioBuffersOut() const noexcept { return mClient.audioBuffersOut(); }
 
   NRTTheadingAdaptor(ParamSetType& p)
-   , mHostParams{p}
+   : mHostParams{p}
    , mProcessParams(getParameterDescriptors())
    , mClient{mProcessParams}
   {}
