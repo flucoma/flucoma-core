@@ -395,6 +395,11 @@ public:
    , mClient{mProcessParams}
   {}
     
+  ~NRTThreadingAdaptor()
+  {
+    mThread.join();
+  }
+    
   static void threadedProcessEntry(NRTThreadingAdaptor* owner)
   {
     owner->threadedProcess();
