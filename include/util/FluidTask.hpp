@@ -18,11 +18,8 @@ public:
     mCancel = false;
   }
     
-  void reset()
-  {
-    mCancel = false;
-  }
-    
+  void cancel() { mCancel = true; }
+  void reset() { mCancel = false; }
   double progress() { return mProgress; }
     
 private:
