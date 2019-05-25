@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AudioClient.hpp"
+#include "FluidContext.hpp"
 #include "OfflineClient.hpp"
 #include "ParameterConstraints.hpp"
 #include "ParameterSet.hpp"

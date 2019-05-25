@@ -2,6 +2,7 @@
 
 #include <clients/common/BufferAdaptor.hpp>
 #include <clients/common/FluidBaseClient.hpp>
+#include <clients/common/FluidContext.hpp>
 #include <clients/common/MemoryBufferAdaptor.hpp>
 #include <clients/common/OfflineClient.hpp>
 #include <clients/common/ParameterTypes.hpp>
@@ -105,7 +106,7 @@ public:
   size_t audioBuffersIn()  const noexcept { return mClient.audioChannelsIn();  }
   size_t audioBuffersOut() const noexcept { return isControl ? 1 : mClient.audioChannelsOut(); }
 
-  Result process()
+  Result process(FluidContext& c)
   {
 
     
@@ -178,7 +179,7 @@ public:
     size_t numFrames   = *std::min_element(inFrames.begin(),inFrames.end());
     size_t numChannels = *std::min_element(inChans.begin(), inChans.end());
     
-    AdaptorType<HostMatrix,HostVectorView>::process(mClient,inputBuffers,outputBuffers,numFrames,numChannels);
+    AdaptorType<HostMatrix,HostVectorView>::process(mClient,inputBuffers,outputBuffers,numFrames,numChannels,c);
 
     return r;
   }
@@ -211,7 +212,7 @@ template<typename HostMatrix, typename HostVectorView>
 struct Streaming
 {
   template <typename Client,typename InputList, typename OutputList>
-  static void process(Client& client, InputList& inputBuffers,OutputList& outputBuffers, size_t nFrames, size_t nChans, size_t outputDownsampleFactor = 1)
+  static void process(Client& client, InputList& inputBuffers,OutputList& outputBuffers, size_t nFrames, size_t nChans, FluidContext& c)
   {
     //To account for process latency we need to copy the buffers with padding
     std::vector<HostMatrix> outputData;
@@ -244,7 +245,7 @@ struct Streaming
       for(int j = 0; j < outputBuffers.size(); ++j)
         outputs.emplace_back(outputData[j].row(i));
 
-      client.process(inputs,outputs);
+      client.process(inputs,outputs,c);
     }
 
     for(int i = 0; i < outputBuffers.size(); ++i)
@@ -262,7 +263,7 @@ template<typename HostMatrix,typename HostVectorView>
 struct StreamingControl
 {
   template <typename Client,typename InputList, typename OutputList>
-  static void process(Client& client, InputList& inputBuffers,OutputList& outputBuffers, size_t nFrames, size_t nChans)
+  static void process(Client& client, InputList& inputBuffers,OutputList& outputBuffers, size_t nFrames, size_t nChans,  FluidContext& c)
   {
         //To account for process latency we need to copy the buffers with padding
       std::vector<HostMatrix> inputData;
@@ -290,7 +291,8 @@ struct StreamingControl
           inputData[j].row(i)(Slice(0,nFrames)) = thisInput.samps(inputBuffers[j].startFrame,nFrames,inputBuffers[j].startChan + i);
         }
       }
-    
+    FluidTask* task = c.task();
+    FluidContext dummyContext;
     for(int i = 0; i < nChans; ++i)
     {
       for(int j = 0; j < nHops; ++j )
@@ -300,9 +302,15 @@ struct StreamingControl
         inputs.reserve(inputBuffers.size());
         std::vector<HostVectorView> outputs;
         outputs.reserve(outputBuffers.size());
-        for(int k = 0; k < inputBuffers.size(); ++k)  inputs.emplace_back(inputData[k].row(i)(Slice(t,controlRate)));
-        for(int k = 0; k < nFeatures; ++k) outputs.emplace_back(outputData.row(k + i*nFeatures)(Slice(j,1))); 
-        client.process(inputs,outputs);
+        for(int k = 0; k < inputBuffers.size(); ++k)
+          inputs.emplace_back(inputData[k].row(i)(Slice(t,controlRate)));
+
+        for(int k = 0; k < nFeatures; ++k)
+          outputs.emplace_back(outputData.row(k + i*nFeatures)(Slice(j,1)));
+
+        client.process(inputs,outputs,dummyContext);
+        
+        if(task && !task->processUpdate(j + (nHops * i),nHops * nChans)) break;
       }
     }
     
@@ -324,7 +332,7 @@ template<typename HostMatrix,typename HostVectorView>
 struct Slicing
 {
   template <typename Client,typename InputList, typename OutputList>
-  static void process(Client& client, InputList& inputBuffers,OutputList& outputBuffers, size_t nFrames, size_t nChans)
+  static void process(Client& client, InputList& inputBuffers,OutputList& outputBuffers, size_t nFrames, size_t nChans, FluidContext& c)
   {
 
     assert(inputBuffers.size() == 1);
@@ -342,7 +350,7 @@ struct Slicing
     std::vector<HostVectorView> input  {monoSource.row(0)};
     std::vector<HostVectorView> output {onsetPoints.row(0)};
 
-    client.process(input,output);
+    client.process(input,output,c);
 
     impl::spikesToTimes(onsetPoints(0,Slice(padding,nFrames)).row(0), outputBuffers[0], 1, inputBuffers[0].startFrame, nFrames,src.sampleRate());
   }
@@ -393,6 +401,7 @@ public:
    : mHostParams{p}
    , mProcessParams(getParameterDescriptors())
    , mClient{mProcessParams}
+   , mContext{mTask}
   {}
     
   ~NRTThreadingAdaptor()
@@ -429,26 +438,29 @@ public:
       param.reset();
     }
   };
+  
+  
+  
     
   Result process()
   {
     ProcessState state = mState;
       
     if (state != kNoProcess)
-      return Result(Result::Status::kError, "already processing");
+      return {Result::Status::kError, "already processing"};
       
     mProcessParams = mHostParams;
       
     // Use parameters directly if processing synchronously
       
     if (mSynchronous)
-      return mClient.process();
+      return mClient.process(mContext);
       
     mProcessParams.template forEachParamType<BufferT, BufferCopy>(this);
     mState = kProcessing;
     mThread = std::thread(threadedProcessEntry, this);
       
-    return Result();
+    return {};
   }
     
   ProcessState checkProgress(Result& result)
@@ -470,18 +482,21 @@ public:
   {
     mSynchronous = synchronous;
   }
-    
+  
+  void cancel() { mTask.cancel(); }
+  double progress() { return mTask.progress(); }
+  
 private:
   
   void threadedProcess()
   {
-    mResult = mClient.process();
+    mResult = mClient.process(mContext);
     mState = kDone;
   }
     
   ParamSetType& mHostParams;
   ParamSetType mProcessParams;
-    
+  
   std::thread mThread;
   ProcessState mState = kNoProcess;
   bool mSynchronous = false;
@@ -489,6 +504,8 @@ private:
   Result mResult;
     
   NRTClient mClient;
+  FluidTask mTask;
+  FluidContext mContext;
 };
 
 } //namespace client
