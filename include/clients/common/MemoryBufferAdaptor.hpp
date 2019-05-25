@@ -36,7 +36,7 @@ public:
       return *this;
    }
 
-  ~MemoryBufferAdaptor()
+  void copyToOrigin()
   {
     if(mWrite && mOrigin)
     {
