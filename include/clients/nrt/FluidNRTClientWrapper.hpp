@@ -429,6 +429,15 @@ public:
         param = std::shared_ptr<BufferAdaptor>(new MemoryBufferAdaptor(adaptor->mHostParams.template get<N>()));
     }
   };
+  
+  template<size_t N, typename T>
+  struct BufferCopyBack
+  {
+    void operator()(typename T::type& param)
+    {
+      if(param) static_cast<MemoryBufferAdaptor*>(param.get())->copyToOrigin();
+    }
+  };
     
   template<size_t N, typename T>
   struct BufferDelete
@@ -466,13 +475,21 @@ public:
   ProcessState checkProgress(Result& result)
   {
     ProcessState state = mState;
-      
+  
     if (state == kDone)
     {
       mThread.join();
-      mProcessParams.template forEachParamType<BufferT, BufferDelete>();  
+      
+      if(!mTask.cancelled())
+      {
+        mProcessParams.template forEachParamType<BufferT, BufferCopyBack>();
+        result = mResult;
+      }
+      else result = {Result::Status::kCancelled,""};
+      
       mState = kNoProcess;
-      result = mResult;
+      mProcessParams.template forEachParamType<BufferT, BufferDelete>();
+      mTask.reset();
     }
       
     return state;
