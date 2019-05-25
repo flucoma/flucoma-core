@@ -11,20 +11,28 @@ public:
   FluidTask() : mProgress(0.0), mCancel(false)
   {}
     
-  void processUpdate(double samplesDone, double taskLength)
+  bool processUpdate(double samplesDone, double taskLength)
   {
-    bool cancel = mCancel;
-    mProgress = samplesDone / taskLength;
-    mCancel = false;
+    mProgress = (samplesDone / taskLength) * (mIteration/mTotalIterations);
+    return !mCancel;
   }
-    
+  
+  bool iterationUpdate(int iterationsDone,int totalIterations)
+  {
+    mIteration = iterationsDone;
+    mTotalIterations = totalIterations;
+    return !mCancel;
+  }
+  
   void cancel() { mCancel = true; }
   void reset() { mCancel = false; }
   double progress() { return mProgress; }
-    
+  bool cancelled(){ return mCancel; }
 private:
   std::atomic<double> mProgress;
   bool mCancel;
+  int mTotalIterations{1}; //if a wrapped single channel RT process is being run over multiple channels, progress needs reflect the total proportion, rather than going 0->1 n times
+  int mIteration{1};
 };
 
 } // namespace fluid
