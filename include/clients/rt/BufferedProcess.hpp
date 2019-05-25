@@ -36,7 +36,7 @@ public:
       mSink.push(windowOut, mFrameTime);
       
       if(FluidTask* t = c.task())
-        if(!t->processUpdate(mFrameTime,mHostSize)) break;
+        if(!t->processUpdate(std::min(mFrameTime + hopSize,mHostSize),mHostSize)) break;
     }
     mFrameTime = mFrameTime < mHostSize ? mFrameTime : mFrameTime - mHostSize;
   }
@@ -50,7 +50,7 @@ public:
       processFunc(windowIn);
       
       if(FluidTask* t = c.task())
-        if(!t->processUpdate(mFrameTime,mHostSize)) break;
+        if(!t->processUpdate(std::min(mFrameTime + hopSize,mHostSize),mHostSize)) break;
     }
     mFrameTime = mFrameTime < mHostSize ? mFrameTime : mFrameTime - mHostSize;
   }
