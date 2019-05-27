@@ -68,7 +68,7 @@ public:
       }
 
       for (size_t i = 0; i < tmpFilt.rows(); ++i)
-        tmpFilt.row(i) = filterBuffer.samps(0, i);
+        tmpFilt.row(i) = filterBuffer.samps(i);
 
 //      controlTrigger(false);
       mSTFTProcessor.processInput(mParams, input,c, 

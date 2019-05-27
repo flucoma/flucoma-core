@@ -89,7 +89,7 @@ public:
       return {Result::Status::kError, "Zero length segment requested"};
 
     int outputSize = processor.numStats() * (get<kNumDerivatives>() + 1);
-    dest.resize(outputSize, numChannels, 1, source.sampleRate());
+    dest.resize(outputSize, numChannels, source.sampleRate());
 
     processor.init(get<kNumDerivatives>(), get<kLow>(), get<kMiddle>(),
                    get<kHigh>());

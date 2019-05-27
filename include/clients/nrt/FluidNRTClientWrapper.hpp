@@ -254,7 +254,7 @@ struct Streaming
     {
       if(!outputBuffers[i]) continue;
       BufferAdaptor::Access thisOutput(outputBuffers[i]);
-      thisOutput.resize(nFrames,nChans,1,sampleRate);
+      thisOutput.resize(nFrames,nChans,sampleRate);
       for(int j = 0; j < nChans; ++j)
         thisOutput.samps(j) = outputData[i].row(j)(Slice(padding));
     }
@@ -317,7 +317,7 @@ struct StreamingControl
     }
     
     BufferAdaptor::Access thisOutput(outputBuffers[0]);
-    thisOutput.resize(nHops - 1,nChans * nFeatures,1,sampleRate / controlRate);
+    thisOutput.resize(nHops - 1,nChans * nFeatures,sampleRate / controlRate);
 
     for(int i = 0; i < nFeatures; ++i)
     {

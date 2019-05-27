@@ -132,11 +132,11 @@ public:
     
 
     if (hasResynth)
-      BufferAdaptor::Access(get<kResynth>().get()).resize(nFrames, nChannels, get<kRank>(),sampleRate);
+      BufferAdaptor::Access(get<kResynth>().get()).resize(nFrames, nChannels * get<kRank>(),sampleRate);
     if (hasFilters && !get<kFiltersUpdate>())
-      BufferAdaptor::Access(get<kFilters>().get()).resize(nBins, nChannels, get<kRank>(),sampleRate / fftParams.fftSize());
+      BufferAdaptor::Access(get<kFilters>().get()).resize(nBins, nChannels * get<kRank>(),sampleRate / fftParams.fftSize());
     if (hasEnvelopes && !get<kEnvelopesUpdate>())
-      BufferAdaptor::Access(get<kEnvelopes>().get()).resize((nFrames / fftParams.hopSize()) + 1, nChannels, get<kRank>(),sampleRate / fftParams.hopSize());
+      BufferAdaptor::Access(get<kEnvelopes>().get()).resize((nFrames / fftParams.hopSize()) + 1, nChannels * get<kRank>(),sampleRate / fftParams.hopSize());
 
     auto stft = algorithm::STFT(fftParams.winSize(), fftParams.fftSize(), fftParams.hopSize());
 
@@ -170,12 +170,12 @@ public:
         if (seedFilters || fixFilters)
         {
           auto filters = BufferAdaptor::Access{get<kFilters>().get()};
-          seededFilters.row(j) = filters.samps(i, j);
+          seededFilters.row(j) = filters.samps(i * get<kRank>() + j);
         }
         if (seedEnvelopes || fixEnvelopes)
         {
           auto envelopes = BufferAdaptor::Access(get<kEnvelopes>().get());
-          seededEnvelopes.col(j) = envelopes.samps(i, j);
+          seededEnvelopes.col(j) = envelopes.samps(i * get<kRank>() + j);
         }
       }
     
@@ -193,7 +193,7 @@ public:
         auto filters = BufferAdaptor::Access{get<kFilters>().get()};
         for (size_t j = 0; j < get<kRank>(); ++j)
         {
-          filters.samps(i, j) = outputFilters.row(j);
+          filters.samps(i * get<kRank>() + j) = outputFilters.row(j);
         }
       }
 
@@ -205,7 +205,7 @@ public:
         auto envelopes = BufferAdaptor::Access{get<kEnvelopes>().get()};
 
         for (size_t j = 0; j < get<kRank>(); ++j) {
-          auto env = envelopes.samps(i, j);
+          auto env = envelopes.samps(i * get<kRank>() + j);
           env = outputEnvelopes.col(j);
           env.apply([scale](float &x) { x *= scale; });
         }
@@ -229,7 +229,7 @@ public:
           if(c.task() && !c.task()->processUpdate(++progressCount, progressTotal))
             return {Result::Status::kCancelled,""};
           istft.process(resynthSpectrum,resynthAudio);
-          resynth.samps(i, j) = resynthAudio(Slice(0, nFrames));
+          resynth.samps(i * get<kRank>() + j) = resynthAudio(Slice(0, nFrames));
           if(c.task() && !c.task()->processUpdate(++progressCount, progressTotal))
             return {Result::Status::kCancelled,""};
         }
