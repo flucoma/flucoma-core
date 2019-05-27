@@ -245,7 +245,7 @@ struct Streaming
       for(int j = 0; j < outputBuffers.size(); ++j)
         outputs.emplace_back(outputData[j].row(i));
       
-      if(c.task()) c.task()->iterationUpdate(i+1, nChans);
+      if(c.task()) c.task()->iterationUpdate(i, nChans);
       
       client.process(inputs,outputs,c);
     }

@@ -158,7 +158,7 @@ public:
     const double progressTotal = get<kIterations>() + (hasResynth ? 3 * get<kRank>() : 0);
     
     for (size_t i = 0; i < nChannels; ++i) {
-      if(c.task() && !c.task()->iterationUpdate(i + 1, nChannels)) return {Result::Status::kCancelled,""};
+      if(c.task() && !c.task()->iterationUpdate(i, nChannels)) return {Result::Status::kCancelled,""};
       //          tmp = sourceData.col(i);
       tmp = source.samps(get<kOffset>(), nFrames, get<kStartChan>() + i);
       stft.process(tmp, spectrum);
