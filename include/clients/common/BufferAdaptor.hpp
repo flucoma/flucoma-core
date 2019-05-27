@@ -36,15 +36,15 @@ public:
 
     bool exists() const { return mAdaptor ? mAdaptor->exists() : false; }
 
-    void resize(size_t frames, size_t channels, size_t rank, double sampleRate)
+    void resize(size_t frames, size_t channels, double sampleRate)
     {
-      if (mAdaptor) mAdaptor->resize(frames, channels, rank, sampleRate);
+      if (mAdaptor) mAdaptor->resize(frames, channels, sampleRate);
     }
 
-    FluidTensorView<float, 1> samps(size_t channel, size_t rankIdx = 0)
+    FluidTensorView<float, 1> samps(size_t channel)
     {
       assert(mAdaptor);
-      return mAdaptor->samps(channel, rankIdx);
+      return mAdaptor->samps(channel);
     }
 
     FluidTensorView<float, 1> samps(size_t offset, size_t nframes, size_t chanoffset)
@@ -56,8 +56,6 @@ public:
     size_t numFrames() const { return mAdaptor ? mAdaptor->numFrames() : 0; }
 
     size_t numChans() const { return mAdaptor ? mAdaptor->numChans() : 0; }
-
-    size_t rank() const { return mAdaptor ? mAdaptor->rank() : 0; }
 
     double sampleRate() const { return mAdaptor ? mAdaptor->sampleRate() : 0; }
   private:
@@ -77,13 +75,13 @@ private:
   virtual void release()                                           = 0;
   virtual bool valid() const                                       = 0;
   virtual bool exists() const                                      = 0;
-  virtual void resize(size_t frames, size_t channels, size_t rank, double sampleRate) = 0;
+  virtual void resize(size_t frames, size_t channels, double sampleRate) = 0;
   // Return a slice of the buffer
-  virtual FluidTensorView<float, 1> samps(size_t channel, size_t rankIdx = 0)               = 0;
+  virtual FluidTensorView<float, 1> samps(size_t channel)               = 0;
+    
   virtual FluidTensorView<float, 1> samps(size_t offset, size_t nframes, size_t chanoffset) = 0;
   virtual size_t                    numFrames() const                                       = 0;
   virtual size_t                    numChans() const                                        = 0;
-  virtual size_t                    rank() const                                            = 0;
   virtual double                    sampleRate() const                                      = 0;
 };
 } // namespace client
