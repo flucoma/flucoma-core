@@ -13,11 +13,11 @@ public:
     
   bool processUpdate(double samplesDone, double taskLength)
   {
-    mProgress = (samplesDone / taskLength) * (mIteration/mTotalIterations);
+    mProgress = ((samplesDone / taskLength) * (mIteration/mTotalIterations)) + (mIteration - 1)/mTotalIterations;
     return !mCancel;
   }
   
-  bool iterationUpdate(int iterationsDone,int totalIterations)
+  bool iterationUpdate(double iterationsDone,double totalIterations)
   {
     mIteration = iterationsDone;
     mTotalIterations = totalIterations;
@@ -31,8 +31,8 @@ public:
 private:
   std::atomic<double> mProgress;
   bool mCancel;
-  int mTotalIterations{1}; //if a wrapped single channel RT process is being run over multiple channels, progress needs reflect the total proportion, rather than going 0->1 n times
-  int mIteration{1};
+  double mTotalIterations{1}; //if a wrapped single channel RT process is being run over multiple channels, progress needs reflect the total proportion, rather than going 0->1 n times
+  double mIteration{1};
 };
 
 } // namespace fluid
