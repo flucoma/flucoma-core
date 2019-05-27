@@ -1,5 +1,10 @@
 #pragma once
 
+#include <string>
+#include <utility>
+#include <sstream>
+#include <vector>
+
 namespace fluid {
 namespace client {
 
