@@ -450,9 +450,6 @@ public:
     }
   };
   
-  
-  
-    
   Result process()
   {
     ProcessState state = mState;

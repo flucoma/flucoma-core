@@ -13,7 +13,7 @@ public:
     
   bool processUpdate(double samplesDone, double taskLength)
   {
-    mProgress = (samplesDone / (taskLength * mTotalIterations))  +  (mIteration/mTotalIterations);
+    mProgress = (samplesDone / (taskLength * mTotalIterations)) + (mIteration/mTotalIterations);
     return !mCancel;
   }
   
@@ -28,6 +28,7 @@ public:
   void reset() { mCancel = false; }
   double progress() { return mProgress; }
   bool cancelled(){ return mCancel; }
+    
 private:
   std::atomic<double> mProgress;
   bool mCancel;
