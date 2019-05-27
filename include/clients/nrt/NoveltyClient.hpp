@@ -4,6 +4,7 @@
 #include <clients/common/ParameterTypes.hpp>
 #include <clients/common/ParameterConstraints.hpp>
 #include <clients/common/FluidBaseClient.hpp>
+#include <clients/common/FluidContext.hpp>
 #include <clients/common/SpikesToTimes.hpp>
 #include <algorithms/public/NoveltySegmentation.hpp>
 #include <algorithms/public/STFT.hpp>
@@ -37,7 +38,7 @@ public:
   {}
 
 
-  Result process()
+  Result process(FluidContext& c)
   {
 
     if(!get<kSource>().get())

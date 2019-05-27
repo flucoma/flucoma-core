@@ -1,6 +1,7 @@
 #pragma once
 
 #include <clients/common/FluidBaseClient.hpp>
+#include <clients/common/FluidContext.hpp>
 #include <clients/common/OfflineClient.hpp>
 #include <clients/common/ParameterSet.hpp>
 #include <clients/common/ParameterTypes.hpp>
@@ -36,7 +37,7 @@ public:
   BufferComposeClient(ParamSetViewType &p) : FluidBaseClient(p)
   {}
 
-  Result process()
+  Result process(FluidContext &c)
   {
 
     if (!get<kSource>().get()) { return {Result::Status::kError, "No input"}; }
@@ -125,6 +126,10 @@ public:
 
         std::transform(sourceChunk.begin(), sourceChunk.end(), destinationChunk.begin(), destinationChunk.begin(),
                        [gain](T &src, T &dst) { return dst + src * gain; });
+        
+        if(c.task() && !c.task()->processUpdate(j + 1, nChannels)) return  {Result::Status::kCancelled,""};
+        
+        
       }
     }
 

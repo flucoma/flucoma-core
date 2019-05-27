@@ -4,6 +4,7 @@
 #include "../../data/TensorTypes.hpp"
 #include "../common/AudioClient.hpp"
 #include "../common/FluidBaseClient.hpp"
+#include "../common/FluidContext.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
@@ -40,7 +41,7 @@ public:
   }
 
   void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output) {
+               std::vector<HostVector> &output, FluidContext& c) {
     using std::size_t;
 
     if (!input[0].data() || !output[0].data())
@@ -54,7 +55,7 @@ public:
     }
 
     mSTFTBufferedProcess.processInput(
-        mParams, input, [&](ComplexMatrixView in) {
+        mParams, input, c, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
           mAlgorithm.processFrame(mMagnitude, mDescriptors);
         });

@@ -8,6 +8,7 @@ Test class for STFT pass-through
 #include "BufferedProcess.hpp"
 #include <algorithms/public/STFT.hpp>
 #include <clients/common/FluidBaseClient.hpp>
+#include <clients/common/FluidContext.hpp>
 #include <clients/common/ParameterConstraints.hpp>
 #include <clients/common/ParameterTypes.hpp>
 #include <clients/common/ParameterSet.hpp>
@@ -40,12 +41,12 @@ public:
   size_t latency() { return get<kFFT>().winSize(); }
 
   void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output) {
+               std::vector<HostVector> &output, FluidContext& c) {
 
     if (!input[0].data() || !output[0].data())
       return;
     // Here we do an STFT and its inverse
-    mSTFTBufferedProcess.process(mParams, input, output,
+    mSTFTBufferedProcess.process(mParams, input, output, c, 
         [](ComplexMatrixView in, ComplexMatrixView out) { out = in; });
   }
 

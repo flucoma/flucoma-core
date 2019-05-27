@@ -46,7 +46,7 @@ public:
 
   size_t latency() { return ((get<kHSize>() - 1) * get<kFFT>().hopSize()) +  get<kFFT>().winSize(); }
 
-  void process(std::vector<HostVector> &input, std::vector<HostVector> &output)
+  void process(std::vector<HostVector> &input, std::vector<HostVector> &output, FluidContext& context)
   {
     if (!input[0].data()) return;
 
@@ -80,7 +80,7 @@ public:
 
     }
 
-    mSTFTBufferedProcess.process(mParams, input, output,
+    mSTFTBufferedProcess.process(mParams, input, output, context,
         [&](ComplexMatrixView in, ComplexMatrixView out)
         {
             mHPSS.processFrame(in.row(0), out.transpose());

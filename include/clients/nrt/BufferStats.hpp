@@ -2,6 +2,7 @@
 
 #include <algorithms/public/Stats.hpp>
 #include <clients/common/FluidBaseClient.hpp>
+#include <clients/common/FluidContext.hpp>
 #include <clients/common/ParameterConstraints.hpp>
 #include <clients/common/ParameterTypes.hpp>
 #include "FluidNRTClientWrapper.hpp"
@@ -46,7 +47,7 @@ class BufferStats
 public:
   BufferStats(ParamSetViewType &p) : FluidBaseClient(p) {}
 
-  Result process() {
+  Result process(FluidContext& c) {
     algorithm::Stats processor;
 
     if (!get<kSource>().get())
@@ -95,10 +96,13 @@ public:
     for (int i = 0; i < numChannels; i++) {
       auto sourceChannel = FluidTensor<double, 1>(numFrames);
       auto destChannel = FluidTensor<double, 1>(outputSize);
+      
       for (int j = 0; j < numFrames; j++)
-        sourceChannel(j) =
-            source.samps(get<kOffset>(), numFrames, get<kStartChan>() + i)(j);
+        sourceChannel(j) = source.samps(get<kOffset>(), numFrames, get<kStartChan>() + i)(j);
       processor.process(sourceChannel, destChannel);
+     
+      if(c.task() && !c.task()->processUpdate(i + 1, numChannels)) return {Result::Status::kCancelled,""};
+     
       for (int j = 0; j < outputSize; j++)
         dest.samps(i)(j) = destChannel(j);
     }

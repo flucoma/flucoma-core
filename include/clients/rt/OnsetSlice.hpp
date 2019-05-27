@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../common/FluidContext.hpp"
 #include "../../algorithms/public/OnsetSegmentation.hpp"
 #include "../../data/TensorTypes.hpp"
 #include "../common/AudioClient.hpp"
@@ -52,7 +53,7 @@ public:
   }
 
   void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output) {
+               std::vector<HostVector> &output, FluidContext& c) {
     using algorithm::OnsetSegmentation;
     using std::size_t;
 
@@ -81,8 +82,8 @@ public:
     RealMatrix out(1, hostVecSize);
     int frameOffset = 0; // in case kHopSize < hostVecSize
     mBufferedProcess.push(RealMatrixView(in));
-    mBufferedProcess.process(totalWindow, totalWindow, get<kFFT>().hopSize(),
-                             [&, this](RealMatrixView in, RealMatrixView) {
+    mBufferedProcess.process(totalWindow, totalWindow, get<kFFT>().hopSize(),c,
+               [&, this](RealMatrixView in, RealMatrixView) {
                                out.row(0)(frameOffset) =
                                    mAlgorithm.processFrame(in.row(0));
                                frameOffset += get<kFFT>().hopSize();

@@ -4,6 +4,7 @@
 #include "../../data/TensorTypes.hpp"
 #include "../common/AudioClient.hpp"
 #include "../common/FluidBaseClient.hpp"
+#include "../common/FluidContext.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
@@ -47,7 +48,7 @@ public:
   }
 
   void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output) {
+               std::vector<HostVector> &output, FluidContext& c) {
     if (!input[0].data() || !output[0].data())
       return;
     assert(FluidBaseClient::controlChannelsOut() && "No control channels");
@@ -66,7 +67,7 @@ public:
     in.row(0) = input[0];
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.processInput(
-        get<kWindowSize>(), get<kHopSize>(), [&](RealMatrixView frame) {
+        get<kWindowSize>(), get<kHopSize>(), c, [&](RealMatrixView frame) {
           mAlgorithm.processFrame(frame.row(0), mDescriptors,
                                   get<kKWeighting>() == 1,
                                   get<kTruePeak>() == 1);

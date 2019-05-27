@@ -312,7 +312,7 @@ struct StreamingControl
 
         client.process(inputs,outputs,dummyContext);
         
-        if(task && !task->processUpdate(j + (nHops * i),nHops * nChans)) break;
+        if(task && !task->processUpdate(j + 1 + (nHops * i),nHops * nChans)) break;
       }
     }
     

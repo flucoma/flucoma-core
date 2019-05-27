@@ -1,5 +1,6 @@
 #pragma once
 
+#include <clients/common/FluidContext.hpp>
 #include <clients/common/ParameterTypes.hpp>
 #include <clients/common/ParameterConstraints.hpp>
 #include <clients/common/ParameterSet.hpp>
@@ -37,7 +38,7 @@ public:
 
   size_t latency() { return get<kFFT>().winSize(); }
 
-  void process(std::vector<HostVector> &input, std::vector<HostVector> &output)
+  void process(std::vector<HostVector> &input, std::vector<HostVector> &output, FluidContext& c)
   {
     if(!input[0].data()) return;
     assert(audioChannelsOut() && "No control channels");
@@ -73,7 +74,7 @@ public:
         tmpFilt.row(i) = filterBuffer.samps(0, i);
 
 //      controlTrigger(false);
-      mSTFTProcessor.process(mParams, input, output,
+      mSTFTProcessor.process(mParams, input, output, c,
         [&](ComplexMatrixView in,ComplexMatrixView out)
         {
           algorithm::STFT::magnitude(in, tmpMagnitude);

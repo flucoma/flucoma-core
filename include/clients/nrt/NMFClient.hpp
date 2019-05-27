@@ -1,6 +1,7 @@
 #pragma once
 
 #include <clients/common/FluidBaseClient.hpp>
+#include <clients/common/FluidContext.hpp>
 #include <clients/common/ParameterTypes.hpp>
 #include <clients/common/ParameterConstraints.hpp>
 #include <clients/common/OfflineClient.hpp>
@@ -52,7 +53,7 @@ public:
   /***
    Take some data, NMF it
    ***/
-  Result process() {
+  Result process(FluidContext& c) {
 
 //    assert(inputs.size() == 1 );
 
@@ -153,12 +154,16 @@ public:
     if (seedEnvelopes || fixEnvelopes)
       seededEnvelopes.resize((nFrames / fftParams.hopSize()) + 1, get<kRank>());
 
+    
+    const double progressTotal = get<kIterations>() + (hasResynth ? 3 * get<kRank>() : 0);
+    
     for (size_t i = 0; i < nChannels; ++i) {
+      if(c.task() && !c.task()->iterationUpdate(i + 1, nChannels)) return {Result::Status::kCancelled,""};
       //          tmp = sourceData.col(i);
       tmp = source.samps(get<kOffset>(), nFrames, get<kStartChan>() + i);
       stft.process(tmp, spectrum);
       algorithm::STFT::magnitude(spectrum,magnitude);
-
+      int progressCount{0};
       // For multichannel dictionaries, seed data could be all over the place,
       // so we'll build it up by hand :-/
       for (size_t j = 0; j < get<kRank>(); ++j) {
@@ -173,10 +178,14 @@ public:
           seededEnvelopes.col(j) = envelopes.samps(i, j);
         }
       }
-
+    
       auto nmf = algorithm::NMF(get<kRank>(), get<kIterations>(), !fixFilters, !fixEnvelopes);
-
+      nmf.addProgressCallback([&c,&progressCount,progressTotal](const int)->bool{
+          return c.task() ? c.task()->processUpdate(++progressCount,progressTotal) : true;
+      });
       nmf.process(magnitude,outputFilters,outputEnvelopes,outputMags,seededFilters, seededEnvelopes);
+
+      if(c.task() && c.task()->cancelled()) return {Result::Status::kCancelled,""};
 
       // Write W?
       if (hasFilters && !fixFilters) {
@@ -209,14 +218,24 @@ public:
         auto istft = algorithm::ISTFT{fftParams.winSize(), fftParams.fftSize(), fftParams.hopSize()};
         auto resynthAudio = FluidTensor<double,1>(nFrames);
         auto resynth = BufferAdaptor::Access{get<kResynth>().get()};
-
+        
+        const int subProgress = 3 * get<kRank>();
+        
         for (size_t j = 0; j < get<kRank>(); ++j) {
           algorithm::NMF::estimate(outputFilters,outputEnvelopes,j, resynthMags);
+          if(c.task() && !c.task()->processUpdate(++progressCount, progressTotal))
+            return {Result::Status::kCancelled,""};
           mask.process(spectrum,resynthMags,resynthSpectrum);
+          if(c.task() && !c.task()->processUpdate(++progressCount, progressTotal))
+            return {Result::Status::kCancelled,""};
           istft.process(resynthSpectrum,resynthAudio);
           resynth.samps(i, j) = resynthAudio(Slice(0, nFrames));
+          if(c.task() && !c.task()->processUpdate(++progressCount, progressTotal))
+            return {Result::Status::kCancelled,""};
         }
       }
+      
+      
     }
     return {Result::Status::kOk,""};
   }

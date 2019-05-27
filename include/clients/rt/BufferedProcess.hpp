@@ -157,7 +157,7 @@ public:
     size_t chansIn = mBufferedProcess.channelsIn();
     FFTParams fftParams = setup(p, input);
 
-    mBufferedProcess.processInput(fftParams.winSize(), fftParams.hopSize(),
+    mBufferedProcess.processInput(fftParams.winSize(), fftParams.hopSize(), c, 
         [this, &processFunc, chansIn](RealMatrixView in) {
           for(int i = 0; i < chansIn; ++i) mSTFT->processFrame(in.row(i), mSpectrumIn.row(i));
           processFunc(mSpectrumIn);

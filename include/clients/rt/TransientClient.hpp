@@ -3,6 +3,7 @@
 
 #include <algorithms/public/TransientExtraction.hpp>
 #include <clients/common/FluidBaseClient.hpp>
+#include <clients/common/FluidContext.hpp>
 #include <clients/common/ParameterConstraints.hpp>
 #include <clients/common/ParameterTypes.hpp>
 #include <clients/common/ParameterTrackChanges.hpp>
@@ -52,7 +53,7 @@ public:
     FluidBaseClient::audioChannelsOut(2);
   }
 
-  void process(std::vector<HostVector>& input, std::vector<HostVector>& output)
+  void process(std::vector<HostVector>& input, std::vector<HostVector>& output,FluidContext& c)
   {
     if(!input[0].data() || (!output[0].data() && !output[1].data()))
       return;
@@ -89,7 +90,7 @@ public:
     in.row(0) = input[0]; //need to convert float->double in some hosts
     mBufferedProcess.push(RealMatrixView(in));
 
-    mBufferedProcess.process(mExtractor->inputSize(), mExtractor->hopSize(), mExtractor->hopSize(), [this](RealMatrixView in, RealMatrixView out)
+    mBufferedProcess.process(mExtractor->inputSize(), mExtractor->hopSize(), mExtractor->hopSize(), c, [this](RealMatrixView in, RealMatrixView out)
     {
       mExtractor->process(in.row(0), out.row(0), out.row(1));
     });

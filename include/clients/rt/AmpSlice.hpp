@@ -3,6 +3,7 @@
 #include <algorithms/public/EnvelopeSegmentation.hpp>
 #include <clients/common/AudioClient.hpp>
 #include <clients/common/FluidBaseClient.hpp>
+#include <clients/common/FluidContext.hpp>
 #include <clients/common/ParameterConstraints.hpp>
 #include <clients/common/ParameterSet.hpp>
 #include <clients/common/ParameterTrackChanges.hpp>
@@ -67,7 +68,7 @@ public:
   }
 
   void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output) {
+               std::vector<HostVector> &output,FluidContext& c) {
 
     if (!input[0].data() || !output[0].data())
       return;

@@ -8,6 +8,7 @@
 
 #include <clients/common/AudioClient.hpp>
 #include <clients/common/FluidBaseClient.hpp>
+#include <clients/common/FluidContext.hpp>
 #include <clients/common/ParameterConstraints.hpp>
 #include <clients/common/ParameterSet.hpp>
 #include <data/TensorTypes.hpp>
@@ -32,7 +33,7 @@ public:
 
   size_t latency() { return 0; }
 
-  void process(std::vector<HostVector> &input, std::vector<HostVector> &output)
+  void process(std::vector<HostVector> &input, std::vector<HostVector> &output, FluidContext& c)
   {
     // Data is stored with samples laid out in rows, one channel per row
     if (!input[0].data())
