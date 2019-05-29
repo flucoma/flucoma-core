@@ -51,6 +51,7 @@ public:
 
     if (mWinSizeTracker.changed(get<kFFT>().frameSize())) {
       mMagnitude.resize(get<kFFT>().frameSize());
+      mBinHz = sampleRate() / get<kFFT>().fftSize();
     }
 
     mSTFTBufferedProcess.processInput(
@@ -58,8 +59,13 @@ public:
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
           mAlgorithm.processFrame(mMagnitude, mDescriptors);
         });
-    for (int i = 0; i < 7; ++i)
-      output[i](0) = mDescriptors(i);
+
+    for (int i = 0; i < 7; ++i){
+      //TODO: probably move this logic to algorithm
+      if(i==0||i==1||i==4)output[i](0) =  mBinHz * mDescriptors(i);
+      else output[i](0) = mDescriptors(i);
+    }
+
   }
 
   size_t latency() { return get<kFFT>().winSize(); }
@@ -72,6 +78,7 @@ private:
   SpectralShape mAlgorithm{get<kMaxFFTSize>()};
   FluidTensor<double, 1> mMagnitude;
   FluidTensor<double, 1> mDescriptors;
+  double mBinHz;
 };
 
 auto constexpr NRTSpectralShapeParams = makeNRTParams<SpectralShapeClient>(
