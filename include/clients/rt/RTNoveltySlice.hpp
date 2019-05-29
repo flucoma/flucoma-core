@@ -155,7 +155,6 @@ private:
   FluidTensor<std::complex<double>, 1> mSpectrum;
   FluidTensor<double, 1> mMagnitude;
   FluidTensor<double, 1> mBands;
-  // FluidTensor<double, 1> mCoefficients;
   FluidTensor<double, 1> mFeature;
   YINFFT mYinFFT;
   Loudness mLoudness{get<kMaxFFTSize>()};

@@ -33,20 +33,13 @@ public:
   double processFrame(const ArrayXd &input) {
     using std::vector;
     const auto &epsilon = std::numeric_limits<double>::epsilon;
-    // int nFrames = input.rows();
     int halfKernel = (mKernelSize - 1) / 2;
-    // MatrixXd featureMatrix = input.matrix();
-
     mBufer.block(0, 0, mKernelSize - 1, mNDims) =
         mBufer.block(1, 0, mKernelSize - 1, mNDims);
-    //std::cout<<mBufer.rows()<<" "<<mBufer.cols()<<std::endl;
-    //std::cout<<input.rows()<<" "<<input.cols()<<std::endl;
 
     ArrayXXd x = mBufer.block(mKernelSize - 1, 0, 1, mNDims);
-    //std::cout<<x.rows()<<" "<<x.cols()<<std::endl;
     VectorXd in1 = input.matrix();
     mBufer.block(mKernelSize - 1, 0, 1, mNDims) = in1.transpose();
-    //std::cout<<" ok "<<std::endl;
     VectorXd tmp = mBufer * input.matrix();
 
     VectorXd norm = mBufer.rowwise().norm().cwiseMax(epsilon()) * input.matrix().norm();
@@ -55,8 +48,6 @@ public:
     mSimilarity.block(0, 0, mKernelSize - 1, mKernelSize - 1) =
         mSimilarity.block(1, 1, mKernelSize - 1, mKernelSize - 1);
     ArrayXXd x1 = mSimilarity.block(0, mKernelSize -1, mKernelSize, 1);
-    //std::cout<<x1.rows()<<" "<<x1.cols()<<std::endl;
-    //std::cout<<tmp.rows()<<" "<<tmp.cols()<<std::endl;
     mSimilarity.block(0, mKernelSize -1, mKernelSize, 1) = tmp;
     mSimilarity.block(mKernelSize - 1, 0, 1, mKernelSize) = tmp.transpose();
 
