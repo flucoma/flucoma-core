@@ -35,7 +35,7 @@ public:
     mBands = nBands;
     mSampleRate = sampleRate;
     mBins = nBins;
-    ArrayXd melFreqs = ArrayXd::LinSpaced(mBands + 1, hz2mel(lo), hz2mel(hi));
+    ArrayXd melFreqs = ArrayXd::LinSpaced(mBands + 2, hz2mel(lo), hz2mel(hi));
     melFreqs = 700.0 * ((melFreqs / 1127.01048).exp() - 1.0);
     mFilters = MatrixXd::Zero(mBands, mBins);
     ArrayXd fftFreqs = ArrayXd::LinSpaced(mBins, 0, mSampleRate / 2.0);
