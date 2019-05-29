@@ -167,6 +167,8 @@ public:
       updateCounters(nextState);
       if (shouldRetrigger(relEnv)) {
         mOutputBuffer(mLatency - 1) = 0;
+        mEventCount = 1;
+        mOutputState  = true; // we are officially on, starting next sample
       } else {
         mOutputBuffer(mLatency - 1) = mOutputState ? 1 : 0;
       }
