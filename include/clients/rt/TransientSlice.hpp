@@ -34,7 +34,7 @@ auto constexpr TransientParams = defineParameters(
     FloatParam("threshFwd", "Forward Threshold", 2, Min(0)),
     FloatParam("threshBack", "Backward Threshold", 1.1, Min(0)),
     LongParam("windowSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
-    LongParam("clumpLength", "Clumping Window Length", 25, Min(0)));
+    LongParam("clumpLength", "Clumping Window Length", 25, Min(0)),
     LongParam("minSliceLength", "Minimum Length of Slice",1000)
 );
 
