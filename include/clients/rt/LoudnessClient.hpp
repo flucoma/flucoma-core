@@ -27,7 +27,7 @@ enum LoudnessParamIndex {
 auto constexpr LoudnessParams = defineParameters(
     EnumParam("kWeighting", "Apply K-Weighting", 1, "Off","On"),
     EnumParam("truePeak", "Compute True Peak", 1, "Off","On"),
-    LongParam("winSize", "Window Size", 1024, UpperLimit<kMaxWindowSize>()),
+    LongParam("windowSize", "Window Size", 1024, UpperLimit<kMaxWindowSize>()),
     LongParam("hopSize", "Hop Size", 512, Min(1)),
     LongParam<Fixed<true>>("maxWinSize", "Max Window Size",
               16384, Min(4), PowerOfTwo{})); // 17640 next power of two

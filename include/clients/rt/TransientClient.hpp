@@ -35,8 +35,8 @@ auto constexpr TransientParams = defineParameters(
     FloatParam("skew", "Skew", 0, Min(-10), Max(10)),
     FloatParam("threshFwd", "Forward Threshold", 2, Min(0)),
     FloatParam("threshBack", "Backward Threshold", 1.1, Min(0)),
-    LongParam("winSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
-    LongParam("debounce", "Debounce", 25, Min(0)));
+    LongParam("windowSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
+    LongParam("clumpLength", "Clumping Window Length", 25, Min(0)));
 
 
 template <typename T>

@@ -35,8 +35,8 @@ auto constexpr NMFParams = defineParameters(
   EnumParam("basesMode", "Bases Buffer Update Mode", 0, "None","Seed","Fixed"),
   BufferParam("activations", "Activations Buffer"),
   EnumParam("actMode", "Activations Buffer Update Mode", 0, "None","Seed","Fixed"),
-  LongParam("rank", "Rank", 1, Min(1)),
-  LongParam("numIter", "Number of Iterations", 100, Min(1)),
+  LongParam("components", "Number of Components", 1, Min(1)),
+  LongParam("iterations", "Number of Iterations", 100, Min(1)),
   FFTParam("fftSettings", "FFT Settings", 1024, -1, -1)
 );
 
