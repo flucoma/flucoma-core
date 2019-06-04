@@ -29,7 +29,7 @@ auto constexpr LoudnessParams = defineParameters(
     EnumParam("truePeak", "Compute True Peak", 1, "Off","On"),
     LongParam("windowSize", "Window Size", 1024, UpperLimit<kMaxWindowSize>()),
     LongParam("hopSize", "Hop Size", 512, Min(1)),
-    LongParam<Fixed<true>>("maxWinSize", "Max Window Size",
+    LongParam<Fixed<true>>("maxWindowSize", "Max Window Size",
               16384, Min(4), PowerOfTwo{})); // 17640 next power of two
 
 template <typename T>
