@@ -1,5 +1,5 @@
 
-#ifndef __APPLE__
+#ifdef __WIN32__
 #include <intrin.h>
 #endif
 
@@ -39,7 +39,7 @@ namespace hisstools_fft_impl{
 
     // Aligned Allocation and Platform CPU Detection
     
-#ifdef __APPLE__
+#ifndef __WIN32__
     
 #include <cpuid.h>
 
