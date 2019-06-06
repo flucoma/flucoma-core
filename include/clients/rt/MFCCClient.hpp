@@ -31,7 +31,7 @@ enum MFCCParamIndex {
 auto constexpr MFCCParams = defineParameters(
 
     LongParam("numCoeffs", "Number of Cepstral Coefficients", 13, Min(2),
-              UpperLimit<kNBands>()),
+              UpperLimit<kNCoefs>()),
     LongParam("numBands", "Number of Bands", 40, Min(2),
               FrameSizeUpperLimit<kFFT>()),
     FloatParam("minFreq", "Low Frequency Bound", 20, Min(0)),
