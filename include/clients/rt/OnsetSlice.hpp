@@ -70,7 +70,7 @@ public:
       mTmp.resize(1, hostVecSize);
     }
     if (mMaxSizeTracker.changed(get<kMaxFFTSize>())) {
-      mAlgorithm = OnsetSegmentation{get<kMaxFFTSize>()};
+      mAlgorithm = OnsetSegmentation{static_cast<int>(get<kMaxFFTSize>())};
     }
     mAlgorithm.updateParameters(get<kFFT>().fftSize(), get<kFFT>().winSize(),
                                 get<kFFT>().hopSize(), get<kFrameDelta>(),

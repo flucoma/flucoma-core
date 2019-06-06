@@ -28,8 +28,7 @@ using Eigen::RowMajor;
 template <typename Derived>
 auto asFluid(PlainObjectBase<Derived> &a)
     -> FluidTensorView<typename PlainObjectBase<Derived>::Scalar,
-                       PlainObjectBase<Derived>::IsVectorAtCompileTime ? 1
-                                                                       : 2> {
+                       (PlainObjectBase<Derived>::IsVectorAtCompileTime ? 1 : 2)> {
   constexpr size_t N = PlainObjectBase<Derived>::IsVectorAtCompileTime ? 1 : 2;
 
   if (N == 2) {
