@@ -6,6 +6,8 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+#include <memory>
+
 namespace fluid {
 namespace client {
 

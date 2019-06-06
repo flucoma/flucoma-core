@@ -7,6 +7,7 @@
 #include "FluidMeta.hpp"
 #include <array>  //std::array
 #include <cassert> //assert()
+#include <algorithm> //copy,copy_n
 #include <functional> // less, multiplies
 #include <numeric> //accujmuate, innerprodct
 

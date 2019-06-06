@@ -9,6 +9,7 @@
 #include <clients/common/ParameterSet.hpp>
 #include <clients/common/ParameterTrackChanges.hpp>
 #include <clients/common/ParameterTypes.hpp>
+#include <memory>
 
 namespace fluid {
 namespace client {
