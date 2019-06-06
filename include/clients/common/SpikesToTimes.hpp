@@ -40,7 +40,7 @@ namespace impl{
 
     auto idx = BufferAdaptor::Access(output); 
 
-    idx.resize(numSpikes + 2, 1, 1,sampleRate);
+    idx.resize(numSpikes + 2, 1,sampleRate);
 
     idx.samps(0) = FluidTensorView<size_t, 1>{indices.data(), 0, numSpikes + 2};
   }

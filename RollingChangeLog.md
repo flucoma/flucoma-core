@@ -1,9 +1,12 @@
-# Alpha-XX:
+# Alpha-08:
 date:
 
 ## New Objects:
+- NoveltySlice:
+- AmpSeg/BufAmpSeg:
 
 ## New Features:
+- "algorithm" is now "function"
 
 ## New Examples:
 
@@ -11,6 +14,46 @@ date:
 
 ## Known Bugs:
 
+===
+# Alpha-07: post-plenary-interface-update: hopefully last major parameter names
+date: 4 June 2019
+
+## New Objects:
+(SC + CLI): all the alpha-06 ones!
+
+## New Features:
+- BREAKING CHANGES: parameter/attributes/messages interface unification
+  - all nmf: "rank" is now "components", "numIters" is now "iterations"
+  - all slicers with "debounce" now use "minSliceLength"
+  - (buf)transient* "debounce" is now "clumpLength", and "minSlice" is "minSliceLength",
+  - all "winSize" are now "windowSize"
+  - "(max)numCoefs" is now "(max)numCoeffs"
+- BREAKING CHANGE: spectralshape: now in Hertz
+
+## Bug Fixes:
+(MAX) bang gimme problem
+
+===
+# Alpha-06: yet again, new (descriptor) objects
+date: 20 May 2019 - Max Mac only, plenary attendees focused
+
+## New Objects:
+- BufStats: computes various statistics on time-series (as buffer channel) and their time derivative
+- MelBands/BufMelBands: an approximation of human listening of pitch
+- MFCC/BufMFCC: a sturdy spectral shape descriptor
+- Loudness/BufLoudness: EBU-128 standard capable loudness descriptor
+
+## New Features:
+- (MAX) skeleton of reference to allow attributes and arguments autocompletion (with quirks) to help coding
+
+## New Examples:
+(MAX) Just-In-Time NMF-based classifier
+
+## Bug Fixes:
+many, but not all :-)
+
+## Known Bugs:
+plenty of quirks to iron out, but let us know if you find any you have not flagged before
 
 ===
 # Alpha-05: yet more new cool objects

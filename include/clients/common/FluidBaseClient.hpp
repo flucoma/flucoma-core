@@ -51,6 +51,8 @@ public:
 
   const double sampleRate() const noexcept { return mSampleRate; };
   void  sampleRate(double sr) { mSampleRate = sr; }
+  
+  void setParams(ParamSetViewType& p) { mParams = p; }
 
 protected:
   void audioChannelsIn(const size_t x) noexcept { mAudioChannelsIn = x; }

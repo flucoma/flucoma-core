@@ -20,7 +20,7 @@ using Eigen::Ref;
 class Stats {
 public:
   Stats() : mNumDerivatives(0), mLow(0), mMiddle(0.5), mHigh(1) {}
-  
+
   void init(int numDerivatives, double low, double mid, double high) {
     assert(numDerivatives <= 2);
     mNumDerivatives = numDerivatives;
@@ -37,10 +37,11 @@ public:
     double std = std::sqrt((input - mean).square().mean());
     double skewness = ((input - mean) / (std == 0 ? 1 : std)).cube().mean();
     double kurtosis = ((input - mean) / (std == 0 ? 1 : std)).pow(4).mean();
-    std::sort(input.data(), input.data() + length);
-    double low = input(std::round(mLow * (length - 1)));
-    double mid = input(std::round(mMiddle * (length - 1)));
-    double high = input(std::round(mHigh * (length - 1)));
+    ArrayXd sorted = input;
+    std::sort(sorted.data(), sorted.data() + length);
+    double low = sorted(std::round(mLow * (length - 1)));
+    double mid = sorted(std::round(mMiddle * (length - 1)));
+    double high = sorted(std::round(mHigh * (length - 1)));
     out << mean, std, skewness, kurtosis, low, mid, high;
     return out;
   }

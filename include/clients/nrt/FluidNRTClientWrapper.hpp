@@ -92,7 +92,7 @@ public:
     , mClient{mRealTimeParams}
   {}
 
-  template <std::size_t N> auto& get() noexcept { return mParams.template get<N>(); }
+  template <std::size_t N> auto& get() noexcept { return mParams.get().template get<N>(); }
 //  template <std::size_t N> bool changed() noexcept { return mParams.template changed<N>(); }
 
   size_t audioChannelsIn()    const noexcept { return 0; }
@@ -102,6 +102,13 @@ public:
   ///Map delegate audio / control channels to audio buffers
   size_t audioBuffersIn()  const noexcept { return mClient.audioChannelsIn();  }
   size_t audioBuffersOut() const noexcept { return isControl ? 1 : mClient.audioChannelsOut(); }
+
+  void setParams(ParamSetViewType& p)
+  {
+    mParams = p;
+    mRealTimeParams = RTParamSetViewType(RTClient::getParameterDescriptors(), p.template subset<ParamOffset>());
+    mClient.setParams(mRealTimeParams);
+  }
 
   Result process()
   {
@@ -126,7 +133,7 @@ public:
       BufferAdaptor::Access thisInput(b.buffer);
       
       if(!thisInput.exists())
-        return {Result::Status::kError, "Input buffer ", b.buffer, "."} ; //error
+        return {Result::Status::kError, "Input buffer ", b.buffer, " not found."} ; //error
 
       if(!thisInput.valid())
         return {Result::Status::kError, "Input buffer ", b.buffer, "invalid (possibly zero-size?)"} ; //error
@@ -145,8 +152,32 @@ public:
       count++;
     }
     
-    if(std::all_of(outputBuffers.begin(), outputBuffers.end(),[](auto& b){return b == nullptr; }))
+    if(std::all_of(outputBuffers.begin(), outputBuffers.end(),[](auto& b){
+      
+      if(!b) return true;
+      
+      BufferAdaptor::Access buf(b);
+      return !buf.exists();
+    }))
       return {Result::Status::kError, "No valid output has been set" }; //error
+    
+    
+    Result r{Result::Status::kOk,""};
+    
+    //Remove non-existent output buffers from the output buffers vector, so clients don't try and use them
+    std::transform(outputBuffers.begin(), outputBuffers.end(),outputBuffers.begin(), [&r](auto& b)->BufferAdaptor*
+    {
+      
+      if(!b) return nullptr;
+      BufferAdaptor::Access buf(b);
+      if(! buf.exists())
+      {
+        r.set(Result::Status::kWarning);
+        r.addMessage("One or more of your output buffers doesn't exist\n");
+      }
+      return buf.exists()? b : nullptr;
+    }); 
+
     
 
     size_t numFrames   = *std::min_element(inFrames.begin(),inFrames.end());
@@ -154,7 +185,7 @@ public:
     
     AdaptorType<HostMatrix,HostVectorView>::process(mClient,inputBuffers,outputBuffers,numFrames,numChannels);
 
-    return {Result::Status::kOk,""};
+    return r;
   }
 private:
 
@@ -177,7 +208,7 @@ private:
   }
 
   RTParamSetViewType    mRealTimeParams;
-  ParamSetViewType&     mParams;
+  std::reference_wrapper<ParamSetViewType>     mParams;
   WrappedClient         mClient;
 };
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -225,7 +256,7 @@ struct Streaming
     {
       if(!outputBuffers[i]) continue;
       BufferAdaptor::Access thisOutput(outputBuffers[i]);
-      thisOutput.resize(nFrames,nChans,1,sampleRate);
+      thisOutput.resize(nFrames,nChans,sampleRate);
       for(int j = 0; j < nChans; ++j)
         thisOutput.samps(j) = outputData[i].row(j)(Slice(padding));
     }
@@ -281,7 +312,7 @@ struct StreamingControl
     }
     
     BufferAdaptor::Access thisOutput(outputBuffers[0]);
-    thisOutput.resize(nHops - 1,nChans * nFeatures,1,sampleRate / controlRate);
+    thisOutput.resize(nHops - 1,nChans * nFeatures,sampleRate / controlRate);
 
     for(int i = 0; i < nFeatures; ++i)
     {
