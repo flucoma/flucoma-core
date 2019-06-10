@@ -143,7 +143,8 @@ public:
         });
     output[0] = out.row(0);
   }
-  long latency() { return get<kFFT>().winSize(); }
+  
+  long latency() { return get<kFFT>().winSize() + ((get<kKernelSize>() - 1) / 2)*get<kFFT>().hopSize();}
 
 private:
   RTNoveltySegmentation mNovelty{get<kMaxKernelSize>(), get<kMaxFilterSize>()};
