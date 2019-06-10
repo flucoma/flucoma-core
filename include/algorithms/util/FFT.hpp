@@ -22,6 +22,11 @@ public:
     mSplit.realp = mRealBuffer.data();
     mSplit.imagp = mImagBuffer.data();
   }
+  
+  ~FFT()
+  {
+    if(mSetup) hisstools_destroy_setup(mSetup); 
+  }
 
   void resize(size_t newSize) {
     assert(newSize <= mMaxSize);
