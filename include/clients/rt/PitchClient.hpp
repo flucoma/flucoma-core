@@ -16,10 +16,13 @@
 namespace fluid {
 namespace client {
 
-enum PitchParamIndex { kAlgorithm, kFFT, kMaxFFTSize };
+enum PitchParamIndex { kAlgorithm, kMinFreq, kMaxFreq, kUnit, kFFT, kMaxFFTSize };
 
 auto constexpr PitchParams = defineParameters(
     EnumParam("algorithm", "Algorithm", 2, "Cepstrum", "Harmonic Product Spectrum", "YinFFT"),
+    FloatParam("minFreq", "Minimum frequency", 20, Min(0), Max(10000), UpperLimit<kMaxFreq>()),
+    FloatParam("maxFreq", "Maximum frequency", 10000, Min(1), Max(20000), LowerLimit<kMinFreq>()),
+    EnumParam("unit", "Unit", 0, "Hz", "MIDI"),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
                            PowerOfTwo{}));
@@ -50,7 +53,8 @@ public:
     assert(output.size() >= FluidBaseClient::controlChannelsOut() &&
            "Too few output channels");
 
-    if (mWinSizeTracker.changed(get<kFFT>().frameSize())) {
+    if (mParamTracker.changed(get<kFFT>().frameSize())) {
+      cepstrumF0.init(get<kFFT>().frameSize());
       mMagnitude.resize(get<kFFT>().frameSize());
     }
 
@@ -59,13 +63,13 @@ public:
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
           switch (get<kAlgorithm>()) {
           case 0:
-            cepstrumF0.processFrame(mMagnitude, mDescriptors, sampleRate());
+            cepstrumF0.processFrame(mMagnitude, mDescriptors, get<kMinFreq>(), get<kMaxFreq>(), sampleRate());
             break;
           case 1:
-            hps.processFrame(mMagnitude, mDescriptors, 4, sampleRate());
+            hps.processFrame(mMagnitude, mDescriptors, 4, get<kMinFreq>(), get<kMaxFreq>(), sampleRate());
             break;
           case 2:
-            yinFFT.processFrame(mMagnitude, mDescriptors, sampleRate());
+            yinFFT.processFrame(mMagnitude, mDescriptors, get<kMinFreq>(), get<kMaxFreq>(), sampleRate());
             break;
           }
         });
@@ -76,7 +80,7 @@ public:
   size_t controlRate() { return get<kFFT>().hopSize(); }
 
 private:
-  ParameterTrackChanges<size_t> mWinSizeTracker;
+  ParameterTrackChanges<size_t> mParamTracker;
   STFTBufferedProcess<ParamSetViewType, T, kFFT> mSTFTBufferedProcess;
   CepstrumF0 cepstrumF0;
   HPS hps;

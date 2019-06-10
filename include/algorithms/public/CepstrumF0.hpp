@@ -20,23 +20,33 @@ using Eigen::ArrayXd;
 class CepstrumF0 {
 
 public:
+  void init(int size){
+    mNumBins = size;
+    mDCT.init(mNumBins, mNumBins);
+    mCepstrum = ArrayXd(mNumBins);
+  }
+
   void processFrame(const RealVectorView &input, RealVectorView output,
-                    double sampleRate) {
-    DCT dct;
+                    double minFreq, double maxFreq, double sampleRate) {
+  
     PeakDetection pd;
-    int nBins = input.size();
     const auto &epsilon = std::numeric_limits<double>::epsilon();
     ArrayXd mag = asEigen<Array>(input);
     ArrayXd logMag = mag.max(epsilon).log();
-    dct.init(nBins, nBins);
-    ArrayXd cepstrum = ArrayXd(nBins);
-    dct.processFrame(logMag, cepstrum);
-    auto vec = pd.process(cepstrum, 2);
-    double pitch = sampleRate / vec[1].first;
-    double confidence = vec[1].second /cepstrum[0];
+    mDCT.processFrame(logMag, mCepstrum);
+    int minBin = std::round(sampleRate / maxFreq);
+    int maxBin = std::round(sampleRate / minFreq);
+    auto vec = pd.process(mCepstrum.segment(minBin, mCepstrum.size() - minBin ), 1);
+    double pitch = sampleRate / (vec[0].first + minBin);
+    double confidence = vec[0].second / mCepstrum[0];
     output(0) = pitch;
     output(1) = confidence;
   }
+
+private:
+  DCT mDCT;
+  int mNumBins;
+  ArrayXd mCepstrum;
 };
 } // namespace algorithm
 } // namespace fluid
