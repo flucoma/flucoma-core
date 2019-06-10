@@ -40,7 +40,7 @@ public:
       tmpSum += yin(i);
       yin(i) *= i / tmpSum;
     }
-    double pitch = 0;
+    double pitch = sampleRate / minFreq;
     double pitchConfidence = 0;
     if (tmpSum > 0) {
       ArrayXd yinFlip = -yin;

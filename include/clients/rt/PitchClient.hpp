@@ -16,12 +16,22 @@
 namespace fluid {
 namespace client {
 
-enum PitchParamIndex { kAlgorithm, kMinFreq, kMaxFreq, kUnit, kFFT, kMaxFFTSize };
+enum PitchParamIndex {
+  kAlgorithm,
+  kMinFreq,
+  kMaxFreq,
+  kUnit,
+  kFFT,
+  kMaxFFTSize
+};
 
 auto constexpr PitchParams = defineParameters(
-    EnumParam("algorithm", "Algorithm", 2, "Cepstrum", "Harmonic Product Spectrum", "YinFFT"),
-    FloatParam("minFreq", "Minimum frequency", 20, Min(0), Max(10000), UpperLimit<kMaxFreq>()),
-    FloatParam("maxFreq", "Maximum frequency", 10000, Min(1), Max(20000), LowerLimit<kMinFreq>()),
+    EnumParam("algorithm", "Algorithm", 2, "Cepstrum",
+              "Harmonic Product Spectrum", "YinFFT"),
+    FloatParam("minFreq", "Minimum frequency", 20, Min(0), Max(10000),
+               UpperLimit<kMaxFreq>()),
+    FloatParam("maxFreq", "Maximum frequency", 10000, Min(1), Max(20000),
+               LowerLimit<kMinFreq>()),
     EnumParam("unit", "Unit", 0, "Hz", "MIDI"),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
@@ -63,17 +73,22 @@ public:
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
           switch (get<kAlgorithm>()) {
           case 0:
-            cepstrumF0.processFrame(mMagnitude, mDescriptors, get<kMinFreq>(), get<kMaxFreq>(), sampleRate());
+            cepstrumF0.processFrame(mMagnitude, mDescriptors, get<kMinFreq>(),
+                                    get<kMaxFreq>(), sampleRate());
             break;
           case 1:
-            hps.processFrame(mMagnitude, mDescriptors, 4, get<kMinFreq>(), get<kMaxFreq>(), sampleRate());
+            hps.processFrame(mMagnitude, mDescriptors, 4, get<kMinFreq>(),
+                             get<kMaxFreq>(), sampleRate());
             break;
           case 2:
-            yinFFT.processFrame(mMagnitude, mDescriptors, get<kMinFreq>(), get<kMaxFreq>(), sampleRate());
+            yinFFT.processFrame(mMagnitude, mDescriptors, get<kMinFreq>(),
+                                get<kMaxFreq>(), sampleRate());
             break;
           }
         });
-    output[0](0) = mDescriptors(0); // pitch
+    output[0](0) = get<kUnit>() == 0
+                       ? mDescriptors(0)
+                       : 69 + (12 * log2(mDescriptors(0) / 440.0)); // pitch
     output[1](0) = mDescriptors(1); // pitch confidence
   }
   size_t latency() { return get<kFFT>().winSize(); }
