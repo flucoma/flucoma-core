@@ -14,6 +14,8 @@ public:
   using ArrayXd = Eigen::ArrayXd;
   using ArrayXdRef = Eigen::Ref<const ArrayXd>;
 
+  FFT() = delete;
+
   FFT(size_t size)
       : mMaxSize(size), mSize(size), mFrameSize(size / 2 + 1),
         mLog2Size(log2(size)), mOutputBuffer(mFrameSize),
@@ -21,6 +23,27 @@ public:
     hisstools_create_setup(&mSetup, mLog2Size);
     mSplit.realp = mRealBuffer.data();
     mSplit.imagp = mImagBuffer.data();
+  }
+  
+  ~FFT() { hisstools_destroy_setup(mSetup); }
+  
+  FFT(const FFT& x) = delete;
+
+  FFT(FFT&& x) {  *this = std::move(x); }
+
+  FFT& operator=(const FFT&) = delete;
+
+  FFT& operator=(FFT&& x)
+  {
+     mMaxSize = x.mMaxSize;
+     mSize = x.mSize;
+     mFrameSize = x.mFrameSize;
+     mLog2Size = x.mLog2Size;
+     std::swap(mRealBuffer,x.mRealBuffer);
+     std::swap(mImagBuffer,x.mImagBuffer);
+     std::swap(mSplit,x.mSplit);
+     std::swap(mSetup,x.mSetup);
+     return *this;
   }
 
   void resize(size_t newSize) {
@@ -47,7 +70,6 @@ protected:
   size_t mSize;
   size_t mFrameSize;
   size_t mLog2Size;
-
   FFT_SETUP_D mSetup;
   FFT_SPLIT_COMPLEX_D mSplit;
 
