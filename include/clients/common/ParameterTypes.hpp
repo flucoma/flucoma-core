@@ -143,7 +143,7 @@ struct FloatPairsArrayT : ParamTypeBase
     FloatPairsArrayType(const FloatPairsArrayType& x) = default;
     FloatPairsArrayType& operator=(const FloatPairsArrayType&)=default;
     
-    constexpr FloatPairsArrayType(FloatPairsArrayType&& x) { *this = std::move(x); }
+    FloatPairsArrayType(FloatPairsArrayType&& x) { *this = std::move(x); }
 
     FloatPairsArrayType& operator=(FloatPairsArrayType&& x)
     {
@@ -244,7 +244,7 @@ public:
   void setFFT(intptr_t fft) { mFFTSize = fft; }
   void setHop(intptr_t hop) { mHopSize = hop; }
 
-  intptr_t nextPow2(u_int32_t x, bool up) const
+  intptr_t nextPow2(uint32_t x, bool up) const
   {
     /// http://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
     if (!x) return x;

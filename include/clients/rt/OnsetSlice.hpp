@@ -29,7 +29,7 @@ enum OnsetParamIndex {
 auto constexpr OnsetParams = defineParameters(
     LongParam("function", "Function", 0, Min(0), Max(9)),
     FloatParam("threshold", "Threshold", 0.5, Min(0)),
-    LongParam("debounce", "Debounce", 2, Min(0)),
+    LongParam("minSliceLength", "Minimum Length of Slice", 2, Min(0)),
     LongParam("filterSize", "Filter Size", 5, Min(0), Odd(), Max(101)),
     // LongParam("frameDelta", "Frame Delta", 0, Min(0),
     // UpperLimit<kWinSize>()),
@@ -70,7 +70,7 @@ public:
       mTmp.resize(1, hostVecSize);
     }
     if (mMaxSizeTracker.changed(get<kMaxFFTSize>())) {
-      mAlgorithm = OnsetSegmentation{get<kMaxFFTSize>()};
+      mAlgorithm = OnsetSegmentation{static_cast<int>(get<kMaxFFTSize>())};
     }
     mAlgorithm.updateParameters(get<kFFT>().fftSize(), get<kFFT>().winSize(),
                                 get<kFFT>().hopSize(), get<kFrameDelta>(),

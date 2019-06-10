@@ -35,8 +35,8 @@ auto constexpr NMFParams = defineParameters(
   EnumParam("basesMode", "Bases Buffer Update Mode", 0, "None","Seed","Fixed"),
   BufferParam("activations", "Activations Buffer"),
   EnumParam("actMode", "Activations Buffer Update Mode", 0, "None","Seed","Fixed"),
-  LongParam("rank", "Rank", 1, Min(1)),
-  LongParam("numIter", "Number of Iterations", 100, Min(1)),
+  LongParam("components", "Number of Components", 1, Min(1)),
+  LongParam("iterations", "Number of Iterations", 100, Min(1)),
   FFTParam("fftSettings", "FFT Settings", 1024, -1, -1)
 );
 
@@ -206,7 +206,7 @@ public:
         auto mask = algorithm::RatioMask{outputMags, 1};
         auto resynthMags = FluidTensor<double,2>(nWindows,nBins);
         auto resynthSpectrum = FluidTensor<std::complex<double>,2>(nWindows,nBins);
-        auto istft = algorithm::ISTFT{fftParams.winSize(), fftParams.fftSize(), fftParams.hopSize()};
+        auto istft = algorithm::ISTFT{static_cast<size_t>(fftParams.winSize()), static_cast<size_t>(fftParams.fftSize()), static_cast<size_t>(fftParams.hopSize())};
         auto resynthAudio = FluidTensor<double,1>(nFrames);
         auto resynth = BufferAdaptor::Access{get<kResynth>().get()};
 

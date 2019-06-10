@@ -92,7 +92,7 @@ public:
     , mClient{mRealTimeParams}
   {}
 
-  template <std::size_t N> auto& get() noexcept { return mParams.template get<N>(); }
+  template <std::size_t N> auto& get() noexcept { return mParams.get().template get<N>(); }
 //  template <std::size_t N> bool changed() noexcept { return mParams.template changed<N>(); }
 
   size_t audioChannelsIn()    const noexcept { return 0; }
@@ -102,6 +102,13 @@ public:
   ///Map delegate audio / control channels to audio buffers
   size_t audioBuffersIn()  const noexcept { return mClient.audioChannelsIn();  }
   size_t audioBuffersOut() const noexcept { return isControl ? 1 : mClient.audioChannelsOut(); }
+
+  void setParams(ParamSetViewType& p)
+  {
+    mParams = p;
+    mRealTimeParams = RTParamSetViewType(RTClient::getParameterDescriptors(), p.template subset<ParamOffset>());
+    mClient.setParams(mRealTimeParams);
+  }
 
   Result process()
   {
@@ -201,7 +208,7 @@ private:
   }
 
   RTParamSetViewType    mRealTimeParams;
-  ParamSetViewType&     mParams;
+  std::reference_wrapper<ParamSetViewType>     mParams;
   WrappedClient         mClient;
 };
 //////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -108,9 +108,12 @@ target_sources(
 target_compile_features(
   FLUID_DECOMPOSITION INTERFACE cxx_std_14
 )
+
+if(APPLE)
 target_compile_definitions(
   FLUID_DECOMPOSITION INTERFACE -DEIGEN_USE_BLAS
 )
+ENDIF(APPLE)
 # target_link_libraries(
 #   FLUID_DECOMPOSITION INTERFACE HISSTools_FFT
 # )
@@ -128,8 +131,8 @@ target_include_directories(
 )
 
 
-add_subdirectory(
-  "${CMAKE_CURRENT_SOURCE_DIR}/examples" EXCLUDE_FROM_ALL
-)
+#add_subdirectory(
+#  "${CMAKE_CURRENT_SOURCE_DIR}/examples" EXCLUDE_FROM_ALL
+#)
 
 export(TARGETS FLUID_DECOMPOSITION HISSTools_FFT HISSTools_AudioFile FILE fluid_decomposition-exports.cmake)

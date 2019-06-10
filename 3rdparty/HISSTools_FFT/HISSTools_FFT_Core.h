@@ -325,7 +325,7 @@ namespace hisstools_fft_impl{
         
         // Set Max FFT Size
         
-        setup->max_fft_log2 = max_fft_log2;
+        setup->max_fft_log2 = static_cast<unsigned long>(max_fft_log2);
         
         // Create Tables
         

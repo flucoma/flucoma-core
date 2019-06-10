@@ -30,13 +30,13 @@ enum MFCCParamIndex {
 
 auto constexpr MFCCParams = defineParameters(
 
-    LongParam("numCoefs", "Number of Cepstral Coefficients", 13, Min(2),
-              UpperLimit<kNBands>()),
+    LongParam("numCoeffs", "Number of Cepstral Coefficients", 13, Min(2),
+              UpperLimit<kMaxNCoefs>()),
     LongParam("numBands", "Number of Bands", 40, Min(2),
               FrameSizeUpperLimit<kFFT>()),
     FloatParam("minFreq", "Low Frequency Bound", 20, Min(0)),
     FloatParam("maxFreq", "High Frequency Bound", 20000, Min(0)),
-    LongParam<Fixed<true>>("maxNumCoefs", "Maximum Number of Coefficients", 40,
+    LongParam<Fixed<true>>("maxNumCoeffs", "Maximum Number of Coefficients", 40,
                            MaxFrameSizeUpperLimit<kMaxFFTSize>(), Min(2)),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));

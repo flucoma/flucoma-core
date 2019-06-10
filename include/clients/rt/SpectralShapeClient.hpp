@@ -62,8 +62,7 @@ public:
 
     for (int i = 0; i < 7; ++i){
       //TODO: probably move this logic to algorithm
-      if(i==1)output[i](0) = mBinHz * std::sqrt(mDescriptors(i));
-      else if(i==0||i==4)output[i](0) = mBinHz * mDescriptors(i);
+      if(i==0||i==1||i==4)output[i](0) =  mBinHz * mDescriptors(i);
       else output[i](0) = mDescriptors(i);
     }
 

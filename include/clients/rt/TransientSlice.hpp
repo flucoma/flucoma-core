@@ -33,9 +33,9 @@ auto constexpr TransientParams = defineParameters(
     FloatParam("skew", "Skew", 0, Min(-10), Max(10)),
     FloatParam("threshFwd", "Forward Threshold", 2, Min(0)),
     FloatParam("threshBack", "Backward Threshold", 1.1, Min(0)),
-    LongParam("winSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
-    LongParam("debounce", "Debounce", 25, Min(0)),
-    LongParam("minSlice","Minimum Slice Length",1000)
+    LongParam("windowSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
+    LongParam("clumpLength", "Clumping Window Length", 25, Min(0)),
+    LongParam("minSliceLength", "Minimum Length of Slice",1000)
 );
 
 
@@ -69,7 +69,7 @@ public:
     std::size_t hostVecSize = input[0].size();
     std::size_t maxWinIn = 2*blockSize + padding;
     std::size_t maxWinOut = maxWinIn; //blockSize - padding;
-    
+
     if (!mExtractor.get() || mTrackValues.changed(order, blockSize, padding, hostVecSize)) {
       mExtractor.reset(new algorithm::TransientSegmentation(order, iterations, robustFactor));
       mExtractor->prepareStream(blockSize, padding);
@@ -122,7 +122,7 @@ private:
 };
 
 auto constexpr NRTTransientSliceParams = makeNRTParams<TransientsSlice>({BufferParam("source", "Source Buffer")}, {BufferParam("indices","Indices Buffer")});
-    
+
 template <typename T>
 using NRTTransientSlice = NRTSliceAdaptor<TransientsSlice<T>, decltype(NRTTransientSliceParams), NRTTransientSliceParams, 1, 1>;
 
