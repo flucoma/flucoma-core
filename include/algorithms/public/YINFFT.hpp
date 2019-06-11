@@ -34,6 +34,8 @@ public:
         squareMag.segment(1, nBins - 2).reverse();
     ArrayXcd squareMagFFT = fft.process(squareMagSym);
     ArrayXd yin = squareMagSum - squareMagFFT.real();
+    if(maxFreq==0) maxFreq = 1;
+    if(minFreq==0) minFreq = 1;
     yin(0) = 1;
     double tmpSum = 0;
     for (int i = 1; i < nBins; i++) {
@@ -47,8 +49,8 @@ public:
       // segment from max to min freq
       int minBin = std::round(sampleRate / maxFreq);
       int maxBin = std::round(sampleRate / minFreq);
-      if(maxBin > yinFlip.size() - 1) maxBin =  yinFlip.size() - 1;
       if(minBin > yinFlip.size() - 1) minBin =  yinFlip.size() - 1;
+      if(maxBin > yinFlip.size() - minBin - 1) maxBin =  yinFlip.size() - minBin - 1;
       yinFlip = yinFlip.segment(minBin, maxBin - minBin);
       auto vec = pd.process(yinFlip, 1, yinFlip.minCoeff());
       if (vec.size() > 0) {
