@@ -67,7 +67,7 @@ public:
   }
 
   void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output) {
+               std::vector<HostVector> &output, bool reset = false) {
 
     if (!input[0].data() || !output[0].data())
       return;

@@ -43,7 +43,7 @@ public:
   }
 
   void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output) {
+               std::vector<HostVector> &output, bool reset = false) {
     if (!input[0].data() || !output[0].data())
       return;
     assert(FluidBaseClient::controlChannelsOut() && "No control channels");
@@ -55,7 +55,7 @@ public:
     }
 
     mSTFTBufferedProcess.processInput(
-        mParams, input, [&](ComplexMatrixView in) {
+        mParams, input, reset, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
           switch (get<kAlgorithm>()) {
           case 0:

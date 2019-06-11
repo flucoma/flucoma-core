@@ -40,7 +40,7 @@ public:
   }
 
   void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output) {
+               std::vector<HostVector> &output, bool reset = false) {
     using std::size_t;
 
     if (!input[0].data() || !output[0].data())
@@ -55,7 +55,7 @@ public:
     }
 
     mSTFTBufferedProcess.processInput(
-        mParams, input, [&](ComplexMatrixView in) {
+        mParams, input, reset, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
           mAlgorithm.processFrame(mMagnitude, mDescriptors);
         });

@@ -54,7 +54,7 @@ public:
   }
 
   void process(std::vector<HostVector>& input,
-               std::vector<HostVector>& output) {
+               std::vector<HostVector>& output, bool reset = false) {
 
     if(!input[0].data() || !output[0].data())
       return;
@@ -93,7 +93,7 @@ public:
     in.row(0) = input[0]; //need to convert float->double in some hosts
     mBufferedProcess.push(RealMatrixView(in));
 
-    mBufferedProcess.process(mExtractor->inputSize(), mExtractor->hopSize(), mExtractor->hopSize(), [this](RealMatrixView in, RealMatrixView out)
+    mBufferedProcess.process(mExtractor->inputSize(), mExtractor->hopSize(), mExtractor->hopSize(), reset, [this](RealMatrixView in, RealMatrixView out)
     {
       mExtractor->process(in.row(0), out.row(0));
     });

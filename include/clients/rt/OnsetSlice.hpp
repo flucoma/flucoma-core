@@ -52,7 +52,7 @@ public:
   }
 
   void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output) {
+               std::vector<HostVector> &output, bool reset = false) {
     using algorithm::OnsetSegmentation;
     using std::size_t;
 
@@ -76,12 +76,14 @@ public:
                                 get<kFFT>().hopSize(), get<kFrameDelta>(),
                                 get<kFunction>(), get<kFilterSize>(),
                                 get<kThreshold>(), get<kDebounce>());
+  
+    
     RealMatrix in(1, hostVecSize);
     in.row(0) = input[0];
     RealMatrix out(1, hostVecSize);
     int frameOffset = 0; // in case kHopSize < hostVecSize
     mBufferedProcess.push(RealMatrixView(in));
-    mBufferedProcess.process(totalWindow, totalWindow, get<kFFT>().hopSize(),
+    mBufferedProcess.process(totalWindow, totalWindow, get<kFFT>().hopSize(), reset,
                              [&, this](RealMatrixView in, RealMatrixView) {
                                out.row(0)(frameOffset) =
                                    mAlgorithm.processFrame(in.row(0));

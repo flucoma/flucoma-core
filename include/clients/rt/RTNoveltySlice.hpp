@@ -69,7 +69,7 @@ public:
   }
 
   void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output) {
+               std::vector<HostVector> &output, bool reset = false) {
     using algorithm::RTNoveltySegmentation;
     using std::size_t;
 
@@ -114,7 +114,7 @@ public:
     int frameOffset = 0; // in case kHopSize < hostVecSize
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.process(
-        windowSize, windowSize, get<kFFT>().hopSize(),
+        windowSize, windowSize, get<kFFT>().hopSize(), reset,
         [&, this](RealMatrixView in, RealMatrixView) {
           switch (feature) {
           case 0:
