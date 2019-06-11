@@ -28,9 +28,9 @@ enum PitchParamIndex {
 auto constexpr PitchParams = defineParameters(
     EnumParam("algorithm", "Algorithm", 2, "Cepstrum",
               "Harmonic Product Spectrum", "YinFFT"),
-    FloatParam("minFreq", "Minimum frequency", 20, Min(0), Max(10000),
+    FloatParam("minFreq", "Minimum Frequency", 20, Min(0), Max(10000),
                UpperLimit<kMaxFreq>()),
-    FloatParam("maxFreq", "Maximum frequency", 10000, Min(1), Max(20000),
+    FloatParam("maxFreq", "Maximum Frequency", 10000, Min(1), Max(20000),
                LowerLimit<kMinFreq>()),
     EnumParam("unit", "Unit", 0, "Hz", "MIDI"),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
