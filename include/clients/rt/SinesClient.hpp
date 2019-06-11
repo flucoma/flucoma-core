@@ -25,7 +25,7 @@ enum SinesParamIndex {
 };
 
 extern auto constexpr SinesParams = defineParameters(
-    LongParam("bandwidth", "Bandwidth", 76, Min(1)),
+    LongParam("bandwidth", "Bandwidth", 76, Min(1), FrameSizeUpperLimit<kFFT>()),
     FloatParam("threshold", "Threshold", 0.7, Min(0.0), Max(1.0)),
     LongParam("minTrackLen", "Min Track Length", 15, Min(0)),
     FloatParam("magWeight", "Magnitude Weighting", 0.1, Min(0.0), Max(1.0)),
