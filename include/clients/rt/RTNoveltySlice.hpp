@@ -42,17 +42,19 @@ enum RTNoveltyParamIndex {
 };
 
 auto constexpr RTNoveltyParams = defineParameters(
-    EnumParam("feature", "Feature", 0,  "Spectrum", "MFCC","Pitch", "Loudness"),
-    LongParam("kernelSize", "KernelSize", 11, Min(3), Odd()),
+    EnumParam("feature", "Feature", 0, "Spectrum", "MFCC", "Pitch", "Loudness"),
+    LongParam("kernelSize", "KernelSize", 11, Min(3), Odd(),
+              UpperLimit<kMaxKernelSize>()),
     FloatParam("threshold", "Threshold", 0.1, Min(0)),
-    LongParam("filterSize", "Filter Size", 5, Min(1), Odd(), Max(101)),
+    LongParam("filterSize", "Smoothing Filter Size", 1, Min(1),
+              UpperLimit<kMaxFilterSize>()),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
                            PowerOfTwo{}),
     LongParam<Fixed<true>>("maxKernelSize", "Maxiumm Kernel Size", 101, Min(3),
                            Odd()),
-    LongParam<Fixed<true>>("maxFilterSize", "Maxiumm Filter Size", 100, Min(3),
-                           Odd()));
+    LongParam<Fixed<true>>("maxFilterSize", "Maxiumm Filter Size", 100,
+                           Min(1)));
 
 template <typename T>
 class RTNoveltySlice
@@ -130,7 +132,7 @@ public:
           case 2:
             mSTFT.processFrame(in.row(0), mSpectrum);
             mSTFT.magnitude(mSpectrum, mMagnitude);
-            mYinFFT.processFrame(mMagnitude, mFeature, sampleRate());
+            mYinFFT.processFrame(mMagnitude, mFeature, 20, 5000, sampleRate());
             break;
           case 3:
             mLoudness.processFrame(in.row(0), mFeature, true, true);
@@ -141,7 +143,8 @@ public:
         });
     output[0] = out.row(0);
   }
-  long latency() { return get<kFFT>().winSize(); }
+  
+  long latency() { return get<kFFT>().winSize() + ((get<kKernelSize>() - 1) / 2)*get<kFFT>().hopSize();}
 
 private:
   RTNoveltySegmentation mNovelty{get<kMaxKernelSize>(), get<kMaxFilterSize>()};

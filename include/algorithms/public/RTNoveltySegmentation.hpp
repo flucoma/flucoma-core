@@ -19,7 +19,8 @@ public:
   using ArrayXd = Eigen::ArrayXd;
 
   RTNoveltySegmentation(int maxKernelSize, int maxFilterSize)
-      : mNovelty(maxKernelSize), mFilterBufferStorage(maxFilterSize), mPeakBuffer(3) {}
+      : mNovelty(maxKernelSize), mFilterBufferStorage(maxFilterSize),
+        mPeakBuffer(3) {}
 
   void init(int kernelSize, double threshold, int filterSize, int nDims) {
     assert(kernelSize % 2);
@@ -32,8 +33,10 @@ public:
 
   double processFrame(const RealVectorView input) {
     double novelty = mNovelty.processFrame(asEigen<Array>(input));
-    mFilterBuffer.segment(0, mFilterSize - 1) =
-        mFilterBuffer.segment(1, mFilterSize - 1);
+    if (mFilterSize > 1) {
+      mFilterBuffer.segment(0, mFilterSize - 1) =
+          mFilterBuffer.segment(1, mFilterSize - 1);
+    }
     mPeakBuffer.segment(0, 2) = mPeakBuffer.segment(1, 2);
     mFilterBuffer(mFilterSize - 1) = novelty;
     mPeakBuffer(2) = mFilterBuffer.mean();

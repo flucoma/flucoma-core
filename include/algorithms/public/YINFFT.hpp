@@ -22,7 +22,7 @@ class YINFFT {
 
 public:
   void processFrame(const RealVectorView &input, RealVectorView output,
-                    double sampleRate) {
+                    double minFreq, double maxFreq, double sampleRate) {
     PeakDetection pd;
     ArrayXd mag = asEigen<Array>(input);
     ArrayXd squareMag = mag.square();
@@ -40,13 +40,19 @@ public:
       tmpSum += yin(i);
       yin(i) *= i / tmpSum;
     }
-    double pitch = 0;
+    double pitch = sampleRate / minFreq;
     double pitchConfidence = 0;
     if (tmpSum > 0) {
       ArrayXd yinFlip = -yin;
+      // segment from max to min freq
+      int minBin = std::round(sampleRate / maxFreq);
+      int maxBin = std::round(sampleRate / minFreq);
+      if(maxBin > yinFlip.size() - 1) maxBin =  yinFlip.size() - 1;
+      if(minBin > yinFlip.size() - 1) minBin =  yinFlip.size() - 1;
+      yinFlip = yinFlip.segment(minBin, maxBin - minBin);
       auto vec = pd.process(yinFlip, 1, yinFlip.minCoeff());
       if (vec.size() > 0) {
-        pitch = sampleRate / vec[0].first;
+        pitch = sampleRate / (minBin + vec[0].first);
         pitchConfidence = 1 + vec[0].second;
       }
     }
