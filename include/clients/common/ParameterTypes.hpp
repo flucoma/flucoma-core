@@ -292,8 +292,11 @@ public:
           // If we drag down we want it to leap down by powers of 2, but with a lower bound
           // at th nearest power of 2 >= winSize
           bool up = inParams.trackFFT.template direction<0>() > 0;
-          v.setFFT(v.nextPow2(v.fftRaw(), up));
-          v.setFFT(std::max(v.fftRaw(), v.nextPow2(v.winSize(), true)));
+          int fft = v.fftRaw();
+          fft = (fft & (fft - 1)) == 0 ? fft : v.nextPow2(v.fftRaw(), up);
+          fft = std::max<int>(fft, v.nextPow2(v.winSize(), true));
+          v.setFFT(fft);
+//          v.setFFT(std::max(v.fftRaw(), v.nextPow2(v.winSize(), true)));
         }
       }
 
