@@ -36,10 +36,13 @@ public:
     mDCT.processFrame(logMag, mCepstrum);
     int minBin = std::round(sampleRate / maxFreq);
     int maxBin = std::round(sampleRate / minFreq);
-    auto vec = pd.process(mCepstrum.segment(minBin, mCepstrum.size() - minBin ), 1);
+    auto vec = pd.process(mCepstrum.segment(minBin, maxBin - minBin ), 1);
     double pitch = sampleRate / minBin;
-    if(vec.size()>0) pitch = sampleRate / (vec[0].first + minBin);
-    double confidence = vec[0].second / mCepstrum[0];
+    double confidence = 0;
+    if(vec.size() > 0) {
+      pitch = sampleRate / (vec[0].first + minBin);
+      confidence = vec[0].second / mCepstrum[0];
+    }
     output(0) = pitch;
     output(1) = std::min(std::abs(confidence), 1.0);
   }
