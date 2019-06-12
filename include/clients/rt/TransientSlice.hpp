@@ -70,7 +70,7 @@ public:
     std::size_t maxWinIn = 2*blockSize + padding;
     std::size_t maxWinOut = maxWinIn; //blockSize - padding;
 
-    if (!mExtractor.get() || mTrackValues.changed(order, blockSize, padding, hostVecSize)) {
+    if (mTrackValues.changed(order, blockSize, padding, hostVecSize) || !mExtractor.get() ) {
       mExtractor.reset(new algorithm::TransientSegmentation(order, iterations, robustFactor));
       mExtractor->prepareStream(blockSize, padding);
       mBufferedProcess.hostSize(hostVecSize);
