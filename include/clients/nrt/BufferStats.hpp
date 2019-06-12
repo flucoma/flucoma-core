@@ -70,10 +70,12 @@ public:
       return {Result::Status::kError, "Start frame (", get<kOffset>(),
               ") out of range."};
 
-    int numFrames =
-        get<kNumFrames>() == -1 ? (source.numFrames() - get<kOffset>()) : get<kNumFrames>();
-    int numChannels =
-        get<kNumChans>() == -1 ? (source.numChans() - get<kStartChan>()) : get<kNumChans>();
+    int numFrames = get<kNumFrames>() == -1
+                        ? (source.numFrames() - get<kOffset>())
+                        : get<kNumFrames>();
+    int numChannels = get<kNumChans>() == -1
+                          ? (source.numChans() - get<kStartChan>())
+                          : get<kNumChans>();
 
     if (get<kOffset>() + numFrames > source.numFrames())
       return {Result::Status::kError, "Start frame + num frames (",
@@ -85,6 +87,9 @@ public:
 
     if (numChannels <= 0 || numFrames <= 0)
       return {Result::Status::kError, "Zero length segment requested"};
+
+    if (numFrames <= get<kNumDerivatives>())
+      return {Result::Status::kError, "Not enough frames"};
 
     int outputSize = processor.numStats() * (get<kNumDerivatives>() + 1);
     dest.resize(outputSize, numChannels, source.sampleRate());
