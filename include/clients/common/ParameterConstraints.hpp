@@ -144,7 +144,10 @@ struct FrameSizeLowerLimitImpl: public Relational
     FFTParams      oldV      = v;
     size_t frameSize = v.frameSize();
     frameSize = std::max<intptr_t>(std::get<Lower + Offset>(params), frameSize);
-    v.setFFT(2 * FFTParams::nextPow2(frameSize - 1,true)); 
+    
+    intptr_t newsize = 2 * FFTParams::nextPow2(frameSize - 1,true);
+    if(v.fftRaw() == -1) v.setWin(newsize);
+    else v.setFFT(newsize);
 
     if (r && oldV != v)
     {
