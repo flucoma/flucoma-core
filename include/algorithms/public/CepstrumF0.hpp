@@ -41,7 +41,7 @@ public:
     if(vec.size()>0) pitch = sampleRate / (vec[0].first + minBin);
     double confidence = vec[0].second / mCepstrum[0];
     output(0) = pitch;
-    output(1) = confidence;
+    output(1) = std::min(std::abs(confidence), 1.0);
   }
 
 private:
