@@ -74,7 +74,7 @@ public:
         [&](ComplexMatrixView in)
         {
           algorithm::STFT::magnitude(in, tmpMagnitude);
-//          mNMF->processFrame(tmpMagnitude.row(0), tmpFilt, tmpOut);
+         mNMF->processFrame(tmpMagnitude.row(0), tmpFilt, tmpOut);
 //          controlTrigger(true);
         });
 
