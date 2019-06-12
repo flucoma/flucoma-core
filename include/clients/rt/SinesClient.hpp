@@ -30,7 +30,7 @@ extern auto constexpr SinesParams = defineParameters(
     LongParam("minTrackLen", "Min Track Length", 15, Min(0)),
     FloatParam("magWeight", "Magnitude Weighting", 0.1, Min(0.0), Max(1.0)),
     FloatParam("freqWeight", "Frequency Weighting", 0.1, Min(0.0), Max(1.0)),
-    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024,-1,-1),
+    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024,-1,-1, FrameSizeLowerLimit<kBandwidth>()),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4), PowerOfTwo{})
   );
 

@@ -135,6 +135,25 @@ struct MaxFrameSizeUpperLimitImpl : public Relational
   }
 };
 
+template<int Lower>
+struct FrameSizeLowerLimitImpl: public Relational
+{
+  template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
+  void clamp(FFTParams &v, Tuple &params, Descriptor& d, Result *r) const
+  {
+    FFTParams      oldV      = v;
+    size_t frameSize = v.frameSize();
+    frameSize = std::max<intptr_t>(std::get<Lower + Offset>(params), frameSize);
+    v.setFFT(2 * FFTParams::nextPow2(frameSize - 1,true)); 
+
+    if (r && oldV != v)
+    {
+      r->set(Result::Status::kWarning);
+      r->addMessage(d.template get<N>().name, " value (", oldV.frameSize(), ") below minimum spectral frame size (", v.frameSize(), ')');
+    }
+  }
+};
+
 
 } // namespace impl
 
@@ -232,6 +251,13 @@ auto constexpr MaxFrameSizeUpperLimit()
 {
   return impl::MaxFrameSizeUpperLimitImpl<MaxFFTIndex>{};
 }
+
+template <int Lower>
+auto constexpr FrameSizeLowerLimit()
+{
+  return impl::FrameSizeLowerLimitImpl<Lower>{};
+}
+
 
 
 } // namespace client

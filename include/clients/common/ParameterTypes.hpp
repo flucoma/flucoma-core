@@ -244,7 +244,7 @@ public:
   void setFFT(intptr_t fft) { mFFTSize = fft; }
   void setHop(intptr_t hop) { mHopSize = hop; }
 
-  intptr_t nextPow2(uint32_t x, bool up) const
+  static intptr_t nextPow2(uint32_t x, bool up) 
   {
     /// http://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
     if (!x) return x;
@@ -312,6 +312,7 @@ public:
 
       // Now check (optionally) against MaxFFTSize
       size_t clippedFFT = std::max<intptr_t>(ConstrainMaxFFTSize<HasMaxFFT>{}.template clamp<I, Tuple>(v.fftSize(), allParams),4);
+            
       bool   fftSizeWasClipped{clippedFFT != v.fftSize()};
       if (fftSizeWasClipped)
       {
