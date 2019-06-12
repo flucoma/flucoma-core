@@ -145,9 +145,9 @@ public:
   }
 
   long latency() {
-    return get<kFFT>().winSize() + (((get<kKernelSize>() - 1) / 2) +
-                                    std::round(get<kFilterSize>() / 2) + 1) *
-                                       get<kFFT>().hopSize();
+    return get<kFFT>().winSize() +
+           ((get<kKernelSize>() - 1) / 2) * get<kFFT>().hopSize() +
+           (get<kFilterSize>() - 1) * get<kFFT>().hopSize();
   }
 
 private:
