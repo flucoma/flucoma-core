@@ -70,8 +70,8 @@ public:
     FluidBaseClient::audioChannelsOut(1);
   }
 
-  void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output, bool reset = false) {
+  void process(std::vector<HostVector> &input, std::vector<HostVector> &output,
+               bool reset = false) {
     using algorithm::RTNoveltySegmentation;
     using std::size_t;
 
@@ -143,8 +143,12 @@ public:
         });
     output[0] = out.row(0);
   }
-  
-  long latency() { return get<kFFT>().winSize() + ((get<kKernelSize>() - 1) / 2)*get<kFFT>().hopSize();}
+
+  long latency() {
+    return get<kFFT>().winSize() +
+           ((get<kKernelSize>() - 1) / 2) * get<kFFT>().hopSize() +
+           std::round(get<kFilterSize>() / 2) * get<kFFT>().hopSize();
+  }
 
 private:
   RTNoveltySegmentation mNovelty{get<kMaxKernelSize>(), get<kMaxFilterSize>()};
