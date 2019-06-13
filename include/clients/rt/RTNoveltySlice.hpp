@@ -45,7 +45,7 @@ auto constexpr RTNoveltyParams = defineParameters(
     EnumParam("feature", "Feature", 0, "Spectrum", "MFCC", "Pitch", "Loudness"),
     LongParam("kernelSize", "KernelSize", 11, Min(3), Odd(),
               UpperLimit<kMaxKernelSize>()),
-    FloatParam("threshold", "Threshold", 0.1, Min(0)),
+    FloatParam("threshold", "Threshold", 0.5, Min(0)),
     LongParam("filterSize", "Smoothing Filter Size", 1, Min(1),
               UpperLimit<kMaxFilterSize>()),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
