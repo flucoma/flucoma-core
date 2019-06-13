@@ -63,17 +63,17 @@ auto constexpr AmpSliceParams = defineParameters(
                            Min(1)), // TODO
     LongParam("outputType", "Output Type (temporarily)", 0, Min(0)));
 
-template <typename T,bool TwoOuts>
-class AmpSlice
+template <typename T, bool TwoOuts>
+class RTAmpSlice
     : public FluidBaseClient<decltype(AmpSliceParams), AmpSliceParams>,
       public AudioIn,
       public AudioOut {
   using HostVector = HostVector<T>;
 
 public:
-  AmpSlice(ParamSetViewType &p) : FluidBaseClient(p) {
+  RTAmpSlice(ParamSetViewType &p) : FluidBaseClient(p) {
     FluidBaseClient::audioChannelsIn(1);
-    if(!TwoOuts)
+    if (!TwoOuts)
       FluidBaseClient::audioChannelsOut(1);
     else
       FluidBaseClient::audioChannelsOut(2);
@@ -96,9 +96,9 @@ public:
                              get<kRelRampDownTime>(), get<kRelOnThreshold>(),
                              get<kRelOffThreshold>(), get<kHiPassFreq>()) ||
         !mAlgorithm.initialized()) {
-      double hiPassFreq = get<kHiPassFreq>() / sampleRate();
-      if (hiPassFreq > 1)
-        hiPassFreq = 1;
+      double hiPassFreq = std::max(get<kHiPassFreq>() / sampleRate(), 1.0);
+      // if (hiPassFreq > 1)
+      //  hiPassFreq = 1;
       mAlgorithm.init(hiPassFreq, get<kAbsRampUpTime>(), get<kRelRampUpTime>(),
                       get<kAbsRampDownTime>(), get<kRelRampDownTime>(),
                       get<kAbsOnThreshold>(), get<kRelOnThreshold>(),
@@ -123,54 +123,60 @@ private:
   algorithm::EnvelopeSegmentation mAlgorithm{get<kMaxSize>(), get<kOutput>()};
 };
 
+template <typename T> using AmpSlice = RTAmpSlice<T, false>;
 
-template<typename T>
-using RTAmpSlice = AmpSlice<T,false>;
+template <typename T> using AmpSliceMultiOut = RTAmpSlice<T, true>;
 
-template<typename T>
-using RTAmpSliceMultiOut = AmpSlice<T,true>;
-
-template<typename HostMatrix,typename HostVectorView>
-struct NRTAmpSlicing
-{
-  template <typename Client,typename InputList, typename OutputList>
-  static void process(Client& client, InputList& inputBuffers,OutputList& outputBuffers, size_t nFrames, size_t nChans)
-  {
-
+template <typename HostMatrix, typename HostVectorView> struct NRTAmpSlicing {
+  template <typename Client, typename InputList, typename OutputList>
+  static void process(Client &client, InputList &inputBuffers,
+                      OutputList &outputBuffers, size_t nFrames,
+                      size_t nChans) {
     assert(inputBuffers.size() == 1);
     assert(outputBuffers.size() == 2);
     size_t padding = client.latency();
-    HostMatrix monoSource(1,nFrames + padding);
+    HostMatrix monoSource(1, nFrames + padding);
 
     BufferAdaptor::Access src(inputBuffers[0].buffer);
     // Make a mono sum;
     for (size_t i = 0; i < nChans; ++i)
-      monoSource.row(0)(Slice(0,nFrames)).apply(src.samps(i), [](float &x, float y) { x += y; });
+      monoSource.row(0)(Slice(0, nFrames))
+          .apply(src.samps(i), [](float &x, float y) { x += y; });
 
-    HostMatrix onsetPoints(1,nFrames + padding);
-    HostMatrix offsetPoints(1,nFrames + padding);
+    HostMatrix onsetPoints(1, nFrames);
+    HostMatrix offsetPoints(1, nFrames);
+    HostMatrix binaryOut(1, nFrames + padding);
+    std::vector<HostVectorView> input{monoSource.row(0)};
+    std::vector<HostVectorView> output{binaryOut.row(0)};
 
-    std::vector<HostVectorView> input  {monoSource.row(0)};
-    std::vector<HostVectorView> output {onsetPoints.row(0),offsetPoints.row(0)};
-
-    client.process(input,output,true);
-    //convert binary to spikes here
-    impl::spikesToTimes(onsetPoints(0,Slice(padding,nFrames)).row(0), outputBuffers[0], 1, inputBuffers[0].startFrame, nFrames,src.sampleRate());
-    impl::spikesToTimes(offsetPoints(0,Slice(padding,nFrames)).row(0), outputBuffers[1], 1, inputBuffers[0].startFrame, nFrames,src.sampleRate());
+    client.process(input, output, true);
+    // convert binary to spikes
+    if(output[0](padding) == 1) onsetPoints(0, 0) = 1;
+    if(output[0](nFrames + padding - 1) == 1) offsetPoints(0, nFrames - 1) = 1;
+    for (int i = 1; i < nFrames; i++){
+      if (output[0](padding + i) == 1 && output[0](padding + i - 1)== 0) onsetPoints(0, i) = 1;
+      else onsetPoints(0, i) = 0;
+      if (output[0](padding + i) == 0 && output[0](padding + i - 1) == 1) offsetPoints(0, i) = 1;
+      else offsetPoints(0, i) = 0;
+    }
+    impl::spikesToTimes(onsetPoints.row(0),
+                        outputBuffers[0], 1, inputBuffers[0].startFrame,
+                        nFrames, src.sampleRate());
+    impl::spikesToTimes(offsetPoints.row(0),
+                        outputBuffers[1], 1, inputBuffers[0].startFrame,
+                        nFrames, src.sampleRate());
   }
 };
 
-
-
 auto constexpr NRTAmpSliceParams =
-    makeNRTParams<AmpSlice>({BufferParam("source", "Source Buffer")},
-                            {BufferParam("onsets", "Onsets Buffer")},
-                            {BufferParam("onsets", "Offsets Buffer")}, );
+  makeNRTParams<AmpSliceMultiOut>({BufferParam("source", "Source Buffer")},
+                            {BufferParam("onsets", "Onsets Buffer"),
+                            BufferParam("offsets", "Offsets Buffer")});
 
 template <typename T>
-using NRTAmpSlice = impl::NRTClientWrapper<NRTAmpSlicing, NearlyNRTAmpSlice, decltype(NRTAmpSliceParams), NRTAmpSliceParams, 1, 2>;
+using NRTAmpSlice = impl::NRTClientWrapper<NRTAmpSlicing, AmpSliceMultiOut<T>,
+                                           decltype(NRTAmpSliceParams),
+                                           NRTAmpSliceParams, 1, 2>;
 
-  
-  
 } // namespace client
 } // namespace fluid
