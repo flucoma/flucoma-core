@@ -27,7 +27,7 @@ enum OnsetParamIndex {
 };
 
 auto constexpr OnsetParams = defineParameters(
-    LongParam("function", "Function", 0, Min(0), Max(9)),
+    LongParam("metric", "Spectral Change Metric", 0, Min(0), Max(9)),
     FloatParam("threshold", "Threshold", 0.5, Min(0)),
     LongParam("minSliceLength", "Minimum Length of Slice", 2, Min(0)),
     LongParam("filterSize", "Filter Size", 5, Min(0), Odd(), Max(101)),
@@ -76,8 +76,8 @@ public:
                                 get<kFFT>().hopSize(), get<kFrameDelta>(),
                                 get<kFunction>(), get<kFilterSize>(),
                                 get<kThreshold>(), get<kDebounce>());
-  
-    
+
+
     RealMatrix in(1, hostVecSize);
     in.row(0) = input[0];
     RealMatrix out(1, hostVecSize);
