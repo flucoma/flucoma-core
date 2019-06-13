@@ -43,7 +43,7 @@ enum NoveltyParamIndex {
 
 auto constexpr NoveltyParams = defineParameters(
     EnumParam("feature", "Feature", 0, "Spectrum", "MFCC", "Pitch", "Loudness"),
-    LongParam("kernelSize", "KernelSize", 11, Min(3), Odd(),
+    LongParam("kernelSize", "KernelSize", 3, Min(3), Odd(),
               UpperLimit<kMaxKernelSize>()),
     FloatParam("threshold", "Threshold", 0.5, Min(0)),
     LongParam("filterSize", "Smoothing Filter Size", 1, Min(1),
