@@ -35,14 +35,21 @@ namespace impl{
                    });
 
     // Place a leading <offset> and <numframes>
+    
+    
     indices.insert(indices.begin() + numSpikes, timeOffset + numFrames);
-    indices.insert(indices.begin(), timeOffset);
+    int extraSpikes = 1;
+    if(indices[0] > timeOffset)
+    {
+      indices.insert(indices.begin(), timeOffset);
+      ++extraSpikes;
+    }
 
     auto idx = BufferAdaptor::Access(output); 
 
-    idx.resize(numSpikes + 2, 1,sampleRate);
+    idx.resize(numSpikes + extraSpikes, 1,sampleRate);
 
-    idx.samps(0) = FluidTensorView<size_t, 1>{indices.data(), 0, numSpikes + 2};
+    idx.samps(0) = FluidTensorView<size_t, 1>{indices.data(), 0, numSpikes + extraSpikes};
   }
 }
 }
