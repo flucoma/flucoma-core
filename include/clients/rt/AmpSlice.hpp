@@ -127,7 +127,7 @@ template <typename HostMatrix, typename HostVectorView> struct NRTAmpSlicing {
                       OutputList &outputBuffers, size_t nFrames,
                       size_t nChans) {
     assert(inputBuffers.size() == 1);
-    assert(outputBuffers.size() == 2);
+    assert(outputBuffers.size() == 1);
     size_t padding = client.latency();
     using HostMatrixView = FluidTensorView<typename HostMatrix::type, 2>;
     HostMatrix monoSource(1, nFrames + padding);
