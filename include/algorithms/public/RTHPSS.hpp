@@ -35,7 +35,6 @@ public:
     assert(hSize <= maxHSize);
     assert(vSize <= maxVSize);
     assert(mode >= 0 && mode <= 3);
-
     mMaxH = ArrayXXd::Zero(nBins, maxHSize);
     mMaxV = ArrayXXd::Zero(nBins, maxHSize);
     mMaxBuf = ArrayXXd::Zero(nBins, maxHSize);
@@ -52,10 +51,10 @@ public:
     mHThresholdY1 = hThresholdY1;
     mHThresholdY2 = hThresholdY2;
 
-    mHThresholdX1 = pThresholdX1;
-    mHThresholdX2 = pThresholdX2;
-    mHThresholdY1 = pThresholdY1;
-    mHThresholdY2 = pThresholdY2;
+    mPThresholdX1 = pThresholdX1;
+    mPThresholdX2 = pThresholdX2;
+    mPThresholdY1 = pThresholdY1;
+    mPThresholdY2 = pThresholdY2;
 
     mInitialized = true;
   }
@@ -83,7 +82,6 @@ public:
     ArrayXd mag = frame.abs().real();
     mV.block(0, 0, mBins, mHSize - 1) = mV.block(0, 1, mBins, mHSize - 1);
     mBuf.block(0, 0, mBins, mHSize - 1) = mBuf.block(0, 1, mBins, mHSize - 1);
-
     ArrayXd padded =
         ArrayXd::Zero(mVSize + mVSize * std::ceil(mBins / double(mVSize)));
     ArrayXd resultV(padded.size());
