@@ -30,7 +30,7 @@ using algorithm::YINFFT;
 
 using algorithm::RTNoveltySegmentation;
 
-enum RTNoveltyParamIndex {
+enum NoveltyParamIndex {
   kFeature,
   kKernelSize,
   kThreshold,
@@ -41,7 +41,7 @@ enum RTNoveltyParamIndex {
   kMaxFilterSize,
 };
 
-auto constexpr RTNoveltyParams = defineParameters(
+auto constexpr NoveltyParams = defineParameters(
     EnumParam("feature", "Feature", 0, "Spectrum", "MFCC", "Pitch", "Loudness"),
     LongParam("kernelSize", "KernelSize", 11, Min(3), Odd(),
               UpperLimit<kMaxKernelSize>()),
@@ -57,15 +57,15 @@ auto constexpr RTNoveltyParams = defineParameters(
                            Min(1)));
 
 template <typename T>
-class RTNoveltySlice
-    : public FluidBaseClient<decltype(RTNoveltyParams), RTNoveltyParams>,
+class NoveltySlice
+    : public FluidBaseClient<decltype(NoveltyParams), NoveltyParams>,
       public AudioIn,
       public AudioOut {
 
   using HostVector = HostVector<T>;
 
 public:
-  RTNoveltySlice(ParamSetViewType &p) : FluidBaseClient(p) {
+  NoveltySlice(ParamSetViewType &p) : FluidBaseClient(p) {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::audioChannelsOut(1);
   }
@@ -167,13 +167,13 @@ private:
   Loudness mLoudness{get<kMaxFFTSize>()};
 };
 
-auto constexpr NRTRTNoveltySliceParams =
-    makeNRTParams<RTNoveltySlice>({BufferParam("source", "Source Buffer")},
+auto constexpr NRTNoveltySliceParams =
+    makeNRTParams<NoveltySlice>({BufferParam("source", "Source Buffer")},
                                   {BufferParam("indices", "Indices Buffer")});
 template <typename T>
-using NRTRTNoveltySlice =
-    NRTSliceAdaptor<RTNoveltySlice<T>, decltype(NRTRTNoveltySliceParams),
-                    NRTRTNoveltySliceParams, 1, 1>;
+using NRTNoveltySlice =
+    NRTSliceAdaptor<NoveltySlice<T>, decltype(NRTNoveltySliceParams),
+                    NRTNoveltySliceParams, 1, 1>;
 
 } // namespace client
 } // namespace fluid
