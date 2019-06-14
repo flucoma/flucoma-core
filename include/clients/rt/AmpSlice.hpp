@@ -145,11 +145,12 @@ template <typename HostMatrix, typename HostVectorView> struct NRTAmpSlicing {
     std::vector<HostVectorView> output{binaryOut.row(0)};
     client.process(input, output, true);
     // convert binary to spikes
-    if (output[0](padding) == 1)
+
+    // add onset at start if needed
+    if (output[0](padding) == 1) {
       switchPoints(0, 0) = 1;
-    if (output[0](nFrames + padding - 1) == 1)
-      switchPoints(1, nFrames - 1) = 1;
-    for (int i = 1; i < nFrames; i++) {
+    }
+    for (int i = 1; i < nFrames - 1; i++) {
       if (output[0](padding + i) == 1 && output[0](padding + i - 1) == 0)
         switchPoints(0, i) = 1;
       else
@@ -159,7 +160,12 @@ template <typename HostMatrix, typename HostVectorView> struct NRTAmpSlicing {
       else
         switchPoints(1, i) = 0;
     }
-    impl::spikesToTimes(HostMatrixView{switchPoints}, outputBuffers[0]  , 1,
+    // add offset at end if needed
+    if (output[0](nFrames + padding - 1) == 1) {
+      switchPoints(1, nFrames - 1) = 1;
+    }
+
+    impl::spikesToTimes(HostMatrixView{switchPoints}, outputBuffers[0], 1,
                         inputBuffers[0].startFrame, nFrames, src.sampleRate());
   }
 };
