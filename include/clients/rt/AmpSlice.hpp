@@ -94,8 +94,6 @@ public:
                              get<kRelOffThreshold>(), get<kHiPassFreq>()) ||
         !mAlgorithm.initialized()) {
       double hiPassFreq = std::max(get<kHiPassFreq>() / sampleRate(), 1.0);
-      // if (hiPassFreq > 1)
-      //  hiPassFreq = 1;
       mAlgorithm.init(hiPassFreq, get<kAbsRampUpTime>(), get<kRelRampUpTime>(),
                       get<kAbsRampDownTime>(), get<kRelRampDownTime>(),
                       get<kAbsOnThreshold>(), get<kRelOnThreshold>(),
@@ -110,7 +108,11 @@ public:
     }
   }
 
-  size_t latency() { return mAlgorithm.getLatency(); }
+  size_t latency() {
+    return std::max(
+        get<kMinTimeAboveThreshold>() + get<kUpwardLookupTime>(),
+        std::max(get<kMinTimeBelowThreshold>(), get<kDownwardLookupTime>()));
+  }
 
 private:
   ParameterTrackChanges<double, double, double, double, size_t, size_t, size_t,
@@ -119,7 +121,6 @@ private:
       mTrackValues;
   algorithm::EnvelopeSegmentation mAlgorithm{get<kMaxSize>(), get<kOutput>()};
 };
-
 
 template <typename HostMatrix, typename HostVectorView> struct NRTAmpSlicing {
   template <typename Client, typename InputList, typename OutputList>
@@ -142,26 +143,30 @@ template <typename HostMatrix, typename HostVectorView> struct NRTAmpSlicing {
     HostMatrix binaryOut(1, nFrames + padding);
     std::vector<HostVectorView> input{monoSource.row(0)};
     std::vector<HostVectorView> output{binaryOut.row(0)};
-
     client.process(input, output, true);
     // convert binary to spikes
-    if(output[0](padding) == 1) switchPoints(0, 0) = 1;
-    if(output[0](nFrames + padding - 1) == 1) switchPoints(1, nFrames - 1) = 1;
-    for (int i = 1; i < nFrames; i++){
-      if (output[0](padding + i) == 1 && output[0](padding + i - 1)== 0) switchPoints(0, i) = 1;
-      else switchPoints(1, i) = 0;
-      if (output[0](padding + i) == 0 && output[0](padding + i - 1) == 1) switchPoints(0, i) = 1;
-      else switchPoints(1, i) = 0;
+    if (output[0](padding) == 1)
+      switchPoints(0, 0) = 1;
+    if (output[0](nFrames + padding - 1) == 1)
+      switchPoints(1, nFrames - 1) = 1;
+    for (int i = 1; i < nFrames; i++) {
+      if (output[0](padding + i) == 1 && output[0](padding + i - 1) == 0)
+        switchPoints(0, i) = 1;
+      else
+        switchPoints(1, i) = 0;
+      if (output[0](padding + i) == 0 && output[0](padding + i - 1) == 1)
+        switchPoints(0, i) = 1;
+      else
+        switchPoints(1, i) = 0;
     }
-    impl::spikesToTimes(HostMatrixView{switchPoints},
-                        outputBuffers[0], 1, inputBuffers[0].startFrame,
-                        nFrames, src.sampleRate());
+    impl::spikesToTimes(HostMatrixView{switchPoints}, outputBuffers[0].buffer, 1,
+                        inputBuffers[0].startFrame, nFrames, src.sampleRate());
   }
 };
 
 auto constexpr NRTAmpSliceParams =
-  makeNRTParams<AmpSlice>({BufferParam("source", "Source Buffer")},
-                          {BufferParam("indices", "Indices Buffer")});
+    makeNRTParams<AmpSlice>({BufferParam("source", "Source Buffer")},
+                            {BufferParam("indices", "Indices Buffer")});
 
 template <typename T>
 using NRTAmpSlice = impl::NRTClientWrapper<NRTAmpSlicing, AmpSlice<T>,
