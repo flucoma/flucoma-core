@@ -59,7 +59,7 @@ public:
     mLatency =
         std::max(mMinTimeAboveThreshold + mUpwardLookupTime, mDownwardLatency);
     if (mLatency < 0)
-      mLatency = 0;
+      mLatency = 1;
     //std::cout << "latency " << mLatency << std::endl;
     assert(mLatency <= mMaxSize);
     initBuffers();
@@ -72,8 +72,8 @@ public:
     return mInitialized;
   }
   void initBuffers() {
-    mInputBuffer = mInputStorage.segment(0, std::max(mLatency+1, 1));
-    mOutputBuffer = mOutputStorage.segment(0, std::max(mLatency+1, 1));
+    mInputBuffer = mInputStorage.segment(0, std::max(mLatency, 1));
+    mOutputBuffer = mOutputStorage.segment(0, std::max(mLatency, 1));
     mInputState = false;
     mOutputState = false;
     mRetriggerState = false;
@@ -145,7 +145,7 @@ public:
         mEventCount = 0;
       } else {
         forcedState = true;
-        mOutputBuffer(mLatency) = 1;
+        mOutputBuffer(mLatency - 1) = 1;
         mEventCount++;
       }
     // case 2: we are waiting for silence to finish
@@ -154,7 +154,7 @@ public:
         mSilenceCount = 0;
       } else {
         forcedState = true;
-        mOutputBuffer(mLatency) = 0;
+        mOutputBuffer(mLatency - 1) = 0;
         mSilenceCount++;
       }
     }
@@ -188,11 +188,11 @@ public:
         mOutputState = false; // we are officially off
       }
       if (shouldRetrigger(relEnv)) {
-        mOutputBuffer(mLatency) = 0;
+        mOutputBuffer(mLatency - 1) = 0;
         mEventCount = 1;
         mOutputState  = true; // we are officially on, starting next sample
       } else {
-        mOutputBuffer(mLatency) = mOutputState ? 1 : 0;
+        mOutputBuffer(mLatency - 1) = mOutputState ? 1 : 0;
       }
       if (relEnv < mRelOffThreshold && mRetriggerState)
         mRetriggerState = false;
@@ -216,14 +216,14 @@ public:
     case 4:
       output = mInputBuffer(1) - mInputBuffer(0);
     }
-    if (mLatency > 0) {
-      mOutputBuffer.segment(0, mLatency) =
-          mOutputBuffer.segment(1, mLatency);
+    if (mLatency > 1) {
+      mOutputBuffer.segment(0, mLatency - 1) =
+          mOutputBuffer.segment(1, mLatency - 1);
 
-      mInputBuffer.segment(0, mLatency) =
-          mInputBuffer.segment(1, mLatency );
+      mInputBuffer.segment(0, mLatency - 1) =
+          mInputBuffer.segment(1, mLatency - 1);
     }
-    mInputBuffer(mLatency) = smoothed;
+    mInputBuffer(mLatency - 1) = smoothed;
     if (mFillCount < mLatency)
       mFillCount++;
     return output;
