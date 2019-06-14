@@ -13,18 +13,19 @@ namespace impl{
   template<typename T>
   void spikesToTimes(FluidTensorView<T,2> changePoints, BufferAdaptor* output, size_t hopSize, size_t timeOffset, size_t numFrames, double sampleRate)
   {
-    
+
     std::vector<size_t> numSpikes(changePoints.rows());
-    
+
     for(auto i = 0; i< changePoints.rows();++i)
       numSpikes[i] =  std::accumulate(changePoints.row(i).begin(), changePoints.row(i).end(), 0);
-    
+
     //if the number of spikes doesn't match, that's a badness, and warrants an abort
     assert(std::all_of(numSpikes.begin(), numSpikes.end(),[&numSpikes](int a) {return a == numSpikes[0];}));
-    
+    if( numSpikes[0]==0) return;
+
     auto idx = BufferAdaptor::Access(output);
     idx.resize(numSpikes[0], changePoints.rows(),sampleRate);
-    
+
     for(auto i = 0; i < changePoints.rows(); ++i)
     {
     // Arg sort
@@ -51,4 +52,3 @@ namespace impl{
 }
 }
 }
-
