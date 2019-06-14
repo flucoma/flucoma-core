@@ -14,7 +14,7 @@ namespace impl{
   void spikesToTimes(FluidTensorView<T,2> changePoints, BufferAdaptor* output, size_t hopSize, size_t timeOffset, size_t numFrames, double sampleRate)
   {
     
-    std::vector<size_t> numSpikes{changePoints.rows()};
+    std::vector<size_t> numSpikes(changePoints.rows());
     
     for(auto i = 0; i< changePoints.rows();++i)
       numSpikes[i] =  std::accumulate(changePoints.row(i).begin(), changePoints.row(i).end(), 0);
