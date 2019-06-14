@@ -21,7 +21,17 @@ namespace impl{
 
     //if the number of spikes doesn't match, that's a badness, and warrants an abort
     assert(std::all_of(numSpikes.begin(), numSpikes.end(),[&numSpikes](int a) {return a == numSpikes[0];}));
-    if( numSpikes[0]==0) return;
+
+    if(numSpikes[0] == 0)
+    {
+      auto idx = BufferAdaptor::Access(output);
+      idx.resize(1, changePoints.rows(), sampleRate);
+      double result = -1.0;
+      for(auto i = 0; i < changePoints.rows(); i++) idx.samps(i)[0] = result;
+      return;
+    }
+
+
 
     auto idx = BufferAdaptor::Access(output);
     idx.resize(numSpikes[0], changePoints.rows(),sampleRate);
