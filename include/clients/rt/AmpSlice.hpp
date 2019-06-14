@@ -153,13 +153,13 @@ template <typename HostMatrix, typename HostVectorView> struct NRTAmpSlicing {
       if (output[0](padding + i) == 1 && output[0](padding + i - 1) == 0)
         switchPoints(0, i) = 1;
       else
-        switchPoints(1, i) = 0;
+        switchPoints(0, i) = 0;
       if (output[0](padding + i) == 0 && output[0](padding + i - 1) == 1)
-        switchPoints(0, i) = 1;
+        switchPoints(1, i) = 1;
       else
         switchPoints(1, i) = 0;
     }
-    impl::spikesToTimes(HostMatrixView{switchPoints}, outputBuffers[0].buffer, 1,
+    impl::spikesToTimes(HostMatrixView{switchPoints}, outputBuffers[0]  , 1,
                         inputBuffers[0].startFrame, nFrames, src.sampleRate());
   }
 };
