@@ -37,9 +37,9 @@ enum AmpSliceParamIndex {
 auto constexpr AmpSliceParams = defineParameters(
     FloatParam("absRampUp", "Absolute Envelope Ramp Up Length", 10, Min(1)),
     FloatParam("absRampDown", "Absolute Envelope Ramp Down Length", 10, Min(1)),
-    FloatParam("absThreshOn", "Absolute Envelope Threshold On", -40, Min(-144),
+    FloatParam("absThreshOn", "Absolute Envelope Threshold On", -90, Min(-144),
                Max(144)),
-    FloatParam("absThreshOff", "Absolute Envelope Threshold Off", -40,
+    FloatParam("absThreshOff", "Absolute Envelope Threshold Off", -90,
                Min(-144), Max(144)),
     LongParam("minSliceLength", "Minimum Length of Slice", 1, Min(1)),
     LongParam("minSilenceLength", "Absolute Envelope Minimum Length of Silence",
@@ -54,11 +54,11 @@ auto constexpr AmpSliceParams = defineParameters(
               Min(0)),
     FloatParam("relRampUp", "Relative Envelope Ramp Up Length", 1, Min(1)),
     FloatParam("relRampDown", "Relative Envelope Ramp Down Length", 1, Min(1)),
-    FloatParam("relThreshOn", "Relative Envelope Threshold On", -144, Min(-144),
+    FloatParam("relThreshOn", "Relative Envelope Threshold On", 144, Min(-144),
                Max(144)),
     FloatParam("relThreshOff", "Relative Envelope Threshold Off", -144,
                Min(-144), Max(144)),
-    FloatParam("highPassFreq", "High-Pass Filter Cutoff", 250, Min(1)),
+    FloatParam("highPassFreq", "High-Pass Filter Cutoff", 85, Min(1)),
     LongParam<Fixed<true>>("maxSize", "Maximum Total Latency", 88200,
                            Min(1)), // TODO
     LongParam("outputType", "Output Type (temporarily)", 0, Min(0)));
