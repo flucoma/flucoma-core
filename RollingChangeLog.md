@@ -1,18 +1,28 @@
-# Alpha-08:
-date:
+# Alpha-08: 2 new objects, and last interface change
+date: 15 June 2019
 
 ## New Objects:
-- NoveltySlice:
-- AmpSeg/BufAmpSeg:
+- NoveltySlice: a realtime version of the buffer based algo!
+- AmpSeg/BufAmpSeg: an amplitude based segmentation powertool
 
 ## New Features:
-- "algorithm" is now "function"
+- BREAKING CHANGE: (buf)onsetslice: "function" is now "metric"
+- bufnoveltyslice: now segmenting on other features (mfccs, pitch, etc)
+- BREAKING CHANGE: the threshold of bufnoveltyslice are now more stabble but will change some of the values.
+- BREAKING CHANGE: (BufOnsetSlice, BufTransientSlice, BufNoveltySlice) the indices buffer does not return the query boundaries anymore, just valid detected onsets.
+- (buf)pitch now has 'minFreq', 'maxFreq' and 'unit' (MIDI conversion)
 
 ## New Examples:
+- (SC) working 2-passes-folder-load-bufcompose
+- (SC) proper MFCC example (thanks to Sam)
+- (max: removed dependencies on descriptor~) (SC: new example) now using fluid.bufpectralshape and fluid.bufstats in all *NMF*
 
 ## Bug Fixes:
+- many again!
 
 ## Known Bugs:
+- HPSS still cracks when percussive filter is violently move up
+- NMF still creates NaNs in some edge cases
 
 ===
 # Alpha-07: post-plenary-interface-update: hopefully last major parameter names
