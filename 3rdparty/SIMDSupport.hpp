@@ -299,7 +299,7 @@ template<>
 struct SIMDType<double, 1>
 {
     static const int size = 1;
-    typedef float scalar_type;
+    typedef double scalar_type;
     
     SIMDType() {}
     SIMDType(double a) : mVal(a) {}
