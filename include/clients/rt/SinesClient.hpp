@@ -25,12 +25,12 @@ enum SinesParamIndex {
 };
 
 extern auto constexpr SinesParams = defineParameters(
-    LongParam("bandwidth", "Bandwidth", 76, Min(1)),
+    LongParam("bandwidth", "Bandwidth", 76, Min(1), FrameSizeUpperLimit<kFFT>()),
     FloatParam("threshold", "Threshold", 0.7, Min(0.0), Max(1.0)),
     LongParam("minTrackLen", "Min Track Length", 15, Min(0)),
     FloatParam("magWeight", "Magnitude Weighting", 0.1, Min(0.0), Max(1.0)),
     FloatParam("freqWeight", "Frequency Weighting", 0.1, Min(0.0), Max(1.0)),
-    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024,-1,-1),
+    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024,-1,-1, FrameSizeLowerLimit<kBandwidth>()),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4), PowerOfTwo{})
   );
 
@@ -48,7 +48,7 @@ public:
     FluidBaseClient::audioChannelsOut(2);
   }
 
-  void process(std::vector<HostVector> &input, std::vector<HostVector> &output)
+  void process(std::vector<HostVector> &input, std::vector<HostVector> &output, bool reset = false)
   {
 
     if (!input[0].data()) return;
@@ -67,7 +67,7 @@ public:
       mSinesExtractor->setMinTrackLength(get<kMinTrackLen>());
     }
 
-    mSTFTBufferedProcess.process(mParams, input, output, [this](ComplexMatrixView in, ComplexMatrixView out) {
+    mSTFTBufferedProcess.process(mParams, input, output, reset, [this](ComplexMatrixView in, ComplexMatrixView out) {
       mSinesExtractor->processFrame(in.row(0), out.transpose());
     });
   }

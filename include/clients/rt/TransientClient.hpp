@@ -52,7 +52,7 @@ public:
     FluidBaseClient::audioChannelsOut(2);
   }
 
-  void process(std::vector<HostVector>& input, std::vector<HostVector>& output)
+  void process(std::vector<HostVector>& input, std::vector<HostVector>& output, bool reset = false)
   {
     if(!input[0].data() || (!output[0].data() && !output[1].data()))
       return;
@@ -68,7 +68,7 @@ public:
     std::size_t maxWinIn = 2*blockSize + padding;
     std::size_t maxWinOut = blockSize - order;
 
-    if (!mExtractor.get() || !mExtractor.get() || mTrackValues.changed(order, blockSize, padding, hostVecSize))
+    if (mTrackValues.changed(order, blockSize, padding, hostVecSize) || !mExtractor.get())
     {
       mExtractor.reset(new algorithm::TransientExtraction(order, iterations, robustFactor, refine));
       mExtractor->prepareStream(blockSize, padding);
@@ -89,7 +89,7 @@ public:
     in.row(0) = input[0]; //need to convert float->double in some hosts
     mBufferedProcess.push(RealMatrixView(in));
 
-    mBufferedProcess.process(mExtractor->inputSize(), mExtractor->hopSize(), mExtractor->hopSize(), [this](RealMatrixView in, RealMatrixView out)
+    mBufferedProcess.process(mExtractor->inputSize(), mExtractor->hopSize(), mExtractor->hopSize(), reset, [this](RealMatrixView in, RealMatrixView out)
     {
       mExtractor->process(in.row(0), out.row(0), out.row(1));
     });

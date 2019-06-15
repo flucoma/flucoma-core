@@ -31,9 +31,9 @@ enum MFCCParamIndex {
 auto constexpr MFCCParams = defineParameters(
 
     LongParam("numCoeffs", "Number of Cepstral Coefficients", 13, Min(2),
-              UpperLimit<kNBands>()),
+              UpperLimit<kNBands,kMaxNCoefs>()),
     LongParam("numBands", "Number of Bands", 40, Min(2),
-              FrameSizeUpperLimit<kFFT>()),
+              FrameSizeUpperLimit<kFFT>(), LowerLimit<kNCoefs>()),
     FloatParam("minFreq", "Low Frequency Bound", 20, Min(0)),
     FloatParam("maxFreq", "High Frequency Bound", 20000, Min(0)),
     LongParam<Fixed<true>>("maxNumCoeffs", "Maximum Number of Coefficients", 40,
@@ -59,7 +59,7 @@ public:
   }
 
   void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output) {
+               std::vector<HostVector> &output, bool reset = false) {
     using std::size_t;
 
     if (!input[0].data() || !output[0].data())
@@ -79,7 +79,7 @@ public:
     }
 
     mSTFTBufferedProcess.processInput(
-        mParams, input, [&](ComplexMatrixView in) {
+        mParams, input, reset, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
           mMelBands.processFrame(mMagnitude, mBands);
           mDCT.processFrame(mBands, mCoefficients);

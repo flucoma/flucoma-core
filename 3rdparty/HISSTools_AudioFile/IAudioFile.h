@@ -50,8 +50,7 @@ namespace HISSTools
         void readInterleaved(double* output, FrameCount numFrames);
         void readInterleaved(float* output, FrameCount numFrames);
 
-        void readChannel(double* output, FrameCount numFrames,
-                         uint16_t channel);
+        void readChannel(double* output, FrameCount numFrames, uint16_t channel);
         void readChannel(float* output, FrameCount numFrames, uint16_t channel);
 
     private:
@@ -73,7 +72,8 @@ namespace HISSTools
         //  Conversion
         
         double extendedToDouble(const char* bytes) const;
-        template <class T> void u32ToOutput(T* output, uint32_t value);
+        template <int32_t BITS, class T> void u32ToOutput(T* output, uint32_t value);
+        template <class T> void u8ToOutput(T* output, uint8_t value);
         template <class T> void float32ToOutput(T* output, uint32_t value);
         template <class T> void float64ToOutput(T* output, uint64_t value);
 

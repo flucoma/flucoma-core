@@ -30,7 +30,7 @@ using algorithm::YINFFT;
 
 using algorithm::RTNoveltySegmentation;
 
-enum RTNoveltyParamIndex {
+enum NoveltyParamIndex {
   kFeature,
   kKernelSize,
   kThreshold,
@@ -41,35 +41,37 @@ enum RTNoveltyParamIndex {
   kMaxFilterSize,
 };
 
-auto constexpr RTNoveltyParams = defineParameters(
-    EnumParam("feature", "Feature", 0,  "Spectrum", "MFCC","Pitch", "Loudness"),
-    LongParam("kernelSize", "KernelSize", 11, Min(3), Odd()),
-    FloatParam("threshold", "Threshold", 0.1, Min(0)),
-    LongParam("filterSize", "Filter Size", 5, Min(1), Odd(), Max(101)),
+auto constexpr NoveltyParams = defineParameters(
+    EnumParam("feature", "Feature", 0, "Spectrum", "MFCC", "Pitch", "Loudness"),
+    LongParam("kernelSize", "KernelSize", 3, Min(3), Odd(),
+              UpperLimit<kMaxKernelSize>()),
+    FloatParam("threshold", "Threshold", 0.5, Min(0)),
+    LongParam("filterSize", "Smoothing Filter Size", 1, Min(1),
+              UpperLimit<kMaxFilterSize>()),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
                            PowerOfTwo{}),
     LongParam<Fixed<true>>("maxKernelSize", "Maxiumm Kernel Size", 101, Min(3),
                            Odd()),
-    LongParam<Fixed<true>>("maxFilterSize", "Maxiumm Filter Size", 100, Min(3),
-                           Odd()));
+    LongParam<Fixed<true>>("maxFilterSize", "Maxiumm Filter Size", 100,
+                           Min(1)));
 
 template <typename T>
-class RTNoveltySlice
-    : public FluidBaseClient<decltype(RTNoveltyParams), RTNoveltyParams>,
+class NoveltySlice
+    : public FluidBaseClient<decltype(NoveltyParams), NoveltyParams>,
       public AudioIn,
       public AudioOut {
 
   using HostVector = HostVector<T>;
 
 public:
-  RTNoveltySlice(ParamSetViewType &p) : FluidBaseClient(p) {
+  NoveltySlice(ParamSetViewType &p) : FluidBaseClient(p) {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::audioChannelsOut(1);
   }
 
-  void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output) {
+  void process(std::vector<HostVector> &input, std::vector<HostVector> &output,
+               bool reset = false) {
     using algorithm::RTNoveltySegmentation;
     using std::size_t;
 
@@ -114,7 +116,7 @@ public:
     int frameOffset = 0; // in case kHopSize < hostVecSize
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.process(
-        windowSize, windowSize, get<kFFT>().hopSize(),
+        windowSize, windowSize, get<kFFT>().hopSize(), reset,
         [&, this](RealMatrixView in, RealMatrixView) {
           switch (feature) {
           case 0:
@@ -130,7 +132,7 @@ public:
           case 2:
             mSTFT.processFrame(in.row(0), mSpectrum);
             mSTFT.magnitude(mSpectrum, mMagnitude);
-            mYinFFT.processFrame(mMagnitude, mFeature, sampleRate());
+            mYinFFT.processFrame(mMagnitude, mFeature, 20, 5000, sampleRate());
             break;
           case 3:
             mLoudness.processFrame(in.row(0), mFeature, true, true);
@@ -141,7 +143,12 @@ public:
         });
     output[0] = out.row(0);
   }
-  long latency() { return get<kFFT>().winSize(); }
+
+  long latency() {
+    return get<kFFT>().winSize() +
+           ((get<kKernelSize>() - 1) / 2) * get<kFFT>().hopSize() +
+           (get<kFilterSize>() - 1) * get<kFFT>().hopSize();
+  }
 
 private:
   RTNoveltySegmentation mNovelty{get<kMaxKernelSize>(), get<kMaxFilterSize>()};
@@ -160,13 +167,13 @@ private:
   Loudness mLoudness{get<kMaxFFTSize>()};
 };
 
-auto constexpr NRTRTNoveltySliceParams =
-    makeNRTParams<RTNoveltySlice>({BufferParam("source", "Source Buffer")},
+auto constexpr NRTNoveltySliceParams =
+    makeNRTParams<NoveltySlice>({BufferParam("source", "Source Buffer")},
                                   {BufferParam("indices", "Indices Buffer")});
 template <typename T>
-using NRTRTNoveltySlice =
-    NRTSliceAdaptor<RTNoveltySlice<T>, decltype(NRTRTNoveltySliceParams),
-                    NRTRTNoveltySliceParams, 1, 1>;
+using NRTNoveltySlice =
+    NRTSliceAdaptor<NoveltySlice<T>, decltype(NRTNoveltySliceParams),
+                    NRTNoveltySliceParams, 1, 1>;
 
 } // namespace client
 } // namespace fluid

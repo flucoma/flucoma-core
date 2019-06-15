@@ -47,7 +47,6 @@ ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/TupleUtilities.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/BufferComposeNRT.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/FluidNRTClientWrapper.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/NMFClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/NoveltyClient.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/BaseSTFTClient.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/BufferedProcess.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/GainClient.hpp

@@ -50,9 +50,8 @@ public:
     ArrayXXd x1 = mSimilarity.block(0, mKernelSize -1, mKernelSize, 1);
     mSimilarity.block(0, mKernelSize -1, mKernelSize, 1) = tmp;
     mSimilarity.block(mKernelSize - 1, 0, 1, mKernelSize) = tmp.transpose();
-
     double result = (mSimilarity.array() * mKernel).sum();
-    return result /(mKernelSize*mKernelSize);
+    return result / mNorm;
   }
 
 private:
@@ -62,6 +61,7 @@ private:
   ArrayXXd mKernelStorage;
   MatrixXd mSimilarity;
   MatrixXd mBufer;
+  int mNorm;
 
   void createKernel() {
     mKernel = mKernelStorage.block(0, 0, mKernelSize, mKernelSize);
@@ -72,7 +72,9 @@ private:
     tmp.block(h, 0, h + 1, h) *= -1;
     tmp.block(0, h, h, h + 1) *= -1;
     mKernel = tmp.array();
+    mNorm = mKernel.square().sum();
   }
+
 };
 } // namespace algorithm
 } // namespace fluid
