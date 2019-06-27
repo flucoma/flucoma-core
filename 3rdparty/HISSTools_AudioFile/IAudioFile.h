@@ -72,7 +72,7 @@ namespace HISSTools
         //  Conversion
         
         double extendedToDouble(const char* bytes) const;
-        template <int32_t BITS, class T> void u32ToOutput(T* output, uint32_t value);
+        template <class T> void u32ToOutput(T* output, uint32_t value);
         template <class T> void u8ToOutput(T* output, uint8_t value);
         template <class T> void float32ToOutput(T* output, uint32_t value);
         template <class T> void float64ToOutput(T* output, uint64_t value);

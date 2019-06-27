@@ -65,6 +65,8 @@ namespace HISSTools
             else
                 writeAIFCHeader();
         }
+        else
+            setErrorBit(ERR_FILE_COULDNT_OPEN);
     }
 
     void OAudioFile::close()
