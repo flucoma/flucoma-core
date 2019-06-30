@@ -37,7 +37,7 @@ public:
 
   Result process()
   {
-
+    // Not using bufferRangeCheck to validate source ranges because BufCompose is special...
     if (!get<kSource>().get()) { return {Result::Status::kError, "No input"}; }
 
     size_t nChannels{0};
