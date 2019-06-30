@@ -48,8 +48,8 @@ public:
 
       if (!(source.exists() && source.valid())) return {Result::Status::kError, "Source Buffer Not Found or Invalid"};
 
-      nChannels = get<kNChans>() == -1 ? source.numChans() - get<kStartChan>() : get<kNChans>();
-      nFrames   = get<kNumFrames>() == -1 ? source.numFrames() - get<kOffset>() : get<kNumFrames>();
+      nChannels = get<kNChans>() < 0 ? source.numChans() - get<kStartChan>() : get<kNChans>();
+      nFrames   = get<kNumFrames>() < 0 ? source.numFrames() - get<kOffset>() : get<kNumFrames>();
 
       if (nChannels <= 0 || nFrames <= 0) return {Result::Status::kError, "Zero length segment requested"};
 
