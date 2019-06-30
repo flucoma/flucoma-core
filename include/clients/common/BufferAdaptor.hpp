@@ -1,6 +1,7 @@
 #pragma once
 
 #include <data/TensorTypes.hpp>
+#include "Result.hpp"
 
 namespace fluid {
 namespace client {
@@ -84,6 +85,38 @@ private:
   virtual size_t                    numChans() const                                        = 0;
   virtual double                    sampleRate() const                                      = 0;
 };
+
+Result bufferRangeCheck(BufferAdaptor* b, intptr_t startFrame, intptr_t& nFrames, intptr_t startChan, intptr_t& nChans)
+{
+    if(!b)
+      return {Result::Status::kError, "Input buffer not set"}; //error
+
+    BufferAdaptor::Access thisInput(b);
+
+    if(!thisInput.exists())
+      return {Result::Status::kError, "Input buffer ", b, " not found."} ; //error
+
+    if(!thisInput.valid())
+      return {Result::Status::kError, "Input buffer ", b, "invalid (possibly zero-size?)"} ; //error
+
+    if(startFrame >= thisInput.numFrames() || startFrame < 0)
+      return {Result::Status::kError, "Input buffer ", b, "invalid start frame ", startFrame}; //error
+
+    if(startChan >= thisInput.numChans() || startChan < 0)
+      return {Result::Status::kError, "Input buffer ", b, "invalid start channel ", startChan}; //error
+
+    nFrames = nFrames < 0 ? thisInput.numFrames() - startFrame: nFrames;
+    if(nFrames <= 0)
+      return {Result::Status::kError, "Input buffer ", b, ": not enough frames" }; //error
+
+    nChans = nChans < 0 ? thisInput.numChans() - startChan : nChans;
+    if(startChan <= 0)
+      return {Result::Status::kError, "Input buffer ", b, ": not enough channels" }; //error
+
+   return {Result::Status::kOk,""};
+}
+
+
 } // namespace client
 } // namespace fluid
 
