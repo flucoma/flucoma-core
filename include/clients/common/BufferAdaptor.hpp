@@ -99,12 +99,18 @@ Result bufferRangeCheck(BufferAdaptor* b, intptr_t startFrame, intptr_t& nFrames
     if(!thisInput.valid())
       return {Result::Status::kError, "Input buffer ", b, "invalid (possibly zero-size?)"} ; //error
 
-    nFrames = nFrames < 0 ? thisInput.numFrames() : nFrames;
-    if(startFrame + nFrames > thisInput.numFrames())
+    if(startFrame >= thisInput.numFrames() || startFrame < 0)
+      return {Result::Status::kError, "Input buffer ", b, "invalid start frame ", startFrame}; //error
+
+    if(startChan >= thisInput.numChans() || startChan < 0)
+      return {Result::Status::kError, "Input buffer ", b, "invalid start channel ", startChan}; //error
+
+    nFrames = nFrames < 0 ? thisInput.numFrames() - startFrame: nFrames;
+    if(nFrames <= 0)
       return {Result::Status::kError, "Input buffer ", b, ": not enough frames" }; //error
 
-    nChans = nChans < 0 ? thisInput.numChans() : nChans;
-    if(startChan + nChans > thisInput.numChans())
+    nChans = nChans < 0 ? thisInput.numChans() - startChan : nChans;
+    if(startChan <= 0)
       return {Result::Status::kError, "Input buffer ", b, ": not enough channels" }; //error
 
    return {Result::Status::kOk,""};
