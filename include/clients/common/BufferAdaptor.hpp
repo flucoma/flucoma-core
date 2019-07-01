@@ -110,7 +110,7 @@ Result bufferRangeCheck(BufferAdaptor* b, intptr_t startFrame, intptr_t& nFrames
       return {Result::Status::kError, "Input buffer ", b, ": not enough frames" }; //error
 
     nChans = nChans < 0 ? thisInput.numChans() - startChan : nChans;
-    if(startChan <= 0)
+    if(nChans <= 0)
       return {Result::Status::kError, "Input buffer ", b, ": not enough channels" }; //error
 
    return {Result::Status::kOk,""};
