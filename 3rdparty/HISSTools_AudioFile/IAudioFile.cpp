@@ -37,9 +37,14 @@ namespace HISSTools
         if (!i.empty())
         {
             mFile.open(i.c_str(), std::ios_base::binary);
-            parseHeader();
-            mBuffer = new char[WORK_LOOP_SIZE * getFrameByteCount()];
-            seek();
+            if (mFile.is_open())
+            {
+                parseHeader();
+                mBuffer = new char[WORK_LOOP_SIZE * getFrameByteCount()];
+                seek();
+            }
+            else
+                setErrorBit(ERR_FILE_COULDNT_OPEN);
         }
     }
 
@@ -206,10 +211,10 @@ namespace HISSTools
         return value;
     }
 
-    template <int32_t BITS, class T>
+    template <class T>
     void IAudioFile::u32ToOutput(T* output, uint32_t value)
     {
-        *output = *reinterpret_cast<int32_t*>(&value) * (T(1.0) / static_cast<T>(1 << (BITS - 1)));
+        *output = *reinterpret_cast<int32_t*>(&value) * (T(1.0) / static_cast<T>(int32_t(1) << int32_t(31)));
     }
     
     template <class T>
@@ -632,23 +637,23 @@ namespace HISSTools
                     else
                     {
                         for (uintptr_t i = 0; i < loopSamples; i++, j += byteStep)
-                            u32ToOutput<8>(output + i, mBuffer[j] << 24);
+                            u32ToOutput(output + i, mBuffer[j] << 24);
                     }
                     break;
 
                 case kAudioFileInt16:
                     for (uintptr_t i = 0; i < loopSamples; i++, j += byteStep)
-                        u32ToOutput<16>(output + i, getU16(mBuffer + j, getAudioEndianness()) << 16);
+                        u32ToOutput(output + i, getU16(mBuffer + j, getAudioEndianness()) << 16);
                     break;
 
                 case kAudioFileInt24:
                     for (uintptr_t i = 0; i < loopSamples; i++, j += byteStep)
-                        u32ToOutput<24>(output + i, getU24(mBuffer + j, getAudioEndianness()) << 8);
+                        u32ToOutput(output + i, getU24(mBuffer + j, getAudioEndianness()) << 8);
                     break;
 
             case kAudioFileInt32:
                 for (size_t i = 0; i < loopSamples; i++, j += byteStep)
-                    u32ToOutput<32>(output + i, getU32(mBuffer + j, getAudioEndianness()));
+                    u32ToOutput(output + i, getU32(mBuffer + j, getAudioEndianness()));
                 break;
 
             case kAudioFileFloat32:
