@@ -1,3 +1,21 @@
+# beta-00: the big plunge
+date: 8 July 2019
+
+## New Features:
+- overview in SuperCollider, PureData and CLI
+- Max help overall review (uneven in completion)
+- support for 3 OSs (Mac, Windows, Linux) and 4 CCEs (Max, PureData, SuperCollider, CLI)
+
+## Known Bugs:
+- HPSS still cracks when percussive filter is violently moved up
+- NMF still creates NaNs in some edge cases, for instance when trying to factorise digital silence
+- BufOnsetSlice with a maxFFTSize value of less than 1024 will crash
+- BufNoveltySlice might generate garbage strange values in the first frame
+- AmpSlice is noisy when some parameters are changed
+- (Pd) help files are not finished yet!
+- (Pd) not providing enough 'channels' in 'multichannel' arrays will crash
+
+===
 # Alpha-08: 2 new objects, and last interface change
 date: 15 June 2019
 
