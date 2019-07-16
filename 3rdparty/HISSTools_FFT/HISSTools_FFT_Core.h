@@ -8,7 +8,6 @@
 #include <functional>
 #include <emmintrin.h>
 #include <immintrin.h>
-
 // Setup Structures
 
 template <class T> struct Setup
@@ -43,11 +42,19 @@ namespace hisstools_fft_impl{
     
 #include <cpuid.h>
 
-    template <class T> T *allocate_aligned(size_t size)
-    {
-        return static_cast<T *>(malloc(size * sizeof(T)));
-    }
-    
+    #ifdef __APPLE__
+        template <class T> T *allocate_aligned(size_t size)
+        {
+            return static_cast<T *>(malloc(size * sizeof(T)));
+        }
+    #elif defined(__linux__)
+        template <class T> T *allocate_aligned(size_t size)
+        {
+            void *mem;
+            posix_memalign(&mem, 32, size * sizeof(T));
+            return static_cast<T *>(mem);
+        }
+    #endif
     template <class T> void deallocate_aligned(T *ptr)
     {
         free(ptr);
