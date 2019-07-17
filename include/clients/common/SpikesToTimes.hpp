@@ -1,8 +1,9 @@
 #pragma once
 
-#include <clients/common/BufferAdaptor.hpp>
-#include <clients/common/OfflineClient.hpp>
-#include <data/FluidTensor.hpp>
+#include "BufferAdaptor.hpp"
+#include "OfflineClient.hpp"
+#include "../../data/FluidTensor.hpp"
+
 #include <algorithm>
 #include <vector>
 

@@ -1,15 +1,14 @@
 #pragma once
 
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/ParameterTypes.hpp>
-#include <clients/common/ParameterConstraints.hpp>
-#include <clients/common/OfflineClient.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <algorithms/public/NMF.hpp>
-#include <algorithms/public/RatioMask.hpp>
-#include <algorithms/public/STFT.hpp>
-#include <data/FluidTensor.hpp>
-
+#include "../common/FluidBaseClient.hpp"
+#include "../common/ParameterTypes.hpp"
+#include "../common/ParameterConstraints.hpp"
+#include "../common/OfflineClient.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../../algorithms/public/NMF.hpp"
+#include "../../algorithms/public/RatioMask.hpp"
+#include "../../algorithms/public/STFT.hpp"
+#include "../../data/FluidTensor.hpp"
 
 #include <algorithm> //for max_element
 #include <sstream>   //for ostringstream

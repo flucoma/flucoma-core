@@ -6,11 +6,11 @@
  */
 #pragma once
 
-#include <clients/common/AudioClient.hpp>
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/ParameterConstraints.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <data/TensorTypes.hpp>
+#include "../common/AudioClient.hpp"
+#include "../common/FluidBaseClient.hpp"
+#include "../common/ParameterConstraints.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../../data/TensorTypes.hpp"
 
 namespace fluid {
 namespace client {

@@ -1,16 +1,16 @@
 #pragma once
 
-#include "../../algorithms/util/DCT.hpp"
-#include "../../algorithms/util/MelBands.hpp"
-#include "../../data/TensorTypes.hpp"
+#include "BufferedProcess.hpp"
 #include "../common/AudioClient.hpp"
 #include "../common/FluidBaseClient.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
+#include "../common/ParameterTrackChanges.hpp"
 #include "../nrt/FluidNRTClientWrapper.hpp"
-#include "../rt/BufferedProcess.hpp"
-#include <clients/common/ParameterTrackChanges.hpp>
+#include "../../algorithms/util/DCT.hpp"
+#include "../../algorithms/util/MelBands.hpp"
+#include "../../data/TensorTypes.hpp"
 
 namespace fluid {
 namespace client {

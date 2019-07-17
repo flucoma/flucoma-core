@@ -1,7 +1,7 @@
 #pragma once
 
-#include <data/TensorTypes.hpp>
 #include "Result.hpp"
+#include "../../data/TensorTypes.hpp"
 
 namespace fluid {
 namespace client {

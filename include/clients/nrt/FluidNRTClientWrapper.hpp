@@ -1,13 +1,14 @@
 #pragma once
 
-#include <clients/common/BufferAdaptor.hpp>
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/OfflineClient.hpp>
-#include <clients/common/ParameterTypes.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <clients/common/SpikesToTimes.hpp>
-#include <data/FluidTensor.hpp>
-#include <data/TensorTypes.hpp>
+#include "../common/BufferAdaptor.hpp"
+#include "../common/FluidBaseClient.hpp"
+#include "../common/OfflineClient.hpp"
+#include "../common/ParameterTypes.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../common/SpikesToTimes.hpp"
+#include "../../data/FluidTensor.hpp"
+#include "../../data/TensorTypes.hpp"
+
 #include <vector>
 
 namespace fluid{

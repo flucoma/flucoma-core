@@ -1,12 +1,14 @@
 #pragma once
 
-#include <clients/common/BufferAdaptor.hpp>
-#include <clients/common/ParameterTrackChanges.hpp>
-#include <clients/common/Result.hpp>
+#include "BufferAdaptor.hpp"
+#include "ParameterTrackChanges.hpp"
+#include "Result.hpp"
+
+#include <memory>
 #include <tuple>
 #include <utility>
 #include <vector>
-#include <memory>
+
 
 namespace fluid {
 namespace client {

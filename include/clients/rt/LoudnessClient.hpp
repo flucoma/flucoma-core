@@ -1,5 +1,6 @@
 #pragma once
 
+#include "BufferedProcess.hpp"
 #include "../../algorithms/public/Loudness.hpp"
 #include "../../data/TensorTypes.hpp"
 #include "../common/AudioClient.hpp"
@@ -8,7 +9,7 @@
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
 #include "../nrt/FluidNRTClientWrapper.hpp"
-#include "../rt/BufferedProcess.hpp"
+
 #include <tuple>
 
 namespace fluid {

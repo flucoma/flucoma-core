@@ -1,13 +1,14 @@
 #pragma once
 
-#include <clients/common/ParameterTypes.hpp>
-#include <clients/common/ParameterConstraints.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <clients/rt/BufferedProcess.hpp>
-#include <algorithms/public/NMF.hpp>
-#include <clients/common/ParameterTrackChanges.hpp>
+#include "BufferedProcess.hpp"
+#include "../common/ParameterTypes.hpp"
+#include "../common/ParameterConstraints.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../common/FluidBaseClient.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../common/ParameterTrackChanges.hpp"
+#include "../../algorithms/public/NMF.hpp"
+
 namespace fluid {
 namespace client {
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <clients/common/BufferAdaptor.hpp>
+#include "BufferAdaptor.hpp"
 
 namespace fluid {
 namespace client {

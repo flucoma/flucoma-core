@@ -1,12 +1,13 @@
 #pragma once
 
-#include <algorithms/public/RTHPSS.hpp>
-#include <algorithms/public/STFT.hpp>
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/ParameterConstraints.hpp>
-#include <clients/common/ParameterTypes.hpp>
-#include <clients/rt/BufferedProcess.hpp>
-#include <clients/nrt/FluidNRTClientWrapper.hpp>
+#include "BufferedProcess.hpp"
+#include "../common/FluidBaseClient.hpp"
+#include "../common/ParameterConstraints.hpp"
+#include "../common/ParameterTypes.hpp"
+#include "../nrt/FluidNRTClientWrapper.hpp"
+#include "../../algorithms/public/RTHPSS.hpp"
+#include "../../algorithms/public/STFT.hpp"
+
 #include <complex>
 #include <string>
 #include <tuple>

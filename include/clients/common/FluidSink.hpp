@@ -6,8 +6,8 @@
  */
 #pragma once
 
+#include "../../data/FluidTensor.hpp"
 #include <cassert>
-#include <data/FluidTensor.hpp>
 
 namespace fluid {
 

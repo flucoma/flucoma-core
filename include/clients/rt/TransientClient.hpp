@@ -1,16 +1,16 @@
 #pragma once
 
+#include "BufferedProcess.hpp"
+#include "../common/FluidBaseClient.hpp"
+#include "../common/ParameterConstraints.hpp"
+#include "../common/ParameterTypes.hpp"
+#include "../common/ParameterTrackChanges.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../nrt/FluidNRTClientWrapper.hpp"
+#include "../../algorithms/public/TransientExtraction.hpp"
+#include "../../data/TensorTypes.hpp"
 
-#include <algorithms/public/TransientExtraction.hpp>
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/ParameterConstraints.hpp>
-#include <clients/common/ParameterTypes.hpp>
-#include <clients/common/ParameterTrackChanges.hpp>
-#include <clients/rt/BufferedProcess.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <clients/nrt/FluidNRTClientWrapper.hpp>
 #include <complex>
-#include <data/TensorTypes.hpp>
 #include <string>
 #include <tuple>
 

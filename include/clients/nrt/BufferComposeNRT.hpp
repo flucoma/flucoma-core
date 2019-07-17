@@ -1,12 +1,12 @@
 #pragma once
 
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/OfflineClient.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <clients/common/ParameterTypes.hpp>
-#include <clients/common/Result.hpp>
-#include <data/FluidTensor.hpp>
-#include <data/TensorTypes.hpp>
+#include "../common/FluidBaseClient.hpp"
+#include "../common/OfflineClient.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../common/ParameterTypes.hpp"
+#include "../common/Result.hpp"
+#include "../../data/FluidTensor.hpp"
+#include "../../data/TensorTypes.hpp"
 
 namespace fluid {
 namespace client {
