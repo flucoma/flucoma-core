@@ -116,6 +116,7 @@ public:
 
     mDesc = x.descriptor();
     mContainer.assign(x.begin(), x.end());
+    return *this;
   }
 
   template <typename... Dims,
