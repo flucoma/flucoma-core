@@ -26,8 +26,8 @@ public:
 
   FluidSink(const FluidSink &) = delete;
   FluidSink& operator=(const FluidSink &) = delete;
-  FluidSink(FluidSink&&)=default;
-  FluidSink& operator=(FluidSink&&)=default; 
+  FluidSink(FluidSink&&) noexcept = default;
+  FluidSink& operator=(FluidSink&&) noexcept =default;
 
   FluidSink(const size_t size, const size_t channels = 1)
       : matrix(channels, size), mSize(size), mChannels(channels) {}

@@ -74,12 +74,12 @@ public:
   ~FluidTensor() = default;
 
   // Move
-  FluidTensor(FluidTensor &&mv) = default;
-  FluidTensor &operator=(FluidTensor &&mv) = default;
+  FluidTensor(FluidTensor&&) noexcept = default;
+  FluidTensor &operator=(FluidTensor&&) noexcept = default;
 
   // Copy
-  FluidTensor(FluidTensor const &cp) = default;
-  FluidTensor &operator=(FluidTensor const &cp) = default;
+  FluidTensor(const FluidTensor&) = default;
+  FluidTensor &operator=(const FluidTensor&) = default;
 
   /************************************
   Conversion constructor, should we need to convert between containers

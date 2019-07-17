@@ -145,9 +145,9 @@ struct FloatPairsArrayT : ParamTypeBase
     FloatPairsArrayType(const FloatPairsArrayType& x) = default;
     FloatPairsArrayType& operator=(const FloatPairsArrayType&)=default;
     
-    FloatPairsArrayType(FloatPairsArrayType&& x) { *this = std::move(x); }
+    FloatPairsArrayType(FloatPairsArrayType&& x) noexcept { *this = std::move(x); }
 
-    FloatPairsArrayType& operator=(FloatPairsArrayType&& x)
+    FloatPairsArrayType& operator=(FloatPairsArrayType&& x) noexcept
     {
       value = x.value;
       lowerChanged = x.lowerChanged;
@@ -213,11 +213,11 @@ public:
   {}
 
   constexpr FFTParams(const FFTParams& p) = default;
-  constexpr FFTParams(FFTParams&& p) = default;
+  constexpr FFTParams(FFTParams&& p) noexcept = default;
     
   // Assignment should not change the trackers
     
-  FFTParams& operator = (FFTParams&& p)
+  FFTParams& operator = (FFTParams&& p) noexcept
   {
     mWindowSize = p.mWindowSize;
     mHopSize = p.mHopSize;

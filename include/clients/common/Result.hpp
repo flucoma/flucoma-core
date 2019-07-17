@@ -37,8 +37,17 @@ public:
     return *this;
   };
 
-  Result(Result &&) = default;
-  Result &operator=(Result &&) = default;
+  Result(Result &&x) noexcept { *this = std::move(x); }
+  Result &operator=(Result &&x) noexcept
+  {
+    if(this != &x)
+    {
+      using std::swap;
+      swap(mMsg, x.mMsg);
+      swap(mStatus,x.mStatus);
+    }
+    return *this;
+  };
 
   bool ok() const noexcept { return (mStatus == Status::kOk); }
 

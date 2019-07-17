@@ -24,8 +24,8 @@ public:
 
     Access(const Access &) = delete;
     Access &operator=(const Access &) = delete;
-    Access(Access &&)                 = default;
-    Access &operator=(Access &&) = default;
+    Access(Access &&) noexcept               = default;
+    Access &operator=(Access &&) noexcept = default;
 
     void destroy()
     {
