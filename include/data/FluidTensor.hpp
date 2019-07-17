@@ -536,7 +536,7 @@ public:
   ~FluidTensorView() = default;
 
   // Move
-  FluidTensorView(FluidTensorView &&other) { swap(*this, other); }
+  FluidTensorView(FluidTensorView &&other) noexcept { swap(*this, other); }
 
   // Copy
   FluidTensorView(FluidTensorView const &) = default;
@@ -555,20 +555,14 @@ public:
     mRef = x.data() - mDesc.start;
   }
 
-  // Assign.
-  // Note param by value https://stackoverflow.com/a/3279550
-  // Actually, is this a bad idea? We probably want
-  // different move and copy behaviour
-
-  //      //Move
-  //      FluidTensorView& operator=(FluidTensorView&& x)
-  //      {
-  //        if(this != &x){
-  //          auto m = x;
-  //          swap(*this,m);
-  //        }
-  //          return *this;
-  //      }
+  //Move
+  FluidTensorView& operator=(FluidTensorView&& x) noexcept
+  {
+    if(this != &x){
+      swap(*this,x);
+    }
+    return *this;
+  }
 
   FluidTensorView &operator=(const FluidTensorView &x) {
 
