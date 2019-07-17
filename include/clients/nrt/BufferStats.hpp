@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../common/FluidBaseClient.hpp
+#include "../common/FluidBaseClient.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterTypes.hpp"
 #include "../../algorithms/public/Stats.hpp"
