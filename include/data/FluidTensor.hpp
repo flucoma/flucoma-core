@@ -535,9 +535,19 @@ public:
    *****/
   ~FluidTensorView() = default;
 
-  // Move
+  // Move construction is allowed
   FluidTensorView(FluidTensorView &&other) noexcept { swap(*this, other); }
 
+  //Move assignment disabled because it doesn't make sense to move from a possibly arbitary pointer
+  //into the middle of what might be a FluidTensor's vector => assignment is always copy
+  //  FluidTensorView& operator=(FluidTensorView&& x) noexcept
+  //  {
+  //    if(this != &x){
+  //      swap(*this,x);
+  //    }
+  //    return *this;
+  //  }
+////////////////////////////////////////////////////////////////////////////////
   // Copy
   FluidTensorView(FluidTensorView const &) = default;
 
@@ -555,14 +565,6 @@ public:
     mRef = x.data() - mDesc.start;
   }
 
-  //Move
-  FluidTensorView& operator=(FluidTensorView&& x) noexcept
-  {
-    if(this != &x){
-      swap(*this,x);
-    }
-    return *this;
-  }
 
   FluidTensorView &operator=(const FluidTensorView &x) {
 
@@ -682,7 +684,7 @@ public:
 
       return *this;
   }
-
+////////////////////////////////////////////////////////////////////////////////
   /**********
    Construct from a slice and a pointer. This gets used by
    row() and col() of FluidTensor and FluidTensorView
