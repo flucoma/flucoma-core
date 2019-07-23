@@ -13,11 +13,11 @@ struct BufferProcessSpec
 {
   BufferProcessSpec() = default;
 
-  BufferProcessSpec(BufferAdaptor* b, intptr_t o, intptr_t nf, intptr_t co, intptr_t nc):
+  BufferProcessSpec(const BufferAdaptor* b, intptr_t o, intptr_t nf, intptr_t co, intptr_t nc):
   buffer{b},startFrame{o}, nFrames{nf}, startChan{co}, nChans{nc}
   {}
 
-  BufferAdaptor* buffer;
+  const BufferAdaptor* buffer;
   intptr_t startFrame = 0;
   intptr_t nFrames = -1;
   intptr_t startChan = 0; 

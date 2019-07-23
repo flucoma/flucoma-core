@@ -17,6 +17,7 @@ using FloatUnderlyingType          = double;
 using LongUnderlyingType           = intptr_t; // signed int equal to pointer size, k thx
 using EnumUnderlyingType           = intptr_t;
 using BufferUnderlyingType         = std::shared_ptr<BufferAdaptor>;
+using InputBufferUnderlyingType    = std::shared_ptr<const BufferAdaptor>;
 using FloatArrayUnderlyingType     = std::vector<FloatUnderlyingType>;
 using LongArrayUnderlyingType      = std::vector<LongUnderlyingType>;
 using BufferArrayUnderlyingType    = std::vector<BufferUnderlyingType>;
@@ -69,6 +70,13 @@ struct BufferT : ParamTypeBase
   const std::size_t    fixedSize = 1;
   const std::nullptr_t defaultValue{nullptr};
 }; // no non-relational conditions for buffer?
+
+struct InputBufferT : BufferT
+{
+  using type = InputBufferUnderlyingType;
+  using BufferT::BufferT;
+};
+
 
 struct EnumT : ParamTypeBase
 {
@@ -384,6 +392,13 @@ constexpr ParamSpec<BufferT, IsFixed, Constraints...> BufferParam(const char *na
                                                                   const Constraints... c)
 {
   return {BufferT(name, displayName), std::make_tuple(c...), IsFixed{}};
+}
+
+template <typename IsFixed = Fixed<false>, typename... Constraints>
+constexpr ParamSpec<InputBufferT, IsFixed, Constraints...> InputBufferParam(const char *name, const char *displayName,
+                                                                  const Constraints... c)
+{
+  return {InputBufferT(name, displayName), std::make_tuple(c...), IsFixed{}};
 }
 
 template <typename IsFixed = Fixed<false>, size_t... N >
