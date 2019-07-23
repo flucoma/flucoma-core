@@ -1,17 +1,16 @@
 #pragma once
 
-#include "../../algorithms/util/DCT.hpp"
-#include "../../algorithms/util/MelBands.hpp"
-#include "../../data/TensorTypes.hpp"
+#include "BufferedProcess.hpp"
 #include "../common/AudioClient.hpp"
 #include "../common/FluidBaseClient.hpp"
-#include  "../common/FluidContext.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
+#include "../common/ParameterTrackChanges.hpp"
 #include "../nrt/FluidNRTClientWrapper.hpp"
-#include "../rt/BufferedProcess.hpp"
-#include <clients/common/ParameterTrackChanges.hpp>
+#include "../../algorithms/util/DCT.hpp"
+#include "../../algorithms/util/MelBands.hpp"
+#include "../../data/TensorTypes.hpp"
 
 namespace fluid {
 namespace client {
@@ -31,13 +30,13 @@ enum MFCCParamIndex {
 
 auto constexpr MFCCParams = defineParameters(
 
-    LongParam("numCoefs", "Number of Cepstral Coefficients", 13, Min(2),
-              UpperLimit<kNBands>()),
+    LongParam("numCoeffs", "Number of Cepstral Coefficients", 13, Min(2),
+              UpperLimit<kNBands,kMaxNCoefs>()),
     LongParam("numBands", "Number of Bands", 40, Min(2),
-              FrameSizeUpperLimit<kFFT>()),
+              FrameSizeUpperLimit<kFFT>(), LowerLimit<kNCoefs>()),
     FloatParam("minFreq", "Low Frequency Bound", 20, Min(0)),
     FloatParam("maxFreq", "High Frequency Bound", 20000, Min(0)),
-    LongParam<Fixed<true>>("maxNumCoefs", "Maximum Number of Coefficients", 40,
+    LongParam<Fixed<true>>("maxNumCoeffs", "Maximum Number of Coefficients", 40,
                            MaxFrameSizeUpperLimit<kMaxFFTSize>(), Min(2)),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
@@ -60,7 +59,7 @@ public:
   }
 
   void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output, FluidContext &c) {
+               std::vector<HostVector> &output, FluidContext& c, bool reset = false) {
     using std::size_t;
 
     if (!input[0].data() || !output[0].data())
@@ -80,7 +79,7 @@ public:
     }
 
     mSTFTBufferedProcess.processInput(
-        mParams, input, c, [&](ComplexMatrixView in) {
+        mParams, input, c, reset, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
           mMelBands.processFrame(mMagnitude, mBands);
           mDCT.processFrame(mBands, mCoefficients);

@@ -42,7 +42,7 @@ public:
       mBuffer.setZero();
       mBuffer.segment(0, transform.size()) = transform;
       ArrayXd result = mIFFT.process(mBuffer);
-      ArrayXd scaled = result.segment(1, input.size() * mFactor) / mFFTSize;
+      ArrayXd scaled = result / mFFTSize;
       peak = scaled.abs().maxCoeff();
       return peak;
     }

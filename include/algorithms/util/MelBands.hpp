@@ -49,22 +49,19 @@ public:
       ArrayXd upper = ramps.row(i + 2) / melD(i + 1);
       mFilters.row(i) = lower.min(upper).max(0);
     }
-    // ArrayXd enorm =
+    //ArrayXd enorm =
     //     2.0 / (melFreqs.segment(2, mBands) - melFreqs.segment(0, mBands));
-    // mFilters = (mFilters.array().colwise() *= enorm).matrix();
-    // mOutputBuffer = ArrayXd::Zero(mBands);
+    //mFilters = (mFilters.array().colwise() *= enorm).matrix();
+    //mOutputBuffer = ArrayXd::Zero(mBands);
     mLogOutput = logOutput;
   }
 
-  // Eigen::Ref<ArrayXd> processFrame(Eigen::Ref<const ArrayXd> input) {
-  void processFrame(const RealVector in, RealVectorView out) {
+  void processFrame(const RealVectorView in, RealVectorView out) {
     double const epsilon = std::numeric_limits<double>::epsilon();
     assert(in.size() == mBins);
     ArrayXd frame = asEigen<Array>(in);
-    // mOutputBuffer = mFilters * input.matrix();
-    // return mOutputBuffer;
-    ArrayXd result = (mFilters * frame.matrix()).array();
-    if(mLogOutput) result = result.max(epsilon).log();
+    ArrayXd result = (mFilters * frame.square().matrix()).array();
+    if(mLogOutput) result = 10*result.max(3.9810717055349695e-15).log10();
     out = asFluid(result);
   }
 

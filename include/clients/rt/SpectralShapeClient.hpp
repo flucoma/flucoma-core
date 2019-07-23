@@ -1,15 +1,15 @@
 #pragma once
 
-#include "../../algorithms/public/SpectralShape.hpp"
-#include "../../data/TensorTypes.hpp"
+#include "BufferedProcess.hpp"
 #include "../common/AudioClient.hpp"
 #include "../common/FluidBaseClient.hpp"
-#include "../common/FluidContext.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
 #include "../nrt/FluidNRTClientWrapper.hpp"
-#include "../rt/BufferedProcess.hpp"
+#include "../../algorithms/public/SpectralShape.hpp"
+#include "../../data/TensorTypes.hpp"
+
 #include <tuple>
 
 namespace fluid {
@@ -41,7 +41,7 @@ public:
   }
 
   void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output, FluidContext& c) {
+               std::vector<HostVector> &output, FluidContext& c, bool reset = false) {
     using std::size_t;
 
     if (!input[0].data() || !output[0].data())
@@ -52,15 +52,21 @@ public:
 
     if (mWinSizeTracker.changed(get<kFFT>().frameSize())) {
       mMagnitude.resize(get<kFFT>().frameSize());
+      mBinHz = sampleRate() / get<kFFT>().fftSize();
     }
 
     mSTFTBufferedProcess.processInput(
-        mParams, input, c, [&](ComplexMatrixView in) {
+        mParams, input, c, reset, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
           mAlgorithm.processFrame(mMagnitude, mDescriptors);
         });
-    for (int i = 0; i < 7; ++i)
-      output[i](0) = mDescriptors(i);
+
+    for (int i = 0; i < 7; ++i){
+      //TODO: probably move this logic to algorithm
+      if(i==0||i==1||i==4)output[i](0) =  mBinHz * mDescriptors(i);
+      else output[i](0) = mDescriptors(i);
+    }
+
   }
 
   size_t latency() { return get<kFFT>().winSize(); }
@@ -73,6 +79,7 @@ private:
   SpectralShape mAlgorithm{get<kMaxFFTSize>()};
   FluidTensor<double, 1> mMagnitude;
   FluidTensor<double, 1> mDescriptors;
+  double mBinHz;
 };
 
 auto constexpr NRTSpectralShapeParams = makeNRTParams<SpectralShapeClient>(

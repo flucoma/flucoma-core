@@ -1,11 +1,9 @@
 #pragma once
 
-#include <algorithms/public/Stats.hpp>
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/FluidContext.hpp>
-#include <clients/common/ParameterConstraints.hpp>
-#include <clients/common/ParameterTypes.hpp>
-#include "FluidNRTClientWrapper.hpp"
+#include "../common/FluidBaseClient.hpp"
+#include "../common/ParameterConstraints.hpp"
+#include "../common/ParameterTypes.hpp"
+#include "../../algorithms/public/Stats.hpp"
 
 namespace fluid {
 namespace client {
@@ -72,10 +70,12 @@ public:
       return {Result::Status::kError, "Start frame (", get<kOffset>(),
               ") out of range."};
 
-    int numFrames =
-        get<kNumFrames>() == -1 ? (source.numFrames() - get<kOffset>()) : get<kNumFrames>();
-    int numChannels =
-        get<kNumChans>() == -1 ? (source.numChans() - get<kStartChan>()) : get<kNumChans>();
+    int numFrames = get<kNumFrames>() == -1
+                        ? (source.numFrames() - get<kOffset>())
+                        : get<kNumFrames>();
+    int numChannels = get<kNumChans>() == -1
+                          ? (source.numChans() - get<kStartChan>())
+                          : get<kNumChans>();
 
     if (get<kOffset>() + numFrames > source.numFrames())
       return {Result::Status::kError, "Start frame + num frames (",
@@ -88,6 +88,9 @@ public:
     if (numChannels <= 0 || numFrames <= 0)
       return {Result::Status::kError, "Zero length segment requested"};
 
+    if (numFrames <= get<kNumDerivatives>())
+      return {Result::Status::kError, "Not enough frames"};
+
     int outputSize = processor.numStats() * (get<kNumDerivatives>() + 1);
     dest.resize(outputSize, numChannels, source.sampleRate());
 
@@ -96,9 +99,9 @@ public:
     for (int i = 0; i < numChannels; i++) {
       auto sourceChannel = FluidTensor<double, 1>(numFrames);
       auto destChannel = FluidTensor<double, 1>(outputSize);
-      
       for (int j = 0; j < numFrames; j++)
-        sourceChannel(j) = source.samps(get<kOffset>(), numFrames, get<kStartChan>() + i)(j);
+        sourceChannel(j) =
+            source.samps(get<kOffset>(), numFrames, get<kStartChan>() + i)(j);
       processor.process(sourceChannel, destChannel);
      
       if(c.task() && !c.task()->processUpdate(i + 1, numChannels)) return {Result::Status::kCancelled,""};

@@ -19,10 +19,11 @@ class HPS {
 
 public:
   void processFrame(const RealVectorView &input, RealVectorView output,
-                    int nHarmonics, double sampleRate) {
+                    int nHarmonics, double minFreq, double maxFreq, double sampleRate) {
     ArrayXd mag = asEigen<Array>(input);
     ArrayXd hps = mag;
     int nBins = mag.size();
+    double binHz = sampleRate / ((nBins - 1) * 2);
 
     for(int i = 2; i < nHarmonics; i++){
       int hBins = nBins/i;
@@ -33,8 +34,11 @@ public:
       hps = hps * hp;
     }
     ArrayXd::Index maxIndex;
+    int minBin = std::round(minFreq / binHz);
+    int maxBin = std::round(maxFreq / binHz);
+    hps = hps.segment(minBin, maxBin - minBin);
     double confidence = hps.sum() ==0? 0 : hps.maxCoeff(&maxIndex) / hps.sum();
-    double f0 = maxIndex * sampleRate / ((nBins - 1) * 2);
+    double f0 = (minBin + maxIndex) * binHz;
     output(0) = f0;
     output(1) = confidence;
   }

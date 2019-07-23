@@ -1,23 +1,111 @@
-# Alpha-XX:
-date:
+# beta-01: some fixes and more
+date: XXX
+
+## New Features:
+- (Pd) all helpfiles now completed (except a few stereo examples of fluid.buf* objects - placeholders are empty [pd] patchers)
+
+## Bug Fixes:
+- (max) clickable overview
+- (max) hpss help of maskingmode 1 and 2 sorted
+- (max) bufpitch help is resizing
+- strange communication between instances of bufnmf~ now zapped
+- (pd) sample rate of buf* descriptor objects is now assumed (see helpfiles of bufPitch, bufMFCC, bufMelbands, bufSpectralShape)
+- (pd) crash on some patches closings now should all be zapped
+- (linux) strange names of Pd and Linux now sorted
+
+## Known Bugs:
+- HPSS still cracks when percussive filter is violently moved up
+- NMF still creates NaNs in some edge cases, for instance when trying to factorise digital silence
+- BufOnsetSlice with a maxFFTSize value of less than 1024 will crash
+- BufNoveltySlice might generate garbage strange values in the first frame
+- AmpSlice is noisy when some parameters are changed
+- (Pd) not providing enough 'channels' in 'multichannel' arrays will crash
+
+===
+# beta-00: the big plunge
+date: 8 July 2019
+
+## New Features:
+- overview in SuperCollider, PureData and CLI
+- Max help overall review (uneven in completion)
+- support for 3 OSs (Mac, Windows, Linux) and 4 CCEs (Max, PureData, SuperCollider, CLI)
+
+## Known Bugs:
+- HPSS still cracks when percussive filter is violently moved up
+- NMF still creates NaNs in some edge cases, for instance when trying to factorise digital silence
+- BufOnsetSlice with a maxFFTSize value of less than 1024 will crash
+- BufNoveltySlice might generate garbage strange values in the first frame
+- AmpSlice is noisy when some parameters are changed
+- (Pd) help files are not finished yet!
+- (Pd) not providing enough 'channels' in 'multichannel' arrays will crash
+
+===
+# Alpha-08: 2 new objects, and last interface change
+date: 15 June 2019
+
+## New Objects:
+- NoveltySlice: a realtime version of the buffer based algo!
+- AmpSeg/BufAmpSeg: an amplitude based segmentation powertool
+
+## New Features:
+- BREAKING CHANGE: (buf)onsetslice: "function" is now "metric"
+- bufnoveltyslice: now segmenting on other features (mfccs, pitch, etc)
+- BREAKING CHANGE: the threshold of bufnoveltyslice are now more stabble but will change some of the values.
+- BREAKING CHANGE: (BufOnsetSlice, BufTransientSlice, BufNoveltySlice) the indices buffer does not return the query boundaries anymore, just valid detected onsets.
+- (buf)pitch now has 'minFreq', 'maxFreq' and 'unit' (MIDI conversion)
+
+## New Examples:
+- (SC) working 2-passes-folder-load-bufcompose
+- (SC) proper MFCC example (thanks to Sam)
+- (max: removed dependencies on descriptor~) (SC: new example) now using fluid.bufpectralshape and fluid.bufstats in all *NMF*
+
+## Bug Fixes:
+- many again!
+
+## Known Bugs:
+- HPSS still cracks when percussive filter is violently move up
+- NMF still creates NaNs in some edge cases
+
+===
+# Alpha-07: post-plenary-interface-update: hopefully last major parameter names
+date: 4 June 2019
+
+## New Objects:
+(SC + CLI): all the alpha-06 ones!
+
+## New Features:
+- BREAKING CHANGES: parameter/attributes/messages interface unification
+  - all nmf: "rank" is now "components", "numIters" is now "iterations"
+  - all slicers with "debounce" now use "minSliceLength"
+  - (buf)transient* "debounce" is now "clumpLength", and "minSlice" is "minSliceLength",
+  - all "winSize" are now "windowSize"
+  - "(max)numCoefs" is now "(max)numCoeffs"
+- BREAKING CHANGE: spectralshape: now in Hertz
+
+## Bug Fixes:
+(MAX) bang gimme problem
+
+===
+# Alpha-06: yet again, new (descriptor) objects
+date: 20 May 2019 - Max Mac only, plenary attendees focused
 
 ## New Objects:
 - BufStats: computes various statistics on time-series (as buffer channel) and their time derivative
-- MelBands/BufMelBands:
-- MFCC/BufMFCC:
-- NoveltySlice:
-- AmpSeg/BufAmpSeg:
-- Loudness/BufLoudness:
+- MelBands/BufMelBands: an approximation of human listening of pitch
+- MFCC/BufMFCC: a sturdy spectral shape descriptor
+- Loudness/BufLoudness: EBU-128 standard capable loudness descriptor
 
 ## New Features:
 - (MAX) skeleton of reference to allow attributes and arguments autocompletion (with quirks) to help coding
 
 ## New Examples:
+(MAX) Just-In-Time NMF-based classifier
 
 ## Bug Fixes:
+many, but not all :-)
 
 ## Known Bugs:
-
+plenty of quirks to iron out, but let us know if you find any you have not flagged before
 
 ===
 # Alpha-05: yet more new cool objects

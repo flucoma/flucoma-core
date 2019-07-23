@@ -1,15 +1,15 @@
 #pragma once
 
-#include <algorithms/public/TransientSegmentation.hpp>
-#include <clients/common/ParameterTypes.hpp>
-#include <clients/common/ParameterConstraints.hpp>
-#include <clients/common/ParameterTrackChanges.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/FluidContext.hpp>
-#include <clients/common/AudioClient.hpp>
-#include <clients/rt/BufferedProcess.hpp>
-#include <clients/nrt/FluidNRTClientWrapper.hpp>
+#include "BufferedProcess.hpp"
+#include "../common/ParameterTypes.hpp"
+#include "../common/ParameterConstraints.hpp"
+#include "../common/ParameterTrackChanges.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../common/FluidBaseClient.hpp"
+#include "../common/AudioClient.hpp"
+#include "../nrt/FluidNRTClientWrapper.hpp"
+#include "../../algorithms/public/TransientSegmentation.hpp"
+
 #include <tuple>
 
 namespace fluid {
@@ -34,9 +34,9 @@ auto constexpr TransientParams = defineParameters(
     FloatParam("skew", "Skew", 0, Min(-10), Max(10)),
     FloatParam("threshFwd", "Forward Threshold", 2, Min(0)),
     FloatParam("threshBack", "Backward Threshold", 1.1, Min(0)),
-    LongParam("winSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
-    LongParam("debounce", "Debounce", 25, Min(0)),
-    LongParam("minSlice","Minimum Slice Lenght",1000)
+    LongParam("windowSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
+    LongParam("clumpLength", "Clumping Window Length", 25, Min(0)),
+    LongParam("minSliceLength", "Minimum Length of Slice",1000)
 );
 
 
@@ -55,7 +55,7 @@ public:
   }
 
   void process(std::vector<HostVector>& input,
-               std::vector<HostVector>& output, FluidContext& c) {
+               std::vector<HostVector>& output, FluidContext& c, bool reset = false) {
 
     if(!input[0].data() || !output[0].data())
       return;
@@ -70,8 +70,8 @@ public:
     std::size_t hostVecSize = input[0].size();
     std::size_t maxWinIn = 2*blockSize + padding;
     std::size_t maxWinOut = maxWinIn; //blockSize - padding;
-    
-    if (!mExtractor.get() || mTrackValues.changed(order, blockSize, padding, hostVecSize)) {
+
+    if (mTrackValues.changed(order, blockSize, padding, hostVecSize) || !mExtractor.get() ) {
       mExtractor.reset(new algorithm::TransientSegmentation(order, iterations, robustFactor));
       mExtractor->prepareStream(blockSize, padding);
       mBufferedProcess.hostSize(hostVecSize);
@@ -94,7 +94,7 @@ public:
     in.row(0) = input[0]; //need to convert float->double in some hosts
     mBufferedProcess.push(RealMatrixView(in));
 
-    mBufferedProcess.process(mExtractor->inputSize(), mExtractor->hopSize(), mExtractor->hopSize(), c, [this](RealMatrixView in, RealMatrixView out)
+    mBufferedProcess.process(mExtractor->inputSize(), mExtractor->hopSize(), mExtractor->hopSize(), c, reset, [this](RealMatrixView in, RealMatrixView out)
     {
       mExtractor->process(in.row(0), out.row(0));
     });
@@ -123,7 +123,7 @@ private:
 };
 
 auto constexpr NRTTransientSliceParams = makeNRTParams<TransientsSlice>({BufferParam("source", "Source Buffer")}, {BufferParam("indices","Indices Buffer")});
-    
+
 template <typename T>
 using NRTTransientSlice = NRTSliceAdaptor<TransientsSlice<T>, decltype(NRTTransientSliceParams), NRTTransientSliceParams, 1, 1>;
 

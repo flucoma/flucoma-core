@@ -1,16 +1,14 @@
 #pragma once
 
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/FluidContext.hpp>
-#include <clients/common/ParameterTypes.hpp>
-#include <clients/common/ParameterConstraints.hpp>
-#include <clients/common/OfflineClient.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <algorithms/public/NMF.hpp>
-#include <algorithms/public/RatioMask.hpp>
-#include <algorithms/public/STFT.hpp>
-#include <data/FluidTensor.hpp>
-#include "FluidNRTClientWrapper.hpp"
+#include "../common/FluidBaseClient.hpp"
+#include "../common/ParameterTypes.hpp"
+#include "../common/ParameterConstraints.hpp"
+#include "../common/OfflineClient.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../../algorithms/public/NMF.hpp"
+#include "../../algorithms/public/RatioMask.hpp"
+#include "../../algorithms/public/STFT.hpp"
+#include "../../data/FluidTensor.hpp"
 
 #include <algorithm> //for max_element
 #include <sstream>   //for ostringstream
@@ -36,8 +34,8 @@ auto constexpr NMFParams = defineParameters(
   EnumParam("basesMode", "Bases Buffer Update Mode", 0, "None","Seed","Fixed"),
   BufferParam("activations", "Activations Buffer"),
   EnumParam("actMode", "Activations Buffer Update Mode", 0, "None","Seed","Fixed"),
-  LongParam("rank", "Rank", 1, Min(1)),
-  LongParam("numIter", "Number of Iterations", 100, Min(1)),
+  LongParam("components", "Number of Components", 1, Min(1)),
+  LongParam("iterations", "Number of Iterations", 100, Min(1)),
   FFTParam("fftSettings", "FFT Settings", 1024, -1, -1)
 );
 
@@ -55,23 +53,17 @@ public:
    ***/
   Result process(FluidContext& c) {
 
-//    assert(inputs.size() == 1 );
+    intptr_t nFrames   = get<kNumFrames>();
+    intptr_t nChannels = get<kNumChans>();
+    auto rangeCheck = bufferRangeCheck(get<kSource>().get(), get<kOffset>(), nFrames, get<kStartChan>(), nChannels);
+    
+    if(!rangeCheck.ok()) return rangeCheck;
 
-    if(!get<kSource>().get())
-    {
-      return {Result::Status::kError,"No input"};
-    }
-
-    BufferAdaptor::Access source(get<kSource>().get());
-
-    if(!(source.exists() && source.valid()))
-      return {Result::Status::kError, "Source Buffer Not Found or Invalid"};
-
+ 
+    auto source = BufferAdaptor::Access(get<kSource>().get());
     double sampleRate = source.sampleRate();
     auto fftParams = get<kFFT>();
 
-    size_t nChannels = get<kNumChans>() == -1 ? source.numChans() : get<kNumChans>();
-    size_t nFrames   = get<kNumFrames>() == -1  ? source.numFrames(): get<kNumFrames>();
     size_t nWindows  = std::floor((nFrames + fftParams.hopSize()) / fftParams.hopSize());
     size_t nBins     = fftParams.frameSize();
 
@@ -215,7 +207,7 @@ public:
         auto mask = algorithm::RatioMask{outputMags, 1};
         auto resynthMags = FluidTensor<double,2>(nWindows,nBins);
         auto resynthSpectrum = FluidTensor<std::complex<double>,2>(nWindows,nBins);
-        auto istft = algorithm::ISTFT{fftParams.winSize(), fftParams.fftSize(), fftParams.hopSize()};
+        auto istft = algorithm::ISTFT{static_cast<size_t>(fftParams.winSize()), static_cast<size_t>(fftParams.fftSize()), static_cast<size_t>(fftParams.hopSize())};
         auto resynthAudio = FluidTensor<double,1>(nFrames);
         auto resynth = BufferAdaptor::Access{get<kResynth>().get()};
         

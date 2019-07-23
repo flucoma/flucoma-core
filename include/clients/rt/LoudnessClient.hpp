@@ -1,15 +1,15 @@
 #pragma once
 
+#include "BufferedProcess.hpp"
 #include "../../algorithms/public/Loudness.hpp"
 #include "../../data/TensorTypes.hpp"
 #include "../common/AudioClient.hpp"
 #include "../common/FluidBaseClient.hpp"
-#include "../common/FluidContext.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
 #include "../nrt/FluidNRTClientWrapper.hpp"
-#include "../rt/BufferedProcess.hpp"
+
 #include <tuple>
 
 namespace fluid {
@@ -28,9 +28,9 @@ enum LoudnessParamIndex {
 auto constexpr LoudnessParams = defineParameters(
     EnumParam("kWeighting", "Apply K-Weighting", 1, "Off","On"),
     EnumParam("truePeak", "Compute True Peak", 1, "Off","On"),
-    LongParam("winSize", "Window Size", 1024, UpperLimit<kMaxWindowSize>()),
+    LongParam("windowSize", "Window Size", 1024, UpperLimit<kMaxWindowSize>()),
     LongParam("hopSize", "Hop Size", 512, Min(1)),
-    LongParam<Fixed<true>>("maxWinSize", "Max Window Size",
+    LongParam<Fixed<true>>("maxWindowSize", "Max Window Size",
               16384, Min(4), PowerOfTwo{})); // 17640 next power of two
 
 template <typename T>
@@ -48,7 +48,7 @@ public:
   }
 
   void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output, FluidContext& c) {
+               std::vector<HostVector> &output, FluidContext& c, bool reset = false) {
     if (!input[0].data() || !output[0].data())
       return;
     assert(FluidBaseClient::controlChannelsOut() && "No control channels");
@@ -67,7 +67,7 @@ public:
     in.row(0) = input[0];
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.processInput(
-        get<kWindowSize>(), get<kHopSize>(), c, [&](RealMatrixView frame) {
+        get<kWindowSize>(), get<kHopSize>(), c, reset, [&](RealMatrixView frame) {
           mAlgorithm.processFrame(frame.row(0), mDescriptors,
                                   get<kKWeighting>() == 1,
                                   get<kTruePeak>() == 1);

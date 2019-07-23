@@ -58,7 +58,7 @@ public:
     mDownwardLatency = std::max(minTimeBelowThreshold, mDownwardLookupTime);
     mLatency =
         std::max(mMinTimeAboveThreshold + mUpwardLookupTime, mDownwardLatency);
-    if (mLatency <= 0)
+    if (mLatency < 0)
       mLatency = 1;
     //std::cout << "latency " << mLatency << std::endl;
     assert(mLatency <= mMaxSize);
@@ -108,8 +108,10 @@ public:
   void updateCounters(bool nextState) {
     if (!mInputState && nextState) { // change from 0 to 1
       mOffStateCount = 0;
+      mOnStateCount = 1;
     } else if (mInputState && !nextState) {
       mOnStateCount = 0;
+      mOffStateCount = 1;
     } else if (mInputState && nextState) {
       mOnStateCount++;
     } else if (!mInputState && !nextState) {
@@ -119,7 +121,7 @@ public:
 
   bool shouldRetrigger(double relEnv) {
     if(mRetriggerState) return false;
-    if (mInputState && mOutputState && relEnv > mRelOnThreshold) {
+    if (mInputState && mOutputState && mOnStateCount > 0 && relEnv > mRelOnThreshold) {
       mRetriggerState = true;
       return true;
     }
@@ -143,11 +145,10 @@ public:
         mEventCount = 0;
       } else {
         forcedState = true;
-        //mOutputBuffer(mLatency - 1) = shouldRetrigger(relEnv) ? 0 : 1;
         mOutputBuffer(mLatency - 1) = 1;
         mEventCount++;
       }
-      // case 2: we are waiting for silence to finish
+    // case 2: we are waiting for silence to finish
     } else if (!mOutputState && mSilenceCount > 0) {
       if (mSilenceCount >= mMinSilenceDuration) {
         mSilenceCount = 0;
@@ -160,20 +161,15 @@ public:
     // case 3: need to compute state
     if (!forcedState) {
       bool nextState = mInputState;
-      if (!mInputState && smoothed > mOnThreshold)
+      if (!mInputState && smoothed > mOnThreshold){
         nextState = true;
-      if (mInputState && smoothed < mOffThreshold)
-        nextState = false;
-      updateCounters(nextState);
-      if (shouldRetrigger(relEnv)) {
-        mOutputBuffer(mLatency - 1) = 0;
-      } else {
-        mOutputBuffer(mLatency - 1) = mOutputState ? 1 : 0;
       }
-      if (relEnv < mRelOffThreshold && mRetriggerState)
-        mRetriggerState = false;
+      if (mInputState && smoothed < mOffThreshold){
+        nextState = false;
+      }
+      updateCounters(nextState);
       // establish and refine
-      if (!mOutputState && mOnStateCount > mMinTimeAboveThreshold &&
+      if (!mOutputState && mOnStateCount >= mMinTimeAboveThreshold &&
           mFillCount >= mLatency) {
         int onsetIndex =
             refineStart(mLatency - mMinTimeAboveThreshold - mUpwardLookupTime,
@@ -182,14 +178,25 @@ public:
         mOutputBuffer.segment(onsetIndex, mLatency - onsetIndex) = 1;
         mEventCount = mOnStateCount;
         mOutputState  = true; // we are officially on
-      } else if (mOutputState && mOffStateCount > mDownwardLatency &&
+      } else if (mOutputState && mOffStateCount >= mDownwardLatency &&
                  mFillCount >= mLatency) {
+
         int offsetIndex = refineStart(mLatency - mDownwardLatency,
                                       mDownwardLookupTime, false);
         mOutputBuffer.segment(offsetIndex, mLatency - offsetIndex) = 0;
         mSilenceCount = mOffStateCount;
         mOutputState = false; // we are officially off
       }
+      if (shouldRetrigger(relEnv)) {
+        mOutputBuffer(mLatency - 1) = 0;
+        mEventCount = 1;
+        mOutputState  = true; // we are officially on, starting next sample
+      } else {
+        mOutputBuffer(mLatency - 1) = mOutputState ? 1 : 0;
+      }
+      if (relEnv < mRelOffThreshold && mRetriggerState)
+        mRetriggerState = false;
+
       mInputState = nextState;
     }
     double output;

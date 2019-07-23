@@ -6,12 +6,11 @@
  */
 #pragma once
 
-#include <clients/common/AudioClient.hpp>
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/FluidContext.hpp>
-#include <clients/common/ParameterConstraints.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <data/TensorTypes.hpp>
+#include "../common/AudioClient.hpp"
+#include "../common/FluidBaseClient.hpp"
+#include "../common/ParameterConstraints.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../../data/TensorTypes.hpp"
 
 namespace fluid {
 namespace client {
@@ -33,7 +32,7 @@ public:
 
   size_t latency() { return 0; }
 
-  void process(std::vector<HostVector> &input, std::vector<HostVector> &output, FluidContext& c)
+  void process(std::vector<HostVector> &input, std::vector<HostVector> &output, FluidContext& c, bool reset = false)
   {
     // Data is stored with samples laid out in rows, one channel per row
     if (!input[0].data())

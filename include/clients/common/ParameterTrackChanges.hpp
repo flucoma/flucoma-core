@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <tuple>
 #include <utility>
 
@@ -36,8 +37,8 @@ private:
     bool allSame = true;
     using std::get;
     std::initializer_list<int>{(allSame = allSame && (get<Is>(mValues) == args), 0)...};
-    std::initializer_list<int>{(get<Is>(mSignums) = std::copysign(1, args - get<Is>(mValues)), 0)...};
-    std::initializer_list<int>{(get<Is>(mValues) = args, 0)...};
+    std::initializer_list<int>{(get<Is>(mSignums) = static_cast<int>(std::copysign(1, args - get<Is>(mValues))), 0)...};
+    std::initializer_list<int>{(get<Is>(mValues)  = args, 0)...};
     return !allSame;
   }
 

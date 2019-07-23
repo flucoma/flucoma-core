@@ -1,15 +1,15 @@
 #pragma once
 
-#include <clients/common/FluidContext.hpp>
-#include <clients/common/ParameterTypes.hpp>
-#include <clients/common/ParameterConstraints.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <clients/rt/BufferedProcess.hpp>
-#include <algorithms/public/NMF.hpp>
-#include <algorithms/public/RatioMask.hpp>
-#include <clients/common/ParameterTrackChanges.hpp>
+#include "BufferedProcess.hpp"
+#include "../common/ParameterTypes.hpp"
+#include "../common/ParameterConstraints.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../common/FluidBaseClient.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../common/ParameterTrackChanges.hpp"
+#include "../../algorithms/public/NMF.hpp"
+#include "../../algorithms/public/RatioMask.hpp"
+
 namespace fluid {
 namespace client {
 
@@ -17,8 +17,8 @@ enum NMFFilterIndex{kFilterbuf,kMaxRank,kIterations,kFFT,kMaxFFTSize};
 
 auto constexpr NMFFilterParams = defineParameters(
   BufferParam("bases", "Bases Buffer"),
-  LongParam<Fixed<true>>("maxRank","Maximum Rank",20,Min(1)),
-  LongParam("numIter", "Iterations", 10, Min(1)),
+  LongParam<Fixed<true>>("maxComponents","Maximum Number of Components",20,Min(1)),
+  LongParam("iterations", "Number of Iterations", 10, Min(1)),
   FFTParam<kMaxFFTSize>("fftSettings","FFT Settings",1024, -1,-1),
   LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4), PowerOfTwo{})
 );
@@ -38,7 +38,7 @@ public:
 
   size_t latency() { return get<kFFT>().winSize(); }
 
-  void process(std::vector<HostVector> &input, std::vector<HostVector> &output, FluidContext& c)
+  void process(std::vector<HostVector> &input, std::vector<HostVector> &output, FluidContext& c, bool reset = false)
   {
     if(!input[0].data()) return;
     assert(audioChannelsOut() && "No control channels");
@@ -74,7 +74,7 @@ public:
         tmpFilt.row(i) = filterBuffer.samps(i);
 
 //      controlTrigger(false);
-      mSTFTProcessor.process(mParams, input, output, c,
+      mSTFTProcessor.process(mParams, input, output, c, reset,
         [&](ComplexMatrixView in,ComplexMatrixView out)
         {
           algorithm::STFT::magnitude(in, tmpMagnitude);
@@ -94,7 +94,7 @@ private:
   STFTBufferedProcess<ParamSetViewType, T, kFFT,true> mSTFTProcessor;
   std::unique_ptr<algorithm::NMF> mNMF;
 
-  RealMatrix a; 
+  RealMatrix a;
 
   RealMatrix tmpFilt;
   RealMatrix tmpMagnitude;

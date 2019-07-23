@@ -1,17 +1,16 @@
 #pragma once
 
+#include "BufferedProcess.hpp"
+#include "../common/FluidBaseClient.hpp"
+#include "../common/ParameterConstraints.hpp"
+#include "../common/ParameterTypes.hpp"
+#include "../common/ParameterTrackChanges.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../nrt/FluidNRTClientWrapper.hpp"
+#include "../../algorithms/public/TransientExtraction.hpp"
+#include "../../data/TensorTypes.hpp"
 
-#include <algorithms/public/TransientExtraction.hpp>
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/FluidContext.hpp>
-#include <clients/common/ParameterConstraints.hpp>
-#include <clients/common/ParameterTypes.hpp>
-#include <clients/common/ParameterTrackChanges.hpp>
-#include <clients/rt/BufferedProcess.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <clients/nrt/FluidNRTClientWrapper.hpp>
 #include <complex>
-#include <data/TensorTypes.hpp>
 #include <string>
 #include <tuple>
 
@@ -36,8 +35,8 @@ auto constexpr TransientParams = defineParameters(
     FloatParam("skew", "Skew", 0, Min(-10), Max(10)),
     FloatParam("threshFwd", "Forward Threshold", 2, Min(0)),
     FloatParam("threshBack", "Backward Threshold", 1.1, Min(0)),
-    LongParam("winSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
-    LongParam("debounce", "Debounce", 25, Min(0)));
+    LongParam("windowSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
+    LongParam("clumpLength", "Clumping Window Length", 25, Min(0)));
 
 
 template <typename T>
@@ -53,7 +52,7 @@ public:
     FluidBaseClient::audioChannelsOut(2);
   }
 
-  void process(std::vector<HostVector>& input, std::vector<HostVector>& output,FluidContext& c)
+  void process(std::vector<HostVector>& input, std::vector<HostVector>& output, FluidContext& c, bool reset = false)
   {
     if(!input[0].data() || (!output[0].data() && !output[1].data()))
       return;
@@ -69,7 +68,7 @@ public:
     std::size_t maxWinIn = 2*blockSize + padding;
     std::size_t maxWinOut = blockSize - order;
 
-    if (!mExtractor.get() || !mExtractor.get() || mTrackValues.changed(order, blockSize, padding, hostVecSize))
+    if (mTrackValues.changed(order, blockSize, padding, hostVecSize) || !mExtractor.get())
     {
       mExtractor.reset(new algorithm::TransientExtraction(order, iterations, robustFactor, refine));
       mExtractor->prepareStream(blockSize, padding);
@@ -90,7 +89,7 @@ public:
     in.row(0) = input[0]; //need to convert float->double in some hosts
     mBufferedProcess.push(RealMatrixView(in));
 
-    mBufferedProcess.process(mExtractor->inputSize(), mExtractor->hopSize(), mExtractor->hopSize(), c, [this](RealMatrixView in, RealMatrixView out)
+    mBufferedProcess.process(mExtractor->inputSize(), mExtractor->hopSize(), mExtractor->hopSize(), c, reset, [this](RealMatrixView in, RealMatrixView out)
     {
       mExtractor->process(in.row(0), out.row(0), out.row(1));
     });

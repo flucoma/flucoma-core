@@ -138,7 +138,8 @@ namespace HISSTools
         return mErrorFlags != ERR_NONE;
     }
     
-    void BaseAudioFile::clearErrorFlags() {
+    void BaseAudioFile::clearErrorFlags()
+    {
         setErrorFlags(ERR_NONE);
     }
 

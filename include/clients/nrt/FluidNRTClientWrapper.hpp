@@ -1,15 +1,14 @@
 #pragma once
 
-#include <clients/common/BufferAdaptor.hpp>
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/FluidContext.hpp>
-#include <clients/common/MemoryBufferAdaptor.hpp>
-#include <clients/common/OfflineClient.hpp>
-#include <clients/common/ParameterTypes.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <clients/common/SpikesToTimes.hpp>
-#include <data/FluidTensor.hpp>
-#include <data/TensorTypes.hpp>
+#include "../common/BufferAdaptor.hpp"
+#include "../common/FluidBaseClient.hpp"
+#include "../common/OfflineClient.hpp"
+#include "../common/ParameterTypes.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../common/SpikesToTimes.hpp"
+#include "../../data/FluidTensor.hpp"
+#include "../../data/TensorTypes.hpp"
+
 #include <vector>
 #include <thread>
 
@@ -95,7 +94,7 @@ public:
     , mClient{mRealTimeParams}
   {}
 
-  template <std::size_t N> auto& get() noexcept { return mParams.template get<N>(); }
+  template <std::size_t N> auto& get() noexcept { return mParams.get().template get<N>(); }
 //  template <std::size_t N> bool changed() noexcept { return mParams.template changed<N>(); }
 
   size_t audioChannelsIn()    const noexcept { return 0; }
@@ -105,6 +104,13 @@ public:
   ///Map delegate audio / control channels to audio buffers
   size_t audioBuffersIn()  const noexcept { return mClient.audioChannelsIn();  }
   size_t audioBuffersOut() const noexcept { return isControl ? 1 : mClient.audioChannelsOut(); }
+
+  void setParams(ParamSetViewType& p)
+  {
+    mParams = p;
+    mRealTimeParams = RTParamSetViewType(RTClient::getParameterDescriptors(), p.template subset<ParamOffset>());
+    mClient.setParams(mRealTimeParams);
+  }
 
   Result process(FluidContext& c)
   {
@@ -123,28 +129,17 @@ public:
     int count = 0;
     for(auto&& b: inputBuffers)
     {
-      if(!b.buffer)
-        return {Result::Status::kError, "Input buffer not set"}; //error
       
-      BufferAdaptor::Access thisInput(b.buffer);
+      intptr_t requestedFrames= b.nFrames;
+      intptr_t requestedChans= b.nChans;
       
-      if(!thisInput.exists())
-        return {Result::Status::kError, "Input buffer ", b.buffer, " not found."} ; //error
+      auto rangeCheck = bufferRangeCheck(b.buffer, b.startFrame, requestedFrames, b.startChan, requestedChans);
+      
+      if(!rangeCheck.ok()) return rangeCheck;
 
-      if(!thisInput.valid())
-        return {Result::Status::kError, "Input buffer ", b.buffer, "invalid (possibly zero-size?)"} ; //error
-
-      intptr_t requestedFrames= b.nFrames < 0 ? thisInput.numFrames() : b.nFrames;
-      if(b.startFrame + requestedFrames > thisInput.numFrames())
-        return {Result::Status::kError, "Input buffer ", b.buffer, ": not enough frames" }; //error
-
-      intptr_t requestedChans= b.nChans < 0 ? thisInput.numChans() : b.nChans;
-      if(b.startChan + requestedChans > thisInput.numChans())
-        return {Result::Status::kError, "Input buffer ", b.buffer, ": not enough channels" }; //error
-
-      inFrames[count] = b.nFrames < 0 ? thisInput.numFrames() : b.nFrames;
-      inChans[count] =  b.nChans < 0 ? thisInput.numChans() : b.nChans ;
-      mClient.sampleRate(thisInput.sampleRate());
+      inFrames[count] = requestedFrames;
+      inChans[count] =  requestedChans;
+      mClient.sampleRate(BufferAdaptor::Access(b.buffer).sampleRate());
       count++;
     }
     
@@ -204,7 +199,7 @@ private:
   }
 
   RTParamSetViewType    mRealTimeParams;
-  ParamSetViewType&     mParams;
+  std::reference_wrapper<ParamSetViewType>     mParams;
   WrappedClient         mClient;
 };
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -352,9 +347,9 @@ struct Slicing
     std::vector<HostVectorView> input  {monoSource.row(0)};
     std::vector<HostVectorView> output {onsetPoints.row(0)};
 
-    client.process(input,output,c);
+    client.process(input,output,true,c);
 
-    impl::spikesToTimes(onsetPoints(0,Slice(padding,nFrames)).row(0), outputBuffers[0], 1, inputBuffers[0].startFrame, nFrames,src.sampleRate());
+    impl::spikesToTimes(onsetPoints(0,Slice(padding,nFrames)), outputBuffers[0], 1, inputBuffers[0].startFrame, nFrames,src.sampleRate());
   }
 };
 

@@ -40,8 +40,17 @@ public:
     return *this;
   };
 
-  Result(Result &&) = default;
-  Result &operator=(Result &&) = default;
+  Result(Result &&x) noexcept { *this = std::move(x); }
+  Result &operator=(Result &&x) noexcept
+  {
+    if(this != &x)
+    {
+      using std::swap;
+      swap(mMsg, x.mMsg);
+      swap(mStatus,x.mStatus);
+    }
+    return *this;
+  };
 
   bool ok() const noexcept { return (mStatus == Status::kOk); }
 
@@ -73,19 +82,19 @@ class MessageList
 {
 public:
   template <typename... Args>
-  void warn(Args &&... args)
+  void addWarn(Args &&... args)
   {
     add<Result::Status::kWarning>(std::forward<Args>(args)...);
   }
 
   template <typename... Args>
-  void error(Args &&... args)
+  void addError(Args &&... args)
   {
     add<Result::Status::kError>(std::forward<Args>(args)...);
   }
 
   template <typename... Args>
-  void info(Args &&... args)
+  void addInfo(Args &&... args)
   {
     add<Result::Status::kOk>(std::forward<Args>(args)...);
   }

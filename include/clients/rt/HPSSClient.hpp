@@ -1,12 +1,13 @@
 #pragma once
 
-#include <algorithms/public/RTHPSS.hpp>
-#include <algorithms/public/STFT.hpp>
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/ParameterConstraints.hpp>
-#include <clients/common/ParameterTypes.hpp>
-#include <clients/rt/BufferedProcess.hpp>
-#include <clients/nrt/FluidNRTClientWrapper.hpp>
+#include "BufferedProcess.hpp"
+#include "../common/FluidBaseClient.hpp"
+#include "../common/ParameterConstraints.hpp"
+#include "../common/ParameterTypes.hpp"
+#include "../nrt/FluidNRTClientWrapper.hpp"
+#include "../../algorithms/public/RTHPSS.hpp"
+#include "../../algorithms/public/STFT.hpp"
+
 #include <complex>
 #include <string>
 #include <tuple>
@@ -46,7 +47,7 @@ public:
 
   size_t latency() { return ((get<kHSize>() - 1) * get<kFFT>().hopSize()) +  get<kFFT>().winSize(); }
 
-  void process(std::vector<HostVector> &input, std::vector<HostVector> &output, FluidContext& context)
+  void process(std::vector<HostVector> &input, std::vector<HostVector> &output, FluidContext& c, bool reset = false)
   {
     if (!input[0].data()) return;
 
@@ -80,7 +81,7 @@ public:
 
     }
 
-    mSTFTBufferedProcess.process(mParams, input, output, context,
+    mSTFTBufferedProcess.process(mParams, input, output, c, reset,
         [&](ComplexMatrixView in, ComplexMatrixView out)
         {
             mHPSS.processFrame(in.row(0), out.transpose());

@@ -39,13 +39,15 @@ struct FFTRealSetup : public FFTComplexSetup {
 
 struct TempSpectra {
   TempSpectra(size_t dataSize) {
-    mData.resize(dataSize * 2);
-    mSpectra.realp = mData.data();
+    mData = allocate_aligned<double>(dataSize * 2); 
+    mSpectra.realp = mData;
     mSpectra.imagp = mSpectra.realp + dataSize;
   }
 
+  ~TempSpectra() { deallocate_aligned(mData); }
+
   FFT_SPLIT_COMPLEX_D mSpectra;
-  std::vector<double> mData;
+  double* mData; 
 };
 
 struct ConvolveOp {

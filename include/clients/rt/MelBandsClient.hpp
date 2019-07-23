@@ -1,17 +1,16 @@
 #pragma once
 
-#include "../../algorithms/util/DCT.hpp"
-#include "../../algorithms/util/MelBands.hpp"
-#include "../../data/TensorTypes.hpp"
+#include "BufferedProcess.hpp"
 #include "../common/AudioClient.hpp"
 #include "../common/FluidBaseClient.hpp"
-#include "../common/FluidContext.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
-#include "../nrt/FluidNRTClientWrapper.hpp"
-#include "../rt/BufferedProcess.hpp"
 #include "../common/ParameterTrackChanges.hpp"
+#include "../nrt/FluidNRTClientWrapper.hpp"
+#include "../../algorithms/util/DCT.hpp"
+#include "../../algorithms/util/MelBands.hpp"
+#include "../../data/TensorTypes.hpp"
 
 namespace fluid {
 namespace client {
@@ -56,7 +55,7 @@ public:
   }
 
   void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output, FluidContext &c) {
+               std::vector<HostVector> &output, FluidContext& c, bool reset = false) {
     using std::size_t;
 
     if (!input[0].data() || !output[0].data())
@@ -74,7 +73,7 @@ public:
     }
 
     mSTFTBufferedProcess.processInput(
-        mParams, input, c, [&](ComplexMatrixView in) {
+        mParams, input, c, reset, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
           mMelBands.processFrame(mMagnitude, mBands);
         });

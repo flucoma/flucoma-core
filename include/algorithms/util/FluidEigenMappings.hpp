@@ -3,6 +3,7 @@
 #include "../../data/FluidTensor.hpp"
 #include <Eigen/Core>
 #include <Eigen/Eigen>
+#include <algorithm>
 
 /**
  Utility functions for converting between FluidTensorView and Eigen wrappers
@@ -28,8 +29,7 @@ using Eigen::RowMajor;
 template <typename Derived>
 auto asFluid(PlainObjectBase<Derived> &a)
     -> FluidTensorView<typename PlainObjectBase<Derived>::Scalar,
-                       PlainObjectBase<Derived>::IsVectorAtCompileTime ? 1
-                                                                       : 2> {
+                       (PlainObjectBase<Derived>::IsVectorAtCompileTime ? 1 : 2)> {
   constexpr size_t N = PlainObjectBase<Derived>::IsVectorAtCompileTime ? 1 : 2;
 
   if (N == 2) {

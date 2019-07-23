@@ -1,14 +1,14 @@
 #pragma once
 
-#include <clients/common/FluidContext.hpp>
-#include <clients/common/ParameterTypes.hpp>
-#include <clients/common/ParameterConstraints.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <clients/rt/BufferedProcess.hpp>
-#include <algorithms/public/NMF.hpp>
-#include <clients/common/ParameterTrackChanges.hpp>
+#include "BufferedProcess.hpp"
+#include "../common/ParameterTypes.hpp"
+#include "../common/ParameterConstraints.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../common/FluidBaseClient.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../common/ParameterTrackChanges.hpp"
+#include "../../algorithms/public/NMF.hpp"
+
 namespace fluid {
 namespace client {
 
@@ -16,8 +16,8 @@ enum NMFMatchParamIndex{kFilterbuf,kMaxRank,kIterations,kFFT,kMaxFFTSize};
 
 auto constexpr NMFMatchParams = defineParameters(
   BufferParam("bases", "Bases Buffer"),
-  LongParam<Fixed<true>>("maxRank","Maximum Rank",20,Min(1)),
-  LongParam("numIter", "Iterations", 10, Min(1)),
+  LongParam<Fixed<true>>("maxComponents","Maximum Number of Components",20,Min(1)),
+  LongParam("iterations", "Number of Iterations", 10, Min(1)),
   FFTParam<kMaxFFTSize>("fftSettings","FFT Settings",1024, -1,-1),
   LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4), PowerOfTwo{})
 );
@@ -37,7 +37,7 @@ public:
 
   size_t latency() { return get<kFFT>().winSize(); }
 
-  void process(std::vector<HostVector> &input, std::vector<HostVector> &output, FluidContext& c)
+  void process(std::vector<HostVector> &input, std::vector<HostVector> &output, FluidContext& c, bool reset = false)
   {
     if(!input[0].data()) return;
     assert(FluidBaseClient::controlChannelsOut() && "No control channels");
@@ -71,11 +71,11 @@ public:
         tmpFilt.row(i) = filterBuffer.samps(i);
 
 //      controlTrigger(false);
-      mSTFTProcessor.processInput(mParams, input,c, 
+      mSTFTProcessor.processInput(mParams, input, c, reset,
         [&](ComplexMatrixView in)
         {
           algorithm::STFT::magnitude(in, tmpMagnitude);
-          mNMF->processFrame(tmpMagnitude.row(0), tmpFilt, tmpOut);
+         mNMF->processFrame(tmpMagnitude.row(0), tmpFilt, tmpOut);
 //          controlTrigger(true);
         });
 
