@@ -168,7 +168,7 @@ private:
 };
 
 auto constexpr NRTNoveltySliceParams =
-    makeNRTParams<NoveltySlice>({BufferParam("source", "Source Buffer")},
+    makeNRTParams<NoveltySlice>({InputBufferParam("source", "Source Buffer")},
                                   {BufferParam("indices", "Indices Buffer")});
 template <typename T>
 using NRTNoveltySlice =

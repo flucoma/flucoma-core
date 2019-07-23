@@ -86,7 +86,7 @@ private:
   size_t mMinTrackLen{0};
 };
 
-auto constexpr NRTSineParams = makeNRTParams<SinesClient>({BufferParam("source", "Source Buffer")}, {BufferParam("sines","Sines Buffer"), BufferParam("residual", "Residual Buffer")});
+auto constexpr NRTSineParams = makeNRTParams<SinesClient>({InputBufferParam("source", "Source Buffer")}, {BufferParam("sines","Sines Buffer"), BufferParam("residual", "Residual Buffer")});
 
 template <typename T>
 using NRTSines = NRTStreamAdaptor<SinesClient<T>, decltype(NRTSineParams), NRTSineParams, 1, 2>;

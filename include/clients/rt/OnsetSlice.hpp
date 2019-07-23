@@ -104,7 +104,7 @@ private:
 };
 
 auto constexpr NRTOnsetSliceParams =
-    makeNRTParams<OnsetSlice>({BufferParam("source", "Source Buffer")},
+    makeNRTParams<OnsetSlice>({InputBufferParam("source", "Source Buffer")},
                               {BufferParam("indices", "Indices Buffer")});
 template <typename T>
 using NRTOnsetSlice =

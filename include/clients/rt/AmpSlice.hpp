@@ -125,7 +125,7 @@ private:
 
 template <typename HostMatrix, typename HostVectorView> struct NRTAmpSlicing {
   template <typename Client, typename InputList, typename OutputList>
-  static void process(Client &client, InputList &inputBuffers,
+  static Result process(Client &client, InputList &inputBuffers,
                       OutputList &outputBuffers, size_t nFrames,
                       size_t nChans) {
     assert(inputBuffers.size() == 1);
@@ -134,7 +134,7 @@ template <typename HostMatrix, typename HostVectorView> struct NRTAmpSlicing {
     using HostMatrixView = FluidTensorView<typename HostMatrix::type, 2>;
     HostMatrix monoSource(1, nFrames + padding);
 
-    BufferAdaptor::Access src(inputBuffers[0].buffer);
+    BufferAdaptor::ReadAccess src(inputBuffers[0].buffer);
     // Make a mono sum;
     for (size_t i = 0; i < nChans; ++i)
       monoSource.row(0)(Slice(0, nFrames))
@@ -166,7 +166,7 @@ template <typename HostMatrix, typename HostVectorView> struct NRTAmpSlicing {
       switchPoints(1, nFrames - 1) = 1;
     }
 
-    impl::spikesToTimes(HostMatrixView{switchPoints}, outputBuffers[0], 1,
+    return impl::spikesToTimes(HostMatrixView{switchPoints}, outputBuffers[0], 1,
                         inputBuffers[0].startFrame, nFrames, src.sampleRate());
   }
 };
