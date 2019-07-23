@@ -138,7 +138,7 @@ public:
 
       inFrames[count] = requestedFrames;
       inChans[count] =  requestedChans;
-      mClient.sampleRate(BufferAdaptor::Access(b.buffer).sampleRate());
+      mClient.sampleRate(BufferAdaptor::ReadAccess(b.buffer).sampleRate());
       count++;
     }
     
@@ -228,7 +228,7 @@ struct Streaming
       inputs.reserve(inputBuffers.size());
       for(int j = 0; j < inputBuffers.size(); ++j)
       {
-        BufferAdaptor::Access thisInput(inputBuffers[j].buffer);
+        BufferAdaptor::ReadAccess thisInput(inputBuffers[j].buffer);
         if (i==0 && j==0) sampleRate = thisInput.sampleRate();
         inputData[j].row(i)(Slice(0,nFrames)) = thisInput.samps(inputBuffers[j].startFrame,nFrames,inputBuffers[j].startChan + i);
         inputs.emplace_back(inputData[j].row(i));
@@ -280,7 +280,7 @@ struct StreamingControl
       {
         for(int j = 0; j < inputBuffers.size(); ++j)
         {
-          BufferAdaptor::Access thisInput(inputBuffers[j].buffer);
+          BufferAdaptor::ReadAccess thisInput(inputBuffers[j].buffer);
           if(i==0 && j==0) sampleRate = thisInput.sampleRate();
           inputData[j].row(i)(Slice(0,nFrames)) = thisInput.samps(inputBuffers[j].startFrame,nFrames,inputBuffers[j].startChan + i);
         }
@@ -327,7 +327,7 @@ struct Slicing
     size_t padding = client.latency();
     HostMatrix monoSource(1,nFrames + padding);
 
-    BufferAdaptor::Access src(inputBuffers[0].buffer);
+    BufferAdaptor::ReadAccess src(inputBuffers[0].buffer);
     // Make a mono sum;
     for (size_t i = 0; i < nChans; ++i)
       monoSource.row(0)(Slice(0,nFrames)).apply(src.samps(i), [](float &x, float y) { x += y; });

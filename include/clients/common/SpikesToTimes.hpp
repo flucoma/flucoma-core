@@ -2,6 +2,7 @@
 
 #include "BufferAdaptor.hpp"
 #include "OfflineClient.hpp"
+#include "Result.hpp"
 #include "../../data/FluidTensor.hpp"
 
 #include <algorithm>
@@ -12,7 +13,7 @@ namespace client{
 namespace impl{
 
   template<typename T>
-  void spikesToTimes(FluidTensorView<T,2> changePoints, BufferAdaptor* output, size_t hopSize, size_t timeOffset, size_t numFrames, double sampleRate)
+  Result spikesToTimes(FluidTensorView<T,2> changePoints, BufferAdaptor* output, size_t hopSize, size_t timeOffset, size_t numFrames, double sampleRate)
   {
 
     std::vector<size_t> numSpikes(changePoints.rows());
@@ -29,13 +30,12 @@ namespace impl{
       idx.resize(1, changePoints.rows(), sampleRate);
       double result = -1.0;
       for(auto i = 0; i < changePoints.rows(); i++) idx.samps(i)[0] = result;
-      return;
+      return {};
     }
 
-
-
     auto idx = BufferAdaptor::Access(output);
-    idx.resize(numSpikes[0], changePoints.rows(),sampleRate);
+    Result resizeResult = idx.resize(numSpikes[0], changePoints.rows(),sampleRate);
+    if(!resizeResult.ok()) return resizeResult;
 
     for(auto i = 0; i < changePoints.rows(); ++i)
     {
@@ -59,6 +59,7 @@ namespace impl{
 
       idx.samps(i) = FluidTensorView<size_t, 1>{indices.data(), 0, numSpikes[0]};
     }
+    return {};
   }
 }
 }

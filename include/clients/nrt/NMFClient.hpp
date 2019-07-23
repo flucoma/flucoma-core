@@ -24,7 +24,7 @@ namespace client {
 enum NMFParamIndex {kSource, kOffset, kNumFrames, kStartChan, kNumChans, kResynth,kFilters,kFiltersUpdate,kEnvelopes,kEnvelopesUpdate,kRank,kIterations,kFFT};
 
 auto constexpr NMFParams = defineParameters(
-  BufferParam("source","Source Buffer"),
+  InputBufferParam("source","Source Buffer"),
   LongParam("startFrame","Source Offset",0, Min(0)),
   LongParam("numFrames","Number of Frames",-1),
   LongParam("startChan","Start Channel",0,Min(0)),
@@ -42,7 +42,6 @@ auto constexpr NMFParams = defineParameters(
 template<typename T>
 class NMFClient: public FluidBaseClient<decltype(NMFParams), NMFParams>, public OfflineIn, public OfflineOut
 {
-
 public:
 
   NMFClient(ParamSetViewType& p): FluidBaseClient(p)
@@ -59,8 +58,7 @@ public:
     
     if(!rangeCheck.ok()) return rangeCheck;
 
- 
-    auto source = BufferAdaptor::Access(get<kSource>().get());
+    auto source = BufferAdaptor::ReadAccess(get<kSource>().get());
     double sampleRate = source.sampleRate();
     auto fftParams = get<kFFT>();
 

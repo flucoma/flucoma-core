@@ -14,7 +14,7 @@ namespace client {
 enum { kSource, kOffset, kNumFrames, kStartChan, kNChans, kGain, kDest, kDestOffset, kDestStartChan, kDestGain };
 
 auto constexpr BufComposeParams = defineParameters(
-    BufferParam("source", "Source Buffer"),
+    InputBufferParam("source", "Source Buffer"),
     LongParam("startFrame", "Source Offset", 0, Min(0)),
     LongParam("numFrames", "Source Number of Frames", -1),
     LongParam("startChan", "Source Channel Offset", 0, Min(0)),
@@ -44,7 +44,7 @@ public:
     size_t nFrames{0};
 
     {
-      BufferAdaptor::Access source(get<kSource>().get());
+      BufferAdaptor::ReadAccess source(get<kSource>().get());
 
       if (!(source.exists() && source.valid())) return {Result::Status::kError, "Source Buffer Not Found or Invalid"};
 
@@ -110,7 +110,7 @@ public:
     // we need to (possibly) resize the desintation buffer which could
     // (possibly)  also be one of the sources
     {
-      BufferAdaptor::Access source(get<kSource>().get());
+      BufferAdaptor::ReadAccess source(get<kSource>().get());
       auto                  gain = get<kGain>();
       // iterates through the copying of the first source
       for (size_t i = dstStartChan, j = 0; j < nChannels; ++i, ++j)

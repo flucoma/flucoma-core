@@ -22,7 +22,7 @@ enum BufferStatsParamIndex {
 };
 
 auto constexpr BufferStatsParams = defineParameters(
-    BufferParam("source", "Source Buffer"),
+    InputBufferParam("source", "Source Buffer"),
     LongParam("startFrame", "Source Offset", 0, Min(0)),
     LongParam("numFrames", "Number of Frames", -1),
     LongParam("startChan", "Start Channel", 0, Min(0)),
@@ -54,7 +54,7 @@ public:
     if (!get<kStats>().get())
       return {Result::Status::kError, "No output buffer supplied"};
 
-    BufferAdaptor::Access source(get<kSource>().get());
+    BufferAdaptor::ReadAccess source(get<kSource>().get());
     BufferAdaptor::Access dest(get<kStats>().get());
 
     if (!source.exists())
