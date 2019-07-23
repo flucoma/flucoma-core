@@ -66,6 +66,9 @@ public:
     Access(BufferAdaptor* adaptor): ReadAccess(adaptor), mMutableAdaptor{adaptor}
     {}
     
+    //Force any needed refreshing of mutable buffers (if the client class overrides refresh())
+    ~Access() { if(mMutableAdaptor) mMutableAdaptor->refresh(); }
+    
     FluidTensorView<float, 1> samps(size_t channel)
     {
       assert(mMutableAdaptor);
@@ -112,6 +115,7 @@ private:
   virtual size_t                    numFrames() const                                       = 0;
   virtual size_t                    numChans() const                                        = 0;
   virtual double                    sampleRate() const                                      = 0;
+  virtual void                      refresh()                                               {};
   friend std::ostream& operator<<(std::ostream& os, const BufferAdaptor* b); 
 };
 
