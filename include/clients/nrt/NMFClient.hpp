@@ -119,14 +119,21 @@ public:
       hasResynth = true;
     }
 
-    
-
     if (hasResynth)
-      BufferAdaptor::Access(get<kResynth>().get()).resize(nFrames, nChannels * get<kRank>(),sampleRate);
+    {
+        Result resizeResult = BufferAdaptor::Access(get<kResynth>().get()).resize(nFrames, nChannels * get<kRank>(),sampleRate);
+        if(!resizeResult.ok()) return resizeResult;
+    }
     if (hasFilters && !get<kFiltersUpdate>())
-      BufferAdaptor::Access(get<kFilters>().get()).resize(nBins, nChannels * get<kRank>(),sampleRate / fftParams.fftSize());
+    {
+      Result resizeResult = BufferAdaptor::Access(get<kFilters>().get()).resize(nBins, nChannels * get<kRank>(),sampleRate / fftParams.fftSize());
+      if(!resizeResult.ok()) return resizeResult;
+    }
     if (hasEnvelopes && !get<kEnvelopesUpdate>())
-      BufferAdaptor::Access(get<kEnvelopes>().get()).resize((nFrames / fftParams.hopSize()) + 1, nChannels * get<kRank>(),sampleRate / fftParams.hopSize());
+    {
+      Result resizeResult = BufferAdaptor::Access(get<kEnvelopes>().get()).resize((nFrames / fftParams.hopSize()) + 1, nChannels * get<kRank>(),sampleRate / fftParams.hopSize());
+      if(!resizeResult.ok()) return resizeResult;
+    }
 
     auto stft = algorithm::STFT(fftParams.winSize(), fftParams.fftSize(), fftParams.hopSize());
 

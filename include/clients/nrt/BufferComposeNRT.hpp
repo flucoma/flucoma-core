@@ -131,7 +131,8 @@ public:
 
     if (destinationResizeNeeded)
     {
-      destination.resize(destinationOrig.cols(), destinationOrig.rows(), destination.sampleRate());
+      Result resizeResult = destination.resize(destinationOrig.cols(), destinationOrig.rows(), destination.sampleRate());
+      if(!resizeResult.ok()) return resizeResult;
       for (int i = 0; i < destination.numChans(); ++i) destination.samps(i) = destinationOrig.row(i);
     } else
     {

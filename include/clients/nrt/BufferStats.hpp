@@ -92,7 +92,9 @@ public:
       return {Result::Status::kError, "Not enough frames"};
 
     int outputSize = processor.numStats() * (get<kNumDerivatives>() + 1);
-    dest.resize(outputSize, numChannels, source.sampleRate());
+    Result resizeResult = dest.resize(outputSize, numChannels, source.sampleRate());
+    
+    if(!resizeResult.ok()) return resizeResult;
 
     processor.init(get<kNumDerivatives>(), get<kLow>(), get<kMiddle>(),
                    get<kHigh>());
