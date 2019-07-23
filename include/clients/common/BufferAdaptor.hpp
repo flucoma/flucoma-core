@@ -102,6 +102,7 @@ private:
   virtual bool valid() const                                       = 0;
   virtual bool exists() const                                      = 0;
   virtual const Result resize(size_t frames, size_t channels, double sampleRate)  = 0;
+  virtual std::string asString() const                       = 0; 
   // Return a slice of the buffer
   virtual FluidTensorView<float, 1> samps(size_t channel)               = 0;
     
@@ -111,8 +112,13 @@ private:
   virtual size_t                    numFrames() const                                       = 0;
   virtual size_t                    numChans() const                                        = 0;
   virtual double                    sampleRate() const                                      = 0;
+  friend std::ostream& operator<<(std::ostream& os, const BufferAdaptor* b); 
 };
 
+std::ostream& operator <<(std::ostream& os, const BufferAdaptor* b)
+{
+  return os << b->asString();
+}
 Result bufferRangeCheck(const BufferAdaptor* b, intptr_t startFrame, intptr_t& nFrames, intptr_t startChan, intptr_t& nChans)
 {
     if(!b)
