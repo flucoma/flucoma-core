@@ -127,7 +127,7 @@ template <typename HostMatrix, typename HostVectorView> struct NRTAmpSlicing {
   template <typename Client, typename InputList, typename OutputList>
   static void process(Client &client, InputList &inputBuffers,
                       OutputList &outputBuffers, size_t nFrames,
-                      size_t nChans) {
+                      size_t nChans, FluidContext& c) {
     assert(inputBuffers.size() == 1);
     assert(outputBuffers.size() == 1);
     size_t padding = client.latency();
@@ -144,7 +144,7 @@ template <typename HostMatrix, typename HostVectorView> struct NRTAmpSlicing {
     HostMatrix binaryOut(1, nFrames + padding);
     std::vector<HostVectorView> input{monoSource.row(0)};
     std::vector<HostVectorView> output{binaryOut.row(0)};
-    client.process(input, output, true);
+    client.process(input, output, c, true);
     // convert binary to spikes
 
     // add onset at start if needed
