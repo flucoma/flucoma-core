@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../common/FluidContext.hpp"
 #include "../common/FluidSink.hpp"
 #include "../common/FluidSource.hpp"
 #include "../common/ParameterSet.hpp"

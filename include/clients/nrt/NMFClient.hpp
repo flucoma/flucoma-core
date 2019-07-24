@@ -1,5 +1,6 @@
 #pragma once
 
+#include "FluidNRTClientWrapper.hpp"
 #include "../common/FluidBaseClient.hpp"
 #include "../common/ParameterTypes.hpp"
 #include "../common/ParameterConstraints.hpp"
