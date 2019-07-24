@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../common/MemoryBufferAdaptor.hpp"
 #include "../common/BufferAdaptor.hpp"
 #include "../common/FluidBaseClient.hpp"
 #include "../common/OfflineClient.hpp"
@@ -242,7 +243,7 @@ struct Streaming
       
       if(c.task()) c.task()->iterationUpdate(i, nChans);
       
-      client.process(inputs,outputs,c);
+      client.process(inputs,outputs,c, true);
     }
 
     for(int i = 0; i < outputBuffers.size(); ++i)
@@ -305,7 +306,7 @@ struct StreamingControl
         for(int k = 0; k < nFeatures; ++k)
           outputs.emplace_back(outputData.row(k + i*nFeatures)(Slice(j,1)));
 
-        client.process(inputs,outputs,dummyContext);
+        client.process(inputs,outputs,dummyContext, true);
         
         if(task && !task->processUpdate(j + 1 + (nHops * i),nHops * nChans)) break;
       }
@@ -347,7 +348,7 @@ struct Slicing
     std::vector<HostVectorView> input  {monoSource.row(0)};
     std::vector<HostVectorView> output {onsetPoints.row(0)};
 
-    client.process(input,output,true,c);
+    client.process(input,output,c,true);
 
     impl::spikesToTimes(onsetPoints(0,Slice(padding,nFrames)), outputBuffers[0], 1, inputBuffers[0].startFrame, nFrames,src.sampleRate());
   }
