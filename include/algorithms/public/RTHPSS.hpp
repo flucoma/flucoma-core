@@ -84,7 +84,7 @@ public:
     mBuf.block(0, 0, mBins, mHSize - 1) = mBuf.block(0, 1, mBins, mHSize - 1);
     ArrayXd padded =
         ArrayXd::Zero(mVSize + mVSize * std::ceil(mBins / double(mVSize)));
-    ArrayXd resultV(padded.size());
+    ArrayXd resultV = ArrayXd::Zero(padded.size());
     padded.segment(v2, mBins) = mag;
     MedianFilter mVMedianFilter = MedianFilter(padded, mVSize);
     mVMedianFilter.process(resultV);
