@@ -397,7 +397,7 @@ public:
 
   NRTThreadingAdaptor(ParamSetType& p)
    : mHostParams{p}
-   , mProcessParams(getParameterDescriptors())
+   , mProcessParams(mHostParams)
    , mClient{mProcessParams}
    , mContext{mTask}
   {}
