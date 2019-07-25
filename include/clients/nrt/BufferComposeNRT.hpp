@@ -142,6 +142,7 @@ public:
     {
       for (int i = 0; i < nChannels; ++i)
         destination.samps(dstStart, nFrames, dstStartChan + i) = destinationOrig.row(i);
+      destination.refresh(); //make sure the buffer is marked dirty
     }
 
     return {Result::Status::kOk};

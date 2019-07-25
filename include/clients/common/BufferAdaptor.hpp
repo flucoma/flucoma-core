@@ -59,6 +59,8 @@ public:
     size_t numChans() const { return mAdaptor ? mAdaptor->numChans() : 0; }
 
     double sampleRate() const { return mAdaptor ? mAdaptor->sampleRate() : 0; }
+    
+    void   refresh()          { if(mAdaptor) mAdaptor->refresh(); }
   private:
     BufferAdaptor *mAdaptor;
   };
@@ -84,6 +86,7 @@ private:
   virtual size_t                    numFrames() const                                       = 0;
   virtual size_t                    numChans() const                                        = 0;
   virtual double                    sampleRate() const                                      = 0;
+  virtual void                      refresh()                                                 {}
 };
 
 Result bufferRangeCheck(BufferAdaptor* b, intptr_t startFrame, intptr_t& nFrames, intptr_t startChan, intptr_t& nChans)

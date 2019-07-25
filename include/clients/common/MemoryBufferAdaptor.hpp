@@ -72,7 +72,7 @@ public:
    size_t numFrames() const override { return mData.rows(); }
    size_t numChans() const override { return mData.cols(); }
    double sampleRate() const { return mSampleRate; }
-  
+   void refresh() override { mWrite = true; }
   private:
     std::shared_ptr<BufferAdaptor> mOrigin;
     FluidTensor<float, 2> mData;
