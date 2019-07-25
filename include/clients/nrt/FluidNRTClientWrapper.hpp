@@ -498,6 +498,8 @@ public:
   void cancel() { mTask.cancel(); }
   double progress() { return mTask.progress(); }
   
+  bool done() { return mState == kDone; }
+  
 private:
   
   void threadedProcess()
@@ -514,7 +516,6 @@ private:
   bool mSynchronous = false;
     
   Result mResult;
-    
   NRTClient mClient;
   FluidTask mTask;
   FluidContext mContext;
