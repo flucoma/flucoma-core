@@ -407,6 +407,7 @@ public:
     while (mState != kNoProcess)
     {
       Result res;
+      mTask.cancel();
       std::chrono::duration<double, std::milli> dur(10.0);
       std::this_thread::sleep_for(dur);
       checkProgress(res);
