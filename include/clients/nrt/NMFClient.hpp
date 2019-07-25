@@ -1,15 +1,14 @@
 #pragma once
 
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/ParameterTypes.hpp>
-#include <clients/common/ParameterConstraints.hpp>
-#include <clients/common/OfflineClient.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <algorithms/public/NMF.hpp>
-#include <algorithms/public/RatioMask.hpp>
-#include <algorithms/public/STFT.hpp>
-#include <data/FluidTensor.hpp>
-
+#include "../common/FluidBaseClient.hpp"
+#include "../common/ParameterTypes.hpp"
+#include "../common/ParameterConstraints.hpp"
+#include "../common/OfflineClient.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../../algorithms/public/NMF.hpp"
+#include "../../algorithms/public/RatioMask.hpp"
+#include "../../algorithms/public/STFT.hpp"
+#include "../../data/FluidTensor.hpp"
 
 #include <algorithm> //for max_element
 #include <sstream>   //for ostringstream
@@ -54,23 +53,17 @@ public:
    ***/
   Result process() {
 
-//    assert(inputs.size() == 1 );
+    intptr_t nFrames   = get<kNumFrames>();
+    intptr_t nChannels = get<kNumChans>();
+    auto rangeCheck = bufferRangeCheck(get<kSource>().get(), get<kOffset>(), nFrames, get<kStartChan>(), nChannels);
+    
+    if(!rangeCheck.ok()) return rangeCheck;
 
-    if(!get<kSource>().get())
-    {
-      return {Result::Status::kError,"No input"};
-    }
-
-    BufferAdaptor::Access source(get<kSource>().get());
-
-    if(!(source.exists() && source.valid()))
-      return {Result::Status::kError, "Source Buffer Not Found or Invalid"};
-
+ 
+    auto source = BufferAdaptor::Access(get<kSource>().get());
     double sampleRate = source.sampleRate();
     auto fftParams = get<kFFT>();
 
-    size_t nChannels = get<kNumChans>() == -1 ? source.numChans() : get<kNumChans>();
-    size_t nFrames   = get<kNumFrames>() == -1  ? source.numFrames(): get<kNumFrames>();
     size_t nWindows  = std::floor((nFrames + fftParams.hopSize()) / fftParams.hopSize());
     size_t nBins     = fftParams.frameSize();
 

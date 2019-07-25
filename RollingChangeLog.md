@@ -1,3 +1,45 @@
+# beta-01: some fixes and more
+date: XXX
+
+## New Features:
+- (Pd) all helpfiles now completed (except a few stereo examples of fluid.buf* objects - placeholders are empty [pd] patchers)
+
+## Bug Fixes:
+- (max) clickable overview
+- (max) hpss help of maskingmode 1 and 2 sorted
+- (max) bufpitch help is resizing
+- strange communication between instances of bufnmf~ now zapped
+- (pd) sample rate of buf* descriptor objects is now assumed (see helpfiles of bufPitch, bufMFCC, bufMelbands, bufSpectralShape)
+- (pd) crash on some patches closings now should all be zapped
+- (linux) strange names of Pd and Linux now sorted
+
+## Known Bugs:
+- HPSS still cracks when percussive filter is violently moved up
+- NMF still creates NaNs in some edge cases, for instance when trying to factorise digital silence
+- BufOnsetSlice with a maxFFTSize value of less than 1024 will crash
+- BufNoveltySlice might generate garbage strange values in the first frame
+- AmpSlice is noisy when some parameters are changed
+- (Pd) not providing enough 'channels' in 'multichannel' arrays will crash
+
+===
+# beta-00: the big plunge
+date: 8 July 2019
+
+## New Features:
+- overview in SuperCollider, PureData and CLI
+- Max help overall review (uneven in completion)
+- support for 3 OSs (Mac, Windows, Linux) and 4 CCEs (Max, PureData, SuperCollider, CLI)
+
+## Known Bugs:
+- HPSS still cracks when percussive filter is violently moved up
+- NMF still creates NaNs in some edge cases, for instance when trying to factorise digital silence
+- BufOnsetSlice with a maxFFTSize value of less than 1024 will crash
+- BufNoveltySlice might generate garbage strange values in the first frame
+- AmpSlice is noisy when some parameters are changed
+- (Pd) help files are not finished yet!
+- (Pd) not providing enough 'channels' in 'multichannel' arrays will crash
+
+===
 # Alpha-08: 2 new objects, and last interface change
 date: 15 June 2019
 

@@ -358,8 +358,8 @@ public:
   
   // Move construct /assign
 
-  ParameterSet(ParameterSet&&) = default;
-  ParameterSet& operator =(ParameterSet&&) = default;
+  ParameterSet(ParameterSet&&) noexcept = default;
+  ParameterSet& operator =(ParameterSet&&) noexcept = default;
  
 private:
   

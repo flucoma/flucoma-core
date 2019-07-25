@@ -6,13 +6,13 @@ Test class for STFT pass-through
 #pragma once
 
 #include "BufferedProcess.hpp"
-#include <algorithms/public/STFT.hpp>
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/ParameterConstraints.hpp>
-#include <clients/common/ParameterTypes.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <data/FluidTensor.hpp>
-#include <data/TensorTypes.hpp>
+#include "../common/FluidBaseClient.hpp"
+#include "../common/ParameterConstraints.hpp"
+#include "../common/ParameterTypes.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../../algorithms/public/STFT.hpp"
+#include "../../data/FluidTensor.hpp"
+#include "../../data/TensorTypes.hpp"
 
 namespace fluid {
 namespace client {

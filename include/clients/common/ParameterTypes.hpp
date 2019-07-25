@@ -1,11 +1,15 @@
 #pragma once
 
-#include <clients/common/BufferAdaptor.hpp>
-#include <clients/common/ParameterTrackChanges.hpp>
-#include <clients/common/Result.hpp>
+#include "BufferAdaptor.hpp"
+#include "ParameterTrackChanges.hpp"
+#include "Result.hpp"
+
+#include <memory>
 #include <tuple>
 #include <utility>
 #include <vector>
+
+
 namespace fluid {
 namespace client {
 
@@ -143,9 +147,9 @@ struct FloatPairsArrayT : ParamTypeBase
     FloatPairsArrayType(const FloatPairsArrayType& x) = default;
     FloatPairsArrayType& operator=(const FloatPairsArrayType&)=default;
     
-    FloatPairsArrayType(FloatPairsArrayType&& x) { *this = std::move(x); }
+    FloatPairsArrayType(FloatPairsArrayType&& x) noexcept { *this = std::move(x); }
 
-    FloatPairsArrayType& operator=(FloatPairsArrayType&& x)
+    FloatPairsArrayType& operator=(FloatPairsArrayType&& x) noexcept
     {
       value = x.value;
       lowerChanged = x.lowerChanged;
@@ -211,11 +215,11 @@ public:
   {}
 
   constexpr FFTParams(const FFTParams& p) = default;
-  constexpr FFTParams(FFTParams&& p) = default;
+  constexpr FFTParams(FFTParams&& p) noexcept = default;
     
   // Assignment should not change the trackers
     
-  FFTParams& operator = (FFTParams&& p)
+  FFTParams& operator = (FFTParams&& p) noexcept
   {
     mWindowSize = p.mWindowSize;
     mHopSize = p.mHopSize;

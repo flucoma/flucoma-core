@@ -1,5 +1,12 @@
 #pragma once
 
+#include "BufferedProcess.hpp"
+#include "../common/AudioClient.hpp"
+#include "../common/FluidBaseClient.hpp"
+#include "../common/ParameterConstraints.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../common/ParameterTypes.hpp"
+#include "../nrt/FluidNRTClientWrapper.hpp"
 #include "../../algorithms/public/Loudness.hpp"
 #include "../../algorithms/public/RTNoveltySegmentation.hpp"
 #include "../../algorithms/public/STFT.hpp"
@@ -7,15 +14,8 @@
 #include "../../algorithms/util/DCT.hpp"
 #include "../../algorithms/util/MelBands.hpp"
 #include "../../algorithms/util/TruePeak.hpp"
-
 #include "../../data/TensorTypes.hpp"
-#include "../common/AudioClient.hpp"
-#include "../common/FluidBaseClient.hpp"
-#include "../common/ParameterConstraints.hpp"
-#include "../common/ParameterSet.hpp"
-#include "../common/ParameterTypes.hpp"
-#include "../nrt/FluidNRTClientWrapper.hpp"
-#include "../rt/BufferedProcess.hpp"
+
 #include <tuple>
 
 namespace fluid {

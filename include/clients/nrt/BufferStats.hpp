@@ -1,9 +1,9 @@
 #pragma once
 
-#include <algorithms/public/Stats.hpp>
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/ParameterConstraints.hpp>
-#include <clients/common/ParameterTypes.hpp>
+#include "../common/FluidBaseClient.hpp"
+#include "../common/ParameterConstraints.hpp"
+#include "../common/ParameterTypes.hpp"
+#include "../../algorithms/public/Stats.hpp"
 
 namespace fluid {
 namespace client {

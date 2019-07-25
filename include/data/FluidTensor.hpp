@@ -74,12 +74,12 @@ public:
   ~FluidTensor() = default;
 
   // Move
-  FluidTensor(FluidTensor &&mv) = default;
-  FluidTensor &operator=(FluidTensor &&mv) = default;
+  FluidTensor(FluidTensor&&) noexcept = default;
+  FluidTensor &operator=(FluidTensor&&) noexcept = default;
 
   // Copy
-  FluidTensor(FluidTensor const &cp) = default;
-  FluidTensor &operator=(FluidTensor const &cp) = default;
+  FluidTensor(const FluidTensor&) = default;
+  FluidTensor &operator=(const FluidTensor&) = default;
 
   /************************************
   Conversion constructor, should we need to convert between containers
@@ -116,6 +116,7 @@ public:
 
     mDesc = x.descriptor();
     mContainer.assign(x.begin(), x.end());
+    return *this;
   }
 
   template <typename... Dims,
@@ -534,9 +535,19 @@ public:
    *****/
   ~FluidTensorView() = default;
 
-  // Move
-  FluidTensorView(FluidTensorView &&other) { swap(*this, other); }
+  // Move construction is allowed
+  FluidTensorView(FluidTensorView &&other) noexcept { swap(*this, other); }
 
+  //Move assignment disabled because it doesn't make sense to move from a possibly arbitary pointer
+  //into the middle of what might be a FluidTensor's vector => assignment is always copy
+  //  FluidTensorView& operator=(FluidTensorView&& x) noexcept
+  //  {
+  //    if(this != &x){
+  //      swap(*this,x);
+  //    }
+  //    return *this;
+  //  }
+////////////////////////////////////////////////////////////////////////////////
   // Copy
   FluidTensorView(FluidTensorView const &) = default;
 
@@ -554,20 +565,6 @@ public:
     mRef = x.data() - mDesc.start;
   }
 
-  // Assign.
-  // Note param by value https://stackoverflow.com/a/3279550
-  // Actually, is this a bad idea? We probably want
-  // different move and copy behaviour
-
-  //      //Move
-  //      FluidTensorView& operator=(FluidTensorView&& x)
-  //      {
-  //        if(this != &x){
-  //          auto m = x;
-  //          swap(*this,m);
-  //        }
-  //          return *this;
-  //      }
 
   FluidTensorView &operator=(const FluidTensorView &x) {
 
@@ -687,7 +684,7 @@ public:
 
       return *this;
   }
-
+////////////////////////////////////////////////////////////////////////////////
   /**********
    Construct from a slice and a pointer. This gets used by
    row() and col() of FluidTensor and FluidTensorView

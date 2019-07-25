@@ -1,275 +1,354 @@
 
-#ifndef __APPLE__
-#include <intrin.h>
-#endif
-
 #include <cmath>
 #include <algorithm>
 #include <functional>
-#include <emmintrin.h>
-#include <immintrin.h>
+
+#if defined __arm__ || defined __arm64
+    #include <arm_neon.h>
+#else
+    #ifdef __WIN32__
+    #include <intrin.h>
+    #endif
+    #include <emmintrin.h>
+    #include <immintrin.h>
+#endif
+
+// Microsoft Visual Studio doesn't ever define __SSE__ so if necessary we derive it from other defines
+
+#ifndef __SSE__
+#if defined _M_X64 || (defined _M_IX86_FP && _M_IX86_FP > 0)
+#define __SSE__ 1
+#endif
+#endif
 
 // Setup Structures
 
-template <class T> struct Setup
+template <class T>
+struct Setup
 {
-    unsigned long max_fft_log2;
+    uintptr_t max_fft_log2;
     Split<T> tables[28];
 };
 
 struct DoubleSetup : public Setup<double> {};
 struct FloatSetup : public Setup<float> {};
 
-#define SIMD_COMPILER_SUPPORT_SCALAR 0
-#define SIMD_COMPILER_SUPPORT_SSE128 1
-#define SIMD_COMPILER_SUPPORT_AVX256 2
-#define SIMD_COMPILER_SUPPORT_AVX512 3
-
-#if defined(__AVX512F__)
-#define SIMD_COMPILER_SUPPORT_LEVEL SIMD_COMPILER_SUPPORT_AVX512
-#elif defined(__AVX__)
-#define SIMD_COMPILER_SUPPORT_LEVEL SIMD_COMPILER_SUPPORT_AVX256
-#elif defined(__SSE__)
-#define SIMD_COMPILER_SUPPORT_LEVEL SIMD_COMPILER_SUPPORT_SSE128
-#else
-#define SIMD_COMPILER_SUPPORT_LEVEL SIMD_COMPILER_SUPPORT_SCALAR
-#endif
-
 namespace hisstools_fft_impl{
+    
+    template<class T> struct SIMDLimits     { static const int max_size = 1;};
+    
+#if defined(__AVX512F__)
+    
+    template<> struct SIMDLimits<double>    { static const int max_size = 8; };
+    template<> struct SIMDLimits<float>     { static const int max_size = 16; };
+    
+#elif defined(__AVX__)
+    
+    template<> struct SIMDLimits<double>    { static const int max_size = 4; };
+    template<> struct SIMDLimits<float>     { static const int max_size = 8; };
+    
+#elif defined(__SSE__)
+    
+    template<> struct SIMDLimits<double>    { static const int max_size = 2; };
+    template<> struct SIMDLimits<float>     { static const int max_size = 4; };
+    
+#elif defined(__arm__)
 
+    template<> struct SIMDLimits<float>     { static const int max_size = 4; };
+#endif
     // Aligned Allocation and Platform CPU Detection
     
-#ifdef __APPLE__
+#ifndef __WIN32__
+  
+    #ifdef __APPLE__
+        template <class T> T *allocate_aligned(size_t size)
+        {
+            return static_cast<T *>(malloc(size * sizeof(T)));
+        }
+    #elif defined(__linux__)
+        template <class T> T *allocate_aligned(size_t size)
+        {
+            void *mem;
+            posix_memalign(&mem, SIMDLimits<T>::max_size * sizeof(T), size * sizeof(T));
+            return static_cast<T *>(mem);
+        }
+    #elif defined(__arm__)
     
-#include <cpuid.h>
-
-    template <class T> T *allocate_aligned(size_t size)
-    {
-        return static_cast<T *>(malloc(size * sizeof(T)));
-    }
+    #include <memory.h>
     
-    template <class T> void deallocate_aligned(T *ptr)
-    {
-        free(ptr);
-    }
-    
-    void cpuid(int32_t out[4], int32_t x)
-    {
-        __cpuid_count(x, 0, out[0], out[1], out[2], out[3]);
-    }
-    
-	uint64_t xgetbv(unsigned int index)
-	{
-		uint32_t eax, edx;
-		__asm__ __volatile__("xgetbv" : "=a"(eax), "=d"(edx) : "c"(index));
-		return ((uint64_t)edx << 32) | eax;
-	}
+      template <class T>
+      T *allocate_aligned(size_t size)
+      {
+          return static_cast<T *>(aligned_alloc(16, size * sizeof(T)));
+      }
+    #endif
+      template <class T>
+      void deallocate_aligned(T *ptr)
+      {
+          free(ptr);
+      }
 
 #else
 #include <malloc.h>
-
-    template <class T> T *allocate_aligned(size_t size)
+    
+    template <class T>
+    T *allocate_aligned(size_t size)
     {
         return static_cast<T *>(_aligned_malloc(size * sizeof(T), 16));
     }
     
-    template <class T> void deallocate_aligned(T *ptr)
+    template <class T>
+    void deallocate_aligned(T *ptr)
     {
         _aligned_free(ptr);
     }
-
-    void cpuid(int32_t out[4], int32_t x)
-    {
-        __cpuid(out, x);
-    }
-
-	uint64_t xgetbv(unsigned int x) 
-	{
-		return _xgetbv(x);
-	}
     
 #endif
-
+    
+    template <class T>
+    bool isAligned(const T *ptr) { return !(reinterpret_cast<uintptr_t>(ptr) % 16); }
+    
     // Offset for Table
     
     static const uintptr_t trig_table_offset = 3;
-    
-    // CPU Detection
-    
-    enum SIMDType { kNone, kSSE, kAVX256, kAVX512 };
-    
-    extern SIMDType SIMD_Support;
-
-    SIMDType detect_SIMD()
-    {
-        int cpu_info[4] = {-1, 0, 0, 0};
-        
-        cpuid(cpu_info, 0);
-        
-        if (cpu_info[0] <= 0)
-            return kNone;
-        
-        cpuid(cpu_info, 1);
-        
-        if ((cpu_info[3] >> 26) & 0x1)
-        {
-            bool os_uses_xsave_xrstore = (cpu_info[2] & (1 << 27)) != 0;
-            bool cpu_AVX_suport = (cpu_info[2] & (1 << 28)) != 0;
-            
-            if (os_uses_xsave_xrstore && cpu_AVX_suport)
-            {
-                uint64_t xcr_feature_mask = xgetbv(0);
-                
-                if ((xcr_feature_mask & 0x6) == 0x6)
-                {
-                    if ((xcr_feature_mask & 0xe6) == 0xe6)
-                        return kAVX512;
-                    else
-                        return kAVX256;
-                }
-            }
-            
-            return kSSE;
-        }
-        
-        return kNone;
-    }
     
     // Data Type Definitions
     
     // ******************** Basic Data Type Defintions ******************** //
     
-    template <class T> struct Scalar
-    {
-        static const int size = 1;
-        typedef T scalar_type;
-        typedef Split<scalar_type> split_type;
-        typedef Setup<scalar_type> setup_type;
-        
-        Scalar() {}
-        Scalar(T a) : mVal(a) {}
-        friend Scalar operator + (const Scalar& a, const Scalar& b) { return Scalar(a.mVal + b.mVal); }
-        friend Scalar operator - (const Scalar& a, const Scalar& b) { return Scalar(a.mVal - b.mVal); }
-        friend Scalar operator * (const Scalar& a, const Scalar& b) { return Scalar(a.mVal * b.mVal); }
-        
-        T mVal;
-    };
-    
-    template <class T, class U, int vec_size> struct SIMDVector
+    template <class T, class U, int vec_size>
+    struct SIMDVectorBase
     {
         static const int size = vec_size;
-        typedef T scalar_type;
-        typedef Split<scalar_type> split_type;
-        typedef Setup<scalar_type> setup_type;
         
-        SIMDVector() {}
-        SIMDVector(U a) : mVal(a) {}
+        SIMDVectorBase() {}
+        SIMDVectorBase(U a) : mVal(a) {}
         
         U mVal;
     };
     
-#if (SIMD_COMPILER_SUPPORT_LEVEL >= SIMD_COMPILER_SUPPORT_SSE)
+    template <class T, int vec_size>
+    struct SIMDVector
+    {};
     
-    struct SSEDouble : public SIMDVector<double, __m128d, 2>
+    template <class T>
+    struct SIMDVector<T, 1> : public SIMDVectorBase<T, T, 1>
     {
-        SSEDouble() {}
-        SSEDouble(__m128d a) : SIMDVector(a) {}
-        friend SSEDouble operator + (const SSEDouble &a, const SSEDouble& b) { return _mm_add_pd(a.mVal, b.mVal); }
-        friend SSEDouble operator - (const SSEDouble &a, const SSEDouble& b) { return _mm_sub_pd(a.mVal, b.mVal); }
-        friend SSEDouble operator * (const SSEDouble &a, const SSEDouble& b) { return _mm_mul_pd(a.mVal, b.mVal); }
+        SIMDVector() {}
+        SIMDVector(T a) : SIMDVectorBase<T, T, 1>(a) {}
+        friend SIMDVector operator + (const SIMDVector& a, const SIMDVector& b) { return a.mVal + b.mVal; }
+        friend SIMDVector operator - (const SIMDVector& a, const SIMDVector& b) { return a.mVal - b.mVal; }
+        friend SIMDVector operator * (const SIMDVector& a, const SIMDVector& b) { return a.mVal * b.mVal; }
         
-        template <int y, int x> static SSEDouble shuffle(const SSEDouble& a, const SSEDouble& b)
+        static void deinterleave(const SIMDVector *input, SIMDVector *outReal, SIMDVector *outImag)
         {
-            return _mm_shuffle_pd(a.mVal, b.mVal, (y<<1)|x);
+            *outReal = input[0];
+            *outImag = input[1];
+        }
+        
+        static void interleave(const SIMDVector *inReal, const SIMDVector *inImag, SIMDVector *output)
+        {
+            output[0] = *inReal;
+            output[1] = *inImag;
         }
     };
     
-    struct SSEFloat : public SIMDVector<float, __m128, 4>
+#if defined(__SSE__) || defined(__AVX__) || defined(__AVX512F__)
+    
+    template<>
+    struct SIMDVector<double, 2> : public SIMDVectorBase<double, __m128d, 2>
     {
-        SSEFloat() {}
-        SSEFloat(__m128 a) : SIMDVector(a) {}
-        friend SSEFloat operator + (const SSEFloat& a, const SSEFloat& b) { return _mm_add_ps(a.mVal, b.mVal); }
-        friend SSEFloat operator - (const SSEFloat& a, const SSEFloat& b) { return _mm_sub_ps(a.mVal, b.mVal); }
-        friend SSEFloat operator * (const SSEFloat& a, const SSEFloat& b) { return _mm_mul_ps(a.mVal, b.mVal); }
+        SIMDVector() {}
+        SIMDVector(__m128d a) : SIMDVectorBase(a) {}
+        friend SIMDVector operator + (const SIMDVector &a, const SIMDVector& b) { return _mm_add_pd(a.mVal, b.mVal); }
+        friend SIMDVector operator - (const SIMDVector &a, const SIMDVector& b) { return _mm_sub_pd(a.mVal, b.mVal); }
+        friend SIMDVector operator * (const SIMDVector &a, const SIMDVector& b) { return _mm_mul_pd(a.mVal, b.mVal); }
         
-        template <int z, int y, int x, int w> static SSEFloat shuffle(const SSEFloat& a, const SSEFloat& b)
+        static void deinterleave(const SIMDVector *input, SIMDVector *outReal, SIMDVector *outImag)
         {
-            return _mm_shuffle_ps(a.mVal, b.mVal, ((z<<6)|(y<<4)|(x<<2)|w));
+            *outReal = _mm_unpacklo_pd(input[0].mVal, input[1].mVal);
+            *outImag = _mm_unpackhi_pd(input[0].mVal, input[1].mVal);
+        }
+        
+        static void interleave(const SIMDVector *inReal, const SIMDVector *inImag, SIMDVector *output)
+        {
+            output[0] = _mm_unpacklo_pd(inReal->mVal, inImag->mVal);
+            output[1] = _mm_unpackhi_pd(inReal->mVal, inImag->mVal);
+        }
+    };
+    
+    template<>
+    struct SIMDVector<float, 4> : public SIMDVectorBase<float, __m128, 4>
+    {
+        SIMDVector() {}
+        SIMDVector(__m128 a) : SIMDVectorBase(a) {}
+        friend SIMDVector operator + (const SIMDVector& a, const SIMDVector& b) { return _mm_add_ps(a.mVal, b.mVal); }
+        friend SIMDVector operator - (const SIMDVector& a, const SIMDVector& b) { return _mm_sub_ps(a.mVal, b.mVal); }
+        friend SIMDVector operator * (const SIMDVector& a, const SIMDVector& b) { return _mm_mul_ps(a.mVal, b.mVal); }
+        
+        static void deinterleave(const SIMDVector *input, SIMDVector *outReal, SIMDVector *outImag)
+        {
+            *outReal = _mm_unpacklo_ps(input[0].mVal, input[1].mVal);
+            *outImag = _mm_unpackhi_ps(input[0].mVal, input[1].mVal);
+        }
+        
+        static void interleave(const SIMDVector *inReal, const SIMDVector *inImag, SIMDVector *output)
+        {
+            output[0] = _mm_unpacklo_ps(inReal->mVal, inImag->mVal);
+            output[1] = _mm_unpackhi_ps(inReal->mVal, inImag->mVal);
         }
     };
     
 #endif
     
-#if (SIMD_COMPILER_SUPPORT_LEVEL >= SIMD_COMPILER_SUPPORT_AVX256)
-
-    struct AVX256Double : public SIMDVector<double, __m256d, 4>
+#if defined(__AVX__) || defined(__AVX512F__)
+    
+    template<>
+    struct SIMDVector<double, 4> : public SIMDVectorBase<double, __m256d, 4>
     {
-        AVX256Double() {}
-        AVX256Double(__m256d a) : SIMDVector(a) {}
-        friend AVX256Double operator + (const AVX256Double &a, const AVX256Double &b) { return _mm256_add_pd(a.mVal, b.mVal); }
-        friend AVX256Double operator - (const AVX256Double &a, const AVX256Double &b) { return _mm256_sub_pd(a.mVal, b.mVal); }
-        friend AVX256Double operator * (const AVX256Double &a, const AVX256Double &b) { return _mm256_mul_pd(a.mVal, b.mVal); }
-    };
-    
-    struct AVX256Float : public SIMDVector<float, __m256, 8>
-    {
-        AVX256Float() {}
-        AVX256Float(__m256 a) : SIMDVector(a) {}
-        friend AVX256Float operator + (const AVX256Float &a, const AVX256Float &b) { return _mm256_add_ps(a.mVal, b.mVal); }
-        friend AVX256Float operator - (const AVX256Float &a, const AVX256Float &b) { return _mm256_sub_ps(a.mVal, b.mVal); }
-        friend AVX256Float operator * (const AVX256Float &a, const AVX256Float &b) { return _mm256_mul_ps(a.mVal, b.mVal); }
-    };
-    
-#endif
-    
-#if (SIMD_COMPILER_SUPPORT_LEVEL >= SIMD_COMPILER_SUPPORT_AVX512)
-
-    struct AVX512Double : public SIMDVector<double, __m512d, 8>
-    {
-        AVX512Double() {}
-        AVX512Double(__m512d a) : SIMDVector(a) {}
-        friend AVX512Double operator + (const AVX512Double &a, const AVX512Double &b) { return _mm512_add_pd(a.mVal, b.mVal); }
-        friend AVX512Double operator - (const AVX512Double &a, const AVX512Double &b) { return _mm512_sub_pd(a.mVal, b.mVal); }
-        friend AVX512Double operator * (const AVX512Double &a, const AVX512Double &b) { return _mm512_mul_pd(a.mVal, b.mVal); }
-    };
-    
-    struct AVX512Float : public SIMDVector<float, __m512, 16>
-    {
-        AVX512Float() {}
-        AVX512Float(__m512 a) : SIMDVector(a) {}
-        friend AVX512Float operator + (const AVX512Float &a, const AVX512Float &b) { return _mm512_add_ps(a.mVal, b.mVal); }
-        friend AVX512Float operator - (const AVX512Float &a, const AVX512Float &b) { return _mm512_sub_ps(a.mVal, b.mVal); }
-        friend AVX512Float operator * (const AVX512Float &a, const AVX512Float &b) { return _mm512_mul_ps(a.mVal, b.mVal); }
-    };
-    
-#endif
-    
-    // ******************** A Vector of Given Size (Made of Vectors / Scalars) ******************** //
-    
-    template <int final_size, class T> struct SizedVector
-    {
-        static const int size = final_size;
-        typedef typename T::scalar_type scalar_type;
-        typedef Split<scalar_type> split_type;
-        typedef Setup<scalar_type> setup_type;
-        static const int array_size = final_size / T::size;
+        SIMDVector() {}
+        SIMDVector(__m256d a) : SIMDVectorBase(a) {}
+        friend SIMDVector operator + (const SIMDVector &a, const SIMDVector &b) { return _mm256_add_pd(a.mVal, b.mVal); }
+        friend SIMDVector operator - (const SIMDVector &a, const SIMDVector &b) { return _mm256_sub_pd(a.mVal, b.mVal); }
+        friend SIMDVector operator * (const SIMDVector &a, const SIMDVector &b) { return _mm256_mul_pd(a.mVal, b.mVal); }
         
-        SizedVector() {}
-        SizedVector(const SizedVector *ptr) { *this = *ptr; }
-        SizedVector(const typename T::scalar_type *array) { *this = *reinterpret_cast<const SizedVector *>(array); }
+        static void deinterleave(const SIMDVector *input, SIMDVector *outReal, SIMDVector *outImag)
+        {
+            *outReal = _mm256_unpacklo_pd(input[0].mVal, input[1].mVal);
+            *outImag = _mm256_unpackhi_pd(input[0].mVal, input[1].mVal);
+        }
+        
+        static void interleave(const SIMDVector *inReal, const SIMDVector *inImag, SIMDVector *output)
+        {
+            output[0] = _mm256_unpacklo_pd(inReal->mVal, inImag->mVal);
+            output[1] = _mm256_unpackhi_pd(inReal->mVal, inImag->mVal);
+        }
+    };
+    
+    template<>
+    struct SIMDVector<float, 8> : public SIMDVectorBase<float, __m256, 8>
+    {
+        SIMDVector() {}
+        SIMDVector(__m256 a) : SIMDVectorBase(a) {}
+        friend SIMDVector operator + (const SIMDVector &a, const SIMDVector &b) { return _mm256_add_ps(a.mVal, b.mVal); }
+        friend SIMDVector operator - (const SIMDVector &a, const SIMDVector &b) { return _mm256_sub_ps(a.mVal, b.mVal); }
+        friend SIMDVector operator * (const SIMDVector &a, const SIMDVector &b) { return _mm256_mul_ps(a.mVal, b.mVal); }
+        
+        static void deinterleave(const SIMDVector *input, SIMDVector *outReal, SIMDVector *outImag)
+        {
+            *outReal = _mm256_unpacklo_ps(input[0].mVal, input[1].mVal);
+            *outImag = _mm256_unpackhi_ps(input[0].mVal, input[1].mVal);
+        }
+        
+        static void interleave(const SIMDVector *inReal, const SIMDVector *inImag, SIMDVector *output)
+        {
+            output[0] = _mm256_unpacklo_ps(inReal->mVal, inImag->mVal);
+            output[1] = _mm256_unpackhi_ps(inReal->mVal, inImag->mVal);
+        }
+    };
+    
+#endif
+    
+#if defined(__AVX512F__)
+    
+    template<>
+    struct SIMDVector<double, 8> : public SIMDVectorBase<double, __m512d, 8>
+    {
+        SIMDVector() {}
+        SIMDVector(__m512d a) : SIMDVectorBase(a) {}
+        friend SIMDVector operator + (const SIMDVector &a, const SIMDVector &b) { return _mm512_add_pd(a.mVal, b.mVal); }
+        friend SIMDVector operator - (const SIMDVector &a, const SIMDVector &b) { return _mm512_sub_pd(a.mVal, b.mVal); }
+        friend SIMDVector operator * (const SIMDVector &a, const SIMDVector &b) { return _mm512_mul_pd(a.mVal, b.mVal); }
+        
+        static void deinterleave(const SIMDVector *input, SIMDVector *outReal, SIMDVector *outImag)
+        {
+            *outReal = _mm512_unpacklo_pd(input[0].mVal, input[1].mVal);
+            *outImag = _mm512_unpackhi_pd(input[0].mVal, input[1].mVal);
+        }
+        
+        static void interleave(const SIMDVector *inReal, const SIMDVector *inImag, SIMDVector *output)
+        {
+            output[0] = _mm512_unpacklo_pd(inReal->mVal, inImag->mVal);
+            output[1] = _mm512_unpackhi_pd(inReal->mVal, inImag->mVal);
+        }
+    };
+    
+    template<>
+    struct SIMDVector<float, 16> : public SIMDVectorBase<float, __m512, 16>
+    {
+        SIMDVector() {}
+        SIMDVector(__m512 a) : SIMDVectorBase(a) {}
+        friend SIMDVector operator + (const SIMDVector &a, const SIMDVector &b) { return _mm512_add_ps(a.mVal, b.mVal); }
+        friend SIMDVector operator - (const SIMDVector &a, const SIMDVector &b) { return _mm512_sub_ps(a.mVal, b.mVal); }
+        friend SIMDVector operator * (const SIMDVector &a, const SIMDVector &b) { return _mm512_mul_ps(a.mVal, b.mVal); }
+        
+        static void deinterleave(const SIMDVector *input, SIMDVector *outReal, SIMDVector *outImag)
+        {
+            *outReal = _mm512_unpacklo_ps(input[0].mVal, input[1].mVal);
+            *outImag = _mm512_unpackhi_ps(input[0].mVal, input[1].mVal);
+        }
+        
+        static void interleave(const SIMDVector *inReal, const SIMDVector *inImag, SIMDVector *output)
+        {
+            output[0] = _mm512_unpacklo_ps(inReal->mVal, inImag->mVal);
+            output[1] = _mm512_unpackhi_ps(inReal->mVal, inImag->mVal);
+        }
+    };
+    
+#endif
+    
+#if defined(__arm__)
+    
+    template<>
+    struct SIMDVector<float, 4> : public SIMDVectorBase<float, float32x4_t, 4>
+    {
+        SIMDVector() {}
+        SIMDVector(float32x4_t a) : SIMDVectorBase(a) {}
+        friend SIMDVector operator + (const SIMDVector& a, const SIMDVector& b) { return vaddq_f32(a.mVal, b.mVal); }
+        friend SIMDVector operator - (const SIMDVector& a, const SIMDVector& b) { return vsubq_f32(a.mVal, b.mVal); }
+        friend SIMDVector operator * (const SIMDVector& a, const SIMDVector& b) { return vmulq_f32(a.mVal, b.mVal); }
+        
+        static void deinterleave(const SIMDVector *input, SIMDVector *outReal, SIMDVector *outImag)
+        {
+            float32x4x2_t v = vuzpq_f32(input[0].mVal, input[1].mVal);
+            *outReal = v.val[0];
+            *outImag = v.val[1];
+        }
+        
+        static void interleave(const SIMDVector *inReal, const SIMDVector *inImag, SIMDVector *output)
+        {
+            float32x4x2_t v = vzipq_f32(inReal->mVal, inImag->mVal);
+            output[0] = v.val[0];
+            output[1] = v.val[1];
+        }
+    };
+    
+#endif
+    
+    // ******************** A Vector of 4 Items (Made of Vectors / Scalars) ******************** //
+    
+    template <class T, int vec_size>
+    struct Vector4x
+    {
+        typedef SIMDVector<T, vec_size> ArrayType;
+        static const int array_size = 4 / vec_size;
+        
+        Vector4x() {}
+        Vector4x(const Vector4x *ptr) { *this = *ptr; }
+        Vector4x(const T *array) { *this = *reinterpret_cast<const Vector4x *>(array); }
         
         // This template allows a static loop
         
-        template <int First, int Last>
+        template <int first, int last>
         struct static_for
         {
             template <typename Fn>
-            void operator()(SizedVector &result, const SizedVector &a, const SizedVector &b, Fn const& fn) const
+            void operator()(Vector4x &result, const Vector4x &a, const Vector4x &b, Fn const& fn) const
             {
-                if (First < Last)
+                if (first < last)
                 {
-                    result.mData[First] = fn(a.mData[First], b.mData[First]);
-                    static_for<First + 1, Last>()(result, a, b, fn);
+                    result.mData[first] = fn(a.mData[first], b.mData[first]);
+                    static_for<first + 1, last>()(result, a, b, fn);
                 }
             }
         };
@@ -280,58 +359,55 @@ namespace hisstools_fft_impl{
         struct static_for<N, N>
         {
             template <typename Fn>
-            void operator()(SizedVector &result, const SizedVector &a, const SizedVector &b, Fn const& fn) const {}
+            void operator()(Vector4x &result, const Vector4x &, const Vector4x &, Fn const&) const {}
         };
         
-        template <typename Op> friend SizedVector operate(const SizedVector& a, const SizedVector& b, Op op)
+        template <typename Op>
+        friend Vector4x operate(const Vector4x& a, const Vector4x& b, Op op)
         {
-            SizedVector result;
+            Vector4x result;
             
             static_for<0, array_size>()(result, a, b, op);
             
             return result;
         }
         
-        friend SizedVector operator + (const SizedVector& a, const SizedVector& b)
+        friend Vector4x operator + (const Vector4x& a, const Vector4x& b)
         {
-            return operate(a, b, std::plus<T>());
+            return operate(a, b, std::plus<ArrayType>());
         }
         
-        friend SizedVector operator - (const SizedVector& a, const SizedVector& b)
+        friend Vector4x operator - (const Vector4x& a, const Vector4x& b)
         {
-            return operate(a, b, std::minus<T>());
+            return operate(a, b, std::minus<ArrayType>());
         }
         
-        friend SizedVector operator * (const SizedVector& a, const SizedVector& b)
+        friend Vector4x operator * (const Vector4x& a, const Vector4x& b)
         {
-            return operate(a, b, std::multiplies<T>());
+            return operate(a, b, std::multiplies<ArrayType>());
         }
         
-        T mData[array_size];
+        ArrayType mData[array_size];
     };
     
     // ******************** Setup Creation and Destruction ******************** //
     
     // Creation
     
-    template <class T> Setup<T> *create_setup(uintptr_t max_fft_log2)
+    template <class T>
+    Setup<T> *create_setup(uintptr_t max_fft_log2)
     {
-        // Check for SIMD Support here (this must be called anyway before doing an FFT)
-        
-        if (SIMD_Support == kNone)
-            SIMD_Support = detect_SIMD();
-        
-        Setup<T> *setup = allocate_aligned<Setup<T> >(1);
+        Setup<T> *setup = allocate_aligned<Setup<T>>(1);
         
         // Set Max FFT Size
         
-        setup->max_fft_log2 = static_cast<unsigned long>(max_fft_log2);
+        setup->max_fft_log2 = max_fft_log2;
         
         // Create Tables
         
         for (uintptr_t i = trig_table_offset; i <= max_fft_log2; i++)
         {
-            uintptr_t length = (uintptr_t) 1 << (i - 1);
+            uintptr_t length = static_cast<uintptr_t>(1u) << (i - 1u);
             
             setup->tables[i - trig_table_offset].realp = allocate_aligned<T>(2 * length);
             setup->tables[i - trig_table_offset].imagp = setup->tables[i - trig_table_offset].realp + length;
@@ -356,7 +432,8 @@ namespace hisstools_fft_impl{
     
     // Destruction
     
-    template <class T> void destroy_setup(Setup<T> *setup)
+    template <class T>
+    void destroy_setup(Setup<T> *setup)
     {
         if (setup)
         {
@@ -371,28 +448,30 @@ namespace hisstools_fft_impl{
     
     // Template for an SIMD Vectors With 4 Elements
     
-    template <class T>
-    void shuffle4(const SizedVector<4, T> &A,
-                  const SizedVector<4, T> &B,
-                  const SizedVector<4, T> &C,
-                  const SizedVector<4, T> &D,
-                  SizedVector<4, T> *ptr1,
-                  SizedVector<4, T> *ptr2,
-                  SizedVector<4, T> *ptr3,
-                  SizedVector<4, T> *ptr4)
-    {}
+    template <class T, int vec_size>
+    void shuffle4(const Vector4x<T, vec_size> &,
+                  const Vector4x<T, vec_size> &,
+                  const Vector4x<T, vec_size> &,
+                  const Vector4x<T, vec_size> &,
+                  Vector4x<T, vec_size> *,
+                  Vector4x<T, vec_size> *,
+                  Vector4x<T, vec_size> *,
+                  Vector4x<T, vec_size> *)
+    {
+        static_assert(vec_size != vec_size, "Shuffle not implemented for this type");
+    }
     
     // Template for Scalars
     
     template<class T>
-    void shuffle4(const SizedVector<4, Scalar<T> > &A,
-                  const SizedVector<4, Scalar<T> > &B,
-                  const SizedVector<4, Scalar<T> > &C,
-                  const SizedVector<4, Scalar<T> > &D,
-                  SizedVector<4, Scalar<T> > *ptr1,
-                  SizedVector<4, Scalar<T> > *ptr2,
-                  SizedVector<4, Scalar<T> > *ptr3,
-                  SizedVector<4, Scalar<T> > *ptr4)
+    void shuffle4(const Vector4x<T, 1> &A,
+                  const Vector4x<T, 1> &B,
+                  const Vector4x<T, 1> &C,
+                  const Vector4x<T, 1> &D,
+                  Vector4x<T, 1> *ptr1,
+                  Vector4x<T, 1> *ptr2,
+                  Vector4x<T, 1> *ptr3,
+                  Vector4x<T, 1> *ptr4)
     {
         ptr1->mData[0] = A.mData[0];
         ptr1->mData[1] = C.mData[0];
@@ -411,63 +490,121 @@ namespace hisstools_fft_impl{
         ptr4->mData[2] = B.mData[3];
         ptr4->mData[3] = D.mData[3];
     }
-
-#if (SIMD_COMPILER_SUPPORT_LEVEL >= SIMD_COMPILER_SUPPORT_SSE)
-
+    
+#if defined(__SSE__) || defined(__AVX__) || defined(__AVX512F__)
+    
     // Template Specialisation for an SSE Float Packed (1 SIMD Element)
     
     template<>
-    void shuffle4(const SizedVector<4, SSEFloat> &A,
-                  const SizedVector<4, SSEFloat> &B,
-                  const SizedVector<4, SSEFloat> &C,
-                  const SizedVector<4, SSEFloat> &D,
-                  SizedVector<4, SSEFloat> *ptr1,
-                  SizedVector<4, SSEFloat> *ptr2,
-                  SizedVector<4, SSEFloat> *ptr3,
-                  SizedVector<4, SSEFloat> *ptr4)
+    void shuffle4(const Vector4x<float, 4> &A,
+                  const Vector4x<float, 4> &B,
+                  const Vector4x<float, 4> &C,
+                  const Vector4x<float, 4> &D,
+                  Vector4x<float, 4> *ptr1,
+                  Vector4x<float, 4> *ptr2,
+                  Vector4x<float, 4> *ptr3,
+                  Vector4x<float, 4> *ptr4)
     {
-        const SSEFloat v1 = SSEFloat::shuffle<1, 0, 1, 0>(A.mData[0], C.mData[0]);
-        const SSEFloat v2 = SSEFloat::shuffle<3, 2, 3, 2>(A.mData[0], C.mData[0]);
-        const SSEFloat v3 = SSEFloat::shuffle<1, 0, 1, 0>(B.mData[0], D.mData[0]);
-        const SSEFloat v4 = SSEFloat::shuffle<3, 2, 3, 2>(B.mData[0], D.mData[0]);
-        
-        ptr1->mData[0] = SSEFloat::shuffle<2, 0, 2, 0>(v1, v3);
-        ptr2->mData[0] = SSEFloat::shuffle<2, 0, 2, 0>(v2, v4);
-        ptr3->mData[0] = SSEFloat::shuffle<3, 1, 3, 1>(v1, v3);
-        ptr4->mData[0] = SSEFloat::shuffle<3, 1, 3, 1>(v2, v4);
+        const __m128 v1 = _mm_unpacklo_ps(A.mData[0].mVal, B.mData[0].mVal);
+        const __m128 v2 = _mm_unpackhi_ps(A.mData[0].mVal, B.mData[0].mVal);
+        const __m128 v3 = _mm_unpacklo_ps(C.mData[0].mVal, D.mData[0].mVal);
+        const __m128 v4 = _mm_unpackhi_ps(C.mData[0].mVal, D.mData[0].mVal);
+
+        ptr1->mData[0] = _mm_unpacklo_ps(v1, v3);
+        ptr2->mData[0] = _mm_unpacklo_ps(v2, v4);
+        ptr3->mData[0] = _mm_unpackhi_ps(v1, v3);
+        ptr4->mData[0] = _mm_unpackhi_ps(v2, v4);
     }
     
     // Template Specialisation for an SSE Double Packed (2 SIMD Elements)
     
     template<>
-    void shuffle4(const SizedVector<4, SSEDouble> &A,
-                  const SizedVector<4, SSEDouble> &B,
-                  const SizedVector<4, SSEDouble> &C,
-                  const SizedVector<4, SSEDouble> &D,
-                  SizedVector<4, SSEDouble> *ptr1,
-                  SizedVector<4, SSEDouble> *ptr2,
-                  SizedVector<4, SSEDouble> *ptr3,
-                  SizedVector<4, SSEDouble> *ptr4)
+    void shuffle4(const Vector4x<double, 2> &A,
+                  const Vector4x<double, 2> &B,
+                  const Vector4x<double, 2> &C,
+                  const Vector4x<double, 2> &D,
+                  Vector4x<double, 2> *ptr1,
+                  Vector4x<double, 2> *ptr2,
+                  Vector4x<double, 2> *ptr3,
+                  Vector4x<double, 2> *ptr4)
     {
-        ptr1->mData[0] = SSEDouble::shuffle<0, 0>(A.mData[0], C.mData[0]);
-        ptr1->mData[1] = SSEDouble::shuffle<0, 0>(B.mData[0], D.mData[0]);
-        ptr2->mData[0] = SSEDouble::shuffle<0, 0>(A.mData[1], C.mData[1]);
-        ptr2->mData[1] = SSEDouble::shuffle<0, 0>(B.mData[1], D.mData[1]);
-        ptr3->mData[0] = SSEDouble::shuffle<1, 1>(A.mData[0], C.mData[0]);
-        ptr3->mData[1] = SSEDouble::shuffle<1, 1>(B.mData[0], D.mData[0]);
-        ptr4->mData[0] = SSEDouble::shuffle<1, 1>(A.mData[1], C.mData[1]);
-        ptr4->mData[1] = SSEDouble::shuffle<1, 1>(B.mData[1], D.mData[1]);
+        ptr1->mData[0] = _mm_unpacklo_pd(A.mData[0].mVal, C.mData[0].mVal);
+        ptr1->mData[1] = _mm_unpacklo_pd(B.mData[0].mVal, D.mData[0].mVal);
+        ptr2->mData[0] = _mm_unpacklo_pd(A.mData[1].mVal, C.mData[1].mVal);
+        ptr2->mData[1] = _mm_unpacklo_pd(B.mData[1].mVal, D.mData[1].mVal);
+        ptr3->mData[0] = _mm_unpackhi_pd(A.mData[0].mVal, C.mData[0].mVal);
+        ptr3->mData[1] = _mm_unpackhi_pd(B.mData[0].mVal, D.mData[0].mVal);
+        ptr4->mData[0] = _mm_unpackhi_pd(A.mData[1].mVal, C.mData[1].mVal);
+        ptr4->mData[1] = _mm_unpackhi_pd(B.mData[1].mVal, D.mData[1].mVal);
     }
     
 #endif
-
+    
+#if defined(__AVX__) || defined(__AVX512F__)
+    
+    // Template Specialisation for an AVX256 Double Packed (1 SIMD Element)
+    
+    template<>
+    void shuffle4(const Vector4x<double, 4> &A,
+                  const Vector4x<double, 4> &B,
+                  const Vector4x<double, 4> &C,
+                  const Vector4x<double, 4> &D,
+                  Vector4x<double, 4> *ptr1,
+                  Vector4x<double, 4> *ptr2,
+                  Vector4x<double, 4> *ptr3,
+                  Vector4x<double, 4> *ptr4)
+    {
+        const __m256d v1 = _mm256_unpacklo_pd(A.mData[0].mVal, B.mData[0].mVal);
+        const __m256d v2 = _mm256_unpackhi_pd(A.mData[0].mVal, B.mData[0].mVal);
+        const __m256d v3 = _mm256_unpacklo_pd(C.mData[0].mVal, D.mData[0].mVal);
+        const __m256d v4 = _mm256_unpackhi_pd(C.mData[0].mVal, D.mData[0].mVal);
+        
+        ptr1->mData[0] = _mm256_unpacklo_pd(v1, v3);
+        ptr2->mData[0] = _mm256_unpacklo_pd(v2, v4);
+        ptr3->mData[0] = _mm256_unpackhi_pd(v1, v3);
+        ptr4->mData[0] = _mm256_unpackhi_pd(v2, v4);
+    }
+    
+#endif
+    
+#if defined (__arm__)
+    
+    // Template Specialisation for an ARM Float Packed (1 SIMD Element)
+    
+    template<>
+    void shuffle4(const Vector4x<float, 4> &A,
+                  const Vector4x<float, 4> &B,
+                  const Vector4x<float, 4> &C,
+                  const Vector4x<float, 4> &D,
+                  Vector4x<float, 4> *ptr1,
+                  Vector4x<float, 4> *ptr2,
+                  Vector4x<float, 4> *ptr3,
+                  Vector4x<float, 4> *ptr4)
+    {
+        const float32x4_t v1 = vcombine_f32( vget_low_f32(A.mData[0].mVal),  vget_low_f32(C.mData[0].mVal));
+        const float32x4_t v2 = vcombine_f32(vget_high_f32(A.mData[0].mVal), vget_high_f32(C.mData[0].mVal));
+        const float32x4_t v3 = vcombine_f32( vget_low_f32(B.mData[0].mVal),  vget_low_f32(D.mData[0].mVal));
+        const float32x4_t v4 = vcombine_f32(vget_high_f32(B.mData[0].mVal), vget_high_f32(D.mData[0].mVal));
+        
+        const float32x4x2_t v5 = vuzpq_f32(v1, v3);
+        const float32x4x2_t v6 = vuzpq_f32(v2, v4);
+        
+        ptr1->mData[0] = v5.val[0];
+        ptr2->mData[0] = v6.val[0];
+        ptr3->mData[0] = v5.val[1];
+        ptr4->mData[0] = v6.val[1];
+    }
+    
+#endif
+    
     // ******************** Templates (Scalar or SIMD) for FFT Passes ******************** //
     
     // Pass One and Two with Re-ordering
     
-    template <class T> void pass_1_2_reorder(Split<typename T::scalar_type> *input, uintptr_t length)
+    template <class T, int vec_size>
+    void pass_1_2_reorder(Split<T> *input, uintptr_t length)
     {
-        typedef SizedVector<4, T> Vector;
+        typedef Vector4x<T, vec_size> Vector;
         
         Vector *r1_ptr = reinterpret_cast<Vector *>(input->realp);
         Vector *r2_ptr = r1_ptr + (length >> 4);
@@ -517,28 +654,30 @@ namespace hisstools_fft_impl{
     
     // Pass Three Twiddle Factors
     
-    template <class T> void pass_3_twiddle(SizedVector<4, T> &tr, SizedVector<4, T> &ti)
+    template <class T, int vec_size>
+    void pass_3_twiddle(Vector4x<T, vec_size> &tr, Vector4x<T, vec_size> &ti)
     {
         static const double SQRT_2_2 = 0.70710678118654752440084436210484904;
         
-        typename T::scalar_type _______zero = static_cast<typename T::scalar_type>(0);
-        typename T::scalar_type ________one = static_cast<typename T::scalar_type>(1);
-        typename T::scalar_type neg_____one = static_cast<typename T::scalar_type>(-1);
-        typename T::scalar_type ____sqrt2_2 = static_cast<typename T::scalar_type>(SQRT_2_2);
-        typename T::scalar_type neg_sqrt2_2 = static_cast<typename T::scalar_type>(-SQRT_2_2);
+        const T _______zero = static_cast<T>(0);
+        const T ________one = static_cast<T>(1);
+        const T neg_____one = static_cast<T>(-1);
+        const T ____sqrt2_2 = static_cast<T>(SQRT_2_2);
+        const T neg_sqrt2_2 = static_cast<T>(-SQRT_2_2);
         
-        typename T::scalar_type str[4] = {________one, ____sqrt2_2, _______zero, neg_sqrt2_2};
-        typename T::scalar_type sti[4] = {_______zero, neg_sqrt2_2, neg_____one, neg_sqrt2_2};
+        const T str[4] = {________one, ____sqrt2_2, _______zero, neg_sqrt2_2};
+        const T sti[4] = {_______zero, neg_sqrt2_2, neg_____one, neg_sqrt2_2};
         
-        tr = SizedVector<4, T>(str);
-        ti = SizedVector<4, T>(sti);
+        tr = Vector4x<T, vec_size>(str);
+        ti = Vector4x<T, vec_size>(sti);
     }
     
     // Pass Three With Re-ordering
     
-    template <class T> void pass_3_reorder(Split<typename T::scalar_type> *input, uintptr_t length)
+    template <class T, int vec_size>
+    void pass_3_reorder(Split<T> *input, uintptr_t length)
     {
-        typedef SizedVector<4, T> Vector;
+        typedef Vector4x<T, vec_size> Vector;
         
         uintptr_t offset = length >> 5;
         uintptr_t outerLoop = length >> 6;
@@ -598,10 +737,11 @@ namespace hisstools_fft_impl{
     
     // Pass Three Without Re-ordering
     
-    template <class T> void pass_3(Split<typename T::scalar_type> *input, uintptr_t length)
+    template <class T, int vec_size>
+    void pass_3(Split<T> *input, uintptr_t length)
     {
-        typedef SizedVector<4, T> Vector;
-        
+        typedef Vector4x<T, vec_size> Vector;
+
         Vector tr;
         Vector ti;
         
@@ -636,47 +776,50 @@ namespace hisstools_fft_impl{
     
     // A Pass Requiring Tables With Re-ordering
     
-    template <class T> void pass_trig_table_reorder(typename T::split_type *input, typename T::setup_type *setup, uintptr_t length, uintptr_t pass)
+    template <class T, int vec_size>
+    void pass_trig_table_reorder(Split<T> *input, Setup<T> *setup, uintptr_t length, uintptr_t pass)
     {
-        uintptr_t size = 2 << pass;
-        uintptr_t incr = size / (T::size << 1);
+        typedef SIMDVector<T, vec_size> Vector;
+
+        uintptr_t size = static_cast<uintptr_t>(2u) << pass;
+        uintptr_t incr = size / (vec_size << 1);
         uintptr_t loop = size;
-        uintptr_t offset = (length >> pass) / (T::size << 1);
-        uintptr_t outerLoop = ((length >> 1) / size) / ((uintptr_t) 1 << pass);
+        uintptr_t offset = (length >> pass) / (vec_size << 1);
+        uintptr_t outerLoop = ((length >> 1) / size) / (static_cast<uintptr_t>(1u) << pass);
         
-        T *r1_ptr = reinterpret_cast<T *>(input->realp);
-        T *i1_ptr = reinterpret_cast<T *>(input->imagp);
-        T *r2_ptr = r1_ptr + offset;
-        T *i2_ptr = i1_ptr + offset;
+        Vector *r1_ptr = reinterpret_cast<Vector *>(input->realp);
+        Vector *i1_ptr = reinterpret_cast<Vector *>(input->imagp);
+        Vector *r2_ptr = r1_ptr + offset;
+        Vector *i2_ptr = i1_ptr + offset;
         
         for (uintptr_t i = 0, j = 0; i < (length >> 1); loop += size)
         {
-            T *tr_ptr = reinterpret_cast<T *>(setup->tables[pass - (trig_table_offset - 1)].realp);
-            T *ti_ptr = reinterpret_cast<T *>(setup->tables[pass - (trig_table_offset - 1)].imagp);
+            Vector *tr_ptr = reinterpret_cast<Vector *>(setup->tables[pass - (trig_table_offset - 1)].realp);
+            Vector *ti_ptr = reinterpret_cast<Vector *>(setup->tables[pass - (trig_table_offset - 1)].imagp);
             
-            for (; i < loop; i += (T::size << 1))
+            for (; i < loop; i += (vec_size << 1))
             {
                 // Get input and twiddle
                 
-                const T tr = *tr_ptr++;
-                const T ti = *ti_ptr++;
+                const Vector tr = *tr_ptr++;
+                const Vector ti = *ti_ptr++;
                 
-                const T r1 = *r1_ptr;
-                const T i1 = *i1_ptr;
-                const T r2 = *r2_ptr;
-                const T i2 = *i2_ptr;
+                const Vector r1 = *r1_ptr;
+                const Vector i1 = *i1_ptr;
+                const Vector r2 = *r2_ptr;
+                const Vector i2 = *i2_ptr;
                 
-                const T r3 = *(r1_ptr + incr);
-                const T i3 = *(i1_ptr + incr);
-                const T r4 = *(r2_ptr + incr);
-                const T i4 = *(i2_ptr + incr);
+                const Vector r3 = *(r1_ptr + incr);
+                const Vector i3 = *(i1_ptr + incr);
+                const Vector r4 = *(r2_ptr + incr);
+                const Vector i4 = *(i2_ptr + incr);
                 
                 // Multiply by twiddle
                 
-                const T r5 = (r2 * tr) - (i2 * ti);
-                const T i5 = (r2 * ti) + (i2 * tr);
-                const T r6 = (r4 * tr) - (i4 * ti);
-                const T i6 = (r4 * ti) + (i4 * tr);
+                const Vector r5 = (r2 * tr) - (i2 * ti);
+                const Vector i5 = (r2 * ti) + (i2 * tr);
+                const Vector r6 = (r4 * tr) - (i4 * ti);
+                const Vector i6 = (r4 * ti) + (i4 * tr);
                 
                 // Store output (swapping as necessary)
                 
@@ -708,38 +851,41 @@ namespace hisstools_fft_impl{
     
     // A Pass Requiring Tables Without Re-ordering
     
-    template <class T> void pass_trig_table(typename T::split_type *input, typename T::setup_type *setup, uintptr_t length, uintptr_t pass)
+    template <class T, int vec_size>
+    void pass_trig_table(Split<T> *input, Setup<T> *setup, uintptr_t length, uintptr_t pass)
     {
-        uintptr_t size = 2 << pass;
-        uintptr_t incr = size / (T::size << 1);
+        typedef SIMDVector<T, vec_size> Vector;
+
+        uintptr_t size = static_cast<uintptr_t>(2u) << pass;
+        uintptr_t incr = size / (vec_size << 1);
         uintptr_t loop = size;
         
-        T *r1_ptr = reinterpret_cast<T *>(input->realp);
-        T *i1_ptr = reinterpret_cast<T *>(input->imagp);
-        T *r2_ptr = r1_ptr + (size >> 1) / T::size;
-        T *i2_ptr = i1_ptr + (size >> 1) / T::size;
+        Vector *r1_ptr = reinterpret_cast<Vector *>(input->realp);
+        Vector *i1_ptr = reinterpret_cast<Vector *>(input->imagp);
+        Vector *r2_ptr = r1_ptr + (size >> 1) / vec_size;
+        Vector *i2_ptr = i1_ptr + (size >> 1) / vec_size;
         
         for (uintptr_t i = 0; i < length; loop += size)
         {
-            T *tr_ptr = reinterpret_cast<T *>(setup->tables[pass - (trig_table_offset - 1)].realp);
-            T *ti_ptr = reinterpret_cast<T *>(setup->tables[pass - (trig_table_offset - 1)].imagp);
+            Vector *tr_ptr = reinterpret_cast<Vector *>(setup->tables[pass - (trig_table_offset - 1)].realp);
+            Vector *ti_ptr = reinterpret_cast<Vector *>(setup->tables[pass - (trig_table_offset - 1)].imagp);
             
-            for (; i < loop; i += (T::size << 1))
+            for (; i < loop; i += (vec_size << 1))
             {
                 // Get input and twiddle factors
                 
-                const T tr = *tr_ptr++;
-                const T ti = *ti_ptr++;
+                const Vector tr = *tr_ptr++;
+                const Vector ti = *ti_ptr++;
                 
-                const T r1 = *r1_ptr;
-                const T i1 = *i1_ptr;
-                const T r2 = *r2_ptr;
-                const T i2 = *i2_ptr;
+                const Vector r1 = *r1_ptr;
+                const Vector i1 = *i1_ptr;
+                const Vector r2 = *r2_ptr;
+                const Vector i2 = *i2_ptr;
                 
                 // Multiply by twiddle
                 
-                const T r3 = (r2 * tr) - (i2 * ti);
-                const T i3 = (r2 * ti) + (i2 * tr);
+                const Vector r3 = (r2 * tr) - (i2 * ti);
+                const Vector i3 = (r2 * ti) + (i2 * tr);
                 
                 // Store output
                 
@@ -758,9 +904,10 @@ namespace hisstools_fft_impl{
     
     // A Real Pass Requiring Trig Tables (Never Reorders)
     
-    template <bool ifft, class T> void pass_real_trig_table(Split<T> *input, Setup<T> *setup, uintptr_t fft_log2)
+    template <bool ifft, class T>
+    void pass_real_trig_table(Split<T> *input, Setup<T> *setup, uintptr_t fft_log2)
     {
-        uintptr_t length = (uintptr_t) 1 << (fft_log2 - 1);
+        uintptr_t length = static_cast<uintptr_t>(1u) << (fft_log2 - 1u);
         uintptr_t lengthM1 = length - 1;
         
         T *r1_ptr = input->realp;
@@ -817,7 +964,8 @@ namespace hisstools_fft_impl{
     
     // Small Complex FFTs (2, 4 or 8 points)
     
-    template <class T> void small_fft(Split<T> *input, uintptr_t fft_log2)
+    template <class T>
+    void small_fft(Split<T> *input, uintptr_t fft_log2)
     {
         T *r1_ptr = input->realp;
         T *i1_ptr = input->imagp;
@@ -911,13 +1059,14 @@ namespace hisstools_fft_impl{
             
             // Pass Three
             
-            pass_3<Scalar<T> >(input, 8);
+            pass_3<T, 1>(input, 8);
         }
     }
     
     // Small Real FFTs (2 or 4 points)
     
-    template <bool ifft, class T> void small_real_fft(Split<T> *input, uintptr_t fft_log2)
+    template <bool ifft, class T>
+    void small_real_fft(Split<T> *input, uintptr_t fft_log2)
     {
         T *r1_ptr = input->realp;
         T *i1_ptr = input->imagp;
@@ -975,9 +1124,52 @@ namespace hisstools_fft_impl{
     
     // ******************** Unzip and Zip ******************** //
     
+#ifdef USE_APPLE_FFT
+    
+    template<class T>
+    void unzip_complex(const T *input, DSPSplitComplex *output, uintptr_t half_length)
+    {
+        vDSP_ctoz((COMPLEX *) input, (vDSP_Stride) 2, output, (vDSP_Stride) 1, (vDSP_Length) half_length);
+    }
+    
+    template<class T>
+    void unzip_complex(const T *input, DSPDoubleSplitComplex *output, uintptr_t half_length)
+    {
+        vDSP_ctozD((DOUBLE_COMPLEX *) input, (vDSP_Stride) 2, output, (vDSP_Stride) 1, (vDSP_Length) half_length);
+    }
+    
+    template<>
+    void unzip_complex(const float *input, DSPDoubleSplitComplex *output, uintptr_t half_length)
+    {
+        double *realp = output->realp;
+        double *imagp = output->imagp;
+        
+        for (uintptr_t i = 0; i < half_length; i++)
+        {
+            *realp++ = static_cast<double>(*input++);
+            *imagp++ = static_cast<double>(*input++);
+        }
+    }
+    
+#endif
+    
     // Unzip
     
-    template <class T, class U, class V> void unzip_complex(const U *input, V *output, uintptr_t half_length)
+    template <class T, int vec_size>
+    void unzip_impl(const T *input, T *real, T *imag, uintptr_t half_length)
+    {
+        typedef SIMDVector<T, vec_size> Vector;
+        
+        const Vector *in_ptr = reinterpret_cast<const Vector*>(input);
+        Vector *realp = reinterpret_cast<Vector*>(real);
+        Vector *imagp = reinterpret_cast<Vector*>(imag);
+        
+        for (uintptr_t i = 0; i < (half_length / vec_size); i++, in_ptr += 2)
+            Vector::deinterleave(in_ptr, realp++, imagp++);
+    }
+    
+    template <class T, class U>
+    void unzip_complex(const U *input, Split<T> *output, uintptr_t half_length)
     {
         T *realp = output->realp;
         T *imagp = output->imagp;
@@ -989,23 +1181,55 @@ namespace hisstools_fft_impl{
         }
     }
     
+    template<class T>
+    void unzip_complex(const T *input, Split<T> *output, uintptr_t half_length)
+    {
+        const int v_size = SIMDLimits<T>::max_size;
+        
+        if (isAligned(input) && isAligned(output->realp) && isAligned(output->imagp))
+        {
+            uintptr_t v_length = (half_length / v_size) * v_size;
+            unzip_impl<T, v_size>(input, output->realp, output->imagp, v_length);
+            unzip_impl<T, 1>(input + (v_length * 2), output->realp + v_length, output->imagp + v_length, half_length - v_length);
+        }
+        else
+            unzip_impl<T, 1>(input, output->realp, output->imagp, half_length);
+    }
+    
     // Zip
     
-    template <class T, class U> void zip_complex(const T *input, U *output, uintptr_t half_length)
+    template <class T, int vec_size>
+    void zip_impl(const T *real, const T *imag, T *output, uintptr_t half_length)
     {
-        U *realp = input->realp;
-        U *imagp = input->imagp;
+        typedef SIMDVector<T, vec_size> Vector;
+
+        const Vector *realp = reinterpret_cast<const Vector*>(real);
+        const Vector *imagp = reinterpret_cast<const Vector*>(imag);
+        Vector *out_ptr = reinterpret_cast<Vector*>(output);
         
-        for (uintptr_t i = 0; i < half_length; i++)
+        for (uintptr_t i = 0; i < (half_length / vec_size); i++, out_ptr += 2)
+            Vector::interleave(realp++, imagp++, out_ptr);
+    }
+    
+    template<class T>
+    void zip_complex(const Split<T> *input, T *output, uintptr_t half_length)
+    {
+        const int v_size = SIMDLimits<T>::max_size;
+        
+        if (isAligned(output) && isAligned(input->realp) && isAligned(input->imagp))
         {
-            *output++ = *realp++;
-            *output++ = *imagp++;
+            uintptr_t v_length = (half_length / v_size) * v_size;
+            zip_impl<T, v_size>(input->realp, input->imagp, output, v_length);
+            zip_impl<T, 1>(input->realp + v_length, input->imagp + v_length, output + (2 * v_length), half_length - v_length);
         }
+        else
+            zip_impl<T, 1>(input->realp, input->imagp, output, half_length);
     }
     
     // Unzip With Zero Padding
     
-    template <class T, class U, class V> void unzip_zero(const U *input, V *output, uintptr_t in_length, uintptr_t log2n)
+    template <class T, class U, class V>
+    void unzip_zero(const U *input, V *output, uintptr_t in_length, uintptr_t log2n)
     {
         T odd_sample = static_cast<T>(input[in_length - 1]);
         T *realp = output->realp;
@@ -1013,9 +1237,9 @@ namespace hisstools_fft_impl{
         
         // Check input length is not longer than the FFT size and unzip an even number of samples
         
-        uintptr_t fft_size = static_cast<uintptr_t>(1 << log2n);
+        uintptr_t fft_size = static_cast<uintptr_t>(1u) << log2n;
         in_length = std::min(fft_size, in_length);
-        unzip_complex<T>(input, output, in_length >> 1);
+        unzip_complex(input, output, in_length >> 1);
         
         // If necessary replace the odd sample, and zero pad the input
         
@@ -1039,124 +1263,47 @@ namespace hisstools_fft_impl{
     
     // FFT Passes Template
     
-    template <class T, class U, class V, class W, class X> void fft_passes(Split<X> *input, Setup<X> *setup, uintptr_t fft_log2)
+    template <class T, int max_vec_size>
+    void fft_passes(Split<T> *input, Setup<T> *setup, uintptr_t fft_log2)
     {
-        const uintptr_t length = (uintptr_t) 1 << fft_log2;
+        const int A = max_vec_size <  4 ? max_vec_size :  4;
+        const int B = max_vec_size <  8 ? max_vec_size :  8;
+        const int C = max_vec_size < 16 ? max_vec_size : 16;
+        const uintptr_t length = static_cast<uintptr_t>(1u) << fft_log2;
         uintptr_t i;
         
-        pass_1_2_reorder<T>(input, length);
+        pass_1_2_reorder<T, A>(input, length);
         
         if (fft_log2 > 5)
-            pass_3_reorder<U>(input, length);
+            pass_3_reorder<T, A>(input, length);
         else
-            pass_3<U>(input, length);
+            pass_3<T, A>(input, length);
         
         if (3 < (fft_log2 >> 1))
-            pass_trig_table_reorder<V>(input, setup, length, 3);
+            pass_trig_table_reorder<T, B>(input, setup, length, 3);
         else
-            pass_trig_table<V>(input, setup, length, 3);
-
+            pass_trig_table<T, B>(input, setup, length, 3);
+        
         for (i = 4; i < (fft_log2 >> 1); i++)
-            pass_trig_table_reorder<W>(input, setup, length, i);
+            pass_trig_table_reorder<T, C>(input, setup, length, i);
         
         for (; i < fft_log2; i++)
-            pass_trig_table<W>(input, setup, length, i);
+            pass_trig_table<T, C>(input, setup, length, i);
     }
     
-    // SIMD Options
-    
-    template <class T>
-    void fft_passes_simd(Split<T> *input, Setup<T> *setup, uintptr_t fft_log2)
-    {
-        fft_passes<Scalar<T>, Scalar<T>, Scalar<T>, Scalar<T> >(input, setup, fft_log2);
-    }
-    
-#if (SIMD_COMPILER_SUPPORT_LEVEL == SIMD_COMPILER_SUPPORT_SSE)
-    
-    // SIMD Double Specialisation
-    
-    template<> void fft_passes_simd(Split<double> *input, Setup<double> *setup, uintptr_t fft_log2)
-    {
-        fft_passes<SSEDouble, SSEDouble, SSEDouble, SSEDouble>(input, setup, fft_log2);
-    }
-    
-    // SIMD Float Specialisation
-    
-    template<> void fft_passes_simd(Split<float> *input, Setup<float> *setup, uintptr_t fft_log2)
-    {
-        fft_passes<SSEFloat, SSEFloat, SSEFloat, SSEFloat>(input, setup, fft_log2);
-    }
-
-#endif
-    
-#if (SIMD_COMPILER_SUPPORT_LEVEL == SIMD_COMPILER_SUPPORT_AVX256)
-
-    // SIMD Double Specialisation
-    
-    template<>
-    void fft_passes_simd(Split<double> *input, Setup<double> *setup, uintptr_t fft_log2)
-    {
-        if (SIMD_Support >= kAVX256)
-            fft_passes<SSEDouble, AVX256Double, AVX256Double, AVX256Double>(input, setup, fft_log2);
-        else
-            fft_passes<SSEDouble, SSEDouble, SSEDouble, SSEDouble>(input, setup, fft_log2);
-    }
-    
-    // SIMD Float Specialisation
-    
-    template<>
-    void fft_passes_simd(Split<float> *input, Setup<float> *setup, uintptr_t fft_log2)
-    {
-        if (SIMD_Support >= kAVX256)
-            fft_passes<SSEFloat, SSEFloat, AVX256Float, AVX256Float>(input, setup, fft_log2);
-        else
-            fft_passes<SSEFloat, SSEFloat, SSEFloat, SSEFloat>(input, setup, fft_log2);
-    }
-
-#endif
-    
-#if (SIMD_COMPILER_SUPPORT_LEVEL == SIMD_COMPILER_SUPPORT_AVX512)
-    
-    // SIMD Double Specialisation
-    
-    template<>
-    void fft_passes_simd(Split<double> *input, Setup<double> *setup, uintptr_t fft_log2)
-    {
-        if (SIMD_Support >= kAVX512)
-            fft_passes<SSEDouble, AVX256Double, AVX512Double, AVX512Double>(input, setup, fft_log2);
-        else if (SIMD_Support >= kAVX256)
-            fft_passes<SSEDouble, AVX256Double, AVX256Double, AVX256Double>(input, setup, fft_log2);
-        else
-            fft_passes<SSEDouble, SSEDouble, SSEDouble, SSEDouble>(input, setup, fft_log2);
-    }
-    
-    // SIMD Float Specialisation
-    
-    template<>
-    void fft_passes_simd(Split<float> *input, Setup<float> *setup, uintptr_t fft_log2)
-    {
-        if (SIMD_Support >= kAVX512)
-            fft_passes<SSEFloat, SSEFloat, AVX256Float, AVX512Float>(input, setup, fft_log2);
-        else if (SIMD_Support >= kAVX256)
-            fft_passes<SSEFloat, SSEFloat, AVX256Float, AVX256Float>(input, setup, fft_log2);
-        else
-            fft_passes<SSEFloat, SSEFloat, SSEFloat, SSEFloat>(input, setup, fft_log2);
-    }
-    
-#endif
-
     // ******************** Main Calls ******************** //
     
     // A Complex FFT
     
-    template <class T>void hisstools_fft(Split<T> *input, Setup<T> *setup, uintptr_t fft_log2)
+    template <class T>
+    void hisstools_fft(Split<T> *input, Setup<T> *setup, uintptr_t fft_log2)
     {
         if (fft_log2 >= 4)
         {
-            if (reinterpret_cast<uintptr_t>(input->realp) % 16 || reinterpret_cast<uintptr_t>(input->imagp) % 16 || SIMD_Support == kNone)
-                fft_passes<Scalar<T>, Scalar<T>, Scalar<T>, Scalar<T> >(input, setup, fft_log2);
+            if (!isAligned(input->realp) || !isAligned(input->imagp))
+                fft_passes<T, 1>(input, setup, fft_log2);
             else
-                fft_passes_simd(input, setup, fft_log2);
+                fft_passes<T, SIMDLimits<T>::max_size>(input, setup, fft_log2);
         }
         else
             small_fft(input, fft_log2);
@@ -1164,7 +1311,8 @@ namespace hisstools_fft_impl{
     
     // A Complex iFFT
     
-    template <class T>void hisstools_ifft(Split<T> *input, Setup<T> *setup, uintptr_t fft_log2)
+    template <class T>
+    void hisstools_ifft(Split<T> *input, Setup<T> *setup, uintptr_t fft_log2)
     {
         Split<T> swap(input->imagp, input->realp);
         hisstools_fft(&swap, setup, fft_log2);
@@ -1172,7 +1320,8 @@ namespace hisstools_fft_impl{
     
     // A Real FFT
     
-    template <class T>void hisstools_rfft(Split<T> *input, Setup<T> *setup, uintptr_t fft_log2)
+    template <class T>
+    void hisstools_rfft(Split<T> *input, Setup<T> *setup, uintptr_t fft_log2)
     {
         if (fft_log2 >= 3)
         {
@@ -1185,7 +1334,8 @@ namespace hisstools_fft_impl{
     
     // A Real iFFT
     
-    template <class T>void hisstools_rifft(Split<T> *input, Setup<T> *setup, uintptr_t fft_log2)
+    template <class T>
+    void hisstools_rifft(Split<T> *input, Setup<T> *setup, uintptr_t fft_log2)
     {
         if (fft_log2 >= 3)
         {

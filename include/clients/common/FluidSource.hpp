@@ -6,8 +6,8 @@
  */
 #pragma once
 
+#include "../../data/FluidTensor.hpp"
 #include <cassert>
-#include <data/FluidTensor.hpp>
 
 namespace fluid {
 
@@ -26,8 +26,8 @@ class FluidSource //: public FluidTensor<T,2>
 public:
   FluidSource(const FluidSource &) = delete;
   FluidSource &operator=(const FluidSource &) = delete;
-  FluidSource(FluidSource&&) = default;
-  FluidSource& operator=(FluidSource&&) = default; 
+  FluidSource(FluidSource&&) noexcept = default;
+  FluidSource& operator=(FluidSource&&) noexcept = default; 
 
   FluidSource(const size_t size, const size_t channels = 1)
       : matrix(channels, size), mSize(size), mChannels(channels) {}

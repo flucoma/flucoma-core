@@ -1,14 +1,15 @@
 #pragma once
 
-#include <algorithms/public/SineExtraction.hpp>
-#include <clients/common/AudioClient.hpp>
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/nrt/FluidNRTClientWrapper.hpp>
-#include <clients/common/ParameterConstraints.hpp>
-#include <clients/common/ParameterTypes.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <clients/common/ParameterTrackChanges.hpp>
-#include <clients/rt/BufferedProcess.hpp>
+#include "BufferedProcess.hpp"
+#include "../common/AudioClient.hpp"
+#include "../common/FluidBaseClient.hpp"
+#include "../common/ParameterConstraints.hpp"
+#include "../common/ParameterTypes.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../common/ParameterTrackChanges.hpp"
+#include "../nrt/FluidNRTClientWrapper.hpp"
+#include "../../algorithms/public/SineExtraction.hpp"
+
 #include <tuple>
 
 namespace fluid {

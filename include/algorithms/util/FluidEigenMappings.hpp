@@ -3,6 +3,7 @@
 #include "../../data/FluidTensor.hpp"
 #include <Eigen/Core>
 #include <Eigen/Eigen>
+#include <algorithm>
 
 /**
  Utility functions for converting between FluidTensorView and Eigen wrappers

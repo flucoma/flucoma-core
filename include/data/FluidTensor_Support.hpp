@@ -7,6 +7,7 @@
 #include "FluidMeta.hpp"
 #include <array>  //std::array
 #include <cassert> //assert()
+#include <algorithm> //copy,copy_n
 #include <functional> // less, multiplies
 #include <numeric> //accujmuate, innerprodct
 
@@ -401,9 +402,14 @@ template <size_t N> struct FluidTensorSlice {
   };
   // Copy
   FluidTensorSlice(FluidTensorSlice const &other) = default;
+  FluidTensorSlice &operator=(const FluidTensorSlice&) = default;
+
   // Move
-  FluidTensorSlice(FluidTensorSlice &&other) : FluidTensorSlice() {
-    swap(*this, other);
+  FluidTensorSlice(FluidTensorSlice &&x) noexcept { *this = std::move(x); }
+  
+  FluidTensorSlice &operator=(FluidTensorSlice&& other) noexcept{
+    if(this != &other) swap(*this, other);
+    return *this;
   }
 
   /**
@@ -489,12 +495,7 @@ template <size_t N> struct FluidTensorSlice {
     size = std::accumulate(extents.begin(),extents.end(),1,std::multiplies<std::size_t>());// extents[0] * strides[0];
   }
 
-  // Assign operator
-  // Note param by valuehttps://stackoverflow.com/a/3279550
-  FluidTensorSlice &operator=(FluidTensorSlice other) {
-    swap(*this, other);
-    return *this;
-  }
+
 
   // Operator () is used for mapping indices back onto a flat data structure
   // For dimensions > 2 this is done using inner_product.

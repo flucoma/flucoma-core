@@ -1,13 +1,14 @@
 #pragma once
 
-#include <clients/common/BufferAdaptor.hpp>
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/OfflineClient.hpp>
-#include <clients/common/ParameterTypes.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <clients/common/SpikesToTimes.hpp>
-#include <data/FluidTensor.hpp>
-#include <data/TensorTypes.hpp>
+#include "../common/BufferAdaptor.hpp"
+#include "../common/FluidBaseClient.hpp"
+#include "../common/OfflineClient.hpp"
+#include "../common/ParameterTypes.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../common/SpikesToTimes.hpp"
+#include "../../data/FluidTensor.hpp"
+#include "../../data/TensorTypes.hpp"
+
 #include <vector>
 
 namespace fluid{
@@ -127,28 +128,17 @@ public:
     int count = 0;
     for(auto&& b: inputBuffers)
     {
-      if(!b.buffer)
-        return {Result::Status::kError, "Input buffer not set"}; //error
       
-      BufferAdaptor::Access thisInput(b.buffer);
+      intptr_t requestedFrames= b.nFrames;
+      intptr_t requestedChans= b.nChans;
       
-      if(!thisInput.exists())
-        return {Result::Status::kError, "Input buffer ", b.buffer, " not found."} ; //error
+      auto rangeCheck = bufferRangeCheck(b.buffer, b.startFrame, requestedFrames, b.startChan, requestedChans);
+      
+      if(!rangeCheck.ok()) return rangeCheck;
 
-      if(!thisInput.valid())
-        return {Result::Status::kError, "Input buffer ", b.buffer, "invalid (possibly zero-size?)"} ; //error
-
-      intptr_t requestedFrames= b.nFrames < 0 ? thisInput.numFrames() : b.nFrames;
-      if(b.startFrame + requestedFrames > thisInput.numFrames())
-        return {Result::Status::kError, "Input buffer ", b.buffer, ": not enough frames" }; //error
-
-      intptr_t requestedChans= b.nChans < 0 ? thisInput.numChans() : b.nChans;
-      if(b.startChan + requestedChans > thisInput.numChans())
-        return {Result::Status::kError, "Input buffer ", b.buffer, ": not enough channels" }; //error
-
-      inFrames[count] = b.nFrames < 0 ? thisInput.numFrames() : b.nFrames;
-      inChans[count] =  b.nChans < 0 ? thisInput.numChans() : b.nChans ;
-      mClient.sampleRate(thisInput.sampleRate());
+      inFrames[count] = requestedFrames;
+      inChans[count] =  requestedChans;
+      mClient.sampleRate(BufferAdaptor::Access(b.buffer).sampleRate());
       count++;
     }
     

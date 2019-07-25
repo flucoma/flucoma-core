@@ -1,14 +1,15 @@
 #pragma once
 
-#include <data/FluidTensor.hpp>
-#include <data/TensorTypes.hpp>
+#include "../common/FluidSink.hpp"
+#include "../common/FluidSource.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../common/ParameterTrackChanges.hpp"
+#include "../common/ParameterTypes.hpp"
+#include "../../algorithms/public/STFT.hpp"
+#include "../../data/FluidTensor.hpp"
+#include "../../data/TensorTypes.hpp"
 
-#include <algorithms/public/STFT.hpp>
-#include <clients/common/FluidSink.hpp>
-#include <clients/common/FluidSource.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <clients/common/ParameterTrackChanges.hpp>
-#include <clients/common/ParameterTypes.hpp>
+#include <memory>
 
 namespace fluid {
 namespace client {
