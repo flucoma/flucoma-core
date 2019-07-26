@@ -36,9 +36,13 @@ public:
     ArrayXd::Index maxIndex;
     int minBin = std::round(minFreq / binHz);
     int maxBin = std::round(maxFreq / binHz);
-    hps = hps.segment(minBin, maxBin - minBin);
-    double confidence = hps.sum() ==0? 0 : hps.maxCoeff(&maxIndex) / hps.sum();
-    double f0 = (minBin + maxIndex) * binHz;
+    double f0 = minBin * binHz;
+    double confidence = 0;
+    if(maxBin > minBin){
+      hps = hps.segment(minBin, maxBin - minBin);
+      confidence = hps.sum() ==0? 0 : hps.maxCoeff(&maxIndex) / hps.sum();
+      f0 = (minBin + maxIndex) * binHz;
+    }
     output(0) = f0;
     output(1) = confidence;
   }
