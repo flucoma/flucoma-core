@@ -280,7 +280,7 @@ private:
   }
     
   template <size_t Offset, size_t N, ConstraintTypes C, typename T, typename... Constraints>
-  T constrain(T thisParam, const std::tuple<Constraints...> &c, Result *r)
+  T constrain(T& thisParam, const std::tuple<Constraints...> &c, Result *r)
   {
     using CT  = std::tuple<Constraints...>;
     using Idx = std::index_sequence_for<Constraints...>;
