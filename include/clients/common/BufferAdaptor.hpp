@@ -38,13 +38,13 @@ public:
 
     bool exists() const { return mAdaptor ? mAdaptor->exists() : false; }
 
-    const FluidTensorView<float, 1> samps(size_t channel) const
+    FluidTensorView<const float, 1> samps(size_t channel) const
     {
       assert(mAdaptor);
       return mAdaptor->samps(channel);
     }
 
-    const FluidTensorView<float, 1> samps(size_t offset, size_t nframes, size_t chanoffset) const
+    FluidTensorView<const float, 1> samps(size_t offset, size_t nframes, size_t chanoffset) const
     {
       assert(mAdaptor);
       return mAdaptor->samps(offset, nframes, chanoffset);
@@ -112,8 +112,8 @@ private:
   // Return a slice of the buffer
   virtual FluidTensorView<float, 1> samps(size_t channel) = 0;
   virtual FluidTensorView<float, 1> samps(size_t offset, size_t nframes, size_t chanoffset) = 0;
-  virtual const FluidTensorView<float, 1> samps(size_t channel)  const = 0;
-  virtual const FluidTensorView<float, 1> samps(size_t offset, size_t nframes, size_t chanoffset) const = 0;
+  virtual FluidTensorView<const float, 1> samps(size_t channel)  const = 0;
+  virtual FluidTensorView<const float, 1> samps(size_t offset, size_t nframes, size_t chanoffset) const = 0;
   virtual size_t numFrames() const = 0;
   virtual size_t numChans() const = 0;
   virtual double sampleRate() const = 0;
