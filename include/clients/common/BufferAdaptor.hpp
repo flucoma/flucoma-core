@@ -9,7 +9,6 @@ class BufferAdaptor
 {
 public:
 
-
   class ReadAccess
   {
   public:
