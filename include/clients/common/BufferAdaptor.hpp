@@ -25,7 +25,7 @@ public:
 
     ReadAccess(const ReadAccess &) = delete;
     ReadAccess &operator=(const ReadAccess &) = delete;
-    ReadAccess(ReadAccess &&) noexcept               = default;
+    ReadAccess(ReadAccess &&) noexcept = default;
     ReadAccess &operator=(ReadAccess &&) noexcept = default;
 
     void destroy()
@@ -68,6 +68,11 @@ public:
     //Force any needed refreshing of mutable buffers (if the client class overrides refresh())
     ~Access() { if(mMutableAdaptor) mMutableAdaptor->refresh(); }
     
+    Access(const Access &) = delete;
+    Access &operator=(const Access &) = delete;
+    Access(Access &&) noexcept = default;
+    Access &operator=(Access &&) noexcept = default;
+      
     FluidTensorView<float, 1> samps(size_t channel)
     {
       assert(mMutableAdaptor);
@@ -89,7 +94,6 @@ public:
       BufferAdaptor* mMutableAdaptor;
   };
   
-
   BufferAdaptor(BufferAdaptor &&rhs) = default;
   BufferAdaptor()                    = default;
 
