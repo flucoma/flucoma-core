@@ -138,7 +138,7 @@ public:
             mLoudness.processFrame(in.row(0), mFeature, true, true);
             break;
           }
-          out.row(0)(frameOffset) = mNovelty.processFrame(mFeature);
+          if(frameOffset < out.row(0).size())out.row(0)(frameOffset) = mNovelty.processFrame(mFeature);
           frameOffset += get<kFFT>().hopSize();
         });
     output[0] = out.row(0);

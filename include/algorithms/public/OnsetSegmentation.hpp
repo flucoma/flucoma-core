@@ -27,11 +27,10 @@ class OnsetSegmentation {
 public:
   OnsetSegmentation(int maxSize)
       : mMaxSize(maxSize), mWindowStorage(maxSize), mFFT(maxSize),
-        mFFTSize(1024), mWindowSize(1024), mHopSize(256), mFrameDelta(0),
+        mFFTSize(maxSize), mWindowSize(maxSize), mHopSize(maxSize/2), mFrameDelta(0),
         mWindowType(WindowTypes::kHann), mFunction(0), mFilterSize(5),
         mThreshold(0.1), mDebounce(2), mDebounceCount(1), mPrevFuncVal(0),
         mFilter(mFilterSize, 0), mSorting(mFilterSize) {
-    mFFT.resize(mFFTSize);
     makeWindow();
     initFilter();
   }

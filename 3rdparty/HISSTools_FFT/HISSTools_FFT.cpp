@@ -2,8 +2,6 @@
 #include "HISSTools_FFT.h"
 #include "HISSTools_FFT_Core.h"
 
-hisstools_fft_impl::SIMDType hisstools_fft_impl::SIMD_Support = hisstools_fft_impl::kNone;
-
 #ifdef USE_APPLE_FFT
 
 // This file provides bindings to the relevant Apple or HISSTools template routines.
