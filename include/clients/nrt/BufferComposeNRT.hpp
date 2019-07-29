@@ -29,6 +29,7 @@ template <typename T>
 class BufferComposeClient : public FluidBaseClient<decltype(BufComposeParams), BufComposeParams>, OfflineIn, OfflineOut
 {
   using HostVector = FluidTensorView<T, 1>;
+  using ConstHostVector = FluidTensorView<const T, 1>;
   using HostMatrix = FluidTensor<T, 2>;
 
 public:
@@ -116,14 +117,14 @@ public:
       for (size_t i = dstStartChan, j = 0; j < nChannels; ++i, ++j)
       {
         // Special repeating channel voodoo
-        HostVector sourceChunk{
+        ConstHostVector sourceChunk{
             source.samps(get<kOffset>(), std::min(nFrames, source.numFrames()), (get<kStartChan>() + j) % source.numChans())};
 
         HostVector destinationChunk{destinationOrig.row(j)};
         if (destinationResizeNeeded) { destinationChunk.reset(destinationOrig.row(i).data(), dstStart, nFrames); }
 
         std::transform(sourceChunk.begin(), sourceChunk.end(), destinationChunk.begin(), destinationChunk.begin(),
-                       [gain](T &src, T &dst) { return dst + src * gain; });
+                       [gain](const T &src, T &dst) { return dst + src * gain; });
       }
     }
 
