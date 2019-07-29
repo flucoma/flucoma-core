@@ -13,7 +13,8 @@
 namespace fluid {
 namespace client {
 
-template<typename ParamType, ParamType& PD>
+
+template<typename ParamType, ParamType& PD, typename MessageType, MessageType& MD>
 class FluidBaseClient //<const Tuple<Ts...>>
 {
 public:
@@ -21,9 +22,17 @@ public:
   using ParamDescType = ParamType;
   using ParamSetType = ParameterSet<ParamDescType>;
   using ParamSetViewType = ParameterSetView<ParamDescType>;
-    
+  
+  
+  
   FluidBaseClient(ParamSetViewType& p) : mParams(std::ref(p)){}
   
+  template<size_t N,typename...Args>
+  auto& message(Args&&...args)
+  {
+    MD.template invoke<N>(std::forward<Args>(args)...);
+  }
+
   template<size_t N>
   auto& get() const
   {
