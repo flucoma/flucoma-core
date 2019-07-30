@@ -428,14 +428,24 @@ public:
     Result result;
     mThreadedTask = std::unique_ptr<ThreadedTask>(new ThreadedTask(mHostParams, mSynchronous, result));
     
+    if (mSynchronous)
+      mThreadedTask = nullptr;
+    
     return result;
   }
     
   ProcessState checkProgress(Result& result)
   {
     if (mThreadedTask)
-      return mThreadedTask->checkProgress(result);
+    {
+      auto state = mThreadedTask->checkProgress(result);
       
+      if (state == kDone)
+        mThreadedTask = nullptr;
+      
+      return state;
+    }
+
     return kNoProcess;
   }
     
@@ -544,21 +554,22 @@ private:
     ProcessState checkProgress(Result& result)
     {
       ProcessState state = mState;
-        
-      if (mThread.get_id() != std::thread::id())
-          mThread.join();
       
       if (state == kDone)
       {
-        if(mTask.cancelled())
+        if (mThread.get_id() != std::thread::id())
+          mThread.join();
+        
+        if (!mTask.cancelled())
         {
           mProcessParams.template forEachParamType<BufferT, BufferCopyBack>();
           result = mResult;
         }
-        else result = {Result::Status::kCancelled,""};
+        else
+          result = {Result::Status::kCancelled,""};
         
-        mState = kNoProcess;
         mProcessParams.template forEachParamType<BufferT, BufferDelete>();
+        mState = kNoProcess;
       }
       
       return state;
