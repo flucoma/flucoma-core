@@ -404,103 +404,39 @@ public:
   size_t audioChannelsOut()   const noexcept { return 0; }
   size_t controlChannelsIn()  const noexcept { return 0; }
   size_t controlChannelsOut() const noexcept { return 0; }
-  size_t audioBuffersIn()  const noexcept { return mClient.audioBuffersIn();  }
-  size_t audioBuffersOut() const noexcept { return mClient.audioBuffersOut(); }
+  size_t audioBuffersIn()  const noexcept { return ParamDescType:: template NumOf<InputBufferT>();   }
+  size_t audioBuffersOut() const noexcept { return ParamDescType:: template NumOf<BufferT>();  }
 
   NRTThreadingAdaptor(ParamSetType& p)
    : mHostParams{p}
-   , mProcessParams(mHostParams)
-   , mClient{mProcessParams}
-   , mContext{mTask}
   {}
     
   ~NRTThreadingAdaptor()
   {
-    while (mState != kNoProcess)
+    if (mThreadedTask)
     {
-      Result res;
-      mTask.cancel();
-      std::chrono::duration<double, std::milli> dur(10.0);
-      std::this_thread::sleep_for(dur);
-      checkProgress(res);
+      mThreadedTask->cancel(true);
+      mThreadedTask.release();
     }
   }
-    
-  static void threadedProcessEntry(NRTThreadingAdaptor* owner)
-  {
-    owner->threadedProcess();
-  }
-
-  template<size_t N, typename T>
-  struct BufferCopy
-  {
-    void operator()(typename T::type& param, NRTThreadingAdaptor *adaptor)
-    {
-      if (adaptor->mHostParams.template get<N>())
-        param = std::shared_ptr<BufferAdaptor>(new MemoryBufferAdaptor(adaptor->mHostParams.template get<N>()));
-    }
-  };
-  
-  template<size_t N, typename T>
-  struct BufferCopyBack
-  {
-    void operator()(typename T::type& param)
-    {
-      if(param) static_cast<MemoryBufferAdaptor*>(param.get())->copyToOrigin();
-    }
-  };
-    
-  template<size_t N, typename T>
-  struct BufferDelete
-  {
-    void operator()(typename T::type& param)
-    {
-      param.reset();
-    }
-  };
   
   Result process()
   {
-    ProcessState state = mState;
-      
-    if (state != kNoProcess)
+    if (mThreadedTask)
       return {Result::Status::kError, "already processing"};
-      
-    mProcessParams = mHostParams;
-      
-    // Use parameters directly if processing synchronously
-      
-    if (mSynchronous)
-      return mClient.process(mContext);
-      
-    mProcessParams.template forEachParamType<BufferT, BufferCopy>(this);
-    mState = kProcessing;
-    mThread = std::thread(threadedProcessEntry, this);
-      
-    return {};
+    
+    Result result;
+    mThreadedTask = std::unique_ptr<ThreadedTask>(new ThreadedTask(mHostParams, mSynchronous, result));
+    
+    return result;
   }
     
   ProcessState checkProgress(Result& result)
   {
-    ProcessState state = mState;
-  
-    if (state == kDone)
-    {
-      mThread.join();
+    if (mThreadedTask)
+      return mThreadedTask->checkProgress(result);
       
-      if(!mTask.cancelled())
-      {
-        mProcessParams.template forEachParamType<BufferT, BufferCopyBack>();
-        result = mResult;
-      }
-      else result = {Result::Status::kCancelled,""};
-      
-      mState = kNoProcess;
-      mProcessParams.template forEachParamType<BufferT, BufferDelete>();
-      mTask.reset();
-    }
-      
-    return state;
+    return kNoProcess;
   }
     
   void setSynchronous(bool synchronous)
@@ -508,30 +444,138 @@ public:
     mSynchronous = synchronous;
   }
   
-  void cancel() { mTask.cancel(); }
-  double progress() { return mTask.progress(); }
+  double progress()
+  {
+    return mThreadedTask ? mThreadedTask->mTask.progress() : 0.0;
+  }
   
-  bool done() { return mState == kDone; }
+  void cancel()
+  {
+    if (mThreadedTask)
+      mThreadedTask->cancel(false);
+  }
+  
+  bool done()
+  {
+    return mThreadedTask ? mThreadedTask.mTask == kDone : false;;
+  }
   
 private:
-  
-  void threadedProcess()
-  {
-    mResult = mClient.process(mContext);
-    mState = kDone;
-  }
     
   ParamSetType& mHostParams;
-  ParamSetType mProcessParams;
   
-  std::thread mThread;
-  ProcessState mState = kNoProcess;
   bool mSynchronous = false;
+
+  struct ThreadedTask
+  {
+    template<size_t N, typename T>
+    struct BufferCopy
+    {
+      void operator()(typename T::type& param)
+      {
+        if (param)
+          param = std::shared_ptr<BufferAdaptor>(new MemoryBufferAdaptor(param));
+      }
+    };
     
-  Result mResult;
-  NRTClient mClient;
-  FluidTask mTask;
-  FluidContext mContext;
+    template<size_t N, typename T>
+    struct BufferCopyBack
+    {
+      void operator()(typename T::type& param)
+      {
+        if(param) static_cast<MemoryBufferAdaptor*>(param.get())->copyToOrigin();
+      }
+    };
+    
+    template<size_t N, typename T>
+    struct BufferDelete
+    {
+      void operator()(typename T::type& param)
+      {
+        param.reset();
+      }
+    };
+      
+    ThreadedTask(ParamSetType& params, bool synchronous, Result &result)
+    : mState(kNoProcess), mProcessParams(params), mClient(mProcessParams), mContext{mTask}
+    {
+      mProcessParams = params;
+      
+      if (synchronous)
+      {
+        result = process();
+      }
+      else
+      {
+        auto entry = [](ThreadedTask* owner) { owner->process(); };
+        
+        mProcessParams.template forEachParamType<BufferT, BufferCopy>();
+        
+        mState = kProcessing;
+        mThread = std::thread(entry, this);
+        result = Result();
+      }
+    }
+    
+    Result process()
+    {
+      mState = kProcessing;
+      Result r = mClient.process(mContext);
+      mState = kDone;
+      
+      if (mDetached)
+        delete this;
+      
+      return r;
+    }
+      
+    void cancel(bool detach)
+    {
+      mTask.cancel();
+      
+      assert(!detach && mThread.get_id() == std::thread::id());
+      
+      mDetached = detach;
+      
+      if (detach)
+        mThread.detach();
+    }
+      
+    ProcessState checkProgress(Result& result)
+    {
+      ProcessState state = mState;
+        
+      if (mThread.get_id() != std::thread::id())
+          mThread.join();
+      
+      if (state == kDone)
+      {
+        if(mTask.cancelled())
+        {
+          mProcessParams.template forEachParamType<BufferT, BufferCopyBack>();
+          result = mResult;
+        }
+        else result = {Result::Status::kCancelled,""};
+        
+        mState = kNoProcess;
+        mProcessParams.template forEachParamType<BufferT, BufferDelete>();
+      }
+      
+      return state;
+    }
+    
+    ParamSetType mProcessParams;
+    ProcessState mState;
+    std::thread mThread;
+      
+    Result mResult;
+    NRTClient mClient;
+    FluidTask mTask;
+    FluidContext mContext;
+    bool mDetached = false;
+  };
+  
+  std::unique_ptr<ThreadedTask> mThreadedTask;  
 };
 
 } //namespace client
