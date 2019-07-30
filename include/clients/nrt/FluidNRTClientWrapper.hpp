@@ -467,7 +467,7 @@ public:
   
   bool done()
   {
-    return mThreadedTask ? mThreadedTask.mTask == kDone : false;;
+    return mThreadedTask ? mThreadedTask->mState == kDone : false;
   }
   
 private:
