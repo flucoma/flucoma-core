@@ -542,12 +542,10 @@ private:
     void cancel(bool detach)
     {
       mTask.cancel();
-      
-      assert(!detach && mThread.get_id() == std::thread::id());
-      
+
       mDetached = detach;
       
-      if (detach)
+      if (detach && mThread.joinable())
         mThread.detach();
     }
       
