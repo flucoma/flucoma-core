@@ -123,7 +123,7 @@ public:
   typename = std::enable_if_t<isIndexSequence<Dims...>()>>
   FluidTensor(Dims... dims) : mDesc(dims...) {
     static_assert(sizeof...(dims) == N, "Number of dimensions doesn't match");
-    mContainer.resize(mDesc.size, 0);
+    mContainer.resize(mDesc.size);
   }
 
   /************************************************************
@@ -429,7 +429,7 @@ public:
   void resize(Dims... dims) {
     static_assert(sizeof...(dims) == N, "Number of dimensions doesn't match");
     mDesc = FluidTensorSlice<N>(dims...);
-    mContainer.resize(mDesc.size, 0);
+    mContainer.resize(mDesc.size);
   }
 
   void fill(T v) { std::fill(mContainer.begin(), mContainer.end(), v); }
