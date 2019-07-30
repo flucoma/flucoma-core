@@ -28,7 +28,10 @@ enum OnsetParamIndex {
 };
 
 auto constexpr OnsetParams = defineParameters(
-    LongParam("metric", "Spectral Change Metric", 0, Min(0), Max(9)),
+    EnumParam("metric", "Spectral Change Metric", 0, "Energy",
+    "High Frequency Content", "Spectral Flux", "Modified Kullback-Leibler",
+    "Itakura-Saito", "Cosine","Phase Deviation","Weighted Phase Deviation",
+    "Complex Domain","Rectified Complex Domain"),
     FloatParam("threshold", "Threshold", 0.5, Min(0)),
     LongParam("minSliceLength", "Minimum Length of Slice", 2, Min(0)),
     LongParam("filterSize", "Filter Size", 5, Min(0), Odd(), Max(101)),
@@ -104,7 +107,7 @@ private:
 };
 
 auto constexpr NRTOnsetSliceParams =
-    makeNRTParams<OnsetSlice>({BufferParam("source", "Source Buffer")},
+    makeNRTParams<OnsetSlice>({InputBufferParam("source", "Source Buffer")},
                               {BufferParam("indices", "Indices Buffer")});
 template <typename T>
 using NRTOnsetSlice =

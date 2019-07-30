@@ -140,7 +140,7 @@ public:
 
       inFrames[count] = requestedFrames;
       inChans[count] =  requestedChans;
-      mClient.sampleRate(BufferAdaptor::Access(b.buffer).sampleRate());
+      mClient.sampleRate(BufferAdaptor::ReadAccess(b.buffer).sampleRate());
       count++;
     }
     
@@ -175,7 +175,13 @@ public:
     size_t numFrames   = *std::min_element(inFrames.begin(),inFrames.end());
     size_t numChannels = *std::min_element(inChans.begin(), inChans.end());
     
-    AdaptorType<HostMatrix,HostVectorView>::process(mClient,inputBuffers,outputBuffers,numFrames,numChannels,c);
+    Result processResult = AdaptorType<HostMatrix,HostVectorView>::process(mClient,inputBuffers,outputBuffers,numFrames,numChannels,c);
+
+    if(!processResult.ok())
+    {
+      r.set(processResult.status());
+      r.addMessage(processResult.message());
+    }
 
     return r;
   }
@@ -208,7 +214,7 @@ template<typename HostMatrix, typename HostVectorView>
 struct Streaming
 {
   template <typename Client,typename InputList, typename OutputList>
-  static void process(Client& client, InputList& inputBuffers,OutputList& outputBuffers, size_t nFrames, size_t nChans, FluidContext& c)
+  static Result process(Client& client, InputList& inputBuffers,OutputList& outputBuffers, size_t nFrames, size_t nChans, FluidContext& c)
   {
     //To account for process latency we need to copy the buffers with padding
     std::vector<HostMatrix> outputData;
@@ -230,7 +236,7 @@ struct Streaming
       inputs.reserve(inputBuffers.size());
       for(int j = 0; j < inputBuffers.size(); ++j)
       {
-        BufferAdaptor::Access thisInput(inputBuffers[j].buffer);
+        BufferAdaptor::ReadAccess thisInput(inputBuffers[j].buffer);
         if (i==0 && j==0) sampleRate = thisInput.sampleRate();
         inputData[j].row(i)(Slice(0,nFrames)) = thisInput.samps(inputBuffers[j].startFrame,nFrames,inputBuffers[j].startChan + i);
         inputs.emplace_back(inputData[j].row(i));
@@ -250,10 +256,13 @@ struct Streaming
     {
       if(!outputBuffers[i]) continue;
       BufferAdaptor::Access thisOutput(outputBuffers[i]);
-      thisOutput.resize(nFrames,nChans,sampleRate);
+      Result r = thisOutput.resize(nFrames,nChans,sampleRate);
+      if(!r.ok()) return r;
       for(int j = 0; j < nChans; ++j)
         thisOutput.samps(j) = outputData[i].row(j)(Slice(padding));
     }
+    
+    return {};
   }
 };
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -261,7 +270,7 @@ template<typename HostMatrix,typename HostVectorView>
 struct StreamingControl
 {
   template <typename Client,typename InputList, typename OutputList>
-  static void process(Client& client, InputList& inputBuffers,OutputList& outputBuffers, size_t nFrames, size_t nChans,  FluidContext& c)
+  static Result process(Client& client, InputList& inputBuffers,OutputList& outputBuffers, size_t nFrames, size_t nChans, FluidContext& c)
   {
         //To account for process latency we need to copy the buffers with padding
       std::vector<HostMatrix> inputData;
@@ -284,7 +293,7 @@ struct StreamingControl
       {
         for(int j = 0; j < inputBuffers.size(); ++j)
         {
-          BufferAdaptor::Access thisInput(inputBuffers[j].buffer);
+          BufferAdaptor::ReadAccess thisInput(inputBuffers[j].buffer);
           if(i==0 && j==0) sampleRate = thisInput.sampleRate();
           inputData[j].row(i)(Slice(0,nFrames)) = thisInput.samps(inputBuffers[j].startFrame,nFrames,inputBuffers[j].startChan + i);
         }
@@ -313,13 +322,16 @@ struct StreamingControl
     }
     
     BufferAdaptor::Access thisOutput(outputBuffers[0]);
-    thisOutput.resize(nHops - 1,nChans * nFeatures,sampleRate / controlRate);
+    Result resizeResult = thisOutput.resize(nHops - 1,nChans * nFeatures,sampleRate / controlRate);
+    if(!resizeResult.ok()) return resizeResult;
 
     for(int i = 0; i < nFeatures; ++i)
     {
       for(int j = 0; j < nChans; ++j)
         thisOutput.samps(i + j * nFeatures) = outputData.row(i + j * nFeatures)(Slice(1));
     }
+    
+    return {};
     
   }
 };
@@ -330,7 +342,7 @@ template<typename HostMatrix,typename HostVectorView>
 struct Slicing
 {
   template <typename Client,typename InputList, typename OutputList>
-  static void process(Client& client, InputList& inputBuffers,OutputList& outputBuffers, size_t nFrames, size_t nChans, FluidContext& c)
+  static Result process(Client& client, InputList& inputBuffers,OutputList& outputBuffers, size_t nFrames, size_t nChans, FluidContext& c)
   {
 
     assert(inputBuffers.size() == 1);
@@ -338,7 +350,7 @@ struct Slicing
     size_t padding = client.latency();
     HostMatrix monoSource(1,nFrames + padding);
 
-    BufferAdaptor::Access src(inputBuffers[0].buffer);
+    BufferAdaptor::ReadAccess src(inputBuffers[0].buffer);
     // Make a mono sum;
     for (size_t i = 0; i < nChans; ++i)
       monoSource.row(0)(Slice(0,nFrames)).apply(src.samps(i), [](float &x, float y) { x += y; });

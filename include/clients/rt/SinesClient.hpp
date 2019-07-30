@@ -8,7 +8,7 @@
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTrackChanges.hpp"
 #include "../nrt/FluidNRTClientWrapper.hpp"
-#include "../../algorithms/public/RTSineExtraction.hpp"
+#include "../../algorithms/public/SineExtraction.hpp"
 
 #include <tuple>
 
@@ -29,8 +29,8 @@ extern auto constexpr SinesParams = defineParameters(
     LongParam("bandwidth", "Bandwidth", 76, Min(1), FrameSizeUpperLimit<kFFT>()),
     FloatParam("threshold", "Threshold", 0.7, Min(0.0), Max(1.0)),
     LongParam("minTrackLen", "Min Track Length", 15, Min(0)),
-    FloatParam("magWeight", "Magnitude Weighting", 0.1, Min(0.0), Max(1.0)),
-    FloatParam("freqWeight", "Frequency Weighting", 0.1, Min(0.0), Max(1.0)),
+    FloatParam("magWeight", "Magnitude Weighting", 0.01, Min(0.0), Max(1.0)),
+    FloatParam("freqWeight", "Frequency Weighting", 0.5, Min(0.0), Max(1.0)),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024,-1,-1, FrameSizeLowerLimit<kBandwidth>()),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4), PowerOfTwo{})
   );
@@ -57,7 +57,7 @@ public:
 
     if (mTrackValues.changed(get<kFFT>().winSize(), get<kFFT>().hopSize(), get<kFFT>().fftSize(), get<kBandwidth>(), get<kMinTrackLen>()))
     {
-      mSinesExtractor.reset(new algorithm::RTSineExtraction(get<kFFT>().winSize(), get<kFFT>().fftSize(), get<kFFT>().hopSize(),
+      mSinesExtractor.reset(new algorithm::SineExtraction(get<kFFT>().winSize(), get<kFFT>().fftSize(), get<kFFT>().hopSize(),
                                                             get<kBandwidth>(), get<kThreshold>(), get<kMinTrackLen>(),
                                                             get<kMagWeight>(), get<kFreqWeight>()));
     } else
@@ -77,7 +77,7 @@ public:
 
 private:
   STFTBufferedProcess<ParamSetViewType, T, kFFT>  mSTFTBufferedProcess;
-  std::unique_ptr<algorithm::RTSineExtraction>   mSinesExtractor;
+  std::unique_ptr<algorithm::SineExtraction> mSinesExtractor;
   ParameterTrackChanges<size_t,size_t,size_t,size_t,size_t> mTrackValues;
   size_t mWinSize{0};
   size_t mHopSize{0};
@@ -86,7 +86,7 @@ private:
   size_t mMinTrackLen{0};
 };
 
-auto constexpr NRTSineParams = makeNRTParams<SinesClient>({BufferParam("source", "Source Buffer")}, {BufferParam("sines","Sines Buffer"), BufferParam("residual", "Residual Buffer")});
+auto constexpr NRTSineParams = makeNRTParams<SinesClient>({InputBufferParam("source", "Source Buffer")}, {BufferParam("sines","Sines Buffer"), BufferParam("residual", "Residual Buffer")});
 
 template <typename T>
 using NRTSines = NRTStreamAdaptor<SinesClient<T>, decltype(NRTSineParams), NRTSineParams, 1, 2>;

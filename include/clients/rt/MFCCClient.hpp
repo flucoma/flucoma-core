@@ -103,7 +103,7 @@ private:
 };
 
 auto constexpr NRTMFCCParams =
-    makeNRTParams<MFCCClient>({BufferParam("source", "Source Buffer")},
+    makeNRTParams<MFCCClient>({InputBufferParam("source", "Source Buffer")},
                               {BufferParam("features", "Output Buffer")});
 template <typename T>
 using NRTMFCCClient = NRTControlAdaptor<MFCCClient<T>, decltype(NRTMFCCParams),

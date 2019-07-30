@@ -34,14 +34,17 @@ public:
     ArrayXd mag = asEigen<Array>(input);
     ArrayXd logMag = mag.max(epsilon).log();
     mDCT.processFrame(logMag, mCepstrum);
+    double pitch = sampleRate / minFreq;
+    double confidence = 0;
+
     int minBin = std::round(sampleRate / maxFreq);
     int maxBin = std::round(sampleRate / minFreq);
-    auto vec = pd.process(mCepstrum.segment(minBin, maxBin - minBin ), 1);
-    double pitch = sampleRate / minBin;
-    double confidence = 0;
-    if(vec.size() > 0) {
-      pitch = sampleRate / (vec[0].first + minBin);
-      confidence = vec[0].second / mCepstrum[0];
+    if(maxBin > minBin && maxBin < mCepstrum.size()){
+      auto vec = pd.process(mCepstrum.segment(minBin, maxBin - minBin ), 1);
+      if(vec.size() > 0) {
+        pitch = sampleRate / (vec[0].first + minBin);
+        confidence = vec[0].second / mCepstrum[0];
+      }
     }
     output(0) = pitch;
     output(1) = std::min(std::abs(confidence), 1.0);

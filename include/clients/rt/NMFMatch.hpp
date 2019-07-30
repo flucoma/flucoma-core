@@ -15,7 +15,7 @@ namespace client {
 enum NMFMatchParamIndex{kFilterbuf,kMaxRank,kIterations,kFFT,kMaxFFTSize};
 
 auto constexpr NMFMatchParams = defineParameters(
-  BufferParam("bases", "Bases Buffer"),
+  InputBufferParam("bases", "Bases Buffer"),
   LongParam<Fixed<true>>("maxComponents","Maximum Number of Components",20,Min(1)),
   LongParam("iterations", "Number of Iterations", 10, Min(1)),
   FFTParam<kMaxFFTSize>("fftSettings","FFT Settings",1024, -1,-1),
@@ -45,7 +45,7 @@ public:
 
     if (get<kFilterbuf>().get()) {
 
-      auto filterBuffer = BufferAdaptor::Access(get<kFilterbuf>().get());
+      auto filterBuffer = BufferAdaptor::ReadAccess(get<kFilterbuf>().get());
       auto& fftParams = get<kFFT>();
 
       if (!filterBuffer.valid()) {

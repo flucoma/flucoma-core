@@ -88,7 +88,7 @@ private:
 };
 
 auto constexpr NRTLoudnessParams =
-    makeNRTParams<LoudnessClient>({BufferParam("source", "Source Buffer")},
+    makeNRTParams<LoudnessClient>({InputBufferParam("source", "Source Buffer")},
                                   {BufferParam("features", "Features Buffer")});
 template <typename T>
 using NRTLoudnessClient =

@@ -24,25 +24,26 @@ public:
     mSplit.realp = mRealBuffer.data();
     mSplit.imagp = mImagBuffer.data();
   }
-  
-  ~FFT() { hisstools_destroy_setup(mSetup); }
-  
-  FFT(const FFT& x) = delete;
 
-  FFT(FFT&& x) {  *this = std::move(x); }
+  ~FFT() { hisstools_destroy_setup(mSetup); }
+
+  FFT(const FFT& other) = delete;
+
+  FFT(FFT&& other) {  *this = std::move(other); }
 
   FFT& operator=(const FFT&) = delete;
 
-  FFT& operator=(FFT&& x)
+  FFT& operator=(FFT&& other)
   {
-     mMaxSize = x.mMaxSize;
-     mSize = x.mSize;
-     mFrameSize = x.mFrameSize;
-     mLog2Size = x.mLog2Size;
-     std::swap(mRealBuffer,x.mRealBuffer);
-     std::swap(mImagBuffer,x.mImagBuffer);
-     std::swap(mSplit,x.mSplit);
-     std::swap(mSetup,x.mSetup);
+     mMaxSize = other.mMaxSize;
+     mSize = other.mSize;
+     mFrameSize = other.mFrameSize;
+     mLog2Size = other.mLog2Size;
+     std::swap(mOutputBuffer,other.mOutputBuffer);
+     std::swap(mRealBuffer,other.mRealBuffer);
+     std::swap(mImagBuffer,other.mImagBuffer);
+     std::swap(mSplit,other.mSplit);
+     std::swap(mSetup,other.mSetup);
      return *this;
   }
 

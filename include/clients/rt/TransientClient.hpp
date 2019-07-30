@@ -116,7 +116,7 @@ private:
   size_t mPadding{0};
 };
 
-auto constexpr NRTTransientParams = makeNRTParams<TransientClient>({BufferParam("source", "Source Buffer")}, {BufferParam("transients","Transients Buffer"), BufferParam("residual","Residual Buffer")});
+auto constexpr NRTTransientParams = makeNRTParams<TransientClient>({InputBufferParam("source", "Source Buffer")}, {BufferParam("transients","Transients Buffer"), BufferParam("residual","Residual Buffer")});
 
 template <typename T>
 using NRTTransients = NRTStreamAdaptor<TransientClient<T>, decltype(NRTTransientParams), NRTTransientParams, 1, 2>;

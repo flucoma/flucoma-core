@@ -15,7 +15,7 @@ namespace client {
 enum { kSource, kOffset, kNumFrames, kStartChan, kNChans, kGain, kDest, kDestOffset, kDestStartChan, kDestGain };
 
 auto constexpr BufComposeParams = defineParameters(
-    BufferParam("source", "Source Buffer"),
+    InputBufferParam("source", "Source Buffer"),
     LongParam("startFrame", "Source Offset", 0, Min(0)),
     LongParam("numFrames", "Source Number of Frames", -1),
     LongParam("startChan", "Source Channel Offset", 0, Min(0)),
@@ -30,6 +30,7 @@ template <typename T>
 class BufferComposeClient : public FluidBaseClient<decltype(BufComposeParams), BufComposeParams>, OfflineIn, OfflineOut
 {
   using HostVector = FluidTensorView<T, 1>;
+  using ConstHostVector = FluidTensorView<const T, 1>;
   using HostMatrix = FluidTensor<T, 2>;
 
 public:
@@ -45,7 +46,7 @@ public:
     size_t nFrames{0};
 
     {
-      BufferAdaptor::Access source(get<kSource>().get());
+      BufferAdaptor::ReadAccess source(get<kSource>().get());
 
       if (!(source.exists() && source.valid())) return {Result::Status::kError, "Source Buffer Not Found or Invalid"};
 
@@ -111,24 +112,22 @@ public:
     // we need to (possibly) resize the desintation buffer which could
     // (possibly)  also be one of the sources
     {
-      BufferAdaptor::Access source(get<kSource>().get());
+      BufferAdaptor::ReadAccess source(get<kSource>().get());
       auto                  gain = get<kGain>();
       // iterates through the copying of the first source
       for (size_t i = dstStartChan, j = 0; j < nChannels; ++i, ++j)
       {
         // Special repeating channel voodoo
-        HostVector sourceChunk{
+        ConstHostVector sourceChunk{
             source.samps(get<kOffset>(), std::min(nFrames, source.numFrames()), (get<kStartChan>() + j) % source.numChans())};
 
         HostVector destinationChunk{destinationOrig.row(j)};
         if (destinationResizeNeeded) { destinationChunk.reset(destinationOrig.row(i).data(), dstStart, nFrames); }
 
         std::transform(sourceChunk.begin(), sourceChunk.end(), destinationChunk.begin(), destinationChunk.begin(),
-                       [gain](T &src, T &dst) { return dst + src * gain; });
+                       [gain](const T &src, T &dst) { return dst + src * gain; });
         
         if(c.task() && !c.task()->processUpdate(j + 1, nChannels)) return  {Result::Status::kCancelled,""};
-        
-        
       }
     }
 
@@ -136,7 +135,8 @@ public:
 
     if (destinationResizeNeeded)
     {
-      destination.resize(destinationOrig.cols(), destinationOrig.rows(), destination.sampleRate());
+      Result resizeResult = destination.resize(destinationOrig.cols(), destinationOrig.rows(), destination.sampleRate());
+      if(!resizeResult.ok()) return resizeResult;
       for (int i = 0; i < destination.numChans(); ++i) destination.samps(i) = destinationOrig.row(i);
     } else
     {

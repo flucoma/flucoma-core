@@ -51,11 +51,13 @@ public:
       int maxBin = std::round(sampleRate / minFreq);
       if(minBin > yinFlip.size() - 1) minBin =  yinFlip.size() - 1;
       if(maxBin > yinFlip.size() - minBin - 1) maxBin =  yinFlip.size() - minBin - 1;
-      yinFlip = yinFlip.segment(minBin, maxBin - minBin);
-      auto vec = pd.process(yinFlip, 1, yinFlip.minCoeff());
-      if (vec.size() > 0) {
-        pitch = sampleRate / (minBin + vec[0].first);
-        pitchConfidence = 1 + vec[0].second;
+      if(maxBin > minBin){
+        yinFlip = yinFlip.segment(minBin, maxBin - minBin);
+        auto vec = pd.process(yinFlip, 1, yinFlip.minCoeff());
+        if (vec.size() > 0) {
+          pitch = sampleRate / (minBin + vec[0].first);
+          pitchConfidence = 1 + vec[0].second;
+        }
       }
     }
     output(0) = pitch;
