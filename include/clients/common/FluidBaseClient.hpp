@@ -23,12 +23,14 @@ public:
   using ParamSetType = ParameterSet<ParamDescType>;
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   
-  
+  using MessageSetType = MessageType; 
   
   FluidBaseClient(ParamSetViewType& p) : mParams(std::ref(p)){}
   
+  constexpr static MessageType getMessageDescriptors() { return MD; }
+  
   template<size_t N,typename...Args>
-  auto& message(Args&&...args)
+  auto& invoke(Args&&...args)
   {
     MD.template invoke<N>(std::forward<Args>(args)...);
   }

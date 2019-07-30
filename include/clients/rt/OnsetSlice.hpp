@@ -10,6 +10,8 @@
 #include "../../algorithms/public/OnsetSegmentation.hpp"
 #include "../../data/TensorTypes.hpp"
 
+#include "../common/MessageSet.hpp"
+
 #include <tuple>
 
 namespace fluid {
@@ -42,8 +44,19 @@ auto constexpr OnsetParams = defineParameters(
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4), PowerOfTwo{})
   );
 
+
+struct AFunc{
+  double operator()(double,double,double){return 3; };
+};
+
+
+auto constexpr MMS = MessageSet< std::tuple<MessageDescriptor<double, AFunc, std::tuple<double,double,double>>>>
+{
+std::make_tuple(MessageDescriptor<double, AFunc, std::tuple<double,double,double>>("testMessage"))
+};
+
 template <typename T>
-class OnsetSlice : public FluidBaseClient<decltype(OnsetParams), OnsetParams>,
+class OnsetSlice : public FluidBaseClient<decltype(OnsetParams), OnsetParams, decltype(MMS),MMS>,
                    public AudioIn,
                    public AudioOut {
 
