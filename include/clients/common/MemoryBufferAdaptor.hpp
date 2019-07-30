@@ -54,24 +54,29 @@ public:
     }
   }
 
-   bool acquire() override { return true; }
-   void release() override {}
+   bool acquire() const override { return true; }
+   void release() const override {}
    bool valid() const override { return mValid; }
    bool exists() const override  { return mExists; }
     
-   void resize(size_t frames, size_t channels, double sampleRate) override
+   const Result resize(size_t frames, size_t channels, double sampleRate) override
    {
      mWrite = true;
      mSampleRate = sampleRate;
      mData.resize(frames,channels);
+       
+     return Result();
    }
     
    // Return a slice of the buffer
    FluidTensorView<float, 1> samps(size_t channel) { return mData.col(channel); }
    FluidTensorView<float, 1> samps(size_t offset, size_t nframes, size_t chanoffset) { return mData(Slice(offset, nframes), Slice(chanoffset, 1)).col(0); }
+   FluidTensorView<const float, 1> samps(size_t channel) const { return mData.col(channel); }
+   FluidTensorView<const float, 1> samps(size_t offset, size_t nframes, size_t chanoffset) const { return mData(Slice(offset, nframes), Slice(chanoffset, 1)).col(0); }
    size_t numFrames() const override { return mData.rows(); }
    size_t numChans() const override { return mData.cols(); }
    double sampleRate() const { return mSampleRate; }
+   std::string asString() const override { return ""; }
    void refresh() override { mWrite = true; }
   private:
     std::shared_ptr<BufferAdaptor> mOrigin;
