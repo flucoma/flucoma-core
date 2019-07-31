@@ -480,28 +480,14 @@ private:
   struct ThreadedTask
   {
     template<size_t N, typename T>
-    struct BufferCopy;
-    
-    template<size_t N>
-    struct BufferCopy<N,BufferT>
+    struct BufferCopy
     {
-      void operator()(typename BufferT::type& param)
+      void operator()(typename T::type& param)
       {
         if (param)
-          param = std::shared_ptr<BufferAdaptor>(new MemoryBufferAdaptor(param));
+          param = typename T::type(new MemoryBufferAdaptor(param));
       }
     };
-    
-    template<size_t N>
-    struct BufferCopy<N,InputBufferT>
-    {
-      void operator()(typename InputBufferT::type& param)
-      {
-        if (param)
-          param = std::shared_ptr<const BufferAdaptor>(new MemoryBufferAdaptor(param));
-      }
-    };
-    
     
     template<size_t N, typename T>
     struct BufferCopyBack
