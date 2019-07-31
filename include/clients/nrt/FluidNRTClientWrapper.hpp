@@ -47,6 +47,7 @@ auto constexpr spitOuts(T(&a)[N],std::index_sequence<Is...>)
     return makeWrapperOutputs(std::forward<T>(a[Is])...);
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////
+using InputBufferSpec = ParamSpec<InputBufferT,Fixed<false>>;
 using BufferSpec = ParamSpec<BufferT,Fixed<false>>;
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -382,7 +383,7 @@ using NRTControlAdaptor = impl::NRTClientWrapper<impl::StreamingControl, RTClien
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<template <typename T> class RTClient, size_t Ms>
-auto constexpr makeNRTParams(impl::BufferSpec&& in, impl::BufferSpec(&& out)[Ms])
+auto constexpr makeNRTParams(impl::InputBufferSpec&& in, impl::BufferSpec(&& out)[Ms])
 {
   return impl::joinParameterDescriptors(impl::joinParameterDescriptors(impl::makeWrapperInputs(in), impl::spitOuts(out, std::make_index_sequence<Ms>())), RTClient<double>::getParameterDescriptors());
 }
@@ -479,14 +480,28 @@ private:
   struct ThreadedTask
   {
     template<size_t N, typename T>
-    struct BufferCopy
+    struct BufferCopy;
+    
+    template<size_t N>
+    struct BufferCopy<N,BufferT>
     {
-      void operator()(typename T::type& param)
+      void operator()(typename BufferT::type& param)
       {
         if (param)
           param = std::shared_ptr<BufferAdaptor>(new MemoryBufferAdaptor(param));
       }
     };
+    
+    template<size_t N>
+    struct BufferCopy<N,InputBufferT>
+    {
+      void operator()(typename InputBufferT::type& param)
+      {
+        if (param)
+          param = std::shared_ptr<const BufferAdaptor>(new MemoryBufferAdaptor(param));
+      }
+    };
+    
     
     template<size_t N, typename T>
     struct BufferCopyBack
@@ -517,10 +532,9 @@ private:
       }
       else
       {
-        auto entry = [](ThreadedTask* owner) { owner->process(); };
-        
+        auto entry = [](ThreadedTask* owner) { owner->process(); };        
         mProcessParams.template forEachParamType<BufferT, BufferCopy>();
-        
+        mProcessParams.template forEachParamType<InputBufferT, BufferCopy>();
         mState = kProcessing;
         mThread = std::thread(entry, this);
         result = Result();
