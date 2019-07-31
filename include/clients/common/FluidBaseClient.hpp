@@ -14,8 +14,10 @@ namespace fluid {
 namespace client {
 
 
+
+
 template<typename ParamType, ParamType& PD, typename MessageType, MessageType& MD>
-class FluidBaseClient //<const Tuple<Ts...>>
+class FluidBaseClient
 {
 public:
   
@@ -30,9 +32,9 @@ public:
   constexpr static MessageType getMessageDescriptors() { return MD; }
   
   template<size_t N,typename...Args>
-  auto& invoke(Args&&...args)
+  decltype(auto) invoke(Args&&...args)
   {
-    MD.template invoke<N>(std::forward<Args>(args)...);
+    return MD.template invoke<N>(std::forward<Args>(args)...);
   }
 
   template<size_t N>
@@ -91,11 +93,37 @@ private:
   double mSampleRate = 0;
 };
 
+template<typename ParamType, ParamType& PD, typename MessageType, MessageType& MD>
+class ClientDescriptor
+{
+  using ParamDescType = ParamType;
+  using ParamSetType = ParameterSet<ParamDescType>;
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  using MessageSetType = MessageType;
+  using ClientType = FluidBaseClient<ParamType,PD, MessageType,MD>;
+  constexpr static MessageType getMessageDescriptors() { return MD; }
+  constexpr static ParamDescType& getParameterDescriptors() { return PD; }
+  constexpr ClientDescriptor(){}
+};
+
+
+
+
 // Used by hosts for detecting client capabilities at compile time
 template <class T>
 using isNonRealTime = typename std::is_base_of<Offline, T>::type;
 template <class T>
 using isRealTime = std::integral_constant<bool, isAudio<T> || isControl<T>>;
+
+template<typename M, typename P>
+auto DefineClient(P paramdesc, M messageDesc)
+{
+  return ClientDescription(P)
+}
+
+
+
+
 
 } // namespace client
 } // namespace fluid

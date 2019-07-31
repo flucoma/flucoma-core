@@ -19,6 +19,9 @@ namespace client {
 
 using algorithm::OnsetSegmentation;
 
+template <typename T>
+class OnsetSlice;
+
 enum OnsetParamIndex {
   kFunction,
   kThreshold,
@@ -45,14 +48,16 @@ auto constexpr OnsetParams = defineParameters(
   );
 
 
-struct AFunc{
-  double operator()(double,double,double){return 3; };
+
+struct AFunc
+{
+  template<typename Client>
+  double operator()(Client&,double,double,double){return 3; };
 };
 
-
-auto constexpr MMS = MessageSet< std::tuple<MessageDescriptor<double, AFunc, std::tuple<double,double,double>>>>
+auto constexpr MMS = MessageSet<std::tuple<MessageDescriptor<AFunc>>
 {
-std::make_tuple(MessageDescriptor<double, AFunc, std::tuple<double,double,double>>("testMessage"))
+std::make_tuple(MessageDescriptor<AFunc>("testMessage"))
 };
 
 template <typename T>
@@ -63,10 +68,13 @@ class OnsetSlice : public FluidBaseClient<decltype(OnsetParams), OnsetParams, de
   using HostVector = HostVector<T>;
 
 public:
+
   OnsetSlice(ParamSetViewType &p) : FluidBaseClient(p) {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::audioChannelsOut(1);
   }
+
+  double afunc (double,double,double){return 3; };
 
   void process(std::vector<HostVector> &input,
                std::vector<HostVector> &output, bool reset = false) {
@@ -118,6 +126,12 @@ private:
   BufferedProcess mBufferedProcess;
   RealMatrix mTmp;
 };
+
+
+
+
+
+
 
 auto constexpr NRTOnsetSliceParams =
     makeNRTParams<OnsetSlice>({InputBufferParam("source", "Source Buffer")},
