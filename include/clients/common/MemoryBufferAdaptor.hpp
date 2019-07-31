@@ -15,6 +15,7 @@ public:
    // N.B. -cannot copy const BufferAdaptors at the moment
     
   MemoryBufferAdaptor(std::shared_ptr<BufferAdaptor>& other) { *this = other; }
+  MemoryBufferAdaptor(std::shared_ptr<const BufferAdaptor>& other) { *this = other; }
 
   // N.B.  -cannot get access to a const BufferAdaptor at the moment
 
@@ -30,6 +31,22 @@ public:
         for(size_t i = 0; i < mData.cols(); i++)
           mData.col(i) = src.samps(0, src.numFrames(), i);
         mOrigin = other;
+        mWrite = false;
+      }
+      return *this;
+   }
+
+    MemoryBufferAdaptor& operator=(std::shared_ptr<const BufferAdaptor>& other)
+   {
+      if(this != other.get())
+      {
+        BufferAdaptor::ReadAccess src(other.get());
+        mData.resize(src.numFrames(),src.numChans());
+        mExists = src.exists();
+        mValid = src.valid();
+        mSampleRate = src.sampleRate();
+        for(size_t i = 0; i < mData.cols(); i++)
+          mData.col(i) = src.samps(0, src.numFrames(), i);
         mWrite = false;
       }
       return *this;

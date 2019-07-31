@@ -71,10 +71,15 @@ struct BufferT : ParamTypeBase
   const std::nullptr_t defaultValue{nullptr};
 }; // no non-relational conditions for buffer?
 
-struct InputBufferT : BufferT
+struct InputBufferT:ParamTypeBase
 {
   using type = InputBufferUnderlyingType;
-  using BufferT::BufferT;
+//  using BufferT::BufferT;
+  constexpr InputBufferT(const char *name, const char *displayName)
+      : ParamTypeBase(name, displayName)
+  {}
+  const std::size_t    fixedSize = 1;
+  const std::nullptr_t defaultValue{nullptr};
 };
 
 
