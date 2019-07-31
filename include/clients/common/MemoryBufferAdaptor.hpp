@@ -11,46 +11,38 @@ public:
     
    MemoryBufferAdaptor(size_t chans, size_t frames, double sampleRate) : mData(frames,chans)
    {}
-
-   // N.B. -cannot copy const BufferAdaptors at the moment
     
   MemoryBufferAdaptor(std::shared_ptr<BufferAdaptor>& other) { *this = other; }
   MemoryBufferAdaptor(std::shared_ptr<const BufferAdaptor>& other) { *this = other; }
 
-  // N.B.  -cannot get access to a const BufferAdaptor at the moment
-
-   MemoryBufferAdaptor& operator=(std::shared_ptr<BufferAdaptor>& other)
-   {
-      if(this != other.get())
-      {
-        BufferAdaptor::Access src(other.get());
-        mData.resize(src.numFrames(),src.numChans());
-        mExists = src.exists();
-        mValid = src.valid();
-        mSampleRate = src.sampleRate();
-        for(size_t i = 0; i < mData.cols(); i++)
-          mData.col(i) = src.samps(0, src.numFrames(), i);
-        mOrigin = other;
-        mWrite = false;
-      }
-      return *this;
-   }
-
-    MemoryBufferAdaptor& operator=(std::shared_ptr<const BufferAdaptor>& other)
-   {
-      if(this != other.get())
-      {
-        BufferAdaptor::ReadAccess src(other.get());
-        mData.resize(src.numFrames(),src.numChans());
-        mExists = src.exists();
-        mValid = src.valid();
-        mSampleRate = src.sampleRate();
-        for(size_t i = 0; i < mData.cols(); i++)
-          mData.col(i) = src.samps(0, src.numFrames(), i);
-        mWrite = false;
-      }
-      return *this;
-   }
+  MemoryBufferAdaptor& operator=(std::shared_ptr<BufferAdaptor>& other)
+  {
+    if(this != other.get())
+    {
+      const BufferAdaptor* constPtr = other.get();
+      std::shared_ptr<const BufferAdaptor> constOther(constPtr);
+      *this = constOther;
+      mOrigin = other;
+    }
+    return *this;
+  }
+  
+  MemoryBufferAdaptor& operator=(std::shared_ptr<const BufferAdaptor>& other)
+  {
+    if(this != other.get())
+    {
+      BufferAdaptor::ReadAccess src(other.get());
+      mData.resize(src.numFrames(),src.numChans());
+      mExists = src.exists();
+      mValid = src.valid();
+      mSampleRate = src.sampleRate();
+      for(size_t i = 0; i < mData.cols(); i++)
+        mData.col(i) = src.samps(0, src.numFrames(), i);
+      mWrite = false;
+      mOrigin = nullptr;
+    }
+    return *this;
+  }
 
   void copyToOrigin()
   {
