@@ -5,6 +5,7 @@
 #include "ParameterConstraints.hpp"
 #include "ParameterSet.hpp"
 #include "ParameterTypes.hpp"
+#include "MessageSet.hpp"
 #include "Result.hpp"
 #include "TupleUtilities.hpp"
 #include "../../data/FluidMeta.hpp"
@@ -13,10 +14,29 @@
 namespace fluid {
 namespace client {
 
+//template<typename ParamType, ParamType& PD, typename MessageType, MessageType& MD>
+//class ClientDescriptor
+//{
+//  using ParamDescType = ParamType;
+//  using ParamSetType = ParameterSet<ParamDescType>;
+//  using ParamSetViewType = ParameterSetView<ParamDescType>;
+//  using MessageSetType = MessageType;
+////  using ClientType = FluidBaseClient<ParamType,PD, MessageType,MD>;
+//  constexpr static MessageType& getMessageDescriptors() { return MD; }
+//  constexpr static ParamDescType& getParameterDescriptors() { return PD; }
+////  constexpr ClientDescriptor(ParamType&& p, MessageType&& m): PD{std::move(p)}, MD{std::move{m}} {}
+//  constexpr ClientDescriptor(){}
+//};
+//
+////template<typename ParamType, ParamType& PD, typename MessageType, MessageType& MD>
+//template<typename Params, typename Messages>
+//auto constexpr
+//defineClient(Params&& p, Messages&& m)
+//{
+//  return ClientDescriptor<std::decay_t<decltype(p)>, std::decay_t<decltype(m)>>{p,m};
+//}
 
-
-
-template<typename ParamType, ParamType& PD, typename MessageType, MessageType& MD>
+template<typename ParamType, ParamType& PD, typename MessageType = decltype(NoMessages), MessageType& MD = NoMessages>
 class FluidBaseClient
 {
 public:
@@ -93,37 +113,11 @@ private:
   double mSampleRate = 0;
 };
 
-template<typename ParamType, ParamType& PD, typename MessageType, MessageType& MD>
-class ClientDescriptor
-{
-  using ParamDescType = ParamType;
-  using ParamSetType = ParameterSet<ParamDescType>;
-  using ParamSetViewType = ParameterSetView<ParamDescType>;
-  using MessageSetType = MessageType;
-  using ClientType = FluidBaseClient<ParamType,PD, MessageType,MD>;
-  constexpr static MessageType getMessageDescriptors() { return MD; }
-  constexpr static ParamDescType& getParameterDescriptors() { return PD; }
-  constexpr ClientDescriptor(){}
-};
-
-
-
-
 // Used by hosts for detecting client capabilities at compile time
 template <class T>
 using isNonRealTime = typename std::is_base_of<Offline, T>::type;
 template <class T>
 using isRealTime = std::integral_constant<bool, isAudio<T> || isControl<T>>;
-
-template<typename M, typename P>
-auto DefineClient(P paramdesc, M messageDesc)
-{
-  return ClientDescription(P)
-}
-
-
-
-
 
 } // namespace client
 } // namespace fluid
