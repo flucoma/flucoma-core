@@ -58,14 +58,14 @@ template <typename T, size_t N>
 class FluidTensor //: public FluidTensorBase<T,N>
 {
   // embed this so we can change our mind
-  using container_type = std::vector<T>;
+  using container_type = std::vector<std::remove_const_t<std::remove_reference_t<T>>>;
 
 public:
   static constexpr size_t order = N;
   using type = std::remove_reference_t<T>;
   // expose this so we can use as an iterator over elements
-  using iterator = typename std::vector<T>::iterator;
-  using const_iterator = typename std::vector<T>::const_iterator;
+  using iterator = typename container_type::iterator;
+  using const_iterator = typename container_type::const_iterator;
 
   //        FluidTensorView<T,N> global_view;
 
