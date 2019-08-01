@@ -1,4 +1,5 @@
 #include <fstream>
+
 #include <clients/FluidCorpusClient.hpp>
 #include <data/FluidTensor.hpp>
 #include <data/TensorTypes.hpp>
@@ -8,12 +9,14 @@ using fluid::FluidTensor;
 using fluid::FluidTensorView;
 using std::string;
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
   using std::cout;
   using std::vector;
   using fluid::client::Result;
-  fluid::client::FluidCorpusClient client(6);
 
+
+  fluid::client::FluidCorpusClient client(6);
   std::cout<<"adding points"<<std::endl;
   FluidTensor<double, 1> point{{1., 2., 34., 5., 6., 7.}};
   Result r1 =  client.addPoint("p1", point);
