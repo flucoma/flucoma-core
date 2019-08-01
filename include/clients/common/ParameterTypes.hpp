@@ -5,6 +5,7 @@
 #include "Result.hpp"
 
 #include <memory>
+#include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -18,6 +19,7 @@ using LongUnderlyingType           = intptr_t; // signed int equal to pointer si
 using EnumUnderlyingType           = intptr_t;
 using BufferUnderlyingType         = std::shared_ptr<BufferAdaptor>;
 using InputBufferUnderlyingType    = std::shared_ptr<const BufferAdaptor>;
+using StringUnderlyingType         = std::string;
 using FloatArrayUnderlyingType     = std::vector<FloatUnderlyingType>;
 using LongArrayUnderlyingType      = std::vector<LongUnderlyingType>;
 using BufferArrayUnderlyingType    = std::vector<BufferUnderlyingType>;
@@ -106,6 +108,14 @@ struct EnumT : ParamTypeBase
       v = std::max<EnumUnderlyingType>(0,std::min<EnumUnderlyingType>(v, e.numOptions - 1));
     }
   };
+};
+
+//Strings can't be used for params, but can be used for message arguments
+//can I avoid making this constexpr and thus using std::string? Let's see;
+struct StringT : ParamTypeBase
+{
+  using type = StringUnderlyingType;
+  const type defaultValue; 
 };
 
 struct FloatArrayT : ParamTypeBase
