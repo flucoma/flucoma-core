@@ -77,7 +77,9 @@ public:
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   using RTParamDescType = typename RTClient::ParamDescType;
   using RTParamSetViewType = ParameterSetView<typename RTClient::ParamDescType>;
-
+  
+  using MessageSetType = typename RTClient::MessageSetType;
+  
   constexpr static ParamDescType& getParameterDescriptors() { return PD; }
 
   //The client will be accessing its parameter by a bunch of indices that need ofsetting now
@@ -87,6 +89,8 @@ public:
   static constexpr size_t ParamOffset  = (Ins*5) + decideOuts;
   using WrappedClient = RTClient;//<ParameterSet_Offset<Params,ParamOffset>,T>;
 
+  static auto getMessageDescriptors() { return RTClient::getMessageDescriptors(); }
+  
   NRTClientWrapper(ParamSetViewType& p)
     : mParams{p}
     , mRealTimeParams{RTClient::getParameterDescriptors(), p.template subset<ParamOffset>()}
@@ -111,10 +115,14 @@ public:
     mClient.setParams(mRealTimeParams);
   }
 
+  template<size_t N,typename...Args>
+  decltype(auto) invoke(Args&&...args)
+  {
+    return invokeDelegate<N>(std::forward<Args>(args)...);
+  }
+
   Result process()
   {
-
-    
     auto constexpr inputCounter = std::make_index_sequence<Ins>();
     auto constexpr outputCounter = std::make_index_sequence<decideOuts>();
 
@@ -201,6 +209,15 @@ private:
   std::array<BufferAdaptor*,sizeof...(Is)> fetchOutputBuffers(std::index_sequence<Is...>)
   {
     return {get<Is + (Ins*5)>().get()...};
+  }
+
+
+  //We need to delegate invoke calls for message back to the actual RT client,
+  //where the actual functions live: peel off the 1st client argument, and replace with our client instance
+  template<size_t N,typename NRTClient, typename...Args>
+  decltype(auto) invokeDelegate(NRTClient&, Args&&...args)
+  {
+    return mClient.template invoke<N>(mClient, std::forward<Args>(args)...);
   }
 
   RTParamSetViewType    mRealTimeParams;
