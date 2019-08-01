@@ -6,7 +6,7 @@
 #if defined __arm__ || defined __arm64
     #include <arm_neon.h>
 #else
-    #ifdef __WIN32__
+    #ifdef _WIN32
     #include <intrin.h>
     #endif
     #include <emmintrin.h>
@@ -58,7 +58,7 @@ namespace hisstools_fft_impl{
 #endif
     // Aligned Allocation and Platform CPU Detection
     
-#ifndef __WIN32__
+#ifndef _WIN32
   
     #ifdef __APPLE__
         template <class T> T *allocate_aligned(size_t size)
