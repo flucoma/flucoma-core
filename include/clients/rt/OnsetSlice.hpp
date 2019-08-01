@@ -12,6 +12,7 @@
 
 #include "../common/MessageSet.hpp"
 
+#include <string>
 #include <tuple>
 
 namespace fluid {
@@ -48,20 +49,19 @@ auto constexpr OnsetParams = defineParameters(
   );
 
 
-
-struct AFunc
-{
+struct AFunc{
   template<typename Client>
-  double operator()(Client&,double,double,double){return 3; };
+  intptr_t operator()(Client& c, std::shared_ptr<BufferAdaptor> buf){return c.doTest(buf); }
 };
 
-auto constexpr MMS = MessageSet<std::tuple<MessageDescriptor<AFunc>>
-{
-std::make_tuple(MessageDescriptor<AFunc>("testMessage"))
-};
+
+auto constexpr OnsetMessages = defineMessages(
+  Message<AFunc>("testMessage")
+);
+
 
 template <typename T>
-class OnsetSlice : public FluidBaseClient<decltype(OnsetParams), OnsetParams, decltype(MMS),MMS>,
+class OnsetSlice : public FluidBaseClient<decltype(OnsetParams), OnsetParams,decltype(OnsetMessages),OnsetMessages>,
                    public AudioIn,
                    public AudioOut {
 
@@ -73,8 +73,6 @@ public:
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::audioChannelsOut(1);
   }
-
-  double afunc (double,double,double){return 3; };
 
   void process(std::vector<HostVector> &input,
                std::vector<HostVector> &output, bool reset = false) {
@@ -118,6 +116,14 @@ public:
   }
 
   long latency() { return get<kFFT>().winSize() + get<kFrameDelta>(); }
+
+  int doTest(std::shared_ptr<BufferAdaptor> buf) {
+    if(auto b = buf.get())
+    {
+      return BufferAdaptor::Access(b).numFrames();
+    }
+    return -1;
+  }
 
 private:
   OnsetSegmentation mAlgorithm{get<kMaxFFTSize>()};
