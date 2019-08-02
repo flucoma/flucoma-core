@@ -406,7 +406,7 @@ template <size_t N> struct FluidTensorSlice {
 
   // Move
   FluidTensorSlice(FluidTensorSlice &&x) noexcept { *this = std::move(x); }
-  
+
   FluidTensorSlice &operator=(FluidTensorSlice&& other) noexcept{
     if(this != &other) swap(*this, other);
     return *this;
@@ -522,6 +522,16 @@ template <size_t N> struct FluidTensorSlice {
     return i * strides[0] + j;
   }
 
+
+  //template <typename... Dims>
+  void grow(size_t dim, intptr_t amount )
+  {
+      assert(dim < N);
+      assert(extents[dim] + amount  >= 0);
+      extents[dim] += amount;
+      init();
+  }
+
   FluidTensorSlice<N> transpose()
   {
     FluidTensorSlice<N> res(*this);
@@ -530,7 +540,7 @@ template <size_t N> struct FluidTensorSlice {
     return res;
   }
 
-  
+
   friend void swap(FluidTensorSlice &first, FluidTensorSlice &second) {
     using std::swap;
 

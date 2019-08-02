@@ -432,12 +432,36 @@ public:
     mContainer.resize(mDesc.size);
   }
 
+  void resizeDim(size_t dim, intptr_t amount ) {
+    if(amount == 0) return;
+    mDesc.grow(dim, amount);
+    mContainer.resize(mDesc.size);
+  }
+
+  // Specialise for N=1
+  template <typename dummy=void>
+  std::enable_if_t<N == 1, dummy>  deleteRow(size_t index){
+    auto begin = mContainer.begin() + index;
+    auto end = begin + 1;
+    mContainer.erase(begin, end);
+    mDesc.grow(0, -1);
+  }
+
+  template <typename dummy=void>
+  std::enable_if_t<(N > 1), dummy> deleteRow(size_t index){
+    auto r = row(index);
+    auto begin =  mContainer.begin() + r.descriptor().start;
+    auto end = begin + r.descriptor().size;
+    mContainer.erase(begin, end);
+    mDesc.grow(0, -1);
+  }
+
   void fill(T v) { std::fill(mContainer.begin(), mContainer.end(), v); }
 
   FluidTensorView<T,N> transpose() { return { mDesc.transpose(), data() }; }
-  
+
   const FluidTensorView<T,N> transpose() const { return {mDesc.transpose(), data()}; }
-  
+
   template <typename F> FluidTensor &apply(F f) {
     for (auto i = begin(); i != end(); ++i)
       f(*i);
@@ -715,7 +739,7 @@ public:
   FluidTensorView(FluidTensor<T, N> &&r) = delete;
 
 
-  ///Repoint a view 
+  ///Repoint a view
   template <typename... Dims,
   typename = std::enable_if_t<isIndexSequence<Dims...>()>>
   void reset(T* p, std::size_t start, Dims...dims)
@@ -830,9 +854,9 @@ public:
   void fill(const T x) { std::fill(begin(), end(), x); }
 
   FluidTensorView<T,N> transpose() { return { mDesc.transpose(), mRef }; }
-  
+
   const FluidTensorView<T,N> transpose() const { return { mDesc.transpose(), mRef }; }
-  
+
   /**
    Apply some function to each element of the view.
 
