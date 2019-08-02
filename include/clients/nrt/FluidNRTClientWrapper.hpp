@@ -394,7 +394,7 @@ template<typename NRTClient>
 class NRTThreadingAdaptor : public OfflineIn, public OfflineOut
 {
 public:
-    
+  using ClientPointer = typename std::shared_ptr<NRTClient>;
   using ParamDescType = typename NRTClient::ParamDescType;
   using ParamSetType = typename NRTClient::ParamSetType;
   using ParamSetViewType = typename NRTClient::ParamSetViewType;
@@ -409,7 +409,7 @@ public:
   size_t audioBuffersOut() const noexcept { return ParamDescType:: template NumOf<BufferT>();  }
 
   NRTThreadingAdaptor(ParamSetType& p)
-   : mHostParams{p}
+   : mHostParams{p}, mClient{new NRTClient{mHostParams}}
   {}
     
   ~NRTThreadingAdaptor()
@@ -427,13 +427,13 @@ public:
       return {Result::Status::kError, "already processing"};
     
     Result result;
-    mThreadedTask = std::unique_ptr<ThreadedTask>(new ThreadedTask(mHostParams, mSynchronous, result));
+    mThreadedTask = std::unique_ptr<ThreadedTask>(new ThreadedTask(mClient,mHostParams, mSynchronous, result));
     
     if (mSynchronous)
       mThreadedTask = nullptr;
     
     return result;
-  }
+  } 
     
   ProcessState checkProgress(Result& result)
   {
@@ -473,9 +473,7 @@ public:
   
 private:
     
-  ParamSetType& mHostParams;
-  
-  bool mSynchronous = false;
+
 
   struct ThreadedTask
   {
@@ -507,10 +505,11 @@ private:
       }
     };
       
-    ThreadedTask(ParamSetType& params, bool synchronous, Result &result)
-    : mState(kNoProcess), mProcessParams(params), mClient(mProcessParams), mContext{mTask}
+    ThreadedTask(ClientPointer client, ParamSetType& hostParams,  bool synchronous, Result &result)
+    : mState(kNoProcess), mClient(client), mProcessParams(hostParams), mContext{mTask}
     {
-      mProcessParams = params;
+      
+     assert(mClient.get() != nullptr); //right?
       
       if (synchronous)
       {
@@ -521,6 +520,7 @@ private:
         auto entry = [](ThreadedTask* owner) { owner->process(); };        
         mProcessParams.template forEachParamType<BufferT, BufferCopy>();
         mProcessParams.template forEachParamType<InputBufferT, BufferCopy>();
+        mClient->setParams(mProcessParams);
         mState = kProcessing;
         mThread = std::thread(entry, this);
         result = Result();
@@ -529,8 +529,11 @@ private:
     
     Result process()
     {
+    
+      assert(mClient.get() != nullptr); //right?
+    
       mState = kProcessing;
-      Result r = mClient.process(mContext);
+      Result r = mClient->process(mContext);
       mState = kDone;
       
       if (mDetached)
@@ -578,13 +581,16 @@ private:
     std::thread mThread;
       
     Result mResult;
-    NRTClient mClient;
+    ClientPointer mClient;
     FluidTask mTask;
     FluidContext mContext;
     bool mDetached = false;
   };
   
-  std::unique_ptr<ThreadedTask> mThreadedTask;  
+  ParamSetType& mHostParams;
+  bool mSynchronous = false;
+  std::unique_ptr<ThreadedTask> mThreadedTask;
+  ClientPointer mClient;
 };
 
 } //namespace client
