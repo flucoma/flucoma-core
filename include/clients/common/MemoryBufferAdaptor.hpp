@@ -8,20 +8,18 @@ namespace client {
 class MemoryBufferAdaptor: public BufferAdaptor
 {
 public:
-    
-   MemoryBufferAdaptor(size_t chans, size_t frames, double sampleRate) : mData(frames,chans)
-   {}
-    
+ 
+  MemoryBufferAdaptor(size_t chans, size_t frames, double sampleRate) : mData(frames,chans)
+  {}
+  
   MemoryBufferAdaptor(std::shared_ptr<BufferAdaptor>& other) { *this = other; }
   MemoryBufferAdaptor(std::shared_ptr<const BufferAdaptor>& other) { *this = other; }
-
+  
   MemoryBufferAdaptor& operator=(std::shared_ptr<BufferAdaptor>& other)
   {
-    if(this != other.get())
+    if (this != other.get())
     {
-      const BufferAdaptor* constPtr = other.get();
-      std::shared_ptr<const BufferAdaptor> constOther(constPtr);
-      *this = constOther;
+      *this = other.get();
       mOrigin = other;
     }
     return *this;
@@ -29,18 +27,9 @@ public:
   
   MemoryBufferAdaptor& operator=(std::shared_ptr<const BufferAdaptor>& other)
   {
-    if(this != other.get())
-    {
-      BufferAdaptor::ReadAccess src(other.get());
-      mData.resize(src.numFrames(),src.numChans());
-      mExists = src.exists();
-      mValid = src.valid();
-      mSampleRate = src.sampleRate();
-      for(size_t i = 0; i < mData.cols(); i++)
-        mData.col(i) = src.samps(0, src.numFrames(), i);
-      mWrite = false;
-      mOrigin = nullptr;
-    }
+    if (this != other.get())
+      *this = other.get();
+
     return *this;
   }
 
@@ -87,13 +76,30 @@ public:
    double sampleRate() const { return mSampleRate; }
    std::string asString() const override { return ""; }
    void refresh() override { mWrite = true; }
-  private:
-    std::shared_ptr<BufferAdaptor> mOrigin;
-    FluidTensor<float, 2> mData;
-    double mSampleRate;
-    bool mValid{true};
-    bool mExists{true};
-    bool mWrite{false};
+
+private:
+    
+  MemoryBufferAdaptor& operator=(const BufferAdaptor* other)
+  {
+    BufferAdaptor::ReadAccess src(other);
+    mData.resize(src.numFrames(),src.numChans());
+    mExists = src.exists();
+    mValid = src.valid();
+    mSampleRate = src.sampleRate();
+    for(size_t i = 0; i < mData.cols(); i++)
+      mData.col(i) = src.samps(0, src.numFrames(), i);
+    mWrite = false;
+    mOrigin = nullptr;
+    
+    return *this;
+  }
+  
+  std::shared_ptr<BufferAdaptor> mOrigin;
+  FluidTensor<float, 2> mData;
+  double mSampleRate;
+  bool mValid{true};
+  bool mExists{true};
+  bool mWrite{false};
 };
     
 }
