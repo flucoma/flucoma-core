@@ -40,12 +40,12 @@ public:
   size_t latency() { return get<kFFT>().winSize(); }
 
   void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output, bool reset = false) {
+               std::vector<HostVector> &output, FluidContext& c, bool reset = false) {
 
     if (!input[0].data() || !output[0].data())
       return;
     // Here we do an STFT and its inverse
-    mSTFTBufferedProcess.process(mParams, input, output, reset,
+    mSTFTBufferedProcess.process(mParams, input, output, c, reset,
         [](ComplexMatrixView in, ComplexMatrixView out) { out = in; });
   }
 

@@ -37,7 +37,7 @@ public:
 
   size_t latency() { return get<kFFT>().winSize(); }
 
-  void process(std::vector<HostVector> &input, std::vector<HostVector> &output, bool reset = false)
+  void process(std::vector<HostVector> &input, std::vector<HostVector> &output, FluidContext& c, bool reset = false)
   {
     if(!input[0].data()) return;
     assert(FluidBaseClient::controlChannelsOut() && "No control channels");
@@ -71,7 +71,7 @@ public:
         tmpFilt.row(i) = filterBuffer.samps(i);
 
 //      controlTrigger(false);
-      mSTFTProcessor.processInput(mParams, input, reset,
+      mSTFTProcessor.processInput(mParams, input, c, reset,
         [&](ComplexMatrixView in)
         {
           algorithm::STFT::magnitude(in, tmpMagnitude);

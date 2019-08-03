@@ -75,7 +75,7 @@ public:
   }
 
   void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output, bool reset = false) {
+               std::vector<HostVector> &output, FluidContext& c, bool reset = false) {
     using algorithm::OnsetSegmentation;
     using std::size_t;
 
@@ -106,7 +106,7 @@ public:
     RealMatrix out(1, hostVecSize);
     int frameOffset = 0; // in case kHopSize < hostVecSize
     mBufferedProcess.push(RealMatrixView(in));
-    mBufferedProcess.process(totalWindow, totalWindow, get<kFFT>().hopSize(), reset,
+    mBufferedProcess.process(totalWindow, totalWindow, get<kFFT>().hopSize(), c, reset,
                              [&, this](RealMatrixView in, RealMatrixView) {
                                out.row(0)(frameOffset) =
                                    mAlgorithm.processFrame(in.row(0));
@@ -146,6 +146,9 @@ template <typename T>
 using NRTOnsetSlice =
     NRTSliceAdaptor<OnsetSlice<T>, decltype(NRTOnsetSliceParams),
                     NRTOnsetSliceParams, 1, 1>;
+    
+template <typename T>
+using NRTThreadingOnsetSlice = NRTThreadingAdaptor<NRTOnsetSlice<T>>;
 
 } // namespace client
 } // namespace fluid

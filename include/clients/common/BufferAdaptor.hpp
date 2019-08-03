@@ -55,6 +55,7 @@ public:
     size_t numChans() const { return mAdaptor ? mAdaptor->numChans() : 0; }
 
     double sampleRate() const { return mAdaptor ? mAdaptor->sampleRate() : 0; }
+    
   private:
     const BufferAdaptor *mAdaptor;
   };
@@ -90,6 +91,8 @@ public:
       return mMutableAdaptor ?  mMutableAdaptor->resize(frames, channels, sampleRate) : Result{Result::Status::kError,"Trying to resize null buffer"};
     }
   
+    void refresh() { if(mMutableAdaptor) mMutableAdaptor->refresh(); }
+
     private:
       BufferAdaptor* mMutableAdaptor;
   };

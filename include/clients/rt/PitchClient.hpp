@@ -57,7 +57,7 @@ public:
   }
 
   void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output, bool reset = false) {
+               std::vector<HostVector> &output, FluidContext& c, bool reset = false) {
     if (!input[0].data() || !output[0].data())
       return;
     assert(FluidBaseClient::controlChannelsOut() && "No control channels");
@@ -70,7 +70,7 @@ public:
     }
 
     mSTFTBufferedProcess.processInput(
-        mParams, input, reset, [&](ComplexMatrixView in) {
+        mParams, input, c, reset, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
           switch (get<kAlgorithm>()) {
           case 0:
@@ -114,5 +114,8 @@ using NRTPitchClient =
     NRTControlAdaptor<PitchClient<T>, decltype(NRTPitchParams), NRTPitchParams,
                       1, 1>;
 
+template <typename T>
+using NRTThreadedPitchClient = NRTThreadingAdaptor<NRTPitchClient<T>>;
+    
 } // namespace client
 } // namespace fluid

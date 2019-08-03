@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AudioClient.hpp"
+#include "FluidContext.hpp"
 #include "OfflineClient.hpp"
 #include "ParameterConstraints.hpp"
 #include "ParameterSet.hpp"
@@ -35,6 +36,9 @@ namespace client {
 //{
 //  return ClientDescriptor<std::decay_t<decltype(p)>, std::decay_t<decltype(m)>>{p,m};
 //}
+
+
+enum ProcessState { kNoProcess, kProcessing, kDone };
 
 template<typename ParamType, ParamType& PD, typename MessageType = decltype(NoMessages), MessageType& MD = NoMessages>
 class FluidBaseClient

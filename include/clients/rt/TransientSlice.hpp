@@ -55,7 +55,7 @@ public:
   }
 
   void process(std::vector<HostVector>& input,
-               std::vector<HostVector>& output, bool reset = false) {
+               std::vector<HostVector>& output, FluidContext& c, bool reset = false) {
 
     if(!input[0].data() || !output[0].data())
       return;
@@ -94,7 +94,7 @@ public:
     in.row(0) = input[0]; //need to convert float->double in some hosts
     mBufferedProcess.push(RealMatrixView(in));
 
-    mBufferedProcess.process(mExtractor->inputSize(), mExtractor->hopSize(), mExtractor->hopSize(), reset, [this](RealMatrixView in, RealMatrixView out)
+    mBufferedProcess.process(mExtractor->inputSize(), mExtractor->hopSize(), mExtractor->hopSize(), c, reset, [this](RealMatrixView in, RealMatrixView out)
     {
       mExtractor->process(in.row(0), out.row(0));
     });
@@ -126,6 +126,9 @@ auto constexpr NRTTransientSliceParams = makeNRTParams<TransientsSlice>({InputBu
 
 template <typename T>
 using NRTTransientSlice = NRTSliceAdaptor<TransientsSlice<T>, decltype(NRTTransientSliceParams), NRTTransientSliceParams, 1, 1>;
+
+template <typename T>
+using NRTThreadedTransientSlice = NRTThreadingAdaptor<NRTTransientSlice<T>>;
 
 } // namespace client
 } // namespace fluid

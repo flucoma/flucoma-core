@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../common/FluidContext.hpp"
 #include "../common/FluidSink.hpp"
 #include "../common/FluidSource.hpp"
 #include "../common/ParameterSet.hpp"
@@ -23,7 +24,7 @@ using HostMatrix = FluidTensorView<T,2>;
 class BufferedProcess {
 public:
   template <typename F>
-  void process(std::size_t windowSizeIn, std::size_t windowSizeOut, std::size_t hopSize, bool reset, F processFunc) {
+  void process(std::size_t windowSizeIn, std::size_t windowSizeOut, std::size_t hopSize, FluidContext& c, bool reset, F processFunc) {
     assert(windowSizeIn <= maxWindowSizeIn() && "Window in bigger than maximum");
     assert(windowSizeOut <= maxWindowSizeOut() && "Window out bigger than maximum");
     if(reset) mFrameTime = 0;
@@ -33,18 +34,24 @@ public:
       mSource.pull(windowIn, mFrameTime);
       processFunc(windowIn, windowOut);
       mSink.push(windowOut, mFrameTime);
+      
+      if(FluidTask* t = c.task())
+        if(!t->processUpdate(std::min(mFrameTime + hopSize,mHostSize),mHostSize)) break;
     }
     mFrameTime = mFrameTime < mHostSize ? mFrameTime : mFrameTime - mHostSize;
   }
   
   template <typename F>
-  void processInput(std::size_t windowSize, std::size_t hopSize, bool reset, F processFunc) {
+  void processInput(std::size_t windowSize, std::size_t hopSize, FluidContext& c, bool reset, F processFunc) {
     assert(windowSize <= maxWindowSizeIn() && "Window bigger than maximum");
     if(reset) mFrameTime = 0;
     for (; mFrameTime < mHostSize; mFrameTime += hopSize) {
       RealMatrixView windowIn  = mFrameIn(Slice(0), Slice(0, windowSize));
       mSource.pull(windowIn, mFrameTime);
       processFunc(windowIn);
+      
+      if(FluidTask* t = c.task())
+        if(!t->processUpdate(std::min(mFrameTime + hopSize,mHostSize),mHostSize)) break;
     }
     mFrameTime = mFrameTime < mHostSize ? mFrameTime : mFrameTime - mHostSize;
   }
@@ -106,7 +113,7 @@ public:
   
   template <typename F>
   void process(Params &p, std::vector<HostVector> &input,
-               std::vector<HostVector> &output, bool reset, F &&processFunc) {
+               std::vector<HostVector> &output, FluidContext& c, bool reset, F &&processFunc) {
    
     if (!input[0].data()) return;
     assert(mBufferedProcess.channelsIn() == input.size());
@@ -115,7 +122,7 @@ public:
     FFTParams fftParams = setup(p, input);
     size_t chansIn = mBufferedProcess.channelsIn() ;
     size_t chansOut = mBufferedProcess.channelsOut() - Normalise ;
-    mBufferedProcess.process(fftParams.winSize(), fftParams.winSize(), fftParams.hopSize(), reset,
+    mBufferedProcess.process(fftParams.winSize(), fftParams.winSize(), fftParams.hopSize(), c, reset,
         [this, &processFunc, chansIn, chansOut](RealMatrixView in, RealMatrixView out) {
 
           for(int i = 0; i < chansIn; ++i)
@@ -145,14 +152,14 @@ public:
   }
   
   template <typename F>
-  void processInput(Params &p, std::vector<HostVector> &input,bool reset,F &&processFunc) {
+  void processInput(Params &p, std::vector<HostVector> &input,FluidContext& c, bool reset,F &&processFunc) {
    
     if (!input[0].data()) return;
     assert(mBufferedProcess.channelsIn() == input.size());
     size_t chansIn = mBufferedProcess.channelsIn();
     FFTParams fftParams = setup(p, input);
 
-    mBufferedProcess.processInput(fftParams.winSize(), fftParams.hopSize(), reset,
+    mBufferedProcess.processInput(fftParams.winSize(), fftParams.hopSize(), c, reset,
         [this, &processFunc, chansIn](RealMatrixView in) {
           for(int i = 0; i < chansIn; ++i) mSTFT->processFrame(in.row(i), mSpectrumIn.row(i));
           processFunc(mSpectrumIn);

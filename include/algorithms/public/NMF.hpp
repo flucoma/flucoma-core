@@ -22,6 +22,9 @@ using Eigen::VectorXd;
 class NMF {
 
 public:
+  //pass iteration number; returns true if able to continue (i.e. not cancelled)
+  using ProgressCallback = std::function<bool(int)>;
+
   NMF(int rank, int nIterations, bool updateW = true, bool updateH = true)
       : mRank(rank), mIterations(nIterations), mUpdateW(updateW),
         mUpdateH(updateH) {}
@@ -97,18 +100,26 @@ public:
     H1 = asFluid(HT);
   }
 
+  void addProgressCallback(ProgressCallback&& callback)
+  {
+    mCallbacks.emplace_back(std::move(callback));
+  }
+  
 private:
   int mRank;
   int mIterations;
   bool mUpdateW;
   bool mUpdateH;
+  std::vector<ProgressCallback> mCallbacks;
+  
 
   void multiplicativeUpdates(MatrixXd &V, MatrixXd &W, MatrixXd &H) {
     double const epsilon = std::numeric_limits<double>::epsilon();
     MatrixXd ones = MatrixXd::Ones(V.rows(), V.cols());
     W.colwise().normalize();
     H.rowwise().normalize();
-    while (mIterations--) {
+    for (auto i = 0; i < mIterations; ++i)
+    {
       if (mUpdateW) {
         ArrayXXd V1 = (W * H).array() + epsilon;
         ArrayXXd wnum = ((V.array() / V1).matrix() * H.transpose()).array();
@@ -128,6 +139,8 @@ private:
       MatrixXd R = W * H;
       R = R.cwiseMax(epsilon);
       double divergence = (V.cwiseProduct(V.cwiseQuotient(R)) - V + R).sum();
+      for(auto& cb:mCallbacks)
+        if(!cb(i + 1)) return;
       // divergenceCurve.push_back(divergence);
       // divergenceCurve(mIterations);
       // std::cout << "Divergence " << divergence << "\n";

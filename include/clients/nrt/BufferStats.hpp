@@ -1,5 +1,6 @@
 #pragma once
 
+#include "FluidNRTClientWrapper.hpp"
 #include "../common/FluidBaseClient.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterTypes.hpp"
@@ -45,7 +46,7 @@ class BufferStats
 public:
   BufferStats(ParamSetViewType &p) : FluidBaseClient(p) {}
 
-  Result process() {
+  Result process(FluidContext& c) {
     algorithm::Stats processor;
 
     if (!get<kSource>().get())
@@ -105,6 +106,9 @@ public:
         sourceChannel(j) =
             source.samps(get<kOffset>(), numFrames, get<kStartChan>() + i)(j);
       processor.process(sourceChannel, destChannel);
+     
+      if(c.task() && !c.task()->processUpdate(i + 1, numChannels)) return {Result::Status::kCancelled,""};
+     
       for (int j = 0; j < outputSize; j++)
         dest.samps(i)(j) = destChannel(j);
     }
@@ -112,5 +116,9 @@ public:
     return {Result::Status::kOk, ""};
   }
 };
+    
+template <typename T>
+using NRTThreadedBufferStats = NRTThreadingAdaptor<BufferStats<T>>;
+    
 } // namespace client
 } // namespace fluid

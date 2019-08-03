@@ -70,7 +70,7 @@ public:
     FluidBaseClient::audioChannelsOut(1);
   }
 
-  void process(std::vector<HostVector> &input, std::vector<HostVector> &output,
+  void process(std::vector<HostVector> &input, std::vector<HostVector> &output,FluidContext& c, 
                bool reset = false) {
     using algorithm::RTNoveltySegmentation;
     using std::size_t;
@@ -116,7 +116,7 @@ public:
     int frameOffset = 0; // in case kHopSize < hostVecSize
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.process(
-        windowSize, windowSize, get<kFFT>().hopSize(), reset,
+        windowSize, windowSize, get<kFFT>().hopSize(), c, reset,
         [&, this](RealMatrixView in, RealMatrixView) {
           switch (feature) {
           case 0:
@@ -174,6 +174,9 @@ template <typename T>
 using NRTNoveltySlice =
     NRTSliceAdaptor<NoveltySlice<T>, decltype(NRTNoveltySliceParams),
                     NRTNoveltySliceParams, 1, 1>;
+
+template <typename T>
+using NRTThreadingNoveltySlice = NRTThreadingAdaptor<NRTNoveltySlice<T>>;
 
 } // namespace client
 } // namespace fluid

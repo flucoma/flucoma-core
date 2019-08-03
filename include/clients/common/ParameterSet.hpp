@@ -62,6 +62,13 @@ public:
   template<typename T, typename List>
   using NonRelationalList = typename impl::FilterTupleIndices<IsNonRelational,T,List>::type;
 
+    
+  template<typename T>
+  size_t NumOf() const
+  {
+    return typename impl::FilterTupleIndices<T,DescriptorType,IndexList>::size();    
+  }
+    
   static constexpr size_t NumFixedParams    = FixedIndexList::size();
   static constexpr size_t NumMutableParams  = MutableIndexList::size();
 
@@ -224,7 +231,7 @@ public:
   }
 
   template <std::size_t N>
-  const auto &get() const
+  auto &get() const
   {
     return std::get<N>(mParams);
   }

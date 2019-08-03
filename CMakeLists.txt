@@ -63,6 +63,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/FluidBaseClient.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/FluidSink.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/FluidSource.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/MessageSet.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/MemoryBufferAdaptor.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/OfflineClient.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/ParameterConstraints.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/ParameterSet.hpp

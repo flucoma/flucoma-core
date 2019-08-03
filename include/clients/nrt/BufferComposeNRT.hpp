@@ -1,5 +1,6 @@
 #pragma once
 
+#include "FluidNRTClientWrapper.hpp"
 #include "../common/FluidBaseClient.hpp"
 #include "../common/OfflineClient.hpp"
 #include "../common/ParameterSet.hpp"
@@ -36,7 +37,7 @@ public:
   BufferComposeClient(ParamSetViewType &p) : FluidBaseClient(p)
   {}
 
-  Result process()
+  Result process(FluidContext &c)
   {
     // Not using bufferRangeCheck to validate source ranges because BufCompose is special...
     if (!get<kSource>().get()) { return {Result::Status::kError, "No input"}; }
@@ -125,6 +126,8 @@ public:
 
         std::transform(sourceChunk.begin(), sourceChunk.end(), destinationChunk.begin(), destinationChunk.begin(),
                        [gain](const T &src, T &dst) { return dst + src * gain; });
+        
+        if(c.task() && !c.task()->processUpdate(j + 1, nChannels)) return  {Result::Status::kCancelled,""};
       }
     }
 
@@ -139,10 +142,15 @@ public:
     {
       for (int i = 0; i < nChannels; ++i)
         destination.samps(dstStart, nFrames, dstStartChan + i) = destinationOrig.row(i);
+      destination.refresh(); //make sure the buffer is marked dirty
     }
 
     return {Result::Status::kOk};
   }
 };
+    
+template <typename T>
+using NRTThreadedBufferCompose = NRTThreadingAdaptor<BufferComposeClient<T>>;
+    
 } // namespace client
 } // namespace fluid

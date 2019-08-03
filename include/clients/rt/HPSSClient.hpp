@@ -47,7 +47,7 @@ public:
 
   size_t latency() { return ((get<kHSize>() - 1) * get<kFFT>().hopSize()) +  get<kFFT>().winSize(); }
 
-  void process(std::vector<HostVector> &input, std::vector<HostVector> &output, bool reset = false)
+  void process(std::vector<HostVector> &input, std::vector<HostVector> &output, FluidContext& c, bool reset = false)
   {
     if (!input[0].data()) return;
 
@@ -81,7 +81,7 @@ public:
 
     }
 
-    mSTFTBufferedProcess.process(mParams, input, output, reset,
+    mSTFTBufferedProcess.process(mParams, input, output, c, reset,
         [&](ComplexMatrixView in, ComplexMatrixView out)
         {
             mHPSS.processFrame(in.row(0), out.transpose());
@@ -99,6 +99,9 @@ auto constexpr NRTHPSSParams = makeNRTParams<HPSSClient>({InputBufferParam("sour
 
 template <typename T>
 using NRTHPSS = NRTStreamAdaptor<HPSSClient<T>, decltype(NRTHPSSParams), NRTHPSSParams, 1, 3>;
+    
+template <typename T>
+using NRTThreadedHPSS = NRTThreadingAdaptor<NRTHPSS<T>>;
 
 } // namespace client
 } // namespace fluid
