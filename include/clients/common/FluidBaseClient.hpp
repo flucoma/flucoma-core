@@ -53,7 +53,7 @@ public:
   
   FluidBaseClient(ParamSetViewType& p) : mParams(std::ref(p)){}
   
-  constexpr static MessageType getMessageDescriptors() { return MD; }
+  constexpr static MessageType& getMessageDescriptors() { return MD; }
   
   template<size_t N,typename...Args>
   decltype(auto) invoke(Args&&...args)
