@@ -456,6 +456,7 @@ public:
             mThreadedTask = std::unique_ptr<ThreadedTask>(new ThreadedTask(mClient,mQueue.front(), false, tempResult));
             mQueue.pop_front();
             state = kDoneStillProcessing;
+            mThreadedTask->mState = kDoneStillProcessing;
         }
         else
         {
@@ -487,9 +488,14 @@ public:
       mThreadedTask->cancel(false);
   }
   
-  bool done()
+  bool done() const
   {
-    return mThreadedTask ? mThreadedTask->mState == kDone : false;
+    return mThreadedTask ? (mThreadedTask->mState == kDone || mThreadedTask->mState == kDoneStillProcessing) : false;
+  }
+  
+  ProcessState state() const 
+  {
+    return mThreadedTask ? mThreadedTask->mState : kNoProcess;
   }
   
 private:
