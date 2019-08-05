@@ -349,7 +349,7 @@ public:
   
   // Copy construct / assign
   
-  ParameterSet(ParameterSet& p)
+  ParameterSet(const ParameterSet& p)
     : ViewType(p.mDescriptors.get(), createRefTuple(IndexList())), mParams{p.mParams}
   {
     this->mKeepConstrained = p.mKeepConstrained; 
