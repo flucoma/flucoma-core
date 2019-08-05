@@ -15,30 +15,9 @@
 namespace fluid {
 namespace client {
 
-//template<typename ParamType, ParamType& PD, typename MessageType, MessageType& MD>
-//class ClientDescriptor
-//{
-//  using ParamDescType = ParamType;
-//  using ParamSetType = ParameterSet<ParamDescType>;
-//  using ParamSetViewType = ParameterSetView<ParamDescType>;
-//  using MessageSetType = MessageType;
-////  using ClientType = FluidBaseClient<ParamType,PD, MessageType,MD>;
-//  constexpr static MessageType& getMessageDescriptors() { return MD; }
-//  constexpr static ParamDescType& getParameterDescriptors() { return PD; }
-////  constexpr ClientDescriptor(ParamType&& p, MessageType&& m): PD{std::move(p)}, MD{std::move{m}} {}
-//  constexpr ClientDescriptor(){}
-//};
-//
-////template<typename ParamType, ParamType& PD, typename MessageType, MessageType& MD>
-//template<typename Params, typename Messages>
-//auto constexpr
-//defineClient(Params&& p, Messages&& m)
-//{
-//  return ClientDescriptor<std::decay_t<decltype(p)>, std::decay_t<decltype(m)>>{p,m};
-//}
 
+enum ProcessState { kNoProcess, kProcessing, kDone, kDoneStillProcessing };
 
-enum ProcessState { kNoProcess, kProcessing, kDone };
 
 template<typename ParamType, ParamType& PD, typename MessageType = decltype(NoMessages), MessageType& MD = NoMessages>
 class FluidBaseClient
