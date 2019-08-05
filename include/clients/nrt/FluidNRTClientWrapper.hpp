@@ -92,7 +92,7 @@ public:
   static constexpr size_t ParamOffset  = (Ins*5) + decideOuts;
   using WrappedClient = RTClient;//<ParameterSet_Offset<Params,ParamOffset>,T>;
 
-  static auto getMessageDescriptors() { return RTClient::getMessageDescriptors(); }
+  static auto& getMessageDescriptors() { return RTClient::getMessageDescriptors(); }
   
   NRTClientWrapper(ParamSetViewType& p)
     : mParams{p}
@@ -124,7 +124,7 @@ public:
     return invokeDelegate<N>(std::forward<Args>(args)...);
   }
 
-  Result process()
+  Result process(FluidContext& c)
   {
     auto constexpr inputCounter = std::make_index_sequence<Ins>();
     auto constexpr outputCounter = std::make_index_sequence<decideOuts>();
@@ -415,8 +415,10 @@ public:
   using ParamDescType = typename NRTClient::ParamDescType;
   using ParamSetType = typename NRTClient::ParamSetType;
   using ParamSetViewType = typename NRTClient::ParamSetViewType;
-
+  using MessageSetType = typename NRTClient::MessageSetType;
+  
   constexpr static ParamDescType& getParameterDescriptors() { return NRTClient::getParameterDescriptors(); }
+  constexpr static auto& getMessageDescriptors() { return NRTClient::getMessageDescriptors();}
 
   size_t audioChannelsIn()    const noexcept { return 0; }
   size_t audioChannelsOut()   const noexcept { return 0; }
@@ -450,7 +452,18 @@ public:
       mThreadedTask = nullptr;
     
     return result;
-  } 
+  }
+  
+  template<size_t N, typename T, typename...Args>
+  decltype(auto) invoke(T& client, Args&&...args)
+  {
+    assert(mClient.get());
+    using ReturnType = typename MessageSetType::template MessageDescriptorAt<T,N>::ReturnType;
+    if (mThreadedTask)
+      return ReturnType{Result::Status::kError, "Already processing"};
+    return mClient-> template invoke<N>(client, std::forward<Args>(args)...);
+  }
+  
     
   ProcessState checkProgress(Result& result)
   {
