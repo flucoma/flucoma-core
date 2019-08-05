@@ -51,7 +51,7 @@ auto constexpr OnsetParams = defineParameters(
 
 struct AFunc{
   template<typename Client>
-  intptr_t operator()(Client& c, std::shared_ptr<BufferAdaptor> buf){return c.doTest(buf); }
+  MessageResult<void> operator()(Client& c, std::shared_ptr<BufferAdaptor> buf){return c.doTest(buf); }
 };
 
 
@@ -117,12 +117,13 @@ public:
 
   long latency() { return get<kFFT>().winSize() + get<kFrameDelta>(); }
 
-  int doTest(std::shared_ptr<BufferAdaptor> buf) {
+   MessageResult<void> doTest(std::shared_ptr<BufferAdaptor> buf) {
     if(auto b = buf.get())
     {
-      return BufferAdaptor::Access(b).numFrames();
+//      return BufferAdaptor::Access(b).numFrames();
     }
-    return -1;
+//    return -1;
+    return{}; 
   }
 
 private:
