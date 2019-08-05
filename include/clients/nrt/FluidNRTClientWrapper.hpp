@@ -10,7 +10,7 @@
 #include "../../data/FluidTensor.hpp"
 #include "../../data/TensorTypes.hpp"
 
-#include <queue>
+#include <deque>
 #include <vector>
 #include <thread>
 
@@ -429,7 +429,7 @@ public:
     
     if (mThreadedTask)
     {
-        mQueue.push(mHostParams);
+        mQueue.push_back(mHostParams);
         return Result();
     }
       
@@ -450,12 +450,11 @@ public:
       
       if (state == kDone)
       {
-        
         if (!mQueue.empty())
         {
             Result tempResult;
             mThreadedTask = std::unique_ptr<ThreadedTask>(new ThreadedTask(mClient,mQueue.front(), false, tempResult));
-            mQueue.pop();
+            mQueue.pop_front();
             state = kDoneStillProcessing;
         }
         else
@@ -482,6 +481,8 @@ public:
   
   void cancel()
   {
+    mQueue.clear();
+      
     if (mThreadedTask)
       mThreadedTask->cancel(false);
   }
@@ -605,7 +606,7 @@ private:
   };
   
   ParamSetType& mHostParams;
-  std::queue<ParamSetType> mQueue;
+  std::deque<ParamSetType> mQueue;
   bool mSynchronous = false;
   std::unique_ptr<ThreadedTask> mThreadedTask;
   ClientPointer mClient;
