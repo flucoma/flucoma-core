@@ -10,6 +10,7 @@
 #include "../../data/FluidTensor.hpp"
 #include "../../data/TensorTypes.hpp"
 
+#include <queue>
 #include <vector>
 #include <thread>
 
@@ -423,9 +424,15 @@ public:
   
   Result process()
   {
-    if (mThreadedTask)
+    if (mThreadedTask && mSynchronous)
       return {Result::Status::kError, "already processing"};
     
+    if (mThreadedTask)
+    {
+        mQueue.push(mHostParams);
+        return Result();
+    }
+      
     Result result;
     mThreadedTask = std::unique_ptr<ThreadedTask>(new ThreadedTask(mClient,mHostParams, mSynchronous, result));
     
@@ -442,7 +449,20 @@ public:
       auto state = mThreadedTask->checkProgress(result);
       
       if (state == kDone)
-        mThreadedTask = nullptr;
+      {
+        
+        if (!mQueue.empty())
+        {
+            Result tempResult;
+            mThreadedTask = std::unique_ptr<ThreadedTask>(new ThreadedTask(mClient,mQueue.front(), false, tempResult));
+            mQueue.pop();
+            state = kDoneStillProcessing;
+        }
+        else
+        {
+            mThreadedTask = nullptr;
+        }
+      }
       
       return state;
     }
@@ -473,8 +493,6 @@ public:
   
 private:
     
-
-
   struct ThreadedTask
   {
     template<size_t N, typename T>
@@ -529,7 +547,6 @@ private:
     
     Result process()
     {
-    
       assert(mClient.get() != nullptr); //right?
     
       mState = kProcessing;
@@ -588,6 +605,7 @@ private:
   };
   
   ParamSetType& mHostParams;
+  std::queue<ParamSetType> mQueue;
   bool mSynchronous = false;
   std::unique_ptr<ThreadedTask> mThreadedTask;
   ClientPointer mClient;
