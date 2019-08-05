@@ -78,6 +78,36 @@ private:
   std::stringstream mMsg;
 };
 
+
+template<typename T>
+class MessageResult: public Result
+{
+  public:
+    using type = T; 
+    using Result::Result;
+    MessageResult(T data): mData{data} {}
+    operator T() const { return mData; }
+  private:
+    T mData;
+    bool hasData;
+};
+
+template<>
+class MessageResult<void>: public Result
+{
+  public:
+    using Result::Result;
+};
+
+
+
+//class Result: public ResultBase
+//{
+//  public:
+//    using ResultBase::ResultBase;
+//};
+
+
 class MessageList
 {
 public:
