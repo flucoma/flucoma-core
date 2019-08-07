@@ -90,6 +90,10 @@ public:
   constexpr MessageSet(const std::tuple<Ts...>&& t): mMessages{t} {}
 //  constexpr MessageSet(){}
 
+
+  template<size_t N>
+  std::string name() const { return std::get<N>(mMessages).name; }
+
   constexpr size_t size() const noexcept { return sizeof...(Ts); }
   
   template <template <size_t N, typename T> class Func>
