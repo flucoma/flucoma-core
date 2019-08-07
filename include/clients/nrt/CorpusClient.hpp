@@ -20,9 +20,8 @@ enum { kNDims };
 
 auto constexpr CorpusParams = defineParameters
 (
-    LongParam<Fixed<true>>("nDims", "Dimension size", 0, Min(1))
+    LongParam<Fixed<true>>("nDims", "Dimension size", 1, Min(1))
 );
-
 
 struct addPoint
 {
