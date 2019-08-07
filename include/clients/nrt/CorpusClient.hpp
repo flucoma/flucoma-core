@@ -1,14 +1,16 @@
 #pragma once
 
-#include "clients/common/FluidBaseClient.hpp"
-#include "clients/common/MessageSet.hpp"
-#include "clients/common/OfflineClient.hpp"
-#include "clients/common/ParameterSet.hpp"
-#include "clients/common/ParameterTypes.hpp"
-#include "clients/common/Result.hpp"
 #include "data/FluidDataset.hpp"
-#include "data/FluidTensor.hpp"
-#include "data/TensorTypes.hpp"
+
+#include <clients/common/FluidBaseClient.hpp>
+#include <clients/common/MessageSet.hpp>
+#include <clients/common/OfflineClient.hpp>
+#include <clients/common/ParameterSet.hpp>
+#include <clients/common/ParameterTypes.hpp>
+#include <clients/common/Result.hpp>
+#include <clients/nrt/FluidNRTClientWrapper.hpp>
+#include <data/FluidTensor.hpp>
+#include <data/TensorTypes.hpp>
 #include <string>
 
 namespace fluid {
@@ -25,11 +27,10 @@ auto constexpr CorpusParams = defineParameters
 struct addPoint
 {
   template <typename T>
-  std::string operator()(T &client, std::string label,
+  MessageResult<void> operator()(T &client, std::string label,
                          std::shared_ptr<BufferAdaptor> point)
   {
-    Result r = client.addPoint(label, point.get());
-    return r.message();
+    return client.addPoint(label, point.get());
   }
 };
 
@@ -37,29 +38,27 @@ struct addPoint
 struct getPoint
 {
   template <typename T>
-  std::string operator()(T &client, std::string label,
+  MessageResult<void> operator()(T &client, std::string label,
                          std::shared_ptr<BufferAdaptor> point)
   {
-    Result r = client.getPoint(label, point.get());
-    return r.message();
+    return client.getPoint(label, point.get());
   }
 };
 
 struct updatePoint
 {
   template <typename T>
-  std::string operator()(T &client, std::string label,
+  MessageResult<void> operator()(T &client, std::string label,
                          std::shared_ptr<BufferAdaptor> point) {
-    Result r = client.updatePoint(label, point.get());
-    return r.message();
+    return client.updatePoint(label, point.get());
   }
 };
 
 struct deletePoint
 {
-  template <typename T> std::string operator()(T &client, std::string label) {
-    Result r = client.deletePoint(label);
-    return r.message();
+  template <typename T>
+  MessageResult<void> operator()(T &client, std::string label) {
+    return client.deletePoint(label);
   }
 };
 
@@ -78,18 +77,18 @@ class CorpusClient
                              decltype(CorpusMessages), CorpusMessages>,
       OfflineIn,
       OfflineOut {
-
+  
 public:
   using string = std::string;
 
-  Result process() { return {}; }
+  Result process(FluidContext&) { return {}; }
 
   CorpusClient(ParamSetViewType &p)
       : FluidBaseClient(p), mDataset(get<kNDims>()) {
     mDims = get<kNDims>();
   }
 
-  Result addPoint(string label, BufferAdaptor *data) {
+  MessageResult<void> addPoint(string label, BufferAdaptor *data) {
     BufferAdaptor::Access buf(data);
     if (buf.numFrames() < mDims)
       return {Result::Status::kError, "Incorrect point size"};
@@ -99,11 +98,11 @@ public:
     if (point.rows() != mDims)
       return {Result::Status::kError, "Wrong number of dimensions"};
     return mDataset.add(label, point)
-               ? Result{Result::Status::kOk}
-               : Result{Result::Status::kError, "Label already in dataset"};
+               ? MessageResult<void>{Result::Status::kOk}
+               : MessageResult<void>{Result::Status::kError, "Label already in dataset"};
   }
 
-  Result getPoint(string label, BufferAdaptor *data) {
+  MessageResult<void> getPoint(string label, BufferAdaptor *data) {
     BufferAdaptor::Access buf(data);
     if (buf.numFrames() < mDims)
       return {Result::Status::kError, "Incorrect point size"};
@@ -118,28 +117,33 @@ public:
     }
   }
 
-  Result updatePoint(string label, BufferAdaptor *data) {
+  MessageResult<void> updatePoint(string label, BufferAdaptor *data) {
     BufferAdaptor::Access buf(data);
     if (buf.numFrames() < mDims)
       return {Result::Status::kError, "Incorrect point size"};
     FluidTensor<double, 1> point(mDims);
     point = buf.samps(0, mDims, 0);
     return mDataset.update(label, point)
-               ? Result{Result::Status::kOk}
-               : Result{Result::Status::kError, "Point not found"};
+               ? MessageResult<void>{Result::Status::kOk}
+               : MessageResult<void>{Result::Status::kError, "Point not found"};
   }
 
-  Result deletePoint(string label) {
+  MessageResult<void> deletePoint(string label) {
     return mDataset.remove(label)
-               ? Result{Result::Status::kOk}
-               : Result{Result::Status::kError, "Point not found"};
+               ? MessageResult<void>{Result::Status::kOk}
+               : MessageResult<void>{Result::Status::kError, "Point not found"};
   }
 
 private:
   FluidDataset<double, string, 1> mDataset;
   FluidTensor<string, 1> mLabels;
   FluidTensor<double, 2> mData;
-  int mDims;
+  size_t mDims;
 };
+
+template <typename T>
+using NRTThreadedCorpus = NRTThreadingAdaptor<CorpusClient<T>>;
+
+
 } // namespace client
 } // namespace fluid
