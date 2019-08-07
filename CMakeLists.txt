@@ -75,6 +75,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/TupleUtilities.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/BufferComposeNRT.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/BufferStats.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/FluidNRTClientWrapper.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/MessageTest.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/NMFClient.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/AmpSlice.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/BaseSTFTClient.hpp
