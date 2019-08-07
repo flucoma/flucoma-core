@@ -145,6 +145,14 @@ public:
     assert(mContainer.size() == this->mDesc.size);
   }
 
+  template<typename U>
+  FluidTensor(FluidTensorInitializer<U, N> init)
+      : mDesc(0, _impl::deriveExtents<N>(init)) {
+    mContainer.reserve(this->mDesc.size);
+    _impl::insertFlat(init, mContainer);
+    assert(mContainer.size() == this->mDesc.size);
+  }
+
   FluidTensor &operator=(FluidTensorInitializer<T, N> init) {
     FluidTensor f = FluidTensor(init);
     return f;
@@ -153,9 +161,9 @@ public:
   /*********************************************************
    Delete the standard initalizer_list constructors
    *********************************************************/
-  template <typename U> FluidTensor(std::initializer_list<U>) = delete;
-  template <typename U>
-  FluidTensor &operator=(std::initializer_list<U>) = delete;
+//  template <typename U> FluidTensor(std::initializer_list<U>) = delete;
+//  template <typename U>
+//  FluidTensor &operator=(std::initializer_list<U>) = delete;
 
   /**********************************************************
    Copy from a view
