@@ -1,11 +1,12 @@
 #pragma once
 
+#include "algorithms/util/FluidEigenMappings.hpp"
 #include "data/FluidDataset.hpp"
 #include "data/FluidTensor.hpp"
 #include "data/TensorTypes.hpp"
-#include "algorithms/util/FluidEigenMappings.hpp"
-#include <string>
 #include <Eigen/Core>
+#include <queue>
+#include <string>
 
 namespace fluid {
 namespace algorithm {
@@ -17,12 +18,14 @@ public:
   struct Node;
   using NodePtr = std::shared_ptr<Node>;
 
-  struct Node
-  {
+  struct Node {
     const string label;
     const RealVectorView data;
     NodePtr left{nullptr}, right{nullptr};
   };
+  using knnCandidate = std::pair<double, NodePtr>;
+  using knnQueue = std::priority_queue<knnCandidate, std::vector<knnCandidate>,
+                                       std::less<knnCandidate>>;
 
   KDTree(int nDims) : mDims(nDims) {}
 
@@ -33,22 +36,24 @@ public:
     mDims = dataset.pointSize();
   }
 
-  void addNode(const string label,
-               const RealVectorView data)
+  void addNode(const string label, const RealVectorView data)
   {
-      mRoot = addNode(mRoot, label, data, 0);
+    mRoot = addNode(mRoot, label, data, 0);
   }
 
-  string nearest(const RealVectorView data)
+  FluidTensor<string, 1> kNearest(const RealVectorView data, int k = 1)
   {
-    NodePtr n = nearest(mRoot, data, nullptr,
-                        std::numeric_limits<double>::infinity(), 0);
-    return n->label;
+    knnQueue queue;
+    auto result = FluidTensor<string, 1>(k);
+    kNearest(mRoot, data, queue, k, 0);
+    for (int i = k; i > 0; i--) {
+      result(i - 1) = queue.top().second->label;
+      queue.pop();
+    }
+    return result;
   }
 
 private:
-
-
   NodePtr makeNode(const string label, const RealVectorView data)
   {
     return std::make_shared<Node>(Node{label, data, nullptr, nullptr});
@@ -57,7 +62,7 @@ private:
   NodePtr addNode(NodePtr current, const string label,
                   const RealVectorView data, const int depth)
   {
-    if (current == nullptr){
+    if (current == nullptr) {
       return makeNode(label, data);
     }
 
@@ -78,38 +83,31 @@ private:
     return (v1 - v2).matrix().norm();
   }
 
-  NodePtr nearest(NodePtr current, const RealVectorView data, NodePtr best,
-                  double bestDist, const int depth)
-  {
+  void kNearest(NodePtr current, const RealVectorView data, knnQueue &knn,
+                const int k, const int depth) {
     if (current == nullptr)
-      return best;
+      return;
     const double currentDist = distance(current->data, data);
-    if (currentDist < bestDist) {
-      best = current;
-      bestDist = currentDist;
+    if (knn.size() < k)
+      knn.push(make_pair(currentDist, current));
+    else if (currentDist < knn.top().first) {
+      knn.pop();
+      knn.push(make_pair(currentDist, current));
     }
     const int d = depth % mDims;
     const double dimDif = current->data(d) - data(d);
-    NodePtr firstBranch;
-    NodePtr secondBranch;
-    if (dimDif > 0) {
-      firstBranch = current->left;
-      secondBranch = current->right;
-    } else {
+    NodePtr firstBranch = current->left;
+    NodePtr secondBranch = current->right;
+    if (dimDif <= 0) {
       firstBranch = current->right;
       secondBranch = current->left;
     }
-    NodePtr newBest = nearest(firstBranch, data, best, bestDist, depth + 1);
-    if (newBest != best) {
-      best = newBest;
-      bestDist = distance(best->data, data); // TODO: computing twice
-    }
-    if (dimDif < bestDist) // ball centered at query with diametre bestDist
-                           // intersects with current partition
+    kNearest(firstBranch, data, knn, k, depth + 1);
+    if (dimDif < knn.top().first) // ball centered at query with diametre
+                                  // kthDist intersects with current partition
     {
-      best = nearest(secondBranch, data, best, bestDist, depth + 1);
+      kNearest(secondBranch, data, knn, k, depth + 1);
     }
-    return best;
   }
 
   NodePtr mRoot{nullptr};

@@ -30,7 +30,9 @@ int main(int argc, char *argv[])
   tree.addNode("p5",p5);
   tree.addNode("p6",p6);
   FluidTensor<double, 1> test{{9, 5.}};
-  string n = tree.nearest(test);
-  std::cout<<n<<std::endl;
+  FluidTensor<string, 1> result = tree.kNearest(test, 3);
+  std::cout<<result(0)<<std::endl;
+  std::cout<<result(1)<<std::endl;
+  std::cout<<result(2)<<std::endl;
   return 0;
 }
