@@ -468,7 +468,7 @@ public:
     using ReturnType = typename MessageSetType::template MessageDescriptorAt<T,N>::ReturnType;
     if (mThreadedTask)
       return ReturnType{Result::Status::kError, "Already processing"};
-    return mClient-> template invoke<N>(client, std::forward<Args>(args)...);
+    return mClient-> template invoke<N>(*mClient.get(), std::forward<Args>(args)...);
   }
   
     
@@ -486,7 +486,6 @@ public:
             mThreadedTask = std::unique_ptr<ThreadedTask>(new ThreadedTask(mClient,mQueue.front(), false, tempResult));
             mQueue.pop_front();
             state = kDoneStillProcessing;
-            mThreadedTask->mState = kDoneStillProcessing;
         }
         else
         {
