@@ -100,14 +100,6 @@ class MessageResult<void>: public Result
 };
 
 
-
-//class Result: public ResultBase
-//{
-//  public:
-//    using ResultBase::ResultBase;
-//};
-
-
 class MessageList
 {
 public:
