@@ -18,7 +18,7 @@ namespace client {
 
 enum { kNDims };
 
-auto constexpr CorpusParams = defineParameters
+auto constexpr DatasetParams = defineParameters
 (
     LongParam<Fixed<true>>("nDims", "Dimension size", 1, Min(1))
 );
@@ -61,7 +61,7 @@ struct deletePoint
   }
 };
 
-auto constexpr CorpusMessages = defineMessages
+auto constexpr DatasetMessages = defineMessages
 (
     Message<addPoint>("addPoint"),
     Message<getPoint>("getPoint"),
@@ -71,18 +71,18 @@ auto constexpr CorpusMessages = defineMessages
 
 
 template <typename T>
-class CorpusClient
-    : public FluidBaseClient<decltype(CorpusParams), CorpusParams,
-                             decltype(CorpusMessages), CorpusMessages>,
+class DatasetClient
+    : public FluidBaseClient<decltype(DatasetParams), DatasetParams,
+                             decltype(DatasetMessages), DatasetMessages>,
       OfflineIn,
       OfflineOut {
-  
+
 public:
   using string = std::string;
 
   Result process(FluidContext&) { return {}; }
 
-  CorpusClient(ParamSetViewType &p)
+  DatasetClient(ParamSetViewType &p)
       : FluidBaseClient(p), mDataset(get<kNDims>()) {
     mDims = get<kNDims>();
   }
@@ -141,7 +141,7 @@ private:
 };
 
 template <typename T>
-using NRTThreadedCorpus = NRTThreadingAdaptor<CorpusClient<T>>;
+using NRTThreadedDataset = NRTThreadingAdaptor<DatasetClient<T>>;
 
 
 } // namespace client
