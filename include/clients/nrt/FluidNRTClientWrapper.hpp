@@ -138,7 +138,7 @@ public:
     std::array<intptr_t,Ins> inChans;
 
     //check buffers exist
-    int count = 0;
+    size_t count = 0;
     for(auto&& b: inputBuffers)
     {
       
@@ -463,7 +463,7 @@ public:
   }
   
   template<size_t N, typename T, typename...Args>
-  decltype(auto) invoke(T& client, Args&&...args)
+  decltype(auto) invoke(T&, Args&&...args)
   {
     assert(mClient.get());
     using ReturnType = typename MessageSetType::template MessageDescriptorAt<T,N>::ReturnType;
@@ -566,6 +566,7 @@ private:
       
      assert(mClient.get() != nullptr); //right?
       
+      mClient->setParams(mProcessParams);
       if (synchronous)
       {
         result = process();
@@ -575,7 +576,6 @@ private:
         auto entry = [](ThreadedTask* owner) { owner->process(); };        
         mProcessParams.template forEachParamType<BufferT, BufferCopy>();
         mProcessParams.template forEachParamType<InputBufferT, BufferCopy>();
-        mClient->setParams(mProcessParams);
         mState = kProcessing;
         mThread = std::thread(entry, this);
         result = Result();
