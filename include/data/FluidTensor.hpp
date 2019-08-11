@@ -949,9 +949,9 @@ public:
     return *this;
   }
 
-  template <typename U> FluidTensorView &operator=(U &x) {
-    static_assert(std::is_convertible<T, U>(), "Can't convert");
-    *elem = x;
+  template <typename U> FluidTensorView &operator=(U&&x) {
+    static_assert(std::is_convertible<U, T>::value, "Can't convert");
+    *elem = static_cast<T>(x);
     return *this;
   }
 
