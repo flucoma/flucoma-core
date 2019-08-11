@@ -9,7 +9,7 @@ class MemoryBufferAdaptor: public BufferAdaptor
 {
 public:
  
-  MemoryBufferAdaptor(size_t chans, size_t frames, double sampleRate) : mData(frames,chans)
+  MemoryBufferAdaptor(size_t chans, size_t frames, double /*sampleRate*/) : mData(frames,chans)
   {}
   
   MemoryBufferAdaptor(std::shared_ptr<BufferAdaptor>& other) { *this = other; }
@@ -44,7 +44,7 @@ public:
           src.resize(numFrames(),numChans(),mSampleRate);
         
         if(src.valid())
-          for(int i = 0; i < numChans(); ++i)
+          for(size_t i = 0; i < numChans(); ++i)
               src.samps(i) = samps(i);
       }
       //TODO feedback failure to user somehow: I need a message queue
@@ -67,13 +67,13 @@ public:
    }
     
    // Return a slice of the buffer
-   FluidTensorView<float, 1> samps(size_t channel) { return mData.col(channel); }
-   FluidTensorView<float, 1> samps(size_t offset, size_t nframes, size_t chanoffset) { return mData(Slice(offset, nframes), Slice(chanoffset, 1)).col(0); }
-   FluidTensorView<const float, 1> samps(size_t channel) const { return mData.col(channel); }
-   FluidTensorView<const float, 1> samps(size_t offset, size_t nframes, size_t chanoffset) const { return mData(Slice(offset, nframes), Slice(chanoffset, 1)).col(0); }
+   FluidTensorView<float, 1> samps(size_t channel) override { return mData.col(channel); }
+   FluidTensorView<float, 1> samps(size_t offset, size_t nframes, size_t chanoffset) override { return mData(Slice(offset, nframes), Slice(chanoffset, 1)).col(0); }
+   FluidTensorView<const float, 1> samps(size_t channel) const override { return mData.col(channel); }
+   FluidTensorView<const float, 1> samps(size_t offset, size_t nframes, size_t chanoffset) const override { return mData(Slice(offset, nframes), Slice(chanoffset, 1)).col(0); }
    size_t numFrames() const override { return mData.rows(); }
    size_t numChans() const override { return mData.cols(); }
-   double sampleRate() const { return mSampleRate; }
+   double sampleRate() const override { return mSampleRate; }
    std::string asString() const override { return ""; }
    void refresh() override { mWrite = true; }
 

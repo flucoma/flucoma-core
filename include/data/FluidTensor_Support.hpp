@@ -25,9 +25,9 @@ namespace fluid{
 struct Slice {
   //        /static constexpr slice all(0, std::size_t(-1),1);
 
-  Slice() : start(-1), length(-1), stride(1) {}
+  Slice() : start(static_cast<size_t>(-1)), length(static_cast<size_t>(-1)), stride(1) {}
 
-  explicit Slice(size_t s) : start(s), length(-1), stride(1) {}
+  explicit Slice(size_t s) : start(s), length(static_cast<size_t>(-1)), stride(1) {}
 
   Slice(size_t s, size_t l, size_t n = 1) : start(s), length(l), stride(n) {}
 

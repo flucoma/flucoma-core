@@ -90,8 +90,8 @@ struct EnumT : ParamTypeBase
   using type  = EnumUnderlyingType;
   template <std::size_t... N>
   constexpr EnumT(const char *name, const char *displayName, type defaultVal, const char (&... string)[N])
-      : strings{string...}
-      , ParamTypeBase(name, displayName)
+      : ParamTypeBase(name, displayName)
+      ,  strings{string...}
       , fixedSize(1)
       , numOptions(sizeof...(N))
       , defaultValue(defaultVal)
@@ -107,7 +107,7 @@ struct EnumT : ParamTypeBase
   struct EnumConstraint
   {
     template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
-    constexpr void clamp(EnumUnderlyingType &v, Tuple &allParams, Descriptor &d, Result *r) const
+    constexpr void clamp(EnumUnderlyingType &v, Tuple&, Descriptor &d, Result*) const
     {
       auto& e = d.template get<N>();
       v = std::max<EnumUnderlyingType>(0,std::min<EnumUnderlyingType>(v, e.numOptions - 1));
@@ -115,12 +115,14 @@ struct EnumT : ParamTypeBase
   };
 };
 
-//Strings can't be used for params, but can be used for message arguments
+
 //can I avoid making this constexpr and thus using std::string? Let's see;
 struct StringT : ParamTypeBase
 {
   using type = StringUnderlyingType;
-  const type defaultValue; 
+  constexpr StringT(const char* name, const char *displayName): ParamTypeBase(name,displayName) {}
+  const char* defaultValue = "";
+  const std::size_t fixedSize = 1;
 };
 
 struct FloatArrayT : ParamTypeBase
@@ -209,7 +211,7 @@ template <>
 struct ConstrainMaxFFTSize<false>
 {
   template <intptr_t N, typename T>
-  size_t clamp(intptr_t x, T &constraints) const
+  intptr_t clamp(intptr_t x, T&) const
   {
     return x;
   }
@@ -219,7 +221,7 @@ template <>
 struct ConstrainMaxFFTSize<true>
 {
   template <intptr_t N, typename T>
-  size_t clamp(intptr_t x, T &constraints) const
+  intptr_t clamp(intptr_t x, T &constraints) const
   {
     return std::min<intptr_t>(x, std::get<N>(constraints));
   }
@@ -319,9 +321,9 @@ public:
           // If we drag down we want it to leap down by powers of 2, but with a lower bound
           // at th nearest power of 2 >= winSize
           bool up = inParams.trackFFT.template direction<0>() > 0;
-          int fft = v.fftRaw();
+          intptr_t fft = v.fftRaw();
           fft = (fft & (fft - 1)) == 0 ? fft : v.nextPow2(v.fftRaw(), up);
-          fft = std::max<int>(fft, v.nextPow2(v.winSize(), true));
+          fft = std::max<intptr_t>(fft, v.nextPow2(v.winSize(), true));
           v.setFFT(fft);
 //          v.setFFT(std::max(v.fftRaw(), v.nextPow2(v.winSize(), true)));
         }
@@ -469,7 +471,7 @@ namespace impl
   struct ParamLiterals
   {
     using type = typename T::type;
-    static std::array<type, 1> getLiteral(const type& p) { return {p}; }
+    static std::array<type, 1> getLiteral(const type& p) { return {{p}}; }
   };
   
   template<>
@@ -480,7 +482,7 @@ namespace impl
     static std::array<type, 4> getLiteral(const FloatPairsArrayT::type& p)
     {
         auto v = p.value;
-        return { v[0].first, v[0].second, v[1].first, v[1].second };
+      return { {v[0].first, v[0].second, v[1].first, v[1].second} };
     }
   };
   
@@ -491,7 +493,7 @@ namespace impl
     
     static std::array<type, 3> getLiteral(const FFTParams& p)
     {
-      return { p.winSize(), p.hopRaw(), p.fftRaw()};
+      return { {p.winSize(), p.hopRaw(), p.fftRaw()}};
     }
   };
 }

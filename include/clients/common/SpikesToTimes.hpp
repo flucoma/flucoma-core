@@ -13,12 +13,12 @@ namespace client{
 namespace impl{
 
   template<typename T>
-  Result spikesToTimes(FluidTensorView<T,2> changePoints, BufferAdaptor* output, size_t hopSize, size_t timeOffset, size_t numFrames, double sampleRate)
+  Result spikesToTimes(FluidTensorView<T,2> changePoints, BufferAdaptor* output, size_t hopSize, size_t timeOffset, size_t /*numFrames*/, double sampleRate)
   {
 
     std::vector<size_t> numSpikes(changePoints.rows());
 
-    for(auto i = 0; i< changePoints.rows();++i)
+    for(auto i = 0u; i< changePoints.rows();++i)
       numSpikes[i] =  std::accumulate(changePoints.row(i).begin(), changePoints.row(i).end(), 0);
 
     //if the number of spikes doesn't match, that's a badness, and warrants an abort
@@ -29,7 +29,7 @@ namespace impl{
       auto idx = BufferAdaptor::Access(output);
       idx.resize(1, changePoints.rows(), sampleRate);
       double result = -1.0;
-      for(auto i = 0; i < changePoints.rows(); i++) idx.samps(i)[0] = result;
+      for(auto i = 0u; i < changePoints.rows(); i++) idx.samps(i)[0] = result;
       return {};
     }
 
@@ -37,7 +37,7 @@ namespace impl{
     Result resizeResult = idx.resize(numSpikes[0], changePoints.rows(),sampleRate);
     if(!resizeResult.ok()) return resizeResult;
 
-    for(auto i = 0; i < changePoints.rows(); ++i)
+    for(auto i = 0u; i < changePoints.rows(); ++i)
     {
     // Arg sort
       std::vector<size_t> indices(changePoints.row(i).size());

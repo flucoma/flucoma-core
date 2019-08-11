@@ -610,7 +610,7 @@ public:
                    [](size_t a, size_t b) { return std::min(a, b); });
 
     size_t count =
-        std::accumulate(a.begin(), a.end(), 1, std::multiplies<size_t>());
+        std::accumulate(a.begin(), a.end(), 1u, std::multiplies<size_t>());
 
     // Have to do this because haven't implemented += for slice iterator
     // (yet), so can't stop at arbitary offset from begin

@@ -119,7 +119,7 @@ private:
   template <template <size_t N, typename T> class Op, size_t... Is>
   void iterateImpl(std::index_sequence<Is...>) const
   {
-    std::initializer_list<int>{(Op<Is, ParamType<Is>>()(std::get<0>(std::get<Is>(mDescriptors))), 0)...};
+    (void)std::initializer_list<int>{(Op<Is, ParamType<Is>>()(std::get<0>(std::get<Is>(mDescriptors))), 0)...};
   }
 };
 
@@ -271,7 +271,7 @@ private:
   template <template <size_t, typename> class Func, typename... Args, size_t... Is>
   void forEachParamImpl(std::index_sequence<Is...>, Args &&... args)
   {
-    std::initializer_list<int>{(Func<Is, ParamType<Is>>()(get<Is>(), std::forward<Args>(args)...), 0)...};
+    (void)std::initializer_list<int>{(Func<Is, ParamType<Is>>()(get<Is>(), std::forward<Args>(args)...), 0)...};
   }
 
   template <template <size_t, typename> class Func, typename... Args, size_t... Is>
@@ -312,8 +312,8 @@ private:
   {
     std::array<Result, sizeof...(Is)> results;
         
-    std::initializer_list<int>{(paramValue<Is>(mParams) = constrain<Os, Is, kNonRelational>(paramValue<Is>(mParams), constraint<Is>(), &std::get<Is>(results)), 0)...};
-    std::initializer_list<int>{(paramValue<Is>(mParams) = constrain<Os, Is, kRelational>(paramValue<Is>(mParams), constraint<Is>(), &std::get<Is>(results)), 0)...};
+    (void)std::initializer_list<int>{(paramValue<Is>(mParams) = constrain<Os, Is, kNonRelational>(paramValue<Is>(mParams), constraint<Is>(), &std::get<Is>(results)), 0)...};
+    (void)std::initializer_list<int>{(paramValue<Is>(mParams) = constrain<Os, Is, kRelational>(paramValue<Is>(mParams), constraint<Is>(), &std::get<Is>(results)), 0)...};
         
     return results;
   }
@@ -322,10 +322,8 @@ protected:
   
   std::reference_wrapper<const DescriptorSetType> mDescriptors;
   bool          mKeepConstrained;
-private:
-  
+private:  
   ValueRefTuple mParams;
-  
 };
 
 template <typename>
