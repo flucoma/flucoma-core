@@ -465,6 +465,13 @@ FFTParam(const char *name, const char *displayName, int winDefault, int hopDefau
           Fixed<false>{}};
 }
 
+template <typename IsFixed = Fixed<false>, typename... Constraints>
+constexpr ParamSpec<StringT, IsFixed, Constraints...> StringParam(const char *name, const char *displayName,
+                                                                            const Constraints... c)
+{
+  return {StringT(name, displayName), std::make_tuple(c...), IsFixed{}};
+}
+
 namespace impl
 {
   template<typename T>
