@@ -28,7 +28,7 @@ auto constexpr NoveltyParams =defineParameters(
   FFTParam("fftSettings", "FFT Settings", 1024, -1, -1)
  );
 
-template<typename T>
+
 class NoveltyClient: public FluidBaseClient<decltype(NoveltyParams), NoveltyParams>, public OfflineIn, public OfflineOut
 {
 
@@ -37,7 +37,7 @@ public:
   NoveltyClient(ParamSetViewType& p) : FluidBaseClient(p)
   {}
 
-
+  template<typename T>
   Result process(FluidContext& c)
   {
 
@@ -103,9 +103,8 @@ public:
     return {Result::Status::kOk,""};
   }
 };
-    
-template <typename T>
-using NRTThreadedNoveltyClient = NRTThreadingAdaptor<NoveltyClient<T>>;
-    
+
+using NRTThreadedNoveltyClient = NRTThreadingAdaptor<NoveltyClient>;
+
 } // namespace client
 } // namespace fluid

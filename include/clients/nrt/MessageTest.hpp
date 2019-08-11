@@ -71,8 +71,6 @@ auto constexpr MessageTestMessages = defineMessages(
   Message<ReceiveStringAndNumbers>("testPassString")
 );
 
-
-template <typename T>
 class MessageTest : public FluidBaseClient<decltype(MessageTestParams), MessageTestParams, decltype(MessageTestMessages),MessageTestMessages>,
                    public OfflineIn,
                    public OfflineOut
@@ -81,7 +79,8 @@ public:
 
   MessageTest(ParamSetViewType &p) : FluidBaseClient(p)
   {}
-  
+
+  template <typename T>
   Result process(FluidContext& c) { return {}; }
   
   MessageResult<FluidTensor<std::string,1>> doStrings()
@@ -117,12 +116,11 @@ public:
   MessageResult<void> doTakeString(std::string s, double a, double b, double c)
   {
     std::cout << "Received " << s << ' ' << a << ' ' << b << ' ' << c << '\n';
-    return {}; 
+    return {};
   }
 };
 
-template <typename T>
-using NRTThreadingMessageTest = NRTThreadingAdaptor<MessageTest<T>>;
+using NRTThreadingMessageTest = NRTThreadingAdaptor<MessageTest>;
 
 } // namespace client
 } // namespace fluid

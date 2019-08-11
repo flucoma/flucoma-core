@@ -26,19 +26,19 @@ auto constexpr BufComposeParams = defineParameters(
     LongParam("destStartChan", "Destination Channel Offset", 0),
     FloatParam("destGain", "Destination Gain", 0.0));
 
-template <typename T>
+
 class BufferComposeClient : public FluidBaseClient<decltype(BufComposeParams), BufComposeParams>, OfflineIn, OfflineOut
 {
-  using HostVector = FluidTensorView<T, 1>;
-  using ConstHostVector = FluidTensorView<const T, 1>;
-  using HostMatrix = FluidTensor<T, 2>;
-
 public:
   BufferComposeClient(ParamSetViewType &p) : FluidBaseClient(p)
   {}
 
+  template <typename T>
   Result process(FluidContext &c)
   {
+    using HostVector = FluidTensorView<T, 1>;
+    using ConstHostVector = FluidTensorView<const T, 1>;
+    using HostMatrix = FluidTensor<T, 2>;
     // Not using bufferRangeCheck to validate source ranges because BufCompose is special...
     if (!get<kSource>().get()) { return {Result::Status::kError, "No input"}; }
 
@@ -115,7 +115,7 @@ public:
       BufferAdaptor::ReadAccess source(get<kSource>().get());
       auto                  gain = get<kGain>();
       // iterates through the copying of the first source
-      for (size_t i = dstStartChan, j = 0; j < nChannels; ++i, ++j)
+      for (intptr_t i = dstStartChan, j = 0; j < nChannels; ++i, ++j)
       {
         // Special repeating channel voodoo
         ConstHostVector sourceChunk{
@@ -148,9 +148,8 @@ public:
     return {Result::Status::kOk};
   }
 };
-    
-template <typename T>
-using NRTThreadedBufferCompose = NRTThreadingAdaptor<BufferComposeClient<T>>;
-    
+
+using NRTThreadedBufferCompose = NRTThreadingAdaptor<BufferComposeClient>;
+
 } // namespace client
 } // namespace fluid

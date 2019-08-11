@@ -38,22 +38,18 @@ auto constexpr TransientParams = defineParameters(
     LongParam("windowSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
     LongParam("clumpLength", "Clumping Window Length", 25, Min(0)));
 
-
-template <typename T>
-class TransientClient : public FluidBaseClient<decltype(TransientParams), TransientParams>, public AudioIn, public AudioOut
+class TransientClient:
+public FluidBaseClient<decltype(TransientParams), TransientParams>, public AudioIn, public AudioOut
 {
-
 public:
-
-  using HostVector = HostVector<T>;
-
   TransientClient(ParamSetViewType& p) : FluidBaseClient(p) {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::audioChannelsOut(2);
   }
 
-  void process(std::vector<HostVector>& input, std::vector<HostVector>& output, FluidContext& c, bool reset = false)
-  {
+  template <typename T>
+  void process(std::vector<HostVector<T>> &input, std::vector<HostVector<T>> &output, FluidContext& c,
+               bool reset = false) {
     if(!input[0].data() || (!output[0].data() && !output[1].data()))
       return;
 
@@ -118,11 +114,9 @@ private:
 
 auto constexpr NRTTransientParams = makeNRTParams<TransientClient>({InputBufferParam("source", "Source Buffer")}, {BufferParam("transients","Transients Buffer"), BufferParam("residual","Residual Buffer")});
 
-template <typename T>
-using NRTTransients = NRTStreamAdaptor<TransientClient<T>, decltype(NRTTransientParams), NRTTransientParams, 1, 2>;
-    
-template <typename T>
-using NRTThreadedTransients = NRTThreadingAdaptor<NRTTransients<T>>;
+using NRTTransients = NRTStreamAdaptor<TransientClient, decltype(NRTTransientParams), NRTTransientParams, 1, 2>;
+
+using NRTThreadedTransients = NRTThreadingAdaptor<NRTTransients>;
 
 } // namespace client
 } // namespace fluid

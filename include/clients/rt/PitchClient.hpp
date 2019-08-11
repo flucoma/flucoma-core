@@ -38,11 +38,10 @@ auto constexpr PitchParams = defineParameters(
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
                            PowerOfTwo{}));
 
-template <typename T>
+
 class PitchClient : public FluidBaseClient<decltype(PitchParams), PitchParams>,
                     public AudioIn,
                     public ControlOut {
-  using HostVector = HostVector<T>;
   using size_t = std::size_t;
   using CepstrumF0 = algorithm::CepstrumF0;
   using HPS = algorithm::HPS;
@@ -56,8 +55,9 @@ public:
     mDescriptors = FluidTensor<double, 1>(2);
   }
 
-  void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output, FluidContext& c, bool reset = false) {
+  template <typename T>
+  void process(std::vector<HostVector<T>> &input, std::vector<HostVector<T>> &output, FluidContext& c,
+               bool reset = false) {
     if (!input[0].data() || !output[0].data())
       return;
     assert(FluidBaseClient::controlChannelsOut() && "No control channels");
@@ -97,7 +97,7 @@ public:
 
 private:
   ParameterTrackChanges<size_t> mParamTracker;
-  STFTBufferedProcess<ParamSetViewType, T, kFFT> mSTFTBufferedProcess;
+  STFTBufferedProcess<ParamSetViewType, kFFT> mSTFTBufferedProcess;
   CepstrumF0 cepstrumF0;
   HPS hps;
   YINFFT yinFFT;
@@ -109,13 +109,11 @@ auto constexpr NRTPitchParams =
     makeNRTParams<PitchClient>({InputBufferParam("source", "Source Buffer")},
                                {BufferParam("features", "Features Buffer")});
 
-template <typename T>
 using NRTPitchClient =
-    NRTControlAdaptor<PitchClient<T>, decltype(NRTPitchParams), NRTPitchParams,
+    NRTControlAdaptor<PitchClient, decltype(NRTPitchParams), NRTPitchParams,
                       1, 1>;
 
-template <typename T>
-using NRTThreadedPitchClient = NRTThreadingAdaptor<NRTPitchClient<T>>;
-    
+using NRTThreadedPitchClient = NRTThreadingAdaptor<NRTPitchClient>;
+
 } // namespace client
 } // namespace fluid

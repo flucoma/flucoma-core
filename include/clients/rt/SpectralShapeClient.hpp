@@ -24,13 +24,11 @@ auto constexpr SpectralShapeParams = defineParameters(
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
                            PowerOfTwo{}));
 
-template <typename T>
 class SpectralShapeClient
     : public FluidBaseClient<decltype(SpectralShapeParams),
                              SpectralShapeParams>,
       public AudioIn,
       public ControlOut {
-  using HostVector = HostVector<T>;
 
 public:
   SpectralShapeClient(ParamSetViewType &p)
@@ -40,8 +38,9 @@ public:
     mDescriptors = FluidTensor<double, 1>(7);
   }
 
-  void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output, FluidContext& c, bool reset = false) {
+  template <typename T>
+  void process(std::vector<HostVector<T>> &input, std::vector<HostVector<T>> &output, FluidContext& c,
+               bool reset = false) {
     using std::size_t;
 
     if (!input[0].data() || !output[0].data())
@@ -75,8 +74,8 @@ public:
 
 private:
   ParameterTrackChanges<size_t> mWinSizeTracker;
-  STFTBufferedProcess<ParamSetViewType, T, kFFT> mSTFTBufferedProcess;
-  SpectralShape mAlgorithm{get<kMaxFFTSize>()};
+  STFTBufferedProcess<ParamSetViewType, kFFT> mSTFTBufferedProcess;
+  SpectralShape mAlgorithm{static_cast<size_t>(get<kMaxFFTSize>())};
   FluidTensor<double, 1> mMagnitude;
   FluidTensor<double, 1> mDescriptors;
   double mBinHz;
@@ -86,13 +85,11 @@ auto constexpr NRTSpectralShapeParams = makeNRTParams<SpectralShapeClient>(
     {InputBufferParam("source", "Source Buffer")},
     {BufferParam("features", "Features Buffer")});
 
-template <typename T>
 using NRTSpectralShapeClient =
-    NRTControlAdaptor<SpectralShapeClient<T>, decltype(NRTSpectralShapeParams),
+    NRTControlAdaptor<SpectralShapeClient, decltype(NRTSpectralShapeParams),
                       NRTSpectralShapeParams, 1, 1>;
-    
-template <typename T>
-using NRTThreadedSpectralShapeClient = NRTThreadingAdaptor<NRTSpectralShapeClient<T>>;
+
+using NRTThreadedSpectralShapeClient = NRTThreadingAdaptor<NRTSpectralShapeClient>;
 
 } // namespace client
 } // namespace fluid

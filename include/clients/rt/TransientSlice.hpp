@@ -40,11 +40,9 @@ auto constexpr TransientParams = defineParameters(
 );
 
 
-template <typename T>
 class TransientsSlice :
 public FluidBaseClient<decltype(TransientParams), TransientParams>, public AudioIn, public AudioOut
 {
-  using HostVector = HostVector<T>;
 
 public:
 
@@ -54,8 +52,9 @@ public:
     FluidBaseClient::audioChannelsOut(1);
   }
 
-  void process(std::vector<HostVector>& input,
-               std::vector<HostVector>& output, FluidContext& c, bool reset = false) {
+  template <typename T>
+  void process(std::vector<HostVector<T>> &input, std::vector<HostVector<T>> &output, FluidContext& c,
+               bool reset = false) {
 
     if(!input[0].data() || !output[0].data())
       return;
@@ -115,7 +114,7 @@ private:
   ParameterTrackChanges<size_t,size_t,size_t,size_t> mTrackValues;
   std::unique_ptr<algorithm::TransientSegmentation> mExtractor;
   BufferedProcess mBufferedProcess;
-  FluidTensor<T, 1> mTransients;
+  FluidTensor<double, 1> mTransients;
   size_t mHostSize{0};
   size_t mOrder{0};
   size_t mBlocksize{0};
@@ -124,11 +123,9 @@ private:
 
 auto constexpr NRTTransientSliceParams = makeNRTParams<TransientsSlice>({InputBufferParam("source", "Source Buffer")}, {BufferParam("indices","Indices Buffer")});
 
-template <typename T>
-using NRTTransientSlice = NRTSliceAdaptor<TransientsSlice<T>, decltype(NRTTransientSliceParams), NRTTransientSliceParams, 1, 1>;
+using NRTTransientSlice = NRTSliceAdaptor<TransientsSlice, decltype(NRTTransientSliceParams), NRTTransientSliceParams, 1, 1>;
 
-template <typename T>
-using NRTThreadedTransientSlice = NRTThreadingAdaptor<NRTTransientSlice<T>>;
+using NRTThreadedTransientSlice = NRTThreadingAdaptor<NRTTransientSlice>;
 
 } // namespace client
 } // namespace fluid

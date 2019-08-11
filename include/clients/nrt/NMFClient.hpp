@@ -40,7 +40,7 @@ auto constexpr NMFParams = defineParameters(
   FFTParam("fftSettings", "FFT Settings", 1024, -1, -1)
 );
 
-template<typename T>
+
 class NMFClient: public FluidBaseClient<decltype(NMFParams), NMFParams>, public OfflineIn, public OfflineOut
 {
 public:
@@ -51,12 +51,13 @@ public:
   /***
    Take some data, NMF it
    ***/
+  template<typename T>
   Result process(FluidContext& c) {
 
     intptr_t nFrames   = get<kNumFrames>();
     intptr_t nChannels = get<kNumChans>();
     auto rangeCheck = bufferRangeCheck(get<kSource>().get(), get<kOffset>(), nFrames, get<kStartChan>(), nChannels);
-    
+
     if(!rangeCheck.ok()) return rangeCheck;
 
     auto source = BufferAdaptor::ReadAccess(get<kSource>().get());
@@ -238,9 +239,8 @@ public:
     return {Result::Status::kOk,""};
   }
 };
-    
-template <typename T>
-using NRTThreadedNMF = NRTThreadingAdaptor<NMFClient<T>>;
-    
+
+using NRTThreadedNMF = NRTThreadingAdaptor<NMFClient>;
+
 } // namespace client
 } // namespace fluid

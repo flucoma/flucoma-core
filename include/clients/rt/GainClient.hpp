@@ -19,11 +19,8 @@ enum GainParamTags { kGain };
 
 constexpr auto GainParams = defineParameters(FloatParam("gain", "Gain", 1.0));
 
-/// @class GainAudioClient
-template <typename T>
 class GainClient : public FluidBaseClient<decltype(GainParams), GainParams>, public AudioIn, public AudioOut
 {
-  using HostVector = FluidTensorView<T,1>;
 public:
   GainClient(ParamSetViewType &p) : FluidBaseClient(p) {
     FluidBaseClient::audioChannelsIn(2);
@@ -32,8 +29,9 @@ public:
 
   size_t latency() { return 0; }
 
-  void process(std::vector<HostVector> &input, std::vector<HostVector> &output, FluidContext& c, bool reset = false)
-  {
+  template <typename T>
+  void process(std::vector<FluidTensorView<T,1>> &input, std::vector<FluidTensorView<T,1>> &output, FluidContext& c,
+               bool reset = false) {
     // Data is stored with samples laid out in rows, one channel per row
     if (!input[0].data())
       return;

@@ -20,9 +20,6 @@ namespace client {
 
 using algorithm::OnsetSegmentation;
 
-template <typename T>
-class OnsetSlice;
-
 enum OnsetParamIndex {
   kFunction,
   kThreshold,
@@ -48,24 +45,9 @@ auto constexpr OnsetParams = defineParameters(
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4), PowerOfTwo{})
   );
 
-
-struct AFunc{
-  template<typename Client>
-  MessageResult<void> operator()(Client& c, std::shared_ptr<BufferAdaptor> buf){return c.doTest(buf); }
-};
-
-
-auto constexpr OnsetMessages = defineMessages(
-  Message<AFunc>("testMessage")
-);
-
-
-template <typename T>
-class OnsetSlice : public FluidBaseClient<decltype(OnsetParams), OnsetParams,decltype(OnsetMessages),OnsetMessages>,
+class OnsetSlice : public FluidBaseClient<decltype(OnsetParams), OnsetParams>,
                    public AudioIn,
                    public AudioOut {
-
-  using HostVector = HostVector<T>;
 
 public:
 
@@ -74,8 +56,9 @@ public:
     FluidBaseClient::audioChannelsOut(1);
   }
 
-  void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output, FluidContext& c, bool reset = false) {
+  template <typename T>
+  void process(std::vector<HostVector<T>> &input, std::vector<HostVector<T>> &output, FluidContext& c,
+               bool reset = false) {
     using algorithm::OnsetSegmentation;
     using std::size_t;
 
@@ -117,39 +100,22 @@ public:
 
   long latency() { return get<kFFT>().winSize() + get<kFrameDelta>(); }
 
-   MessageResult<void> doTest(std::shared_ptr<BufferAdaptor> buf) {
-    if(auto b = buf.get())
-    {
-//      return BufferAdaptor::Access(b).numFrames();
-    }
-//    return -1;
-    return{}; 
-  }
-
 private:
-  OnsetSegmentation mAlgorithm{get<kMaxFFTSize>()};
+  OnsetSegmentation mAlgorithm{static_cast<int>(get<kMaxFFTSize>())};
   ParameterTrackChanges<size_t, size_t, size_t> mBufferParamsTracker;
   ParameterTrackChanges<size_t> mMaxSizeTracker;
   BufferedProcess mBufferedProcess;
   RealMatrix mTmp;
 };
 
-
-
-
-
-
-
 auto constexpr NRTOnsetSliceParams =
     makeNRTParams<OnsetSlice>({InputBufferParam("source", "Source Buffer")},
                               {BufferParam("indices", "Indices Buffer")});
-template <typename T>
 using NRTOnsetSlice =
-    NRTSliceAdaptor<OnsetSlice<T>, decltype(NRTOnsetSliceParams),
+    NRTSliceAdaptor<OnsetSlice, decltype(NRTOnsetSliceParams),
                     NRTOnsetSliceParams, 1, 1>;
-    
-template <typename T>
-using NRTThreadingOnsetSlice = NRTThreadingAdaptor<NRTOnsetSlice<T>>;
+
+using NRTThreadingOnsetSlice = NRTThreadingAdaptor<NRTOnsetSlice>;
 
 } // namespace client
 } // namespace fluid

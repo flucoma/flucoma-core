@@ -29,17 +29,13 @@ auto constexpr HPSSParams = defineParameters(
     LongParam<Fixed<true>>("maxPercFilterSize", "Maximum Percussive Filter Size", 101, Min(3), Odd{})
 );
 
-template <typename T>
 class HPSSClient : public FluidBaseClient<decltype(HPSSParams), HPSSParams>, public AudioIn, public AudioOut
 {
-  using data_type       = FluidTensorView<T, 2>;
-  using complex         = FluidTensorView<std::complex<T>, 1>;
-  using HostVector      = HostVector<T>;
 
 public:
 
   HPSSClient(ParamSetViewType& p)
-    : FluidBaseClient(p), mSTFTBufferedProcess{get<kMaxFFT>(),1,3}
+  : FluidBaseClient(p), mSTFTBufferedProcess{static_cast<size_t>(get<kMaxFFT>()),1,3}
   {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::audioChannelsOut(3);
@@ -47,8 +43,16 @@ public:
 
   size_t latency() { return ((get<kHSize>() - 1) * get<kFFT>().hopSize()) +  get<kFFT>().winSize(); }
 
-  void process(std::vector<HostVector> &input, std::vector<HostVector> &output, FluidContext& c, bool reset = false)
+  template <typename T>
+  void process(std::vector<HostVector<T>> &input, std::vector<HostVector<T>> &output, FluidContext& c,
+               bool reset = false)
   {
+  
+    using data_type       = FluidTensorView<T, 2>;
+    using complex         = FluidTensorView<std::complex<T>, 1>;
+    using HostVector      = HostVector<T>;
+
+  
     if (!input[0].data()) return;
 
     int nBins = get<kFFT>().frameSize();
@@ -89,7 +93,7 @@ public:
   }
 
 private:
-  STFTBufferedProcess<ParamSetViewType, T, kFFT, true> mSTFTBufferedProcess;
+  STFTBufferedProcess<ParamSetViewType, kFFT, true> mSTFTBufferedProcess;
   ParameterTrackChanges<size_t, size_t, size_t> mTrackChangesAlgo;
   ParameterTrackChanges<size_t> mTrackHSize;
   algorithm::RTHPSS mHPSS;
@@ -97,11 +101,9 @@ private:
 
 auto constexpr NRTHPSSParams = makeNRTParams<HPSSClient>({InputBufferParam("source", "Source Buffer")},  {BufferParam("harmonic","Harmonic Buffer"), BufferParam("percussive","Percussive Buffer"), BufferParam("residual", "Residual Buffer")});
 
-template <typename T>
-using NRTHPSS = NRTStreamAdaptor<HPSSClient<T>, decltype(NRTHPSSParams), NRTHPSSParams, 1, 3>;
-    
-template <typename T>
-using NRTThreadedHPSS = NRTThreadingAdaptor<NRTHPSS<T>>;
+using NRTHPSS = NRTStreamAdaptor<HPSSClient, decltype(NRTHPSSParams), NRTHPSSParams, 1, 3>;
+
+using NRTThreadedHPSS = NRTThreadingAdaptor<NRTHPSS>;
 
 } // namespace client
 } // namespace fluid

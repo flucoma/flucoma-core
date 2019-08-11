@@ -64,21 +64,21 @@ auto constexpr AmpSliceParams = defineParameters(
                            Min(1)), // TODO
     LongParam("outputType", "Output Type (temporarily)", 0, Min(0)));
 
-template <typename T>
+
 class AmpSlice
     : public FluidBaseClient<decltype(AmpSliceParams), AmpSliceParams>,
       public AudioIn,
       public AudioOut {
-  using HostVector = HostVector<T>;
 
 public:
   AmpSlice(ParamSetViewType &p) : FluidBaseClient(p) {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::audioChannelsOut(1);
   }
-
-  void process(std::vector<HostVector> &input, std::vector<HostVector> &output, FluidContext& c,
-               bool reset = false) {
+  template <typename T>
+  void process(std::vector<HostVector<T>> &input, std::vector<HostVector<T>> &output, FluidContext& c,
+               bool reset = false)
+    {
 
     if (!input[0].data() || !output[0].data())
       return;
@@ -120,7 +120,7 @@ private:
                         size_t, size_t, size_t, double, double, double, double,
                         double>
       mTrackValues;
-  algorithm::EnvelopeSegmentation mAlgorithm{get<kMaxSize>(), get<kOutput>()};
+        algorithm::EnvelopeSegmentation mAlgorithm{static_cast<size_t>(get<kMaxSize>()), static_cast<int>(get<kOutput>())};
 };
 
 template <typename HostMatrix, typename HostVectorView> struct NRTAmpSlicing {
@@ -175,13 +175,12 @@ auto constexpr NRTAmpSliceParams =
     makeNRTParams<AmpSlice>({InputBufferParam("source", "Source Buffer")},
                             {BufferParam("indices", "Indices Buffer")});
 
-template <typename T>
-using NRTAmpSlice = impl::NRTClientWrapper<NRTAmpSlicing, AmpSlice<T>,
+
+using NRTAmpSlice = impl::NRTClientWrapper<NRTAmpSlicing, AmpSlice,
                                            decltype(NRTAmpSliceParams),
                                            NRTAmpSliceParams, 1, 1>;
 
-template <typename T>
-using NRTThreadedAmpSlice = NRTThreadingAdaptor<NRTAmpSlice<T>>;
+using NRTThreadedAmpSlice = NRTThreadingAdaptor<NRTAmpSlice>;
 
 } // namespace client
 } // namespace fluid

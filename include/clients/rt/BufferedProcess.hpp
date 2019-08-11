@@ -100,25 +100,24 @@ private:
   FluidSink<double> mSink;
 };
 
-template <typename Params, typename U, size_t FFTParamsIndex, bool Normalise=true>
+template <typename Params, size_t FFTParamsIndex, bool Normalise=true>
 class  STFTBufferedProcess {
-  using HostVector = HostVector<U>;
 
 public:
 
   STFTBufferedProcess(size_t maxFFTSize, size_t channelsIn, size_t channelsOut){
     mBufferedProcess.maxSize(maxFFTSize, maxFFTSize, channelsIn, channelsOut + Normalise);
   }
-  
-  
-  template <typename F>
-  void process(Params &p, std::vector<HostVector> &input,
-               std::vector<HostVector> &output, FluidContext& c, bool reset, F &&processFunc) {
-   
+
+
+  template <typename T, typename F>
+  void process(Params &p, std::vector<HostVector<T>> &input,
+               std::vector<HostVector<T>> &output, FluidContext& c, bool reset, F &&processFunc) {
+
     if (!input[0].data()) return;
     assert(mBufferedProcess.channelsIn() == input.size());
     assert(mBufferedProcess.channelsOut() == output.size() + Normalise);
-    
+
     FFTParams fftParams = setup(p, input);
     size_t chansIn = mBufferedProcess.channelsIn() ;
     size_t chansOut = mBufferedProcess.channelsOut() - Normalise ;
@@ -150,10 +149,10 @@ public:
       }
     }
   }
-  
-  template <typename F>
-  void processInput(Params &p, std::vector<HostVector> &input,FluidContext& c, bool reset,F &&processFunc) {
-   
+
+  template <typename T, typename F>
+  void processInput(Params &p, std::vector<HostVector<T>> &input,FluidContext& c, bool reset,F &&processFunc) {
+
     if (!input[0].data()) return;
     assert(mBufferedProcess.channelsIn() == input.size());
     size_t chansIn = mBufferedProcess.channelsIn();
@@ -167,8 +166,8 @@ public:
   }
 
 private:
-
-  FFTParams setup(Params &p, std::vector<HostVector> &input)
+  template<typename T>
+  FFTParams setup(Params &p, std::vector<HostVector<T>> &input)
   {
     FFTParams fftParams = p.template get<FFTParamsIndex>();
     bool newParams = mTrackValues.changed(fftParams.winSize(), fftParams.hopSize(), fftParams.fftSize());
@@ -192,8 +191,8 @@ private:
     
     if (Normalise && std::max(mBufferedProcess.maxWindowSizeIn(), hostBufferSize) > mFrameAndWindow.cols())
       mFrameAndWindow.resize(chansOut, std::max(mBufferedProcess.maxWindowSizeIn(), hostBufferSize));
-    
-    mBufferedProcess.push(HostMatrix<U>(input[0]));
+
+    mBufferedProcess.push(HostMatrix<T>(input[0]));
     return fftParams;
   }
 

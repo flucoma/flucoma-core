@@ -125,6 +125,7 @@ public:
     return invokeDelegate<N>(std::forward<Args>(args)...);
   }
 
+  template <typename T> 
   Result process(FluidContext& c)
   {
     auto constexpr inputCounter = std::make_index_sequence<Ins>();
@@ -206,13 +207,13 @@ private:
   template<size_t...Is>
   std::array<BufferProcessSpec, sizeof...(Is)> fetchInputBuffers(std::index_sequence<Is...>)
   {
-    return {fetchInputBuffer<Is*5>()...};
+    return {{fetchInputBuffer<Is*5>()}...};
   }
 
   template<size_t...Is>
   std::array<BufferAdaptor*,sizeof...(Is)> fetchOutputBuffers(std::index_sequence<Is...>)
   {
-    return {get<Is + (Ins*5)>().get()...};
+    return {{get<Is + (Ins*5)>().get()...}};
   }
 
 
@@ -400,10 +401,10 @@ using NRTControlAdaptor = impl::NRTClientWrapper<impl::StreamingControl, RTClien
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<template <typename T> class RTClient, size_t Ms>
+template<class RTClient, size_t Ms>
 auto constexpr makeNRTParams(impl::InputBufferSpec&& in, impl::BufferSpec(&& out)[Ms])
 {
-  return impl::joinParameterDescriptors(impl::joinParameterDescriptors(impl::makeWrapperInputs(in), impl::spitOuts(out, std::make_index_sequence<Ms>())), RTClient<double>::getParameterDescriptors());
+  return impl::joinParameterDescriptors(impl::joinParameterDescriptors(impl::makeWrapperInputs(in), impl::spitOuts(out, std::make_index_sequence<Ms>())), RTClient::getParameterDescriptors());
 }
   
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -586,7 +587,7 @@ private:
       assert(mClient.get() != nullptr); //right?
     
       mState = kProcessing;
-      Result r = mClient->process(mContext);
+      Result r = mClient->template process<float>(mContext);
       mState = kDone;
       
       if (mDetached)

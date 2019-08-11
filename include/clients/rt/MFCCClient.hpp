@@ -41,14 +41,10 @@ auto constexpr MFCCParams = defineParameters(
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
 
-template <typename T>
 class MFCCClient : public FluidBaseClient<decltype(MFCCParams), MFCCParams>,
                    public AudioIn,
                    public ControlOut
-
 {
-  using HostVector = HostVector<T>;
-
 public:
   MFCCClient(ParamSetViewType &p)
       : FluidBaseClient{p}, mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0) {
@@ -58,8 +54,9 @@ public:
     FluidBaseClient::controlChannelsOut(get<kMaxNCoefs>());
   }
 
-  void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output, FluidContext& c, bool reset = false) {
+  template <typename T>
+  void process(std::vector<HostVector<T>> &input, std::vector<HostVector<T>> &output, FluidContext& c,
+               bool reset = false) {
     using std::size_t;
 
     if (!input[0].data() || !output[0].data())
@@ -94,7 +91,7 @@ public:
 
 private:
   ParameterTrackChanges<size_t, size_t, size_t, double, double> mTracker;
-  STFTBufferedProcess<ParamSetViewType, T, kFFT, false> mSTFTBufferedProcess;
+  STFTBufferedProcess<ParamSetViewType, kFFT, false> mSTFTBufferedProcess;
   MelBands mMelBands;
   DCT mDCT;
   FluidTensor<double, 1> mMagnitude;
@@ -105,12 +102,11 @@ private:
 auto constexpr NRTMFCCParams =
     makeNRTParams<MFCCClient>({InputBufferParam("source", "Source Buffer")},
                               {BufferParam("features", "Output Buffer")});
-template <typename T>
-using NRTMFCCClient = NRTControlAdaptor<MFCCClient<T>, decltype(NRTMFCCParams),
+
+using NRTMFCCClient = NRTControlAdaptor<MFCCClient, decltype(NRTMFCCParams),
                                         NRTMFCCParams, 1, 1>;
-    
-template <typename T>
-using NRTThreadedMFCCClient = NRTThreadingAdaptor<NRTMFCCClient<T>>;
+
+using NRTThreadedMFCCClient = NRTThreadingAdaptor<NRTMFCCClient>;
 
 } // namespace client
 } // namespace fluid

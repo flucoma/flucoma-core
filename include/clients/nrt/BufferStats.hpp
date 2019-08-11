@@ -37,7 +37,7 @@ auto constexpr BufferStatsParams = defineParameters(
     FloatParam("high", "High Percentile", 100, Min(0), Max(100),
                LowerLimit<kMiddle>()));
 
-template <typename T>
+
 class BufferStats
     : public FluidBaseClient<decltype(BufferStatsParams), BufferStatsParams>,
       public OfflineIn,
@@ -46,6 +46,7 @@ class BufferStats
 public:
   BufferStats(ParamSetViewType &p) : FluidBaseClient(p) {}
 
+  template <typename T>
   Result process(FluidContext& c) {
     algorithm::Stats processor;
 
@@ -116,9 +117,8 @@ public:
     return {Result::Status::kOk, ""};
   }
 };
-    
-template <typename T>
-using NRTThreadedBufferStats = NRTThreadingAdaptor<BufferStats<T>>;
-    
+
+using NRTThreadedBufferStats = NRTThreadingAdaptor<BufferStats>;
+
 } // namespace client
 } // namespace fluid

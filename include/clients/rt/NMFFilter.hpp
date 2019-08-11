@@ -23,11 +23,8 @@ auto constexpr NMFFilterParams = defineParameters(
   LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4), PowerOfTwo{})
 );
 
-
-template <typename T>
 class NMFFilter : public FluidBaseClient<decltype(NMFFilterParams), NMFFilterParams>, public AudioIn, public AudioOut
 {
-  using HostVector = HostVector<T>;
 public:
 
   NMFFilter(ParamSetViewType& p) : FluidBaseClient(p), mSTFTProcessor(get<kMaxFFTSize>(),1,get<kMaxRank>())
@@ -38,7 +35,9 @@ public:
 
   size_t latency() { return get<kFFT>().winSize(); }
 
-  void process(std::vector<HostVector> &input, std::vector<HostVector> &output, FluidContext& c, bool reset = false)
+  template <typename T>
+  void process(std::vector<HostVector<T>> &input, std::vector<HostVector<T>> &output, FluidContext& c,
+               bool reset = false) 
   {
     if(!input[0].data()) return;
     assert(audioChannelsOut() && "No control channels");
@@ -91,7 +90,7 @@ public:
 
 private:
   ParameterTrackChanges<size_t,size_t> mTrackValues;
-  STFTBufferedProcess<ParamSetViewType, T, kFFT,true> mSTFTProcessor;
+  STFTBufferedProcess<ParamSetViewType, kFFT,true> mSTFTProcessor;
   std::unique_ptr<algorithm::NMF> mNMF;
 
   RealMatrix a;

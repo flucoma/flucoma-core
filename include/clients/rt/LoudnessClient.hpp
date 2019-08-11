@@ -33,12 +33,10 @@ auto constexpr LoudnessParams = defineParameters(
     LongParam<Fixed<true>>("maxWindowSize", "Max Window Size",
               16384, Min(4), PowerOfTwo{})); // 17640 next power of two
 
-template <typename T>
 class LoudnessClient
     : public FluidBaseClient<decltype(LoudnessParams), LoudnessParams>,
       public AudioIn,
       public ControlOut {
-  using HostVector = HostVector<T>;
 
 public:
   LoudnessClient(ParamSetViewType &p) : FluidBaseClient(p) {
@@ -47,8 +45,9 @@ public:
     mDescriptors = FluidTensor<double, 1>(2);
   }
 
-  void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output, FluidContext& c, bool reset = false) {
+  template <typename T>
+  void process(std::vector<HostVector<T>> &input, std::vector<HostVector<T>> &output, FluidContext& c,
+               bool reset = false) {
     if (!input[0].data() || !output[0].data())
       return;
     assert(FluidBaseClient::controlChannelsOut() && "No control channels");
@@ -81,7 +80,7 @@ public:
   size_t controlRate() { return get<kHopSize>(); }
 
 private:
-  Loudness mAlgorithm{get<kMaxWindowSize>()};
+  Loudness mAlgorithm{static_cast<int>(get<kMaxWindowSize>())};
   ParameterTrackChanges<size_t, size_t, size_t> mBufferParamsTracker;
   BufferedProcess mBufferedProcess;
   FluidTensor<double, 1> mDescriptors;
@@ -90,13 +89,13 @@ private:
 auto constexpr NRTLoudnessParams =
     makeNRTParams<LoudnessClient>({InputBufferParam("source", "Source Buffer")},
                                   {BufferParam("features", "Features Buffer")});
-template <typename T>
+
 using NRTLoudnessClient =
-    NRTControlAdaptor<LoudnessClient<T>, decltype(NRTLoudnessParams),
+    NRTControlAdaptor<LoudnessClient, decltype(NRTLoudnessParams),
                       NRTLoudnessParams, 1, 1>;
 
-template <typename T>
-using NRTThreadedLoudnessClient = NRTThreadingAdaptor<NRTLoudnessClient<T>>;
-    
+
+using NRTThreadedLoudnessClient = NRTThreadingAdaptor<NRTLoudnessClient>;
+
 } // namespace client
 } // namespace fluid
