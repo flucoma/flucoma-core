@@ -43,11 +43,15 @@ public:
     VectorXd h =
         MatrixXd::Random(rank, 1) * 0.5 + MatrixXd::Constant(rank, 1, 0.5);
     VectorXd v0 = asEigen<Matrix>(x);
+    W = W.array().max(epsilon).matrix();
+    h = h.array().max(epsilon).matrix();
+    v0 = v0.array().max(epsilon).matrix();
+
     MatrixXd WT = W.transpose();
     W.colwise().normalize();
     VectorXd ones = VectorXd::Ones(x.extent(0));
     while (nIterations--) {
-      ArrayXd v1 = (W * h).array() + epsilon;
+      ArrayXd v1 = (W * h).array().max(epsilon);
       ArrayXXd hNum = (WT * (v0.array() / v1).matrix()).array();
       ArrayXXd hDen = (WT * ones).array();
       h = (h.array() * hNum / hDen.max(epsilon)).matrix();
