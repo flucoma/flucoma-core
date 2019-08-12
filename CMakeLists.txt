@@ -96,15 +96,14 @@ set(root ${CMAKE_CURRENT_SOURCE_DIR})
 # HISSTools FFT target: I'd rather this was a static lib; however, this way we
 # just inject the source into dependencies downstream, which is unitdy but works
 add_library(
-  HISSTools_FFT INTERFACE
+  HISSTools_FFT STATIC ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/HISSTools_FFT/HISSTools_FFT.cpp
 )
 target_sources(HISSTools_FFT INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/HISSTools_FFT/HISSTools_FFT.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/HISSTools_FFT/HISSTools_FFT.cpp
 )
 target_link_libraries(
   HISSTools_FFT
-  INTERFACE ${ACCELERATE}
+  PRIVATE ${ACCELERATE}
 )
 
 #HISSTools Audiofile Target
@@ -131,6 +130,11 @@ target_include_directories(
   FLUID_DECOMPOSITION
   INTERFACE
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
+)
+
+target_link_libraries(
+  FLUID_DECOMPOSITION
+  INTERFACE HISSTools_FFT Boost::preprocessor
 )
 
 target_sources(
@@ -173,4 +177,4 @@ target_include_directories(
 #  "${CMAKE_CURRENT_SOURCE_DIR}/examples" EXCLUDE_FROM_ALL
 #)
 
-export(TARGETS FLUID_DECOMPOSITION HISSTools_FFT HISSTools_AudioFile FILE fluid_decomposition-exports.cmake)
+# export(TARGETS FLUID_DECOMPOSITION HISSTools_FFT HISSTools_AudioFile FILE fluid_decomposition-exports.cmake)
