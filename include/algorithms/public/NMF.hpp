@@ -106,11 +106,13 @@ private:
   void multiplicativeUpdates(MatrixXd &V, MatrixXd &W, MatrixXd &H) {
     double const epsilon = std::numeric_limits<double>::epsilon();
     MatrixXd ones = MatrixXd::Ones(V.rows(), V.cols());
+    H = H.array().max(epsilon).matrix();
+    W = W.array().max(epsilon).matrix();
     W.colwise().normalize();
     H.rowwise().normalize();
     while (mIterations--) {
       if (mUpdateW) {
-        ArrayXXd V1 = (W * H).array() + epsilon;
+        ArrayXXd V1 = (W * H).array().max(epsilon);
         ArrayXXd wnum = ((V.array() / V1).matrix() * H.transpose()).array();
         ArrayXXd wden = (ones * H.transpose()).array();
         W = (W.array() * wnum / wden.max(epsilon)).matrix();
@@ -118,7 +120,7 @@ private:
           W.colwise().normalize();
         assert(W.allFinite());
       }
-      ArrayXXd V2 = (W * H).array() + epsilon;
+      ArrayXXd V2 = (W * H).array().max(epsilon);
       if (mUpdateH) {
         ArrayXXd hnum = (W.transpose() * (V.array() / V2).matrix()).array();
         ArrayXXd hden = (W.transpose() * ones).array();
