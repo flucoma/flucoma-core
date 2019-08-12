@@ -52,11 +52,11 @@ private:
   double mSampleRate = 0;
 };
 
-template<typename Client>
+template<typename C>
 class ClientWrapper
 {
  public:
-
+  using Client = C;
   using isNonRealTime = typename std::is_base_of<Offline, Client>::type;
   using isRealTime = std::integral_constant<bool, isAudio<Client> || isControl<Client>>;
 
@@ -94,6 +94,8 @@ class ClientWrapper
   { return NoMessages; }
   
   ClientWrapper(ParamSetViewType& p):mClient{p},mParams{p} {}
+  
+  const Client& client() const { return mClient; }
   
   template<typename T, typename Context>
   Result process(Context& c)
