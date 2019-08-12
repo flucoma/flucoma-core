@@ -15,66 +15,64 @@
 namespace fluid {
 namespace client {
 
-enum AmpSliceParamIndex {
-  kAbsRampUpTime,
-  kAbsRampDownTime,
-  kAbsOnThreshold,
-  kAbsOffThreshold,
-  kMinEventDuration,
-  kMinSilencetDuration,
-  kMinTimeAboveThreshold,
-  kMinTimeBelowThreshold,
-  kUpwardLookupTime,
-  kDownwardLookupTime,
-  kRelRampUpTime,
-  kRelRampDownTime,
-  kRelOnThreshold,
-  kRelOffThreshold,
-  kHiPassFreq,
-  kMaxSize,
-  kOutput
-};
-
-auto constexpr AmpSliceParams = defineParameters(
-    FloatParam("absRampUp", "Absolute Envelope Ramp Up Length", 10, Min(1)),
-    FloatParam("absRampDown", "Absolute Envelope Ramp Down Length", 10, Min(1)),
-    FloatParam("absThreshOn", "Absolute Envelope Threshold On", -90, Min(-144),
-               Max(144)),
-    FloatParam("absThreshOff", "Absolute Envelope Threshold Off", -90,
-               Min(-144), Max(144)),
-    LongParam("minSliceLength", "Minimum Length of Slice", 1, Min(1)),
-    LongParam("minSilenceLength", "Absolute Envelope Minimum Length of Silence",
-              1, Min(1)),
-    LongParam("minLengthAbove", "Required Minimal Length Above Threshold", 1,
-              Min(1)),
-    LongParam("minLengthBelow", "Required Minimal Length Below Threshold", 1,
-              Min(1)),
-    LongParam("lookBack", "Absolute Envelope Backward Lookup Length", 0,
-              Min(0)),
-    LongParam("lookAhead", "Absolute Envelope Forward Lookup Length", 0,
-              Min(0)),
-    FloatParam("relRampUp", "Relative Envelope Ramp Up Length", 1, Min(1)),
-    FloatParam("relRampDown", "Relative Envelope Ramp Down Length", 1, Min(1)),
-    FloatParam("relThreshOn", "Relative Envelope Threshold On", 144, Min(-144),
-               Max(144)),
-    FloatParam("relThreshOff", "Relative Envelope Threshold Off", -144,
-               Min(-144), Max(144)),
-    FloatParam("highPassFreq", "High-Pass Filter Cutoff", 85, Min(1)),
-    LongParam<Fixed<true>>("maxSize", "Maximum Total Latency", 88200,
-                           Min(1)), // TODO
-    LongParam("outputType", "Output Type (temporarily)", 0, Min(0)));
-
-
-class AmpSlice
-    : public FluidBaseClient<decltype(AmpSliceParams), AmpSliceParams>,
-      public AudioIn,
-      public AudioOut {
-
+class AmpSlice : public FluidBaseClient, public AudioIn,public AudioOut {
+    enum AmpSliceParamIndex {
+      kAbsRampUpTime,
+      kAbsRampDownTime,
+      kAbsOnThreshold,
+      kAbsOffThreshold,
+      kMinEventDuration,
+      kMinSilencetDuration,
+      kMinTimeAboveThreshold,
+      kMinTimeBelowThreshold,
+      kUpwardLookupTime,
+      kDownwardLookupTime,
+      kRelRampUpTime,
+      kRelRampDownTime,
+      kRelOnThreshold,
+      kRelOffThreshold,
+      kHiPassFreq,
+      kMaxSize,
+      kOutput
+    };
 public:
-  AmpSlice(ParamSetViewType &p) : FluidBaseClient(p) {
+
+    FLUID_DECLARE_PARAMS(
+      FloatParam("absRampUp", "Absolute Envelope Ramp Up Length", 10, Min(1)),
+      FloatParam("absRampDown", "Absolute Envelope Ramp Down Length", 10, Min(1)),
+      FloatParam("absThreshOn", "Absolute Envelope Threshold On", -90, Min(-144),
+                 Max(144)),
+      FloatParam("absThreshOff", "Absolute Envelope Threshold Off", -90,
+                 Min(-144), Max(144)),
+      LongParam("minSliceLength", "Minimum Length of Slice", 1, Min(1)),
+      LongParam("minSilenceLength", "Absolute Envelope Minimum Length of Silence",
+                1, Min(1)),
+      LongParam("minLengthAbove", "Required Minimal Length Above Threshold", 1,
+                Min(1)),
+      LongParam("minLengthBelow", "Required Minimal Length Below Threshold", 1,
+                Min(1)),
+      LongParam("lookBack", "Absolute Envelope Backward Lookup Length", 0,
+                Min(0)),
+      LongParam("lookAhead", "Absolute Envelope Forward Lookup Length", 0,
+                Min(0)),
+      FloatParam("relRampUp", "Relative Envelope Ramp Up Length", 1, Min(1)),
+      FloatParam("relRampDown", "Relative Envelope Ramp Down Length", 1, Min(1)),
+      FloatParam("relThreshOn", "Relative Envelope Threshold On", 144, Min(-144),
+                 Max(144)),
+      FloatParam("relThreshOff", "Relative Envelope Threshold Off", -144,
+                 Min(-144), Max(144)),
+      FloatParam("highPassFreq", "High-Pass Filter Cutoff", 85, Min(1)),
+      LongParam<Fixed<true>>("maxSize", "Maximum Total Latency", 88200,
+                             Min(1)), // TODO
+      LongParam("outputType", "Output Type (temporarily)", 0, Min(0))
+  );
+
+
+  AmpSlice(ParamSetViewType &p): mParams(p),mAlgorithm{static_cast<size_t>(get<kMaxSize>()), static_cast<int>(get<kOutput>())}{
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::audioChannelsOut(1);
   }
+  
   template <typename T>
   void process(std::vector<HostVector<T>> &input, std::vector<HostVector<T>> &output, FluidContext& c,
                bool reset = false)
@@ -120,7 +118,7 @@ private:
                         size_t, size_t, size_t, double, double, double, double,
                         double>
       mTrackValues;
-        algorithm::EnvelopeSegmentation mAlgorithm{static_cast<size_t>(get<kMaxSize>()), static_cast<int>(get<kOutput>())};
+      algorithm::EnvelopeSegmentation mAlgorithm;
 };
 
 template <typename HostMatrix, typename HostVectorView> struct NRTAmpSlicing {
@@ -171,12 +169,18 @@ template <typename HostMatrix, typename HostVectorView> struct NRTAmpSlicing {
   }
 };
 
+
+
+
+
 auto constexpr NRTAmpSliceParams =
-    makeNRTParams<AmpSlice>({InputBufferParam("source", "Source Buffer")},
+    makeNRTParams<ClientWrapper<AmpSlice>>({InputBufferParam("source", "Source Buffer")},
                             {BufferParam("indices", "Indices Buffer")});
 
 
-using NRTAmpSlice = impl::NRTClientWrapper<NRTAmpSlicing, AmpSlice,
+using AmpSliceClient = ClientWrapper<AmpSlice>;
+
+using NRTAmpSlice = impl::NRTClientWrapper<NRTAmpSlicing, AmpSliceClient,
                                            decltype(NRTAmpSliceParams),
                                            NRTAmpSliceParams, 1, 1>;
 

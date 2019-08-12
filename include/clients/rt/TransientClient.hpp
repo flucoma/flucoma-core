@@ -17,18 +17,23 @@
 namespace fluid {
 namespace client {
 
-enum TransientParamIndex {
-  kOrder,
-  kBlockSize,
-  kPadding,
-  kSkew,
-  kThreshFwd,
-  kThreshBack,
-  kWinSize,
-  kDebounce
-};
+class TransientClient:
+public FluidBaseClient, public AudioIn, public AudioOut
+{
+  enum TransientParamIndex {
+    kOrder,
+    kBlockSize,
+    kPadding,
+    kSkew,
+    kThreshFwd,
+    kThreshBack,
+    kWinSize,
+    kDebounce
+  };
 
-auto constexpr TransientParams = defineParameters(
+public:
+
+  FLUID_DECLARE_PARAMS(
     LongParam("order", "Order", 20, Min(10), LowerLimit<kWinSize>(),UpperLimit<kBlockSize>()),
     LongParam("blockSize", "Block Size", 256, Min(100), LowerLimit<kOrder>()),
     LongParam("padSize", "Padding", 128, Min(0)),
@@ -36,15 +41,12 @@ auto constexpr TransientParams = defineParameters(
     FloatParam("threshFwd", "Forward Threshold", 2, Min(0)),
     FloatParam("threshBack", "Backward Threshold", 1.1, Min(0)),
     LongParam("windowSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
-    LongParam("clumpLength", "Clumping Window Length", 25, Min(0)));
+    LongParam("clumpLength", "Clumping Window Length", 25, Min(0))
+  );
 
-class TransientClient:
-public FluidBaseClient<decltype(TransientParams), TransientParams>, public AudioIn, public AudioOut
-{
-public:
-  TransientClient(ParamSetViewType& p) : FluidBaseClient(p) {
-    FluidBaseClient::audioChannelsIn(1);
-    FluidBaseClient::audioChannelsOut(2);
+  TransientClient(ParamSetViewType& p) : mParams(p) {
+    audioChannelsIn(1);
+    audioChannelsOut(2);
   }
 
   template <typename T>
@@ -112,9 +114,11 @@ private:
   size_t mPadding{0};
 };
 
-auto constexpr NRTTransientParams = makeNRTParams<TransientClient>({InputBufferParam("source", "Source Buffer")}, {BufferParam("transients","Transients Buffer"), BufferParam("residual","Residual Buffer")});
+using RTTransientClient = ClientWrapper<TransientClient>;
 
-using NRTTransients = NRTStreamAdaptor<TransientClient, decltype(NRTTransientParams), NRTTransientParams, 1, 2>;
+auto constexpr NRTTransientParams = makeNRTParams<RTTransientClient>({InputBufferParam("source", "Source Buffer")}, {BufferParam("transients","Transients Buffer"), BufferParam("residual","Residual Buffer")});
+
+using NRTTransients = NRTStreamAdaptor<RTTransientClient, decltype(NRTTransientParams), NRTTransientParams, 1, 2>;
 
 using NRTThreadedTransients = NRTThreadingAdaptor<NRTTransients>;
 

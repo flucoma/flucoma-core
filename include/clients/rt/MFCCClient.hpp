@@ -18,18 +18,20 @@ namespace client {
 using algorithm::DCT;
 using algorithm::MelBands;
 
-enum MFCCParamIndex {
-  kNCoefs,
-  kNBands,
-  kMinFreq,
-  kMaxFreq,
-  kMaxNCoefs,
-  kFFT,
-  kMaxFFTSize
-};
+class MFCCClient : public FluidBaseClient, public AudioIn, public ControlOut
+{
+  enum MFCCParamIndex {
+    kNCoefs,
+    kNBands,
+    kMinFreq,
+    kMaxFreq,
+    kMaxNCoefs,
+    kFFT,
+    kMaxFFTSize
+  };
+public:
 
-auto constexpr MFCCParams = defineParameters(
-
+  FLUID_DECLARE_PARAMS(
     LongParam("numCoeffs", "Number of Cepstral Coefficients", 13, Min(2),
               UpperLimit<kNBands,kMaxNCoefs>()),
     LongParam("numBands", "Number of Bands", 40, Min(2),
@@ -39,19 +41,15 @@ auto constexpr MFCCParams = defineParameters(
     LongParam<Fixed<true>>("maxNumCoeffs", "Maximum Number of Coefficients", 40,
                            MaxFrameSizeUpperLimit<kMaxFFTSize>(), Min(2)),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
+    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384)
+  );
 
-class MFCCClient : public FluidBaseClient<decltype(MFCCParams), MFCCParams>,
-                   public AudioIn,
-                   public ControlOut
-{
-public:
   MFCCClient(ParamSetViewType &p)
-      : FluidBaseClient{p}, mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0) {
+      : mParams{p}, mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0) {
     mBands = FluidTensor<double, 1>(get<kNBands>());
     mCoefficients = FluidTensor<double, 1>(get<kNCoefs>());
-    FluidBaseClient::audioChannelsIn(1);
-    FluidBaseClient::controlChannelsOut(get<kMaxNCoefs>());
+    audioChannelsIn(1);
+    controlChannelsOut(get<kMaxNCoefs>());
   }
 
   template <typename T>
@@ -99,11 +97,13 @@ private:
   FluidTensor<double, 1> mCoefficients;
 };
 
+using RTMFCCClient = ClientWrapper<MFCCClient>;
+
 auto constexpr NRTMFCCParams =
-    makeNRTParams<MFCCClient>({InputBufferParam("source", "Source Buffer")},
+    makeNRTParams<RTMFCCClient>({InputBufferParam("source", "Source Buffer")},
                               {BufferParam("features", "Output Buffer")});
 
-using NRTMFCCClient = NRTControlAdaptor<MFCCClient, decltype(NRTMFCCParams),
+using NRTMFCCClient = NRTControlAdaptor<RTMFCCClient, decltype(NRTMFCCParams),
                                         NRTMFCCParams, 1, 1>;
 
 using NRTThreadedMFCCClient = NRTThreadingAdaptor<NRTMFCCClient>;

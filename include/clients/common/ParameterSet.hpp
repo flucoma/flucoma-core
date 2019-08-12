@@ -318,8 +318,14 @@ private:
     return results;
   }
   
-protected:
+//  template<size_t N, typename F>
+//  void addUpdateCallback(F&& f)
+//  {
+//    mUpdateCallbacks[N].emplace_back(std::move(f));
+//  }
   
+protected:
+//  std::array<std::vector<std::function<void()>>,sizeof...(Ts)> mUpdateCallbacks;
   std::reference_wrapper<const DescriptorSetType> mDescriptors;
   bool          mKeepConstrained;
 private:  
@@ -391,6 +397,27 @@ constexpr ParamDescTypeFor<Args...> defineParameters(Args &&... args)
 {
   return {std::forward<Args>(args)...};
 }
+
+//define COMMA_SEP(r, token, i, e) BOOST_PP_COMMA_IF(i) token(e)
+
+
+//define WRAP(token, ...) BOOST_PP_SEQ_FOR_EACH_I(COMMA_SEP, token, BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))
+//
+//define FLUID_PARAM(x,type,...) decltype(type##Param(#x,__VA_ARGS__)) x = type##Param(#x,__VA_ARGS__);
+//
+//define FLUID_DEFINE_PARAMS(...) BOOST_PP_SEQ_FOR_EACH_I(FLUID_PARAM, _, BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))
+
+//Boilerplate macro for clients
+#define FLUID_DECLARE_PARAMS(...) \
+    using ParamDescType = std::add_const_t<decltype(defineParameters(__VA_ARGS__))>; \
+    using ParamSetViewType = ParameterSetView<const ParamDescType>; \
+    std::reference_wrapper<ParamSetViewType>   mParams; \
+    void setParams(ParamSetViewType& p) { mParams = p; } \
+    template<size_t N> auto& get() const { return mParams.get().template get<N>();} \
+    static constexpr ParamDescType  getParameterDescriptors() { return defineParameters(__VA_ARGS__);}
+
+
+auto constexpr NoParameters = defineParameters(); 
 
 } // namespace client
 } // namespace fluid

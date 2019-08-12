@@ -17,23 +17,21 @@ Test class for STFT pass-through
 namespace fluid {
 namespace client {
 
-enum STFTParamIndex { kFFT, kMaxFFT };
+class BaseSTFTClient : public FluidBaseClient, public AudioIn, public AudioOut
+{
+  enum STFTParamIndex { kFFT, kMaxFFT };
+  
+public:
 
-auto constexpr STFTParams = defineParameters(
+  FLUID_DECLARE_PARAMS(
     FFTParam<kMaxFFT>("fftSettings","FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4), PowerOfTwo{})
   );
 
-
-class BaseSTFTClient : public FluidBaseClient<decltype(STFTParams), STFTParams>, public AudioIn, public AudioOut
-{
-
-public:
-
-  BaseSTFTClient(ParamSetViewType& p) : FluidBaseClient(p), mSTFTBufferedProcess{static_cast<size_t>(get<kMaxFFT>()),1,1}
+  BaseSTFTClient(ParamSetViewType& p) : mParams(p), mSTFTBufferedProcess{static_cast<size_t>(get<kMaxFFT>()),1,1}
   {
-    FluidBaseClient::audioChannelsIn(1);
-    FluidBaseClient::audioChannelsOut(1);
+    audioChannelsIn(1);
+    audioChannelsOut(1);
   }
 
   size_t latency() { return get<kFFT>().winSize(); }
@@ -52,5 +50,8 @@ public:
 private:
   STFTBufferedProcess<ParamSetViewType, kFFT, true> mSTFTBufferedProcess;
 };
+
+using RTSTFTPassClient = ClientWrapper<BaseSTFTClient>; 
+
 } // namespace client
 } // namespace fluid

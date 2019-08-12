@@ -15,17 +15,20 @@
 namespace fluid {
 namespace client {
 
-enum SinesParamIndex {
-  kBandwidth,
-  kThreshold,
-  kMinTrackLen,
-  kMagWeight,
-  kFreqWeight,
-  kFFT,
-  kMaxFFTSize
-};
+class SinesClient : public FluidBaseClient, public AudioIn, public AudioOut
+{
+  enum SinesParamIndex {
+    kBandwidth,
+    kThreshold,
+    kMinTrackLen,
+    kMagWeight,
+    kFreqWeight,
+    kFFT,
+    kMaxFFTSize
+  };
+public:
 
-extern auto constexpr SinesParams = defineParameters(
+  FLUID_DECLARE_PARAMS(
     LongParam("bandwidth", "Bandwidth", 76, Min(1), FrameSizeUpperLimit<kFFT>()),
     FloatParam("threshold", "Threshold", 0.7, Min(0.0), Max(1.0)),
     LongParam("minTrackLen", "Min Track Length", 15, Min(0)),
@@ -35,16 +38,11 @@ extern auto constexpr SinesParams = defineParameters(
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4), PowerOfTwo{})
   );
 
-
-class SinesClient : public FluidBaseClient<decltype(SinesParams), SinesParams>, public AudioIn, public AudioOut
-{
-
-public:
   SinesClient(ParamSetViewType& p)
-  : FluidBaseClient(p), mSTFTBufferedProcess{static_cast<size_t>(get<kMaxFFTSize>()),1,2}
+  : mParams(p), mSTFTBufferedProcess{static_cast<size_t>(get<kMaxFFTSize>()),1,2}
   {
-    FluidBaseClient::audioChannelsIn(1);
-    FluidBaseClient::audioChannelsOut(2);
+    audioChannelsIn(1);
+    audioChannelsOut(2);
   }
 
   template <typename T>
@@ -84,9 +82,11 @@ private:
   size_t mMinTrackLen{0};
 };
 
-auto constexpr NRTSineParams = makeNRTParams<SinesClient>({InputBufferParam("source", "Source Buffer")}, {BufferParam("sines","Sines Buffer"), BufferParam("residual", "Residual Buffer")});
+using RTSinesClient = ClientWrapper<SinesClient>;
 
-using NRTSines = NRTStreamAdaptor<SinesClient, decltype(NRTSineParams), NRTSineParams, 1, 2>;
+auto constexpr NRTSineParams = makeNRTParams<RTSinesClient>({InputBufferParam("source", "Source Buffer")}, {BufferParam("sines","Sines Buffer"), BufferParam("residual", "Residual Buffer")});
+
+using NRTSines = NRTStreamAdaptor<RTSinesClient, decltype(NRTSineParams), NRTSineParams, 1, 2>;
 
 using NRTThreadedSines = NRTThreadingAdaptor<NRTSines>;
 

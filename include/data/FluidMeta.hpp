@@ -65,4 +65,45 @@ struct isSpecialization: std::false_type {};
 template<template<typename...> class Template, typename...Args>
 struct  isSpecialization<Template<Args...>, Template>: std::true_type {}; 
 
+////////////////////////////////////////////////////////////////////////////////
+//Thank you https://en.cppreference.com/w/cpp/experimental/is_detected
+
+namespace impl {
+
+template<typename...Ts>
+using void_t = void;
+
+template <class Default, class AlwaysVoid,
+          template<class...> class Op, class... Args>
+struct Detector {
+  using value_t = std::false_type;
+  using type = Default;
+};
+ 
+template <class Default, template<class...> class Op, class... Args>
+struct Detector<Default, void_t<Op<Args...>>, Op, Args...> {
+  // Note that std::void_t is a C++17 feature
+  using value_t = std::true_type;
+  using type = Op<Args...>;
+};
+ 
+} // namespace impl
+
+
+struct Nonesuch {
+    ~Nonesuch() = delete;
+    Nonesuch(Nonesuch const&) = delete;
+    void operator=(Nonesuch const&) = delete;
+};
+
+template <template<class...> class Op, class... Args>
+using isDetected = typename impl::Detector<Nonesuch, void, Op, Args...>::value_t;
+ 
+template <template<class...> class Op, class... Args>
+using Detected_t = typename impl::Detector<Nonesuch, void, Op, Args...>::type;
+ 
+template <class Default, template<class...> class Op, class... Args>
+using DetectedOr = impl::Detector<Default, void, Op, Args...>;
+
+
 }

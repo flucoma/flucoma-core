@@ -27,21 +27,24 @@ using algorithm::MelBands;
 using algorithm::STFT;
 using algorithm::TruePeak;
 using algorithm::YINFFT;
-
 using algorithm::RTNoveltySegmentation;
 
-enum NoveltyParamIndex {
-  kFeature,
-  kKernelSize,
-  kThreshold,
-  kFilterSize,
-  kFFT,
-  kMaxFFTSize,
-  kMaxKernelSize,
-  kMaxFilterSize,
-};
+class NoveltySlice : public FluidBaseClient,public AudioIn,public AudioOut {
 
-auto constexpr NoveltyParams = defineParameters(
+  enum NoveltyParamIndex {
+    kFeature,
+    kKernelSize,
+    kThreshold,
+    kFilterSize,
+    kFFT,
+    kMaxFFTSize,
+    kMaxKernelSize,
+    kMaxFilterSize,
+  };
+
+public:
+
+  FLUID_DECLARE_PARAMS(
     EnumParam("feature", "Feature", 0, "Spectrum", "MFCC", "Pitch", "Loudness"),
     LongParam("kernelSize", "KernelSize", 3, Min(3), Odd(),
               UpperLimit<kMaxKernelSize>()),
@@ -54,18 +57,18 @@ auto constexpr NoveltyParams = defineParameters(
     LongParam<Fixed<true>>("maxKernelSize", "Maxiumm Kernel Size", 101, Min(3),
                            Odd()),
     LongParam<Fixed<true>>("maxFilterSize", "Maxiumm Filter Size", 100,
-                           Min(1)));
-
-class NoveltySlice
-    : public FluidBaseClient<decltype(NoveltyParams), NoveltyParams>,
-      public AudioIn,
-      public AudioOut {
+                           Min(1))
+  );
 
 
-public:
-  NoveltySlice(ParamSetViewType &p) : FluidBaseClient(p) {
-    FluidBaseClient::audioChannelsIn(1);
-    FluidBaseClient::audioChannelsOut(1);
+  NoveltySlice(ParamSetViewType &p) :
+        mParams(p),
+        mNovelty{static_cast<int>(get<kMaxKernelSize>()), static_cast<int>(get<kMaxFilterSize>())},
+        mSTFT{static_cast<size_t>(get<kFFT>().winSize()), get<kFFT>().fftSize(), static_cast<size_t>(get<kFFT>().hopSize())},
+        mLoudness{static_cast<int>(get<kMaxFFTSize>())}
+  {
+    audioChannelsIn(1);
+    audioChannelsOut(1);
   }
 
   template <typename T>
@@ -150,12 +153,11 @@ public:
   }
 
 private:
-        RTNoveltySegmentation mNovelty{static_cast<int>(get<kMaxKernelSize>()), static_cast<int>(get<kMaxFilterSize>())};
+  RTNoveltySegmentation mNovelty;
   ParameterTrackChanges<size_t, size_t, size_t, double, size_t, size_t>
       mParamsTracker;
   BufferedProcess mBufferedProcess;
-        STFT mSTFT{static_cast<size_t>(get<kFFT>().winSize()), get<kFFT>().fftSize(),
-          static_cast<size_t>(get<kFFT>().hopSize())};
+  STFT mSTFT;
   MelBands mMelBands;
   DCT mDCT;
   FluidTensor<std::complex<double>, 1> mSpectrum;
@@ -163,15 +165,18 @@ private:
   FluidTensor<double, 1> mBands;
   FluidTensor<double, 1> mFeature;
   YINFFT mYinFFT;
-  Loudness mLoudness{static_cast<int>(get<kMaxFFTSize>())};
+  Loudness mLoudness;
 };
 
+
+using RTNoveltySliceClient = ClientWrapper<NoveltySlice>;
+
 auto constexpr NRTNoveltySliceParams =
-    makeNRTParams<NoveltySlice>({InputBufferParam("source", "Source Buffer")},
+    makeNRTParams<RTNoveltySliceClient>({InputBufferParam("source", "Source Buffer")},
                                   {BufferParam("indices", "Indices Buffer")});
 
 using NRTNoveltySlice =
-    NRTSliceAdaptor<NoveltySlice, decltype(NRTNoveltySliceParams),
+    NRTSliceAdaptor<RTNoveltySliceClient, decltype(NRTNoveltySliceParams),
                     NRTNoveltySliceParams, 1, 1>;
 
 using NRTThreadingNoveltySlice = NRTThreadingAdaptor<NRTNoveltySlice>;

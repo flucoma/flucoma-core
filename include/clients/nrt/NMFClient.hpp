@@ -19,33 +19,36 @@
 #include <vector>  //for containers of params, and for checking things
 #include <cassert>
 
+
 namespace fluid {
 namespace client {
 
-enum NMFParamIndex {kSource, kOffset, kNumFrames, kStartChan, kNumChans, kResynth,kFilters,kFiltersUpdate,kEnvelopes,kEnvelopesUpdate,kRank,kIterations,kFFT};
 
-auto constexpr NMFParams = defineParameters(
-  InputBufferParam("source","Source Buffer"),
-  LongParam("startFrame","Source Offset",0, Min(0)),
-  LongParam("numFrames","Number of Frames",-1),
-  LongParam("startChan","Start Channel",0,Min(0)),
-  LongParam("numChans","Number Channels",-1),
-  BufferParam("resynth", "Resynthesis Buffer"),
-  BufferParam("bases", "Bases Buffer"),
-  EnumParam("basesMode", "Bases Buffer Update Mode", 0, "None","Seed","Fixed"),
-  BufferParam("activations", "Activations Buffer"),
-  EnumParam("actMode", "Activations Buffer Update Mode", 0, "None","Seed","Fixed"),
-  LongParam("components", "Number of Components", 1, Min(1)),
-  LongParam("iterations", "Number of Iterations", 100, Min(1)),
-  FFTParam("fftSettings", "FFT Settings", 1024, -1, -1)
-);
-
-
-class NMFClient: public FluidBaseClient<decltype(NMFParams), NMFParams>, public OfflineIn, public OfflineOut
+class NMFClient: public FluidBaseClient, public OfflineIn, public OfflineOut
 {
+
+  enum NMFParamIndex {kSource, kOffset, kNumFrames, kStartChan, kNumChans, kResynth,kFilters,kFiltersUpdate,kEnvelopes,kEnvelopesUpdate,kRank,kIterations,kFFT};
+
 public:
 
-  NMFClient(ParamSetViewType& p): FluidBaseClient(p)
+   FLUID_DECLARE_PARAMS(
+      InputBufferParam("source","Source Buffer"),
+      LongParam("startFrame","Source Offset",0, Min(0)),
+      LongParam("numFrames","Number of Frames",-1),
+      LongParam("startChan","Start Channel",0,Min(0)),
+      LongParam("numChans","Number Channels",-1),
+      BufferParam("resynth", "Resynthesis Buffer"),
+      BufferParam("bases", "Bases Buffer"),
+      EnumParam("basesMode", "Bases Buffer Update Mode", 0, "None","Seed","Fixed"),
+      BufferParam("activations", "Activations Buffer"),
+      EnumParam("actMode", "Activations Buffer Update Mode", 0, "None","Seed","Fixed"),
+      LongParam("components", "Number of Components", 1, Min(1)),
+      LongParam("iterations", "Number of Iterations", 100, Min(1)),
+      FFTParam("fftSettings", "FFT Settings", 1024, -1, -1)
+  );
+
+
+  NMFClient(ParamSetViewType& p): mParams{p}
   {}
 
   /***
@@ -233,14 +236,14 @@ public:
             return {Result::Status::kCancelled,""};
         }
       }
-      
-      
     }
     return {Result::Status::kOk,""};
   }
 };
 
-using NRTThreadedNMF = NRTThreadingAdaptor<NMFClient>;
+using NRTThreadedNMF = NRTThreadingAdaptor<ClientWrapper<NMFClient>>;
+
+
 
 } // namespace client
 } // namespace fluid

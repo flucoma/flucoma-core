@@ -17,71 +17,15 @@
 namespace fluid {
 namespace client {
 
-
-auto constexpr MessageTestParams = defineParameters();
-
-struct ReturnSetOfStrings
-{
-  template<typename Client>
-  MessageResult<FluidTensor<std::string,1>> operator()(Client& c)
-  { return c.doStrings(); }
-};
-
-struct ReturnSetOfNumbers
-{
-  template<typename Client>
-  MessageResult<FluidTensor<double,1>> operator()(Client& c)
-  { return c.doNumbers(); }
-};
-
-struct ReturnString
-{
-  template<typename Client>
-  MessageResult<std::string> operator()(Client& c)
-  { return c.doOneString(); }
-};
-
-struct ReturnIntegralType
-{
-  template<typename Client>
-  MessageResult<intptr_t> operator()(Client& c)
-  { return c.doOneNumber(); }
-};
-
-struct ReturnBufferSize
-{
-  template<typename Client>
-  MessageResult<intptr_t> operator()(Client& c, std::shared_ptr<BufferAdaptor> buf)
-  { return c.doBuffer(buf); }
-};
-
-struct ReceiveStringAndNumbers
-{
-  template<typename Client>
-  MessageResult<void> operator()(Client& client, std::string labelName, double a, double b, double c)
-  { return client.doTakeString(labelName, a, b, c); }
-};
-
-auto constexpr MessageTestMessages = defineMessages(
-  Message<ReturnSetOfStrings>("testReturnStrings"),
-  Message<ReturnSetOfNumbers>("testReturnNumbers"),
-  Message<ReturnString>("testReturnOneString"),
-  Message<ReturnIntegralType>("testReturnOneNumber"),
-  Message<ReturnBufferSize>("testAccessBuffer"),
-  Message<ReceiveStringAndNumbers>("testPassString")
-);
-
-class MessageTest : public FluidBaseClient<decltype(MessageTestParams), MessageTestParams, decltype(MessageTestMessages),MessageTestMessages>,
-                   public OfflineIn,
-                   public OfflineOut
+class MessageTest : public FluidBaseClient, public OfflineIn, public OfflineOut
 {
 public:
 
-  MessageTest(ParamSetViewType &p) : FluidBaseClient(p)
-  {}
+  template<typename T>
+  MessageTest(T&){}
 
   template <typename T>
-  Result process(FluidContext& c) { return {}; }
+  Result process(FluidContext&) { return {}; }
   
   MessageResult<FluidTensor<std::string,1>> doStrings()
   {
@@ -118,9 +62,18 @@ public:
     std::cout << "Received " << s << ' ' << a << ' ' << b << ' ' << c << '\n';
     return {};
   }
+  
+  FLUID_DECLARE_MESSAGES(
+    makeMessage("testReturnStrings", &MessageTest::doStrings),
+    makeMessage("testReturnNumbers", &MessageTest::doNumbers),
+    makeMessage("testReturnOneString", &MessageTest::doOneString),
+    makeMessage("testReturnOneNumber", &MessageTest::doStrings),
+    makeMessage("testAccessBuffer", &MessageTest::doOneNumber),
+    makeMessage("testPassString", &MessageTest::doTakeString)
+  );
 };
 
-using NRTThreadingMessageTest = NRTThreadingAdaptor<MessageTest>;
+using NRTThreadingMessageTest = NRTThreadingAdaptor<ClientWrapper<MessageTest>>;
 
 } // namespace client
 } // namespace fluid

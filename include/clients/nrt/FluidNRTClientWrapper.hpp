@@ -86,6 +86,9 @@ public:
   
   constexpr static ParamDescType& getParameterDescriptors() { return PD; }
 
+  using isRealTime = std::false_type;
+  using isNonRealTime = std::true_type;
+
   //The client will be accessing its parameter by a bunch of indices that need ofsetting now
 //  using Client = RTClient<impl::ParameterSet_Offset<Params,ParamOffset>,T,U>;
 // None of that for outputs though
@@ -418,9 +421,11 @@ public:
   using ParamSetType = typename NRTClient::ParamSetType;
   using ParamSetViewType = typename NRTClient::ParamSetViewType;
   using MessageSetType = typename NRTClient::MessageSetType;
-  
-  constexpr static ParamDescType& getParameterDescriptors() { return NRTClient::getParameterDescriptors(); }
-  constexpr static auto& getMessageDescriptors() { return NRTClient::getMessageDescriptors();}
+  using isRealTime = std::false_type;
+  using isNonRealTime = std::true_type;
+
+  constexpr static ParamDescType getParameterDescriptors() { return NRTClient::getParameterDescriptors(); }
+  constexpr static auto getMessageDescriptors() { return NRTClient::getMessageDescriptors();}
 
   size_t audioChannelsIn()    const noexcept { return 0; }
   size_t audioChannelsOut()   const noexcept { return 0; }
@@ -466,7 +471,7 @@ public:
   decltype(auto) invoke(T&, Args&&...args)
   {
     assert(mClient.get());
-    using ReturnType = typename MessageSetType::template MessageDescriptorAt<T,N>::ReturnType;
+    using ReturnType = typename MessageSetType::template MessageDescriptorAt<N>::ReturnType;
     if (mThreadedTask)
       return ReturnType{Result::Status::kError, "Already processing"};
     return mClient-> template invoke<N>(*mClient.get(), std::forward<Args>(args)...);

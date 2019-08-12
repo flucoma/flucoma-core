@@ -10,8 +10,6 @@
 #include "../../algorithms/public/OnsetSegmentation.hpp"
 #include "../../data/TensorTypes.hpp"
 
-#include "../common/MessageSet.hpp"
-
 #include <string>
 #include <tuple>
 
@@ -20,17 +18,21 @@ namespace client {
 
 using algorithm::OnsetSegmentation;
 
-enum OnsetParamIndex {
-  kFunction,
-  kThreshold,
-  kDebounce,
-  kFilterSize,
-  kFrameDelta,
-  kFFT,
-  kMaxFFTSize
-};
+class OnsetSlice : public FluidBaseClient, public AudioIn, public AudioOut
+{
+  enum OnsetParamIndex {
+    kFunction,
+    kThreshold,
+    kDebounce,
+    kFilterSize,
+    kFrameDelta,
+    kFFT,
+    kMaxFFTSize
+  };
+  
+public:
 
-auto constexpr OnsetParams = defineParameters(
+  FLUID_DECLARE_PARAMS(
     EnumParam("metric", "Spectral Change Metric", 0, "Energy",
     "High Frequency Content", "Spectral Flux", "Modified Kullback-Leibler",
     "Itakura-Saito", "Cosine","Phase Deviation","Weighted Phase Deviation",
@@ -45,15 +47,9 @@ auto constexpr OnsetParams = defineParameters(
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4), PowerOfTwo{})
   );
 
-class OnsetSlice : public FluidBaseClient<decltype(OnsetParams), OnsetParams>,
-                   public AudioIn,
-                   public AudioOut {
-
-public:
-
-  OnsetSlice(ParamSetViewType &p) : FluidBaseClient(p) {
-    FluidBaseClient::audioChannelsIn(1);
-    FluidBaseClient::audioChannelsOut(1);
+  OnsetSlice(ParamSetViewType &p) : mParams(p),mAlgorithm{static_cast<int>(get<kMaxFFTSize>())} {
+    audioChannelsIn(1);
+    audioChannelsOut(1);
   }
 
   template <typename T>
@@ -101,18 +97,20 @@ public:
   long latency() { return get<kFFT>().winSize() + get<kFrameDelta>(); }
 
 private:
-  OnsetSegmentation mAlgorithm{static_cast<int>(get<kMaxFFTSize>())};
+  OnsetSegmentation mAlgorithm;
   ParameterTrackChanges<size_t, size_t, size_t> mBufferParamsTracker;
   ParameterTrackChanges<size_t> mMaxSizeTracker;
   BufferedProcess mBufferedProcess;
   RealMatrix mTmp;
 };
 
+using RTOnsetSliceClient = ClientWrapper<OnsetSlice>;
+
 auto constexpr NRTOnsetSliceParams =
-    makeNRTParams<OnsetSlice>({InputBufferParam("source", "Source Buffer")},
+    makeNRTParams<RTOnsetSliceClient>({InputBufferParam("source", "Source Buffer")},
                               {BufferParam("indices", "Indices Buffer")});
 using NRTOnsetSlice =
-    NRTSliceAdaptor<OnsetSlice, decltype(NRTOnsetSliceParams),
+    NRTSliceAdaptor<RTOnsetSliceClient, decltype(NRTOnsetSliceParams),
                     NRTOnsetSliceParams, 1, 1>;
 
 using NRTThreadingOnsetSlice = NRTThreadingAdaptor<NRTOnsetSlice>;

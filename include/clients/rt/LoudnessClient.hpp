@@ -17,31 +17,32 @@ namespace client {
 
 using algorithm::Loudness;
 
-enum LoudnessParamIndex {
-  kKWeighting,
-  kTruePeak,
-  kWindowSize,
-  kHopSize,
-  kMaxWindowSize
-};
+class LoudnessClient: public FluidBaseClient, public AudioIn, public ControlOut {
 
-auto constexpr LoudnessParams = defineParameters(
+  enum LoudnessParamIndex {
+    kKWeighting,
+    kTruePeak,
+    kWindowSize,
+    kHopSize,
+    kMaxWindowSize
+  };
+
+public:
+
+  FLUID_DECLARE_PARAMS(
     EnumParam("kWeighting", "Apply K-Weighting", 1, "Off","On"),
     EnumParam("truePeak", "Compute True Peak", 1, "Off","On"),
     LongParam("windowSize", "Window Size", 1024, UpperLimit<kMaxWindowSize>()),
     LongParam("hopSize", "Hop Size", 512, Min(1)),
     LongParam<Fixed<true>>("maxWindowSize", "Max Window Size",
-              16384, Min(4), PowerOfTwo{})); // 17640 next power of two
+              16384, Min(4), PowerOfTwo{})
+  ); // 17640 next power of two
 
-class LoudnessClient
-    : public FluidBaseClient<decltype(LoudnessParams), LoudnessParams>,
-      public AudioIn,
-      public ControlOut {
 
-public:
-  LoudnessClient(ParamSetViewType &p) : FluidBaseClient(p) {
-    FluidBaseClient::audioChannelsIn(1);
-    FluidBaseClient::controlChannelsOut(2);
+  LoudnessClient(ParamSetViewType &p) : mParams(p),
+        mAlgorithm{static_cast<int>(get<kMaxWindowSize>())} {
+    audioChannelsIn(1);
+    controlChannelsOut(2);
     mDescriptors = FluidTensor<double, 1>(2);
   }
 
@@ -80,20 +81,22 @@ public:
   size_t controlRate() { return get<kHopSize>(); }
 
 private:
-  Loudness mAlgorithm{static_cast<int>(get<kMaxWindowSize>())};
+  Loudness mAlgorithm;
   ParameterTrackChanges<size_t, size_t, size_t> mBufferParamsTracker;
   BufferedProcess mBufferedProcess;
   FluidTensor<double, 1> mDescriptors;
 };
 
+
+using RTLoudnessClient = ClientWrapper<LoudnessClient>;
+
 auto constexpr NRTLoudnessParams =
-    makeNRTParams<LoudnessClient>({InputBufferParam("source", "Source Buffer")},
+    makeNRTParams<RTLoudnessClient>({InputBufferParam("source", "Source Buffer")},
                                   {BufferParam("features", "Features Buffer")});
 
 using NRTLoudnessClient =
-    NRTControlAdaptor<LoudnessClient, decltype(NRTLoudnessParams),
+    NRTControlAdaptor<RTLoudnessClient, decltype(NRTLoudnessParams),
                       NRTLoudnessParams, 1, 1>;
-
 
 using NRTThreadedLoudnessClient = NRTThreadingAdaptor<NRTLoudnessClient>;
 

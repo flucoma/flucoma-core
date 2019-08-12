@@ -9,20 +9,24 @@
 namespace fluid {
 namespace client {
 
-enum BufferStatsParamIndex {
-  kSource,
-  kOffset,
-  kNumFrames,
-  kStartChan,
-  kNumChans,
-  kStats,
-  kNumDerivatives,
-  kLow,
-  kMiddle,
-  kHigh
-};
+class BufferStats : public FluidBaseClient, public OfflineIn, public OfflineOut {
 
-auto constexpr BufferStatsParams = defineParameters(
+  enum BufferStatsParamIndex {
+    kSource,
+    kOffset,
+    kNumFrames,
+    kStartChan,
+    kNumChans,
+    kStats,
+    kNumDerivatives,
+    kLow,
+    kMiddle,
+    kHigh
+  };
+
+public:
+
+  FLUID_DECLARE_PARAMS(
     InputBufferParam("source", "Source Buffer"),
     LongParam("startFrame", "Source Offset", 0, Min(0)),
     LongParam("numFrames", "Number of Frames", -1),
@@ -35,16 +39,10 @@ auto constexpr BufferStatsParams = defineParameters(
     FloatParam("middle", "Middle Percentile", 50, Min(0), Max(100),
                LowerLimit<kLow>(), UpperLimit<kHigh>()),
     FloatParam("high", "High Percentile", 100, Min(0), Max(100),
-               LowerLimit<kMiddle>()));
+               LowerLimit<kMiddle>())
+  );
 
-
-class BufferStats
-    : public FluidBaseClient<decltype(BufferStatsParams), BufferStatsParams>,
-      public OfflineIn,
-      public OfflineOut {
-
-public:
-  BufferStats(ParamSetViewType &p) : FluidBaseClient(p) {}
+  BufferStats(ParamSetViewType &p) : mParams(p) {}
 
   template <typename T>
   Result process(FluidContext& c) {
@@ -118,7 +116,7 @@ public:
   }
 };
 
-using NRTThreadedBufferStats = NRTThreadingAdaptor<BufferStats>;
+using NRTThreadedBufferStats = NRTThreadingAdaptor<ClientWrapper<BufferStats>>;
 
 } // namespace client
 } // namespace fluid

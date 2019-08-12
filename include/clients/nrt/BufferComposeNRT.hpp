@@ -12,9 +12,13 @@
 namespace fluid {
 namespace client {
 
-enum { kSource, kOffset, kNumFrames, kStartChan, kNChans, kGain, kDest, kDestOffset, kDestStartChan, kDestGain };
+class BufferComposeClient : public FluidBaseClient, OfflineIn, OfflineOut
+{
+  enum { kSource, kOffset, kNumFrames, kStartChan, kNChans, kGain, kDest, kDestOffset, kDestStartChan, kDestGain };
 
-auto constexpr BufComposeParams = defineParameters(
+public:
+
+  FLUID_DECLARE_PARAMS(
     InputBufferParam("source", "Source Buffer"),
     LongParam("startFrame", "Source Offset", 0, Min(0)),
     LongParam("numFrames", "Source Number of Frames", -1),
@@ -24,13 +28,11 @@ auto constexpr BufComposeParams = defineParameters(
     BufferParam("destination", "Destination Buffer"),
     LongParam("destStartFrame", "Destination Offset", 0),
     LongParam("destStartChan", "Destination Channel Offset", 0),
-    FloatParam("destGain", "Destination Gain", 0.0));
+    FloatParam("destGain", "Destination Gain", 0.0)
+  );
 
 
-class BufferComposeClient : public FluidBaseClient<decltype(BufComposeParams), BufComposeParams>, OfflineIn, OfflineOut
-{
-public:
-  BufferComposeClient(ParamSetViewType &p) : FluidBaseClient(p)
+  BufferComposeClient(ParamSetViewType &p) : mParams{p}
   {}
 
   template <typename T>
@@ -149,7 +151,7 @@ public:
   }
 };
 
-using NRTThreadedBufferCompose = NRTThreadingAdaptor<BufferComposeClient>;
+using NRTThreadedBufferCompose = NRTThreadingAdaptor<ClientWrapper<BufferComposeClient>>;
 
 } // namespace client
 } // namespace fluid

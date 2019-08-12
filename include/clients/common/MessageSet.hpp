@@ -8,67 +8,24 @@
 namespace fluid {
 namespace client {
 
-template<typename, typename, typename, typename>
-struct MessageDescriptor;
-
-namespace impl{
-template <typename Client, typename Message>
-struct MessageDescriptorBuilder
-{
-  using Functor = typename Message::type;
-  //Scrape the types from the lambda / functor args (but not the template arg at the start)
-  template<typename F, typename Ret, typename A, typename... Rest>
-  static std::tuple<Rest...> args1ToN(Ret (F::*)(A, Rest...));
-
-  template<typename F, typename Ret, typename A, typename... Rest>
-  static std::tuple<Rest...> args1ToN(Ret (F::*)(A, Rest...) const);
-
-
-  template<typename F, typename Ret, typename A, typename... Rest>
-  static Ret returnType(Ret (F::*)(A, Rest...));
-
-  template<typename F, typename Ret, typename A, typename... Rest>
-  static Ret returnType(Ret (F::*)(A, Rest...) const);
-
-  using ReturnType    = decltype(returnType(&Functor::template operator()<Client>));
-  using ArgumentTuple = decltype(args1ToN(&Functor::template operator()<Client>));
-  using type = MessageDescriptor<Client, Functor, ReturnType,ArgumentTuple>;
-};
-} //impl
-
-//Takes functor or a lambda to execute
-//The operator() of this *must* be generic / templated on the first argument
-//(which will be a client l-value ref), the rest shouldn't be generic, but can
-// be whatever we know how to parse from hosts
-template<typename Client, typename Functor, typename Ret, typename...Args>
-struct MessageDescriptor<Client, Functor, Ret, std::tuple<Args...>>
-{
-  using ReturnType    = Ret;
-  using ArgumentTypes = std::tuple<Args...>;
-  using IndexList = std::make_index_sequence<std::tuple_size<ArgumentTypes>::value>;
-  
-  constexpr MessageDescriptor(const char* n, Functor lmbda): name{n},op{lmbda}
-  {}
-  
-  decltype(auto) operator()(Client& c, Args&&...args) const
-  {
-    return op(c, std::forward<Args>(args)...);
-  }
-  
-  const  Functor op;
-  const char* name;
-};
-
-template<typename F>
+template<typename Ret, typename T, typename...Args>
 struct Message
 {
-  constexpr Message(const char* n): name{n} {}
+  constexpr Message(const char* n, Ret (T::* pmf) (Args...)): name{n}, op(pmf) {}
   const char* name;
-  using type = F;
+  Ret (T::* op) (Args...);
+  using ReturnType = Ret;
+  using IndexList = std::index_sequence_for<Args...>;
+  using ArgumentTypes = std::tuple<Args...>;
+  using Client = T;
+  decltype(auto) operator()(Client& c, Args...args) const
+  {
+    return (c.*op)(std::forward<Args>(args)...);
+  }
 };
 
-template<typename F>
-constexpr auto makeMessage(const char* name, F f) { return Message<F>{name, f}; }
+template<typename Ret, typename T, typename...Args>
+constexpr auto makeMessage(const char* name, Ret (T::* pmf) (Args...)) { return Message<Ret,T,Args...>{name, pmf}; }
 
 template <typename>
 class MessageSet;
@@ -81,15 +38,13 @@ class MessageSet<std::tuple<Ts...>>
   using MessageTypeAt = typename std::tuple_element<N,MessagesType>::type;
 public:
   
-  template <typename Client, size_t N>
-  using MessageDescriptorAt = typename impl::MessageDescriptorBuilder<Client,typename std::tuple_element<N,MessagesType>::type>::type;
+  template <size_t N>
+  using MessageDescriptorAt = MessageTypeAt<N>;
   
   using IndexList = std::index_sequence_for<Ts...>;
   
   constexpr MessageSet(const Ts&&... ts) : mMessages{std::make_tuple(ts...)} {}
   constexpr MessageSet(const std::tuple<Ts...>&& t): mMessages{t} {}
-//  constexpr MessageSet(){}
-
 
   template<size_t N>
   std::string name() const { return std::get<N>(mMessages).name; }
@@ -110,8 +65,7 @@ public:
 
   template <size_t N,typename...Us>
   decltype(auto) invoke(Us&&...us) const {
-    using Op = typename MessageTypeAt<N>::type;
-    return Op()(std::forward<Us>(us)...) ;
+    return std::get<N>(mMessages)(std::forward<Us>(us)...);
   }
 
 private:
@@ -120,15 +74,19 @@ private:
   template <template <size_t N, typename T> class Op, size_t... Is>
   void iterateImpl(std::index_sequence<Is...>) const
   {
-    std::initializer_list<int>{(Op<Is, MessageTypeAt<Is>>()(std::get<Is>(mMessages)), 0)...};
+    (void)std::initializer_list<int>{(Op<Is, MessageTypeAt<Is>>()(std::get<Is>(mMessages)), 0)...};
   }
 };
 
 template<typename...Args>
 constexpr MessageSet<std::tuple<Args...>> defineMessages(Args&&...args){ return {std::forward<Args>(args)...}; }
 
-auto constexpr NoMessages = defineMessages();
+//Boilerplate macro for clients
+#define FLUID_DECLARE_MESSAGES(...) \
+    using MessageType = std::add_const_t<decltype(defineMessages(__VA_ARGS__))>; \
+    static constexpr MessageType getMessageDescriptors() { return defineMessages(__VA_ARGS__);}
 
+auto constexpr NoMessages = defineMessages();
 
 } //client
 } //fluid

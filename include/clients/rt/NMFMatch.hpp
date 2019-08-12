@@ -12,22 +12,22 @@
 namespace fluid {
 namespace client {
 
-enum NMFMatchParamIndex{kFilterbuf,kMaxRank,kIterations,kFFT,kMaxFFTSize};
-
-auto constexpr NMFMatchParams = defineParameters(
-  InputBufferParam("bases", "Bases Buffer"),
-  LongParam<Fixed<true>>("maxComponents","Maximum Number of Components",20,Min(1)),
-  LongParam("iterations", "Number of Iterations", 10, Min(1)),
-  FFTParam<kMaxFFTSize>("fftSettings","FFT Settings",1024, -1,-1),
-  LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4), PowerOfTwo{})
-);
-
-
-class NMFMatch : public FluidBaseClient<decltype(NMFMatchParams), NMFMatchParams>, public AudioIn, public ControlOut
+class NMFMatch : public FluidBaseClient, public AudioIn, public ControlOut
 {
+  
+  enum NMFMatchParamIndex{kFilterbuf,kMaxRank,kIterations,kFFT,kMaxFFTSize};
+
 public:
 
-  NMFMatch(ParamSetViewType& p) : FluidBaseClient(p), mSTFTProcessor(get<kMaxFFTSize>(),1,0)
+  FLUID_DECLARE_PARAMS(
+    InputBufferParam("bases", "Bases Buffer"),
+    LongParam<Fixed<true>>("maxComponents","Maximum Number of Components",20,Min(1)),
+    LongParam("iterations", "Number of Iterations", 10, Min(1)),
+    FFTParam<kMaxFFTSize>("fftSettings","FFT Settings",1024, -1,-1),
+    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4), PowerOfTwo{})
+  );
+  
+  NMFMatch(ParamSetViewType& p) : mParams(p), mSTFTProcessor(get<kMaxFFTSize>(),1,0)
   {
     audioChannelsIn(1);
     controlChannelsOut(get<kMaxRank>());
@@ -96,5 +96,8 @@ private:
   size_t mNBins{0};
   size_t mRank{0};
 };
+
+using RTNMFMatchClient = ClientWrapper<NMFMatch>; 
+
 } // namespace client
 } // namespace fluid

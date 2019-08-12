@@ -17,16 +17,24 @@
 namespace fluid {
 namespace client {
 
-enum PitchParamIndex {
-  kAlgorithm,
-  kMinFreq,
-  kMaxFreq,
-  kUnit,
-  kFFT,
-  kMaxFFTSize
-};
+class PitchClient : public FluidBaseClient, public AudioIn, public ControlOut {
+  using size_t = std::size_t;
+  using CepstrumF0 = algorithm::CepstrumF0;
+  using HPS = algorithm::HPS;
+  using YINFFT = algorithm::YINFFT;
+  
+  enum PitchParamIndex {
+    kAlgorithm,
+    kMinFreq,
+    kMaxFreq,
+    kUnit,
+    kFFT,
+    kMaxFFTSize
+  };
 
-auto constexpr PitchParams = defineParameters(
+public:
+
+  FLUID_DECLARE_PARAMS(
     EnumParam("algorithm", "Algorithm", 2, "Cepstrum",
               "Harmonic Product Spectrum", "YinFFT"),
     FloatParam("minFreq", "Minimum Frequency", 20, Min(0), Max(10000),
@@ -36,22 +44,13 @@ auto constexpr PitchParams = defineParameters(
     EnumParam("unit", "Unit", 0, "Hz", "MIDI"),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                           PowerOfTwo{}));
+                           PowerOfTwo{})
+  );
 
-
-class PitchClient : public FluidBaseClient<decltype(PitchParams), PitchParams>,
-                    public AudioIn,
-                    public ControlOut {
-  using size_t = std::size_t;
-  using CepstrumF0 = algorithm::CepstrumF0;
-  using HPS = algorithm::HPS;
-  using YINFFT = algorithm::YINFFT;
-
-public:
-  PitchClient(ParamSetViewType &p)
-      : FluidBaseClient(p), mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0) {
-    FluidBaseClient::audioChannelsIn(1);
-    FluidBaseClient::controlChannelsOut(2);
+  PitchClient(ParamSetViewType &p): mParams(p), mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0)
+  {
+    audioChannelsIn(1);
+    controlChannelsOut(2);
     mDescriptors = FluidTensor<double, 1>(2);
   }
 
@@ -105,12 +104,14 @@ private:
   FluidTensor<double, 1> mDescriptors;
 };
 
+using RTPitchClient = ClientWrapper<PitchClient>;
+
 auto constexpr NRTPitchParams =
-    makeNRTParams<PitchClient>({InputBufferParam("source", "Source Buffer")},
+    makeNRTParams<RTPitchClient>({InputBufferParam("source", "Source Buffer")},
                                {BufferParam("features", "Features Buffer")});
 
 using NRTPitchClient =
-    NRTControlAdaptor<PitchClient, decltype(NRTPitchParams), NRTPitchParams,
+    NRTControlAdaptor<RTPitchClient, decltype(NRTPitchParams), NRTPitchParams,
                       1, 1>;
 
 using NRTThreadedPitchClient = NRTThreadingAdaptor<NRTPitchClient>;

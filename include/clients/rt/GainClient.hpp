@@ -15,16 +15,16 @@
 namespace fluid {
 namespace client {
 
-enum GainParamTags { kGain };
-
-constexpr auto GainParams = defineParameters(FloatParam("gain", "Gain", 1.0));
-
-class GainClient : public FluidBaseClient<decltype(GainParams), GainParams>, public AudioIn, public AudioOut
+class GainClient : public FluidBaseClient, public AudioIn, public AudioOut
 {
+  enum GainParamTags { kGain };
 public:
-  GainClient(ParamSetViewType &p) : FluidBaseClient(p) {
-    FluidBaseClient::audioChannelsIn(2);
-    FluidBaseClient::audioChannelsOut(1);
+
+  FLUID_DECLARE_PARAMS(FloatParam("gain", "Gain", 1.0));
+
+  GainClient(ParamSetViewType &p) : mParams(p) {
+    audioChannelsIn(2);
+    audioChannelsOut(1);
   }
 
   size_t latency() { return 0; }
@@ -49,5 +49,8 @@ public:
     }
   }
 }; // class
+
+using RTGainClient = ClientWrapper<GainClient>; 
+
 } // namespace client
 } // namespace fluid

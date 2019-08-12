@@ -18,16 +18,20 @@ namespace client {
 using algorithm::DCT;
 using algorithm::MelBands;
 
-enum MFCCParamIndex {
-  kNBands,
-  kMinFreq,
-  kMaxFreq,
-  kMaxNBands,
-  kFFT,
-  kMaxFFTSize
-};
+class MelBandsClient : public FluidBaseClient,public AudioIn, public ControlOut
+{
+  enum MFCCParamIndex {
+    kNBands,
+    kMinFreq,
+    kMaxFreq,
+    kMaxNBands,
+    kFFT,
+    kMaxFFTSize
+  };
 
-auto constexpr MelBandsParams = defineParameters(
+public:
+
+  FLUID_DECLARE_PARAMS(
     LongParam("numBands", "Number of Bands", 40, Min(2),
               UpperLimit<kMaxNBands>()),
     FloatParam("minFreq", "Low Frequency Bound", 20, Min(0)),
@@ -35,18 +39,11 @@ auto constexpr MelBandsParams = defineParameters(
     LongParam<Fixed<true>>("maxNumBands", "Maximum Number of Bands", 120,
                            Min(2), MaxFrameSizeUpperLimit<kMaxFFTSize>()),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
+    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384)
+  );
 
-class MelBandsClient
-    : public FluidBaseClient<decltype(MelBandsParams), MelBandsParams>,
-      public AudioIn,
-      public ControlOut
-
-{
-
-public:
   MelBandsClient(ParamSetViewType &p)
-      : FluidBaseClient{p}, mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0) {
+      : mParams{p}, mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0) {
     mBands = FluidTensor<double, 1>(get<kNBands>());
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::controlChannelsOut(get<kMaxNBands>());
@@ -92,12 +89,14 @@ private:
   FluidTensor<double, 1> mBands;
 };
 
+using RTMelBandsClient = ClientWrapper<MelBandsClient>;
+
 auto constexpr NRTMelBandsParams =
-    makeNRTParams<MelBandsClient>({InputBufferParam("source", "Source Buffer")},
+    makeNRTParams<RTMelBandsClient>({InputBufferParam("source", "Source Buffer")},
                                   {BufferParam("features", "Output Buffer")});
 
 using NRTMelBandsClient =
-    NRTControlAdaptor<MelBandsClient, decltype(NRTMelBandsParams),
+    NRTControlAdaptor<RTMelBandsClient, decltype(NRTMelBandsParams),
                       NRTMelBandsParams, 1, 1>;
 
 using NRTThreadedMelBandsClient = NRTThreadingAdaptor<NRTMelBandsClient>;

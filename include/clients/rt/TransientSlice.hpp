@@ -15,19 +15,22 @@
 namespace fluid {
 namespace client {
 
-enum TransientParamIndex {
-  kOrder,
-  kBlockSize,
-  kPadding,
-  kSkew,
-  kThreshFwd,
-  kThreshBack,
-  kWinSize,
-  kDebounce,
-  kMinSeg
-};
+class TransientsSlice : public FluidBaseClient, public AudioIn, public AudioOut
+{
+  enum TransientParamIndex {
+    kOrder,
+    kBlockSize,
+    kPadding,
+    kSkew,
+    kThreshFwd,
+    kThreshBack,
+    kWinSize,
+    kDebounce,
+    kMinSeg
+  };
+public:
 
-auto constexpr TransientParams = defineParameters(
+  FLUID_DECLARE_PARAMS(
     LongParam("order", "Order", 20, Min(10), LowerLimit<kWinSize>(),UpperLimit<kBlockSize>()),
     LongParam("blockSize", "Block Size", 256, Min(100), LowerLimit<kOrder>()),
     LongParam("padSize", "Padding", 128, Min(0)),
@@ -37,19 +40,13 @@ auto constexpr TransientParams = defineParameters(
     LongParam("windowSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
     LongParam("clumpLength", "Clumping Window Length", 25, Min(0)),
     LongParam("minSliceLength", "Minimum Length of Slice",1000)
-);
+  );
 
 
-class TransientsSlice :
-public FluidBaseClient<decltype(TransientParams), TransientParams>, public AudioIn, public AudioOut
-{
-
-public:
-
-  TransientsSlice(ParamSetViewType& p): FluidBaseClient(p)
+  TransientsSlice(ParamSetViewType& p): mParams(p)
   {
-    FluidBaseClient::audioChannelsIn(1);
-    FluidBaseClient::audioChannelsOut(1);
+    audioChannelsIn(1);
+    audioChannelsOut(1);
   }
 
   template <typename T>
@@ -121,9 +118,11 @@ private:
   size_t mPadding{0};
 };
 
-auto constexpr NRTTransientSliceParams = makeNRTParams<TransientsSlice>({InputBufferParam("source", "Source Buffer")}, {BufferParam("indices","Indices Buffer")});
+using RTTransientSliceClient = ClientWrapper<TransientsSlice>;
 
-using NRTTransientSlice = NRTSliceAdaptor<TransientsSlice, decltype(NRTTransientSliceParams), NRTTransientSliceParams, 1, 1>;
+auto constexpr NRTTransientSliceParams  = makeNRTParams<RTTransientSliceClient>({InputBufferParam("source", "Source Buffer")}, {BufferParam("indices","Indices Buffer")});
+
+using NRTTransientSlice = NRTSliceAdaptor<RTTransientSliceClient, decltype(NRTTransientSliceParams), NRTTransientSliceParams, 1, 1>;
 
 using NRTThreadedTransientSlice = NRTThreadingAdaptor<NRTTransientSlice>;
 

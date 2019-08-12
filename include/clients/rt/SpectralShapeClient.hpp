@@ -17,24 +17,23 @@ namespace client {
 
 using algorithm::SpectralShape;
 
-enum SpectralShapeParamIndex { kFFT, kMaxFFTSize };
-
-auto constexpr SpectralShapeParams = defineParameters(
-    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                           PowerOfTwo{}));
-
-class SpectralShapeClient
-    : public FluidBaseClient<decltype(SpectralShapeParams),
-                             SpectralShapeParams>,
-      public AudioIn,
-      public ControlOut {
+class SpectralShapeClient : public FluidBaseClient, public AudioIn, public ControlOut {
+  
+  enum SpectralShapeParamIndex { kFFT, kMaxFFTSize };
 
 public:
+
+  FLUID_DECLARE_PARAMS(
+    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
+    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
+                           PowerOfTwo{})
+  );
+
   SpectralShapeClient(ParamSetViewType &p)
-      : FluidBaseClient(p), mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0) {
-    FluidBaseClient::audioChannelsIn(1);
-    FluidBaseClient::controlChannelsOut(7);
+      : mParams(p), mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0), mAlgorithm{static_cast<size_t>(get<kMaxFFTSize>())}
+  {
+    audioChannelsIn(1);
+    controlChannelsOut(7);
     mDescriptors = FluidTensor<double, 1>(7);
   }
 
@@ -75,18 +74,20 @@ public:
 private:
   ParameterTrackChanges<size_t> mWinSizeTracker;
   STFTBufferedProcess<ParamSetViewType, kFFT> mSTFTBufferedProcess;
-  SpectralShape mAlgorithm{static_cast<size_t>(get<kMaxFFTSize>())};
+  SpectralShape mAlgorithm;
   FluidTensor<double, 1> mMagnitude;
   FluidTensor<double, 1> mDescriptors;
   double mBinHz;
 };
 
-auto constexpr NRTSpectralShapeParams = makeNRTParams<SpectralShapeClient>(
+using RTSpectralShapeClient = ClientWrapper<SpectralShapeClient>;
+
+auto constexpr NRTSpectralShapeParams = makeNRTParams<RTSpectralShapeClient>(
     {InputBufferParam("source", "Source Buffer")},
     {BufferParam("features", "Features Buffer")});
 
 using NRTSpectralShapeClient =
-    NRTControlAdaptor<SpectralShapeClient, decltype(NRTSpectralShapeParams),
+    NRTControlAdaptor<RTSpectralShapeClient, decltype(NRTSpectralShapeParams),
                       NRTSpectralShapeParams, 1, 1>;
 
 using NRTThreadedSpectralShapeClient = NRTThreadingAdaptor<NRTSpectralShapeClient>;

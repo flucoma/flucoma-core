@@ -15,9 +15,13 @@
 namespace fluid {
 namespace client {
 
-enum HPSSParamIndex { kHSize, kPSize, kMode, kHThresh, kPThresh, kFFT, kMaxFFT, kMaxHSize,kMaxPSize };
+class HPSSClient : public FluidBaseClient, public AudioIn, public AudioOut
+{
+  enum HPSSParamIndex { kHSize, kPSize, kMode, kHThresh, kPThresh, kFFT, kMaxFFT, kMaxHSize,kMaxPSize };
 
-auto constexpr HPSSParams = defineParameters(
+public:
+
+  FLUID_DECLARE_PARAMS(
     LongParam("harmFilterSize", "Harmonic Filter Size", 17, UpperLimit<kMaxHSize>(),Odd{}, Min(3)),
     LongParam("percFilterSize", "Percussive Filter Size", 31, UpperLimit<kMaxPSize>(),Odd{}, Min(3)),
     EnumParam("maskingMode", "Masking Mode", 0, "Classic", "Coupled", "Advanced"),
@@ -27,18 +31,12 @@ auto constexpr HPSSParams = defineParameters(
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4), PowerOfTwo{}),
     LongParam<Fixed<true>>("maxHarmFilterSize", "Maximum Harmonic Filter Size", 101, Min(3), Odd{}),
     LongParam<Fixed<true>>("maxPercFilterSize", "Maximum Percussive Filter Size", 101, Min(3), Odd{})
-);
+  );
 
-class HPSSClient : public FluidBaseClient<decltype(HPSSParams), HPSSParams>, public AudioIn, public AudioOut
-{
-
-public:
-
-  HPSSClient(ParamSetViewType& p)
-  : FluidBaseClient(p), mSTFTBufferedProcess{static_cast<size_t>(get<kMaxFFT>()),1,3}
+  HPSSClient(ParamSetViewType& p): mParams(p), mSTFTBufferedProcess{static_cast<size_t>(get<kMaxFFT>()),1,3}
   {
-    FluidBaseClient::audioChannelsIn(1);
-    FluidBaseClient::audioChannelsOut(3);
+    audioChannelsIn(1);
+    audioChannelsOut(3);
   }
 
   size_t latency() { return ((get<kHSize>() - 1) * get<kFFT>().hopSize()) +  get<kFFT>().winSize(); }
@@ -99,9 +97,11 @@ private:
   algorithm::RTHPSS mHPSS;
 };
 
+using RTHPSS = ClientWrapper<HPSSClient>;
+
 auto constexpr NRTHPSSParams = makeNRTParams<HPSSClient>({InputBufferParam("source", "Source Buffer")},  {BufferParam("harmonic","Harmonic Buffer"), BufferParam("percussive","Percussive Buffer"), BufferParam("residual", "Residual Buffer")});
 
-using NRTHPSS = NRTStreamAdaptor<HPSSClient, decltype(NRTHPSSParams), NRTHPSSParams, 1, 3>;
+using NRTHPSS = NRTStreamAdaptor<RTHPSS, decltype(NRTHPSSParams), NRTHPSSParams, 1, 3>;
 
 using NRTThreadedHPSS = NRTThreadingAdaptor<NRTHPSS>;
 
