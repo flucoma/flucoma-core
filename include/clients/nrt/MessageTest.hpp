@@ -67,8 +67,8 @@ public:
     makeMessage("testReturnStrings", &MessageTest::doStrings),
     makeMessage("testReturnNumbers", &MessageTest::doNumbers),
     makeMessage("testReturnOneString", &MessageTest::doOneString),
-    makeMessage("testReturnOneNumber", &MessageTest::doStrings),
-    makeMessage("testAccessBuffer", &MessageTest::doOneNumber),
+    makeMessage("testReturnOneNumber", &MessageTest::doOneNumber),
+    makeMessage("testAccessBuffer", &MessageTest::doBuffer),
     makeMessage("testPassString", &MessageTest::doTakeString)
   );
 };
