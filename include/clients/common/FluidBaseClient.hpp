@@ -96,7 +96,8 @@ class ClientWrapper
   ClientWrapper(ParamSetViewType& p):mClient{p},mParams{p} {}
   
   const Client& client() const { return mClient; }
-  
+
+    
   template<typename T, typename Context>
   Result process(Context& c)
   {
@@ -159,6 +160,12 @@ template <class T>
 using isNonRealTime = typename std::is_base_of<Offline, T>::type;
 template <class T>
 using isRealTime = std::integral_constant<bool, isAudio<T> || isControl<T>>;
+
+template<typename T> class SharedClientRef; //forward declaration
+
+
+template<typename T>
+using IsSharedClient = isSpecialization<T,SharedClientRef>;
 
 } // namespace client
 } // namespace fluid
