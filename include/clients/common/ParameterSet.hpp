@@ -39,6 +39,9 @@ class ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>
     template <typename T>
     using apply = std::integral_constant<bool, !(std::is_base_of<impl::Relational,T>::value)>;
   };
+  
+  template<typename T>
+  using DefaultValue = decltype(std::declval<T>().defaultValue);
 
 public:
   
@@ -104,6 +107,21 @@ public:
 
   constexpr const DescriptorType& descriptors() const { return mDescriptors; }
   
+  
+  template<size_t N>
+  std::enable_if_t<isDetected<DefaultValue, ParamType<N>>::value,typename ParamType<N>::type>
+  makeValue() const
+  {
+    return std::get<0>(std::get<N>(mDescriptors)).defaultValue;
+  }
+
+  template<size_t N>
+  std::enable_if_t<!isDetected<DefaultValue, ParamType<N>>::value,typename ParamType<N>::type>
+  makeValue() const
+  {
+    return typename ParamType<N>::type{};
+  }
+
 private:
 
   const DescriptorType mDescriptors;
@@ -377,7 +395,7 @@ private:
   template <size_t... Is>
   constexpr auto create(const DescriptorSetType &d, std::index_sequence<Is...>) const
   {
-    return std::make_tuple(ViewType::template descriptor<Is>().defaultValue...);
+    return std::make_tuple(d.template makeValue<Is>()...);
   }
   
   template <size_t... Is>
