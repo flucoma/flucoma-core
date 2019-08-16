@@ -92,7 +92,7 @@ private:
   mutable ProviderDataSet mData{1};
   FluidTensor<Entry,1> mTmp;
 };
-//this alias is what is used by subscribing clients, and is all that's need to make a client a provider
+//this alias is what is used by subscribing clients, and is all that's needed to make a client a provider
 using ProviderTestClientRef = SharedClientRef<ProviderTestClient>;
 using NRTThreadedProviderTest = NRTThreadingAdaptor<typename ProviderTestClientRef::SharedType>;
 
