@@ -81,10 +81,10 @@ public:
   constexpr size_t size() const noexcept { return sizeof...(Ts); }
   constexpr size_t count() const noexcept { return countImpl(IndexList()); }
   
-  template <template <size_t N, typename T> class Func>
-  void iterate() const
+  template <template <size_t N, typename T> class Func,typename...Args>
+  void iterate(Args&&...args) const
   {
-    iterateImpl<Func>(IndexList());
+    iterateImpl<Func>(IndexList(),std::forward<Args>(args)...);
   }
   
   template <template <size_t N, typename T> class Func>
@@ -134,10 +134,10 @@ private:
     return count;
   }
   
-  template <template <size_t N, typename T> class Op, size_t... Is>
-  void iterateImpl(std::index_sequence<Is...>) const
+  template <template <size_t N, typename T> class Op, typename...Args,size_t... Is>
+  void iterateImpl(std::index_sequence<Is...>,Args&&...args) const
   {
-    (void)std::initializer_list<int>{(Op<Is, ParamType<Is>>()(std::get<0>(std::get<Is>(mDescriptors))), 0)...};
+    (void)std::initializer_list<int>{(Op<Is, ParamType<Is>>()(std::get<0>(std::get<Is>(mDescriptors)),std::forward<Args>(args)...), 0)...};
   }
 };
 
