@@ -96,7 +96,7 @@ public:
   static constexpr size_t ParamOffset  = (Ins*5) + decideOuts;
   using WrappedClient = RTClient;//<ParameterSet_Offset<Params,ParamOffset>,T>;
 
-  static auto& getMessageDescriptors() { return RTClient::getMessageDescriptors(); }
+  static auto getMessageDescriptors() { return RTClient::getMessageDescriptors(); }
   
   NRTClientWrapper(ParamSetViewType& p)
     : mParams{p}
