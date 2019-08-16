@@ -474,6 +474,9 @@ public:
     using ReturnType = typename MessageSetType::template MessageDescriptorAt<N>::ReturnType;
     if (mThreadedTask)
       return ReturnType{Result::Status::kError, "Already processing"};
+   
+   mClient->setParams(mHostParams);  
+    
     return mClient-> template invoke<N>(*mClient.get(), std::forward<Args>(args)...);
   }
   
