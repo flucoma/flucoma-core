@@ -260,6 +260,11 @@ public:
     return impl::RefTupleFrom<offset>(mParams);
   }
   
+  
+  template<size_t N, typename F>
+  void addListener(F&&){} //no-op for non-shared parameter set?
+  
+  
 private:
   template <typename T>
   struct IsParamType
