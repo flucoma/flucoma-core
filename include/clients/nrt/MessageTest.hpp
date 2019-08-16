@@ -63,13 +63,26 @@ public:
     return {};
   }
   
+  MessageResult<std::shared_ptr<BufferAdaptor>> doReturnBuffer(std::shared_ptr<BufferAdaptor> b)
+  {
+    return b;
+  }
+
+  MessageResult<std::tuple<std::string, int, int>> doHetero()
+  {
+    return std::make_tuple(std::string{"Testing tesing"}, 1, 2);
+  }
+
+  
   FLUID_DECLARE_MESSAGES(
     makeMessage("testReturnStrings", &MessageTest::doStrings),
     makeMessage("testReturnNumbers", &MessageTest::doNumbers),
     makeMessage("testReturnOneString", &MessageTest::doOneString),
     makeMessage("testReturnOneNumber", &MessageTest::doOneNumber),
     makeMessage("testAccessBuffer", &MessageTest::doBuffer),
-    makeMessage("testPassString", &MessageTest::doTakeString)
+    makeMessage("testPassString", &MessageTest::doTakeString),
+    makeMessage("testReturnBuffer", &MessageTest::doReturnBuffer),
+    makeMessage("testReturnHetero", &MessageTest::doHetero)
   );
 };
 
