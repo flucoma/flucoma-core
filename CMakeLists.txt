@@ -134,7 +134,7 @@ target_include_directories(
 
 target_link_libraries(
   FLUID_DECOMPOSITION
-  INTERFACE HISSTools_FFT Boost::preprocessor
+  INTERFACE HISSTools_FFT
 )
 
 target_sources(
