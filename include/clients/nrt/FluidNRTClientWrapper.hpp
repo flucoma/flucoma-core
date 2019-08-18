@@ -424,7 +424,7 @@ public:
   
   Result process()
   {
-    if (mThreadedTask && mSynchronous)
+    if (mThreadedTask && (mSynchronous|| !mQueueEnabled) )
       return {Result::Status::kError, "already processing"};
     
     if (mThreadedTask)
@@ -474,6 +474,8 @@ public:
   {
     mSynchronous = synchronous;
   }
+  
+  void setQueueEnabled(bool queue) { mQueueEnabled = queue; }
   
   double progress()
   {
@@ -534,10 +536,11 @@ private:
     : mState(kNoProcess), mClient(client), mProcessParams(hostParams), mContext{mTask}
     {
       
-     assert(mClient.get() != nullptr); //right?
+      assert(mClient.get() != nullptr); //right?
       
       if (synchronous)
       {
+        mClient->setParams(hostParams); 
         result = process();
       }
       else
@@ -614,6 +617,7 @@ private:
   ParamSetType& mHostParams;
   std::deque<ParamSetType> mQueue;
   bool mSynchronous = false;
+  bool mQueueEnabled = false;
   std::unique_ptr<ThreadedTask> mThreadedTask;
   ClientPointer mClient;
 };
