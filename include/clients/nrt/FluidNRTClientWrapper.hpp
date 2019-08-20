@@ -422,19 +422,31 @@ public:
     }
   }
   
+  Result enqueue(ParamSetType& p)
+  {
+    if (mThreadedTask && (mSynchronous|| !mQueueEnabled) )
+      return {Result::Status::kError, "already processing"};
+
+    mQueue.push_back(p);
+    
+    return {};
+  }
+  
   Result process()
   {
     if (mThreadedTask && (mSynchronous|| !mQueueEnabled) )
       return {Result::Status::kError, "already processing"};
     
     if (mThreadedTask)
-    {
-        mQueue.push_back(mHostParams);
         return Result();
-    }
-      
+    
     Result result;
-    mThreadedTask = std::unique_ptr<ThreadedTask>(new ThreadedTask(mClient,mHostParams, mSynchronous, result));
+    
+    if(mQueue.empty())
+      return {Result::Status::kWarning, "Process() called on empty queue"}; 
+    
+    mThreadedTask = std::unique_ptr<ThreadedTask>(new ThreadedTask(mClient,mQueue.front(), mSynchronous, result));
+    mQueue.pop_front();
     
     if (mSynchronous)
       mThreadedTask = nullptr;
@@ -499,6 +511,7 @@ public:
   {
     return mThreadedTask ? mThreadedTask->mState : kNoProcess;
   }
+  
   
 private:
     
@@ -614,7 +627,7 @@ private:
     bool mDetached = false;
   };
   
-  ParamSetType& mHostParams;
+  ParamSetType mHostParams;
   std::deque<ParamSetType> mQueue;
   bool mSynchronous = false;
   bool mQueueEnabled = false;
