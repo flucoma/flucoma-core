@@ -69,7 +69,7 @@ namespace hisstools_fft_impl{
         template <class T> T *allocate_aligned(size_t size)
         {
             void *mem;
-            posix_memalign(&mem, SIMDLimits<T>::max_size * sizeof(T), size * sizeof(T));
+            posix_memalign(&mem, 32, size * sizeof(T));
             return static_cast<T *>(mem);
         }
     #elif defined(__arm__)
