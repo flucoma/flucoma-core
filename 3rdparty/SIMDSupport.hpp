@@ -23,8 +23,6 @@ template <class T> void deallocate_aligned(T *ptr)
 
 #include <stdlib.h>
 
-template <class T> struct SIMDLimits; //forward decl
-
 template <class T> T *allocate_aligned(size_t size)
 {
     void *mem;
