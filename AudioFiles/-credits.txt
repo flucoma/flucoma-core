@@ -1,5 +1,9 @@
 All provided samples are for demonstration purpose only and should not be used in creative and/or commercial work.
 
+Green-Box639.wav
+Green-Box641.wav
+  - Owen Green (bowed cardboard box) recorded by Sean Williams 26 June 2013, Anechoic Chamber, University of Edinburgh, with the support of the Leverhulme Trust
+
 Nicol-LoopE-M.wav
   - Jean-Sébastien Nicol (drums) recorded by Pierre Alexandre Tremblay at Université de Montréal, 1998
 
@@ -17,12 +21,11 @@ Tremblay-BaB-SoundfielGolcarWithDog.wav
   - soundfield recording, Golcar, UK, 4th March 2017, for the piece 'Bucolic & Broken', Pierre Alexandre Tremblay, 2017
 
 Tremblay-BeatRemember.wav
-  - Lucas Garnier (trumpet) Sylvain Pohu(guitar) produced by Pierre Alexandre Tremblay, 2001
+  - Lucas Garnier (trumpet) Sylvain Pohu (guitar) produced by Pierre Alexandre Tremblay, 2001
 
 Tremblay-CF-ChurchBells.wav
   - sound sources for the piece 'La cloche fêlée', recorded in Ephraim Scott Memorial Presbyterian Church, Montreal, by Pierre Alexandre Tremblay, 2003
 
-Tremblay-ComplexDescent-M.wav
 Tremblay-FMTri-M.wav
 Tremblay-FMTriDist-M.wav
 Tremblay-Iterative-M.wav
@@ -32,3 +35,6 @@ Tremblay-SlideChoirSin-M.wav
 
 Tremblay-SA-UprightPianoPedalWide.wav
   - sound sources for the piece 'Still, Again', Pierre Alexandre Tremblay, 2013
+
+Tremblay-UW-ComplexDescent-M.wav
+  - sound source for the piece '(un)woven', Pierre Alexandre Tremblay, 2019
