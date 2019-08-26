@@ -1,11 +1,11 @@
 # beta-01: some fixes and more
-date: XXX
+date: 26 August 2019
 
 ## New Features:
 - (Pd) all helpfiles now completed (except a few stereo examples of fluid.buf* objects - placeholders are empty [pd] patchers)
+- (max) clickable overview
 
 ## Bug Fixes:
-- (max) clickable overview
 - (max) hpss help of maskingmode 1 and 2 sorted
 - (max) bufpitch help is resizing
 - strange communication between instances of bufnmf~ now zapped
@@ -16,7 +16,6 @@ date: XXX
 - HPSS does not crackle on param changes anymore
 - BufOnsetSlice accepts all values for maxFFTSize without crashing
 - (Pd) now gives a decent error when not providing enough 'channels' in 'multichannel' arrays instead of crashing
-
 
 ## Known Bugs:
 - BufNoveltySlice might generate garbage strange values in the first frame
