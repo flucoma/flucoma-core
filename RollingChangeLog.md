@@ -1,25 +1,25 @@
 # beta-01: some fixes and more
-date: XXX
+date: 26 August 2019
 
 ## New Features:
 - (Pd) all helpfiles now completed (except a few stereo examples of fluid.buf* objects - placeholders are empty [pd] patchers)
+- (max) clickable overview
 
 ## Bug Fixes:
-- (max) clickable overview
 - (max) hpss help of maskingmode 1 and 2 sorted
 - (max) bufpitch help is resizing
 - strange communication between instances of bufnmf~ now zapped
 - (pd) sample rate of buf* descriptor objects is now assumed (see helpfiles of bufPitch, bufMFCC, bufMelbands, bufSpectralShape)
 - (pd) crash on some patches closings now should all be zapped
 - (linux) strange names of Pd and Linux now sorted
+- no more NaNs and crashes with edge cases and digital silence on NMF !
+- HPSS does not crackle on param changes anymore
+- BufOnsetSlice accepts all values for maxFFTSize without crashing
+- (Pd) now gives a decent error when not providing enough 'channels' in 'multichannel' arrays instead of crashing
 
 ## Known Bugs:
-- HPSS still cracks when percussive filter is violently moved up
-- NMF still creates NaNs in some edge cases, for instance when trying to factorise digital silence
-- BufOnsetSlice with a maxFFTSize value of less than 1024 will crash
 - BufNoveltySlice might generate garbage strange values in the first frame
 - AmpSlice is noisy when some parameters are changed
-- (Pd) not providing enough 'channels' in 'multichannel' arrays will crash
 
 ===
 # beta-00: the big plunge
