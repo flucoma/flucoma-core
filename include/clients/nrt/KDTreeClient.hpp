@@ -49,7 +49,6 @@ public:
   }
 
   MessageResult<FluidTensor<std::string, 1>> knn(BufferPtr data, int k) const {
-    using Strings = FluidTensor<std::string, 1>;
     
     if (!data)
       return {Result::Status::kError, NoBufferError};
