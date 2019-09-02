@@ -1,7 +1,7 @@
 #pragma once
 
 #include "DatasetClient.hpp"
-
+#include "DatasetErrorStrings.hpp"
 #include "data/FluidDataset.hpp"
 #include "algorithms/KMeans.hpp"
 
@@ -50,11 +50,11 @@ public:
       else {
         BufferAdaptor::Access buf(init.get());
         if (buf.numFrames() != mDims)
-          return mWrongSizeError;
+          return {Result::Status::kError,WrongSizeError};
         if(buf.numChans() != mK){
-          return mWrongInitError;
+          return {Result::Status::kError,WrongInitError};
         }
-        return {Result::Status::kError,"Not implememented"};
+        return {Result::Status::kError,"Not implemented"};
         FluidTensor<double, 2> points(mDims, mK);
         points = buf.samps(0, mDims, 0);
         mModel.train(dataset, maxIter, points);
@@ -65,15 +65,15 @@ public:
     else {
       return {Result::Status::kError,"Dataset doesn't exist"};
     }
-    return mOKResult;
+    return {};
   }
 
   MessageResult<int> predict(BufferPtr data) const {
     if (!data)
-      return mNoBufferError;
+      return {Result::Status::kError, NoBufferError};
     BufferAdaptor::Access buf(data.get());
     if (buf.numFrames() != mDims)
-      return mWrongSizeError;
+      return {Result::Status::kError, WrongSizeError};
 
     FluidTensor<double, 1> point(mDims);
     point = buf.samps(0, mDims, 0);
@@ -84,16 +84,6 @@ public:
                          makeMessage("predict", &KMeansClient::predict));
 
 private:
-  MessageResult<void> mNoBufferError{Result::Status::kError,
-                                     "No buffer passed"};
-  MessageResult<void> mNotFoundError{Result::Status::kError, "Point not found"};
-  MessageResult<void> mWrongSizeError{Result::Status::kError,
-                                      "Wrong point size"};
-  MessageResult<void> mWrongInitError{Result::Status::kError,
-                                      "Wrong number of initial points"};
-  MessageResult<void> mDuplicateError{Result::Status::kError,
-                                      "Label already in dataset"};
-  MessageResult<void> mOKResult{Result::Status::kOk};
   mutable FluidDataset<string, double, string, 1> mDataset;
   mutable algorithm::KMeans mModel;
   size_t mDims;
