@@ -53,8 +53,28 @@ public:
       } return {Result::Status::kError,"Provider doesn't exist"};
   }
 
+  MessageResult<std::tuple<std::string,intptr_t,intptr_t>> getFromProivderByMessage(ProviderTestClientRef wrappedProvider, string label)
+  {
+    std::weak_ptr<const ProviderTestClient> providerWeakPointer = wrappedProvider.get();
+    
+    if(auto providerPointer = providerWeakPointer.lock())
+    {
+        MessageResult<ProviderTestClient::Entry> response = providerPointer->getPoint(label);
+      
+        if(response.ok())
+        {
+          auto data = static_cast<ProviderTestClient::Entry>(response);
+          return std::make_tuple(label,data.offset,data.length);
+        }
+        else return {Result::Status::kError,response.message()};
+    } return {Result::Status::kError,"Provider doesn't exist"};
+    
+    
+  }
+
   FLUID_DECLARE_MESSAGES(
-    makeMessage("providerLookup",&SubscriberTestClient::getFromProivder)
+    makeMessage("providerLookup",&SubscriberTestClient::getFromProivder),
+    makeMessage("providerLookupFromMessage",&SubscriberTestClient::getFromProivderByMessage)    
   );
 
 };
