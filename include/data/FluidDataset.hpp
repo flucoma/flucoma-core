@@ -3,70 +3,82 @@
 #include "data/FluidTensor.hpp"
 #include "data/TensorTypes.hpp"
 #include <string>
+#include <unordered_map>
 
 namespace fluid {
 
-template <typename T, typename U, size_t N> class FluidDataset
-{
+template <typename idType, typename dataType, typename targetType, size_t N>
+class FluidDataset {
 
 public:
   template <typename... Dims,
             typename = std::enable_if_t<isIndexSequence<Dims...>()>>
-  FluidDataset(Dims... dims) : mData(0, dims...), mDim(dims...)
-  {
+  FluidDataset(Dims... dims) : mData(0, dims...), mDim(dims...) {
     static_assert(sizeof...(dims) == N, "Number of dimensions doesn't match");
   }
 
-  bool add(U label, FluidTensorView<T, N> point)
-  {
+  bool add(idType id, FluidTensorView<dataType, N> point, targetType target = targetType()) {
     assert(sameExtents(mDim, point.descriptor()));
-    auto pos = std::find(mLabels.begin(), mLabels.end(), label);
-    if (pos != mLabels.end())
+    std::cout<<"ds add "<<id<<":"<<target<<std::endl;
+    intptr_t pos = mData.rows();
+    auto result = mIndex.insert({id, pos});
+    if (!result.second)
       return false;
-    mLabels.resize(mLabels.rows() + 1);
-    mLabels(mLabels.rows() - 1) = label;
+    mTargets.resize(mTargets.rows() + 1);
+    mTargets(mTargets.rows() - 1) = target;
     mData.resizeDim(0, 1);
     mData.row(mData.rows() - 1) = point;
+    std::cout<<mData.rows()<<std::endl;
     return true;
   }
 
-  bool get(U label, FluidTensorView<T, N> point)
-  {
-    auto pos = std::find(mLabels.begin(), mLabels.end(), label);
-    if (pos == mLabels.end())
+
+  bool get(idType id, FluidTensorView<dataType, N> point) {
+    auto pos = mIndex.find(id);
+    if (pos == mIndex.end())
       return false;
-    point = mData.row(std::distance(mLabels.begin(), pos));
+    point = mData.row(pos->second);
     return true;
   }
 
-  bool update(U label, FluidTensorView<T, N> point)
-  {
-    auto pos = std::find(mLabels.begin(), mLabels.end(), label);
-    if (pos == mLabels.end())
-      return false;
-    else
-      mData.row(std::distance(mLabels.begin(), pos)) = point;
-    return true;
+  bool update(idType id, FluidTensorView<dataType, N> point) {
+      auto pos = mIndex.find(id);
+      if (pos == mIndex.end())
+        return false;
+      else
+        mData.row(pos->second) = point;
+      return true;
   }
 
-  bool remove(U label)
-  {
-    auto pos = std::find(mLabels.begin(), mLabels.end(), label);
-    if (pos == mLabels.end())
-      return false;
-    else {
-      mLabels.deleteRow(std::distance(mLabels.begin(), pos));
-      mData.deleteRow(std::distance(mLabels.begin(), pos));
-    }
-    return true;
+  bool remove(idType id) {
+      auto pos = mIndex.find(id);
+      if (pos == mIndex.end())
+        return false;
+      else {
+        mTargets.deleteRow(pos->second);
+        mData.deleteRow(pos->second);
+        mIndex.erase(id);
+      }
+      return true;
   }
 
-  size_t pointSize() { return mDim.size; }
-  void print() { std::cout << mData << std::endl; }
+  size_t pointSize() const { return mDim.size; }
+  size_t size() const { return mTargets.size(); }
+  void print() const {
+     std::cout << mData << std::endl;
+     std::cout << mTargets << std::endl;
+
+   }
+
+  const FluidTensorView<dataType, N + 1> getData() const { return mData; }
+
+  const FluidTensorView<targetType, 1> getTargets() const { return mTargets; }
+  const FluidTensorView<idType, 1> getIds() const { return mIndex; }
 
 private:
-  FluidTensor<U, 1> mLabels;
-  FluidTensor<T, N + 1> mData;
+  mutable FluidTensor<targetType, 1> mTargets;
+  mutable std::unordered_map<idType, intptr_t> mIndex;
+  mutable FluidTensor<dataType, N + 1> mData;
   FluidTensorSlice<N> mDim;
 };
 } // namespace fluid

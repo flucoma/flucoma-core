@@ -14,16 +14,16 @@ namespace fluid {
 namespace client {
 
 template<typename, typename> class ParamAliasAdaptor;
-  
+
 template<typename NRTClient, typename...Ts>
 class ParamAliasAdaptor<NRTClient, std::tuple<Ts...>>
 {
   using WrappedClient = ClientWrapper<NRTClient>;
   using ParamSetType = typename WrappedClient::ParamSetType;
-  
+
   template <size_t N>
   using ParamType = typename WrappedClient::ParamDescType::template ParamType<N>;
-  
+
 public:
 
   ParamAliasAdaptor(typename NRTClient::ParamDescType&){}
@@ -38,7 +38,7 @@ public:
   {
     return mParams.keepConstrained(keep);
   }
-  
+
   std::array<Result, sizeof...(Ts)> constrainParameterValues()
   {
     return mParams.constrainParameterValues();
@@ -80,7 +80,7 @@ public:
   void set(typename ParamType<N>::type &&x, Result *reportage) noexcept
   {
     mParams.template set<N>(std::forward<typename ParamType<N>::type>(x), reportage);
-    
+
     auto listeners = mListeners[N];
     for(auto&& l:listeners) l();
   }
@@ -90,18 +90,18 @@ public:
   {
     return mParams.template get<N>();
   }
- 
+
   template<size_t offset>
   auto subset()
   {
     return mParams.template subset<offset>();
   }
-  
+
   template<size_t N, typename F>
   void addListener(F&& f){
     mListeners[N].emplace_back(std::forward<F>(f));
   }
-  
+
   private:
     static typename WrappedClient::ParamSetType mParams;
     static std::array<std::vector<std::function<void()>>,sizeof...(Ts)> mListeners;
@@ -128,9 +128,9 @@ public:
   using MessageSetType = typename WrappedClient::MessageSetType;
   using LookupTable = std::unordered_map<std::string,ClientPointer>;
   using ParamSetType =  ParamAliasAdaptor<NRTClient, typename ParamDescType::ValueTuple>;
-  
+
   using type = ClientPointer;
-  
+
   constexpr static ParamDescType getParameterDescriptors() { return NRTClient::getParameterDescriptors(); }
   constexpr static auto getMessageDescriptors() { return WrappedClient::getMessageDescriptors();}
 
@@ -147,22 +147,22 @@ public:
     //constructs the value object, giving us shared_ptr<nullptr>
     std::string name = p.template get<0>();
     if(!mClientTable.count(name)) //key not already in table
-       mClientTable.emplace(name, new NRTClient(p.instance()));
+       mClientTable.emplace(name, ClientPointer(new NRTClient(p.instance())));
     mClient = mClientTable[name];
   }
-  
+
   ~NRTSharedInstanceAdaptor()
   {
     if(mClient && mClient.use_count() == 2) //is this the last remaining user of this Corpus, except the hash table?
       mClientTable.erase(ParamSetType::instance().template get<0>()); //then remove it from the universe
   }
-  
+
 
   static ClientPointer lookup(std::string name)
   {
     return mClientTable.count(name) ? (mClientTable)[name] : ClientPointer{};
   }
-  
+
   template<size_t N, typename T, typename...Args>
   decltype(auto) invoke(T&, Args&&...args)
   {
@@ -171,7 +171,7 @@ public:
     return WrappedClient::getMessageDescriptors().template invoke<N>(*mClient, std::forward<Args>(args)...);
     //return mClient->template
   }
-  
+
   template<typename T>
   Result process(FluidContext& c)
   {
@@ -179,9 +179,9 @@ public:
     mClient->setParams(mProcessParams);
     return mClient->template process<T>(c);
   }
-  
+
   void setParams(ParamSetType&) {}
-  
+
 private:
   ClientPointer mClient;
   typename WrappedClient::ParamSetType mProcessParams{NRTClient::getParameterDescriptors()};
@@ -196,5 +196,3 @@ typename NRTSharedInstanceAdaptor<NRTClient>::LookupTable NRTSharedInstanceAdapt
 
 } //client
 } //fluid
-
-

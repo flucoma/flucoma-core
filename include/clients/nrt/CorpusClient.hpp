@@ -23,7 +23,7 @@ namespace client {
 class CorpusClient : public FluidBaseClient,public OfflineIn, public OfflineOut
 {
   enum { kName };
-  
+
   using string = std::string;
   using Buffer = typename BufferT::type;
   struct Entry
@@ -33,20 +33,20 @@ class CorpusClient : public FluidBaseClient,public OfflineIn, public OfflineOut
     int length{-1};
   };
 public:
-  
+
   FLUID_DECLARE_PARAMS(
     StringParam<Fixed<true>>("name", "Corpus name")
   );
-  
-  using CorpusDataSet = FluidDataset<Entry,string, 1>;
+
+  using CorpusDataSet = FluidDataset<string, Entry,string, 1>;
 
   CorpusClient(ParamSetViewType &p):mParams(p), mTmp(1){}
 
   template <typename T>
   Result process(FluidContext&) { return {}; }
-  
+
   std::string name() const { return get<kName>(); }
-  
+
   MessageResult<void> addPoint(string label, Buffer buffer, size_t offset,int length)
   {
     mTmp.row(0) = Entry{buffer, offset,length};
@@ -65,7 +65,7 @@ public:
         return std::make_tuple(e.buffer,e.offset,e.length);
       }
       else
-        return {Result::Status::kError,"Couldn't retreive data"}; 
+        return {Result::Status::kError,"Couldn't retreive data"};
   }
 
   MessageResult<void> updatePoint(string label,Buffer buffer, size_t offset,int length)
@@ -88,7 +88,7 @@ public:
     makeMessage("updatePoint", &CorpusClient::updatePoint),
     makeMessage("deletePoint", &CorpusClient::deletePoint)
   );
-  
+
 private:
   mutable CorpusDataSet mCorpus{1};
   FluidTensor<Entry,1> mTmp;

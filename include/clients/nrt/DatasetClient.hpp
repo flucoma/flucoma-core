@@ -15,95 +15,101 @@
 #include <data/TensorTypes.hpp>
 #include <string>
 
-
 namespace fluid {
 namespace client {
 
-class DatasetClient : public FluidBaseClient, OfflineIn, OfflineOut
-{
-    enum { kNDims};
-  
+class DatasetClient : public FluidBaseClient, OfflineIn, OfflineOut {
+  enum { kName, kNDims };
+
 public:
   using string = std::string;
+  using BufferPtr = std::shared_ptr<BufferAdaptor>;
+  using LabelledDataset = FluidDataset<string, double, string, 1>;
 
-  template <typename T>
-  Result process(FluidContext&) { return {}; }
+  template <typename T> Result process(FluidContext &) { return {}; }
 
   FLUID_DECLARE_PARAMS(
-    LongParam<Fixed<true>>("nDims", "Dimension size", 1, Min(1))
-  );
+    StringParam<Fixed<true>>("name", "Dataset"),
+    LongParam<Fixed<true>>("nDims", "Dimension size", 1,
+                                              Min(1)));
 
-  DatasetClient(ParamSetViewType &p) : mParams(p), mDataset(get<kNDims>())
-  {
+  DatasetClient(ParamSetViewType &p) : mParams(p), mDataset(get<kNDims>()) {
     mDims = get<kNDims>();
   }
 
-  MessageResult<void> addPoint(string label, std::shared_ptr<BufferAdaptor> data) {
-    if(!data) return mNoBufferError;
+  MessageResult<void> addPoint(string label, BufferPtr data) {
+    if (!data)
+      return mNoBufferError;
     BufferAdaptor::Access buf(data.get());
-    if (buf.numFrames() < mDims)
-      return {Result::Status::kError, "Incorrect point size"};
+    if (buf.numFrames() != mDims)
+      return mWrongSizeError;
     FluidTensor<double, 1> point(mDims);
     point = buf.samps(0, mDims, 0);
-    mDataset.print();
-    if (point.rows() != mDims)
-      return {Result::Status::kError, "Wrong number of dimensions"};
-    return mDataset.add(label, point)
-               ? MessageResult<void>{Result::Status::kOk}
-               : MessageResult<void>{Result::Status::kError, "Label already in dataset"};
+    std::cout<<"label"<<label<<std::endl;
+    return mDataset.add(label, point, label) ? mOKResult : mDuplicateError;
   }
 
-  MessageResult<void> getPoint(string label, std::shared_ptr<BufferAdaptor> data) const{
-    if(!data) return mNoBufferError;
+  MessageResult<void> getPoint(string label, BufferPtr data) const {
+    if (!data)
+      return mNoBufferError;
     BufferAdaptor::Access buf(data.get());
     if (buf.numFrames() < mDims)
-      return {Result::Status::kError, "Incorrect point size"};
+      return mWrongSizeError;
     FluidTensor<double, 1> point(mDims);
     point = buf.samps(0, mDims, 0);
     bool result = mDataset.get(label, point);
+    mDataset.print();
     if (result) {
       buf.samps(0, mDims, 0) = point;
       return {Result::Status::kOk};
     } else {
-      return {Result::Status::kError, "Point not found"};
+      return mNotFoundError;
     }
   }
 
-  MessageResult<void> updatePoint(string label, std::shared_ptr<BufferAdaptor> data) {
-    if(!data) return mNoBufferError;
+  MessageResult<void> updatePoint(string label, BufferPtr data) {
+    if (!data)
+      return mNoBufferError;
     BufferAdaptor::Access buf(data.get());
     if (buf.numFrames() < mDims)
-      return {Result::Status::kError, "Incorrect point size"};
+      return mWrongSizeError;
     FluidTensor<double, 1> point(mDims);
     point = buf.samps(0, mDims, 0);
-    return mDataset.update(label, point)
-               ? MessageResult<void>{Result::Status::kOk}
-               : MessageResult<void>{Result::Status::kError, "Point not found"};
+    return mDataset.update(label, point) ? mOKResult : mNotFoundError;
   }
 
   MessageResult<void> deletePoint(string label) {
-    return mDataset.remove(label)
-               ? MessageResult<void>{Result::Status::kOk}
-               : MessageResult<void>{Result::Status::kError, "Point not found"};
+    return mDataset.remove(label) ? mOKResult : mNotFoundError;
   }
 
-  FLUID_DECLARE_MESSAGES(
-    makeMessage("addPoint",&DatasetClient::addPoint),
-    makeMessage("getPoint",&DatasetClient::getPoint),
-    makeMessage("updatePoint",&DatasetClient::updatePoint),
-    makeMessage("deletePoint",&DatasetClient::deletePoint)
-  );
+  FLUID_DECLARE_MESSAGES(makeMessage("addPoint", &DatasetClient::addPoint),
+                         makeMessage("getPoint", &DatasetClient::getPoint),
+                         makeMessage("updatePoint",
+                                     &DatasetClient::updatePoint),
+                         makeMessage("deletePoint",
+                                     &DatasetClient::deletePoint));
+
+  const LabelledDataset getDataset() const{
+    return mDataset;
+  }
 
 private:
-  MessageResult<void> mNoBufferError{Result::Status::kError, "No buffer passed"};
-  mutable FluidDataset<double, string, 1> mDataset;
+  MessageResult<void> mNoBufferError{Result::Status::kError,
+                                     "No buffer passed"};
+  MessageResult<void> mNotFoundError{Result::Status::kError, "Point not found"};
+  MessageResult<void> mWrongSizeError{Result::Status::kError,
+                                      "Wrong point size"};
+  MessageResult<void> mDuplicateError{Result::Status::kError,
+                                      "Label already in dataset"};
+  MessageResult<void> mOKResult{Result::Status::kOk};
+  mutable LabelledDataset mDataset;
   FluidTensor<string, 1> mLabels;
   FluidTensor<double, 2> mData;
   size_t mDims;
 };
-
-using NRTThreadedDataset = NRTThreadingAdaptor<ClientWrapper<DatasetClient>>;
-
+using DatasetClientRef = SharedClientRef<DatasetClient>;
+using NRTThreadedDatasetClient = NRTThreadingAdaptor<typename DatasetClientRef::SharedType>;
+//using NRTThreadedDatasetClient = NRTThreadingAdaptor<ClientWrapper<DatasetClient>>;
 
 } // namespace client
 } // namespace fluid
