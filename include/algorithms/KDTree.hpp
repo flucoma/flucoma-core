@@ -22,7 +22,7 @@ public:
 
   struct Node {
     const T target;
-    const RealVectorView data;
+    const RealVector data;
     NodePtr left{nullptr}, right{nullptr};
   };
   using knnCandidate = std::pair<double, NodePtr>;
@@ -96,7 +96,8 @@ private:
   }
 
   NodePtr makeNode(const T target, const RealVectorView data) {
-    return std::make_shared<Node>(Node{target, data, nullptr, nullptr});
+    const RealVector point{data};
+    return std::make_shared<Node>(Node{target, point, nullptr, nullptr});
   }
 
   NodePtr addNode(NodePtr current, const T target,
@@ -114,7 +115,7 @@ private:
     return current;
   }
 
-  double distance(const RealVectorView p1, const RealVectorView p2) {
+  double distance(RealVector p1, RealVector p2) {
     using namespace Eigen;
     ArrayXd v1 = _impl::asEigen<Array>(p1);
     ArrayXd v2 = _impl::asEigen<Array>(p2);
@@ -142,7 +143,8 @@ private:
                 const int k, const int depth) {
     if (current == nullptr)
       return;
-    const double currentDist = distance(current->data, data);
+    const RealVector point{data};
+    const double currentDist = distance(current->data, point);
     if (knn.size() < k)
       knn.push(make_pair(currentDist, current));
     else if (currentDist < knn.top().first) {
