@@ -1,7 +1,7 @@
 #pragma once
 
 #include "DatasetClient.hpp"
-
+#include "DatasetErrorStrings.hpp"
 #include "algorithms/KDTree.hpp"
 #include "data/FluidDataset.hpp"
 
@@ -45,17 +45,18 @@ public:
     } else {
       return {Result::Status::kError, "Dataset doesn't exist"};
     }
-    return mOKResult;
+    return {};
   }
 
   MessageResult<FluidTensor<std::string, 1>> knn(BufferPtr data, int k) const {
+    
     if (!data)
-      return mNoBufferError;
+      return {Result::Status::kError, NoBufferError};
     BufferAdaptor::Access buf(data.get());
     if (buf.numFrames() != mDims)
-      return mWrongSizeError;
+      return {Result::Status::kError, WrongSizeError};
     if (k > mTree.nPoints()){
-      return mSmallDatasetError;
+      return {Result::Status::kError, SmallDatasetError};
     }
     FluidTensor<double, 1> point(mDims);
     point = buf.samps(0, mDims, 0);
@@ -70,17 +71,6 @@ public:
                          makeMessage("knn", &KDTreeClient::knn));
 
 private:
-  MessageResult<void> mNoBufferError{Result::Status::kError,
-                                     "No buffer passed"};
-  MessageResult<void> mNotFoundError{Result::Status::kError, "Point not found"};
-  MessageResult<void> mWrongSizeError{Result::Status::kError,
-                                      "Wrong point size"};
-  MessageResult<void> mDuplicateError{Result::Status::kError,
-                                      "Label already in dataset"};
-  MessageResult<void> mSmallDatasetError{Result::Status::kError,
-                                      "Dataset is smaller than k"};
-
-  MessageResult<void> mOKResult{Result::Status::kOk};
   mutable FluidDataset<string, double, string, 1> mDataset;
   mutable algorithm::KDTree<string> mTree{1};
   size_t mDims;
