@@ -40,7 +40,7 @@ public:
     LongParam("dummy","Checking Attrui Updates",0)
   );
   
-  using ProviderDataSet = FluidDataset<Entry,string, 1>;
+  using ProviderDataSet = FluidDataset<string, Entry,string, 1>;
 
   ProviderTestClient(ParamSetViewType &p):mParams(p), mTmp(1){}
 
@@ -52,7 +52,7 @@ public:
   MessageResult<void> addPoint(string label, intptr_t offset,intptr_t length)
   {
     mTmp.row(0) = Entry{offset,length};
-    return mData.add(label,mTmp)
+    return mData.add(label,mTmp,label)
                ? MessageResult<void>{Result::Status::kOk}
                : MessageResult<void>{Result::Status::kError, "Label already exists"};
   }
