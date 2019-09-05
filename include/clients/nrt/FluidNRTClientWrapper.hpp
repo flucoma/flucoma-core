@@ -447,19 +447,31 @@ public:
     }
   }
   
+  Result enqueue(ParamSetType& p)
+  {
+    if (mThreadedTask && (mSynchronous|| !mQueueEnabled) )
+      return {Result::Status::kError, "already processing"};
+
+    mQueue.push_back(p);
+    
+    return {};
+  }
+  
   Result process()
   {
-    if (mThreadedTask && mSynchronous)
+    if (mThreadedTask && (mSynchronous|| !mQueueEnabled) )
       return {Result::Status::kError, "already processing"};
     
     if (mThreadedTask)
-    {
-        mQueue.push_back(mHostParams);
         return Result();
-    }
-      
+    
     Result result;
-    mThreadedTask = std::unique_ptr<ThreadedTask>(new ThreadedTask(mClient,mHostParams, mSynchronous, result));
+    
+    if(mQueue.empty())
+      return {Result::Status::kWarning, "Process() called on empty queue"}; 
+    
+    mThreadedTask = std::unique_ptr<ThreadedTask>(new ThreadedTask(mClient,mQueue.front(), mSynchronous, result));
+    mQueue.pop_front();
     
     if (mSynchronous)
       mThreadedTask = nullptr;
@@ -513,6 +525,8 @@ public:
     mSynchronous = synchronous;
   }
   
+  void setQueueEnabled(bool queue) { mQueueEnabled = queue; }
+  
   double progress()
   {
     return mThreadedTask ? mThreadedTask->mTask.progress() : 0.0;
@@ -535,6 +549,7 @@ public:
   {
     return mThreadedTask ? mThreadedTask->mState : kNoProcess;
   }
+  
   
 private:
     
@@ -572,11 +587,12 @@ private:
     : mState(kNoProcess), mClient(client), mProcessParams(hostParams), mContext{mTask}
     {
       
-     assert(mClient.get() != nullptr); //right?
+      assert(mClient.get() != nullptr); //right?
       
       mClient->setParams(mProcessParams);
       if (synchronous)
       {
+        mClient->setParams(hostParams); 
         result = process();
       }
       else
@@ -649,9 +665,10 @@ private:
     bool mDetached = false;
   };
   
-  ParamSetType& mHostParams;
+  ParamSetType mHostParams;
   std::deque<ParamSetType> mQueue;
   bool mSynchronous = false;
+  bool mQueueEnabled = false;
   std::unique_ptr<ThreadedTask> mThreadedTask;
   ClientPointer mClient;
 };
