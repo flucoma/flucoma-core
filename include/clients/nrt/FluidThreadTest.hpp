@@ -11,22 +11,21 @@
 namespace fluid {
 namespace client {
 
-enum ThreadTestIdx { kResult, kWait};
 
-auto constexpr ThreadTestParams = defineParameters(
+
+class ThreadTest : public FluidBaseClient,public OfflineIn, public OfflineOut
+{
+  enum ThreadTestIdx { kResult, kWait};
+public:
+
+  FLUID_DECLARE_PARAMS(
     BufferParam("result","Output result buffer"),
     FloatParam("time", "Millisecond wait", 0.0, Min(0.0))
-);
+  );
 
-template <typename T>
-class ThreadTest
-    : public FluidBaseClient<decltype(ThreadTestParams), ThreadTestParams>,
-      public OfflineIn,
-      public OfflineOut {
+  ThreadTest(ParamSetViewType &p) : mParams(p) {}
 
-public:
-  ThreadTest(ParamSetViewType &p) : FluidBaseClient(p) {}
-
+  template <typename T>
   Result process(FluidContext& c) {
     using namespace std::chrono_literals;
     
@@ -52,8 +51,7 @@ public:
   }
 };
 
-template <typename T>
-using NRTThreadedThreadTest = NRTThreadingAdaptor<ThreadTest<T>>;
+using NRTThreadedThreadTest = NRTThreadingAdaptor<ClientWrapper<ThreadTest>>;
 
 } // namespace client
 } // namespace fluid
