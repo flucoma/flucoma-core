@@ -46,11 +46,15 @@ public:
     VectorXd h =
         MatrixXd::Random(rank, 1) * 0.5 + MatrixXd::Constant(rank, 1, 0.5);
     VectorXd v0 = asEigen<Matrix>(x);
+    W = W.array().max(epsilon).matrix();
+    h = h.array().max(epsilon).matrix();
+    v0 = v0.array().max(epsilon).matrix();
+
     MatrixXd WT = W.transpose();
     W.colwise().normalize();
     VectorXd ones = VectorXd::Ones(x.extent(0));
     while (nIterations--) {
-      ArrayXd v1 = (W * h).array() + epsilon;
+      ArrayXd v1 = (W * h).array().max(epsilon);
       ArrayXXd hNum = (WT * (v0.array() / v1).matrix()).array();
       ArrayXXd hDen = (WT * ones).array();
       h = (h.array() * hNum / hDen.max(epsilon)).matrix();
@@ -116,12 +120,14 @@ private:
   void multiplicativeUpdates(MatrixXd &V, MatrixXd &W, MatrixXd &H) {
     double const epsilon = std::numeric_limits<double>::epsilon();
     MatrixXd ones = MatrixXd::Ones(V.rows(), V.cols());
+    H = H.array().max(epsilon).matrix();
+    W = W.array().max(epsilon).matrix();
     W.colwise().normalize();
     H.rowwise().normalize();
     for (auto i = 0; i < mIterations; ++i)
     {
       if (mUpdateW) {
-        ArrayXXd V1 = (W * H).array() + epsilon;
+        ArrayXXd V1 = (W * H).array().max(epsilon);
         ArrayXXd wnum = ((V.array() / V1).matrix() * H.transpose()).array();
         ArrayXXd wden = (ones * H.transpose()).array();
         W = (W.array() * wnum / wden.max(epsilon)).matrix();
@@ -129,7 +135,7 @@ private:
           W.colwise().normalize();
         assert(W.allFinite());
       }
-      ArrayXXd V2 = (W * H).array() + epsilon;
+      ArrayXXd V2 = (W * H).array().max(epsilon);
       if (mUpdateH) {
         ArrayXXd hnum = (W.transpose() * (V.array() / V2).matrix()).array();
         ArrayXXd hden = (W.transpose() * ones).array();

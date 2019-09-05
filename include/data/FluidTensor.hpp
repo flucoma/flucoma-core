@@ -31,7 +31,28 @@ template <typename T, size_t N> class FluidTensor; // keep trendy
  ******************************/
 template <typename T, size_t N> class FluidTensorView; // Rename to view?
 
+namespace impl
+{
+  template<typename TensorThing>
+  std::enable_if_t<(TensorThing::order > 1), std::ostream&>
+  printTensorThing(std::ostream& o, TensorThing& t)
+  {
+    for (size_t i = 0; i < t.rows(); ++i)
+      o << t.row(i) << '\n';
+    return o;
+  }
 
+  template<typename TensorThing>
+  std::enable_if_t<(TensorThing::order == 1), std::ostream&>
+  printTensorThing(std::ostream& o, TensorThing& t)
+  {
+    auto first = t.begin();
+    o << *first++;
+    for(auto x= first; x != t.end(); ++x)
+      o << ',' << *x;
+    return o;
+  }
+}
 
 //    slice slice::all(0, std::size_t(-1),1);
 
@@ -495,14 +516,7 @@ public:
    (i.e. it will call << for FluidTensorView and burrow down to N=0)
    ***************/
   friend std::ostream &operator<<(std::ostream &o, const FluidTensor &t) {
-    o << '[';
-    for (int i = 0; i < t.rows(); ++i) {
-      o << t.row(i);
-      if (i + 1 != t.rows())
-        o << ',';
-    }
-    o << ']';
-    return o;
+      return impl::printTensorThing(o, t);
   }
 
 private:
@@ -913,17 +927,7 @@ public:
   }
 
   friend std::ostream &operator<<(std::ostream &o, const FluidTensorView &t) {
-    o << '[';
-    // T* p = t.mRef + t.mDesc.start;
-    for (size_t i = 0; i < t.rows(); ++i) {
-      // FluidTensor_View<T,N-1> row = t.row(i);
-      o << t.row(i);
-      if (i + 1 != t.rows())
-        o << ',';
-    }
-
-    o << ']';
-    return o;
+    return impl::printTensorThing(o, t);
   }
 
 private:

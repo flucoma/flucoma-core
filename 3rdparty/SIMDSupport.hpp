@@ -23,12 +23,10 @@ template <class T> void deallocate_aligned(T *ptr)
 
 #include <stdlib.h>
 
-template <class T> struct SIMDLimits; //forward decl
-
 template <class T> T *allocate_aligned(size_t size)
 {
     void *mem;
-    posix_memalign(&mem, SIMDLimits<T>::byte_width, size * sizeof(T));
+    posix_memalign(&mem, 32, size * sizeof(T));
     return static_cast<T *>(mem);
 }
 

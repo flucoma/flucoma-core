@@ -19,8 +19,8 @@ class ThreadTest : public FluidBaseClient,public OfflineIn, public OfflineOut
 public:
 
   FLUID_DECLARE_PARAMS(
-    BufferParam("result","Output result buffer"),
-    FloatParam("time", "Millisecond wait", 0.0, Min(0.0))
+    BufferParam("result","Output Result Buffer"),
+    FloatParam("time", "Millisecond Wait", 0.0, Min(0.0))
   );
 
   ThreadTest(ParamSetViewType &p) : mParams(p) {}
