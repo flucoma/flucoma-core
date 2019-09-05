@@ -20,7 +20,7 @@ struct Message
   using Client = T;
   decltype(auto) operator()(Client& c, Args...args) const
   {
-    return op(c,args...); 
+    return op(c,std::forward<Args>(args)...); 
     //(c.*op)(std::forward<Args>(args)...);
   }
 };
@@ -28,14 +28,14 @@ struct Message
 template<typename Ret, typename T, typename...Args>
 auto makeMessage(const char* name, Ret (T::* pmf) (Args...)  )
 {
-  auto l  = [=](T& t, Args...args){ return (t.*pmf)(args...);};
+  auto l  = [=](T& t, Args...args){ return (t.*pmf)(std::forward<Args>(args)...);};
   return Message<std::decay_t<decltype(l)>,Ret,T,Args...>{name, l};
 }
 
 template<typename Ret, typename T, typename...Args>
 auto makeMessage(const char* name, Ret (T::* pmf) (Args...) const )
 {
-  auto l  = [=](T& t, Args...args){ return (t.*pmf)(args...);};
+  auto l  = [=](T& t, Args...args){ return (t.*pmf)(std::forward<Args>(args)...);};
   return Message<std::decay_t<decltype(l)>,Ret,T,Args...>{name, l};
 }
 
