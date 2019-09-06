@@ -19,7 +19,6 @@ public:
 
   bool add(idType id, FluidTensorView<dataType, N> point, targetType target = targetType()) {
     assert(sameExtents(mDim, point.descriptor()));
-    std::cout<<"ds add "<<id<<":"<<target<<std::endl;
     intptr_t pos = mData.rows();
     auto result = mIndex.insert({id, pos});
     if (!result.second)
@@ -28,7 +27,6 @@ public:
     mTargets(mTargets.rows() - 1) = target;
     mData.resizeDim(0, 1);
     mData.row(mData.rows() - 1) = point;
-    std::cout<<mData.rows()<<std::endl;
     return true;
   }
 
@@ -67,13 +65,12 @@ public:
   void print() const {
      std::cout << mData << std::endl;
      std::cout << mTargets << std::endl;
-
    }
 
   const FluidTensorView<dataType, N + 1> getData() const { return mData; }
 
   const FluidTensorView<targetType, 1> getTargets() const { return mTargets; }
-  const FluidTensorView<idType, 1> getIds() const { return mIndex; }
+  //const FluidTensorView<idType, 1> getIds() const { return mIndex; }
 
 private:
   mutable FluidTensor<targetType, 1> mTargets;

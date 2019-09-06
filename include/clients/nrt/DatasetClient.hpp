@@ -3,7 +3,7 @@
 #include "CorpusClient.hpp"
 
 #include "data/FluidDataset.hpp"
-
+#include "DatasetErrorStrings.hpp"
 #include <clients/common/FluidBaseClient.hpp>
 #include <clients/common/MessageSet.hpp>
 #include <clients/common/OfflineClient.hpp>
@@ -37,7 +37,7 @@ public:
     mDims = get<kNDims>();
   }
 
-  MessageResult<void> addPoint(string label, BufferPtr data) {
+  MessageResult<void> addPoint(string id, BufferPtr data) {
     if (!data)
       return mNoBufferError;
     BufferAdaptor::Access buf(data.get());
@@ -45,8 +45,19 @@ public:
       return mWrongSizeError;
     FluidTensor<double, 1> point(mDims);
     point = buf.samps(0, mDims, 0);
-    std::cout<<"label"<<label<<std::endl;
-    return mDataset.add(label, point, label) ? mOKResult : mDuplicateError;
+    return mDataset.add(id, point, id) ? mOKResult : mDuplicateError;
+  }
+
+  //TODO: refactor with addPoint
+  MessageResult<void> addPointLabel(string id, BufferPtr data, string label) {
+    if (!data)
+      return mNoBufferError;
+    BufferAdaptor::Access buf(data.get());
+    if (buf.numFrames() != mDims)
+      return mWrongSizeError;
+    FluidTensor<double, 1> point(mDims);
+    point = buf.samps(0, mDims, 0);
+    return mDataset.add(id, point, label) ? mOKResult : mDuplicateError;
   }
 
   MessageResult<void> getPoint(string label, BufferPtr data) const {
@@ -83,6 +94,7 @@ public:
   }
 
   FLUID_DECLARE_MESSAGES(makeMessage("addPoint", &DatasetClient::addPoint),
+                         makeMessage("addPointLabel", &DatasetClient::addPointLabel),
                          makeMessage("getPoint", &DatasetClient::getPoint),
                          makeMessage("updatePoint",
                                      &DatasetClient::updatePoint),
@@ -109,7 +121,6 @@ private:
 };
 using DatasetClientRef = SharedClientRef<DatasetClient>;
 using NRTThreadedDatasetClient = NRTThreadingAdaptor<typename DatasetClientRef::SharedType>;
-//using NRTThreadedDatasetClient = NRTThreadingAdaptor<ClientWrapper<DatasetClient>>;
 
 } // namespace client
 } // namespace fluid
