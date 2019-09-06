@@ -46,7 +46,6 @@ public:
     mNPoints++;
   }
 
-  //FluidTensor<T, 1> kNearest(const RealVectorView data, int k = 1) {
   FluidDataset<int, double, T, 1>  kNearest(const RealVectorView data, int k = 1) {
     assert(data.size() == mDims);
     knnQueue queue;
@@ -64,8 +63,9 @@ public:
     return result;
   }
 
-  void print() { print(mRoot, 0); }
-  int nPoints(){return mNPoints;}
+  void print() const { print(mRoot, 0); }
+  int nPoints() const {return mNPoints;}
+  int nDims() const {return mDims;}
 
 
 private:
@@ -122,7 +122,7 @@ private:
     return (v1 - v2).matrix().norm();
   }
 
-  void print(NodePtr current, int depth) {
+  void print(NodePtr current, int depth) const{
     for (int i = 0; i < depth; ++i)
       std::cout << "  ";
     if (current == nullptr) {
@@ -169,7 +169,7 @@ private:
 
   NodePtr mRoot{nullptr};
   int mDims;
-  int mNPoints;
+  int mNPoints{0};
 };
 } // namespace algorithm
 } // namespace fluid
