@@ -39,9 +39,7 @@ public:
     auto weakPtr = datasetClient.get();
     if (auto datasetClientPtr = weakPtr.lock()) {
       auto dataset = datasetClientPtr->getDataset();
-      dataset.print();
       mTree = algorithm::KDTree<string>(dataset);
-      mTree.print();
     } else {
       return {Result::Status::kError, "Dataset doesn't exist"};
     }
@@ -49,7 +47,7 @@ public:
   }
 
   MessageResult<FluidTensor<std::string, 1>> knn(BufferPtr data, int k) const {
-    
+
     if (!data)
       return {Result::Status::kError, NoBufferError};
     BufferAdaptor::Access buf(data.get());
@@ -58,6 +56,10 @@ public:
     if (k > mTree.nPoints()){
       return {Result::Status::kError, SmallDatasetError};
     }
+    if(k <= 0 ){
+      return {Result::Status::kError, "k should be at least 1"};
+    }
+
     FluidTensor<double, 1> point(mDims);
     point = buf.samps(0, mDims, 0);
     FluidDataset<int, double, std::string, 1> nearest =
