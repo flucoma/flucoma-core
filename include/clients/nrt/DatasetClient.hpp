@@ -1,7 +1,6 @@
 #pragma once
-
-#include "CorpusClient.hpp"
-
+#include "FluidSharedInstanceAdaptor.hpp"
+#include "clients/common/SharedClientUtils.hpp"
 #include "data/FluidDataset.hpp"
 #include "DatasetErrorStrings.hpp"
 #include <clients/common/FluidBaseClient.hpp>

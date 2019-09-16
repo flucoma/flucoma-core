@@ -17,6 +17,17 @@ public:
     static_assert(sizeof...(dims) == N, "Number of dimensions doesn't match");
   }
 
+  FluidDataset(FluidTensor<idType, 1> ids, FluidTensor<dataType, N + 1> points, FluidTensor<targetType, 1> targets) {
+    assert(ids.rows() == points.rows() && ids.rows() == targets.rows());
+    mData = points;
+    mTargets = targets;
+    mDim = mData.cols();
+    for(int i = 0; i < ids.size();i++){
+      mIndex.insert({ids[i],i});
+    }
+  }
+
+
   bool add(idType id, FluidTensorView<dataType, N> point, targetType target = targetType()) {
     assert(sameExtents(mDim, point.descriptor()));
     intptr_t pos = mData.rows();
@@ -27,6 +38,8 @@ public:
     mTargets(mTargets.rows() - 1) = target;
     mData.resizeDim(0, 1);
     mData.row(mData.rows() - 1) = point;
+    mIds.resizeDim(0, 1);
+    mIds(mIds.rows() - 1) = id;
     return true;
   }
 
@@ -70,11 +83,12 @@ public:
   const FluidTensorView<dataType, N + 1> getData() const { return mData; }
 
   const FluidTensorView<targetType, 1> getTargets() const { return mTargets; }
-  //const FluidTensorView<idType, 1> getIds() const { return mIndex; }
+  const FluidTensorView<idType, 1> getIds() const { return mIds; }
 
 private:
   mutable FluidTensor<targetType, 1> mTargets;
   mutable std::unordered_map<idType, intptr_t> mIndex;
+  mutable FluidTensor<idType, 1> mIds;
   mutable FluidTensor<dataType, N + 1> mData;
   FluidTensorSlice<N> mDim;
 };

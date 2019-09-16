@@ -13,17 +13,11 @@ namespace algorithm {
 class KNNClassifier {
 
 public:
-  /*void init(int dims, const FluidDataset<std::string, double, std::string, 1> &source)
-  {
-    mTree = KDTree<std::string>(source);
-  }*/
-
 
   std::string predict(KDTree<std::string> tree, RealVectorView point, int k){
     using namespace std;
     unordered_map<string, int> labels;
     auto nearest = tree.kNearest(point, k);
-    nearest.print();
     string prediction;
     int count = 0;
 
@@ -42,8 +36,6 @@ public:
     }
     return prediction;
   }
-private:
-  //KDTree<std::string> mTree{0};
 };
 } // namespace algorithm
 } // namespace fluid
