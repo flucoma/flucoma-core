@@ -92,13 +92,29 @@ public:
     return mDataset.remove(label) ? mOKResult : mNotFoundError;
   }
 
+  MessageResult<int> size() {
+    return mDataset.size();
+  }
+
+  MessageResult<void> clear() {
+    mDataset = LabelledDataset(get<kNDims>());
+    return mOKResult;
+  }
+
+
+
   FLUID_DECLARE_MESSAGES(makeMessage("addPoint", &DatasetClient::addPoint),
                          makeMessage("addPointLabel", &DatasetClient::addPointLabel),
                          makeMessage("getPoint", &DatasetClient::getPoint),
                          makeMessage("updatePoint",
                                      &DatasetClient::updatePoint),
                          makeMessage("deletePoint",
-                                     &DatasetClient::deletePoint));
+                                     &DatasetClient::deletePoint),
+                         makeMessage("size",
+                                    &DatasetClient::size),
+                         makeMessage("clear",
+                                    &DatasetClient::clear)
+  );
 
   const LabelledDataset getDataset() const{
     return mDataset;
