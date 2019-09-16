@@ -39,11 +39,12 @@ public:
     auto weakPtr = datasetClient.get();
     if (auto datasetClientPtr = weakPtr.lock()) {
       auto dataset = datasetClientPtr->getDataset();
+      if (dataset.size() == 0) return {Result::Status::kError, EmptyDatasetError};
       mTree = algorithm::KDTree<string>(dataset);
     } else {
       return {Result::Status::kError, "Dataset doesn't exist"};
     }
-    return {};
+    return {Result::Status::kOk};
   }
 
   MessageResult<FluidTensor<std::string, 1>> knn(BufferPtr data, int k) const {

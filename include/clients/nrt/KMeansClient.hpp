@@ -43,7 +43,7 @@ public:
     if(auto datasetClientPtr = weakPtr.lock())
     {
       auto dataset = datasetClientPtr->getDataset();
-      dataset.print();
+      if (dataset.size() == 0) return {Result::Status::kError, EmptyDatasetError};
       if (init == nullptr){
         mModel.train(dataset, maxIter);
       }
