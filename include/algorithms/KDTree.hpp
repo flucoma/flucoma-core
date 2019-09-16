@@ -49,16 +49,17 @@ public:
   FluidDataset<int, double, T, 1>  kNearest(const RealVectorView data, int k = 1) {
     assert(data.size() == mDims);
     knnQueue queue;
-    //auto result = FluidTensor<string, 1>(k);
     auto result = FluidDataset<int, double, T, 1>(1);
+    std::vector<knnCandidate> sorted(k);
     kNearest(mRoot, data, queue, k, 0);
-    for (int i = k; i > 0; i--) {
-      auto kNearest =   queue.top();
-      auto dist = FluidTensor<double, 1>{kNearest.first};
-      auto val = kNearest.second->target;
-      result.add(i, dist, val);
-      //result(i - 1) = queue.top().second->target;
+    for (int i = k - 1; i >= 0; i--) {
+      sorted[i] = queue.top();
       queue.pop();
+    }
+    for (int i = 0; i < k; i++) {
+      auto dist = FluidTensor<double, 1>{sorted[i].first};
+      auto val = sorted[i].second->target;
+      result.add(i, dist, val);
     }
     return result;
   }
