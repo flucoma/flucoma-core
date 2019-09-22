@@ -286,9 +286,7 @@ namespace HISSTools
     
     // PCM Format Helpers
 
-    IAudioFile::Error IAudioFile::findPCMFormat(uint16_t bitDepth,
-                                                NumberFormat format,
-                                                PCMFormat& ret)
+    IAudioFile::Error IAudioFile::findPCMFormat(uint16_t bitDepth, NumberFormat format, PCMFormat& ret)
     {
         int fileFormat = -1;
         
@@ -654,20 +652,20 @@ namespace HISSTools
                         u32ToOutput(output + i, getU24(mBuffer + j, getAudioEndianness()) << 8);
                     break;
 
-            case kAudioFileInt32:
-                for (size_t i = 0; i < loopSamples; i++, j += byteStep)
-                    u32ToOutput(output + i, getU32(mBuffer + j, getAudioEndianness()));
-                break;
+                case kAudioFileInt32:
+                    for (size_t i = 0; i < loopSamples; i++, j += byteStep)
+                        u32ToOutput(output + i, getU32(mBuffer + j, getAudioEndianness()));
+                    break;
 
-            case kAudioFileFloat32:
-                for (size_t i = 0; i < loopSamples; i++, j += byteStep)
-                    float32ToOutput(output + i, getU32(mBuffer + j, getAudioEndianness()));
-                break;
+                case kAudioFileFloat32:
+                    for (size_t i = 0; i < loopSamples; i++, j += byteStep)
+                        float32ToOutput(output + i, getU32(mBuffer + j, getAudioEndianness()));
+                    break;
 
-            case kAudioFileFloat64:
-                for (size_t i = 0; i < loopSamples; i++, j += byteStep)
-                    float64ToOutput(output + i, getU64(mBuffer + j, getAudioEndianness()));
-                break;
+                case kAudioFileFloat64:
+                    for (size_t i = 0; i < loopSamples; i++, j += byteStep)
+                        float64ToOutput(output + i, getU64(mBuffer + j, getAudioEndianness()));
+                    break;
             }
             
             numFrames -= loopFrames;
