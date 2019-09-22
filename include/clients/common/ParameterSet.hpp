@@ -224,7 +224,7 @@ public:
   }
 
   template <std::size_t N>
-  const auto &get() const
+  auto &get() const
   {
     return std::get<N>(mParams);
   }

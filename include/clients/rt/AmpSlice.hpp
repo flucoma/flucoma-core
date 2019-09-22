@@ -172,7 +172,7 @@ template <typename HostMatrix, typename HostVectorView> struct NRTAmpSlicing {
 };
 
 auto constexpr NRTAmpSliceParams =
-    makeNRTParams<AmpSlice>({BufferParam("source", "Source Buffer")},
+    makeNRTParams<AmpSlice>({InputBufferParam("source", "Source Buffer")},
                             {BufferParam("indices", "Indices Buffer")});
 
 template <typename T>

@@ -45,6 +45,7 @@ auto constexpr spitOuts(T(&a)[N],std::index_sequence<Is...>)
     return makeWrapperOutputs(std::forward<T>(a[Is])...);
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////
+using InputBufferSpec = ParamSpec<InputBufferT,Fixed<false>>;
 using BufferSpec = ParamSpec<BufferT,Fixed<false>>;
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -371,7 +372,7 @@ using NRTControlAdaptor = impl::NRTClientWrapper<impl::StreamingControl, RTClien
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<template <typename T> class RTClient, size_t Ms>
-auto constexpr makeNRTParams(impl::BufferSpec&& in, impl::BufferSpec(&& out)[Ms])
+auto constexpr makeNRTParams(impl::InputBufferSpec&& in, impl::BufferSpec(&& out)[Ms])
 {
   return impl::joinParameterDescriptors(impl::joinParameterDescriptors(impl::makeWrapperInputs(in), impl::spitOuts(out, std::make_index_sequence<Ms>())), RTClient<double>::getParameterDescriptors());
 }
