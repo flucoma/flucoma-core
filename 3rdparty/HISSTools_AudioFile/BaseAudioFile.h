@@ -1,9 +1,9 @@
 #ifndef _HISSTOOLS_BASEAUDIOFILE_
 #define _HISSTOOLS_BASEAUDIOFILE_
 
-#include <stdint.h>
-#include <string>
+#include <cstdint>
 #include <fstream>
+#include <string>
 #include <vector>
 
 namespace HISSTools

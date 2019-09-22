@@ -215,7 +215,9 @@ namespace HISSTools
     template <class T>
     void IAudioFile::u32ToOutput(T* output, uint32_t value)
     {
-        *output = *reinterpret_cast<int32_t*>(&value) * (T(1.0) / static_cast<T>(int32_t(1) << int32_t(31)));
+        // N.B. the result of the shift is a negative int32_T value, hence the negation
+        
+        *output = *reinterpret_cast<int32_t*>(&value) * (T(-1.0) / static_cast<T>(int32_t(1) << int32_t(31)));
     }
     
     template <class T>
