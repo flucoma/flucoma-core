@@ -22,6 +22,7 @@ public:
     mData = points;
     mTargets = targets;
     mDim = mData.cols();
+    mIds = ids;
     for(int i = 0; i < ids.size();i++){
       mIndex.insert({ids[i],i});
     }
