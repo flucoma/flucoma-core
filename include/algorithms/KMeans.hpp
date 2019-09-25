@@ -59,6 +59,17 @@ public:
     out = _impl::asFluid(mMeans);
   }
 
+  void setMeans(RealMatrixView means){
+    mMeans = _impl::asEigen<Eigen::Array>(means);
+  }
+
+  int getDims(){
+    return mDims;
+  }
+  int getK(){
+    return mK;
+  }
+
 private:
   double distance(Eigen::ArrayXd v1, Eigen::ArrayXd v2) {
     return (v1 - v2).matrix().norm();

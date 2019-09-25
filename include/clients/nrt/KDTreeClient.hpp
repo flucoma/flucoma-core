@@ -26,6 +26,7 @@ public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
 
+
   template <typename T> Result process(FluidContext &) { return {}; }
 
   FLUID_DECLARE_PARAMS(LongParam<Fixed<true>>("nDims", "Dimension size", 1,
@@ -48,32 +49,62 @@ public:
   }
 
   MessageResult<FluidTensor<std::string, 1>> knn(BufferPtr data, int k) const {
-
     if (!data)
       return {Result::Status::kError, NoBufferError};
     BufferAdaptor::Access buf(data.get());
     if (buf.numFrames() != mDims)
-      return {Result::Status::kError, WrongSizeError};
+      return {Result::Status::kError, WrongPointSizeError};
     if (k > mTree.nPoints()){
       return {Result::Status::kError, SmallDatasetError};
     }
     if(k <= 0 ){
       return {Result::Status::kError, "k should be at least 1"};
     }
-
     FluidTensor<double, 1> point(mDims);
     point = buf.samps(0, mDims, 0);
     FluidDataset<int, double, std::string, 1> nearest =
         mTree.kNearest(point, k);
-
     FluidTensor<std::string, 1> result{nearest.getTargets()};
     return result;
   }
 
+  MessageResult<void> read(string fileName) {
+    auto file = FluidFile(fileName, "r");
+    if(!file.valid()){return {Result::Status::kError, file.error()};}
+    if(!file.read()){return {Result::Status::kError, ReadError};}
+    if(!file.checkKeys({"tree","targets","data","rows","cols"})){
+      return {Result::Status::kError, file.error()};
+    }
+    size_t rows, cols;
+    file.get("cols", cols);
+    file.get("rows", rows);
+    algorithm::KDTree<string>::FlatData treeData(rows, cols);
+    file.get("tree", treeData.tree, rows, 2);
+    file.get("targets", treeData.targets, rows);
+    file.get("data", treeData.data, rows, cols);
+    mTree.fromFlat(treeData);
+    mTree.print();
+    return mOKResult;
+  }
+
+  MessageResult<void> write(string fileName){
+    auto file = FluidFile(fileName, "w");
+    if(!file.valid()){return {Result::Status::kError, file.error()};}
+    mTree.print();
+    algorithm::KDTree<string>::FlatData treeData = mTree.toFlat();
+    file.add("tree", treeData.tree);
+    return file.write()? mOKResult:mWriteError;
+  }
+
   FLUID_DECLARE_MESSAGES(makeMessage("index", &KDTreeClient::index),
-                         makeMessage("knn", &KDTreeClient::knn));
+                         makeMessage("knn", &KDTreeClient::knn),
+                         makeMessage("write", &KDTreeClient::write),
+                         makeMessage("read", &KDTreeClient::read)
+  );
 
 private:
+  MessageResult<void> mOKResult{Result::Status::kOk};
+  MessageResult<void> mWriteError{Result::Status::kError, WriteError};
   mutable FluidDataset<string, double, string, 1> mDataset;
   mutable algorithm::KDTree<string> mTree{1};
   size_t mDims;

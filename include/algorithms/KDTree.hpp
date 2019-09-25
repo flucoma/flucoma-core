@@ -11,8 +11,7 @@
 namespace fluid {
 namespace algorithm {
 
-template <typename T>
-class KDTree {
+template <typename T> class KDTree {
 
 public:
   using string = std::string;
@@ -25,6 +24,14 @@ public:
     const RealVector data;
     NodePtr left{nullptr}, right{nullptr};
   };
+
+  struct FlatData {
+    FluidTensor<int, 2> tree;
+    FluidTensor<T, 1> targets;
+    FluidTensor<double, 2> data;
+    FlatData(int n, int m) : tree(n, 2), targets(n), data(n, m) {}
+  };
+
   using knnCandidate = std::pair<double, NodePtr>;
   using knnQueue = std::priority_queue<knnCandidate, std::vector<knnCandidate>,
                                        std::less<knnCandidate>>;
@@ -46,7 +53,8 @@ public:
     mNPoints++;
   }
 
-  FluidDataset<int, double, T, 1>  kNearest(const RealVectorView data, int k = 1) {
+  FluidDataset<int, double, T, 1> kNearest(const RealVectorView data,
+                                           int k = 1) {
     assert(data.size() == mDims);
     knnQueue queue;
     auto result = FluidDataset<int, double, T, 1>(1);
@@ -65,19 +73,31 @@ public:
   }
 
   void print() const { print(mRoot, 0); }
-  int nPoints() const {return mNPoints;}
-  int nDims() const {return mDims;}
+  int nPoints() const { return mNPoints; }
+  int nDims() const { return mDims; }
 
+  FlatData toFlat() {
+    FlatData store(mNPoints, mDims);
+    flatten(0, mRoot, store);
+    return store;
+  }
+
+  void fromFlat(FlatData vectors) {
+     mRoot = unflatten(vectors, 0);
+     mNPoints = vectors.data.rows();
+     mDims =  vectors.data.cols();
+
+   }
 
 private:
   NodePtr buildTree(std::vector<int> indices, iterator from, iterator to,
-                    const Dataset &dataset,
-                    const int depth) {
+                    const Dataset &dataset, const int depth) {
     using namespace std;
     if (from == to)
       return nullptr;
     else if (std::distance(from, to) == 1) {
-      return makeNode(dataset.getTargets()(*from), dataset.getData().row(*from));
+      return makeNode(dataset.getTargets()(*from),
+                      dataset.getData().row(*from));
     }
     const int d = depth % mDims;
     sort(from, to, [&](int a, int b) {
@@ -101,8 +121,8 @@ private:
     return std::make_shared<Node>(Node{target, point, nullptr, nullptr});
   }
 
-  NodePtr addNode(NodePtr current, const T target,
-                  const RealVectorView data, const int depth) {
+  NodePtr addNode(NodePtr current, const T target, const RealVectorView data,
+                  const int depth) {
     if (current == nullptr) {
       return makeNode(target, data);
     }
@@ -123,7 +143,7 @@ private:
     return (v1 - v2).matrix().norm();
   }
 
-  void print(NodePtr current, int depth) const{
+  void print(NodePtr current, int depth) const {
     for (int i = 0; i < depth; ++i)
       std::cout << "  ";
     if (current == nullptr) {
@@ -140,6 +160,7 @@ private:
     std::cout << " right" << std::endl;
     print(current->right, depth + 1);
   }
+
   void kNearest(NodePtr current, const RealVectorView data, knnQueue &knn,
                 const int k, const int depth) {
     if (current == nullptr)
@@ -166,6 +187,38 @@ private:
     {
       kNearest(secondBranch, data, knn, k, depth + 1);
     }
+  }
+
+  int flatten(int nodeId, NodePtr current, FlatData &store) {
+    if (current == nullptr) {
+      return nodeId;
+    }
+    store.targets(nodeId) = current->target;
+    store.data.row(nodeId) = current->data;
+    int nextNodeId = nodeId + 1;
+    if(current->left == nullptr){
+        store.tree(nodeId, 0) = -1;
+    }
+    else{
+      store.tree(nodeId, 0) = nextNodeId;
+      nextNodeId = flatten(nextNodeId, current->left, store);
+    }
+    if(current->right == nullptr){
+        store.tree(nodeId, 1) = -1;
+    }
+    else {
+      store.tree(nodeId, 1) = nextNodeId;
+      nextNodeId = flatten(nextNodeId, current->right, store);
+    }
+    return nextNodeId;
+  }
+
+  NodePtr unflatten(FlatData &store, int index) {
+    if(index == -1) return nullptr;
+    NodePtr current = makeNode(store.targets[index], store.data[index]);
+    current->left = unflatten(store, store.tree(index, 0));
+    current->right = unflatten(store, store.tree(index, 1));
+    return current;
   }
 
   NodePtr mRoot{nullptr};

@@ -64,7 +64,7 @@ public:
     else{
       BufferAdaptor::Access buf(data.get());
       if (buf.numFrames() != mTree.nDims())
-        return {Result::Status::kError, WrongSizeError};
+        return {Result::Status::kError, WrongPointSizeError};
       FluidTensor<double, 1> point(mTree.nDims());
       point = buf.samps(0, mTree.nDims(), 0);
       double result = regressor.predict(mTree, point, k);
