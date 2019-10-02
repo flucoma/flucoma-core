@@ -215,7 +215,9 @@ namespace HISSTools
     template <class T>
     void IAudioFile::u32ToOutput(T* output, uint32_t value)
     {
-        *output = *reinterpret_cast<int32_t*>(&value) * (T(1.0) / static_cast<T>(int32_t(1) << int32_t(31)));
+        // N.B. the result of the shift is a negative int32_T value, hence the negation
+        
+        *output = *reinterpret_cast<int32_t*>(&value) * (T(-1.0) / static_cast<T>(int32_t(1) << int32_t(31)));
     }
     
     template <class T>
@@ -284,9 +286,7 @@ namespace HISSTools
     
     // PCM Format Helpers
 
-    IAudioFile::Error IAudioFile::findPCMFormat(uint16_t bitDepth,
-                                                NumberFormat format,
-                                                PCMFormat& ret)
+    IAudioFile::Error IAudioFile::findPCMFormat(uint16_t bitDepth, NumberFormat format, PCMFormat& ret)
     {
         int fileFormat = -1;
         
@@ -652,20 +652,20 @@ namespace HISSTools
                         u32ToOutput(output + i, getU24(mBuffer + j, getAudioEndianness()) << 8);
                     break;
 
-            case kAudioFileInt32:
-                for (size_t i = 0; i < loopSamples; i++, j += byteStep)
-                    u32ToOutput(output + i, getU32(mBuffer + j, getAudioEndianness()));
-                break;
+                case kAudioFileInt32:
+                    for (size_t i = 0; i < loopSamples; i++, j += byteStep)
+                        u32ToOutput(output + i, getU32(mBuffer + j, getAudioEndianness()));
+                    break;
 
-            case kAudioFileFloat32:
-                for (size_t i = 0; i < loopSamples; i++, j += byteStep)
-                    float32ToOutput(output + i, getU32(mBuffer + j, getAudioEndianness()));
-                break;
+                case kAudioFileFloat32:
+                    for (size_t i = 0; i < loopSamples; i++, j += byteStep)
+                        float32ToOutput(output + i, getU32(mBuffer + j, getAudioEndianness()));
+                    break;
 
-            case kAudioFileFloat64:
-                for (size_t i = 0; i < loopSamples; i++, j += byteStep)
-                    float64ToOutput(output + i, getU64(mBuffer + j, getAudioEndianness()));
-                break;
+                case kAudioFileFloat64:
+                    for (size_t i = 0; i < loopSamples; i++, j += byteStep)
+                        float64ToOutput(output + i, getU64(mBuffer + j, getAudioEndianness()));
+                    break;
             }
             
             numFrames -= loopFrames;
