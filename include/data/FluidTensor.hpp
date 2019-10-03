@@ -118,7 +118,7 @@ public:
   {
     mContainer.reserve(this->mDesc.size);
     impl::insertFlat(init, mContainer);
-    assert(mContainer.size() == this->mDesc.size);//TODO static_assert in 14
+    assert(mContainer.size() == this->mDesc.size);
   }
 
   FluidTensor &operator=(FluidTensorInitializer<T, N> init)
@@ -158,7 +158,7 @@ public:
 
   /// implicit cast to view
   ///TODO should be const T, but need to see what breaks
-  operator const FluidTensorView<T, N>() const { return {mDesc, data()}; }
+  operator const FluidTensorView<const T, N>() const { return {mDesc, data()}; }
   operator FluidTensorView<T, N>() { return {mDesc, data()}; }
 
   ///TODO If these aren't used, removed
@@ -326,9 +326,8 @@ public:
 
   void fill(T v) { std::fill(mContainer.begin(), mContainer.end(), v); }
 
-  FluidTensorView<T,N> transpose() { return { mDesc.transpose(), data() }; }
-  ///TODO should be const T - see what breaks
-  const FluidTensorView<T,N> transpose() const
+  FluidTensorView<T,N> transpose() { return { mDesc.transpose(), data() }; } 
+  const FluidTensorView<const T,N> transpose() const
   {
     return {mDesc.transpose(), data()};
   }
@@ -569,13 +568,12 @@ public:
   /// c style element access
   FluidTensorView<T, N - 1> operator[](const size_t i) { return row(i); }
   ///TODO sould be const T
-  const FluidTensorView<T, N - 1> operator[](const size_t i) const
+  const FluidTensorView<const T, N - 1> operator[](const size_t i) const
   {
     return row(i);
   }
 
-  //TODO const T
-  const FluidTensorView<T, N - 1> row(const size_t i) const
+  const FluidTensorView<const T, N - 1> row(const size_t i) const
   {
     assert(i < extent(0));
     FluidTensorSlice<N - 1> row(mDesc, SizeConstant<0>(), i);
@@ -589,9 +587,7 @@ public:
     return {row, mRef};
   }
 
-
-  ///TODO const T
-  const FluidTensorView<T, N - 1> col(const size_t i) const
+  const FluidTensorView<const T, N - 1> col(const size_t i) const
   {
     assert(i < extent(1));
     FluidTensorSlice<N - 1> col(mDesc, SizeConstant<1>(), i);
@@ -617,8 +613,7 @@ public:
   void fill(const T x) { std::fill(begin(), end(), x); }
 
   FluidTensorView<T,N> transpose() { return { mDesc.transpose(), mRef }; }
-  //TODO should be const T
-  const FluidTensorView<T,N> transpose() const { return { mDesc.transpose(), mRef }; }
+  const FluidTensorView<const T,N> transpose() const { return { mDesc.transpose(), mRef }; }
 
   template <typename F>
   FluidTensorView &apply(F f)
@@ -644,7 +639,7 @@ public:
     return *this;
   }
 
-  const T *data() const { return mRef + mDesc.start; }
+  const T* data() const { return mRef + mDesc.start; }
   pointer data() { return mRef + mDesc.start; }
 
   const FluidTensorSlice<N> descriptor() const { return mDesc; }

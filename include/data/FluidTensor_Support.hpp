@@ -236,7 +236,7 @@ private:
 }
 ///*****************************************************************************
 template <typename T, size_t N>
-using FluidTensorInitializer = typename _impl::FluidTensorInit<T, N>::type;
+using FluidTensorInitializer = typename impl::FluidTensorInit<T, N>::type;
 ///*****************************************************************************
 /// FluidTensorSlice describes the shape of a Tensor or TensorView,
 /// and provides a mapping between points in the flat storage and indicies
