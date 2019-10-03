@@ -276,103 +276,6 @@ private:
   pointer mBase;
 };
 
-/********************************
- STL style iterator for iterating over the rows/cols
- of a container or ref. Implements the requirements of
- bidirectional_iterator but not randomAccess_iterator.
-
- TODO: template on dimension
- TODO: actually plumb in and test
- TODO: decide if we need random access
-
- Imagined use case: FluidTensor and FluidTensorView
- use an overload of rows()/cols() with no argument to return
- iterator, which dereferences to refs
- e.g for(auto r: container.rows())
- std::copy(r.begin(), r.end(), max_array);
-
- This will need me to make FluidTensor and ...View expose
- element-wise iterator behaviour as well (i.e. use begin()
- and end() to pass on the vector iterator for FluidTensor and
- the offset pointer for FluidTensorRe
- ********************************/
-// TODO: make more efficient with reference caching?
-//        template <typename T, size_t N>
-//        class FluidTensor_dimIterator
-//        {
-//        public:
-//            /**
-//             Regulation STL style boiler plate
-//             **/
-//            using value_type = fluid::FluidTensorView<T,N>;
-//            using difference_type = std::ptrdiff_t;
-//            using pointer = fluid::FluidTensorView<T,N>*;
-//            using reference = fluid::FluidTensorView<T,N>&;
-//            using iterator_category = std::randomAccess_iterator_tag;
-//            using type = FluidTensor_dimIterator<T,N>;
-//
-//            FluidTensor_dimIterator() = default;
-//
-//            //copy
-//            FluidTensor_dimIterator(FluidTensor_dimIterator& other) = default;
-//            //move
-//            FluidTensor_dimIterator(FluidTensor_dimIterator&& other) =
-//            default;
-//
-//            //Construct an instance from a Tensor/TensorView
-//            explicit FluidTensor_dimIterator(const
-//            fluid::FluidTensorBase<T,N+1>& obj):container(obj){}
-//
-//            //dereferenceable
-//            reference operator*() const
-//            {
-//                std::vector<double> s;
-//                return container.row(current);
-//            }
-//
-//            //pre- and post-incrementable
-//            type& operator++()
-//            {
-//                ++current;
-//                return *this;
-//            }
-//            type operator++(int)
-//            {
-//                type tmp = *this;
-//                ++current;
-//                return tmp;
-//            }
-//
-//            //pre- and post-decrementable
-//            type& operator--()
-//            {
-//                --current;
-//                return *this;
-//            }
-//            type operator--(int)
-//            {
-//                type tmp = *this;
-//                --current;
-//                return tmp;
-//            }
-//
-//            //Todo, this isn't actually a sufficient condition,
-//            //should compare descriptors too
-//            bool operator==(const type& rhs)
-//            {
-//                return  container.row(current).data() ==
-//                rhs.row(current).data();
-//            }
-//            bool operator!=(const type& rhs)
-//            {
-//                return !(*this==rhs);
-//            }
-//        private:
-//            const fluid::FluidTensorBase<T,N+1>& container;
-//            size_t current = 0;
-//        };//FluidDimIterator
-} // namespace _impl
-
 /*****
  Templated alias of nested initializer lists of type and dimension
  of given container
@@ -494,8 +397,6 @@ template <size_t N> struct FluidTensorSlice {
     start = s.start + doSlice(s, args...);
     size = std::accumulate(extents.begin(),extents.end(),1,std::multiplies<std::size_t>());// extents[0] * strides[0];
   }
-
-
 
   // Operator () is used for mapping indices back onto a flat data structure
   // For dimensions > 2 this is done using inner_product.
