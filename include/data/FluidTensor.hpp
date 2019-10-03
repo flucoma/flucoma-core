@@ -411,6 +411,20 @@ public:
   FluidTensorView(T *p, std::size_t start, Dims... dims)
       : mDesc(start, {static_cast<std::size_t>(dims)...}), mRef(p) {}
 
+
+  // Convert to a larger dim by adding single size dim, like numpy newaxis
+  explicit FluidTensorView(FluidTensorView<T, N - 1> x)
+  {
+    mDesc.start = x.descriptor().start;
+    std::copy_n(x.descriptor().extents.begin(), N - 1,
+                mDesc.extents.begin() + 1);
+    std::copy_n(x.descriptor().strides.begin(), N - 1, mDesc.strides.begin());
+    mDesc.extents[0] = 1;
+    mDesc.strides[N - 1] = 1;
+    mDesc.size = x.descriptor().size;
+    mRef = x.data() - mDesc.start;
+  }
+
   /**********
    Disable assigning a FluidTensorView from an r-value FluidTensor, as that's a
   gurranteed memory leak, i.e. you can't do FluidTensorView<double,1> r =
@@ -428,23 +442,10 @@ public:
   /// ==> assignment is always copy
 
 
-  // Copy (TODOwhat's this doing that the ones below aren't?)
+  // Copy
   FluidTensorView(FluidTensorView const &) = default;
 
-  // Convert to a larger dim by adding single size dim, like numpy newaxis
-  explicit FluidTensorView(FluidTensorView<T, N - 1> x)
-  {
-    mDesc.start = x.descriptor().start;
-    std::copy_n(x.descriptor().extents.begin(), N - 1,
-                mDesc.extents.begin() + 1);
-    std::copy_n(x.descriptor().strides.begin(), N - 1, mDesc.strides.begin());
-    mDesc.extents[0] = 1;
-    mDesc.strides[N - 1] = 1;
-    mDesc.size = x.descriptor().size;
-    mRef = x.data() - mDesc.start;
-  }
-
-  //From same type
+  //Copy assignment from same type
   FluidTensorView &operator=(const FluidTensorView &x)
   {
     assert(sameExtents(mDesc, x.descriptor()));
