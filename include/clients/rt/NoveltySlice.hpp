@@ -8,7 +8,7 @@
 #include "../common/ParameterTypes.hpp"
 #include "../nrt/FluidNRTClientWrapper.hpp"
 #include "../../algorithms/public/Loudness.hpp"
-#include "../../algorithms/public/RTNoveltySegmentation.hpp"
+#include "../../algorithms/public/NoveltySegmentation.hpp"
 #include "../../algorithms/public/STFT.hpp"
 #include "../../algorithms/public/YINFFT.hpp"
 #include "../../algorithms/util/DCT.hpp"
@@ -28,7 +28,7 @@ using algorithm::STFT;
 using algorithm::TruePeak;
 using algorithm::YINFFT;
 
-using algorithm::RTNoveltySegmentation;
+using algorithm::NoveltySegmentation;
 
 enum NoveltyParamIndex {
   kFeature,
@@ -70,9 +70,9 @@ public:
     FluidBaseClient::audioChannelsOut(1);
   }
 
-  void process(std::vector<HostVector> &input, std::vector<HostVector> &output,FluidContext& c, 
+  void process(std::vector<HostVector> &input, std::vector<HostVector> &output,FluidContext& c,
                bool reset = false) {
-    using algorithm::RTNoveltySegmentation;
+    using algorithm::NoveltySegmentation;
     using std::size_t;
 
     if (!input[0].data() || !output[0].data())
@@ -151,7 +151,7 @@ public:
   }
 
 private:
-  RTNoveltySegmentation mNovelty{get<kMaxKernelSize>(), get<kMaxFilterSize>()};
+  NoveltySegmentation mNovelty{get<kMaxKernelSize>(), get<kMaxFilterSize>()};
   ParameterTrackChanges<size_t, size_t, size_t, double, size_t, size_t>
       mParamsTracker;
   BufferedProcess mBufferedProcess;

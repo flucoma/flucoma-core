@@ -28,9 +28,6 @@ ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/NMF.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/NoveltySegmentation.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/OnsetDetectionFuncs.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/OnsetSegmentation.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/RTHPSS.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/RTNoveltySegmentation.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/RTSineExtraction.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/RatioMask.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/STFT.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/SineExtraction.hpp
@@ -53,7 +50,6 @@ ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/MedianFilter.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/MelBands.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/Novelty.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/PeakDetection.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/RTNovelty.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/SlideUDFilter.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/Toeplitz.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/TruePeak.hpp

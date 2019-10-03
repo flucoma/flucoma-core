@@ -5,7 +5,7 @@
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterTypes.hpp"
 #include "../nrt/FluidNRTClientWrapper.hpp"
-#include "../../algorithms/public/RTHPSS.hpp"
+#include "../../algorithms/public/HPSS.hpp"
 #include "../../algorithms/public/STFT.hpp"
 
 #include <complex>
@@ -92,14 +92,14 @@ private:
   STFTBufferedProcess<ParamSetViewType, T, kFFT, true> mSTFTBufferedProcess;
   ParameterTrackChanges<size_t, size_t, size_t> mTrackChangesAlgo;
   ParameterTrackChanges<size_t> mTrackHSize;
-  algorithm::RTHPSS mHPSS;
+  algorithm::HPSS mHPSS;
 };
 
 auto constexpr NRTHPSSParams = makeNRTParams<HPSSClient>({InputBufferParam("source", "Source Buffer")},  {BufferParam("harmonic","Harmonic Buffer"), BufferParam("percussive","Percussive Buffer"), BufferParam("residual", "Residual Buffer")});
 
 template <typename T>
 using NRTHPSS = NRTStreamAdaptor<HPSSClient<T>, decltype(NRTHPSSParams), NRTHPSSParams, 1, 3>;
-    
+
 template <typename T>
 using NRTThreadedHPSS = NRTThreadingAdaptor<NRTHPSS<T>>;
 

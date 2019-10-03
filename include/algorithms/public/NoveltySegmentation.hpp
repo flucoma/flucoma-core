@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../../data/TensorTypes.hpp"
-#include "../util/FluidEigenMappings.hpp"
 #include "../util/ConvolutionTools.hpp"
-#include "../util/Novelty.hpp"
+#include "../util/FluidEigenMappings.hpp"
+#include "../util/RTNovelty.hpp"
 #include <Eigen/Dense>
 
 namespace fluid {
@@ -11,44 +11,49 @@ namespace algorithm {
 
 using _impl::asEigen;
 using _impl::asFluid;
+using Eigen::Array;
 
-class NoveltySegmentation {
+class RTNoveltySegmentation {
 
 public:
-  NoveltySegmentation(int kernelSize, double threshold, int filterSize)
-      : mKernelSize(kernelSize), mThreshold(threshold),
-        mFilterSize(filterSize) {
+  using ArrayXd = Eigen::ArrayXd;
+
+  RTNoveltySegmentation(int maxKernelSize, int maxFilterSize)
+      : mNovelty(maxKernelSize), mFilterBufferStorage(maxFilterSize),
+        mPeakBuffer(3) {}
+
+  void init(int kernelSize, double threshold, int filterSize, int nDims) {
     assert(kernelSize % 2);
+    mThreshold = threshold;
+    mFilterSize = filterSize;
+    mNovelty.init(kernelSize, nDims);
+    mFilterBuffer = mFilterBufferStorage.segment(0, mFilterSize);
+    mFilterBuffer.setZero();
   }
 
-  void process(const RealMatrixView input, RealVectorView output) {
-    using Eigen::ArrayXd;
-    using Eigen::Array;
-
-    ArrayXd curve(input.extent(0));
-    Novelty nov(mKernelSize);
-    nov.process(asEigen<Array>(input), curve);
+  double processFrame(const RealVectorView input) {
+    double novelty = mNovelty.processFrame(asEigen<Array>(input));
     if (mFilterSize > 1) {
-      ArrayXd filter = ArrayXd::Constant(mFilterSize, 1.0 / mFilterSize);
-      ArrayXd smoothed = ArrayXd::Zero(curve.size());
-      convolveReal(smoothed.data(), curve.data(), curve.size(), filter.data(),
-                   filter.size(), EdgeMode::kEdgeWrapCentre);
-      curve = smoothed;
+      mFilterBuffer.segment(0, mFilterSize - 1) =
+          mFilterBuffer.segment(1, mFilterSize - 1);
     }
-    curve /= curve.maxCoeff();
-    for (int i = std::max(mFilterSize / 2, 1); i < curve.size() - 1; i++) {
-      if (curve(i) > curve(i - 1) && curve(i) > curve(i + 1) &&
-          curve(i) > mThreshold) {
-        output(i - mFilterSize / 2) = 1;
-      } else
-        output(i - mFilterSize / 2) = 0;
-    }
+    mPeakBuffer.segment(0, 2) = mPeakBuffer.segment(1, 2);
+    mFilterBuffer(mFilterSize - 1) = novelty;
+    mPeakBuffer(2) = mFilterBuffer.mean();
+    if (mPeakBuffer(1) > mPeakBuffer(0) && mPeakBuffer(1) > mPeakBuffer(2) &&
+        mPeakBuffer(1) > mThreshold)
+      return 1;
+    else
+      return 0;
   }
 
 private:
-  int mKernelSize;
   double mThreshold;
   int mFilterSize;
+  ArrayXd mFilterBuffer;
+  ArrayXd mFilterBufferStorage;
+  ArrayXd mPeakBuffer;
+  RTNovelty mNovelty;
 };
 } // namespace algorithm
 } // namespace fluid
