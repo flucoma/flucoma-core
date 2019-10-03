@@ -12,7 +12,7 @@
 #include <numeric> //accujmuate, innerprodct
 
 
-namespace fluid{
+namespace fluid {
 
 ///*****************************************************************************
 /// slice
@@ -52,16 +52,17 @@ constexpr bool isIndexSequence()
 
 // Alias integral_constant<size_t,N>
 template <std::size_t N>
-using size_constant = std::integral_constant<std::size_t, N>;
+using SizeConstant = std::integral_constant<std::size_t, N>;
 
-namespace _impl {
+namespace impl {
 ///*****************************************************************************
 /// Helper templates for the container.
 
 /// Ensure that a set of dimension extents will fit within the FluidTensorSlice
 template <size_t N, typename... Dims>
-bool checkBounds(const fluid::FluidTensorSlice<N> &slice, Dims... dims) {
-  size_t indexes[N]{size_t(dims)...};
+bool checkBounds(const fluid::FluidTensorSlice<N> &slice, Dims... dims)
+{
+  size_t indexes[N]{ size_t(dims)... };
   return std::equal(indexes, indexes + N, slice.extents.begin(),
                     std::less<size_t>{});
 }
@@ -219,7 +220,9 @@ private:
         mPtr -= mDesc.strides[d] * mDesc.extents[d];
         mIndexes[d] = 0;
         --d;
-      } else {
+      }
+      else
+      {
         break;
       }
     }
@@ -230,6 +233,7 @@ private:
   pointer mPtr;
   pointer mBase;
 };
+}
 ///*****************************************************************************
 template <typename T, size_t N>
 using FluidTensorInitializer = typename _impl::FluidTensorInit<T, N>::type;
@@ -285,9 +289,10 @@ struct FluidTensorSlice
     static_assert(N < M, "");
     // Copy the extetns and strides, excluding the Dth dimension.
     std::copy_n(s.extents.begin() + D + 1, N - D,
-                std::copy_n(s.extents.begin(), D, extents.begin()));
+                  std::copy_n ( s.extents.begin(), D , extents.begin())
+                );
     std::copy_n(s.strides.begin() + D + 1, N - D,
-                std::copy_n(s.strides.begin(), D, strides.begin()));
+                std::copy_n (s.strides.begin(), D, strides.begin()));
   }
 
   // Construct from a start point and an initializer_list of dimensions
