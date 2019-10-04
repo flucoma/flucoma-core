@@ -18,78 +18,8 @@ IF(APPLE)
   ENDIF()
 ENDIF (APPLE)
 
-# TODO: Break into sub CMakeLists for algos / clients etc to avoid the list of doooom
-list(APPEND HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/CepstrumF0.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/EnvelopeSegmentation.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/HPS.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/HPSS.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/Loudness.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/NMF.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/NoveltySegmentation.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/OnsetDetectionFuncs.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/OnsetSegmentation.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/RatioMask.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/STFT.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/SineExtraction.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/SpectralShape.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/Stats.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/TransientExtraction.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/TransientSegmentation.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/WindowFuncs.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/YINFFT.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/ARModel.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/ButterworthHPFilter.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/ConvolutionTools.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/DCT.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/FFT.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/FluidEigenMappings.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/KWeightingFilter.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/MedianFilter.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/MelBands.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/Novelty.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/PeakDetection.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/SlideUDFilter.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/Toeplitz.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/TruePeak.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/AudioClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/BufferAdaptor.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/FluidBaseClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/FluidSink.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/FluidSource.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/MemoryBufferAdaptor.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/OfflineClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/ParameterConstraints.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/ParameterSet.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/ParameterTrackChanges.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/ParameterTypes.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/Result.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/SpikesToTimes.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/TupleUtilities.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/FluidNRTClientWrapper.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/BufferedProcess.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/BufComposeClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/BufStatsClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/NMFClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/AmpSliceClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/BaseSTFTClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/GainClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/HPSSClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/LoudnessClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/MFCCClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/MelBandsClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/NMFFilterClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/NMFMatchClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/NoveltySliceClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/OnsetSliceClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/PitchClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/SinesClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/SpectralShapeClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/TransientClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/TransientSliceClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/data/FluidMeta.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/data/FluidTensor.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/data/FluidTensor_Support.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/data/TensorTypes.hpp)
+# Grab the Fluid Decpomposition header files so they can be added to IDE builds
+file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/include/**/*.hpp")
 
 set(root ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -119,7 +49,6 @@ target_sources(
   "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/HISSTools_AudioFile/IAudioFile.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/HISSTools_AudioFile/OAudioFile.cpp"
 )
-
 
 #Fluid Decomposition headers target
 add_library(
@@ -172,9 +101,6 @@ target_include_directories(
   "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty"
 )
 
-
 #add_subdirectory(
 #  "${CMAKE_CURRENT_SOURCE_DIR}/examples" EXCLUDE_FROM_ALL
 #)
-
-# export(TARGETS FLUID_DECOMPOSITION HISSTools_FFT HISSTools_AudioFile FILE fluid_decomposition-exports.cmake)
