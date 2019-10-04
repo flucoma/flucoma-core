@@ -22,7 +22,7 @@ ENDIF (APPLE)
 # Grab the Fluid Decpomposition header files so they can be added to IDE builds
 file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/include/**/*.hpp")
 
-if(DEFINED HISS_PATH)
+if(HISS_PATH)
   get_filename_component(HISS_PATH_FULL ${HISS_PATH} ABSOLUTE)
   message(${HISS_PATH_FULL})
   FetchContent_Declare(
