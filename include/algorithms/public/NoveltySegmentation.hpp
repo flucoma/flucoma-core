@@ -3,7 +3,7 @@
 #include "../../data/TensorTypes.hpp"
 #include "../util/ConvolutionTools.hpp"
 #include "../util/FluidEigenMappings.hpp"
-#include "../util/RTNovelty.hpp"
+#include "../util/Novelty.hpp"
 #include <Eigen/Dense>
 
 namespace fluid {
@@ -13,12 +13,12 @@ using _impl::asEigen;
 using _impl::asFluid;
 using Eigen::Array;
 
-class RTNoveltySegmentation {
+class NoveltySegmentation {
 
 public:
   using ArrayXd = Eigen::ArrayXd;
 
-  RTNoveltySegmentation(int maxKernelSize, int maxFilterSize)
+  NoveltySegmentation(int maxKernelSize, int maxFilterSize)
       : mNovelty(maxKernelSize), mFilterBufferStorage(maxFilterSize),
         mPeakBuffer(3) {}
 
@@ -53,7 +53,7 @@ private:
   ArrayXd mFilterBuffer;
   ArrayXd mFilterBufferStorage;
   ArrayXd mPeakBuffer;
-  RTNovelty mNovelty;
+  Novelty mNovelty;
 };
 } // namespace algorithm
 } // namespace fluid

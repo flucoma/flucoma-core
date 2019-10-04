@@ -18,7 +18,7 @@ using Eigen::ArrayXXcd;
 using Eigen::ArrayXXd;
 using Eigen::Map;
 
-class RTHPSS {
+class HPSS {
 public:
   bool mInitialized = false;
   enum HPSSMode { kClassic, kCoupled, kAdvanced };
