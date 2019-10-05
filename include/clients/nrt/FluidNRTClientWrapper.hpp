@@ -143,7 +143,6 @@ public:
       inFrames[count] = requestedFrames;
       inChans[count] =  requestedChans;
       mClient.sampleRate(BufferAdaptor::ReadAccess(b.buffer).sampleRate());
-      std::cout << "SR " << BufferAdaptor::ReadAccess(b.buffer).sampleRate() << '\n';
       count++;
     }
     
