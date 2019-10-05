@@ -143,6 +143,7 @@ public:
       inFrames[count] = requestedFrames;
       inChans[count] =  requestedChans;
       mClient.sampleRate(BufferAdaptor::ReadAccess(b.buffer).sampleRate());
+      std::cout << "SR " << BufferAdaptor::ReadAccess(b.buffer).sampleRate() << '\n';
       count++;
     }
     
@@ -421,6 +422,9 @@ public:
       mThreadedTask.release();
     }
   }
+  
+  //We need this so we can remake the client when the fake-sr changes in PD (TODO: something better; NRT clients shouldn't assume that the SR is lifetime constant)
+  void recreateClient() { mClient.reset(new NRTClient{mHostParams}); }
   
   Result enqueue(ParamSetType& p)
   {
