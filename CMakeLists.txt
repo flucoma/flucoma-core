@@ -55,6 +55,15 @@ target_link_libraries(
   HISSTools_FFT PRIVATE ${ACCELERATE}
 )
 
+target_include_directories(HISSTools_FFT PUBLIC "${hisstools_SOURCE_DIR}")
+
+set_target_properties(HISSTools_FFT
+  PROPERTIES
+    CXX_STANDARD 14
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
 add_library(HISSTools_SIMD INTERFACE)
 target_sources(HISSTools_SIMD INTERFACE "${hisstools_SOURCE_DIR}/SIMDSupport.hpp")
 
@@ -72,6 +81,14 @@ target_sources(
   "${hisstools_SOURCE_DIR}/AudioFile/IAudioFile.h"
   "${hisstools_SOURCE_DIR}/AudioFile/OAudioFile.h"
 )
+
+set_target_properties(HISSTools_AudioFile
+  PROPERTIES
+    CXX_STANDARD 14
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
 
 #Fluid Decomposition header-only target
 add_library(FLUID_DECOMPOSITION INTERFACE)
