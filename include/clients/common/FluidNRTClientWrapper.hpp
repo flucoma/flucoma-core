@@ -198,17 +198,17 @@ private:
   template<size_t...Is>
   std::array<BufferProcessSpec, sizeof...(Is)> fetchInputBuffers(std::index_sequence<Is...>)
   {
-    return {fetchInputBuffer<Is*5>()...};
+    return { {fetchInputBuffer<Is*5>()...} };
   }
 
   template<size_t...Is>
   std::array<BufferAdaptor*,sizeof...(Is)> fetchOutputBuffers(std::index_sequence<Is...>)
   {
-    return {get<Is + (Ins*5)>().get()...};
+    return { {get<Is + (Ins*5)>().get()...} };
   }
 
-  RTParamSetViewType    mRealTimeParams;
   std::reference_wrapper<ParamSetViewType>     mParams;
+  RTParamSetViewType    mRealTimeParams;
   WrappedClient         mClient;
 };
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -549,7 +549,7 @@ private:
     };
 
     ThreadedTask(ClientPointer client, ParamSetType& hostParams,  bool synchronous, Result &result)
-    : mState(kNoProcess), mClient(client), mProcessParams(hostParams), mContext{mTask}
+    : mProcessParams(hostParams), mState(kNoProcess), mClient(client), mContext{mTask}
     {
 
       assert(mClient.get() != nullptr); //right?
