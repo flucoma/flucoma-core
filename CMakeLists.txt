@@ -1,18 +1,10 @@
-cmake_minimum_required (VERSION 3.8)
+cmake_minimum_required (VERSION 3.11)
 
 project (fluid_decomposition LANGUAGES CXX)
 include(FetchContent)
 set(HISS_PATH "" CACHE PATH "The path to a HISSTools_Library folder. Will pull from github if not set")
-
-# set(CMAKE_CXX_STANDARD 14)
-# set(CMAKE_CXX_STANDARD_REQUIRED ON)
-# set(CMAKE_CXX_EXTENSIONS OFF)
-# SET(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
-
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic")
+set(EIGEN_PATH "" CACHE PATH "The path to an Eigen installation (>=3.3.5). Will pull from github if not set")
 IF(APPLE)
-  # set(CMAKE_OSX_DEPLOYMENT_TARGET "10.7" CACHE STRING "Minimum OS X deployment version")
-	# set(CMAKE_OSX_ARCHITECTURES x86_64;i386)
   find_library(ACCELERATE Accelerate)
   IF (NOT ACCELERATE)
     message(FATAL_ERROR "Accelerate framework not found")
@@ -39,9 +31,32 @@ else()
   )
 endif()
 
+if(EIGEN_PATH)
+  get_filename_component(HISS_PATH_FULL ${EIGEN_PATH} ABSOLUTE)
+  message(${EIGEN_PATH_FULL})
+  FetchContent_Declare(
+    Eigen
+    DOWNLOAD_COMMAND ""
+    SOURCE_DIR "${EIGEN_PATH_FULL}/"
+  )
+else()
+  FetchContent_Declare(
+    Eigen
+    GIT_REPOSITORY https://github.com/eigenteam/eigen-git-mirror/
+    GIT_PROGRESS TRUE
+    GIT_BRANCH "branches/3.3"
+    GIT_TAG "3.3.5"
+  )
+endif()
+
 FetchContent_GetProperties(hisstools)
 if(NOT hisstools_POPULATED)
   FetchContent_Populate(hisstools)
+endif()
+
+FetchContent_GetProperties(eigen)
+if(NOT eigen_POPULATED)
+  FetchContent_Populate(eigen)
 endif()
 
 # HISSTools FFT target
@@ -97,7 +112,7 @@ target_include_directories(
   FLUID_DECOMPOSITION INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
 target_include_directories(
-  FLUID_DECOMPOSITION SYSTEM INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty"
+  FLUID_DECOMPOSITION SYSTEM INTERFACE "${eigen_SOURCE_DIR}"
 )
 
 target_link_libraries(
