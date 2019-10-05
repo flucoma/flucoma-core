@@ -27,7 +27,7 @@ public:
   template <typename... Args>
   Result(Status s, Args... args) : mStatus(s)
   {
-    std::initializer_list<int>{(mMsg << args, 0)...};
+    (void)std::initializer_list<int>{(mMsg << args, 0)...};
   }
 
   Result() = default;
@@ -65,7 +65,7 @@ public:
   template <typename... Ts>
   void addMessage(Ts... args)
   {
-    std::initializer_list<int>{(mMsg << args, 0)...};
+    (void)std::initializer_list<int>{(mMsg << args, 0)...};
   }
 
   void reset()

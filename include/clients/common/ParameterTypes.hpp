@@ -511,7 +511,7 @@ template <typename T>
 struct ParamLiterals
 {
   using type = typename T::type;
-  static std::array<type, 1> getLiteral(const type& p) { return {p}; }
+  static std::array<type, 1> getLiteral(const type& p) { return {{p}}; }
 };
 
 template <>
