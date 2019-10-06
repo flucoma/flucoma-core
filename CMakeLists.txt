@@ -32,8 +32,8 @@ else()
 endif()
 
 if(EIGEN_PATH)
-  get_filename_component(HISS_PATH_FULL ${EIGEN_PATH} ABSOLUTE)
-  message(${EIGEN_PATH_FULL})
+  get_filename_component(EIGEN_PATH_FULL ${EIGEN_PATH} ABSOLUTE)
+  message(STATUS ${EIGEN_PATH_FULL})
   FetchContent_Declare(
     Eigen
     DOWNLOAD_COMMAND ""
@@ -63,47 +63,32 @@ endif()
 add_library(
   HISSTools_FFT STATIC "${hisstools_SOURCE_DIR}/HISSTools_FFT/HISSTools_FFT.cpp"
 )
-target_sources(HISSTools_FFT INTERFACE
-  "${hisstools_SOURCE_DIR}/HISSTools_FFT/HISSTools_FFT.h"
-)
+
 target_link_libraries(
   HISSTools_FFT PRIVATE ${ACCELERATE}
 )
 
 target_include_directories(HISSTools_FFT PUBLIC "${hisstools_SOURCE_DIR}")
 
-set_target_properties(HISSTools_FFT
-  PROPERTIES
+set_target_properties(HISSTools_FFT PROPERTIES
     CXX_STANDARD 14
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
 
-add_library(HISSTools_SIMD INTERFACE)
-target_sources(HISSTools_SIMD INTERFACE "${hisstools_SOURCE_DIR}/SIMDSupport.hpp")
-
 #HISSTools Audiofile Target
 add_library(
-  HISSTools_AudioFile
-  STATIC
+  HISSTools_AudioFile STATIC
   "${hisstools_SOURCE_DIR}/AudioFile/BaseAudioFile.cpp"
   "${hisstools_SOURCE_DIR}/AudioFile/IAudioFile.cpp"
   "${hisstools_SOURCE_DIR}/AudioFile/OAudioFile.cpp"
 )
-target_sources(
-  HISSTools_AudioFile
-  INTERFACE
-  "${hisstools_SOURCE_DIR}/AudioFile/IAudioFile.h"
-  "${hisstools_SOURCE_DIR}/AudioFile/OAudioFile.h"
-)
 
-set_target_properties(HISSTools_AudioFile
-  PROPERTIES
+set_target_properties(HISSTools_AudioFile PROPERTIES
     CXX_STANDARD 14
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
-
 
 #Fluid Decomposition header-only target
 add_library(FLUID_DECOMPOSITION INTERFACE)
@@ -112,13 +97,13 @@ target_include_directories(
   FLUID_DECOMPOSITION INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
 target_include_directories(
-  FLUID_DECOMPOSITION SYSTEM INTERFACE "${eigen_SOURCE_DIR}"
+  FLUID_DECOMPOSITION SYSTEM INTERFACE #we don't want warnings from Eigen or HissTools
+  "${eigen_SOURCE_DIR}"
+  "${hisstools_SOURCE_DIR}"
 )
-
 target_link_libraries(
-  FLUID_DECOMPOSITION INTERFACE HISSTools_FFT HISSTools_SIMD
+  FLUID_DECOMPOSITION INTERFACE HISSTools_FFT
 )
-
 target_sources(
   FLUID_DECOMPOSITION INTERFACE ${HEADERS}
 )
