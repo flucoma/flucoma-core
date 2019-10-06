@@ -133,7 +133,7 @@ class ParameterSetView<const ParameterDescriptorSet<std::index_sequence<Os...>, 
   {
     kAll,
     kNonRelational,
-    kRelational,
+    kRelational
   };
     
 protected:
