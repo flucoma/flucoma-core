@@ -33,6 +33,13 @@ public:
         mCount(0), mRefine(refine), mDetectHalfWindow(1), mDetectHold(25),
         mDetectPowerFactor(1.4), mDetectThreshHi(1.5), mDetectThreshLo(3.0) {}
 
+  void init(size_t order, size_t iterations, double robustFactor,
+                      bool refine, int blockSize, int padSize){
+    mModel = ARModel(order, iterations, robustFactor);
+    prepareStream(blockSize, padSize);
+    mInitialized = true;
+  }
+
   void setDetectionParameters(double power, double threshHi, double threshLo,
                               int halfWindow = 7, int hold = 25) {
     mDetectPowerFactor = power;
@@ -106,6 +113,8 @@ public:
     interpolate(transients.data(), residual.data());
     // return mCount;
   }
+
+bool initialized(){return mInitialized;}
 
 private:
   void frame(const double *input, int inSize) {
@@ -386,7 +395,6 @@ private:
     mBackwardWindowedError.resize(hopSize(), 0.0);
   }
 
-private:
   ARModel mModel;
 
   std::mt19937_64 mRandomGenerator;
@@ -411,6 +419,7 @@ private:
   std::vector<double> mBackwardError;
   std::vector<double> mForwardWindowedError;
   std::vector<double> mBackwardWindowedError;
+  bool mInitialized{false};
 };
 
 }; // namespace algorithm

@@ -71,12 +71,12 @@ public:
     std::size_t maxWinIn = 2*blockSize + padding;
     std::size_t maxWinOut = maxWinIn; //blockSize - padding;
 
-    if (mTrackValues.changed(order, blockSize, padding, hostVecSize) || !mExtractor.get() ) {
-      mExtractor.reset(new algorithm::TransientSegmentation(order, iterations, robustFactor));
-      mExtractor->prepareStream(blockSize, padding);
+    if (mTrackValues.changed(order, blockSize, padding, hostVecSize) || !mExtractor.initialized() ) {
+      //mExtractor.reset(new algorithm::TransientSegmentation(order, iterations, robustFactor));
+      mExtractor.init(order, iterations, robustFactor, blockSize, padding);
+      //mExtractor->prepareStream(blockSize, padding);
       mBufferedProcess.hostSize(hostVecSize);
       mBufferedProcess.maxSize(maxWinIn, maxWinOut, FluidBaseClient::audioChannelsIn(), FluidBaseClient::audioChannelsOut());
-
     }
 
     double skew = std::pow(2, get<kSkew>());
@@ -86,7 +86,7 @@ public:
     size_t debounce = get<kDebounce>();
     size_t minSeg = get<kMinSeg>();
 
-    mExtractor->setDetectionParameters(skew, threshFwd, thresBack, halfWindow,
+    mExtractor.setDetectionParameters(skew, threshFwd, thresBack, halfWindow,
                                        debounce, minSeg);
 
     RealMatrix in(1,hostVecSize);
@@ -94,9 +94,9 @@ public:
     in.row(0) = input[0]; //need to convert float->double in some hosts
     mBufferedProcess.push(RealMatrixView(in));
 
-    mBufferedProcess.process(mExtractor->inputSize(), mExtractor->hopSize(), mExtractor->hopSize(), c, reset, [this](RealMatrixView in, RealMatrixView out)
+    mBufferedProcess.process(mExtractor.inputSize(), mExtractor.hopSize(), mExtractor.hopSize(), c, reset, [this](RealMatrixView in, RealMatrixView out)
     {
-      mExtractor->process(in.row(0), out.row(0));
+      mExtractor.process(in.row(0), out.row(0));
     });
 
     RealMatrix out(1, hostVecSize);
@@ -113,7 +113,8 @@ public:
 private:
 
   ParameterTrackChanges<size_t,size_t,size_t,size_t> mTrackValues;
-  std::unique_ptr<algorithm::TransientSegmentation> mExtractor;
+  //std::unique_ptr<algorithm::TransientSegmentation> mExtractor;
+  algorithm::TransientSegmentation mExtractor{get<kOrder>(), 3, 3.0};
   BufferedProcess mBufferedProcess;
   FluidTensor<T, 1> mTransients;
   size_t mHostSize{0};

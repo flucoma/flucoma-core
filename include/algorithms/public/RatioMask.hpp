@@ -18,9 +18,10 @@ using Eigen::Array;
 
 class RatioMask {
 
-
 public:
-  RatioMask(RealMatrixView denominator, int exponent) : mExponent(exponent) {
+
+  void init(RealMatrixView denominator, int exponent){
+    mExponent = exponent;
     const double epsilon = std::numeric_limits<double>::epsilon();
     mMultiplier = (1 / asEigen<Array>(denominator).max(epsilon));
   }
@@ -38,6 +39,7 @@ public:
   }
 
 private:
+
   ArrayXXd mMultiplier;
   int mExponent;
 };

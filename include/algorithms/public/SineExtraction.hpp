@@ -36,24 +36,39 @@ struct SineTrack {
 
 class SineExtraction {
 public:
-  using RealMatrixView = FluidTensor<double, 2>;
-  using ComplexVectorView = FluidTensorView<std::complex<double>, 1>;
-  using ComplexMatrixView = FluidTensorView<std::complex<double>, 2>;
 
-  SineExtraction(int windowSize, int fftSize, int hopSize, int bandwidth,
+  SineExtraction(int maxFFTSize)
+      : mWindowSize(maxFFTSize),
+        mWindow(windowFuncs[WindowType::kHann](maxFFTSize)), mFFTSize(maxFFTSize),
+        mBins(maxFFTSize / 2 + 1), mFFT(maxFFTSize), mBandwidth(maxFFTSize / 16),
+        mThreshold(0.7), mMinTrackLength(15),
+        mMagWeight(0.01), mFreqWeight(0.5), mCurrentFrame(0), mInitialized(false) {
+  }
+
+  void init(int windowSize, int fftSize, int hopSize, int bandwidth,
                    double threshold, int minTrackLength, double magWeight,
-                   double freqWeight)
-      : mWindowSize(windowSize),
-        mWindow(windowFuncs[WindowType::kHann](windowSize)), mFFTSize(fftSize),
-        mBins(fftSize / 2 + 1), mFFT(fftSize), mBandwidth(bandwidth),
-        mThreshold(threshold), mMinTrackLength(minTrackLength),
-        mMagWeight(magWeight), mFreqWeight(freqWeight), mCurrentFrame(0) {
+                   double freqWeight){
+    mWindowSize = windowSize;
+    mWindow = windowFuncs[WindowType::kHann](windowSize);
+    mFFTSize = fftSize;
+    mBins = fftSize / 2 + 1;
+    mFFT.resize(fftSize);
+    mBandwidth = bandwidth;
+    mThreshold = threshold;
+    mMinTrackLength = minTrackLength;
+    mMagWeight = magWeight;
+    mFreqWeight = freqWeight;
+    mCurrentFrame = 0;
     mWindowTransform = computeWindowTransform(mWindow);
     mOnes = VectorXd::Ones(mBandwidth);
     mWNorm = mWindowTransform.square().sum();
+    mTracks = vector<SineTrack>();
+    mBuf = std::queue<ArrayXcd>();
+    mInitialized = true;
   }
 
   void processFrame(const ComplexVectorView in, ComplexMatrixView out) {
+    assert(mInitialized);
     using Eigen::Array;
     using Eigen::ArrayXXcd;
     const auto &epsilon = std::numeric_limits<double>::epsilon();
@@ -112,6 +127,8 @@ public:
     mFreqWeight = freqWeight;
   }
 
+  bool initialized(){return mInitialized;}
+
 private:
   int mWindowSize;
   vector<double> mWindow;
@@ -130,6 +147,7 @@ private:
   size_t mCurrentFrame;
   vector<SineTrack> mTracks;
   std::queue<ArrayXcd> mBuf;
+  bool mInitialized{false};
 
   const void peakContinuation(vector<SineTrack> &tracks,
                               vector<SinePeak> sinePeaks, const ArrayXd frame) {

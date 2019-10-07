@@ -56,7 +56,7 @@ public:
     intptr_t nFrames   = get<kNumFrames>();
     intptr_t nChannels = get<kNumChans>();
     auto rangeCheck = bufferRangeCheck(get<kSource>().get(), get<kOffset>(), nFrames, get<kStartChan>(), nChannels);
-    
+
     if(!rangeCheck.ok()) return rangeCheck;
 
     auto source = BufferAdaptor::ReadAccess(get<kSource>().get());
@@ -152,9 +152,9 @@ public:
     if (seedEnvelopes || fixEnvelopes)
       seededEnvelopes.resize((nFrames / fftParams.hopSize()) + 1, get<kRank>());
 
-    
+
     const double progressTotal = get<kIterations>() + (hasResynth ? 3 * get<kRank>() : 0);
-    
+
     for (size_t i = 0; i < nChannels; ++i) {
       if(c.task() && !c.task()->iterationUpdate(i, nChannels)) return {Result::Status::kCancelled,""};
       //          tmp = sourceData.col(i);
@@ -176,7 +176,7 @@ public:
           seededEnvelopes.col(j) = envelopes.samps(i * get<kRank>() + j);
         }
       }
-    
+
       auto nmf = algorithm::NMF(get<kRank>(), get<kIterations>(), !fixFilters, !fixEnvelopes);
       nmf.addProgressCallback([&c,&progressCount,progressTotal](const int)->bool{
           return c.task() ? c.task()->processUpdate(++progressCount,progressTotal) : true;
@@ -210,15 +210,16 @@ public:
       }
 
       if (hasResynth) {
-        auto mask = algorithm::RatioMask{outputMags, 1};
+        auto mask = algorithm::RatioMask();
+        mask.init(outputMags, 1);
         auto resynthMags = FluidTensor<double,2>(nWindows,nBins);
         auto resynthSpectrum = FluidTensor<std::complex<double>,2>(nWindows,nBins);
         auto istft = algorithm::ISTFT{static_cast<size_t>(fftParams.winSize()), static_cast<size_t>(fftParams.fftSize()), static_cast<size_t>(fftParams.hopSize())};
         auto resynthAudio = FluidTensor<double,1>(nFrames);
         auto resynth = BufferAdaptor::Access{get<kResynth>().get()};
-        
+
         const int subProgress = 3 * get<kRank>();
-        
+
         for (size_t j = 0; j < get<kRank>(); ++j) {
           algorithm::NMF::estimate(outputFilters,outputEnvelopes,j, resynthMags);
           if(c.task() && !c.task()->processUpdate(++progressCount, progressTotal))
@@ -232,15 +233,15 @@ public:
             return {Result::Status::kCancelled,""};
         }
       }
-      
-      
+
+
     }
     return {Result::Status::kOk,""};
   }
 };
-    
+
 template <typename T>
 using NRTThreadedNMF = NRTThreadingAdaptor<NMFClient<T>>;
-    
+
 } // namespace client
 } // namespace fluid

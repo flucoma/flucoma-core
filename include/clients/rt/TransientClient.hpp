@@ -68,10 +68,11 @@ public:
     std::size_t maxWinIn = 2*blockSize + padding;
     std::size_t maxWinOut = blockSize - order;
 
-    if (mTrackValues.changed(order, blockSize, padding, hostVecSize) || !mExtractor.get())
+    if (mTrackValues.changed(order, blockSize, padding, hostVecSize) || !mExtractor.initialized())
     {
-      mExtractor.reset(new algorithm::TransientExtraction(order, iterations, robustFactor, refine));
-      mExtractor->prepareStream(blockSize, padding);
+      mExtractor.init(order, iterations, robustFactor, refine, blockSize, padding);
+      //mExtractor.reset(new algorithm::TransientExtraction(order, iterations, robustFactor, refine));
+      //mExtractor->prepareStream(blockSize, padding);
       mBufferedProcess.hostSize(hostVecSize);
       mBufferedProcess.maxSize(maxWinIn, maxWinOut, FluidBaseClient::audioChannelsIn(), FluidBaseClient::audioChannelsOut());
     }
@@ -82,16 +83,16 @@ public:
     size_t halfWindow = std::round(get<kWinSize>() / 2);
     size_t debounce = get<kDebounce>();
 
-    mExtractor->setDetectionParameters(skew, threshFwd, thresBack, halfWindow, debounce);
+    mExtractor.setDetectionParameters(skew, threshFwd, thresBack, halfWindow, debounce);
 
     RealMatrix in(1,hostVecSize);
 
     in.row(0) = input[0]; //need to convert float->double in some hosts
     mBufferedProcess.push(RealMatrixView(in));
 
-    mBufferedProcess.process(mExtractor->inputSize(), mExtractor->hopSize(), mExtractor->hopSize(), c, reset, [this](RealMatrixView in, RealMatrixView out)
+    mBufferedProcess.process(mExtractor.inputSize(), mExtractor.hopSize(), mExtractor.hopSize(), c, reset, [this](RealMatrixView in, RealMatrixView out)
     {
-      mExtractor->process(in.row(0), out.row(0), out.row(1));
+      mExtractor.process(in.row(0), out.row(0), out.row(1));
     });
 
     RealMatrix out(2, hostVecSize);
@@ -108,7 +109,8 @@ public:
 
 private:
   ParameterTrackChanges<size_t,size_t,size_t,size_t> mTrackValues;
-  std::unique_ptr<algorithm::TransientExtraction> mExtractor;
+  //std::unique_ptr<algorithm::TransientExtraction> mExtractor;
+  algorithm::TransientExtraction mExtractor{get<kOrder>(), 3, 3.0, false};
   BufferedProcess mBufferedProcess;
   size_t mHostSize{0};
   size_t mOrder{0};
@@ -120,7 +122,7 @@ auto constexpr NRTTransientParams = makeNRTParams<TransientClient>({InputBufferP
 
 template <typename T>
 using NRTTransients = NRTStreamAdaptor<TransientClient<T>, decltype(NRTTransientParams), NRTTransientParams, 1, 2>;
-    
+
 template <typename T>
 using NRTThreadedTransients = NRTThreadingAdaptor<NRTTransients<T>>;
 

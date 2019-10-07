@@ -6,7 +6,7 @@
 namespace fluid {
 namespace algorithm {
 
-class TransientSegmentation : private algorithm::TransientExtraction {
+class TransientSegmentation : public algorithm::TransientExtraction {
 
 public:
   TransientSegmentation(size_t order, size_t iterations, double robustFactor)
@@ -21,11 +21,20 @@ public:
     mMinSegment = minSegment;
   }
 
-  void prepareStream(int blockSize, int padSize) {
+  void init(size_t order, size_t iterations, double robustFactor,
+            int blockSize, int padSize){
+    TransientExtraction::init(order, iterations, robustFactor,
+                             false, blockSize, padSize);
+    mLastDetection = false;
+    mDebounce = 0;
+
+  }
+
+  /*void prepareStream(int blockSize, int padSize) {
     TransientExtraction::prepareStream(blockSize, padSize);
     mLastDetection = false;
     mDebounce = 0;
-  }
+  }*/
 
   int modelOrder() const { return TransientExtraction::modelOrder(); }
   int blockSize() const { return TransientExtraction::blockSize(); }

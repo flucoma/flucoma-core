@@ -55,21 +55,24 @@ public:
     if (!input[0].data()) return;
     if (!output[0].data() && !output[1].data()) return;
 
-    if (mTrackValues.changed(get<kFFT>().winSize(), get<kFFT>().hopSize(), get<kFFT>().fftSize(), get<kBandwidth>(), get<kMinTrackLen>()))
+    if (!mSinesExtractor.initialized()||mTrackValues.changed(get<kFFT>().winSize(), get<kFFT>().hopSize(), get<kFFT>().fftSize(), get<kBandwidth>(), get<kMinTrackLen>()))
     {
-      mSinesExtractor.reset(new algorithm::SineExtraction(get<kFFT>().winSize(), get<kFFT>().fftSize(), get<kFFT>().hopSize(),
+      //mSinesExtractor.reset(new algorithm::SineExtraction(get<kFFT>().winSize(), get<kFFT>().fftSize(), get<kFFT>().hopSize(),
+      //                                                      get<kBandwidth>(), get<kThreshold>(), get<kMinTrackLen>(),
+      //                                                      get<kMagWeight>(), get<kFreqWeight>()));
+      mSinesExtractor.init(get<kFFT>().winSize(), get<kFFT>().fftSize(), get<kFFT>().hopSize(),
                                                             get<kBandwidth>(), get<kThreshold>(), get<kMinTrackLen>(),
-                                                            get<kMagWeight>(), get<kFreqWeight>()));
+                                                            get<kMagWeight>(), get<kFreqWeight>());
     } else
     {
-      mSinesExtractor->setThreshold(get<kThreshold>());
-      mSinesExtractor->setMagWeight(get<kMagWeight>());
-      mSinesExtractor->setFreqWeight(get<kFreqWeight>());
-      mSinesExtractor->setMinTrackLength(get<kMinTrackLen>());
+      mSinesExtractor.setThreshold(get<kThreshold>());
+      mSinesExtractor.setMagWeight(get<kMagWeight>());
+      mSinesExtractor.setFreqWeight(get<kFreqWeight>());
+      mSinesExtractor.setMinTrackLength(get<kMinTrackLen>());
     }
 
     mSTFTBufferedProcess.process(mParams, input, output, c, reset, [this](ComplexMatrixView in, ComplexMatrixView out) {
-      mSinesExtractor->processFrame(in.row(0), out.transpose());
+      mSinesExtractor.processFrame(in.row(0), out.transpose());
     });
   }
 
@@ -77,7 +80,8 @@ public:
 
 private:
   STFTBufferedProcess<ParamSetViewType, T, kFFT>  mSTFTBufferedProcess;
-  std::unique_ptr<algorithm::SineExtraction> mSinesExtractor;
+  //std::unique_ptr<algorithm::SineExtraction> mSinesExtractor;
+  algorithm::SineExtraction mSinesExtractor{get<kMaxFFTSize>()};
   ParameterTrackChanges<size_t,size_t,size_t,size_t,size_t> mTrackValues;
   size_t mWinSize{0};
   size_t mHopSize{0};

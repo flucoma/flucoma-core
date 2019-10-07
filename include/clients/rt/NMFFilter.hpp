@@ -79,11 +79,11 @@ public:
         {
           algorithm::STFT::magnitude(in, tmpMagnitude);
           mNMF->processFrame(tmpMagnitude.row(0), tmpFilt, tmpOut,get<kIterations>(),tmpEstimate.row(0));
-          auto mask = algorithm::RatioMask{tmpEstimate,1};
+          mMask.init(tmpEstimate,1);
           for(size_t i = 0; i < rank; ++i)
           {
             algorithm::NMF::estimate(tmpFilt,RealMatrixView(tmpOut),i,tmpSource);
-            mask.process(in,RealMatrixView{tmpSource},ComplexMatrixView{out.row(i)});
+            mMask.process(in,RealMatrixView{tmpSource},ComplexMatrixView{out.row(i)});
           }
         });
     }
@@ -93,7 +93,7 @@ private:
   ParameterTrackChanges<size_t,size_t> mTrackValues;
   STFTBufferedProcess<ParamSetViewType, T, kFFT,true> mSTFTProcessor;
   std::unique_ptr<algorithm::NMF> mNMF;
-
+  algorithm::RatioMask mMask;
   RealMatrix a;
 
   RealMatrix tmpFilt;
