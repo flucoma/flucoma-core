@@ -16,10 +16,10 @@ using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
 // This implements Foote's novelty curve
-class RTNovelty {
+class Novelty {
 
 public:
-  RTNovelty(int maxSize) : mKernelStorage(maxSize, maxSize) {}
+  Novelty(int maxSize) : mKernelStorage(maxSize, maxSize) {}
 
   void init(int kernelSize, int nDims) {
     assert(kernelSize % 2);
