@@ -64,7 +64,8 @@ public:
         tmpFilt.resize(rank,fftParams.frameSize());
         tmpMagnitude.resize(1,fftParams.frameSize());
         tmpOut.resize(rank);
-        mNMF.reset(new algorithm::NMF(rank, get<kIterations>()));
+        //mNMF.reset(new algorithm::NMF(rank, get<kIterations>()));
+        mNMF.init(rank, get<kIterations>());
       }
 
       for (size_t i = 0; i < tmpFilt.rows(); ++i)
@@ -75,7 +76,7 @@ public:
         [&](ComplexMatrixView in)
         {
           algorithm::STFT::magnitude(in, tmpMagnitude);
-         mNMF->processFrame(tmpMagnitude.row(0), tmpFilt, tmpOut);
+         mNMF.processFrame(tmpMagnitude.row(0), tmpFilt, tmpOut);
 //          controlTrigger(true);
         });
 
@@ -87,7 +88,8 @@ public:
 private:
   ParameterTrackChanges<size_t,size_t> mTrackValues;
   STFTBufferedProcess<ParamSetViewType, T, kFFT,false> mSTFTProcessor;
-  std::unique_ptr<algorithm::NMF> mNMF;
+  //std::unique_ptr<algorithm::NMF> mNMF;
+  algorithm::NMF mNMF{get<kMaxRank>()};
 
   FluidTensor<double, 2> tmpFilt;
   FluidTensor<double, 2> tmpMagnitude;

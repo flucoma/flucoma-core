@@ -25,9 +25,14 @@ public:
   //pass iteration number; returns true if able to continue (i.e. not cancelled)
   using ProgressCallback = std::function<bool(int)>;
 
-  NMF(int rank, int nIterations, bool updateW = true, bool updateH = true)
-      : mRank(rank), mIterations(nIterations), mUpdateW(updateW),
-        mUpdateH(updateH) {}
+  NMF(int maxRank):mRank(maxRank), mIterations(100), mUpdateW(true), mUpdateH(true){}
+
+  void init(int rank, int nIterations, bool updateW = true, bool updateH = true){
+    mRank = rank;
+    mIterations = nIterations;
+    mUpdateW = updateW;
+    mUpdateH = updateH;
+  }
 
   static void estimate(const RealMatrixView W, const RealMatrixView H, int index,
                        RealMatrixView V) {
@@ -108,14 +113,14 @@ public:
   {
     mCallbacks.emplace_back(std::move(callback));
   }
-  
+
 private:
   int mRank;
   int mIterations;
   bool mUpdateW;
   bool mUpdateH;
   std::vector<ProgressCallback> mCallbacks;
-  
+
 
   void multiplicativeUpdates(MatrixXd &V, MatrixXd &W, MatrixXd &H) {
     double const epsilon = std::numeric_limits<double>::epsilon();

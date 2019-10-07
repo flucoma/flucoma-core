@@ -177,7 +177,8 @@ public:
         }
       }
 
-      auto nmf = algorithm::NMF(get<kRank>(), get<kIterations>(), !fixFilters, !fixEnvelopes);
+      auto nmf = algorithm::NMF(get<kRank>());
+      nmf.init(get<kRank>(), get<kIterations>(), !fixFilters, !fixEnvelopes);
       nmf.addProgressCallback([&c,&progressCount,progressTotal](const int)->bool{
           return c.task() ? c.task()->processUpdate(++progressCount,progressTotal) : true;
       });

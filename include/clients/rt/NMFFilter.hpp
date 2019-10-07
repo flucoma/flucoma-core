@@ -67,7 +67,7 @@ public:
         tmpOut.resize(rank);
         tmpEstimate.resize(1,fftParams.frameSize());
         tmpSource.resize(1,fftParams.frameSize());
-        mNMF.reset(new algorithm::NMF(rank, get<kIterations>()));
+        mNMF.init(rank, get<kIterations>());
       }
 
       for (size_t i = 0; i < tmpFilt.rows(); ++i)
@@ -78,7 +78,7 @@ public:
         [&](ComplexMatrixView in,ComplexMatrixView out)
         {
           algorithm::STFT::magnitude(in, tmpMagnitude);
-          mNMF->processFrame(tmpMagnitude.row(0), tmpFilt, tmpOut,get<kIterations>(),tmpEstimate.row(0));
+          mNMF.processFrame(tmpMagnitude.row(0), tmpFilt, tmpOut,get<kIterations>(),tmpEstimate.row(0));
           mMask.init(tmpEstimate,1);
           for(size_t i = 0; i < rank; ++i)
           {
@@ -92,7 +92,8 @@ public:
 private:
   ParameterTrackChanges<size_t,size_t> mTrackValues;
   STFTBufferedProcess<ParamSetViewType, T, kFFT,true> mSTFTProcessor;
-  std::unique_ptr<algorithm::NMF> mNMF;
+  //std::unique_ptr<algorithm::NMF> mNMF;
+  algorithm::NMF mNMF{get<kMaxRank>()};
   algorithm::RatioMask mMask;
   RealMatrix a;
 
