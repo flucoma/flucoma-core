@@ -39,7 +39,7 @@ extern auto constexpr SinesParams = defineParameters(
 template <typename T>
 class SinesClient : public FluidBaseClient<decltype(SinesParams), SinesParams>, public AudioIn, public AudioOut
 {
-  using HostVector = HostVector<T>;
+  using HostVector = FluidTensorView<T,1>;
 
 public:
   SinesClient(ParamSetViewType& p)

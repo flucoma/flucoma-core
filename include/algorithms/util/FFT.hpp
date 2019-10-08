@@ -1,6 +1,7 @@
 #pragma once
 
 #include "HISSTools_FFT/HISSTools_FFT.h"
+
 #include <Eigen/Core>
 
 namespace fluid {

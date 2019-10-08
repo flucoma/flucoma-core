@@ -47,7 +47,7 @@ class OnsetSlice : public FluidBaseClient<decltype(OnsetParams), OnsetParams>,
                    public AudioIn,
                    public AudioOut {
 
-  using HostVector = HostVector<T>;
+  using HostVector = FluidTensorView<T,1>;
 
 public:
   OnsetSlice(ParamSetViewType &p) : FluidBaseClient(p) {
@@ -113,7 +113,7 @@ template <typename T>
 using NRTOnsetSlice =
     NRTSliceAdaptor<OnsetSlice<T>, decltype(NRTOnsetSliceParams),
                     NRTOnsetSliceParams, 1, 1>;
-    
+
 template <typename T>
 using NRTThreadingOnsetSlice = NRTThreadingAdaptor<NRTOnsetSlice<T>>;
 

@@ -5,41 +5,38 @@
 #include "../util/FFT.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "Windows.hpp"
+
 #include <Eigen/Core>
 
 namespace fluid {
 namespace algorithm {
 
-using _impl::asEigen;
-using _impl::asFluid;
-using Eigen::ArrayXd;
-using Eigen::ArrayXXcd;
-using Eigen::ArrayXcd;
-using Eigen::ArrayXXd;
-using Eigen::MatrixXcd;
-using Eigen::Map;
-using Eigen::Array;
-
 class STFT {
+
+
+using ArrayXd = Eigen::ArrayXd;
+using ArrayXXd = Eigen::ArrayXXd;
+using ArrayXcd = Eigen::ArrayXcd;
+using ArrayXXcd = Eigen::ArrayXXcd;
 
 public:
   STFT(size_t windowSize, size_t fftSize, size_t hopSize)
       : mWindowSize(windowSize), mHopSize(hopSize), mFrameSize(fftSize / 2 + 1),
         mFFT(fftSize) {
-    mWindow = Map<ArrayXd>(windowFuncs[WindowType::kHann](mWindowSize).data(),
+    mWindow = Eigen::Map<ArrayXd>(windowFuncs[WindowType::kHann](mWindowSize).data(),
                            mWindowSize);
   }
 
   static void magnitude(const FluidTensorView<complex<double>, 2> &in,
                         FluidTensorView<double, 2> out) {
-    ArrayXXd mag = asEigen<Array>(in).abs().real();
-    out = asFluid(mag);
+    ArrayXXd mag = _impl::asEigen<Eigen::Array>(in).abs().real();
+    out = _impl::asFluid(mag);
   }
 
   static void magnitude(const FluidTensorView<complex<double>, 1> &in,
                         FluidTensorView<double, 1> out) {
-    ArrayXd mag = asEigen<Array>(in).abs().real();
-    out = asFluid(mag);
+    ArrayXd mag = _impl::asEigen<Eigen::Array>(in).abs().real();
+    out = _impl::asFluid(mag);
   }
 
 
@@ -48,20 +45,20 @@ public:
     ArrayXd padded(audio.size() + mWindowSize + mHopSize);
     padded.fill(0);
     padded.segment(halfWindow, audio.size()) =
-        Map<const ArrayXd>(audio.data(), audio.size());
+        Eigen::Map<const ArrayXd>(audio.data(), audio.size());
     int nFrames = floor((padded.size() - mWindowSize) / mHopSize);
     ArrayXXcd result(nFrames, mFrameSize);
     for (int i = 0; i < nFrames; i++) {
       result.row(i) =
           mFFT.process(padded.segment(i * mHopSize, mWindowSize) * mWindow);
     }
-    spectrogram = asFluid(result);
+    spectrogram = _impl::asFluid(result);
   }
 
   void processFrame(const RealVectorView frame, ComplexVectorView out) {
     assert(frame.size() == mWindowSize);
-    ArrayXcd spectrum = mFFT.process(asEigen<Array>(frame) * mWindow);
-    out = asFluid(spectrum);
+    ArrayXcd spectrum = mFFT.process(_impl::asEigen<Eigen::Array>(frame) * mWindow);
+    out = _impl::asFluid(spectrum);
   }
 
   RealVectorView window() { return RealVectorView(mWindow.data(), 0, mWindowSize); }
@@ -75,12 +72,14 @@ private:
 };
 
 class ISTFT {
+  using ArrayXd = Eigen::ArrayXd;
+  using ArrayXXcd = Eigen::ArrayXXcd;
 
 public:
   ISTFT(size_t windowSize, size_t fftSize, size_t hopSize)
       : mWindowSize(windowSize), mHopSize(hopSize), mFrameSize(fftSize / 2 + 1),
         mScale(1 / double(fftSize)), mIFFT(fftSize), mBuffer(mWindowSize) {
-    mWindow = Map<ArrayXd>(windowFuncs[WindowType::kHann](mWindowSize).data(),
+    mWindow = Eigen::Map<ArrayXd>(windowFuncs[WindowType::kHann](mWindowSize).data(),
                            mWindowSize);
     mWindowSquared = mWindow * mWindow;
   }
@@ -91,7 +90,7 @@ public:
     int nFrames = spectrogram.rows();
     int outputSize = mWindowSize + (nFrames - 1) * mHopSize;
     outputSize += mWindowSize + mHopSize;
-    ArrayXXcd specData = asEigen<Array>(spectrogram);
+    ArrayXXcd specData = _impl::asEigen<Eigen::Array>(spectrogram);
     ArrayXd outputPadded = ArrayXd::Zero(outputSize);
     ArrayXd norm = ArrayXd::Zero(outputSize);
     for (int i = 0; i < nFrames; i++) {
@@ -103,14 +102,14 @@ public:
     outputPadded = outputPadded / norm.max(epsilon());
     ArrayXd trimmed = outputPadded.segment(
         halfWindow, audio.size());
-    audio = asFluid(trimmed);
+    audio = _impl::asFluid(trimmed);
   }
 
   void processFrame(const ComplexVectorView frame, RealVectorView audio) {
     assert(frame.size() == mFrameSize);
-    mBuffer = mIFFT.process(asEigen<Array>(frame)).segment(0, mWindowSize) *
+    mBuffer = mIFFT.process(_impl::asEigen<Eigen::Array>(frame)).segment(0, mWindowSize) *
               mWindow * mScale;
-    audio = asFluid(mBuffer);
+    audio = _impl::asFluid(mBuffer);
   }
 
   RealVectorView window() { return RealVectorView(mWindow.data(), 0, mWindowSize); }

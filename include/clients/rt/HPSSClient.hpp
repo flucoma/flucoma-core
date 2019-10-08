@@ -34,8 +34,7 @@ class HPSSClient : public FluidBaseClient<decltype(HPSSParams), HPSSParams>, pub
 {
   using data_type       = FluidTensorView<T, 2>;
   using complex         = FluidTensorView<std::complex<T>, 1>;
-  using HostVector      = HostVector<T>;
-
+  using HostVector = FluidTensorView<T,1>;
 public:
 
   HPSSClient(ParamSetViewType& p)

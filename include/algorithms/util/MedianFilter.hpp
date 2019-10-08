@@ -1,16 +1,14 @@
 #pragma once
 
 #include "../../data/FluidTensor.hpp"
-#include <Eigen/Dense>
+
+#include <Eigen/Core>
 #include <cassert>
-#include <iostream>
 #include <limits>
 
 namespace fluid {
 namespace algorithm {
 
-using Eigen::ArrayXd;
-using Eigen::Ref;
 
 const double maxDouble = std::numeric_limits<double>::max();
 
@@ -19,6 +17,9 @@ const double maxDouble = std::numeric_limits<double>::max();
 // https://arxiv.org/abs/1406.1717
 // it is based on the author's own C++11 and python implementations
 class MedianFilter {
+
+  using ArrayXd = Eigen::ArrayXd;
+
 
   struct Block {
     struct Link {
@@ -182,7 +183,7 @@ public:
     }
   }
 
-  MedianFilter(const Ref<ArrayXd> in, int size)
+  MedianFilter(const Eigen::Ref<ArrayXd> in, int size)
       : mSize(size), mHalfSize((size - 1) / 2), a(nullptr, 0), b(nullptr, 0) {
     assert(mSize % 2);
     int nBlocks = in.size() / mSize;
@@ -199,7 +200,7 @@ public:
     }
   }
 
-  void process(Ref<ArrayXd> out) {
+  void process(Eigen::Ref<ArrayXd> out) {
     // assuming size of in is multiple of block size ...
     // client code should pad
     int nBlocks = blocks.size();

@@ -47,7 +47,7 @@ class MFCCClient : public FluidBaseClient<decltype(MFCCParams), MFCCParams>,
                    public ControlOut
 
 {
-  using HostVector = HostVector<T>;
+  using HostVector = FluidTensorView<T,1>;
 
 public:
   MFCCClient(ParamSetViewType &p)
@@ -108,7 +108,7 @@ auto constexpr NRTMFCCParams =
 template <typename T>
 using NRTMFCCClient = NRTControlAdaptor<MFCCClient<T>, decltype(NRTMFCCParams),
                                         NRTMFCCParams, 1, 1>;
-    
+
 template <typename T>
 using NRTThreadedMFCCClient = NRTThreadingAdaptor<NRTMFCCClient<T>>;
 

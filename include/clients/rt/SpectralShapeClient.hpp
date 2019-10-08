@@ -30,7 +30,7 @@ class SpectralShapeClient
                              SpectralShapeParams>,
       public AudioIn,
       public ControlOut {
-  using HostVector = HostVector<T>;
+  using HostVector = FluidTensorView<T,1>;
 
 public:
   SpectralShapeClient(ParamSetViewType &p)
@@ -90,7 +90,7 @@ template <typename T>
 using NRTSpectralShapeClient =
     NRTControlAdaptor<SpectralShapeClient<T>, decltype(NRTSpectralShapeParams),
                       NRTSpectralShapeParams, 1, 1>;
-    
+
 template <typename T>
 using NRTThreadedSpectralShapeClient = NRTThreadingAdaptor<NRTSpectralShapeClient<T>>;
 

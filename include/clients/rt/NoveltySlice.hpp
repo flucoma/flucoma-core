@@ -62,7 +62,7 @@ class NoveltySlice
       public AudioIn,
       public AudioOut {
 
-  using HostVector = HostVector<T>;
+  using HostVector = FluidTensorView<T,1>;
 
 public:
   NoveltySlice(ParamSetViewType &p) : FluidBaseClient(p) {

@@ -44,7 +44,7 @@ class MelBandsClient
       public ControlOut
 
 {
-  using HostVector = HostVector<T>;
+  using HostVector = FluidTensorView<T,1>;
 
 public:
   MelBandsClient(ParamSetViewType &p)
@@ -101,9 +101,9 @@ template <typename T>
 using NRTMelBandsClient =
     NRTControlAdaptor<MelBandsClient<T>, decltype(NRTMelBandsParams),
                       NRTMelBandsParams, 1, 1>;
- 
+
 template <typename T>
 using NRTThreadedMelBandsClient = NRTThreadingAdaptor<NRTMelBandsClient<T>>;
-    
+
 } // namespace client
 } // namespace fluid

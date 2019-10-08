@@ -2,23 +2,23 @@
 
 #include "../../data/FluidTensor.hpp"
 #include "../public/Windows.hpp"
-#include "Descriptors.hpp"
 #include "FluidEigenMappings.hpp"
-#include <Eigen/Dense>
+
+#include <Eigen/Core>
 #include <limits>
 
 namespace fluid {
 namespace algorithm {
 
-using Eigen::ArrayXd;
-using Eigen::ArrayXXd;
-using Eigen::MatrixXd;
-using Eigen::VectorXd;
-
 // This implements Foote's novelty curve
 class Novelty {
 
 public:
+  using ArrayXd = Eigen::ArrayXd;
+  using ArrayXXd = Eigen::ArrayXXd;
+  using MatrixXd = Eigen::MatrixXd;
+  using VectorXd = Eigen::VectorXd;
+
   Novelty(int maxSize) : mKernelStorage(maxSize, maxSize) {}
 
   void init(int kernelSize, int nDims) {

@@ -5,26 +5,20 @@
 #include "../util/FFT.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/PeakDetection.hpp"
+
 #include <Eigen/Core>
-#include <fstream>
-#include <iostream>
 
 namespace fluid {
 namespace algorithm {
-
-using _impl::asEigen;
-using _impl::asFluid;
-using Eigen::Array;
-using Eigen::ArrayXcd;
-using Eigen::ArrayXd;
 
 class YINFFT {
 
 public:
   void processFrame(const RealVectorView &input, RealVectorView output,
                     double minFreq, double maxFreq, double sampleRate) {
+    using namespace Eigen;
     PeakDetection pd;
-    ArrayXd mag = asEigen<Array>(input);
+    ArrayXd mag = _impl::asEigen<Array>(input);
     ArrayXd squareMag = mag.square();
     int nBins = mag.size();
     FFT fft(2 * (mag.size() - 1));

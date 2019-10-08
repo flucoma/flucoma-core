@@ -2,11 +2,9 @@
 
 #include "../../data/TensorTypes.hpp"
 #include "../util/ARModel.hpp"
-#include "../util/Descriptors.hpp"
 #include "../util/FluidEigenMappings.hpp"
 
 #include <Eigen/Core>
-
 #include <algorithm>
 #include <cmath>
 #include <random>
@@ -16,16 +14,15 @@
 namespace fluid {
 namespace algorithm {
 
-using _impl::asEigen;
-using _impl::asFluid;
-using algorithm::ARModel;
-using Eigen::MatrixXd;
-using Eigen::VectorXd;
-
 class TransientExtraction {
 
+  using ARModel = algorithm::ARModel;
+  using MatrixXd = Eigen::MatrixXd;
+  using VectorXd = Eigen::VectorXd;
+
+
 public:
-//  using TensorView = const FluidTensorView<double, 1>;
+
   TransientExtraction(size_t order, size_t iterations, double robustFactor,
                       bool refine)
       : mModel(order, iterations, robustFactor),

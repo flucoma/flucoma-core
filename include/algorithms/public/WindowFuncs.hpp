@@ -9,29 +9,25 @@
 namespace fluid {
 namespace algorithm {
 
-using std::function;
-using std::map;
-using Eigen::ArrayXd;
-using Eigen::Ref;
 
 enum class WindowTypes { kHann, kHamming, kBlackmanHarris, kGaussian };
-using WindowFuncsMap = map<WindowTypes, function<void(int,  Ref<ArrayXd>)>>;
+using WindowFuncsMap = std::map<WindowTypes, std::function<void(int,  Eigen::Ref<Eigen::ArrayXd>)>>;
 
 static WindowFuncsMap windows = {
     {WindowTypes::kHann,
-     [](int size, Ref<ArrayXd> out) {
+     [](int size, Eigen::Ref<Eigen::ArrayXd> out) {
        for (int i = 0; i < size; i++) {
          out(i) = 0.5 - 0.5 * std::cos((M_PI * 2 * i) / size);
        }
      }},
     {WindowTypes::kHamming,
-     [](int size, Ref<ArrayXd> out) {
+     [](int size, Eigen::Ref<Eigen::ArrayXd> out) {
        for (int i = 0; i < size; i++) {
          out(i) = 0.54 - 0.46 * std::cos((M_PI * 2 * i) / size);
        }
      }},
     {WindowTypes::kBlackmanHarris,
-     [](int size, Ref<ArrayXd> out) {
+     [](int size, Eigen::Ref<Eigen::ArrayXd> out) {
        using std::cos;
        for (int i = 0; i < size; i++) {
          out(i) = 0.35875 - 0.48829 * cos((M_PI * 2 * i) / size) +
@@ -40,7 +36,7 @@ static WindowFuncsMap windows = {
        }
      }},
     {WindowTypes::kGaussian,
-      [](int size, Ref<ArrayXd> out) {
+      [](int size, Eigen::Ref<Eigen::ArrayXd> out) {
        using std::exp;
        double sigma = size / 3; // TODO: should be argument
        assert(size % 2);

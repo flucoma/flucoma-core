@@ -42,7 +42,7 @@ template <typename T>
 class PitchClient : public FluidBaseClient<decltype(PitchParams), PitchParams>,
                     public AudioIn,
                     public ControlOut {
-  using HostVector = HostVector<T>;
+  using HostVector = FluidTensorView<T,1>;
   using size_t = std::size_t;
   using CepstrumF0 = algorithm::CepstrumF0;
   using HPS = algorithm::HPS;
@@ -116,6 +116,6 @@ using NRTPitchClient =
 
 template <typename T>
 using NRTThreadedPitchClient = NRTThreadingAdaptor<NRTPitchClient<T>>;
-    
+
 } // namespace client
 } // namespace fluid

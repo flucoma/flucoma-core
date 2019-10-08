@@ -44,7 +44,7 @@ template <typename T>
 class TransientsSlice :
 public FluidBaseClient<decltype(TransientParams), TransientParams>, public AudioIn, public AudioOut
 {
-  using HostVector = HostVector<T>;
+  using HostVector = FluidTensorView<T,1>;
 
 public:
 

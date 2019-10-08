@@ -1,21 +1,23 @@
 #pragma once
 
-#include <Eigen/Eigen>
-#include <algorithm>
-#include <cmath>
-#include <functional>
 
 #include "../public/Windows.hpp"
 #include "ConvolutionTools.hpp"
 #include "Toeplitz.hpp"
 
+#include <Eigen/Eigen>
+#include <algorithm>
+#include <cmath>
+#include <functional>
+
+
 namespace fluid {
 namespace algorithm {
 
-using Eigen::MatrixXd;
-using Eigen::VectorXd;
-
 class ARModel {
+
+  using MatrixXd = Eigen::MatrixXd;
+  using VectorXd = Eigen::VectorXd;
 
 public:
   ARModel(size_t order, size_t iterations = 3, bool useWindow = true,

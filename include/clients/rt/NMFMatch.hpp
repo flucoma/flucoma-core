@@ -26,7 +26,7 @@ auto constexpr NMFMatchParams = defineParameters(
 template <typename T>
 class NMFMatch : public FluidBaseClient<decltype(NMFMatchParams), NMFMatchParams>, public AudioIn, public ControlOut
 {
-  using HostVector = HostVector<T>;
+  using HostVector = FluidTensorView<T,1>;
 public:
 
   NMFMatch(ParamSetViewType& p) : FluidBaseClient(p), mSTFTProcessor(get<kMaxFFTSize>(),1,0)

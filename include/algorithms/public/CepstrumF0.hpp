@@ -1,25 +1,21 @@
 
 #pragma once
 
-#include "../../data/TensorTypes.hpp"
 #include "../util/DCT.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/PeakDetection.hpp"
+#include "../../data/TensorTypes.hpp"
+
 #include <Eigen/Eigen>
-#include <fstream>
-#include <iostream>
 
 namespace fluid {
 namespace algorithm {
 
-using _impl::asEigen;
-using _impl::asFluid;
-using Eigen::Array;
-using Eigen::ArrayXd;
-
 class CepstrumF0 {
 
 public:
+  using ArrayXd = Eigen::ArrayXd;
+
   void init(int size){
     mNumBins = size;
     mDCT.init(mNumBins, mNumBins);
@@ -28,10 +24,11 @@ public:
 
   void processFrame(const RealVectorView &input, RealVectorView output,
                     double minFreq, double maxFreq, double sampleRate) {
-
+    using namespace Eigen;
     PeakDetection pd;
     const auto &epsilon = std::numeric_limits<double>::epsilon();
-    ArrayXd mag = asEigen<Array>(input);
+
+    ArrayXd mag = _impl::asEigen<Array>(input);
     ArrayXd logMag = mag.max(epsilon).log();
     mDCT.processFrame(logMag, mCepstrum);
     double pitch = sampleRate / minFreq;

@@ -4,23 +4,18 @@
 #include "../../data/TensorTypes.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include <Eigen/Core>
-#include <fstream>
-#include <iostream>
 
 namespace fluid {
 namespace algorithm {
-
-using _impl::asEigen;
-using _impl::asFluid;
-using Eigen::Array;
-using Eigen::ArrayXd;
 
 class HPS {
 
 public:
   void processFrame(const RealVectorView &input, RealVectorView output,
                     int nHarmonics, double minFreq, double maxFreq, double sampleRate) {
-    ArrayXd mag = asEigen<Array>(input);
+    using namespace Eigen;
+
+    ArrayXd mag = _impl::asEigen<Array>(input);
     ArrayXd hps = mag;
     int nBins = mag.size();
     double binHz = sampleRate / ((nBins - 1) * 2);

@@ -27,7 +27,7 @@ auto constexpr NMFFilterParams = defineParameters(
 template <typename T>
 class NMFFilter : public FluidBaseClient<decltype(NMFFilterParams), NMFFilterParams>, public AudioIn, public AudioOut
 {
-  using HostVector = HostVector<T>;
+  using HostVector = FluidTensorView<T,1>;
 public:
 
   NMFFilter(ParamSetViewType& p) : FluidBaseClient(p), mSTFTProcessor(get<kMaxFFTSize>(),1,get<kMaxRank>())

@@ -1,6 +1,6 @@
 #pragma once
+
 #include <cmath>
-#include <iostream>
 
 namespace fluid {
 namespace algorithm {
@@ -56,18 +56,6 @@ public:
       mX[i] = 0;
       mY[i] = 0;
     }
-    //std::cout << sampleRate << std::endl;
-    //std::cout << K << std::endl;
-    for (int i = 0; i < 5; i++) {
-      //std::cout << mA[i] << std::endl;
-      //std::cout << mB[i] << std::endl;
-    }
-    for (int i = 0; i < 5; i++) {
-      //std::cout << mX[i] << std::endl;
-      //std::cout << mY[i] << std::endl;
-    }
-    //std::cout << "------"<< std::endl;
-  //  std::cout << "------"<< std::endl;
   }
 
   double processSample(double x) {
@@ -76,22 +64,11 @@ public:
     for (int i = 1; i < 5; i++) y-=mA[i] * mY[i - 1];
     for (int i = 0; i < 5; i++) y+=mB[i] * mX[i];
 
-    /*for (int i = 0; i < 5; i++)
-      y = y + mB[i] * mX[i] - mA[i] * mY[i];*/
     for (int i = 4; i > 0; i--) {
       mX[i] = mX[i - 1];
       mY[i] = mY[i - 1];
     }
     mY[0] = y;
-    //std::cout << x << std::endl;
-    //std::cout << y << std::endl;
-    //std::cout << "------"<< std::endl;
-    for (int i = 0; i < 5; i++) {
-      //std::cout << mX[i] << std::endl;
-      //std::cout << mY[i] << std::endl;
-    }
-    //std::cout << "------"<< std::endl;
-    //std::cout << "------"<< std::endl;
     return y;
   }
 

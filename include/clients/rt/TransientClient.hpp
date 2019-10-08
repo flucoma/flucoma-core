@@ -45,7 +45,7 @@ class TransientClient : public FluidBaseClient<decltype(TransientParams), Transi
 
 public:
 
-  using HostVector = HostVector<T>;
+  using HostVector = FluidTensorView<T,1>;
 
   TransientClient(ParamSetViewType& p) : FluidBaseClient(p) {
     FluidBaseClient::audioChannelsIn(1);

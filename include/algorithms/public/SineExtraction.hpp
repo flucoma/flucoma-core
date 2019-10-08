@@ -5,19 +5,13 @@
 #include "../util/FFT.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "Windows.hpp"
-#include <Eigen/Eigen>
+
+#include <Eigen/Core>
 #include <queue>
 
 namespace fluid {
 namespace algorithm {
 
-using _impl::asEigen;
-using _impl::asFluid;
-using Eigen::ArrayXcd;
-using Eigen::ArrayXd;
-using Eigen::Map;
-using Eigen::VectorXd;
-using std::vector;
 
 struct SinePeak {
   // int centerBin;
@@ -27,7 +21,7 @@ struct SinePeak {
 };
 
 struct SineTrack {
-  vector<SinePeak> peaks;
+  std::vector<SinePeak> peaks;
   int startFrame;
   int endFrame;
   bool active;
@@ -35,6 +29,11 @@ struct SineTrack {
 };
 
 class SineExtraction {
+  using ArrayXd = Eigen::ArrayXd;
+  using VectorXd = Eigen::VectorXd;
+  using ArrayXcd = Eigen::ArrayXcd;
+  template<typename T>using vector = std::vector<T>;
+
 public:
 
   SineExtraction(int maxFFTSize)
@@ -72,7 +71,7 @@ public:
     using Eigen::Array;
     using Eigen::ArrayXXcd;
     const auto &epsilon = std::numeric_limits<double>::epsilon();
-    ArrayXcd frame = asEigen<Array>(in);
+    ArrayXcd frame = _impl::asEigen<Array>(in);
     mBuf.push(frame);
     ArrayXd mag = frame.abs().real();
     ArrayXd logMag = 20 * mag.max(epsilon).log10();
@@ -102,7 +101,7 @@ public:
                   track.endFrame <= mCurrentFrame - mMinTrackLength);
         });
     mTracks.erase(iterator, mTracks.end());
-    out = asFluid(result);
+    out = _impl::asFluid(result);
     mCurrentFrame++;
   }
 
@@ -151,12 +150,8 @@ private:
 
   const void peakContinuation(vector<SineTrack> &tracks,
                               vector<SinePeak> sinePeaks, const ArrayXd frame) {
-    using std::abs;
-    using std::get;
-    using std::log;
-    using std::sort;
-    using std::tuple;
-    using std::vector;
+    using namespace std;
+
 
     vector<tuple<double, SineTrack *, SinePeak *>> distances;
     for (auto &&track : tracks) {
@@ -236,7 +231,7 @@ private:
   ArrayXd computeWindowTransform(vector<double> window) {
     int halfBW = mBandwidth / 2;
     ArrayXd result = ArrayXd::Zero(mBandwidth);
-    ArrayXcd transform = mFFT.process(Map<ArrayXd>(window.data(), mWindowSize));
+    ArrayXcd transform = mFFT.process(Eigen::Map<ArrayXd>(window.data(), mWindowSize));
     for (int i = 0; i < halfBW; i++) {
       result(halfBW + i) = result(halfBW - i) = abs(transform(i));
     }

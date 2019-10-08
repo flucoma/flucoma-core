@@ -38,7 +38,7 @@ class LoudnessClient
     : public FluidBaseClient<decltype(LoudnessParams), LoudnessParams>,
       public AudioIn,
       public ControlOut {
-  using HostVector = HostVector<T>;
+  using HostVector = FluidTensorView<T,1>;
 
 public:
   LoudnessClient(ParamSetViewType &p) : FluidBaseClient(p) {
@@ -97,6 +97,6 @@ using NRTLoudnessClient =
 
 template <typename T>
 using NRTThreadedLoudnessClient = NRTThreadingAdaptor<NRTLoudnessClient<T>>;
-    
+
 } // namespace client
 } // namespace fluid

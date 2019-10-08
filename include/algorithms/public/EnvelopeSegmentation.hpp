@@ -6,19 +6,15 @@
 #include "../util/SlideUDFilter.hpp"
 
 #include <Eigen/Core>
-
 #include <algorithm>
 #include <cmath>
 
 namespace fluid {
 namespace algorithm {
 
-using _impl::asEigen;
-using _impl::asFluid;
-using Eigen::Array;
-using Eigen::ArrayXd;
-
 class EnvelopeSegmentation {
+
+using ArrayXd = Eigen::ArrayXd;
 
 public:
   EnvelopeSegmentation(size_t maxSize, int outputType)
@@ -33,6 +29,7 @@ public:
     mInputStorage = ArrayXd(maxSize);
     mOutputStorage = ArrayXd(maxSize);
   }
+
   void init(double hiPassFreq, int rampUpTime, int rampUpTime2,
             int rampDownTime, int rampDownTime2, double onThreshold,
             double relOnThreshold, double relOffThreshold,
@@ -70,62 +67,6 @@ public:
   int getLatency() { return mLatency; }
   bool initialized(){
     return mInitialized;
-  }
-  void initBuffers() {
-    mInputBuffer = mInputStorage.segment(0, std::max(mLatency, 1));
-    mOutputBuffer = mOutputStorage.segment(0, std::max(mLatency, 1));
-    mInputState = false;
-    mOutputState = false;
-    mRetriggerState = false;
-    mFillCount = 0;
-  }
-
-  void initFilters() {
-    mHiPass1.init(mHiPassFreq);
-    mHiPass2.init(mHiPassFreq);
-    mSlide.init(mRampUpTime, mRampDownTime, -144);
-    mSlide2.init(mRampUpTime2, mRampDownTime2, -144);
-  }
-
-  int refineStart(int start, int nSamples, bool direction = true) {
-    if (nSamples < 2)
-      return start + nSamples;
-    /*ArrayXd diff = mInputBuffer.segment(start + 1, nSamples - 1) -
-                   mInputBuffer.segment(start, nSamples - 1);
-    */
-    ArrayXd seg = mInputBuffer.segment(start, nSamples);
-    ArrayXd::Index index;
-    /*
-    if (direction)
-      diff.maxCoeff(&index);
-    else
-      diff.minCoeff(&index);
-      */
-    seg.minCoeff(&index);
-    return start + index;
-  }
-
-  void updateCounters(bool nextState) {
-    if (!mInputState && nextState) { // change from 0 to 1
-      mOffStateCount = 0;
-      mOnStateCount = 1;
-    } else if (mInputState && !nextState) {
-      mOnStateCount = 0;
-      mOffStateCount = 1;
-    } else if (mInputState && nextState) {
-      mOnStateCount++;
-    } else if (!mInputState && !nextState) {
-      mOffStateCount++;
-    }
-  }
-
-  bool shouldRetrigger(double relEnv) {
-    if(mRetriggerState) return false;
-    if (mInputState && mOutputState && mOnStateCount > 0 && relEnv > mRelOnThreshold) {
-      mRetriggerState = true;
-      return true;
-    }
-    return false;
   }
 
   double processSample(const double in) { // size is supposed to be 1
@@ -230,6 +171,63 @@ public:
   }
 
 private:
+  void initBuffers() {
+    mInputBuffer = mInputStorage.segment(0, std::max(mLatency, 1));
+    mOutputBuffer = mOutputStorage.segment(0, std::max(mLatency, 1));
+    mInputState = false;
+    mOutputState = false;
+    mRetriggerState = false;
+    mFillCount = 0;
+  }
+
+  void initFilters() {
+    mHiPass1.init(mHiPassFreq);
+    mHiPass2.init(mHiPassFreq);
+    mSlide.init(mRampUpTime, mRampDownTime, -144);
+    mSlide2.init(mRampUpTime2, mRampDownTime2, -144);
+  }
+
+  int refineStart(int start, int nSamples, bool direction = true) {
+    if (nSamples < 2)
+      return start + nSamples;
+    /*ArrayXd diff = mInputBuffer.segment(start + 1, nSamples - 1) -
+                   mInputBuffer.segment(start, nSamples - 1);
+    */
+    ArrayXd seg = mInputBuffer.segment(start, nSamples);
+    ArrayXd::Index index;
+    /*
+    if (direction)
+      diff.maxCoeff(&index);
+    else
+      diff.minCoeff(&index);
+      */
+    seg.minCoeff(&index);
+    return start + index;
+  }
+
+  void updateCounters(bool nextState) {
+    if (!mInputState && nextState) { // change from 0 to 1
+      mOffStateCount = 0;
+      mOnStateCount = 1;
+    } else if (mInputState && !nextState) {
+      mOnStateCount = 0;
+      mOffStateCount = 1;
+    } else if (mInputState && nextState) {
+      mOnStateCount++;
+    } else if (!mInputState && !nextState) {
+      mOffStateCount++;
+    }
+  }
+
+  bool shouldRetrigger(double relEnv) {
+    if(mRetriggerState) return false;
+    if (mInputState && mOutputState && mOnStateCount > 0 && relEnv > mRelOnThreshold) {
+      mRetriggerState = true;
+      return true;
+    }
+    return false;
+  }
+
   int mMaxSize;
   int mLatency;
   int mFillCount;

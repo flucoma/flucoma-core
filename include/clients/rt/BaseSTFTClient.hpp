@@ -27,7 +27,7 @@ auto constexpr STFTParams = defineParameters(
 template <typename T>
 class BaseSTFTClient : public FluidBaseClient<decltype(STFTParams), STFTParams>, public AudioIn, public AudioOut
 {
-  using HostVector = HostVector<T>;
+  using HostVector = FluidTensorView<T,1>;
 
 public:
 

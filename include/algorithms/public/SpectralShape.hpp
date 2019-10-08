@@ -2,62 +2,24 @@
 #pragma once
 
 #include "../../data/TensorTypes.hpp"
-#include "../util/Descriptors.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "Windows.hpp"
+
 #include <Eigen/Eigen>
-#include <fstream>
-#include <iostream>
 
 namespace fluid {
 namespace algorithm {
 
-using _impl::asEigen;
-using _impl::asFluid;
-using Eigen::ArrayXXd;
-using Eigen::Array;
-using Eigen::ArrayXd;
-using Eigen::MatrixXd;
-using Eigen::Ref;
-using Eigen::RowVectorXd;
-using Eigen::VectorXd;
 
 class SpectralShape {
 
+using ArrayXd = Eigen::ArrayXd;
 
 public:
+
   SpectralShape(size_t maxFrame) : mMagBuffer(maxFrame), mOutputBuffer(7) {}
 
-  /*void process(const RealMatrix &input, RealVector output) {
-    int nFrames = input.rows();
-    int nFeatures = 7;
-    ArrayXXd X = asEigen<Array>(input);
-    ArrayXXd O = ArrayXXd::Zero(nFrames, nFeatures);
-    clock_t begin = std::clock();
-    for (int i = 0; i < nFrames; i++) {
-      ArrayXd in = X.row(i) + epsilon;
-      ArrayXd out = ArrayXd::Zero(nFeatures);
-      processFrame(in);
-      O.row(i) = out;
-    }
-    // std::cout<<O<<std::endl;
-    // clock_t end = std::clock();
-    // double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
-    RowVectorXd mean = O.colwise().mean();
-    RowVectorXd std = (O.rowwise() - mean.array()).colwise().mean();
-    ArrayXXd diff = O.block(1, 0, nFrames - 1, nFeatures) -
-                    O.block(0, 0, nFrames - 1, nFeatures);
-    RowVectorXd dmean = diff.colwise().mean();
-    RowVectorXd dstd = (diff.rowwise() - mean.array()).colwise().mean();
-    ArrayXd result = ArrayXd::Zero(nFeatures * 4);
-    result.segment(0, 7) = mean;
-    result.segment(7, 7) = dmean;
-    result.segment(14, 7) = std;
-    result.segment(21, 7) = dstd;
-    output = asFluid(result);
-  }*/
-
-  void processFrame(Ref<ArrayXd> in) {
+  void processFrame(Eigen::Ref<ArrayXd> in) {
     double const epsilon = std::numeric_limits<double>::epsilon();
     ArrayXd x = in.max(epsilon);
     int size = x.size();
@@ -94,9 +56,9 @@ public:
 
   void processFrame(const RealVector &input, RealVectorView output) {
     assert(output.size() == 7); // TODO
-    ArrayXd in = asEigen<Array>(input);
+    ArrayXd in = _impl::asEigen<Eigen::Array>(input);
     processFrame(in);
-    output = asFluid(mOutputBuffer);
+    output = _impl::asFluid(mOutputBuffer);
   }
 
 private:

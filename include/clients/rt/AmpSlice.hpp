@@ -69,7 +69,7 @@ class AmpSlice
     : public FluidBaseClient<decltype(AmpSliceParams), AmpSliceParams>,
       public AudioIn,
       public AudioOut {
-  using HostVector = HostVector<T>;
+  using HostVector = FluidTensorView<T,1>;
 
 public:
   AmpSlice(ParamSetViewType &p) : FluidBaseClient(p) {

@@ -15,13 +15,12 @@
 namespace fluid {
 namespace client {
 
-template<typename T>
-using HostVector = FluidTensorView<T,1>;
-
-template<typename T>
-using HostMatrix = FluidTensorView<T,2>;
 
 class BufferedProcess {
+
+  template<typename T> using HostVector = FluidTensorView<T,1>;
+  template<typename T> using HostMatrix = FluidTensorView<T,2>;
+
 public:
   template <typename F>
   void process(std::size_t windowSizeIn, std::size_t windowSizeOut, std::size_t hopSize, FluidContext& c, bool reset, F processFunc) {
@@ -34,13 +33,13 @@ public:
       mSource.pull(windowIn, mFrameTime);
       processFunc(windowIn, windowOut);
       mSink.push(windowOut, mFrameTime);
-      
+
       if(FluidTask* t = c.task())
         if(!t->processUpdate(std::min(mFrameTime + hopSize,mHostSize),mHostSize)) break;
     }
     mFrameTime = mFrameTime < mHostSize ? mFrameTime : mFrameTime - mHostSize;
   }
-  
+
   template <typename F>
   void processInput(std::size_t windowSize, std::size_t hopSize, FluidContext& c, bool reset, F processFunc) {
     assert(windowSize <= maxWindowSizeIn() && "Window bigger than maximum");
@@ -49,7 +48,7 @@ public:
       RealMatrixView windowIn  = mFrameIn(Slice(0), Slice(0, windowSize));
       mSource.pull(windowIn, mFrameTime);
       processFunc(windowIn);
-      
+
       if(FluidTask* t = c.task())
         if(!t->processUpdate(std::min(mFrameTime + hopSize,mHostSize),mHostSize)) break;
     }
@@ -65,10 +64,10 @@ public:
     mSource.reset();
     mSink.reset();
   }
-  
+
   std::size_t maxWindowSizeIn() const noexcept { return mFrameIn.cols(); }
   std::size_t maxWindowSizeOut() const noexcept { return mFrameOut.cols(); }
-    
+
   void maxSize(std::size_t framesIn, std::size_t framesOut, std::size_t channelsIn,
                std::size_t channelsOut) {
     mSource.setSize(framesIn);
@@ -80,7 +79,7 @@ public:
       mFrameIn.resize(channelsIn, framesIn);
     if (channelsOut > mFrameOut.rows() || framesOut > mFrameOut.cols())
       mFrameOut.resize(channelsOut, framesOut);
-      
+
     mFrameTime = 0;
   }
 
@@ -88,7 +87,7 @@ public:
     mSource.push(in);
   }
   template<typename T> void pull(HostMatrix<T> out){ mSink.pull(out); }
-  
+
   size_t channelsIn()  const noexcept { return mSource.channels(); }
   size_t channelsOut() const noexcept { return mSink.channels(); }
 private:
@@ -102,23 +101,24 @@ private:
 
 template <typename Params, typename U, size_t FFTParamsIndex, bool Normalise=true>
 class  STFTBufferedProcess {
-  using HostVector = HostVector<U>;
+  using HostVector = FluidTensorView<U, 1>;
+  using HostMatrix = FluidTensorView<U, 2>;
 
 public:
 
   STFTBufferedProcess(size_t maxFFTSize, size_t channelsIn, size_t channelsOut){
     mBufferedProcess.maxSize(maxFFTSize, maxFFTSize, channelsIn, channelsOut + Normalise);
   }
-  
-  
+
+
   template <typename F>
   void process(Params &p, std::vector<HostVector> &input,
                std::vector<HostVector> &output, FluidContext& c, bool reset, F &&processFunc) {
-   
+
     if (!input[0].data()) return;
     assert(mBufferedProcess.channelsIn() == input.size());
     assert(mBufferedProcess.channelsOut() == output.size() + Normalise);
-    
+
     FFTParams fftParams = setup(p, input);
     size_t chansIn = mBufferedProcess.channelsIn() ;
     size_t chansOut = mBufferedProcess.channelsOut() - Normalise ;
@@ -150,10 +150,10 @@ public:
       }
     }
   }
-  
+
   template <typename F>
   void processInput(Params &p, std::vector<HostVector> &input,FluidContext& c, bool reset,F &&processFunc) {
-   
+
     if (!input[0].data()) return;
     assert(mBufferedProcess.channelsIn() == input.size());
     size_t chansIn = mBufferedProcess.channelsIn();
@@ -186,14 +186,14 @@ private:
 
     if (fftParams.frameSize() != mSpectrumIn.cols())
       mSpectrumIn.resize(chansIn, fftParams.frameSize());
-    
+
     if (fftParams.frameSize() != mSpectrumOut.cols())
       mSpectrumOut.resize(chansOut, fftParams.frameSize());
-    
+
     if (Normalise && std::max(mBufferedProcess.maxWindowSizeIn(), hostBufferSize) > mFrameAndWindow.cols())
       mFrameAndWindow.resize(chansOut, std::max(mBufferedProcess.maxWindowSizeIn(), hostBufferSize));
-    
-    mBufferedProcess.push(HostMatrix<U>(input[0]));
+
+    mBufferedProcess.push(HostMatrix(input[0]));
     return fftParams;
   }
 

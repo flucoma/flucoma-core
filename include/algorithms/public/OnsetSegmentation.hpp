@@ -7,6 +7,7 @@
 #include "../util/FluidEigenMappings.hpp"
 #include "OnsetDetectionFuncs.hpp"
 #include "WindowFuncs.hpp"
+
 #include <Eigen/Eigen>
 #include <algorithm>
 #include <cassert>
@@ -15,16 +16,12 @@
 namespace fluid {
 namespace algorithm {
 
-using _impl::asEigen;
-using _impl::asFluid;
-using Eigen::Array;
-using Eigen::ArrayXcd;
-using Eigen::ArrayXd;
-using Eigen::Map;
-
 class OnsetSegmentation {
 
 public:
+  using ArrayXd = Eigen::ArrayXd;
+  using ArrayXcd = Eigen::ArrayXcd;
+
   OnsetSegmentation(int maxSize)
       : mMaxSize(maxSize), mWindowStorage(maxSize), mFFT(maxSize),
         mFFTSize(maxSize), mWindowSize(maxSize), mHopSize(maxSize/2), mFrameDelta(0),
@@ -122,7 +119,7 @@ public:
   }
 
   double processFrame(RealVectorView input) {
-    ArrayXd in = asEigen<Array>(input);
+    ArrayXd in = _impl::asEigen<Eigen::Array>(input);
     double funcVal = 0;
     double filteredFuncVal = 0;
     double detected = 0.;
@@ -130,10 +127,10 @@ public:
     if (mFunction > 1 && mFunction < 5 && mFrameDelta != 0) {
       ArrayXcd frame2 =
           mFFT.process(in.segment(mFrameDelta, mWindowSize) * mWindow);
-      funcVal = onsetDetectionFuncs[static_cast<ODF>(mFunction)](frame2, frame,
+      funcVal = OnsetDetectionFuncs::map()[static_cast<OnsetDetectionFuncs::ODF>(mFunction)](frame2, frame,
                                                                  frame);
     } else {
-      funcVal = onsetDetectionFuncs[static_cast<ODF>(mFunction)](
+      funcVal = OnsetDetectionFuncs::map()[static_cast<OnsetDetectionFuncs::ODF>(mFunction)](
           frame, prevFrame, prevPrevFrame);
     }
     filteredFuncVal = funcVal - mFilter[mSorting[(mFilterSize - 1) / 2]];

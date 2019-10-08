@@ -1,8 +1,9 @@
 #pragma once
 
 #include "../../data/FluidTensor.hpp"
+
 #include <Eigen/Core>
-#include <Eigen/Eigen>
+//#include <Eigen/Eigen>
 #include <algorithm>
 
 /**

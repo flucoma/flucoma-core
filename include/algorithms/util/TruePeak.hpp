@@ -4,21 +4,17 @@
 #include "../../data/TensorTypes.hpp"
 #include "../util/FFT.hpp"
 #include "../util/FluidEigenMappings.hpp"
+
 #include <Eigen/Eigen>
 #include <cmath>
-#include <fstream>
-#include <iostream>
 
 namespace fluid {
 namespace algorithm {
 
-using _impl::asEigen;
-using _impl::asFluid;
-using Eigen::Array;
-using Eigen::ArrayXcd;
-using Eigen::ArrayXd;
 
 class TruePeak {
+
+using ArrayXcd = Eigen::ArrayXcd;
 
 public:
   TruePeak(int maxSize) : mFFT(maxSize), mIFFT(maxSize * 4) {}
@@ -33,7 +29,8 @@ public:
   }
 
   double processFrame(const RealVectorView &input) {
-    ArrayXd in = asEigen<Array>(input);
+    using namespace Eigen;
+    ArrayXd in = _impl::asEigen<Array>(input);
     if (mSampleRate >= 192000) {
       return in.abs().maxCoeff();
     } else {

@@ -2,20 +2,13 @@
 
 #include "../../data/TensorTypes.hpp"
 #include "../util/FluidEigenMappings.hpp"
+
 #include <Eigen/Core>
 #include <cassert>
 #include <cmath>
 
 namespace fluid {
 namespace algorithm {
-
-using _impl::asEigen;
-using _impl::asFluid;
-using Eigen::Array;
-using Eigen::ArrayXd;
-using Eigen::ArrayXXd;
-using Eigen::MatrixXd;
-using Eigen::Ref;
 
 class Stats {
 public:
@@ -30,7 +23,8 @@ public:
   }
   int numStats() { return 7; }
 
-  Ref<ArrayXd> computeStats(Ref<ArrayXd> input) {
+  Eigen::Ref<Eigen::ArrayXd> computeStats(Eigen::Ref<Eigen::ArrayXd> input) {
+    using namespace Eigen;
     int length = input.size();
     ArrayXd out = ArrayXd::Zero(7);
     double mean = input.mean();
@@ -47,7 +41,8 @@ public:
   }
 
   void process(const RealVectorView in, RealVectorView out) {
-    using _impl::asFluid;
+    using namespace Eigen;
+    using namespace _impl;
     using fluid::Slice;
     assert(out.size() == numStats() * (mNumDerivatives + 1));
     ArrayXd input = asEigen<Array>(in);

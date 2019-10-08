@@ -3,19 +3,20 @@
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
-#include <iostream>
-#include <map>
 #include <vector>
 
 
 namespace fluid {
 namespace algorithm {
 
-using Eigen::ArrayXcd;
-using Eigen::ArrayXd;
-using std::function;
-using std::map;
+//using Eigen::ArrayXcd;
+//using Eigen::ArrayXd;
 
+static double const epsilon = std::numeric_limits<double>::epsilon();
+
+class OnsetDetectionFuncs{
+
+public:
 enum class ODF {
   kEnergy,
   kHFC,
@@ -29,10 +30,11 @@ enum class ODF {
   kRComplexDev
 };
 
-using ODFMap = map<ODF, function<double(ArrayXcd, ArrayXcd, ArrayXcd)>>;
-double const epsilon = 1e-8;
+using ArrayXcd = Eigen::ArrayXcd;
+using ArrayXd = Eigen::ArrayXd;
+using ODFMap = std::map<ODF, std::function<double(ArrayXcd, ArrayXcd, ArrayXcd)>>;
 
-ArrayXd wrapPhase(ArrayXd phase) {
+static ArrayXd wrapPhase(ArrayXd phase) {
   double twoPi = 2 * M_PI;
   double pi = M_PI;
   double oneOverTwoPi = 1 / twoPi;
@@ -43,7 +45,8 @@ ArrayXd wrapPhase(ArrayXd phase) {
   });
 }
 
-static ODFMap onsetDetectionFuncs = {
+static ODFMap& map(){
+  static ODFMap _funcs = {
 
     {ODF::kEnergy,
      [](ArrayXcd cur, ArrayXcd prev, ArrayXcd prevprev) {
@@ -116,6 +119,9 @@ static ODFMap onsetDetectionFuncs = {
         target.imag() = prevMag * phaseEst.sin();
         return (target - cur).abs().real().max(0.0).mean();
       }},
+};
+return _funcs;
+}
 };
 } // namespace algorithm
 } // namespace fluid

@@ -4,14 +4,11 @@
 #include "../util/ConvolutionTools.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/Novelty.hpp"
-#include <Eigen/Dense>
+
+#include <Eigen/Core>
 
 namespace fluid {
 namespace algorithm {
-
-using _impl::asEigen;
-using _impl::asFluid;
-using Eigen::Array;
 
 class NoveltySegmentation {
 
@@ -32,7 +29,7 @@ public:
   }
 
   double processFrame(const RealVectorView input) {
-    double novelty = mNovelty.processFrame(asEigen<Array>(input));
+    double novelty = mNovelty.processFrame(_impl::asEigen<Eigen::Array>(input));
     if (mFilterSize > 1) {
       mFilterBuffer.segment(0, mFilterSize - 1) =
           mFilterBuffer.segment(1, mFilterSize - 1);

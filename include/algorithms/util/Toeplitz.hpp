@@ -1,17 +1,15 @@
 #pragma once
 
-#include <Eigen/Eigen>
+#include <Eigen/Core>
 
 namespace fluid {
-
-using Eigen::Dynamic;
-using Eigen::Matrix;
+namespace algorithm {
 
 template <typename Scalar>
-Matrix<Scalar, Dynamic, Dynamic>
-toeplitz(const Matrix<Scalar, Dynamic, 1> &vec) {
+Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>
+toeplitz(const Eigen::Matrix<Scalar, Eigen::Dynamic, 1> &vec) {
   size_t size = vec.size();
-  Matrix<Scalar, Dynamic, Dynamic> mat(size, size);
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> mat(size, size);
 
   for (auto i = 0; i < size; i++) {
     for (auto j = 0; j < i; j++)
@@ -23,4 +21,5 @@ toeplitz(const Matrix<Scalar, Dynamic, 1> &vec) {
   return mat;
 }
 
+}
 }; // namespace fluid

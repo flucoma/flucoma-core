@@ -3,15 +3,16 @@
 #include "../../data/FluidTensor.hpp"
 #include "../public/Windows.hpp"
 #include "FluidEigenMappings.hpp"
-#include <Eigen/Dense>
+
+#include <Eigen/Core>
 #include <limits>
 
 namespace fluid {
 namespace algorithm {
 
-using Eigen::ArrayXd;
-
 class PeakDetection {
+
+  using ArrayXd = Eigen::ArrayXd;
   using pairs_vector = std::vector<std::pair<double, double>>;
 
 public:

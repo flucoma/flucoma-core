@@ -1,23 +1,14 @@
 #pragma once
 
-#include "../../data/TensorTypes.hpp"
 #include "../util/FluidEigenMappings.hpp"
+#include "../../data/TensorTypes.hpp"
+
 #include <Eigen/Core>
-#include <Eigen/Dense>
-#include <iostream>
 #include <vector>
 
 namespace fluid {
 namespace algorithm {
 
-using _impl::asEigen;
-using _impl::asFluid;
-using Eigen::Matrix;
-using Eigen::Array;
-using Eigen::ArrayXd;
-using Eigen::ArrayXXd;
-using Eigen::MatrixXd;
-using Eigen::VectorXd;
 
 class NMF {
 
@@ -36,6 +27,9 @@ public:
 
   static void estimate(const RealMatrixView W, const RealMatrixView H, int index,
                        RealMatrixView V) {
+    using namespace Eigen;
+    using namespace _impl;
+
     MatrixXd W1 = asEigen<Matrix>(W).transpose();
     MatrixXd H1 = asEigen<Matrix>(H).transpose();
     MatrixXd result = (W1.col(index) * H1.row(index)).transpose();
@@ -45,6 +39,8 @@ public:
   // processFrame computes activations of a dictionary W in a given frame
   void processFrame(const RealVectorView x, const RealMatrixView W0, RealVectorView out,
                     int nIterations = 10, RealVectorView v = RealVectorView(nullptr, 0, 0)) {
+    using namespace Eigen;
+    using namespace _impl;
     double const epsilon = std::numeric_limits<double>::epsilon();
     int rank = W0.extent(0);
     MatrixXd W = asEigen<Matrix>(W0).transpose();
@@ -78,6 +74,8 @@ public:
   void process(const RealMatrixView X, RealMatrixView W1, RealMatrixView H1, RealMatrixView V1,
                RealMatrixView W0 = RealMatrixView(nullptr, 0, 0, 0),
                RealMatrixView H0 = RealMatrixView(nullptr, 0, 0, 0)) {
+    using namespace Eigen;
+    using namespace _impl;
     double const epsilon = std::numeric_limits<double>::epsilon();
     int nFrames = X.extent(0);
     int nBins = X.extent(1);
@@ -120,10 +118,11 @@ private:
   bool mUpdateW;
   bool mUpdateH;
   std::vector<ProgressCallback> mCallbacks;
-
+  using MatrixXd = Eigen::MatrixXd;
 
   void multiplicativeUpdates(MatrixXd &V, MatrixXd &W, MatrixXd &H) {
     double const epsilon = std::numeric_limits<double>::epsilon();
+    using namespace Eigen;
     MatrixXd ones = MatrixXd::Ones(V.rows(), V.cols());
     H = H.array().max(epsilon).matrix();
     W = W.array().max(epsilon).matrix();

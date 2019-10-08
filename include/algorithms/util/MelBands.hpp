@@ -1,20 +1,13 @@
 #pragma once
 
 #include "../util/FluidEigenMappings.hpp"
+
 #include <Eigen/Core>
-#include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
 
 namespace fluid {
 namespace algorithm {
-
-using _impl::asEigen;
-using _impl::asFluid;
-using Eigen::ArrayXd;
-using Eigen::ArrayXXd;
-using Eigen::MatrixXd;
-using Eigen::Array;
 
 class MelBands {
 public:
@@ -28,6 +21,8 @@ public:
 
   void init(double lo, double hi, int nBands, int nBins,
             double sampleRate, bool logOutput) {
+
+    using namespace Eigen;
     assert(hi > lo);
     assert(nBands > 1);
     mLo = lo;
@@ -57,12 +52,13 @@ public:
   }
 
   void processFrame(const RealVectorView in, RealVectorView out) {
+    using namespace Eigen;
     double const epsilon = std::numeric_limits<double>::epsilon();
     assert(in.size() == mBins);
-    ArrayXd frame = asEigen<Array>(in);
+    ArrayXd frame =_impl::asEigen<Eigen::Array>(in);
     ArrayXd result = (mFilters * frame.square().matrix()).array();
     if(mLogOutput) result = 10*result.max(3.9810717055349695e-15).log10();
-    out = asFluid(result);
+    out = _impl::asFluid(result);
   }
 
   double mLo;
@@ -70,7 +66,7 @@ public:
   int mBins;
   int mBands;
   double mSampleRate;
-  MatrixXd mFilters;
+  Eigen::MatrixXd mFilters;
   bool mLogOutput;
 
 private:

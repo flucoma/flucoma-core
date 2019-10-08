@@ -2,6 +2,7 @@
 
 #include "../../data/TensorTypes.hpp"
 #include "../util/FluidEigenMappings.hpp"
+
 #include <Eigen/Core>
 #include <cassert>
 #include <cmath>
@@ -9,14 +10,11 @@
 namespace fluid {
 namespace algorithm {
 
-using _impl::asEigen;
-using _impl::asFluid;
-using Eigen::ArrayXd;
-using Eigen::MatrixXd;
-using Eigen::Array;
-
 class DCT {
 public:
+  using ArrayXd = Eigen::ArrayXd;
+  using MatrixXd = Eigen::MatrixXd;
+
   void init(int inputSize, int outputSize) {
     using std::sqrt;
     assert(inputSize >= outputSize);
@@ -32,9 +30,9 @@ public:
   }
   void processFrame(const RealVector in, RealVectorView out) {
     assert(in.size() == mInputSize);
-    ArrayXd frame = asEigen<Array>(in);
+    ArrayXd frame = _impl::asEigen<Eigen::Array>(in);
     ArrayXd result = (mTable * frame.matrix()).array();
-    out = asFluid(result);
+    out = _impl::asFluid(result);
   }
 
   void processFrame(Eigen::Ref<const ArrayXd> input, Eigen::Ref<ArrayXd> output) {
