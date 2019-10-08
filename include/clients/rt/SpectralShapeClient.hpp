@@ -41,7 +41,7 @@ public:
   }
 
   void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output, bool reset = false) {
+               std::vector<HostVector> &output, FluidContext& c, bool reset = false) {
     using std::size_t;
 
     if (!input[0].data() || !output[0].data())
@@ -56,7 +56,7 @@ public:
     }
 
     mSTFTBufferedProcess.processInput(
-        mParams, input, reset, [&](ComplexMatrixView in) {
+        mParams, input, c, reset, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
           mAlgorithm.processFrame(mMagnitude, mDescriptors);
         });
@@ -90,6 +90,9 @@ template <typename T>
 using NRTSpectralShapeClient =
     NRTControlAdaptor<SpectralShapeClient<T>, decltype(NRTSpectralShapeParams),
                       NRTSpectralShapeParams, 1, 1>;
+    
+template <typename T>
+using NRTThreadedSpectralShapeClient = NRTThreadingAdaptor<NRTSpectralShapeClient<T>>;
 
 } // namespace client
 } // namespace fluid

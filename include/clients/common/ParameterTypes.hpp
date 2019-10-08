@@ -74,9 +74,9 @@ struct BufferT : ParamTypeBase
 struct InputBufferT:ParamTypeBase
 {
   using type = InputBufferUnderlyingType;
-  //  using BufferT::BufferT;
+//  using BufferT::BufferT;
   constexpr InputBufferT(const char *name, const char *displayName)
-  : ParamTypeBase(name, displayName)
+      : ParamTypeBase(name, displayName)
   {}
   const std::size_t    fixedSize = 1;
   const std::nullptr_t defaultValue{nullptr};
@@ -100,7 +100,7 @@ struct EnumT : ParamTypeBase
   const std::size_t fixedSize;
   const std::size_t numOptions;
   const type        defaultValue;
-  
+
   struct EnumConstraint
   {
     template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
@@ -124,7 +124,7 @@ struct FloatArrayT : ParamTypeBase
 
 struct LongArrayT : ParamTypeBase
 {
-  
+
   using type  = LongArrayUnderlyingType;
   template <std::size_t N>
   LongArrayT(const char *name, const char *displayName, type::value_type (&defaultValues)[N])
@@ -135,7 +135,7 @@ struct LongArrayT : ParamTypeBase
 
 struct BufferArrayT : ParamTypeBase
 {
-  
+
   using type  = BufferArrayUnderlyingType;
   BufferArrayT(const char *name, const char *displayName, const size_t size)
       : ParamTypeBase(name, displayName)
@@ -149,16 +149,16 @@ struct FloatPairsArrayT : ParamTypeBase
 {
   struct FloatPairsArrayType
   {
-  
+
     constexpr FloatPairsArrayType(const double x0, const double y0, const double x1, const double y1): value{{{x0,y0},{x1,y1}}}
     {}
-  
+
     constexpr FloatPairsArrayType(const std::array<std::pair<FloatUnderlyingType, FloatUnderlyingType>,2> x): value{x}
     {}
-  
+
     FloatPairsArrayType(const FloatPairsArrayType& x) = default;
     FloatPairsArrayType& operator=(const FloatPairsArrayType&)=default;
-    
+
     FloatPairsArrayType(FloatPairsArrayType&& x) noexcept { *this = std::move(x); }
 
     FloatPairsArrayType& operator=(FloatPairsArrayType&& x) noexcept
@@ -170,14 +170,14 @@ struct FloatPairsArrayT : ParamTypeBase
       oldUpper = x.oldUpper;
       return *this;
     }
-  
+
     std::array<std::pair<FloatUnderlyingType, FloatUnderlyingType>,2> value;
     bool   lowerChanged{false};
     bool   upperChanged{false};
     double oldLower{0};
     double oldUpper{0};
   };
-    
+
   //  static constexpr TypeTa
   using type = FloatPairsArrayType;
 
@@ -228,27 +228,27 @@ public:
 
   constexpr FFTParams(const FFTParams& p) = default;
   constexpr FFTParams(FFTParams&& p) noexcept = default;
-    
+
   // Assignment should not change the trackers
-    
+
   FFTParams& operator = (FFTParams&& p) noexcept
   {
     mWindowSize = p.mWindowSize;
     mHopSize = p.mHopSize;
     mFFTSize = p.mFFTSize;
-    
+
     return *this;
   }
-    
+
   FFTParams& operator = (const FFTParams& p)
   {
     mWindowSize = p.mWindowSize;
     mHopSize = p.mHopSize;
     mFFTSize = p.mFFTSize;
-    
+
     return *this;
   }
-    
+
   size_t fftSize() const noexcept { return mFFTSize < 0 ? nextPow2(mWindowSize, true) : mFFTSize; }
   intptr_t   fftRaw() const noexcept { return mFFTSize; }
   intptr_t   hopRaw() const noexcept { return mHopSize; }
@@ -260,7 +260,7 @@ public:
   void setFFT(intptr_t fft) { mFFTSize = fft; }
   void setHop(intptr_t hop) { mHopSize = hop; }
 
-  static intptr_t nextPow2(uint32_t x, bool up) 
+  static intptr_t nextPow2(uint32_t x, bool up)
   {
     /// http://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
     if (!x) return x;
@@ -284,11 +284,11 @@ public:
   struct FFTSettingsConstraint
   {
     template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
-    constexpr void clamp(FFTParams &v, Tuple &allParams, Descriptor &d, Result *r) const 
+    constexpr void clamp(FFTParams &v, Tuple &allParams, Descriptor &d, Result *r) const
     {
       FFTParams input = v;
       auto& inParams = std::get<N>(allParams);
-        
+
       bool winChanged = inParams.trackWin.changed(v.winSize());
       bool fftChanged = inParams.trackFFT.changed(v.fftRaw());
       bool hopChanged = inParams.trackHop.changed(v.hopRaw());
@@ -328,7 +328,7 @@ public:
 
       // Now check (optionally) against MaxFFTSize
       size_t clippedFFT = std::max<intptr_t>(ConstrainMaxFFTSize<HasMaxFFT>{}.template clamp<I, Tuple>(v.fftSize(), allParams),4);
-            
+
       bool   fftSizeWasClipped{clippedFFT != v.fftSize()};
       if (fftSizeWasClipped)
       {
@@ -460,24 +460,24 @@ namespace impl
     using type = typename T::type;
     static std::array<type, 1> getLiteral(const type& p) { return {p}; }
   };
-  
+
   template<>
   struct ParamLiterals<FloatPairsArrayT>
   {
     using type = FloatUnderlyingType;
-    
+
     static std::array<type, 4> getLiteral(const FloatPairsArrayT::type& p)
     {
         auto v = p.value;
         return { v[0].first, v[0].second, v[1].first, v[1].second };
     }
   };
-  
+
   template<>
   struct ParamLiterals<FFTParamsT>
   {
     using type = LongUnderlyingType;
-    
+
     static std::array<type, 3> getLiteral(const FFTParams& p)
     {
       return { p.winSize(), p.hopRaw(), p.fftRaw()};
@@ -488,22 +488,22 @@ namespace impl
 template <typename T, size_t N>
 class ParamLiteralConvertor
 {
-    
+
 public:
-    
+
   using ValueType = typename T::type;
   using LiteralType = typename impl::ParamLiterals<T>::type;
   using ArrayType = std::array<LiteralType, N>;
-    
+
   void set(const ValueType &v) { mArray = impl::ParamLiterals<T>::getLiteral(v); }
   ValueType value() { return make(std::make_index_sequence<N>()); }
   LiteralType& operator[](size_t idx) { return mArray[idx]; }
-    
+
 private:
-    
+
   template <size_t... Is>
   ValueType make(std::index_sequence<Is...>) { return {mArray[Is]...}; }
-    
+
   ArrayType mArray;
 };
 

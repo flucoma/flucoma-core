@@ -59,7 +59,7 @@ public:
   }
 
   void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output, bool reset = false) {
+               std::vector<HostVector> &output, FluidContext& c, bool reset = false) {
     using std::size_t;
 
     if (!input[0].data() || !output[0].data())
@@ -79,7 +79,7 @@ public:
     }
 
     mSTFTBufferedProcess.processInput(
-        mParams, input, reset, [&](ComplexMatrixView in) {
+        mParams, input, c, reset, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
           mMelBands.processFrame(mMagnitude, mBands);
           mDCT.processFrame(mBands, mCoefficients);
@@ -108,6 +108,9 @@ auto constexpr NRTMFCCParams =
 template <typename T>
 using NRTMFCCClient = NRTControlAdaptor<MFCCClient<T>, decltype(NRTMFCCParams),
                                         NRTMFCCParams, 1, 1>;
+    
+template <typename T>
+using NRTThreadedMFCCClient = NRTThreadingAdaptor<NRTMFCCClient<T>>;
 
 } // namespace client
 } // namespace fluid

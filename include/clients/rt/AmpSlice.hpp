@@ -77,7 +77,7 @@ public:
     FluidBaseClient::audioChannelsOut(1);
   }
 
-  void process(std::vector<HostVector> &input, std::vector<HostVector> &output,
+  void process(std::vector<HostVector> &input, std::vector<HostVector> &output, FluidContext& c,
                bool reset = false) {
 
     if (!input[0].data() || !output[0].data())
@@ -127,7 +127,7 @@ template <typename HostMatrix, typename HostVectorView> struct NRTAmpSlicing {
   template <typename Client, typename InputList, typename OutputList>
   static Result process(Client &client, InputList &inputBuffers,
                       OutputList &outputBuffers, size_t nFrames,
-                      size_t nChans) {
+                      size_t nChans, FluidContext& c) {
     assert(inputBuffers.size() == 1);
     assert(outputBuffers.size() == 1);
     size_t padding = client.latency();
@@ -144,7 +144,7 @@ template <typename HostMatrix, typename HostVectorView> struct NRTAmpSlicing {
     HostMatrix binaryOut(1, nFrames + padding);
     std::vector<HostVectorView> input{monoSource.row(0)};
     std::vector<HostVectorView> output{binaryOut.row(0)};
-    client.process(input, output, true);
+    client.process(input, output, c, true);
     // convert binary to spikes
 
     // add onset at start if needed
@@ -179,6 +179,9 @@ template <typename T>
 using NRTAmpSlice = impl::NRTClientWrapper<NRTAmpSlicing, AmpSlice<T>,
                                            decltype(NRTAmpSliceParams),
                                            NRTAmpSliceParams, 1, 1>;
+
+template <typename T>
+using NRTThreadedAmpSlice = NRTThreadingAdaptor<NRTAmpSlice<T>>;
 
 } // namespace client
 } // namespace fluid

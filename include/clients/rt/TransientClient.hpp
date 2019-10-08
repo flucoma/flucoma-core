@@ -52,7 +52,7 @@ public:
     FluidBaseClient::audioChannelsOut(2);
   }
 
-  void process(std::vector<HostVector>& input, std::vector<HostVector>& output, bool reset = false)
+  void process(std::vector<HostVector>& input, std::vector<HostVector>& output, FluidContext& c, bool reset = false)
   {
     if(!input[0].data() || (!output[0].data() && !output[1].data()))
       return;
@@ -89,7 +89,7 @@ public:
     in.row(0) = input[0]; //need to convert float->double in some hosts
     mBufferedProcess.push(RealMatrixView(in));
 
-    mBufferedProcess.process(mExtractor->inputSize(), mExtractor->hopSize(), mExtractor->hopSize(), reset, [this](RealMatrixView in, RealMatrixView out)
+    mBufferedProcess.process(mExtractor->inputSize(), mExtractor->hopSize(), mExtractor->hopSize(), c, reset, [this](RealMatrixView in, RealMatrixView out)
     {
       mExtractor->process(in.row(0), out.row(0), out.row(1));
     });
@@ -120,6 +120,9 @@ auto constexpr NRTTransientParams = makeNRTParams<TransientClient>({InputBufferP
 
 template <typename T>
 using NRTTransients = NRTStreamAdaptor<TransientClient<T>, decltype(NRTTransientParams), NRTTransientParams, 1, 2>;
+    
+template <typename T>
+using NRTThreadedTransients = NRTThreadingAdaptor<NRTTransients<T>>;
 
 } // namespace client
 } // namespace fluid
