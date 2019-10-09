@@ -108,10 +108,6 @@ target_sources(
   FLUID_DECOMPOSITION INTERFACE ${HEADERS}
 )
 
-target_compile_features(
-  FLUID_DECOMPOSITION INTERFACE cxx_std_14 $<$<PLATFORM_ID:APPLE>:-stdlib=libc++>
-)
-
 #GCC vomits on using HostVector = HostVector<U> without this flag on
 if(CMAKE_COMPILER_IS_GNUCXX)
   target_compile_options(FLUID_DECOMPOSITION INTERFACE -fpermissive)
