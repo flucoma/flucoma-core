@@ -2,6 +2,7 @@
 #pragma once
 
 #include "../../data/TensorTypes.hpp"
+#include "../util/AlgorithmUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "Windows.hpp"
 

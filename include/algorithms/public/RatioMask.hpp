@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../util/AlgorithmUtils.hpp"
 #include "../../data/FluidTensor.hpp"
 #include "../../data/TensorTypes.hpp"
 #include "../util/FluidEigenMappings.hpp"
@@ -18,7 +19,6 @@ public:
     using namespace _impl;
     using namespace Eigen;
     mExponent = exponent;
-    const double epsilon = std::numeric_limits<double>::epsilon();
     mMultiplier = (1 / asEigen<Array>(denominator).max(epsilon));
   }
 

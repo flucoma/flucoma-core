@@ -4,6 +4,7 @@
 #include "../util/DCT.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/PeakDetection.hpp"
+#include "../util/AlgorithmUtils.hpp"
 #include "../../data/TensorTypes.hpp"
 
 #include <Eigen/Eigen>
@@ -26,7 +27,6 @@ public:
                     double minFreq, double maxFreq, double sampleRate) {
     using namespace Eigen;
     PeakDetection pd;
-    const auto &epsilon = std::numeric_limits<double>::epsilon();
 
     ArrayXd mag = _impl::asEigen<Array>(input);
     ArrayXd logMag = mag.max(epsilon).log();

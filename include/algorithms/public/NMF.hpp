@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../util/AlgorithmUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/TensorTypes.hpp"
 
@@ -41,7 +42,6 @@ public:
                     int nIterations = 10, RealVectorView v = RealVectorView(nullptr, 0, 0)) {
     using namespace Eigen;
     using namespace _impl;
-    double const epsilon = std::numeric_limits<double>::epsilon();
     int rank = W0.extent(0);
     MatrixXd W = asEigen<Matrix>(W0).transpose();
     VectorXd h =
@@ -76,7 +76,6 @@ public:
                RealMatrixView H0 = RealMatrixView(nullptr, 0, 0, 0)) {
     using namespace Eigen;
     using namespace _impl;
-    double const epsilon = std::numeric_limits<double>::epsilon();
     int nFrames = X.extent(0);
     int nBins = X.extent(1);
     MatrixXd W;
@@ -121,7 +120,6 @@ private:
   using MatrixXd = Eigen::MatrixXd;
 
   void multiplicativeUpdates(MatrixXd &V, MatrixXd &W, MatrixXd &H) {
-    double const epsilon = std::numeric_limits<double>::epsilon();
     using namespace Eigen;
     MatrixXd ones = MatrixXd::Ones(V.rows(), V.cols());
     H = H.array().max(epsilon).matrix();

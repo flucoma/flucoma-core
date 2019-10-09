@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../util/AlgorithmUtils.hpp"
 #include "../../data/FluidTensor.hpp"
 #include "../public/Windows.hpp"
 #include "FluidEigenMappings.hpp"
@@ -32,7 +33,6 @@ public:
 
   double processFrame(const ArrayXd &input) {
     using std::vector;
-    const auto &epsilon = std::numeric_limits<double>::epsilon;
     int halfKernel = (mKernelSize - 1) / 2;
     mBufer.block(0, 0, mKernelSize - 1, mNDims) =
         mBufer.block(1, 0, mKernelSize - 1, mNDims);
@@ -42,8 +42,8 @@ public:
     mBufer.block(mKernelSize - 1, 0, 1, mNDims) = in1.transpose();
     VectorXd tmp = mBufer * input.matrix();
 
-    VectorXd norm = mBufer.rowwise().norm().cwiseMax(epsilon()) * input.matrix().norm();
-    norm = norm.cwiseMax(epsilon());
+    VectorXd norm = mBufer.rowwise().norm().cwiseMax(epsilon) * input.matrix().norm();
+    norm = norm.cwiseMax(epsilon);
     tmp = (tmp.array() / norm.array()).matrix();
     mSimilarity.block(0, 0, mKernelSize - 1, mKernelSize - 1) =
         mSimilarity.block(1, 1, mKernelSize - 1, mKernelSize - 1);

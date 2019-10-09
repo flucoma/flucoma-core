@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../util/AlgorithmUtils.hpp"
 #include "../../data/FluidTensor.hpp"
 #include "../../data/TensorTypes.hpp"
 #include "../util/FFT.hpp"

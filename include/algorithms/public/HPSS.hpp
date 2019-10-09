@@ -1,8 +1,9 @@
 #pragma once
 
-#include "../../data/TensorTypes.hpp"
+#include "../util/AlgorithmUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/MedianFilter.hpp"
+#include "../../data/TensorTypes.hpp"
 
 #include <Eigen/Core>
 
@@ -55,7 +56,6 @@ public:
 
   void processFrame(const ComplexVectorView in, ComplexMatrixView out) {
     using namespace Eigen;
-    const auto &epsilon = std::numeric_limits<double>::epsilon;
     int h2 = (mHSize - 1) / 2;
     int v2 = (mVSize - 1) / 2;
     ArrayXcd frame = _impl::asEigen<Array>(in);
@@ -85,7 +85,7 @@ public:
     switch (mMode) {
     case kClassic: {
       ArrayXd HV = mH.col(0) + mV.col(0);
-      ArrayXd mult = (1.0 / HV.max(epsilon()));
+      ArrayXd mult = (1.0 / HV.max(epsilon));
       harmonicMask = (mH.col(0) * mult);
       percussiveMask = (mV.col(0) * mult);
       break;
@@ -110,7 +110,7 @@ public:
       residualMask = residualMask * (1 - harmonicMask);
       residualMask = residualMask * (1 - percussiveMask);
       ArrayXd maskNorm =
-          (1. / (harmonicMask + percussiveMask + residualMask)).max(epsilon());
+          (1. / (harmonicMask + percussiveMask + residualMask)).max(epsilon);
       harmonicMask = harmonicMask * maskNorm;
       percussiveMask = percussiveMask * maskNorm;
       residualMask = residualMask * maskNorm;

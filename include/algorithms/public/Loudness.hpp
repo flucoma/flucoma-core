@@ -2,6 +2,7 @@
 #pragma once
 
 #include "../../data/TensorTypes.hpp"
+#include "../util/AlgorithmUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/KWeightingFilter.hpp"
 #include "../util/TruePeak.hpp"
@@ -27,7 +28,6 @@ public:
     using namespace Eigen;
     assert(output.size() == 2);
     assert(input.size() == mSize);
-    double const epsilon = std::numeric_limits<double>::epsilon();
     ArrayXd in = _impl::asEigen<Array>(input);
     ArrayXd filtered(mSize);
     for (int i = 0; i < mSize; i++)

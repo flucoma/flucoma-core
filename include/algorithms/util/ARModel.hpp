@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include "../public/Windows.hpp"
 #include "ConvolutionTools.hpp"
 #include "Toeplitz.hpp"

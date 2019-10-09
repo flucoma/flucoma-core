@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../util/AlgorithmUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
 
 #include <Eigen/Core>

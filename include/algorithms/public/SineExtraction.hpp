@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../util/AlgorithmUtils.hpp"
 #include "../../data/TensorTypes.hpp"
 #include "../util/ConvolutionTools.hpp"
 #include "../util/FFT.hpp"

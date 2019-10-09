@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../util/AlgorithmUtils.hpp"
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
@@ -8,11 +9,6 @@
 
 namespace fluid {
 namespace algorithm {
-
-//using Eigen::ArrayXcd;
-//using Eigen::ArrayXd;
-
-static double const epsilon = std::numeric_limits<double>::epsilon();
 
 class OnsetDetectionFuncs{
 
