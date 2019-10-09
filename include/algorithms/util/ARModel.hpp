@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../public/Windows.hpp"
+#include "../public/WindowFuncs.hpp"
 #include "ConvolutionTools.hpp"
 #include "Toeplitz.hpp"
 
@@ -16,6 +16,7 @@ namespace algorithm {
 class ARModel {
 
   using MatrixXd = Eigen::MatrixXd;
+  using ArrayXd = Eigen::ArrayXd;
   using VectorXd = Eigen::VectorXd;
 
 public:
@@ -91,13 +92,12 @@ private:
 
     if (mUseWindow) {
       if (mWindow.size() != size) {
-        std::vector<double> newWindow =
-            algorithm::windowFuncs[algorithm::WindowType::kHann](size);
-        std::swap(mWindow, newWindow);
+        mWindow = ArrayXd::Zero(size);
+        WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](size, mWindow);
       }
 
       for (int i = 0; i < size; i++)
-        frame[i] = input[i] * mWindow[i] * 2.0;
+        frame[i] = input[i] * mWindow(i) * 2.0;
     } else
       std::copy(input, input + size, frame.data());
 
@@ -206,7 +206,7 @@ private:
   VectorXd mParameters;
   double mVariance;
 
-  std::vector<double> mWindow;
+  ArrayXd mWindow;
 
   bool mUseWindow;
   size_t mOrder;

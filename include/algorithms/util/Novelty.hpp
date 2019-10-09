@@ -2,7 +2,7 @@
 
 #include "../util/AlgorithmUtils.hpp"
 #include "../../data/FluidTensor.hpp"
-#include "../public/Windows.hpp"
+#include "../public/WindowFuncs.hpp"
 #include "FluidEigenMappings.hpp"
 
 #include <Eigen/Core>
@@ -66,8 +66,8 @@ private:
   void createKernel() {
     mKernel = mKernelStorage.block(0, 0, mKernelSize, mKernelSize);
     int h = (mKernelSize - 1) / 2;
-    ArrayXd gaussian = Eigen::Map<ArrayXd>(
-        windowFuncs[WindowType::kGaussian](mKernelSize).data(), mKernelSize);
+    ArrayXd gaussian = ArrayXd::Zero(mKernelSize);
+    WindowFuncs::map()[WindowFuncs::WindowTypes::kGaussian](mKernelSize, gaussian);
     MatrixXd tmp = gaussian.matrix() * gaussian.matrix().transpose();
     tmp.block(h, 0, h + 1, h) *= -1;
     tmp.block(0, h, h, h + 1) *= -1;

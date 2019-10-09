@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../../data/FluidTensor.hpp"
-#include "../public/Windows.hpp"
 #include "FluidEigenMappings.hpp"
 
 #include <Eigen/Core>

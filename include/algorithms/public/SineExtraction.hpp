@@ -5,7 +5,7 @@
 #include "../util/ConvolutionTools.hpp"
 #include "../util/FFT.hpp"
 #include "../util/FluidEigenMappings.hpp"
-#include "Windows.hpp"
+#include "WindowFuncs.hpp"
 
 #include <Eigen/Core>
 #include <queue>
@@ -38,8 +38,7 @@ class SineExtraction {
 public:
 
   SineExtraction(int maxFFTSize)
-      : mWindowSize(maxFFTSize),
-        mWindow(windowFuncs[WindowType::kHann](maxFFTSize)), mFFTSize(maxFFTSize),
+      : mWindowSize(maxFFTSize), mFFTSize(maxFFTSize),
         mBins(maxFFTSize / 2 + 1), mFFT(maxFFTSize), mBandwidth(maxFFTSize / 16),
         mThreshold(0.7), mMinTrackLength(15),
         mMagWeight(0.01), mFreqWeight(0.5), mCurrentFrame(0), mInitialized(false) {
@@ -49,7 +48,8 @@ public:
                    double threshold, int minTrackLength, double magWeight,
                    double freqWeight){
     mWindowSize = windowSize;
-    mWindow = windowFuncs[WindowType::kHann](windowSize);
+    mWindow = ArrayXd::Zero(mWindowSize);
+    WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](mWindowSize, mWindow);
     mFFTSize = fftSize;
     mBins = fftSize / 2 + 1;
     mFFT.resize(fftSize);
@@ -131,7 +131,8 @@ public:
 
 private:
   int mWindowSize;
-  vector<double> mWindow;
+  //vector<double> mWindow;
+  ArrayXd mWindow;
   int mFFTSize;
   int mBins;
   FFT mFFT;
@@ -229,7 +230,7 @@ private:
     return corr;
   }
 
-  ArrayXd computeWindowTransform(vector<double> window) {
+  ArrayXd computeWindowTransform(ArrayXd window) {
     int halfBW = mBandwidth / 2;
     ArrayXd result = ArrayXd::Zero(mBandwidth);
     ArrayXcd transform = mFFT.process(Eigen::Map<ArrayXd>(window.data(), mWindowSize));

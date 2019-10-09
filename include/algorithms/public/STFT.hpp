@@ -5,7 +5,7 @@
 #include "../../data/TensorTypes.hpp"
 #include "../util/FFT.hpp"
 #include "../util/FluidEigenMappings.hpp"
-#include "Windows.hpp"
+#include "WindowFuncs.hpp"
 
 #include <Eigen/Core>
 
@@ -24,8 +24,8 @@ public:
   STFT(size_t windowSize, size_t fftSize, size_t hopSize)
       : mWindowSize(windowSize), mHopSize(hopSize), mFrameSize(fftSize / 2 + 1),
         mFFT(fftSize) {
-    mWindow = Eigen::Map<ArrayXd>(windowFuncs[WindowType::kHann](mWindowSize).data(),
-                           mWindowSize);
+    mWindow = ArrayXd::Zero(mWindowSize);
+    WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](mWindowSize, mWindow);
   }
 
   static void magnitude(const FluidTensorView<complex<double>, 2> &in,
@@ -80,8 +80,8 @@ public:
   ISTFT(size_t windowSize, size_t fftSize, size_t hopSize)
       : mWindowSize(windowSize), mHopSize(hopSize), mFrameSize(fftSize / 2 + 1),
         mScale(1 / double(fftSize)), mIFFT(fftSize), mBuffer(mWindowSize) {
-    mWindow = Eigen::Map<ArrayXd>(windowFuncs[WindowType::kHann](mWindowSize).data(),
-                           mWindowSize);
+    mWindow = ArrayXd::Zero(mWindowSize);
+    WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](mWindowSize, mWindow);
     mWindowSquared = mWindow * mWindow;
   }
 

@@ -25,7 +25,7 @@ public:
   OnsetSegmentation(int maxSize)
       : mMaxSize(maxSize), mWindowStorage(maxSize), mFFT(maxSize),
         mFFTSize(maxSize), mWindowSize(maxSize), mHopSize(maxSize/2), mFrameDelta(0),
-        mWindowType(WindowTypes::kHann), mFunction(0), mFilterSize(5),
+        mWindowType(WindowFuncs::WindowTypes::kHann), mFunction(0), mFilterSize(5),
         mThreshold(0.1), mDebounce(2), mDebounceCount(1), mPrevFuncVal(0),
         mFilter(mFilterSize, 0), mSorting(mFilterSize) {
     makeWindow();
@@ -49,7 +49,7 @@ public:
 
   void makeWindow() {
     mWindowStorage.setZero();
-    windows[mWindowType](mWindowSize, mWindowStorage);
+    WindowFuncs::map()[mWindowType](mWindowSize, mWindowStorage);
     mWindow = mWindowStorage.segment(0, mWindowSize);
     prevFrame = ArrayXcd::Zero(mFFTSize / 2 + 1);
     prevPrevFrame = ArrayXcd::Zero(mFFTSize / 2 + 1);
@@ -124,14 +124,13 @@ public:
     double filteredFuncVal = 0;
     double detected = 0.;
     ArrayXcd frame = mFFT.process(in.segment(0, mWindowSize) * mWindow);
+    auto odf = static_cast<OnsetDetectionFuncs::ODF>(mFunction);
     if (mFunction > 1 && mFunction < 5 && mFrameDelta != 0) {
       ArrayXcd frame2 =
           mFFT.process(in.segment(mFrameDelta, mWindowSize) * mWindow);
-      funcVal = OnsetDetectionFuncs::map()[static_cast<OnsetDetectionFuncs::ODF>(mFunction)](frame2, frame,
-                                                                 frame);
+      funcVal = OnsetDetectionFuncs::map()[odf](frame2, frame, frame);
     } else {
-      funcVal = OnsetDetectionFuncs::map()[static_cast<OnsetDetectionFuncs::ODF>(mFunction)](
-          frame, prevFrame, prevPrevFrame);
+      funcVal = OnsetDetectionFuncs::map()[odf](frame, prevFrame, prevPrevFrame);
     }
     filteredFuncVal = funcVal - mFilter[mSorting[(mFilterSize - 1) / 2]];
     mFilter.push_back(funcVal);
@@ -161,7 +160,7 @@ private:
   int mWindowSize;
   int mHopSize;
   int mFrameDelta;
-  WindowTypes mWindowType;
+  WindowFuncs::WindowTypes mWindowType;
   int mFunction;
   int mFilterSize;
   double mThreshold;
