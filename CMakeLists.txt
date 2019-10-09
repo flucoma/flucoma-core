@@ -14,39 +14,28 @@ ENDIF (APPLE)
 # Grab the Fluid Decpomposition header files so they can be added to IDE builds
 file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/include/**/*.hpp")
 
-if(HISS_PATH)
-  get_filename_component(HISS_PATH_FULL ${HISS_PATH} ABSOLUTE)
-  message(${HISS_PATH_FULL})
-  FetchContent_Declare(
-    HISSTools
-    DOWNLOAD_COMMAND ""
-    SOURCE_DIR "${HISS_PATH_FULL}/"
-  )
-else()
-  FetchContent_Declare(
-    HISSTools
-    GIT_REPOSITORY https://github.com/AlexHarker/HISSTools_Library
-    GIT_PROGRESS TRUE
-    GIT_TAG 4d59585e50adc57de6a221b463246193e66d4a5f
-  )
+# Either download or point to dependencies
+FetchContent_Declare(
+  HISSTools
+  GIT_REPOSITORY https://github.com/AlexHarker/HISSTools_Library
+  GIT_PROGRESS TRUE
+  GIT_TAG 4d59585e50adc57de6a221b463246193e66d4a5f
+)
+
+FetchContent_Declare(
+  Eigen
+  GIT_REPOSITORY https://github.com/eigenteam/eigen-git-mirror/
+  GIT_PROGRESS TRUE
+  GIT_BRANCH "branches/3.3"
+  GIT_TAG "3.3.5"
+)
+
+if(HISS_PATH) #if hiss path is set, this will stop it downloading
+  get_filename_component(FETCHCONTENT_SOURCE_DIR_HISSTOOLS ${HISS_PATH} ABSOLUTE)
 endif()
 
-if(EIGEN_PATH)
-  get_filename_component(EIGEN_PATH_FULL ${EIGEN_PATH} ABSOLUTE)
-  message(STATUS ${EIGEN_PATH_FULL})
-  FetchContent_Declare(
-    Eigen
-    DOWNLOAD_COMMAND ""
-    SOURCE_DIR "${EIGEN_PATH_FULL}/"
-  )
-else()
-  FetchContent_Declare(
-    Eigen
-    GIT_REPOSITORY https://github.com/eigenteam/eigen-git-mirror/
-    GIT_PROGRESS TRUE
-    GIT_BRANCH "branches/3.3"
-    GIT_TAG "3.3.5"
-  )
+if(EIGEN_PATH) #if hiss path is set, this will stop it downloading
+  get_filename_component(FETCHCONTENT_SOURCE_DIR_EIGEN ${EIGEN_PATH} ABSOLUTE)
 endif()
 
 FetchContent_GetProperties(hisstools)
