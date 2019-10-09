@@ -42,7 +42,6 @@ ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/ARModel.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/ButterworthHPFilter.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/ConvolutionTools.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/DCT.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/Descriptors.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/FFT.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/FluidEigenMappings.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/KWeightingFilter.hpp
