@@ -22,9 +22,9 @@ class ARModel {
 public:
   ARModel(size_t order, size_t iterations = 3, bool useWindow = true,
           double robustFactor = 3.0)
-      : mParameters(VectorXd::Zero(order)), mVariance(0.0), mOrder(order),
+      : mParameters(VectorXd::Zero(order)), mOrder(order),
         mIterations(iterations), mUseWindow(useWindow),
-        mRobustFactor(robustFactor), mMinVariance(0.0) {}
+        mRobustFactor(robustFactor) {}
 
   const double *getParameters() const { return mParameters.data(); }
   double variance() const { return mVariance; }
@@ -204,15 +204,13 @@ private:
   }
 
   VectorXd mParameters;
-  double mVariance;
-
+  double mVariance{0.0};
   ArrayXd mWindow;
-
   bool mUseWindow;
   size_t mOrder;
   size_t mIterations;
   double mRobustFactor;
-  double mMinVariance;
+  double mMinVariance{0.0};
 };
 
 }; // namespace algorithm

@@ -39,9 +39,7 @@ public:
 
   SineExtraction(int maxFFTSize)
       : mWindowSize(maxFFTSize), mFFTSize(maxFFTSize),
-        mBins(maxFFTSize / 2 + 1), mFFT(maxFFTSize), mBandwidth(maxFFTSize / 16),
-        mThreshold(0.7), mMinTrackLength(15),
-        mMagWeight(0.01), mFreqWeight(0.5), mCurrentFrame(0), mInitialized(false) {
+        mBins(maxFFTSize / 2 + 1), mFFT(maxFFTSize), mBandwidth(maxFFTSize / 16) {
   }
 
   void init(int windowSize, int fftSize, int hopSize, int bandwidth,
@@ -140,12 +138,12 @@ private:
   ArrayXd mW;
   double mWNorm;
   int mBandwidth;
-  double mThreshold;
+  double mThreshold{0.7};
   ArrayXd mWindowTransform;
-  int mMinTrackLength;
-  double mMagWeight;
-  double mFreqWeight;
-  size_t mCurrentFrame;
+  int mMinTrackLength{15};
+  double mMagWeight{0.01};
+  double mFreqWeight{0.5};
+  size_t mCurrentFrame{0};
   vector<SineTrack> mTracks;
   std::queue<ArrayXcd> mBuf;
   bool mInitialized{false};

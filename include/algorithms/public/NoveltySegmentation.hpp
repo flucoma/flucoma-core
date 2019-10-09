@@ -16,8 +16,7 @@ public:
   using ArrayXd = Eigen::ArrayXd;
 
   NoveltySegmentation(int maxKernelSize, int maxFilterSize)
-      : mNovelty(maxKernelSize), mFilterBufferStorage(maxFilterSize),
-        mPeakBuffer(3) {}
+      : mNovelty(maxKernelSize), mFilterBufferStorage(maxFilterSize){}
 
   void init(int kernelSize, double threshold, int filterSize, int nDims) {
     assert(kernelSize % 2);
@@ -49,7 +48,7 @@ private:
   int mFilterSize;
   ArrayXd mFilterBuffer;
   ArrayXd mFilterBufferStorage;
-  ArrayXd mPeakBuffer;
+  ArrayXd mPeakBuffer{3};
   Novelty mNovelty;
 };
 } // namespace algorithm

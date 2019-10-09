@@ -11,7 +11,6 @@
 namespace fluid {
 namespace algorithm {
 
-
 class TruePeak {
 
 using ArrayXcd = Eigen::ArrayXcd;

@@ -10,8 +10,7 @@ class TransientSegmentation : public algorithm::TransientExtraction {
 
 public:
   TransientSegmentation(size_t order, size_t iterations, double robustFactor)
-      : TransientExtraction(order, iterations, robustFactor, false),
-        mMinSegment(25), mDebounce(0), mLastDetection(false) {}
+      : TransientExtraction(order, iterations, robustFactor, false) {}
 
   void setDetectionParameters(double power, double threshHi, double threshLo,
                               int halfWindow = 7, int hold = 25,
@@ -27,14 +26,7 @@ public:
                              false, blockSize, padSize);
     mLastDetection = false;
     mDebounce = 0;
-
   }
-
-  /*void prepareStream(int blockSize, int padSize) {
-    TransientExtraction::prepareStream(blockSize, padSize);
-    mLastDetection = false;
-    mDebounce = 0;
-  }*/
 
   int modelOrder() const { return TransientExtraction::modelOrder(); }
   int blockSize() const { return TransientExtraction::blockSize(); }
@@ -54,13 +46,9 @@ public:
   }
 
 private:
-  // void resizeStorage() { mDetect.resize(hopSize(), 0.0); }
-
-private:
-  int mMinSegment;
-  int mDebounce;
-  bool mLastDetection;
-  // std::vector<double> mDetect;
+  int mMinSegment{25};
+  int mDebounce{0};
+  bool mLastDetection{false};
 };
 
 }; // namespace algorithm

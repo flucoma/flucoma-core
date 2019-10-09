@@ -17,7 +17,7 @@ using ArrayXd = Eigen::ArrayXd;
 
 public:
 
-  SpectralShape(size_t maxFrame) : mMagBuffer(maxFrame), mOutputBuffer(7) {}
+  SpectralShape(size_t maxFrame) : mMagBuffer(maxFrame){}
 
   void processFrame(Eigen::Ref<ArrayXd> in) {
     double const epsilon = std::numeric_limits<double>::epsilon();
@@ -63,7 +63,7 @@ public:
 
 private:
   ArrayXd mMagBuffer;
-  ArrayXd mOutputBuffer;
+  ArrayXd mOutputBuffer{7};
 };
 
 }; // namespace algorithm

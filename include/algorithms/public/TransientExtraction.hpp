@@ -25,10 +25,7 @@ public:
 
   TransientExtraction(size_t order, size_t iterations, double robustFactor,
                       bool refine)
-      : mModel(order, iterations, robustFactor),
-        mRandomGenerator(std::random_device()()), mBlockSize(0), mPadSize(0),
-        mCount(0), mRefine(refine), mDetectHalfWindow(1), mDetectHold(25),
-        mDetectPowerFactor(1.4), mDetectThreshHi(1.5), mDetectThreshLo(3.0) {}
+      : mModel(order, iterations, robustFactor){}
 
   void init(size_t order, size_t iterations, double robustFactor,
                       bool refine, int blockSize, int padSize){
@@ -394,21 +391,17 @@ private:
 
   ARModel mModel;
 
-  std::mt19937_64 mRandomGenerator;
+  std::mt19937_64 mRandomGenerator{std::random_device()()};
 
-  int mBlockSize;
-  int mPadSize;
-
-  int mCount;
-
+  int mBlockSize{0};
+  int mPadSize{0};
+  int mCount{0};
   bool mRefine;
-
-  int mDetectHalfWindow;
-  int mDetectHold;
-
-  double mDetectPowerFactor;
-  double mDetectThreshHi;
-  double mDetectThreshLo;
+  int mDetectHalfWindow{1};
+  int mDetectHold{25};
+  double mDetectPowerFactor{1.4};
+  double mDetectThreshHi{1.5};
+  double mDetectThreshLo{3.0};
 
   std::vector<double> mInput;
   std::vector<double> mDetect;

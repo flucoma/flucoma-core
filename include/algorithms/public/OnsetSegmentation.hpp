@@ -24,10 +24,7 @@ public:
 
   OnsetSegmentation(int maxSize)
       : mMaxSize(maxSize), mWindowStorage(maxSize), mFFT(maxSize),
-        mFFTSize(maxSize), mWindowSize(maxSize), mHopSize(maxSize/2), mFrameDelta(0),
-        mWindowType(WindowFuncs::WindowTypes::kHann), mFunction(0), mFilterSize(5),
-        mThreshold(0.1), mDebounce(2), mDebounceCount(1), mPrevFuncVal(0),
-        mFilter(mFilterSize, 0), mSorting(mFilterSize) {
+        mFFTSize(maxSize), mWindowSize(maxSize), mHopSize(maxSize/2) {
     makeWindow();
     initFilter();
   }
@@ -159,18 +156,18 @@ private:
   int mFFTSize;
   int mWindowSize;
   int mHopSize;
-  int mFrameDelta;
-  WindowFuncs::WindowTypes mWindowType;
-  int mFunction;
-  int mFilterSize;
-  double mThreshold;
-  int mDebounce;
-  int mDebounceCount;
-  std::deque<double> mFilter;
-  std::vector<int> mSorting;
+  int mFrameDelta{0};
+  WindowFuncs::WindowTypes mWindowType{WindowFuncs::WindowTypes::kHann};
+  int mFunction{0};
+  int mFilterSize{5};
+  double mThreshold{0.1};
+  int mDebounce{2};
+  int mDebounceCount{1};
+  std::deque<double> mFilter{5, 0};
+  std::vector<int> mSorting{5};
   ArrayXcd prevFrame;
   ArrayXcd prevPrevFrame;
-  double mPrevFuncVal;
+  double mPrevFuncVal{0};
 };
 
 }; // namespace algorithm

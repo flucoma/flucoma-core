@@ -12,8 +12,6 @@ namespace algorithm {
 
 class Stats {
 public:
-  Stats() : mNumDerivatives(0), mLow(0), mMiddle(0.5), mHigh(1) {}
-
   void init(int numDerivatives, double low, double mid, double high) {
     assert(numDerivatives <= 2);
     mNumDerivatives = numDerivatives;
@@ -63,10 +61,10 @@ public:
     }
   }
 
-  int mNumDerivatives;
-  double mLow;
-  double mMiddle;
-  double mHigh;
+  int mNumDerivatives{0};
+  double mLow{0};
+  double mMiddle{0.5};
+  double mHigh{1};
 };
 }; // namespace algorithm
 }; // namespace fluid

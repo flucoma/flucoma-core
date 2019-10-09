@@ -14,18 +14,11 @@ namespace algorithm {
 
 class EnvelopeSegmentation {
 
-using ArrayXd = Eigen::ArrayXd;
+  using ArrayXd = Eigen::ArrayXd;
 
 public:
   EnvelopeSegmentation(size_t maxSize, int outputType)
-      : mMaxSize(maxSize), mHiPassFreq(0.2), mRampUpTime(100), mRampUpTime2(50),
-        mRampDownTime(100), mRampDownTime2(50), mOnThreshold(-33),
-        mRelOnThreshold(-33), mRelOffThreshold(-42),
-        mMinTimeAboveThreshold(440), mMinEventDuration(440),
-        mUpwardLookupTime(24), mOffThreshold(-42), mMinTimeBelowThreshold(10),
-        mMinSilenceDuration(10), mDownwardLookupTime(10),
-        mOutputType(outputType), mOnStateCount(0), mOffStateCount(0),
-        mEventCount(0), mSilenceCount(0), mInitialized(false) {
+      : mMaxSize(maxSize), mOutputType(outputType) {
     mInputStorage = ArrayXd(maxSize);
     mOutputStorage = ArrayXd(maxSize);
   }
@@ -57,7 +50,7 @@ public:
         std::max(mMinTimeAboveThreshold + mUpwardLookupTime, mDownwardLatency);
     if (mLatency < 0)
       mLatency = 1;
-    //std::cout << "latency " << mLatency << std::endl;
+    // std::cout << "latency " << mLatency << std::endl;
     assert(mLatency <= mMaxSize);
     initBuffers();
     initFilters();
@@ -65,12 +58,10 @@ public:
   }
 
   int getLatency() { return mLatency; }
-  bool initialized(){
-    return mInitialized;
-  }
+  bool initialized() { return mInitialized; }
 
   double processSample(const double in) { // size is supposed to be 1
-    //double in = input(0);
+    // double in = input(0);
     assert(mInitialized);
     double filtered = mHiPass2.processSample(mHiPass1.processSample(in));
     double rectified =
@@ -89,7 +80,7 @@ public:
         mOutputBuffer(mLatency - 1) = 1;
         mEventCount++;
       }
-    // case 2: we are waiting for silence to finish
+      // case 2: we are waiting for silence to finish
     } else if (!mOutputState && mSilenceCount > 0) {
       if (mSilenceCount >= mMinSilenceDuration) {
         mSilenceCount = 0;
@@ -102,10 +93,10 @@ public:
     // case 3: need to compute state
     if (!forcedState) {
       bool nextState = mInputState;
-      if (!mInputState && smoothed > mOnThreshold){
+      if (!mInputState && smoothed > mOnThreshold) {
         nextState = true;
       }
-      if (mInputState && smoothed < mOffThreshold){
+      if (mInputState && smoothed < mOffThreshold) {
         nextState = false;
       }
       updateCounters(nextState);
@@ -118,7 +109,7 @@ public:
         int numSamples = onsetIndex - mMinTimeAboveThreshold;
         mOutputBuffer.segment(onsetIndex, mLatency - onsetIndex) = 1;
         mEventCount = mOnStateCount;
-        mOutputState  = true; // we are officially on
+        mOutputState = true; // we are officially on
       } else if (mOutputState && mOffStateCount >= mDownwardLatency &&
                  mFillCount >= mLatency) {
 
@@ -131,7 +122,7 @@ public:
       if (shouldRetrigger(relEnv)) {
         mOutputBuffer(mLatency - 1) = 0;
         mEventCount = 1;
-        mOutputState  = true; // we are officially on, starting next sample
+        mOutputState = true; // we are officially on, starting next sample
       } else {
         mOutputBuffer(mLatency - 1) = mOutputState ? 1 : 0;
       }
@@ -220,8 +211,10 @@ private:
   }
 
   bool shouldRetrigger(double relEnv) {
-    if(mRetriggerState) return false;
-    if (mInputState && mOutputState && mOnStateCount > 0 && relEnv > mRelOnThreshold) {
+    if (mRetriggerState)
+      return false;
+    if (mInputState && mOutputState && mOnStateCount > 0 &&
+        relEnv > mRelOnThreshold) {
       mRetriggerState = true;
       return true;
     }
@@ -231,39 +224,39 @@ private:
   int mMaxSize;
   int mLatency;
   int mFillCount;
-  double mHiPassFreq;
-  int mRampUpTime;
-  int mRampUpTime2;
-  int mRampDownTime;
-  int mRampDownTime2;
-  double mOnThreshold;
-  double mRelOnThreshold;
-  bool mRetriggerState;
-  int mMinTimeAboveThreshold;
-  int mMinEventDuration;
-  int mDownwardLookupTime;
+  double mHiPassFreq{0.2};
+  int mRampUpTime{100};
+  int mRampUpTime2{50};
+  int mRampDownTime{100};
+  int mRampDownTime2{50};
+  double mOnThreshold{-33};
+  double mRelOnThreshold{-33};
+  bool mRetriggerState{false};
+  int mMinTimeAboveThreshold{440};
+  int mMinEventDuration{440};
+  int mDownwardLookupTime{10};
   int mDownwardLatency;
-  double mOffThreshold;
-  double mRelOffThreshold;
-  int mMinTimeBelowThreshold;
-  int mMinSilenceDuration;
-  int mUpwardLookupTime;
+  double mOffThreshold{-42};
+  double mRelOffThreshold{-42};
+  int mMinTimeBelowThreshold{10};
+  int mMinSilenceDuration{10};
+  int mUpwardLookupTime{24};
   int mOutputType;
   ArrayXd mInputBuffer;
   ArrayXd mOutputBuffer;
   ArrayXd mInputStorage;
   ArrayXd mOutputStorage;
-  bool mInputState;
-  bool mOutputState;
+  bool mInputState{false};
+  bool mOutputState{false};
   ButterworthHPFilter mHiPass1;
   ButterworthHPFilter mHiPass2;
   SlideUDFilter mSlide;
   SlideUDFilter mSlide2;
-  int mOnStateCount;
-  int mOffStateCount;
-  int mEventCount;
-  int mSilenceCount;
-  bool mInitialized;
+  int mOnStateCount{0};
+  int mOffStateCount{0};
+  int mEventCount{0};
+  int mSilenceCount{0};
+  bool mInitialized{false};
 }; // namespace algorithm
 }; // namespace algorithm
 }; // namespace fluid

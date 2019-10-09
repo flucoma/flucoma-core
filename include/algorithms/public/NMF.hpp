@@ -17,7 +17,7 @@ public:
   //pass iteration number; returns true if able to continue (i.e. not cancelled)
   using ProgressCallback = std::function<bool(int)>;
 
-  NMF(int maxRank):mRank(maxRank), mIterations(100), mUpdateW(true), mUpdateH(true){}
+  NMF(int maxRank):mRank(maxRank){}
 
   void init(int rank, int nIterations, bool updateW = true, bool updateH = true){
     mRank = rank;
@@ -113,9 +113,9 @@ public:
 
 private:
   int mRank;
-  int mIterations;
-  bool mUpdateW;
-  bool mUpdateH;
+  int mIterations{100};
+  bool mUpdateW{true};
+  bool mUpdateH{true};
   std::vector<ProgressCallback> mCallbacks;
   using MatrixXd = Eigen::MatrixXd;
 
