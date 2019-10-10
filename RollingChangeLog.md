@@ -1,3 +1,30 @@
+# beta-02: multithreading!
+date: 9 October 2019
+
+## New Features:
+* Max+Pd+SC: multithreading for all buf* objects! Make sure to read the tutorial on how to make the best use of various threading options you now have.
+* Pd: stereo examples of fluid.buf* objects are done
+* CLI: BREAKING CHANGE: new executable naming convention, because we want it to be fluid.
+* CLI: CSV file output type
+* Max: new audio player in some help files, adapted from C74's [demosound]
+* pd (0.50.1+) lauching of html ref from the helpfiles
+
+## Bug Fixes:
+* (Max) Reference pages are more complete (with all messages)
+* (Max) Help patches better at making sound straight out of the box
+* (CLI) Some audio file format were wrong polarity, now sorted
+* (CLI) Mangled wav files on windows
+* all: many little tweaks here and there, more stable and consistent documentation
+
+## New Example:
+* (all) nb_of_slice is updated and more intelligent
+
+## Known Bugs:
+* BufNoveltySlice might generate garbage strange values in the first frame
+* AmpSlice is noisy when some parameters are changed
+* (Max/PD) Successive use of some fluid.buf* objects with buffers of differing sample rates will stick at first sample rate received
+
+===
 # beta-01: some fixes and more
 date: 26 August 2019
 
