@@ -1,6 +1,7 @@
 #pragma once
 
-//#include "DatasetClient.hpp"
+#include "DatasetClient.hpp"
+#include "LabelsetClient.hpp"
 #include "DatasetErrorStrings.hpp"
 #include "algorithms/KNNClassifier.hpp"
 #include "data/FluidDataset.hpp"
@@ -32,14 +33,25 @@ public:
 
   KNNClasClient(ParamSetViewType &p) : mParams(p) {}
 
-  MessageResult<std::string> index(DatasetClientRef datasetClient) const {
-    auto weakPtr = datasetClient.get();
-    if (auto datasetClientPtr = weakPtr.lock()) {
+  MessageResult<std::string> index(DatasetClientRef datasetClient,
+    LabelsetClientRef labelsetClient) const {
+    auto datasetWeakPtr = datasetClient.get();
+    if (auto datasetClientPtr = datasetWeakPtr.lock()) {
       auto dataset = datasetClientPtr->getDataset();
       mTree = algorithm::KDTree<std::string>{dataset};
     } else {
       return {Result::Status::kError, "Dataset doesn't exist"};
     }
+
+    auto labelsetWeakPtr = labelsetClient.get();
+    if (auto labelsetClientPtr = labelsetWeakPtr.lock()) {
+      mLabelset = labelsetClientPtr->getDataset();
+    } else {
+      return {Result::Status::kError, "Labelset doesn't exist"};
+    }
+
+
+
     return {};
   }
 
@@ -55,7 +67,7 @@ public:
         return {Result::Status::kError, WrongPointSizeError};
       FluidTensor<double, 1> point(mTree.nDims());
       point = buf.samps(0, mTree.nDims(), 0);
-      std::string result = classifier.predict(mTree, point, k);
+      std::string result = classifier.predict(mTree, point, mLabelset, k);
       return result;
     }
   }
@@ -65,6 +77,7 @@ public:
 
 private:
   mutable algorithm::KDTree<std::string> mTree{0};
+  mutable FluidDataset<string, double, string, 1> mLabelset{1};
 };
 
 using NRTThreadedKNNClasClient = NRTThreadingAdaptor<ClientWrapper<KNNClasClient>>;

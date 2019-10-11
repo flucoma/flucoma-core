@@ -62,7 +62,7 @@ public:
     }
     FluidTensor<double, 1> point(mDims);
     point = buf.samps(0, mDims, 0);
-    FluidDataset<int, double, std::string, 1> nearest =
+    FluidDataset<std::string, double, std::string, 1> nearest =
         mTree.kNearest(point, k);
     FluidTensor<std::string, 1> result{nearest.getTargets()};
     return result;

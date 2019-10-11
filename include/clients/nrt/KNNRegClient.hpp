@@ -32,23 +32,16 @@ public:
 
   KNNRegClient(ParamSetViewType &p) : mParams(p) {}
 
-  MessageResult<std::string> index(DatasetClientRef datasetClient, BufferPtr target) const {
-    auto weakPtr = datasetClient.get();
-    if (auto datasetClientPtr = weakPtr.lock()) {
-      auto dataset = datasetClientPtr->getDataset();
-      BufferAdaptor::Access buf(target.get());
-
-      if (buf.numFrames() != dataset.size())
-        return {Result::Status::kError, "Buffer and dataset do not match"};
-      FluidTensor<double, 1> target(dataset.size());
-      target = buf.samps(0, dataset.size(), 0);
-      //FluidDataset(FluidTensor<idType, 1> ids, FluidTensor<dataType, N + 1> points, FluidTensor<targetType, 1> targets) {
-      FluidTensor<string, 1> ids;
-      FluidTensor<double, 2> data;
-      ids = dataset.getIds();
-      data = dataset.getData();
-      auto regressionDataset = FluidDataset<string, double, double, 1>(ids, data, target);
-      mTree = algorithm::KDTree<double>{regressionDataset};
+  MessageResult<std::string> index(DatasetClientRef sourceClient, DatasetClientRef targetClient) const {
+    auto srcPtr = sourceClient.get().lock();
+    auto tgtPtr = targetClient.get().lock();
+    if (srcPtr && tgtPtr) {
+      auto srcDataset = srcPtr->getDataset();
+      mTarget = tgtPtr->getDataset();
+      std::cout<<srcDataset.size()<<" "<<mTarget.size()<<std::endl;
+      if (srcDataset.size() != mTarget.size())
+        return {Result::Status::kError, "Source and target size do not match"};
+      mTree = algorithm::KDTree<std::string>{srcDataset};
     } else {
       return {Result::Status::kError, "Dataset doesn't exist"};
     }
@@ -67,7 +60,7 @@ public:
         return {Result::Status::kError, WrongPointSizeError};
       FluidTensor<double, 1> point(mTree.nDims());
       point = buf.samps(0, mTree.nDims(), 0);
-      double result = regressor.predict(mTree, point, k);
+      double result = regressor.predict(mTree, mTarget, point, k);
       return result;
     }
   }
@@ -76,7 +69,9 @@ public:
                          makeMessage("regress", &KNNRegClient::regress));
 
 private:
-  mutable algorithm::KDTree<double> mTree{0};
+  mutable algorithm::KDTree<std::string> mTree{0};
+  mutable FluidDataset<std::string, double, std::string, 1> mTarget{1};
+
 };
 
 using NRTThreadedKNNRegClient = NRTThreadingAdaptor<ClientWrapper<KNNRegClient>>;

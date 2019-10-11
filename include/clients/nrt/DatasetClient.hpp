@@ -50,7 +50,7 @@ public:
   }
 
   // TODO: refactor with addPoint
-  MessageResult<void> addPointLabel(string id, BufferPtr data, string label) {
+  /*MessageResult<void> addPointLabel(string id, BufferPtr data, string label) {
     if (!data)
       return mNoBufferError;
     BufferAdaptor::Access buf(data.get());
@@ -59,7 +59,7 @@ public:
     FluidTensor<double, 1> point(mDims);
     point = buf.samps(0, mDims, 0);
     return mDataset.add(id, point, label) ? mOKResult : mDuplicateError;
-  }
+  }*/
 
   MessageResult<void> getPoint(string label, BufferPtr data) const {
     if (!data)
@@ -134,7 +134,7 @@ public:
 
   FLUID_DECLARE_MESSAGES(
       makeMessage("addPoint", &DatasetClient::addPoint),
-      makeMessage("addPointLabel", &DatasetClient::addPointLabel),
+      /*makeMessage("addPointLabel", &DatasetClient::addPointLabel),*/
       makeMessage("getPoint", &DatasetClient::getPoint),
       makeMessage("updatePoint", &DatasetClient::updatePoint),
       makeMessage("deletePoint", &DatasetClient::deletePoint),

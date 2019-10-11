@@ -15,13 +15,17 @@ class KNNRegressor {
 
 public:
 
-  double predict(KDTree<double> tree, RealVectorView point, int k){
+  using DataSet = FluidDataset<std::string, double, std::string, 1>;
+  double predict(KDTree<std::string> tree, DataSet targets, RealVectorView point, int k){
     using namespace std;
     auto nearest = tree.kNearest(point, k);
     double prediction = 0;
     double weight = 1.0/k;
     for(int i = 0; i < k; i++){
-      prediction += weight * nearest.getTargets()(i);
+      auto id = nearest.getIds()(i);
+      auto point = FluidTensor<double, 1>(1);
+      targets.get(id, point);
+      prediction += weight * point(0);
     }
     return prediction;
   }

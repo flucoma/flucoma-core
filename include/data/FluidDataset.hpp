@@ -17,7 +17,8 @@ public:
     static_assert(sizeof...(dims) == N, "Number of dimensions doesn't match");
   }
 
-  FluidDataset(FluidTensor<idType, 1> ids, FluidTensor<dataType, N + 1> points, FluidTensor<targetType, 1> targets) {
+  FluidDataset(FluidTensor<idType, 1> ids, FluidTensor<dataType, N + 1> points,
+    FluidTensor<targetType, 1> targets) {
     assert(ids.rows() == points.rows() && ids.rows() == targets.rows());
     mData = points;
     mTargets = targets;
@@ -51,6 +52,14 @@ public:
       return false;
     point = mData.row(pos->second);
     return true;
+  }
+
+  targetType getTarget(idType id) {
+    auto pos = mIndex.find(id);
+    if (pos == mIndex.end())
+      return targetType();
+    targetType target = mTargets(pos->second);
+    return target;
   }
 
   bool update(idType id, FluidTensorView<dataType, N> point) {
