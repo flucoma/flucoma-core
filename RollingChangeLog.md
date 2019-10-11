@@ -13,7 +13,7 @@ date: 9 October 2019
 * (Max) Reference pages are more complete (with all messages)
 * (Max) Help patches better at making sound straight out of the box
 * (CLI) Some audio file format were wrong polarity, now sorted
-* (CLI) Mangled wav files on windows
+* (CLI) Mangled wav files on windows sorted
 * all: many little tweaks here and there, more stable and consistent documentation
 
 ## New Example:
