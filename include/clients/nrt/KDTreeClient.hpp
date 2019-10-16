@@ -48,7 +48,7 @@ public:
     return {Result::Status::kOk};
   }
 
-  MessageResult<FluidTensor<std::string, 1>> knn(BufferPtr data, int k) const {
+  MessageResult<FluidTensor<std::string, 1>> kNearest(BufferPtr data, int k) const {
     if (!data)
       return {Result::Status::kError, NoBufferError};
     BufferAdaptor::Access buf(data.get());
@@ -62,11 +62,32 @@ public:
     }
     FluidTensor<double, 1> point(mDims);
     point = buf.samps(0, mDims, 0);
-    FluidDataSet<std::string, double,1> nearest =
-        mTree.kNearest(point, k);
+    FluidDataSet<std::string, double,1> nearest = mTree.kNearest(point, k);
     FluidTensor<std::string, 1> result{nearest.getIds()};
     return result;
   }
+
+  MessageResult<FluidTensor<double, 1>> kNearestDist(BufferPtr data, int k) const {
+    // TODO: refactor with kNearest
+    if (!data)
+      return {Result::Status::kError, NoBufferError};
+    BufferAdaptor::Access buf(data.get());
+    if (buf.numFrames() != mDims)
+      return {Result::Status::kError, WrongPointSizeError};
+    if (k > mTree.nPoints()){
+      return {Result::Status::kError, SmallDataSetError};
+    }
+    if(k <= 0 ){
+      return {Result::Status::kError, "k should be at least 1"};
+    }
+    FluidTensor<double, 1> point(mDims);
+    point = buf.samps(0, mDims, 0);
+    FluidDataSet<std::string, double,1> nearest = mTree.kNearest(point, k);
+    FluidTensor<double, 1> result{nearest.getData().col(0)};
+    return result;
+  }
+
+
 
   MessageResult<void> read(string fileName) {
     auto file = FluidFile(fileName, "r");
@@ -96,7 +117,8 @@ public:
   }
 
   FLUID_DECLARE_MESSAGES(makeMessage("index", &KDTreeClient::index),
-                         makeMessage("knn", &KDTreeClient::knn),
+                         makeMessage("kNearest", &KDTreeClient::kNearest),
+                         makeMessage("kNearestDist", &KDTreeClient::kNearestDist),
                          makeMessage("write", &KDTreeClient::write),
                          makeMessage("read", &KDTreeClient::read)
   );
