@@ -179,8 +179,9 @@ private:
       secondBranch = current->left;
     }
     kNearest(firstBranch, data, knn, k, depth + 1);
-    if (dimDif < knn.top().first) // ball centered at query with diametre
+    if (dimDif < knn.top().first || knn.size() < k) // ball centered at query with diametre
                                   // kthDist intersects with current partition
+                                  // (or need to get more neighbors)
     {
       kNearest(secondBranch, data, knn, k, depth + 1);
     }
