@@ -38,8 +38,8 @@ public:
   void processFrame(Eigen::Ref<const ArrayXd> input, Eigen::Ref<ArrayXd> output) {
     output= (mTable * input.matrix()).array();
   }
-  int mInputSize;
-  int mOutputSize;
+  int mInputSize{40};
+  int mOutputSize{13};
   MatrixXd mTable;
 };
 }; // namespace algorithm

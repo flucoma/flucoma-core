@@ -128,25 +128,6 @@ public:
   bool initialized(){return mInitialized;}
 
 private:
-  int mWindowSize;
-  //vector<double> mWindow;
-  ArrayXd mWindow;
-  int mFFTSize;
-  int mBins;
-  FFT mFFT;
-  VectorXd mOnes;
-  ArrayXd mW;
-  double mWNorm;
-  int mBandwidth;
-  double mThreshold{0.7};
-  ArrayXd mWindowTransform;
-  int mMinTrackLength{15};
-  double mMagWeight{0.01};
-  double mFreqWeight{0.5};
-  size_t mCurrentFrame{0};
-  vector<SineTrack> mTracks;
-  std::queue<ArrayXcd> mBuf;
-  bool mInitialized{false};
 
   const void peakContinuation(vector<SineTrack> &tracks,
                               vector<SinePeak> sinePeaks, const ArrayXd frame) {
@@ -280,6 +261,26 @@ private:
     }
     return sine;
   }
+
+  int mWindowSize{1024};
+  //vector<double> mWindow;
+  ArrayXd mWindow;
+  int mFFTSize{1024};
+  int mBins{513};
+  FFT mFFT;
+  VectorXd mOnes;
+  ArrayXd mW;
+  double mWNorm{1.0};
+  int mBandwidth{76};
+  double mThreshold{0.7};
+  ArrayXd mWindowTransform;
+  int mMinTrackLength{15};
+  double mMagWeight{0.01};
+  double mFreqWeight{0.5};
+  size_t mCurrentFrame{0};
+  vector<SineTrack> mTracks;
+  std::queue<ArrayXcd> mBuf;
+  bool mInitialized{false};
 };
 } // namespace algorithm
 } // namespace fluid

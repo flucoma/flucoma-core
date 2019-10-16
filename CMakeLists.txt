@@ -36,7 +36,6 @@ ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/Stats.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/TransientExtraction.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/TransientSegmentation.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/WindowFuncs.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/Windows.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/YINFFT.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/ARModel.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/ButterworthHPFilter.hpp

@@ -48,9 +48,9 @@ private:
   FFT mFFT;
   IFFT mIFFT;
   ArrayXcd mBuffer;
-  int mSampleRate;
-  int mFactor;
-  int mFFTSize;
+  int mSampleRate{44100.0};
+  int mFactor{4};
+  int mFFTSize{1024};
 };
 }; // namespace algorithm
 }; // namespace fluid

@@ -201,12 +201,12 @@ private:
     return threshold;
   }
 
-  size_t mBins;
-  size_t mMaxVSize;
-  size_t mMaxHSize;
-  size_t mVSize;
-  size_t mHSize;
-  int mMode;
+  size_t mBins{513};
+  size_t mMaxVSize{101};
+  size_t mMaxHSize{101};
+  size_t mVSize{31};
+  size_t mHSize{17};
+  int mMode{0};
   std::vector<MedianFilter> mHFilters;
   ArrayXXd mMaxH;
   ArrayXXd mMaxV;
@@ -214,14 +214,14 @@ private:
   ArrayXXd mV;
   ArrayXXd mH;
   ArrayXXcd mBuf;
-  double mHThresholdX1;
-  double mHThresholdY1;
-  double mHThresholdX2;
-  double mHThresholdY2;
-  double mPThresholdX1;
-  double mPThresholdY1;
-  double mPThresholdX2;
-  double mPThresholdY2;
+  double mHThresholdX1{0.0};
+  double mHThresholdY1{0.0};
+  double mHThresholdX2{0.0};
+  double mHThresholdY2{0.0};
+  double mPThresholdX1{0.0};
+  double mPThresholdY1{0.0};
+  double mPThresholdX2{0.0};
+  double mPThresholdY2{0.0};
   bool mInitialized = false;
 };
 } // namespace algorithm

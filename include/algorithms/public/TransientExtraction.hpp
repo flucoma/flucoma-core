@@ -396,7 +396,7 @@ private:
   int mBlockSize{0};
   int mPadSize{0};
   int mCount{0};
-  bool mRefine;
+  bool mRefine{false};
   int mDetectHalfWindow{1};
   int mDetectHold{25};
   double mDetectPowerFactor{1.4};

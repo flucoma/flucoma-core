@@ -116,12 +116,12 @@ public:
   RealVectorView window() { return RealVectorView(mWindow.data(), 0, mWindowSize); }
 
 private:
-  size_t mWindowSize;
-  size_t mHopSize;
-  size_t mFrameSize;
+  size_t mWindowSize{1024};
+  size_t mHopSize{512};
+  size_t mFrameSize{513};
   ArrayXd mWindow;
   ArrayXd mWindowSquared;
-  double mScale;
+  double mScale{1};
   IFFT mIFFT;
   ArrayXd mBuffer;
 };

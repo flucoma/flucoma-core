@@ -149,13 +149,13 @@ public:
   }
 
 private:
-  FFT mFFT;
+  FFT mFFT{1024};
   ArrayXd mWindowStorage;
   ArrayXd mWindow;
-  int mMaxSize;
-  int mFFTSize;
-  int mWindowSize;
-  int mHopSize;
+  int mMaxSize{16384};
+  int mFFTSize{1024};
+  int mWindowSize{1024};
+  int mHopSize{512};
   int mFrameDelta{0};
   WindowFuncs::WindowTypes mWindowType{WindowFuncs::WindowTypes::kHann};
   int mFunction{0};
@@ -167,7 +167,7 @@ private:
   std::vector<int> mSorting{5};
   ArrayXcd prevFrame;
   ArrayXcd prevPrevFrame;
-  double mPrevFuncVal{0};
+  double mPrevFuncVal{0.0};
 };
 
 }; // namespace algorithm

@@ -68,10 +68,10 @@ public:
   }
 
 protected:
-  size_t mMaxSize;
-  size_t mSize;
-  size_t mFrameSize;
-  size_t mLog2Size;
+  size_t mMaxSize{16384};
+  size_t mSize{1024};
+  size_t mFrameSize{513};
+  size_t mLog2Size{10};
   FFT_SETUP_D mSetup;
   FFT_SPLIT_COMPLEX_D mSplit;
 

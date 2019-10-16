@@ -223,8 +223,8 @@ public:
   ArrayXd mInput;
 
 private:
-  int mSize;
-  int mHalfSize;
+  int mSize{3};
+  int mHalfSize{1};
   Block a;
   Block b;
   std::vector<Block> blocks;

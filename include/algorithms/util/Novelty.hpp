@@ -55,13 +55,13 @@ public:
   }
 
 private:
-  int mKernelSize;
-  int mNDims;
+  int mKernelSize{3};
+  int mNDims{513};
   ArrayXXd mKernel;
   ArrayXXd mKernelStorage;
   MatrixXd mSimilarity;
   MatrixXd mBufer;
-  int mNorm;
+  int mNorm{1};
 
   void createKernel() {
     mKernel = mKernelStorage.block(0, 0, mKernelSize, mKernelSize);

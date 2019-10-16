@@ -43,7 +43,7 @@ public:
 private:
   TruePeak mTP;
   KWeightingFilter mFilter;
-  int mSize;
+  int mSize{1024};
 };
 
 }; // namespace algorithm

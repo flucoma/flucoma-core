@@ -18,9 +18,8 @@ public:
   using ArrayXd = Eigen::ArrayXd;
 
   void init(int size){
-    mNumBins = size;
-    mDCT.init(mNumBins, mNumBins);
-    mCepstrum = ArrayXd(mNumBins);
+    mDCT.init(size, size);
+    mCepstrum = ArrayXd(size);
   }
 
   void processFrame(const RealVectorView &input, RealVectorView output,
@@ -49,7 +48,6 @@ public:
 
 private:
   DCT mDCT;
-  int mNumBins;
   ArrayXd mCepstrum;
 };
 } // namespace algorithm

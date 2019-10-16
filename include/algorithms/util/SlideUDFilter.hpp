@@ -27,9 +27,9 @@ public:
   }
 
 private:
-  double mBUp, mBDown;
+  double mBUp{0.0}, mBDown{0.0};
   // double x0, y0;
-  double y0;
+  double y0{0.0};
 };
 }; // namespace algorithm
 }; // namespace fluid

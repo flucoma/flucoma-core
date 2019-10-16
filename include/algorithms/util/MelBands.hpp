@@ -62,13 +62,13 @@ public:
     out = _impl::asFluid(result);
   }
 
-  double mLo;
-  double mHi;
-  int mBins;
-  int mBands;
-  double mSampleRate;
+  double mLo{20.0};
+  double mHi{20000.0};
+  int mBins{513};
+  int mBands{40};
+  double mSampleRate{44100.0};
   Eigen::MatrixXd mFilters;
-  bool mLogOutput;
+  bool mLogOutput{false};
 
 private:
   // ArrayXd mOutputBuffer;

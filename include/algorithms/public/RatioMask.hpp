@@ -39,7 +39,7 @@ public:
 private:
 
   ArrayXXd mMultiplier;
-  int mExponent;
+  int mExponent{1};
 };
 
 } // namespace algorithm

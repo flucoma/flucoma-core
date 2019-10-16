@@ -27,12 +27,12 @@ public:
   }
 
 private:
-  double mB0, mB1, mB2;
-  double mA0, mA1;
-  double mXnz1 = 0;
-  double mXnz2 = 0;
-  double mYnz1 = 0;
-  double mYnz2 = 0;
+  double mB0{0.0}, mB1{0.0}, mB2{0.0};
+  double mA0{0.0}, mA1{0.0};
+  double mXnz1{0.0};
+  double mXnz2{0.0};
+  double mYnz1{0.0};
+  double mYnz2{0.0};
 };
 }; // namespace algorithm
 }; // namespace fluid

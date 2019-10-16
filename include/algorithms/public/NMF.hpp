@@ -112,11 +112,6 @@ public:
   }
 
 private:
-  int mRank;
-  int mIterations{100};
-  bool mUpdateW{true};
-  bool mUpdateH{true};
-  std::vector<ProgressCallback> mCallbacks;
   using MatrixXd = Eigen::MatrixXd;
 
   void multiplicativeUpdates(MatrixXd &V, MatrixXd &W, MatrixXd &H) {
@@ -155,6 +150,13 @@ private:
     }
     V = W * H;
   }
+  
+  int mRank{1};
+  int mIterations{100};
+  bool mUpdateW{true};
+  bool mUpdateH{true};
+  std::vector<ProgressCallback> mCallbacks;
+
 };
 } // namespace algorithm
 } // namespace fluid

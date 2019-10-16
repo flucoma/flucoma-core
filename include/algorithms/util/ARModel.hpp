@@ -206,10 +206,10 @@ private:
   VectorXd mParameters;
   double mVariance{0.0};
   ArrayXd mWindow;
-  bool mUseWindow;
-  size_t mOrder;
-  size_t mIterations;
-  double mRobustFactor;
+  bool mUseWindow{true};
+  size_t mOrder{20};
+  size_t mIterations{3};
+  double mRobustFactor{3.0};
   double mMinVariance{0.0};
 };
 
