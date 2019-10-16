@@ -1,8 +1,8 @@
 #pragma once
-#include "DatasetErrorStrings.hpp"
+#include "DataSetErrorStrings.hpp"
 #include "FluidSharedInstanceAdaptor.hpp"
 #include "clients/common/SharedClientUtils.hpp"
-#include "data/FluidDataset.hpp"
+#include "data/FluidDataSet.hpp"
 #include <clients/common/FluidBaseClient.hpp>
 #include <clients/common/MessageSet.hpp>
 #include <clients/common/OfflineClient.hpp>
@@ -20,64 +20,60 @@
 namespace fluid {
 namespace client {
 
-class LabelsetClient : public FluidBaseClient, OfflineIn, OfflineOut {
+class LabelSetClient : public FluidBaseClient, OfflineIn, OfflineOut {
   enum { kName };
 
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
-  using LabelledDataset = FluidDataset<string, double, string, 1>;
+  using LabelSet = FluidDataSet<string, string, 1>;
 
   template <typename T> Result process(FluidContext &) { return {}; }
 
-  FLUID_DECLARE_PARAMS(StringParam<Fixed<true>>("name", "Dataset"));
+  FLUID_DECLARE_PARAMS(StringParam<Fixed<true>>("name", "DataSet"));
 
-  LabelsetClient(ParamSetViewType &p) : mParams(p), mDataset(1) {
-    mDims = 1;
-  }
+  LabelSetClient(ParamSetViewType &p) : mParams(p), mLabelSet(1) {}
 
 
   // TODO: refactor with addPoint
   MessageResult<void> addLabel(string id, string label) {
     if(id.empty()) return {Result::Status::kError, "Empty id"};
     if(label.empty()) return {Result::Status::kError, "Empty label"};
-    FluidTensor<double, 1> point(mDims);
-    return mDataset.add(id, point, label) ? mOKResult : mDuplicateError;
+    FluidTensor<string, 1> point = {label};
+    return mLabelSet.add(id, point) ? mOKResult : mDuplicateError;
   }
 
   MessageResult<string> getLabel(string id) const {
     if(id.empty()) return {Result::Status::kError, "Empty id"};
-    FluidTensor<double, 1> point(mDims);
-    return  mDataset.getTarget(id);
+    FluidTensor<string, 1> point(1);
+    mLabelSet.get(id, point);
+    return  point(0);
   }
 
-  /*MessageResult<void> updateLabel(string id, string label) {
-    if(id.empty()) {Result::Status::kError, "Empty id"};
-    //if(label.empty()) {Result::Status::kError, "Empty label"};
-
-    return mDataset.update(label, point) ? mOKResult : mNotFoundError;
-  }*/
+  MessageResult<void> updateLabel(string id, string label) {
+    if(id.empty()) return {Result::Status::kError, "Empty id"};
+    if(label.empty()) return {Result::Status::kError, "Empty label"};
+    FluidTensor<string, 1> point = {label};
+    return mLabelSet.update(id, point) ? mOKResult : mNotFoundError;
+  }
 
   MessageResult<void> deleteLabel(string id) {
-    return mDataset.remove(id) ? mOKResult : mNotFoundError;
+    return mLabelSet.remove(id) ? mOKResult : mNotFoundError;
   }
 
-  MessageResult<int> size() { return mDataset.size(); }
+  MessageResult<int> size() { return mLabelSet.size(); }
 
   MessageResult<void> clear() {
-    mDataset = LabelledDataset(mDims);
+    mLabelSet = LabelSet(1);
     return mOKResult;
   }
 
   MessageResult<void> write(string fileName) {
     auto file = FluidFile(fileName, "w");
     if(!file.valid()){return {Result::Status::kError, file.error()};}
-    file.add("labels", mDataset.getTargets());
-    file.add("ids", mDataset.getIds());
-    file.add("rows", mDataset.size());
-    /*file.add("data", mDataset.getData());
-    file.add("cols", mDataset.pointSize());
-    file.add("rows", mDataset.size());*/
+    file.add("labels", mLabelSet.getData());
+    file.add("ids", mLabelSet.getIds());
+    file.add("rows", mLabelSet.size());
     return file.write()? mOKResult:mWriteError;
   }
 
@@ -85,31 +81,30 @@ public:
    auto file = FluidFile(fileName, "r");
    if(!file.valid()){return {Result::Status::kError, file.error()};}
    if(!file.read()){return {Result::Status::kError, ReadError};}
-   if(!file.checkKeys({"targets","ids","rows"})){
+   if(!file.checkKeys({"labels","ids","rows"})){
      return {Result::Status::kError, file.error()};
    }
    size_t  rows;
    file.get("rows", rows);
    FluidTensor<string, 1> ids(rows);
-   FluidTensor<string, 1> targets(rows);
-   FluidTensor<double, 2> data(rows,1);
+   FluidTensor<string, 2> labels(rows, 1);
    file.get("ids", ids, rows);
-   file.get("targets", targets, rows);
-   mDataset = LabelledDataset(ids, data, targets);
+   file.get("labels", labels, rows, 1);
+   mLabelSet = LabelSet(ids, labels);
    return mOKResult;
  }
 
   FLUID_DECLARE_MESSAGES(
-      makeMessage("addLabel", &LabelsetClient::addLabel),
-      makeMessage("getLabel", &LabelsetClient::getLabel),
-      makeMessage("deleteLabel", &LabelsetClient::deleteLabel),
-      makeMessage("size", &LabelsetClient::size),
-      makeMessage("clear", &LabelsetClient::clear),
-      makeMessage("write", &LabelsetClient::write),
-      makeMessage("read", &LabelsetClient::read)
+      makeMessage("addLabel", &LabelSetClient::addLabel),
+      makeMessage("getLabel", &LabelSetClient::getLabel),
+      makeMessage("deleteLabel", &LabelSetClient::deleteLabel),
+      makeMessage("size", &LabelSetClient::size),
+      makeMessage("clear", &LabelSetClient::clear),
+      makeMessage("write", &LabelSetClient::write),
+      makeMessage("read", &LabelSetClient::read)
   );
 
-  const LabelledDataset getDataset() const { return mDataset; }
+  const LabelSet getLabelSet() const { return mLabelSet; }
 
 private:
   using result = MessageResult<void>;
@@ -120,12 +115,11 @@ private:
   result mDuplicateError{Result::Status::kError,DuplicateError};
   result mOKResult{Result::Status::kOk};
 
-  mutable LabelledDataset mDataset;
-  size_t mDims;
+  mutable LabelSet mLabelSet{1};
 };
-using LabelsetClientRef = SharedClientRef<LabelsetClient>;
-using NRTThreadedLabelsetClient =
-    NRTThreadingAdaptor<typename LabelsetClientRef::SharedType>;
+using LabelSetClientRef = SharedClientRef<LabelSetClient>;
+using NRTThreadedLabelSetClient =
+    NRTThreadingAdaptor<typename LabelSetClientRef::SharedType>;
 
 } // namespace client
 } // namespace fluid

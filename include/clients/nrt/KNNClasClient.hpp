@@ -1,10 +1,10 @@
 #pragma once
 
-#include "DatasetClient.hpp"
-#include "LabelsetClient.hpp"
-#include "DatasetErrorStrings.hpp"
+#include "DataSetClient.hpp"
+#include "LabelSetClient.hpp"
+#include "DataSetErrorStrings.hpp"
 #include "algorithms/KNNClassifier.hpp"
-#include "data/FluidDataset.hpp"
+#include "data/FluidDataSet.hpp"
 
 #include <clients/common/FluidBaseClient.hpp>
 #include <clients/common/MessageSet.hpp>
@@ -26,6 +26,7 @@ class KNNClasClient : public FluidBaseClient, OfflineIn, OfflineOut {
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
+  using LabelSet = FluidDataSet<string, string, 1>;
 
   template <typename T> Result process(FluidContext &) { return {}; }
 
@@ -33,24 +34,22 @@ public:
 
   KNNClasClient(ParamSetViewType &p) : mParams(p) {}
 
-  MessageResult<std::string> index(DatasetClientRef datasetClient,
-    LabelsetClientRef labelsetClient) const {
+  MessageResult<std::string> index(DataSetClientRef datasetClient,
+    LabelSetClientRef labelsetClient) const {
     auto datasetWeakPtr = datasetClient.get();
     if (auto datasetClientPtr = datasetWeakPtr.lock()) {
-      auto dataset = datasetClientPtr->getDataset();
-      mTree = algorithm::KDTree<std::string>{dataset};
+      auto dataset = datasetClientPtr->getDataSet();
+      mTree = algorithm::KDTree{dataset};
     } else {
-      return {Result::Status::kError, "Dataset doesn't exist"};
+      return {Result::Status::kError, "DataSet doesn't exist"};
     }
 
     auto labelsetWeakPtr = labelsetClient.get();
     if (auto labelsetClientPtr = labelsetWeakPtr.lock()) {
-      mLabelset = labelsetClientPtr->getDataset();
+      mLabelSet = labelsetClientPtr->getLabelSet();
     } else {
-      return {Result::Status::kError, "Labelset doesn't exist"};
+      return {Result::Status::kError, "LabelSet doesn't exist"};
     }
-
-
 
     return {};
   }
@@ -67,7 +66,7 @@ public:
         return {Result::Status::kError, WrongPointSizeError};
       FluidTensor<double, 1> point(mTree.nDims());
       point = buf.samps(0, mTree.nDims(), 0);
-      std::string result = classifier.predict(mTree, point, mLabelset, k);
+      std::string result = classifier.predict(mTree, point, mLabelSet, k);
       return result;
     }
   }
@@ -76,8 +75,8 @@ public:
                          makeMessage("classify", &KNNClasClient::classify));
 
 private:
-  mutable algorithm::KDTree<std::string> mTree{0};
-  mutable FluidDataset<string, double, string, 1> mLabelset{1};
+  mutable algorithm::KDTree mTree{0};
+  mutable LabelSet mLabelSet{1};
 };
 
 using NRTThreadedKNNClasClient = NRTThreadingAdaptor<ClientWrapper<KNNClasClient>>;

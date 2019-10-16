@@ -38,7 +38,7 @@ public:
     StringParam<Fixed<true>>("name", "Corpus name")
   );
 
-  using CorpusDataSet = FluidDataset<string, Entry,string, 1>;
+  using CorpusDataSet = FluidDataSet<string, Entry, 1>;
 
   CorpusClient(ParamSetViewType &p):mParams(p), mTmp(1){}
 

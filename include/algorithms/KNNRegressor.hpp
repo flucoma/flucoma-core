@@ -2,7 +2,7 @@
 
 #include "KDTree.hpp"
 #include "algorithms/util/FluidEigenMappings.hpp"
-#include "data/FluidDataset.hpp"
+#include "data/FluidDataSet.hpp"
 #include "data/FluidTensor.hpp"
 #include "data/TensorTypes.hpp"
 #include <string>
@@ -15,8 +15,8 @@ class KNNRegressor {
 
 public:
 
-  using DataSet = FluidDataset<std::string, double, std::string, 1>;
-  double predict(KDTree<std::string> tree, DataSet targets, RealVectorView point, int k){
+  using DataSet = FluidDataSet<std::string, double, 1>;
+  double predict(KDTree tree, DataSet targets, RealVectorView point, int k){
     using namespace std;
     auto nearest = tree.kNearest(point, k);
     double prediction = 0;

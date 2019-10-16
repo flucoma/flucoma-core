@@ -1,9 +1,9 @@
 #pragma once
 
-//#include "DatasetClient.hpp"
-#include "DatasetErrorStrings.hpp"
+//#include "DataSetClient.hpp"
+#include "DataSetErrorStrings.hpp"
 #include "algorithms/KNNRegressor.hpp"
-#include "data/FluidDataset.hpp"
+#include "data/FluidDataSet.hpp"
 
 #include <clients/common/FluidBaseClient.hpp>
 #include <clients/common/MessageSet.hpp>
@@ -32,18 +32,18 @@ public:
 
   KNNRegClient(ParamSetViewType &p) : mParams(p) {}
 
-  MessageResult<std::string> index(DatasetClientRef sourceClient, DatasetClientRef targetClient) const {
+  MessageResult<std::string> index(DataSetClientRef sourceClient, DataSetClientRef targetClient) const {
     auto srcPtr = sourceClient.get().lock();
     auto tgtPtr = targetClient.get().lock();
     if (srcPtr && tgtPtr) {
-      auto srcDataset = srcPtr->getDataset();
-      mTarget = tgtPtr->getDataset();
-      std::cout<<srcDataset.size()<<" "<<mTarget.size()<<std::endl;
-      if (srcDataset.size() != mTarget.size())
+      auto srcDataSet = srcPtr->getDataSet();
+      mTarget = tgtPtr->getDataSet();
+      std::cout<<srcDataSet.size()<<" "<<mTarget.size()<<std::endl;
+      if (srcDataSet.size() != mTarget.size())
         return {Result::Status::kError, "Source and target size do not match"};
-      mTree = algorithm::KDTree<std::string>{srcDataset};
+      mTree = algorithm::KDTree{srcDataSet};
     } else {
-      return {Result::Status::kError, "Dataset doesn't exist"};
+      return {Result::Status::kError, "DataSet doesn't exist"};
     }
     return {};
   }
@@ -69,8 +69,8 @@ public:
                          makeMessage("regress", &KNNRegClient::regress));
 
 private:
-  mutable algorithm::KDTree<std::string> mTree{0};
-  mutable FluidDataset<std::string, double, std::string, 1> mTarget{1};
+  mutable algorithm::KDTree mTree{0};
+  mutable FluidDataSet<string, double, 1> mTarget{1};
 
 };
 

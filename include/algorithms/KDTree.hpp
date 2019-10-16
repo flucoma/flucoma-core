@@ -1,7 +1,7 @@
 #pragma once
 
 #include "algorithms/util/FluidEigenMappings.hpp"
-#include "data/FluidDataset.hpp"
+#include "data/FluidDataSet.hpp"
 #include "data/FluidTensor.hpp"
 #include "data/TensorTypes.hpp"
 #include <Eigen/Core>
@@ -11,27 +11,25 @@
 namespace fluid {
 namespace algorithm {
 
-template <typename T> class KDTree {
+class KDTree {
 
 public:
   using string = std::string;
   struct Node;
   using NodePtr = std::shared_ptr<Node>;
-  using Dataset = FluidDataset<string, double, T, 1>;
+  using DataSet = FluidDataSet<string, double, 1>;
 
   struct Node {
     const string id;
-    const T target;
     const RealVector data;
     NodePtr left{nullptr}, right{nullptr};
   };
 
   struct FlatData {
     FluidTensor<int, 2> tree;
-    FluidTensor<T, 1> ids;
-    FluidTensor<T, 1> targets;
+    FluidTensor<string, 1> ids;
     FluidTensor<double, 2> data;
-    FlatData(int n, int m) : tree(n, 2), targets(n), data(n, m) {}
+    FlatData(int n, int m) : tree(n, 2), data(n, m) {}
   };
 
   using knnCandidate = std::pair<double, NodePtr>;
@@ -41,7 +39,7 @@ public:
 
   KDTree(int nDims) : mDims(nDims) {}
 
-  KDTree(const Dataset &dataset) {
+  KDTree(const DataSet &dataset) {
     using namespace std;
     mNPoints = dataset.size();
     mDims = dataset.pointSize();
@@ -50,16 +48,15 @@ public:
     mRoot = buildTree(indices, indices.begin(), indices.end(), dataset, 0);
   }
 
-  void addNode(const string id, const T target, const RealVectorView data) {
-    mRoot = addNode(mRoot, target, data, 0);
+  void addNode(const string id, const RealVectorView data) {
+    mRoot = addNode(mRoot, id, data, 0);
     mNPoints++;
   }
 
-  FluidDataset<string, double, T, 1> kNearest(const RealVectorView data,
-                                           int k = 1) {
+  DataSet kNearest(const RealVectorView data, int k = 1) {
     assert(data.size() == mDims);
     knnQueue queue;
-    auto result = FluidDataset<string, double, T, 1>(1);
+    auto result = DataSet(1);
     std::vector<knnCandidate> sorted(k);
     kNearest(mRoot, data, queue, k, 0);
     for (int i = k - 1; i >= 0; i--) {
@@ -68,9 +65,8 @@ public:
     }
     for (int i = 0; i < k; i++) {
       auto dist = FluidTensor<double, 1>{sorted[i].first};
-      auto val = sorted[i].second->target;
       auto id = sorted[i].second->id;
-      result.add(id, dist, val);
+      result.add(id, dist);
     }
     return result;
   }
@@ -93,12 +89,11 @@ public:
 
 private:
   NodePtr buildTree(std::vector<int> indices, iterator from, iterator to,
-                    const Dataset &dataset, const int depth) {
+                    const DataSet &dataset, const int depth) {
     using namespace std;
     if (from == to) return nullptr;
     else if (std::distance(from, to) == 1) {
       return makeNode(dataset.getIds()(*from),
-                      dataset.getTargets()(*from),
                       dataset.getData().row(*from));
     }
     const int d = depth % mDims;
@@ -108,7 +103,6 @@ private:
     const int range = std::distance(from, to);
     const int median = range / 2;
     NodePtr current = makeNode(dataset.getIds().row(*(from + median)),
-                               dataset.getTargets().row(*(from + median)),
                                dataset.getData().row(*(from + median)));
     if (median > 0)
       current->left =
@@ -119,22 +113,22 @@ private:
     return current;
   }
 
-  NodePtr makeNode(const string id, const T target, const RealVectorView data) {
+  NodePtr makeNode(const string id, const RealVectorView data) {
     const RealVector point{data};
-    return std::make_shared<Node>(Node{id, target, point, nullptr, nullptr});
+    return std::make_shared<Node>(Node{id, point, nullptr, nullptr});
   }
 
-  NodePtr addNode(NodePtr current, const string id, const T target, const RealVectorView data,
+  NodePtr addNode(NodePtr current, const string id, const RealVectorView data,
                   const int depth) {
     if (current == nullptr) {
-      return makeNode(id, target, data);
+      return makeNode(id, data);
     }
 
     const int d = depth % mDims;
-    if (data(d) < current->data(d)) {
-      current->left = addNode(current->left, target, data, depth + 1);
+    if (data(d) < current -> data(d)) {
+      current->left = addNode(current->left, id, data, depth + 1);
     } else {
-      current->right = addNode(current->right, target, data, depth + 1);
+      current->right = addNode(current->right, id, data, depth + 1);
     }
     return current;
   }
@@ -153,7 +147,7 @@ private:
       std::cout << " null" << std::endl;
       return;
     }
-    std::cout << " " << current->target << std::endl;
+    std::cout << " " << current->id << std::endl;
     for (int i = 0; i < depth; ++i)
       std::cout << "  ";
     std::cout << " left" << std::endl;
@@ -196,7 +190,6 @@ private:
     if (current == nullptr) {
       return nodeId;
     }
-    store.targets(nodeId) = current->target;
     store.ids(nodeId) = current->id;
     store.data.row(nodeId) = current->data;
 
@@ -220,7 +213,7 @@ private:
 
   NodePtr unflatten(FlatData &store, int index) {
     if(index == -1) return nullptr;
-    NodePtr current = makeNode(store.ids[index], store.targets[index], store.data[index]);
+    NodePtr current = makeNode(store.ids[index], store.data[index]);
     current->left = unflatten(store, store.tree(index, 0));
     current->right = unflatten(store, store.tree(index, 1));
     return current;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "data/FluidDataset.hpp"
+#include "data/FluidDataSet.hpp"
 #include "FluidSharedInstanceAdaptor.hpp"
 #include "../common/SharedClientUtils.hpp"
 #include <clients/common/FluidBaseClient.hpp>
@@ -21,38 +21,38 @@ namespace client {
 
 class ProviderTestClient : public FluidBaseClient,public OfflineIn, public OfflineOut
 {
-  
+
   enum { kName, kDummy };
   using string = std::string;
 
 public:
-  
+
   //external messages omitted
-  
+
   struct Entry
   {
     intptr_t offset;
     intptr_t length;
   };
-  
+
   FLUID_DECLARE_PARAMS(
     StringParam<Fixed<true>>("name", "Provider name"),
     LongParam("dummy","Checking Attrui Updates",0)
   );
-  
-  using ProviderDataSet = FluidDataset<string, Entry,string, 1>;
+
+  using ProviderDataSet = FluidDataSet<string, Entry, 1>;
 
   ProviderTestClient(ParamSetViewType &p):mParams(p), mTmp(1){}
 
   template <typename T>
   Result process(FluidContext&) { return {}; }
-  
+
   std::string name() const { return get<kName>(); }
-  
+
   MessageResult<void> addPoint(string label, intptr_t offset,intptr_t length)
   {
     mTmp.row(0) = Entry{offset,length};
-    return mData.add(label,mTmp,label)
+    return mData.add(label,mTmp)
                ? MessageResult<void>{Result::Status::kOk}
                : MessageResult<void>{Result::Status::kError, "Label already exists"};
   }
@@ -87,7 +87,7 @@ public:
     makeMessage("updatePoint", &ProviderTestClient::updatePoint),
     makeMessage("deletePoint", &ProviderTestClient::deletePoint)
   );
-  
+
 private:
   mutable ProviderDataSet mData{1};
   FluidTensor<Entry,1> mTmp;
@@ -98,4 +98,3 @@ using NRTThreadedProviderTest = NRTThreadingAdaptor<typename ProviderTestClientR
 
 } // namespace client
 } // namespace fluid
-

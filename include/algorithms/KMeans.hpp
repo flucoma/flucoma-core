@@ -1,7 +1,7 @@
 #pragma once
 
 #include "algorithms/util/FluidEigenMappings.hpp"
-#include "data/FluidDataset.hpp"
+#include "data/FluidDataSet.hpp"
 #include "data/FluidTensor.hpp"
 #include "data/TensorTypes.hpp"
 #include <Eigen/Core>
@@ -19,7 +19,7 @@ public:
     mDims = dims;
   }
 
-  void train(const FluidDataset<std::string, double, std::string, 1> &dataset, int maxIter,
+  void train(const FluidDataSet<std::string, double, 1> &dataset, int maxIter,
              RealMatrixView initialMeans = RealMatrixView(nullptr, 0, 0, 0)) {
     using namespace Eigen;
     using namespace _impl;

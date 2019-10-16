@@ -1,8 +1,8 @@
 #pragma once
 
-//#include "DatasetClient.hpp"
-#include "DatasetErrorStrings.hpp"
-#include "data/FluidDataset.hpp"
+//#include "DataSetClient.hpp"
+#include "DataSetErrorStrings.hpp"
+#include "data/FluidDataSet.hpp"
 #include "algorithms/KMeans.hpp"
 
 #include <clients/common/FluidBaseClient.hpp>
@@ -38,17 +38,17 @@ public:
                                               Min(1)),
     LongParam<Fixed<true>>("k", "Number of clusters", 2, Min(2)));
 
-  KMeansClient(ParamSetViewType &p) : mParams(p), mDims(get<kNDims>()), mK(get<kK>()), mDataset(get<kNDims>()) {
+  KMeansClient(ParamSetViewType &p) : mParams(p), mDims(get<kNDims>()), mK(get<kK>()), mDataSet(get<kNDims>()) {
     //mDims = get<kNDims>();
     mModel.init(mK, mDims);
   }
 
-  MessageResult<void> train(DatasetClientRef datasetClient, int maxIter = 100, BufferPtr init = nullptr) {
+  MessageResult<void> train(DataSetClientRef datasetClient, int maxIter = 100, BufferPtr init = nullptr) {
     auto weakPtr = datasetClient.get();
     if(auto datasetClientPtr = weakPtr.lock())
     {
-      auto dataset = datasetClientPtr->getDataset();
-      if (dataset.size() == 0) return {Result::Status::kError, EmptyDatasetError};
+      auto dataset = datasetClientPtr->getDataSet();
+      if (dataset.size() == 0) return {Result::Status::kError, EmptyDataSetError};
       if (init == nullptr){
         mModel.train(dataset, maxIter);
       }
@@ -65,11 +65,11 @@ public:
         points = buf.samps(0, mDims, 0);
         mModel.train(dataset, maxIter, points);
       }
-      //(const FluidDataset<std::string, double, std::string, 1> &dataset, int maxIter,
+      //(const FluidDataSet<std::string, double, std::string, 1> &dataset, int maxIter,
       //           RealMatrixView initialMeans = RealMatrixView(nullptr, 0, 0, 0))
     }
     else {
-      return {Result::Status::kError,"Dataset doesn't exist"};
+      return {Result::Status::kError,"DataSet doesn't exist"};
     }
     return {};
   }
@@ -122,7 +122,7 @@ public:
 private:
   MessageResult<void> mOKResult{Result::Status::kOk};
   MessageResult<void> mWriteError{Result::Status::kError, WriteError};
-  mutable FluidDataset<string, double, string, 1> mDataset;
+  mutable FluidDataSet<string, double, 1> mDataSet;
   mutable algorithm::KMeans mModel;
   size_t mDims;
   size_t mK;
