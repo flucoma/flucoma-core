@@ -41,14 +41,14 @@ auto constexpr TransientParams = defineParameters(
 
 
 template <typename T>
-class TransientsSlice :
+class TransientsSliceClient :
 public FluidBaseClient<decltype(TransientParams), TransientParams>, public AudioIn, public AudioOut
 {
   using HostVector = FluidTensorView<T,1>;
 
 public:
 
-  TransientsSlice(ParamSetViewType& p): FluidBaseClient(p)
+  TransientsSliceClient(ParamSetViewType& p): FluidBaseClient(p)
   {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::audioChannelsOut(1);
@@ -123,13 +123,13 @@ private:
   size_t mPadding{0};
 };
 
-auto constexpr NRTTransientSliceParams = makeNRTParams<TransientsSlice>({InputBufferParam("source", "Source Buffer")}, {BufferParam("indices","Indices Buffer")});
+auto constexpr NRTTransientSliceParams = makeNRTParams<TransientsSliceClient>({InputBufferParam("source", "Source Buffer")}, {BufferParam("indices","Indices Buffer")});
 
 template <typename T>
-using NRTTransientSlice = NRTSliceAdaptor<TransientsSlice<T>, decltype(NRTTransientSliceParams), NRTTransientSliceParams, 1, 1>;
+using NRTTransientSliceClient = NRTSliceAdaptor<TransientsSliceClient<T>, decltype(NRTTransientSliceParams), NRTTransientSliceParams, 1, 1>;
 
 template <typename T>
-using NRTThreadedTransientSlice = NRTThreadingAdaptor<NRTTransientSlice<T>>;
+using NRTThreadedTransientSliceClient = NRTThreadingAdaptor<NRTTransientSliceClient<T>>;
 
 } // namespace client
 } // namespace fluid

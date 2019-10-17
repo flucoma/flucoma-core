@@ -65,14 +65,14 @@ auto constexpr AmpSliceParams = defineParameters(
     LongParam("outputType", "Output Type (temporarily)", 0, Min(0)));
 
 template <typename T>
-class AmpSlice
+class AmpSliceClient
     : public FluidBaseClient<decltype(AmpSliceParams), AmpSliceParams>,
       public AudioIn,
       public AudioOut {
   using HostVector = FluidTensorView<T,1>;
 
 public:
-  AmpSlice(ParamSetViewType &p) : FluidBaseClient(p) {
+  AmpSliceClient(ParamSetViewType &p) : FluidBaseClient(p) {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::audioChannelsOut(1);
   }
@@ -172,16 +172,16 @@ template <typename HostMatrix, typename HostVectorView> struct NRTAmpSlicing {
 };
 
 auto constexpr NRTAmpSliceParams =
-    makeNRTParams<AmpSlice>({InputBufferParam("source", "Source Buffer")},
+    makeNRTParams<AmpSliceClient>({InputBufferParam("source", "Source Buffer")},
                             {BufferParam("indices", "Indices Buffer")});
 
 template <typename T>
-using NRTAmpSlice = impl::NRTClientWrapper<NRTAmpSlicing, AmpSlice<T>,
+using NRTAmpSliceClient = impl::NRTClientWrapper<NRTAmpSlicing, AmpSliceClient<T>,
                                            decltype(NRTAmpSliceParams),
                                            NRTAmpSliceParams, 1, 1>;
 
 template <typename T>
-using NRTThreadedAmpSlice = NRTThreadingAdaptor<NRTAmpSlice<T>>;
+using NRTThreadedAmpSliceClient = NRTThreadingAdaptor<NRTAmpSliceClient<T>>;
 
 } // namespace client
 } // namespace fluid

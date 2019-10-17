@@ -19,7 +19,7 @@ auto constexpr BufComposeParams = defineParameters(
     LongParam("startFrame", "Source Offset", 0, Min(0)),
     LongParam("numFrames", "Source Number of Frames", -1),
     LongParam("startChan", "Source Channel Offset", 0, Min(0)),
-    LongParam("numChans", "Source Number of Channels", -1),
+    LongParam("numChans",   "Source Number of Channels", -1),
     FloatParam("gain", "Source Gain", 1.0),
     BufferParam("destination", "Destination Buffer"),
     LongParam("destStartFrame", "Destination Offset", 0),
@@ -27,14 +27,14 @@ auto constexpr BufComposeParams = defineParameters(
     FloatParam("destGain", "Destination Gain", 0.0));
 
 template <typename T>
-class BufferComposeClient : public FluidBaseClient<decltype(BufComposeParams), BufComposeParams>, OfflineIn, OfflineOut
+class BufComposeClient : public FluidBaseClient<decltype(BufComposeParams), BufComposeParams>, OfflineIn, OfflineOut
 {
   using HostVector = FluidTensorView<T, 1>;
   using ConstHostVector = FluidTensorView<const T, 1>;
   using HostMatrix = FluidTensor<T, 2>;
 
 public:
-  BufferComposeClient(ParamSetViewType &p) : FluidBaseClient(p)
+  BufComposeClient(ParamSetViewType &p) : FluidBaseClient(p)
   {}
 
   Result process(FluidContext &c)
@@ -126,7 +126,7 @@ public:
 
         std::transform(sourceChunk.begin(), sourceChunk.end(), destinationChunk.begin(), destinationChunk.begin(),
                        [gain](const T &src, T &dst) { return dst + src * gain; });
-        
+
         if(c.task() && !c.task()->processUpdate(j + 1, nChannels)) return  {Result::Status::kCancelled,""};
       }
     }
@@ -148,9 +148,9 @@ public:
     return {Result::Status::kOk};
   }
 };
-    
+
 template <typename T>
-using NRTThreadedBufferCompose = NRTThreadingAdaptor<BufferComposeClient<T>>;
-    
+using NRTThreadedBufComposeClient = NRTThreadingAdaptor<BufComposeClient<T>>;
+
 } // namespace client
 } // namespace fluid

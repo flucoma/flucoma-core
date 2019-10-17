@@ -93,10 +93,10 @@ private:
 auto constexpr NRTSineParams = makeNRTParams<SinesClient>({InputBufferParam("source", "Source Buffer")}, {BufferParam("sines","Sines Buffer"), BufferParam("residual", "Residual Buffer")});
 
 template <typename T>
-using NRTSines = NRTStreamAdaptor<SinesClient<T>, decltype(NRTSineParams), NRTSineParams, 1, 2>;
+using NRTSinesClient = NRTStreamAdaptor<SinesClient<T>, decltype(NRTSineParams), NRTSineParams, 1, 2>;
 
 template <typename T>
-using NRTThreadedSines = NRTThreadingAdaptor<NRTSines<T>>;
+using NRTThreadedSinesClient = NRTThreadingAdaptor<NRTSinesClient<T>>;
 
 } // namespace client
 } // namespace fluid

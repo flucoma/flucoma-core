@@ -43,14 +43,14 @@ auto constexpr OnsetParams = defineParameters(
   );
 
 template <typename T>
-class OnsetSlice : public FluidBaseClient<decltype(OnsetParams), OnsetParams>,
+class OnsetSliceClient : public FluidBaseClient<decltype(OnsetParams), OnsetParams>,
                    public AudioIn,
                    public AudioOut {
 
   using HostVector = FluidTensorView<T,1>;
 
 public:
-  OnsetSlice(ParamSetViewType &p) : FluidBaseClient(p) {
+  OnsetSliceClient(ParamSetViewType &p) : FluidBaseClient(p) {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::audioChannelsOut(1);
   }
@@ -107,15 +107,15 @@ private:
 };
 
 auto constexpr NRTOnsetSliceParams =
-    makeNRTParams<OnsetSlice>({InputBufferParam("source", "Source Buffer")},
+    makeNRTParams<OnsetSliceClient>({InputBufferParam("source", "Source Buffer")},
                               {BufferParam("indices", "Indices Buffer")});
 template <typename T>
-using NRTOnsetSlice =
-    NRTSliceAdaptor<OnsetSlice<T>, decltype(NRTOnsetSliceParams),
+using NRTOnsetSliceClient =
+    NRTSliceAdaptor<OnsetSliceClient<T>, decltype(NRTOnsetSliceParams),
                     NRTOnsetSliceParams, 1, 1>;
 
 template <typename T>
-using NRTThreadingOnsetSlice = NRTThreadingAdaptor<NRTOnsetSlice<T>>;
+using NRTThreadingOnsetSliceClient = NRTThreadingAdaptor<NRTOnsetSliceClient<T>>;
 
 } // namespace client
 } // namespace fluid

@@ -97,10 +97,10 @@ private:
 auto constexpr NRTHPSSParams = makeNRTParams<HPSSClient>({InputBufferParam("source", "Source Buffer")},  {BufferParam("harmonic","Harmonic Buffer"), BufferParam("percussive","Percussive Buffer"), BufferParam("residual", "Residual Buffer")});
 
 template <typename T>
-using NRTHPSS = NRTStreamAdaptor<HPSSClient<T>, decltype(NRTHPSSParams), NRTHPSSParams, 1, 3>;
+using NRTHPSSClient = NRTStreamAdaptor<HPSSClient<T>, decltype(NRTHPSSParams), NRTHPSSParams, 1, 3>;
 
 template <typename T>
-using NRTThreadedHPSS = NRTThreadingAdaptor<NRTHPSS<T>>;
+using NRTThreadedHPSSClient = NRTThreadingAdaptor<NRTHPSSClient<T>>;
 
 } // namespace client
 } // namespace fluid

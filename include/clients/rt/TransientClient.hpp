@@ -121,10 +121,10 @@ private:
 auto constexpr NRTTransientParams = makeNRTParams<TransientClient>({InputBufferParam("source", "Source Buffer")}, {BufferParam("transients","Transients Buffer"), BufferParam("residual","Residual Buffer")});
 
 template <typename T>
-using NRTTransients = NRTStreamAdaptor<TransientClient<T>, decltype(NRTTransientParams), NRTTransientParams, 1, 2>;
+using NRTTransientsClient = NRTStreamAdaptor<TransientClient<T>, decltype(NRTTransientParams), NRTTransientParams, 1, 2>;
 
 template <typename T>
-using NRTThreadedTransients = NRTThreadingAdaptor<NRTTransients<T>>;
+using NRTThreadedTransientsClient = NRTThreadingAdaptor<NRTTransientsClient<T>>;
 
 } // namespace client
 } // namespace fluid
