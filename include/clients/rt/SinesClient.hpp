@@ -7,7 +7,7 @@
 #include "../common/ParameterTypes.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTrackChanges.hpp"
-#include "../nrt/FluidNRTClientWrapper.hpp"
+#include "../common/FluidNRTClientWrapper.hpp"
 #include "../../algorithms/public/SineExtraction.hpp"
 
 #include <tuple>

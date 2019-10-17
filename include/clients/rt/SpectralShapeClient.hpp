@@ -6,7 +6,7 @@
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
-#include "../nrt/FluidNRTClientWrapper.hpp"
+#include "../common/FluidNRTClientWrapper.hpp"
 #include "../../algorithms/public/SpectralShape.hpp"
 #include "../../data/TensorTypes.hpp"
 

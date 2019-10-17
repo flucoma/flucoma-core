@@ -7,7 +7,7 @@
 #include "../common/ParameterSet.hpp"
 #include "../common/FluidBaseClient.hpp"
 #include "../common/AudioClient.hpp"
-#include "../nrt/FluidNRTClientWrapper.hpp"
+#include "../common/FluidNRTClientWrapper.hpp"
 #include "../../algorithms/public/TransientSegmentation.hpp"
 
 #include <tuple>

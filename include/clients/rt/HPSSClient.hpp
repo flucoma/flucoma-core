@@ -4,7 +4,7 @@
 #include "../common/FluidBaseClient.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterTypes.hpp"
-#include "../nrt/FluidNRTClientWrapper.hpp"
+#include "../common/FluidNRTClientWrapper.hpp"
 #include "../../algorithms/public/HPSS.hpp"
 #include "../../algorithms/public/STFT.hpp"
 

@@ -6,7 +6,7 @@
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
-#include "../nrt/FluidNRTClientWrapper.hpp"
+#include "../common/FluidNRTClientWrapper.hpp"
 #include "../../algorithms/public/CepstrumF0.hpp"
 #include "../../algorithms/public/HPS.hpp"
 #include "../../algorithms/public/YINFFT.hpp"

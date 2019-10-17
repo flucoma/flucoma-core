@@ -7,7 +7,7 @@
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
 #include "../common/ParameterTrackChanges.hpp"
-#include "../nrt/FluidNRTClientWrapper.hpp"
+#include "../common/FluidNRTClientWrapper.hpp"
 #include "../../algorithms/util/DCT.hpp"
 #include "../../algorithms/util/MelBands.hpp"
 #include "../../data/TensorTypes.hpp"

@@ -6,7 +6,7 @@
 #include "../common/ParameterTypes.hpp"
 #include "../common/ParameterTrackChanges.hpp"
 #include "../common/ParameterSet.hpp"
-#include "../nrt/FluidNRTClientWrapper.hpp"
+#include "../common/FluidNRTClientWrapper.hpp"
 #include "../../algorithms/public/TransientExtraction.hpp"
 #include "../../data/TensorTypes.hpp"
 
