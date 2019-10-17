@@ -1,6 +1,6 @@
 #pragma once
 
-#include "BufferedProcess.hpp"
+#include "../common/BufferedProcess.hpp"
 #include "../common/AudioClient.hpp"
 #include "../common/FluidBaseClient.hpp"
 #include "../common/ParameterConstraints.hpp"

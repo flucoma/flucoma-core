@@ -1,6 +1,6 @@
 #pragma once
 
-#include "BufferedProcess.hpp"
+#include "../common/BufferedProcess.hpp"
 #include "../common/ParameterTypes.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterTrackChanges.hpp"

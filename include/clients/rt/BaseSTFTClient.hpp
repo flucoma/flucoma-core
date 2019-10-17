@@ -5,7 +5,7 @@ Test class for STFT pass-through
 */
 #pragma once
 
-#include "BufferedProcess.hpp"
+#include "../common/BufferedProcess.hpp"
 #include "../common/FluidBaseClient.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterTypes.hpp"

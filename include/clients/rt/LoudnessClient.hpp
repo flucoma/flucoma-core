@@ -1,6 +1,6 @@
 #pragma once
 
-#include "BufferedProcess.hpp"
+#include "../common/BufferedProcess.hpp"
 #include "../../algorithms/public/Loudness.hpp"
 #include "../../data/TensorTypes.hpp"
 #include "../common/AudioClient.hpp"

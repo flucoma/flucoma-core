@@ -1,6 +1,6 @@
 #pragma once
 
-#include "BufferedProcess.hpp"
+#include "../common/BufferedProcess.hpp"
 #include "../common/FluidNRTClientWrapper.hpp"
 #include "../../algorithms/public/EnvelopeSegmentation.hpp"
 #include "../common/AudioClient.hpp"
