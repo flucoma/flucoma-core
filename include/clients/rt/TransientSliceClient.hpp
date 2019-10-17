@@ -56,6 +56,7 @@ public:
 
   void process(std::vector<HostVector>& input,
                std::vector<HostVector>& output, FluidContext& c, bool reset = false) {
+    using namespace std;
 
     if(!input[0].data() || !output[0].data())
       return;
@@ -64,12 +65,12 @@ public:
     static constexpr bool refine = false;
     static constexpr double robustFactor = 3.0;
 
-    std::size_t order = get<kOrder>();
-    std::size_t blockSize = get<kBlockSize>();
-    std::size_t padding = get<kPadding>();
-    std::size_t hostVecSize = input[0].size();
-    std::size_t maxWinIn = 2*blockSize + padding;
-    std::size_t maxWinOut = maxWinIn; //blockSize - padding;
+    size_t order = get<kOrder>();
+    size_t blockSize = get<kBlockSize>();
+    size_t padding = get<kPadding>();
+    size_t hostVecSize = input[0].size();
+    size_t maxWinIn = 2*blockSize + padding;
+    size_t maxWinOut = maxWinIn; //blockSize - padding;
 
     if (mTrackValues.changed(order, blockSize, padding, hostVecSize) || !mExtractor.initialized() ) {
       //mExtractor.reset(new algorithm::TransientSegmentation(order, iterations, robustFactor));
@@ -79,10 +80,10 @@ public:
       mBufferedProcess.maxSize(maxWinIn, maxWinOut, FluidBaseClient::audioChannelsIn(), FluidBaseClient::audioChannelsOut());
     }
 
-    double skew = std::pow(2, get<kSkew>());
+    double skew = pow(2, get<kSkew>());
     double threshFwd = get<kThreshFwd>();
     double thresBack = get<kThreshBack>();
-    size_t halfWindow = std::round(get<kWinSize>() / 2);
+    size_t halfWindow = round(get<kWinSize>() / 2);
     size_t debounce = get<kDebounce>();
     size_t minSeg = get<kMinSeg>();
 

@@ -15,8 +15,6 @@
 namespace fluid {
 namespace client {
 
-using algorithm::Loudness;
-
 enum LoudnessParamIndex {
   kKWeighting,
   kTruePeak,
@@ -81,7 +79,7 @@ public:
   size_t controlRate() { return get<kHopSize>(); }
 
 private:
-  Loudness mAlgorithm{get<kMaxWindowSize>()};
+  algorithm::Loudness mAlgorithm{get<kMaxWindowSize>()};
   ParameterTrackChanges<size_t, size_t, size_t> mBufferParamsTracker;
   BufferedProcess mBufferedProcess;
   FluidTensor<double, 1> mDescriptors;

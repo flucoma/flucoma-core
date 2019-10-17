@@ -42,8 +42,6 @@ public:
 
   void process(std::vector<HostVector> &input,
                std::vector<HostVector> &output, FluidContext& c, bool reset = false) {
-    using std::size_t;
-
     if (!input[0].data() || !output[0].data())
       return;
     assert(FluidBaseClient::controlChannelsOut() && "No control channels");

@@ -15,9 +15,6 @@
 namespace fluid {
 namespace client {
 
-using algorithm::DCT;
-using algorithm::MelBands;
-
 enum MFCCParamIndex {
   kNBands,
   kMinFreq,
@@ -56,8 +53,6 @@ public:
 
   void process(std::vector<HostVector> &input,
                std::vector<HostVector> &output, FluidContext& c, bool reset = false) {
-    using std::size_t;
-
     if (!input[0].data() || !output[0].data())
       return;
     assert(FluidBaseClient::controlChannelsOut() && "No control channels");
@@ -88,7 +83,7 @@ public:
 private:
   ParameterTrackChanges<size_t, size_t, double, double> mTracker;
   STFTBufferedProcess<ParamSetViewType, T, kFFT, false> mSTFTBufferedProcess;
-  MelBands mMelBands;
+  algorithm::MelBands mMelBands;
   FluidTensor<double, 1> mMagnitude;
   FluidTensor<double, 1> mBands;
 };
