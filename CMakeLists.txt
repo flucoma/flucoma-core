@@ -89,8 +89,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/TransientSlice.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/data/FluidMeta.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/data/FluidTensor.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/include/data/FluidTensor_Support.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/data/TensorTypes.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/util/TupleUtils.hpp )
+${CMAKE_CURRENT_SOURCE_DIR}/include/data/TensorTypes.hpp)
 
 set(root ${CMAKE_CURRENT_SOURCE_DIR})
 
