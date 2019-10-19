@@ -1,21 +1,30 @@
+/*
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See LICENSE file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
 #pragma once
 
-#include "../common/BufferedProcess.hpp"
-#include "../common/AudioClient.hpp"
-#include "../common/FluidBaseClient.hpp"
-#include "../common/ParameterConstraints.hpp"
-#include "../common/ParameterSet.hpp"
-#include "../common/ParameterTypes.hpp"
-#include "../common/ParameterTrackChanges.hpp"
-#include "../common/FluidNRTClientWrapper.hpp"
 #include "../../algorithms/util/DCT.hpp"
 #include "../../algorithms/util/MelBands.hpp"
 #include "../../data/TensorTypes.hpp"
+#include "../common/AudioClient.hpp"
+#include "../common/BufferedProcess.hpp"
+#include "../common/FluidBaseClient.hpp"
+#include "../common/FluidNRTClientWrapper.hpp"
+#include "../common/ParameterConstraints.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../common/ParameterTrackChanges.hpp"
+#include "../common/ParameterTypes.hpp"
 
 namespace fluid {
 namespace client {
 
-enum MFCCParamIndex {
+enum MFCCParamIndex
+{
   kNBands,
   kMinFreq,
   kMaxFreq,
@@ -41,26 +50,28 @@ class MelBandsClient
       public ControlOut
 
 {
-  using HostVector = FluidTensorView<T,1>;
+  using HostVector = FluidTensorView<T, 1>;
 
 public:
-  MelBandsClient(ParamSetViewType &p)
-      : FluidBaseClient{p}, mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0) {
+  MelBandsClient(ParamSetViewType& p)
+      : FluidBaseClient{p}, mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0)
+  {
     mBands = FluidTensor<double, 1>(get<kNBands>());
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::controlChannelsOut(get<kMaxNBands>());
   }
 
-  void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output, FluidContext& c, bool reset = false) {
-    if (!input[0].data() || !output[0].data())
-      return;
+  void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
+               FluidContext& c, bool reset = false)
+  {
+    if (!input[0].data() || !output[0].data()) return;
     assert(FluidBaseClient::controlChannelsOut() && "No control channels");
     assert(output.size() >= FluidBaseClient::controlChannelsOut() &&
            "Too few output channels");
 
     if (mTracker.changed(get<kFFT>().frameSize(), get<kNBands>(),
-                         get<kMinFreq>(), get<kMaxFreq>())) {
+                         get<kMinFreq>(), get<kMaxFreq>()))
+    {
       mMagnitude.resize(get<kFFT>().frameSize());
       mBands.resize(get<kNBands>());
       mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
@@ -72,8 +83,7 @@ public:
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
           mMelBands.processFrame(mMagnitude, mBands);
         });
-    for (int i = 0; i < get<kNBands>(); ++i)
-      output[i](0) = mBands(i);
+    for (int i = 0; i < get<kNBands>(); ++i) output[i](0) = mBands(i);
   }
 
   size_t latency() { return get<kFFT>().winSize(); }
@@ -83,7 +93,9 @@ public:
 private:
   ParameterTrackChanges<size_t, size_t, double, double> mTracker;
   STFTBufferedProcess<ParamSetViewType, T, kFFT, false> mSTFTBufferedProcess;
+
   algorithm::MelBands mMelBands;
+
   FluidTensor<double, 1> mMagnitude;
   FluidTensor<double, 1> mBands;
 };

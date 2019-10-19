@@ -1,3 +1,12 @@
+/*
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See LICENSE file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
+
 #pragma once
 
 #include "ParameterTrackChanges.hpp"
@@ -12,24 +21,25 @@ namespace client {
 
 namespace impl {
 
-struct Relational {};
-      
+struct Relational
+{};
+
 template <typename T>
 struct MinImpl
 {
-  constexpr MinImpl(const T m)
-      : value(m)
-  {}
+  constexpr MinImpl(const T m) : value(m) {}
   const T value;
-  template <size_t Offset, size_t N, typename U, typename Tuple, typename Descriptor>
-  constexpr void clamp(U &x, Tuple &params, Descriptor& d, Result *r) const
+  template <size_t Offset, size_t N, typename U, typename Tuple,
+            typename Descriptor>
+  constexpr void clamp(U& x, Tuple& params, Descriptor& d, Result* r) const
   {
     U oldX = x;
-    x      = std::max<U>(x, value);
+    x = std::max<U>(x, value);
     if (r && oldX != x)
     {
       r->set(Result::Status::kWarning);
-      r->addMessage(d.template get<N>().name," value, ",oldX, ", below absolute minimum ", x);
+      r->addMessage(d.template get<N>().name, " value, ", oldX,
+                    ", below absolute minimum ", x);
     }
   }
 };
@@ -37,20 +47,20 @@ struct MinImpl
 template <typename T>
 struct MaxImpl
 {
-  constexpr MaxImpl(const T m)
-      : value(m)
-  {}
+  constexpr MaxImpl(const T m) : value(m) {}
   const T value;
-  template <size_t Offset, size_t N, typename U, typename Tuple, typename Descriptor>
-  constexpr void clamp(U &x, Tuple &params, Descriptor& d, Result *r) const
+  template <size_t Offset, size_t N, typename U, typename Tuple,
+            typename Descriptor>
+  constexpr void clamp(U& x, Tuple& params, Descriptor& d, Result* r) const
   {
 
     U oldX = x;
-    x      = std::min<U>(x, value);
+    x = std::min<U>(x, value);
     if (r && oldX != x)
     {
       r->set(Result::Status::kWarning);
-      r->addMessage(d.template get<N>().name," value (",oldX,") above absolute maximum (",x,')');
+      r->addMessage(d.template get<N>().name, " value (", oldX,
+                    ") above absolute maximum (", x, ')');
     }
   }
 };
@@ -58,8 +68,9 @@ struct MaxImpl
 template <int... Is>
 struct LowerLimitImpl : public Relational
 {
-  template <size_t Offset, size_t N, typename T, typename Tuple, typename Descriptor>
-  void clamp(T &v, Tuple &params, Descriptor& d, Result *r) const
+  template <size_t Offset, size_t N, typename T, typename Tuple,
+            typename Descriptor>
+  void clamp(T& v, Tuple& params, Descriptor& d, Result* r) const
   {
     T oldV = v;
 
@@ -68,11 +79,16 @@ struct LowerLimitImpl : public Relational
     if (r && oldV != v)
     {
       r->set(Result::Status::kWarning);
-      std::array<T, sizeof...(Is)> constraintValues{std::get<Is + Offset>(params)...};
-      size_t                       minPos =
-          std::distance(constraintValues.begin(), std::min_element(constraintValues.begin(), constraintValues.end()));
-      std::array<const char *, sizeof...(Is)> constraintNames{d.template get<Is + Offset>().name...};
-      r->addMessage(d.template get<N>().name," value (", oldV,") below parameter ", constraintNames[minPos], " (",v,')');
+      std::array<T, sizeof...(Is)> constraintValues{
+          std::get<Is + Offset>(params)...};
+      size_t minPos = std::distance(
+          constraintValues.begin(),
+          std::min_element(constraintValues.begin(), constraintValues.end()));
+      std::array<const char*, sizeof...(Is)> constraintNames{
+          d.template get<Is + Offset>().name...};
+      r->addMessage(d.template get<N>().name, " value (", oldV,
+                    ") below parameter ", constraintNames[minPos], " (", v,
+                    ')');
     }
   }
 };
@@ -80,8 +96,9 @@ struct LowerLimitImpl : public Relational
 template <int... Is>
 struct UpperLimitImpl : public Relational
 {
-  template <size_t Offset, size_t N, typename T, typename Tuple, typename Descriptor>
-  void clamp(T &v, Tuple &params, Descriptor& d, Result *r) const
+  template <size_t Offset, size_t N, typename T, typename Tuple,
+            typename Descriptor>
+  void clamp(T& v, Tuple& params, Descriptor& d, Result* r) const
   {
     T oldV = v;
 
@@ -90,11 +107,16 @@ struct UpperLimitImpl : public Relational
     if (r && oldV != v)
     {
       r->set(Result::Status::kWarning);
-      std::array<T, sizeof...(Is)> constraintValues{std::get<Is + Offset>(params)...};
-      size_t                       maxPos =
-          std::distance(constraintValues.begin(), std::max_element(constraintValues.begin(), constraintValues.end()));
-      std::array<const char *, sizeof...(Is)> constraintNames{d.template get<Is + Offset>().name...};
-      r->addMessage(d.template get<N>().name," value, ",oldV,", above parameter ",constraintNames[maxPos]," (",v,')');
+      std::array<T, sizeof...(Is)> constraintValues{
+          std::get<Is + Offset>(params)...};
+      size_t maxPos = std::distance(
+          constraintValues.begin(),
+          std::max_element(constraintValues.begin(), constraintValues.end()));
+      std::array<const char*, sizeof...(Is)> constraintNames{
+          d.template get<Is + Offset>().name...};
+      r->addMessage(d.template get<N>().name, " value, ", oldV,
+                    ", above parameter ", constraintNames[maxPos], " (", v,
+                    ')');
     }
   }
 };
@@ -102,17 +124,19 @@ struct UpperLimitImpl : public Relational
 template <int FFTIndex>
 struct FrameSizeUpperLimitImpl : public Relational
 {
-  template <size_t Offset, size_t N, typename T, typename Tuple, typename Descriptor>
-  void clamp(T &v, Tuple &params, Descriptor& d, Result *r) const
+  template <size_t Offset, size_t N, typename T, typename Tuple,
+            typename Descriptor>
+  void clamp(T& v, Tuple& params, Descriptor& d, Result* r) const
   {
-    T      oldV      = v;
+    T      oldV = v;
     size_t frameSize = std::get<FFTIndex + Offset>(params).frameSize();
-    v                = std::min<T>(v, frameSize);
+    v = std::min<T>(v, frameSize);
 
     if (r && oldV != v)
     {
       r->set(Result::Status::kWarning);
-      r->addMessage(d.template get<N>().name, " value (", oldV, ") above spectral frame size (", v, ')');
+      r->addMessage(d.template get<N>().name, " value (", oldV,
+                    ") above spectral frame size (", v, ')');
     }
   }
 };
@@ -120,39 +144,45 @@ struct FrameSizeUpperLimitImpl : public Relational
 template <int MaxFFTSizeIndex>
 struct MaxFrameSizeUpperLimitImpl : public Relational
 {
-  template <size_t Offset, size_t N, typename T, typename Tuple, typename Descriptor>
-  void clamp(T &v, Tuple &params, Descriptor& d, Result *r) const
+  template <size_t Offset, size_t N, typename T, typename Tuple,
+            typename Descriptor>
+  void clamp(T& v, Tuple& params, Descriptor& d, Result* r) const
   {
-    T      oldV      = v;
+    T      oldV = v;
     size_t frameSize = (std::get<MaxFFTSizeIndex + Offset>(params) + 1) / 2;
-    v                = std::min<T>(v, frameSize);
+    v = std::min<T>(v, frameSize);
 
     if (r && oldV != v)
     {
       r->set(Result::Status::kWarning);
-      r->addMessage(d.template get<N>().name, " value (", oldV, ") above maximum spectral frame size (", v, ')');
+      r->addMessage(d.template get<N>().name, " value (", oldV,
+                    ") above maximum spectral frame size (", v, ')');
     }
   }
 };
 
-template<int Lower>
-struct FrameSizeLowerLimitImpl: public Relational
+template <int Lower>
+struct FrameSizeLowerLimitImpl : public Relational
 {
   template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
-  void clamp(FFTParams &v, Tuple &params, Descriptor& d, Result *r) const
+  void clamp(FFTParams& v, Tuple& params, Descriptor& d, Result* r) const
   {
-    FFTParams      oldV      = v;
-    size_t frameSize = v.frameSize();
+    FFTParams oldV = v;
+    size_t    frameSize = v.frameSize();
     frameSize = std::max<intptr_t>(std::get<Lower + Offset>(params), frameSize);
-    
-    intptr_t newsize = 2 * FFTParams::nextPow2(frameSize - 1,true);
-    if(v.fftRaw() == -1) v.setWin(newsize);
-    else v.setFFT(newsize);
+
+    intptr_t newsize = 2 * FFTParams::nextPow2(frameSize - 1, true);
+    if (v.fftRaw() == -1)
+      v.setWin(newsize);
+    else
+      v.setFFT(newsize);
 
     if (r && oldV != v)
     {
       r->set(Result::Status::kWarning);
-      r->addMessage(d.template get<N>().name, " value (", oldV.frameSize(), ") below minimum spectral frame size (", v.frameSize(), ')');
+      r->addMessage(d.template get<N>().name, " value (", oldV.frameSize(),
+                    ") below minimum spectral frame size (", v.frameSize(),
+                    ')');
     }
   }
 };
@@ -191,12 +221,13 @@ struct FrequencyAmpPairConstraint
   constexpr FrequencyAmpPairConstraint() {}
 
   template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
-  constexpr void clamp(type &v, Tuple &allParams, Descriptor &, Result *r) const
+  constexpr void clamp(type& v, Tuple& allParams, Descriptor&, Result* r) const
   {
     auto& vals = v.value;
     auto& inParams = std::get<N>(allParams);
     // For now I know that array size is 2, just upper and lower vals
-    // TODO: make generic for any old monotonic array of freq-amp pairs, should we need it
+    // TODO: make generic for any old monotonic array of freq-amp pairs, should
+    // we need it
 
     // Clip freqs to [0,1]
     vals[0].first = std::max<double>(std::min<double>(vals[0].first, 1), 0);
@@ -205,10 +236,14 @@ struct FrequencyAmpPairConstraint
     inParams.lowerChanged = vals[0].first != inParams.oldLower;
     inParams.upperChanged = vals[1].first != inParams.oldUpper;
 
-    if (v.lowerChanged && !v.upperChanged && vals[0].first > vals[1].first) vals[0].first = vals[1].first;
-    if (v.upperChanged && !v.lowerChanged && vals[0].first > vals[1].first) vals[1].first = vals[0].first;
-    // If everything changed (i.e. object creation) and in the wrong order, just swap 'em
-    if (v.lowerChanged && v.upperChanged && vals[0].first > vals[1].first) std::swap(vals[0], vals[1]);
+    if (v.lowerChanged && !v.upperChanged && vals[0].first > vals[1].first)
+      vals[0].first = vals[1].first;
+    if (v.upperChanged && !v.lowerChanged && vals[0].first > vals[1].first)
+      vals[1].first = vals[0].first;
+    // If everything changed (i.e. object creation) and in the wrong order, just
+    // swap 'em
+    if (v.lowerChanged && v.upperChanged && vals[0].first > vals[1].first)
+      std::swap(vals[0], vals[1]);
 
     inParams.oldLower = vals[0].first;
     inParams.oldUpper = vals[1].first;
@@ -218,17 +253,19 @@ struct FrequencyAmpPairConstraint
 struct PowerOfTwo
 {
   template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
-  constexpr void clamp(LongUnderlyingType &x, Tuple &params, Descriptor& d, Result *r) const
+  constexpr void clamp(LongUnderlyingType& x, Tuple& params, Descriptor& d,
+                       Result* r) const
   {
 
-    int                exp  = 0;
+    int                exp = 0;
     double             base = std::frexp(x, &exp);
-    LongUnderlyingType res  = base > 0.5 ? (1 << exp) : (1 << (exp - 1));
+    LongUnderlyingType res = base > 0.5 ? (1 << exp) : (1 << (exp - 1));
 
     if (r && res != x)
     {
       r->set(Result::Status::kWarning);
-      r->addMessage(d.template get<N>().name," value (",x,") adjusted to power of two (",res,')');
+      r->addMessage(d.template get<N>().name, " value (", x,
+                    ") adjusted to power of two (", res, ')');
     }
     x = res;
   }
@@ -237,7 +274,8 @@ struct PowerOfTwo
 struct Odd
 {
   template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
-  constexpr void clamp(LongUnderlyingType &x, Tuple &params, Descriptor& d, Result *r) const
+  constexpr void clamp(LongUnderlyingType& x, Tuple& params, Descriptor& d,
+                       Result* r) const
   {
     x = x % 2 ? x : x + 1;
   }
@@ -260,7 +298,6 @@ auto constexpr FrameSizeLowerLimit()
 {
   return impl::FrameSizeLowerLimitImpl<Lower>{};
 }
-
 
 
 } // namespace client

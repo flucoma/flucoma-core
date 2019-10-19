@@ -1,22 +1,31 @@
+/*
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See LICENSE file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
 #pragma once
 
-#include "../common/BufferedProcess.hpp"
-#include "../common/AudioClient.hpp"
-#include "../common/FluidBaseClient.hpp"
-#include "../common/ParameterConstraints.hpp"
-#include "../common/ParameterSet.hpp"
-#include "../common/ParameterTypes.hpp"
-#include "../common/ParameterTrackChanges.hpp"
-#include "../common/FluidNRTClientWrapper.hpp"
 #include "../../algorithms/util/DCT.hpp"
 #include "../../algorithms/util/MelBands.hpp"
 #include "../../data/TensorTypes.hpp"
+#include "../common/AudioClient.hpp"
+#include "../common/BufferedProcess.hpp"
+#include "../common/FluidBaseClient.hpp"
+#include "../common/FluidNRTClientWrapper.hpp"
+#include "../common/ParameterConstraints.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../common/ParameterTrackChanges.hpp"
+#include "../common/ParameterTypes.hpp"
 
 namespace fluid {
 namespace client {
 
 
-enum MFCCParamIndex {
+enum MFCCParamIndex
+{
   kNCoefs,
   kNBands,
   kMinFreq,
@@ -29,7 +38,7 @@ enum MFCCParamIndex {
 auto constexpr MFCCParams = defineParameters(
 
     LongParam("numCoeffs", "Number of Cepstral Coefficients", 13, Min(2),
-              UpperLimit<kNBands,kMaxNCoefs>()),
+              UpperLimit<kNBands, kMaxNCoefs>()),
     LongParam("numBands", "Number of Bands", 40, Min(2),
               FrameSizeUpperLimit<kFFT>(), LowerLimit<kNCoefs>()),
     FloatParam("minFreq", "Low Frequency Bound", 20, Min(0)),
@@ -45,27 +54,29 @@ class MFCCClient : public FluidBaseClient<decltype(MFCCParams), MFCCParams>,
                    public ControlOut
 
 {
-  using HostVector = FluidTensorView<T,1>;
+  using HostVector = FluidTensorView<T, 1>;
 
 public:
-  MFCCClient(ParamSetViewType &p)
-      : FluidBaseClient{p}, mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0) {
+  MFCCClient(ParamSetViewType& p)
+      : FluidBaseClient{p}, mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0)
+  {
     mBands = FluidTensor<double, 1>(get<kNBands>());
     mCoefficients = FluidTensor<double, 1>(get<kNCoefs>());
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::controlChannelsOut(get<kMaxNCoefs>());
   }
 
-  void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output, FluidContext& c, bool reset = false) {
-    if (!input[0].data() || !output[0].data())
-      return;
+  void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
+               FluidContext& c, bool reset = false)
+  {
+    if (!input[0].data() || !output[0].data()) return;
     assert(FluidBaseClient::controlChannelsOut() && "No control channels");
     assert(output.size() >= FluidBaseClient::controlChannelsOut() &&
            "Too few output channels");
 
     if (mTracker.changed(get<kFFT>().frameSize(), get<kNCoefs>(),
-                         get<kNBands>(), get<kMinFreq>(), get<kMaxFreq>())) {
+                         get<kNBands>(), get<kMinFreq>(), get<kMaxFreq>()))
+    {
       mMagnitude.resize(get<kFFT>().frameSize());
       mBands.resize(get<kNBands>());
       mCoefficients.resize(get<kNCoefs>());
@@ -80,8 +91,7 @@ public:
           mMelBands.processFrame(mMagnitude, mBands);
           mDCT.processFrame(mBands, mCoefficients);
         });
-    for (int i = 0; i < get<kNCoefs>(); ++i)
-      output[i](0) = mCoefficients(i);
+    for (int i = 0; i < get<kNCoefs>(); ++i) output[i](0) = mCoefficients(i);
   }
 
   size_t latency() { return get<kFFT>().winSize(); }
@@ -91,8 +101,10 @@ public:
 private:
   ParameterTrackChanges<size_t, size_t, size_t, double, double> mTracker;
   STFTBufferedProcess<ParamSetViewType, T, kFFT, false> mSTFTBufferedProcess;
+
   algorithm::MelBands mMelBands;
-  algorithm::DCT mDCT;
+  algorithm::DCT      mDCT;
+
   FluidTensor<double, 1> mMagnitude;
   FluidTensor<double, 1> mBands;
   FluidTensor<double, 1> mCoefficients;

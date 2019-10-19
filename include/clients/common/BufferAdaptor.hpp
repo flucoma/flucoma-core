@@ -1,21 +1,27 @@
+/*
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See LICENSE file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
 #pragma once
 
-#include "Result.hpp"
 #include "../../data/TensorTypes.hpp"
+#include "Result.hpp"
 
 namespace fluid {
 namespace client {
 class BufferAdaptor
 {
 public:
-
   class ReadAccess
   {
   public:
-    ReadAccess(const BufferAdaptor *adaptor) : mAdaptor(nullptr)
+    ReadAccess(const BufferAdaptor* adaptor) : mAdaptor(nullptr)
     {
-      if (adaptor && adaptor->acquire())
-        mAdaptor = adaptor;
+      if (adaptor && adaptor->acquire()) mAdaptor = adaptor;
     }
 
     ~ReadAccess()
@@ -23,10 +29,10 @@ public:
       if (mAdaptor) mAdaptor->release();
     }
 
-    ReadAccess(const ReadAccess &) = delete;
-    ReadAccess &operator=(const ReadAccess &) = delete;
-    ReadAccess(ReadAccess &&) noexcept = default;
-    ReadAccess &operator=(ReadAccess &&) noexcept = default;
+    ReadAccess(const ReadAccess&) = delete;
+    ReadAccess& operator=(const ReadAccess&) = delete;
+    ReadAccess(ReadAccess&&) noexcept = default;
+    ReadAccess& operator=(ReadAccess&&) noexcept = default;
 
     void destroy()
     {
@@ -44,61 +50,74 @@ public:
       return mAdaptor->samps(channel);
     }
 
-    FluidTensorView<const float, 1> samps(size_t offset, size_t nframes, size_t chanoffset) const
+    FluidTensorView<const float, 1> samps(size_t offset, size_t nframes,
+                                          size_t chanoffset) const
     {
       assert(mAdaptor);
       return mAdaptor->samps(offset, nframes, chanoffset);
     }
-      
+
     size_t numFrames() const { return mAdaptor ? mAdaptor->numFrames() : 0; }
 
     size_t numChans() const { return mAdaptor ? mAdaptor->numChans() : 0; }
 
     double sampleRate() const { return mAdaptor ? mAdaptor->sampleRate() : 0; }
-    
+
   private:
-    const BufferAdaptor *mAdaptor;
+    const BufferAdaptor* mAdaptor;
   };
-  
-  class Access: public ReadAccess
+
+  class Access : public ReadAccess
   {
   public:
-    Access(BufferAdaptor* adaptor): ReadAccess(adaptor), mMutableAdaptor{adaptor}
+    Access(BufferAdaptor* adaptor)
+        : ReadAccess(adaptor), mMutableAdaptor{adaptor}
     {}
-    
-    //Force any needed refreshing of mutable buffers (if the client class overrides refresh())
-    ~Access() { if(mMutableAdaptor) mMutableAdaptor->refresh(); }
-    
-    Access(const Access &) = delete;
-    Access &operator=(const Access &) = delete;
-    Access(Access &&) noexcept = default;
-    Access &operator=(Access &&) noexcept = default;
-      
+
+    // Force any needed refreshing of mutable buffers (if the client class
+    // overrides refresh())
+    ~Access()
+    {
+      if (mMutableAdaptor) mMutableAdaptor->refresh();
+    }
+
+    Access(const Access&) = delete;
+    Access& operator=(const Access&) = delete;
+    Access(Access&&) noexcept = default;
+    Access& operator=(Access&&) noexcept = default;
+
     FluidTensorView<float, 1> samps(size_t channel)
     {
       assert(mMutableAdaptor);
       return mMutableAdaptor->samps(channel);
     }
 
-    FluidTensorView<float, 1> samps(size_t offset, size_t nframes, size_t chanoffset)
+    FluidTensorView<float, 1> samps(size_t offset, size_t nframes,
+                                    size_t chanoffset)
     {
       assert(mMutableAdaptor);
       return mMutableAdaptor->samps(offset, nframes, chanoffset);
     }
-    
+
     const Result resize(size_t frames, size_t channels, double sampleRate)
     {
-      return mMutableAdaptor ?  mMutableAdaptor->resize(frames, channels, sampleRate) : Result{Result::Status::kError,"Trying to resize null buffer"};
+      return mMutableAdaptor
+                 ? mMutableAdaptor->resize(frames, channels, sampleRate)
+                 : Result{Result::Status::kError,
+                          "Trying to resize null buffer"};
     }
-  
-    void refresh() { if(mMutableAdaptor) mMutableAdaptor->refresh(); }
 
-    private:
-      BufferAdaptor* mMutableAdaptor;
+    void refresh()
+    {
+      if (mMutableAdaptor) mMutableAdaptor->refresh();
+    }
+
+  private:
+    BufferAdaptor* mMutableAdaptor;
   };
-  
-  BufferAdaptor(BufferAdaptor &&rhs) = default;
-  BufferAdaptor()                    = default;
+
+  BufferAdaptor(BufferAdaptor&& rhs) = default;
+  BufferAdaptor() = default;
 
   virtual ~BufferAdaptor()
   {
@@ -106,60 +125,67 @@ public:
   }
 
 private:
-  virtual bool acquire() const = 0;
-  virtual void release() const = 0;
-  virtual bool valid() const = 0;
-  virtual bool exists() const = 0;
-  virtual const Result resize(size_t frames, size_t channels, double sampleRate) = 0;
-  virtual std::string asString() const = 0;
+  virtual bool         acquire() const = 0;
+  virtual void         release() const = 0;
+  virtual bool         valid() const = 0;
+  virtual bool         exists() const = 0;
+  virtual const Result resize(size_t frames, size_t channels,
+                              double sampleRate) = 0;
+  virtual std::string  asString() const = 0;
   // Return a slice of the buffer
-  virtual FluidTensorView<float, 1> samps(size_t channel) = 0;
-  virtual FluidTensorView<float, 1> samps(size_t offset, size_t nframes, size_t chanoffset) = 0;
-  virtual FluidTensorView<const float, 1> samps(size_t channel)  const = 0;
-  virtual FluidTensorView<const float, 1> samps(size_t offset, size_t nframes, size_t chanoffset) const = 0;
-  virtual size_t numFrames() const = 0;
-  virtual size_t numChans() const = 0;
-  virtual double sampleRate() const = 0;
-  virtual void refresh() {};
-  friend std::ostream& operator<<(std::ostream& os, const BufferAdaptor* b); 
+  virtual FluidTensorView<float, 1>       samps(size_t channel) = 0;
+  virtual FluidTensorView<float, 1>       samps(size_t offset, size_t nframes,
+                                                size_t chanoffset) = 0;
+  virtual FluidTensorView<const float, 1> samps(size_t channel) const = 0;
+  virtual FluidTensorView<const float, 1> samps(size_t offset, size_t nframes,
+                                                size_t chanoffset) const = 0;
+  virtual size_t                          numFrames() const = 0;
+  virtual size_t                          numChans() const = 0;
+  virtual double                          sampleRate() const = 0;
+  virtual void                            refresh(){};
+  friend std::ostream& operator<<(std::ostream& os, const BufferAdaptor* b);
 };
 
-std::ostream& operator <<(std::ostream& os, const BufferAdaptor* b)
+std::ostream& operator<<(std::ostream& os, const BufferAdaptor* b)
 {
   return os << b->asString();
 }
-    
-Result bufferRangeCheck(const BufferAdaptor* b, intptr_t startFrame, intptr_t& nFrames, intptr_t startChan, intptr_t& nChans)
+
+Result bufferRangeCheck(const BufferAdaptor* b, intptr_t startFrame,
+                        intptr_t& nFrames, intptr_t startChan, intptr_t& nChans)
 {
-    if(!b)
-      return {Result::Status::kError, "Input buffer not set"}; //error
+  if (!b) return {Result::Status::kError, "Input buffer not set"}; // error
 
-    BufferAdaptor::ReadAccess thisInput(b);
+  BufferAdaptor::ReadAccess thisInput(b);
 
-    if(!thisInput.exists())
-      return {Result::Status::kError, "Input buffer ", b, " not found."} ; //error
+  if (!thisInput.exists())
+    return {Result::Status::kError, "Input buffer ", b, " not found."}; // error
 
-    if(!thisInput.valid())
-      return {Result::Status::kError, "Input buffer ", b, "invalid (possibly zero-size?)"} ; //error
+  if (!thisInput.valid())
+    return {Result::Status::kError, "Input buffer ", b,
+            "invalid (possibly zero-size?)"}; // error
 
-    if(startFrame >= thisInput.numFrames() || startFrame < 0)
-      return {Result::Status::kError, "Input buffer ", b, "invalid start frame ", startFrame}; //error
+  if (startFrame >= thisInput.numFrames() || startFrame < 0)
+    return {Result::Status::kError, "Input buffer ", b, "invalid start frame ",
+            startFrame}; // error
 
-    if(startChan >= thisInput.numChans() || startChan < 0)
-      return {Result::Status::kError, "Input buffer ", b, "invalid start channel ", startChan}; //error
+  if (startChan >= thisInput.numChans() || startChan < 0)
+    return {Result::Status::kError, "Input buffer ", b,
+            "invalid start channel ", startChan}; // error
 
-    nFrames = nFrames < 0 ? thisInput.numFrames() - startFrame: nFrames;
-    if(nFrames <= 0)
-      return {Result::Status::kError, "Input buffer ", b, ": not enough frames" }; //error
+  nFrames = nFrames < 0 ? thisInput.numFrames() - startFrame : nFrames;
+  if (nFrames <= 0)
+    return {Result::Status::kError, "Input buffer ", b,
+            ": not enough frames"}; // error
 
-    nChans = nChans < 0 ? thisInput.numChans() - startChan : nChans;
-    if(nChans <= 0)
-      return {Result::Status::kError, "Input buffer ", b, ": not enough channels" }; //error
+  nChans = nChans < 0 ? thisInput.numChans() - startChan : nChans;
+  if (nChans <= 0)
+    return {Result::Status::kError, "Input buffer ", b,
+            ": not enough channels"}; // error
 
-   return {Result::Status::kOk,""};
+  return {Result::Status::kOk, ""};
 }
 
 
 } // namespace client
 } // namespace fluid
-

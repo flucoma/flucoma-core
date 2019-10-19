@@ -9,7 +9,6 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "../../algorithms/public/NMF.hpp"
-#include "../../algorithms/public/RatioMask.hpp"
 #include "../common/BufferedProcess.hpp"
 #include "../common/FluidBaseClient.hpp"
 #include "../common/ParameterConstraints.hpp"
@@ -20,7 +19,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 namespace fluid {
 namespace client {
 
-enum NMFFilterIndex
+enum NMFMatchParamIndex
 {
   kFilterbuf,
   kMaxRank,
@@ -29,7 +28,7 @@ enum NMFFilterIndex
   kMaxFFTSize
 };
 
-auto constexpr NMFFilterParams = defineParameters(
+auto constexpr NMFMatchParams = defineParameters(
     InputBufferParam("bases", "Bases Buffer"),
     LongParam<Fixed<true>>("maxComponents", "Maximum Number of Components", 20,
                            Min(1)),
@@ -40,20 +39,19 @@ auto constexpr NMFFilterParams = defineParameters(
 
 
 template <typename T>
-class NMFFilterClient
-    : public FluidBaseClient<decltype(NMFFilterParams), NMFFilterParams>,
+class NMFMatchClient
+    : public FluidBaseClient<decltype(NMFMatchParams), NMFMatchParams>,
       public AudioIn,
-      public AudioOut
+      public ControlOut
 {
   using HostVector = FluidTensorView<T, 1>;
 
 public:
-  NMFFilterClient(ParamSetViewType& p)
-      : FluidBaseClient(p),
-        mSTFTProcessor(get<kMaxFFTSize>(), 1, get<kMaxRank>())
+  NMFMatchClient(ParamSetViewType& p)
+      : FluidBaseClient(p), mSTFTProcessor(get<kMaxFFTSize>(), 1, 0)
   {
     audioChannelsIn(1);
-    audioChannelsOut(get<kMaxRank>());
+    controlChannelsOut(get<kMaxRank>());
   }
 
   size_t latency() { return get<kFFT>().winSize(); }
@@ -62,8 +60,9 @@ public:
                FluidContext& c, bool reset = false)
   {
     if (!input[0].data()) return;
-    assert(audioChannelsOut() && "No control channels");
-    assert(output.size() >= audioChannelsOut() && "Too few output channels");
+    assert(FluidBaseClient::controlChannelsOut() && "No control channels");
+    assert(output.size() >= FluidBaseClient::controlChannelsOut() &&
+           "Too few output channels");
 
     if (get<kFilterbuf>().get())
     {
@@ -82,8 +81,7 @@ public:
         tmpFilt.resize(rank, fftParams.frameSize());
         tmpMagnitude.resize(1, fftParams.frameSize());
         tmpOut.resize(rank);
-        tmpEstimate.resize(1, fftParams.frameSize());
-        tmpSource.resize(1, fftParams.frameSize());
+        // mNMF.reset(new algorithm::NMF(rank, get<kIterations>()));
         mNMF.init(rank, get<kIterations>());
       }
 
@@ -91,37 +89,25 @@ public:
         tmpFilt.row(i) = filterBuffer.samps(i);
 
       //      controlTrigger(false);
-      mSTFTProcessor.process(
-          mParams, input, output, c, reset,
-          [&](ComplexMatrixView in, ComplexMatrixView out) {
+      mSTFTProcessor.processInput(
+          mParams, input, c, reset, [&](ComplexMatrixView in) {
             algorithm::STFT::magnitude(in, tmpMagnitude);
-            mNMF.processFrame(tmpMagnitude.row(0), tmpFilt, tmpOut,
-                              get<kIterations>(), tmpEstimate.row(0));
-            mMask.init(tmpEstimate, 1);
-            for (size_t i = 0; i < rank; ++i)
-            {
-              algorithm::NMF::estimate(tmpFilt, RealMatrixView(tmpOut), i,
-                                       tmpSource);
-              mMask.process(in, RealMatrixView{tmpSource},
-                            ComplexMatrixView{out.row(i)});
-            }
+            mNMF.processFrame(tmpMagnitude.row(0), tmpFilt, tmpOut);
+            //          controlTrigger(true);
           });
+
+      for (size_t i = 0; i < rank; ++i) output[i](0) = tmpOut(i);
     }
   }
 
 private:
-  ParameterTrackChanges<size_t, size_t>                mTrackValues;
-  STFTBufferedProcess<ParamSetViewType, T, kFFT, true> mSTFTProcessor;
+  ParameterTrackChanges<size_t, size_t>                 mTrackValues;
+  STFTBufferedProcess<ParamSetViewType, T, kFFT, false> mSTFTProcessor;
+  algorithm::NMF mNMF{get<kMaxRank>()};
 
-  algorithm::NMF       mNMF{get<kMaxRank>()};
-  algorithm::RatioMask mMask;
-
-  RealMatrix a;
-  RealMatrix tmpFilt;
-  RealMatrix tmpMagnitude;
-  RealVector tmpOut;
-  RealMatrix tmpEstimate;
-  RealMatrix tmpSource;
+  FluidTensor<double, 2> tmpFilt;
+  FluidTensor<double, 2> tmpMagnitude;
+  FluidTensor<double, 1> tmpOut;
 
   size_t mNBins{0};
   size_t mRank{0};

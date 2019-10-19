@@ -1,25 +1,46 @@
+/*
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See LICENSE file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
+
 #pragma once
 
-#include "../common/FluidNRTClientWrapper.hpp"
+#include "../../data/FluidTensor.hpp"
+#include "../../data/TensorTypes.hpp"
 #include "../common/FluidBaseClient.hpp"
+#include "../common/FluidNRTClientWrapper.hpp"
 #include "../common/OfflineClient.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
 #include "../common/Result.hpp"
-#include "../../data/FluidTensor.hpp"
-#include "../../data/TensorTypes.hpp"
 
 namespace fluid {
 namespace client {
 
-enum { kSource, kOffset, kNumFrames, kStartChan, kNChans, kGain, kDest, kDestOffset, kDestStartChan, kDestGain };
+enum
+{
+  kSource,
+  kOffset,
+  kNumFrames,
+  kStartChan,
+  kNChans,
+  kGain,
+  kDest,
+  kDestOffset,
+  kDestStartChan,
+  kDestGain
+};
 
 auto constexpr BufComposeParams = defineParameters(
     InputBufferParam("source", "Source Buffer"),
     LongParam("startFrame", "Source Offset", 0, Min(0)),
     LongParam("numFrames", "Source Number of Frames", -1),
     LongParam("startChan", "Source Channel Offset", 0, Min(0)),
-    LongParam("numChans",   "Source Number of Channels", -1),
+    LongParam("numChans", "Source Number of Channels", -1),
     FloatParam("gain", "Source Gain", 1.0),
     BufferParam("destination", "Destination Buffer"),
     LongParam("destStartFrame", "Destination Offset", 0),
@@ -27,19 +48,22 @@ auto constexpr BufComposeParams = defineParameters(
     FloatParam("destGain", "Destination Gain", 0.0));
 
 template <typename T>
-class BufComposeClient : public FluidBaseClient<decltype(BufComposeParams), BufComposeParams>, OfflineIn, OfflineOut
+class BufComposeClient
+    : public FluidBaseClient<decltype(BufComposeParams), BufComposeParams>,
+      OfflineIn,
+      OfflineOut
 {
   using HostVector = FluidTensorView<T, 1>;
   using ConstHostVector = FluidTensorView<const T, 1>;
   using HostMatrix = FluidTensor<T, 2>;
 
 public:
-  BufComposeClient(ParamSetViewType &p) : FluidBaseClient(p)
-  {}
+  BufComposeClient(ParamSetViewType& p) : FluidBaseClient(p) {}
 
-  Result process(FluidContext &c)
+  Result process(FluidContext& c)
   {
-    // Not using bufferRangeCheck to validate source ranges because BufCompose is special...
+    // Not using bufferRangeCheck to validate source ranges because BufCompose
+    // is special...
     if (!get<kSource>().get()) { return {Result::Status::kError, "No input"}; }
 
     size_t nChannels{0};
@@ -48,25 +72,31 @@ public:
     {
       BufferAdaptor::ReadAccess source(get<kSource>().get());
 
-      if (!(source.exists() && source.valid())) return {Result::Status::kError, "Source Buffer Not Found or Invalid"};
+      if (!(source.exists() && source.valid()))
+        return {Result::Status::kError, "Source Buffer Not Found or Invalid"};
 
-      nChannels = get<kNChans>() < 0 ? source.numChans() - get<kStartChan>() : get<kNChans>();
-      nFrames   = get<kNumFrames>() < 0 ? source.numFrames() - get<kOffset>() : get<kNumFrames>();
+      nChannels = get<kNChans>() < 0 ? source.numChans() - get<kStartChan>()
+                                     : get<kNChans>();
+      nFrames = get<kNumFrames>() < 0 ? source.numFrames() - get<kOffset>()
+                                      : get<kNumFrames>();
 
-      if (nChannels <= 0 || nFrames <= 0) return {Result::Status::kError, "Zero length segment requested"};
+      if (nChannels <= 0 || nFrames <= 0)
+        return {Result::Status::kError, "Zero length segment requested"};
 
-      // We don't care if the overall number of frames will overrun, because we'll zero pad, but the
-      // offset should be within the source range
+      // We don't care if the overall number of frames will overrun, because
+      // we'll zero pad, but the offset should be within the source range
       if (get<kOffset>() >= source.numFrames())
-        return {Result::Status::kError, "Start frame (", get<kOffset>(), ") out of range."};
+        return {Result::Status::kError, "Start frame (", get<kOffset>(),
+                ") out of range."};
 
-      // We don't care if the overall number of channels will overrun, because we'll loop, but the
-      // offset should be within the source range
+      // We don't care if the overall number of channels will overrun, because
+      // we'll loop, but the offset should be within the source range
       if (get<kStartChan>() >= source.numChans())
-        return {Result::Status::kError, "Start channel ", get<kStartChan>(), " out of range."};
+        return {Result::Status::kError, "Start channel ", get<kStartChan>(),
+                " out of range."};
     }
 
-    auto       dstStart     = get<kDestOffset>();
+    auto       dstStart = get<kDestOffset>();
     auto       dstStartChan = get<kDestStartChan>();
     auto       dstEnd{0};
     auto       dstEndChan{0};
@@ -77,24 +107,32 @@ public:
       BufferAdaptor::Access destination(get<kDest>().get());
 
       if (!destination.exists())
-        return {Result::Status::kError, "Destination Buffer Not Found or Invalid"};
+        return {Result::Status::kError,
+                "Destination Buffer Not Found or Invalid"};
 
-      dstEnd     = dstStart + nFrames ;
+      dstEnd = dstStart + nFrames;
       dstEndChan = dstStartChan + nChannels;
 
-      destinationResizeNeeded = (dstEnd > destination.numFrames()) || (dstEndChan > destination.numChans());
+      destinationResizeNeeded = (dstEnd > destination.numFrames()) ||
+                                (dstEndChan > destination.numChans());
 
-        auto applyGain = [this](T&x){x *= get<kDestGain>();};
+      auto applyGain = [this](T& x) { x *= get<kDestGain>(); };
 
 
-      if (destinationResizeNeeded) // copy the whole of desintation if we have to resize it
+      if (destinationResizeNeeded) // copy the whole of desintation if we have
+                                   // to resize it
       {
-        destinationOrig.resize(std::max<unsigned>(dstEndChan, destination.numChans()), std::max<unsigned>(dstEnd,destination.numFrames()));
-        if(destination.numChans() > 0 && destination.numFrames() > 0)
+        destinationOrig.resize(
+            std::max<unsigned>(dstEndChan, destination.numChans()),
+            std::max<unsigned>(dstEnd, destination.numFrames()));
+        if (destination.numChans() > 0 && destination.numFrames() > 0)
         {
-            for (int i = 0; i < destination.numChans(); ++i)
-                destinationOrig.row(i)(Slice(0, destination.numFrames())) = destination.samps(i);
-            destinationOrig(Slice(dstStartChan, dstEndChan - dstStartChan), Slice(dstStart, dstEnd - dstStart)).apply(applyGain);
+          for (int i = 0; i < destination.numChans(); ++i)
+            destinationOrig.row(i)(Slice(0, destination.numFrames())) =
+                destination.samps(i);
+          destinationOrig(Slice(dstStartChan, dstEndChan - dstStartChan),
+                          Slice(dstStart, dstEnd - dstStart))
+              .apply(applyGain);
         }
 
       } else // just copy what we're affecting
@@ -102,7 +140,8 @@ public:
         destinationOrig.resize(nChannels, nFrames);
         for (int i = 0; i < nChannels; ++i)
         {
-          destinationOrig.row(i) = destination.samps(dstStart, nFrames, dstStartChan + i);
+          destinationOrig.row(i) =
+              destination.samps(dstStart, nFrames, dstStartChan + i);
           destinationOrig.row(i).apply(applyGain);
         }
       }
@@ -113,21 +152,29 @@ public:
     // (possibly)  also be one of the sources
     {
       BufferAdaptor::ReadAccess source(get<kSource>().get());
-      auto                  gain = get<kGain>();
+      auto                      gain = get<kGain>();
       // iterates through the copying of the first source
       for (size_t i = dstStartChan, j = 0; j < nChannels; ++i, ++j)
       {
         // Special repeating channel voodoo
         ConstHostVector sourceChunk{
-            source.samps(get<kOffset>(), std::min(nFrames, source.numFrames()), (get<kStartChan>() + j) % source.numChans())};
+            source.samps(get<kOffset>(), std::min(nFrames, source.numFrames()),
+                         (get<kStartChan>() + j) % source.numChans())};
 
         HostVector destinationChunk{destinationOrig.row(j)};
-        if (destinationResizeNeeded) { destinationChunk.reset(destinationOrig.row(i).data(), dstStart, nFrames); }
+        if (destinationResizeNeeded)
+        {
+          destinationChunk.reset(destinationOrig.row(i).data(), dstStart,
+                                 nFrames);
+        }
 
-        std::transform(sourceChunk.begin(), sourceChunk.end(), destinationChunk.begin(), destinationChunk.begin(),
-                       [gain](const T &src, T &dst) { return dst + src * gain; });
+        std::transform(
+            sourceChunk.begin(), sourceChunk.end(), destinationChunk.begin(),
+            destinationChunk.begin(),
+            [gain](const T& src, T& dst) { return dst + src * gain; });
 
-        if(c.task() && !c.task()->processUpdate(j + 1, nChannels)) return  {Result::Status::kCancelled,""};
+        if (c.task() && !c.task()->processUpdate(j + 1, nChannels))
+          return {Result::Status::kCancelled, ""};
       }
     }
 
@@ -135,14 +182,18 @@ public:
 
     if (destinationResizeNeeded)
     {
-      Result resizeResult = destination.resize(destinationOrig.cols(), destinationOrig.rows(), destination.sampleRate());
-      if(!resizeResult.ok()) return resizeResult;
-      for (int i = 0; i < destination.numChans(); ++i) destination.samps(i) = destinationOrig.row(i);
+      Result resizeResult =
+          destination.resize(destinationOrig.cols(), destinationOrig.rows(),
+                             destination.sampleRate());
+      if (!resizeResult.ok()) return resizeResult;
+      for (int i = 0; i < destination.numChans(); ++i)
+        destination.samps(i) = destinationOrig.row(i);
     } else
     {
       for (int i = 0; i < nChannels; ++i)
-        destination.samps(dstStart, nFrames, dstStartChan + i) = destinationOrig.row(i);
-      destination.refresh(); //make sure the buffer is marked dirty
+        destination.samps(dstStart, nFrames, dstStartChan + i) =
+            destinationOrig.row(i);
+      destination.refresh(); // make sure the buffer is marked dirty
     }
 
     return {Result::Status::kOk};

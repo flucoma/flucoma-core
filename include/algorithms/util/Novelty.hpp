@@ -1,8 +1,16 @@
+/*
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See LICENSE file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
 #pragma once
 
-#include "../util/AlgorithmUtils.hpp"
 #include "../../data/FluidTensor.hpp"
 #include "../public/WindowFuncs.hpp"
+#include "../util/AlgorithmUtils.hpp"
 #include "FluidEigenMappings.hpp"
 
 #include <Eigen/Core>
@@ -12,7 +20,8 @@ namespace fluid {
 namespace algorithm {
 
 // This implements Foote's novelty curve
-class Novelty {
+class Novelty
+{
 
 public:
   using ArrayXd = Eigen::ArrayXd;
@@ -22,7 +31,8 @@ public:
 
   Novelty(int maxSize) : mKernelStorage(maxSize, maxSize) {}
 
-  void init(int kernelSize, int nDims) {
+  void init(int kernelSize, int nDims)
+  {
     assert(kernelSize % 2);
     mKernelSize = kernelSize;
     mNDims = nDims;
@@ -31,7 +41,8 @@ public:
     mBufer = MatrixXd::Zero(mKernelSize, nDims);
   }
 
-  double processFrame(const ArrayXd &input) {
+  double processFrame(const ArrayXd& input)
+  {
     using std::vector;
     int halfKernel = (mKernelSize - 1) / 2;
     mBufer.block(0, 0, mKernelSize - 1, mNDims) =
@@ -42,32 +53,27 @@ public:
     mBufer.block(mKernelSize - 1, 0, 1, mNDims) = in1.transpose();
     VectorXd tmp = mBufer * input.matrix();
 
-    VectorXd norm = mBufer.rowwise().norm().cwiseMax(epsilon) * input.matrix().norm();
+    VectorXd norm =
+        mBufer.rowwise().norm().cwiseMax(epsilon) * input.matrix().norm();
     norm = norm.cwiseMax(epsilon);
     tmp = (tmp.array() / norm.array()).matrix();
     mSimilarity.block(0, 0, mKernelSize - 1, mKernelSize - 1) =
         mSimilarity.block(1, 1, mKernelSize - 1, mKernelSize - 1);
-    ArrayXXd x1 = mSimilarity.block(0, mKernelSize -1, mKernelSize, 1);
-    mSimilarity.block(0, mKernelSize -1, mKernelSize, 1) = tmp;
+    ArrayXXd x1 = mSimilarity.block(0, mKernelSize - 1, mKernelSize, 1);
+    mSimilarity.block(0, mKernelSize - 1, mKernelSize, 1) = tmp;
     mSimilarity.block(mKernelSize - 1, 0, 1, mKernelSize) = tmp.transpose();
     double result = (mSimilarity.array() * mKernel).sum();
     return result / mNorm;
   }
 
 private:
-  int mKernelSize{3};
-  int mNDims{513};
-  ArrayXXd mKernel;
-  ArrayXXd mKernelStorage;
-  MatrixXd mSimilarity;
-  MatrixXd mBufer;
-  int mNorm{1};
-
-  void createKernel() {
+  void createKernel()
+  {
     mKernel = mKernelStorage.block(0, 0, mKernelSize, mKernelSize);
-    int h = (mKernelSize - 1) / 2;
+    int     h = (mKernelSize - 1) / 2;
     ArrayXd gaussian = ArrayXd::Zero(mKernelSize);
-    WindowFuncs::map()[WindowFuncs::WindowTypes::kGaussian](mKernelSize, gaussian);
+    WindowFuncs::map()[WindowFuncs::WindowTypes::kGaussian](mKernelSize,
+                                                            gaussian);
     MatrixXd tmp = gaussian.matrix() * gaussian.matrix().transpose();
     tmp.block(h, 0, h + 1, h) *= -1;
     tmp.block(0, h, h, h + 1) *= -1;
@@ -75,6 +81,13 @@ private:
     mNorm = mKernel.square().sum();
   }
 
+  int      mKernelSize{3};
+  int      mNDims{513};
+  ArrayXXd mKernel;
+  ArrayXXd mKernelStorage;
+  MatrixXd mSimilarity;
+  MatrixXd mBufer;
+  int      mNorm{1};
 };
 } // namespace algorithm
 } // namespace fluid

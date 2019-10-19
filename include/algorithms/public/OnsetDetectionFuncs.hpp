@@ -1,3 +1,12 @@
+/*
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See LICENSE file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
+
 #pragma once
 
 #include "../util/AlgorithmUtils.hpp"
@@ -5,14 +14,17 @@
 #include <cassert>
 #include <cmath>
 #include <vector>
+#include <map>
 
 namespace fluid {
 namespace algorithm {
 
-class OnsetDetectionFuncs {
+class OnsetDetectionFuncs
+{
 
 public:
-  enum class ODF {
+  enum class ODF
+  {
     kEnergy,
     kHFC,
     kSpectralFlux,
@@ -30,7 +42,8 @@ public:
   using ODFMap =
       std::map<ODF, std::function<double(ArrayXcd, ArrayXcd, ArrayXcd)>>;
 
-  static ArrayXd wrapPhase(ArrayXd phase) {
+  static ArrayXd wrapPhase(ArrayXd phase)
+  {
     double twoPi = 2 * M_PI;
     double pi = M_PI;
     double oneOverTwoPi = 1 / twoPi;
@@ -41,7 +54,8 @@ public:
     });
   }
 
-  static ODFMap &map() {
+  static ODFMap& map()
+  {
     static ODFMap _funcs = {
 
         {ODF::kEnergy,
@@ -50,7 +64,7 @@ public:
          }},
         {ODF::kHFC,
          [](ArrayXcd cur, ArrayXcd prev, ArrayXcd prevprev) {
-           int n = cur.size();
+           int     n = cur.size();
            ArrayXd space = ArrayXd(n);
            space.setLinSpaced(0, n);
            return (space * cur.abs().real().square()).mean();
@@ -76,8 +90,8 @@ public:
          [](ArrayXcd cur, ArrayXcd prev, ArrayXcd prevprev) {
            ArrayXd mag1 = cur.abs().real().max(epsilon);
            ArrayXd mag2 = prev.abs().real().max(epsilon);
-           double norm = mag1.matrix().norm() * mag2.matrix().norm();
-           double dot = mag1.matrix().dot(mag2.matrix());
+           double  norm = mag1.matrix().norm() * mag2.matrix().norm();
+           double  dot = mag1.matrix().dot(mag2.matrix());
            return dot / norm;
          }},
         {ODF::kPhaseDev,
@@ -96,9 +110,9 @@ public:
         {ODF::kComplexDev,
          [](ArrayXcd cur, ArrayXcd prev, ArrayXcd prevprev) {
            ArrayXcd target(cur.size());
-           ArrayXd prevMag = prev.abs().real().max(epsilon);
-           ArrayXd prevPhase = prev.atan().real();
-           ArrayXd phaseEst = wrapPhase(
+           ArrayXd  prevMag = prev.abs().real().max(epsilon);
+           ArrayXd  prevPhase = prev.atan().real();
+           ArrayXd  phaseEst = wrapPhase(
                prevPhase + (prev.atan().real() - prevprev.atan().real()));
            target.real() = prevMag * phaseEst.cos();
            target.imag() = prevMag * phaseEst.sin();
@@ -107,9 +121,9 @@ public:
         {ODF::kRComplexDev,
          [](ArrayXcd cur, ArrayXcd prev, ArrayXcd prevprev) {
            ArrayXcd target(cur.size());
-           ArrayXd prevMag = prev.abs().real().max(epsilon);
-           ArrayXd prevPhase = prev.atan().real();
-           ArrayXd phaseEst = wrapPhase(
+           ArrayXd  prevMag = prev.abs().real().max(epsilon);
+           ArrayXd  prevPhase = prev.atan().real();
+           ArrayXd  phaseEst = wrapPhase(
                prevPhase + (prev.atan().real() - prevprev.atan().real()));
            target.real() = prevMag * phaseEst.cos();
            target.imag() = prevMag * phaseEst.sin();
