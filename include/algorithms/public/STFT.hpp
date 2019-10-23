@@ -9,13 +9,12 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "../../data/FluidTensor.hpp"
-#include "../../data/TensorTypes.hpp"
+#include "WindowFuncs.hpp"
 #include "../util/AlgorithmUtils.hpp"
 #include "../util/FFT.hpp"
 #include "../util/FluidEigenMappings.hpp"
-#include "WindowFuncs.hpp"
-
+#include "../../data/FluidTensor.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 
 namespace fluid {
@@ -24,10 +23,9 @@ namespace algorithm {
 class STFT
 {
 
-
-  using ArrayXd   = Eigen::ArrayXd;
-  using ArrayXXd  = Eigen::ArrayXXd;
-  using ArrayXcd  = Eigen::ArrayXcd;
+  using ArrayXd = Eigen::ArrayXd;
+  using ArrayXXd = Eigen::ArrayXXd;
+  using ArrayXcd = Eigen::ArrayXcd;
   using ArrayXXcd = Eigen::ArrayXXcd;
 
 public:
@@ -39,14 +37,14 @@ public:
     WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](mWindowSize, mWindow);
   }
 
-  static void magnitude(const FluidTensorView<complex<double>, 2>& in,
+  static void magnitude(const FluidTensorView<std::complex<double>, 2>& in,
                         FluidTensorView<double, 2>                 out)
   {
     ArrayXXd mag = _impl::asEigen<Eigen::Array>(in).abs().real();
     out = _impl::asFluid(mag);
   }
 
-  static void magnitude(const FluidTensorView<complex<double>, 1>& in,
+  static void magnitude(const FluidTensorView<std::complex<double>, 1>& in,
                         FluidTensorView<double, 1>                 out)
   {
     ArrayXd mag = _impl::asEigen<Eigen::Array>(in).abs().real();

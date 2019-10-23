@@ -8,16 +8,15 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include "../../algorithms/public/STFT.hpp"
-#include "../../data/FluidTensor.hpp"
-#include "../../data/TensorTypes.hpp"
 #include "../common/FluidContext.hpp"
 #include "../common/FluidSink.hpp"
 #include "../common/FluidSource.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTrackChanges.hpp"
 #include "../common/ParameterTypes.hpp"
-
+#include "../../algorithms/public/STFT.hpp"
+#include "../../data/FluidTensor.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <memory>
 
 namespace fluid {

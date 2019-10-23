@@ -12,7 +12,6 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "FluidTensor_Support.hpp"
-
 #include <array>
 #include <cassert>
 #include <initializer_list>

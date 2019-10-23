@@ -20,13 +20,7 @@ namespace client {
 class Result
 {
 public:
-  enum class Status
-  {
-    kOk,
-    kWarning,
-    kError,
-    kCancelled
-  };
+  enum class Status { kOk, kWarning, kError, kCancelled };
 
   Result(Status s, std::string msg) : mStatus(s), mMsg(msg) {}
 

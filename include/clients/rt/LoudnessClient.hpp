@@ -8,8 +8,6 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include "../../algorithms/public/Loudness.hpp"
-#include "../../data/TensorTypes.hpp"
 #include "../common/AudioClient.hpp"
 #include "../common/BufferedProcess.hpp"
 #include "../common/FluidBaseClient.hpp"
@@ -17,14 +15,14 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
-
+#include "../../algorithms/public/Loudness.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <tuple>
 
 namespace fluid {
 namespace client {
 
-enum LoudnessParamIndex
-{
+enum LoudnessParamIndex {
   kKWeighting,
   kTruePeak,
   kWindowSize,

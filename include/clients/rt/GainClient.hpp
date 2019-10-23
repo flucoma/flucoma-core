@@ -8,19 +8,16 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include "../../data/TensorTypes.hpp"
 #include "../common/AudioClient.hpp"
 #include "../common/FluidBaseClient.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
+#include "../../data/TensorTypes.hpp"
 
 namespace fluid {
 namespace client {
 
-enum GainParamTags
-{
-  kGain
-};
+enum GainParamTags { kGain };
 
 constexpr auto GainParams = defineParameters(FloatParam("gain", "Gain", 1.0));
 
@@ -55,7 +52,8 @@ public:
     {
       // Apply gain from the second channel
       output[0].apply(input[1], [](T& x, T& y) { x *= y; });
-    } else
+    }
+    else
     {
       double g = get<kGain>();
       output[0].apply([g](T& x) { x *= g; });

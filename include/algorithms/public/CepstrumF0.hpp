@@ -9,12 +9,11 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "../../data/TensorTypes.hpp"
 #include "../util/AlgorithmUtils.hpp"
 #include "../util/DCT.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/PeakDetection.hpp"
-
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Eigen>
 
 namespace fluid {
@@ -46,7 +45,7 @@ public:
     int     maxBin = std::round(sampleRate / minFreq);
 
     mDCT.processFrame(logMag, mCepstrum);
-    
+
     if (maxBin > minBin && maxBin < mCepstrum.size())
     {
       auto vec = pd.process(mCepstrum.segment(minBin, maxBin - minBin), 1);

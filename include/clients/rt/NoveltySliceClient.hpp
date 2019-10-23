@@ -8,6 +8,13 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
+#include "../common/AudioClient.hpp"
+#include "../common/BufferedProcess.hpp"
+#include "../common/FluidBaseClient.hpp"
+#include "../common/FluidNRTClientWrapper.hpp"
+#include "../common/ParameterConstraints.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../common/ParameterTypes.hpp"
 #include "../../algorithms/public/Loudness.hpp"
 #include "../../algorithms/public/NoveltySegmentation.hpp"
 #include "../../algorithms/public/STFT.hpp"
@@ -16,21 +23,12 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../algorithms/util/MelBands.hpp"
 #include "../../algorithms/util/TruePeak.hpp"
 #include "../../data/TensorTypes.hpp"
-#include "../common/AudioClient.hpp"
-#include "../common/BufferedProcess.hpp"
-#include "../common/FluidBaseClient.hpp"
-#include "../common/FluidNRTClientWrapper.hpp"
-#include "../common/ParameterConstraints.hpp"
-#include "../common/ParameterSet.hpp"
-#include "../common/ParameterTypes.hpp"
-
 #include <tuple>
 
 namespace fluid {
 namespace client {
 
-enum NoveltyParamIndex
-{
+enum NoveltyParamIndex {
   kFeature,
   kKernelSize,
   kThreshold,
@@ -99,17 +97,16 @@ public:
         mSTFT = algorithm::STFT(get<kFFT>().winSize(), get<kFFT>().fftSize(),
                                 get<kFFT>().hopSize());
       }
-      if (feature == 0)
-      {
-        nDims = get<kFFT>().frameSize();
-      } else if (feature == 1)
+      if (feature == 0) { nDims = get<kFFT>().frameSize(); }
+      else if (feature == 1)
       {
         mBands.resize(40);
         mMelBands.init(20, 2000, 40, get<kFFT>().frameSize(), sampleRate(),
                        true);
         mDCT.init(40, 13);
         nDims = 13;
-      } else if (feature == 3)
+      }
+      else if (feature == 3)
       {
         mLoudness.init(windowSize, sampleRate());
       }

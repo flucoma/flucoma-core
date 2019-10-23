@@ -12,18 +12,13 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../common/FluidNRTClientWrapper.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterTypes.hpp"
-
 #include <chrono>
 #include <thread>
 
 namespace fluid {
 namespace client {
 
-enum ThreadTestIdx
-{
-  kResult,
-  kWait
-};
+enum ThreadTestIdx { kResult, kWait };
 
 auto constexpr ThreadTestParams =
     defineParameters(BufferParam("result", "Output Result Buffer"),
@@ -62,7 +57,8 @@ public:
           return {Result::Status::kError, "Buffer resize failed"};
         buf.samps(0)(0) = wait;
         return {Result::Status::kOk, ""};
-      } else
+      }
+      else
         return {Result::Status::kError, "Buffer not found"};
     }
     return {Result::Status::kError, "No buffer"};

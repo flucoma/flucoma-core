@@ -20,13 +20,7 @@ namespace algorithm {
 class WindowFuncs
 {
 public:
-  enum class WindowTypes
-  {
-    kHann,
-    kHamming,
-    kBlackmanHarris,
-    kGaussian
-  };
+  enum class WindowTypes { kHann, kHamming, kBlackmanHarris, kGaussian };
   using WindowFuncsMap =
       std::map<WindowTypes,
                std::function<void(int, Eigen::Ref<Eigen::ArrayXd>)>>;

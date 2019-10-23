@@ -8,19 +8,18 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include "../../algorithms/public/NMF.hpp"
 #include "../common/BufferedProcess.hpp"
 #include "../common/FluidBaseClient.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTrackChanges.hpp"
 #include "../common/ParameterTypes.hpp"
+#include "../../algorithms/public/NMF.hpp"
 
 namespace fluid {
 namespace client {
 
-enum NMFMatchParamIndex
-{
+enum NMFMatchParamIndex {
   kFilterbuf,
   kMaxRank,
   kIterations,
@@ -103,7 +102,7 @@ public:
 private:
   ParameterTrackChanges<size_t, size_t>                 mTrackValues;
   STFTBufferedProcess<ParamSetViewType, T, kFFT, false> mSTFTProcessor;
-  algorithm::NMF mNMF{get<kMaxRank>()};
+  algorithm::NMF                                        mNMF{get<kMaxRank>()};
 
   FluidTensor<double, 2> tmpFilt;
   FluidTensor<double, 2> tmpMagnitude;

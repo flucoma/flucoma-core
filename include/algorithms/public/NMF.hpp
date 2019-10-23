@@ -9,16 +9,14 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "../../data/TensorTypes.hpp"
 #include "../util/AlgorithmUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
-
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <vector>
 
 namespace fluid {
 namespace algorithm {
-
 
 class NMF
 {
@@ -102,7 +100,8 @@ public:
     {
       W = MatrixXd::Random(nBins, mRank) * 0.5 +
           MatrixXd::Constant(nBins, mRank, 0.5);
-    } else
+    }
+    else
     {
       assert(W0.extent(0) == mRank);
       assert(W0.extent(1) == nBins);
@@ -113,7 +112,8 @@ public:
     {
       H = MatrixXd::Random(mRank, nFrames) * 0.5 +
           MatrixXd::Constant(mRank, nFrames, 0.5);
-    } else
+    }
+    else
     {
       assert(H0.extent(0) == nFrames);
       assert(H0.extent(1) == mRank);
@@ -124,7 +124,7 @@ public:
     MatrixXd VT = V.transpose();
     MatrixXd WT = W.transpose();
     MatrixXd HT = H.transpose();
-    
+
     V1 = asFluid(VT);
     W1 = asFluid(WT);
     H1 = asFluid(HT);

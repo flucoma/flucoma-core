@@ -8,26 +8,19 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include "../../algorithms/public/NMF.hpp"
-#include "../../algorithms/public/RatioMask.hpp"
 #include "../common/BufferedProcess.hpp"
 #include "../common/FluidBaseClient.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTrackChanges.hpp"
 #include "../common/ParameterTypes.hpp"
+#include "../../algorithms/public/NMF.hpp"
+#include "../../algorithms/public/RatioMask.hpp"
 
 namespace fluid {
 namespace client {
 
-enum NMFFilterIndex
-{
-  kFilterbuf,
-  kMaxRank,
-  kIterations,
-  kFFT,
-  kMaxFFTSize
-};
+enum NMFFilterIndex { kFilterbuf, kMaxRank, kIterations, kFFT, kMaxFFTSize };
 
 auto constexpr NMFFilterParams = defineParameters(
     InputBufferParam("bases", "Bases Buffer"),

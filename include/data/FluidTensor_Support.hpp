@@ -13,7 +13,6 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "FluidMeta.hpp"
-
 #include <algorithm>  //copy,copy_n
 #include <array>      //std::array
 #include <cassert>    //assert()
@@ -176,7 +175,8 @@ struct SliceIterator
       else // transposed
         size = s.strides[N - 1] * s.extents[N - 1];
       mPtr = base + s.start + size;
-    } else
+    }
+    else
       mPtr = base + s.start;
   }
 
@@ -228,7 +228,8 @@ private:
         mPtr -= mDesc.strides[d] * mDesc.extents[d];
         mIndexes[d] = 0;
         --d;
-      } else
+      }
+      else
       {
         break;
       }

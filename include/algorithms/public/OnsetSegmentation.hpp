@@ -9,13 +9,12 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "../../data/TensorTypes.hpp"
+#include "OnsetDetectionFuncs.hpp"
+#include "WindowFuncs.hpp"
 #include "../util/ConvolutionTools.hpp"
 #include "../util/FFT.hpp"
 #include "../util/FluidEigenMappings.hpp"
-#include "OnsetDetectionFuncs.hpp"
-#include "WindowFuncs.hpp"
-
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Eigen>
 #include <algorithm>
 #include <cassert>
@@ -113,7 +112,8 @@ public:
       ArrayXcd frame2 =
           mFFT.process(in.segment(mFrameDelta, mWindowSize) * mWindow);
       funcVal = OnsetDetectionFuncs::map()[odf](frame2, frame, frame);
-    } else
+    }
+    else
     {
       funcVal =
           OnsetDetectionFuncs::map()[odf](frame, prevFrame, prevPrevFrame);
@@ -130,7 +130,8 @@ public:
     {
       detected = 1.0;
       mDebounceCount = mDebounce;
-    } else
+    }
+    else
     {
       if (mDebounceCount > 0) mDebounceCount--;
     }
@@ -158,7 +159,7 @@ private:
   ArrayXcd           prevFrame;
   ArrayXcd           prevPrevFrame;
   double             mPrevFuncVal{0.0};
-  WindowTypes mWindowType{WindowTypes::kHann};
+  WindowTypes        mWindowType{WindowTypes::kHann};
 };
 
 }; // namespace algorithm

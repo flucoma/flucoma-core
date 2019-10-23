@@ -13,8 +13,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
-#include <vector>
 #include <map>
+#include <vector>
 
 namespace fluid {
 namespace algorithm {
@@ -23,8 +23,7 @@ class OnsetDetectionFuncs
 {
 
 public:
-  enum class ODF
-  {
+  enum class ODF {
     kEnergy,
     kHFC,
     kSpectralFlux,

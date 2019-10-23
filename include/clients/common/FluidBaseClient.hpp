@@ -8,7 +8,6 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include "../../data/FluidMeta.hpp"
 #include "AudioClient.hpp"
 #include "FluidContext.hpp"
 #include "OfflineClient.hpp"
@@ -17,18 +16,13 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "ParameterTypes.hpp"
 #include "Result.hpp"
 #include "TupleUtilities.hpp"
+#include "../../data/FluidMeta.hpp"
 #include <tuple>
 
 namespace fluid {
 namespace client {
 
-enum ProcessState
-{
-  kNoProcess,
-  kProcessing,
-  kDone,
-  kDoneStillProcessing
-};
+enum ProcessState { kNoProcess, kProcessing, kDone, kDoneStillProcessing };
 
 template <typename ParamType, ParamType& PD>
 class FluidBaseClient //<const Tuple<Ts...>>

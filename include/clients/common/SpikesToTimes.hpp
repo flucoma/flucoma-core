@@ -9,11 +9,10 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "../../data/FluidTensor.hpp"
 #include "BufferAdaptor.hpp"
 #include "OfflineClient.hpp"
 #include "Result.hpp"
-
+#include "../../data/FluidTensor.hpp"
 #include <algorithm>
 #include <vector>
 

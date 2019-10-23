@@ -8,8 +8,6 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include "../../data/FluidTensor.hpp"
-#include "../../data/TensorTypes.hpp"
 #include "../common/BufferAdaptor.hpp"
 #include "../common/FluidBaseClient.hpp"
 #include "../common/MemoryBufferAdaptor.hpp"
@@ -17,7 +15,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
 #include "../common/SpikesToTimes.hpp"
-
+#include "../../data/FluidTensor.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <deque>
 #include <thread>
 #include <vector>
@@ -535,7 +534,8 @@ public:
           mQueue.pop_front();
           state = kDoneStillProcessing;
           mThreadedTask->mState = kDoneStillProcessing;
-        } else
+        }
+        else
         {
           mThreadedTask = nullptr;
         }
@@ -616,7 +616,8 @@ private:
       {
         mClient->setParams(hostParams);
         result = process();
-      } else
+      }
+      else
       {
         auto entry = [](ThreadedTask* owner) { owner->process(); };
         mProcessParams.template forEachParamType<BufferT, BufferCopy>();
@@ -662,7 +663,8 @@ private:
         {
           mProcessParams.template forEachParamType<BufferT, BufferCopyBack>();
           result = mResult;
-        } else
+        }
+        else
           result = {Result::Status::kCancelled, ""};
 
         mProcessParams.template forEachParamType<BufferT, BufferDelete>();

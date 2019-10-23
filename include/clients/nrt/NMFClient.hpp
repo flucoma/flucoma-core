@@ -8,17 +8,16 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include "../../algorithms/public/NMF.hpp"
-#include "../../algorithms/public/RatioMask.hpp"
-#include "../../algorithms/public/STFT.hpp"
-#include "../../data/FluidTensor.hpp"
 #include "../common/FluidBaseClient.hpp"
 #include "../common/FluidNRTClientWrapper.hpp"
 #include "../common/OfflineClient.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
-
+#include "../../algorithms/public/NMF.hpp"
+#include "../../algorithms/public/RatioMask.hpp"
+#include "../../algorithms/public/STFT.hpp"
+#include "../../data/FluidTensor.hpp"
 #include <algorithm> //for max_element
 #include <cassert>
 #include <sstream> //for ostringstream
@@ -30,8 +29,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 namespace fluid {
 namespace client {
 
-enum NMFParamIndex
-{
+enum NMFParamIndex {
   kSource,
   kOffset,
   kNumFrames,
@@ -110,7 +108,8 @@ public:
                 "Supplied filter buffer for seeding must be [(FFTSize / 2) + "
                 "1] frames long, and have [rank] * [channels] channels"};
       hasFilters = true;
-    } else if (get<kFiltersUpdate>() > 0)
+    }
+    else if (get<kFiltersUpdate>() > 0)
       return {Result::Status::kError,
               "Filter Mode set to Seed or Fix , but no Filter Buffer supplied"};
 
@@ -137,7 +136,8 @@ public:
             "size)  + 1] frames long, and have [rank] * [channels] channels"};
 
       hasEnvelopes = true;
-    } else if (get<kEnvelopesUpdate>() > 0)
+    }
+    else if (get<kEnvelopesUpdate>() > 0)
       return {
           Result::Status::kError,
           "Envelope Mode set to Seed or Fix , but no Envelope Buffer supplied"};

@@ -9,7 +9,6 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "../../data/FluidTensor.hpp"
-
 #include <Eigen/Core>
 #include <cassert>
 #include <limits>
@@ -68,7 +67,8 @@ class MedianFilter
       {
         std::memmove(mSorted.data() + insertP + 1, mSorted.data() + insertP,
                      (deleteP - insertP) * sizeof(std::pair<double, int>));
-      } else if (insertP > deleteP)
+      }
+      else if (insertP > deleteP)
       {
         insertP--;
         std::memmove(mSorted.data() + deleteP, mSorted.data() + deleteP + 1,
@@ -115,10 +115,8 @@ class MedianFilter
       Link l = mLinks[i];
       mLinks[l.prev].next = l.next;
       mLinks[l.next].prev = l.prev;
-      if (belowMedian(i))
-      {
-        mSmallIndex--;
-      } else
+      if (belowMedian(i)) { mSmallIndex--; }
+      else
       {
         if (i == mMedianIndex) { mMedianIndex = l.next; }
         if (mSmallIndex > 0)
@@ -198,13 +196,12 @@ public:
 
   Block* nextBlock()
   {
-    if (b.atEnd())
-    {
-      return &a;
-    } else if (a.atEnd())
+    if (b.atEnd()) { return &a; }
+    else if (a.atEnd())
     {
       return &b;
-    } else
+    }
+    else
     {
       return a.peek() <= b.peek() ? &a : &b;
     }

@@ -9,11 +9,10 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "../../data/TensorTypes.hpp"
 #include "../util/ButterworthHPFilter.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/SlideUDFilter.hpp"
-
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <algorithm>
 #include <cmath>
@@ -84,22 +83,19 @@ public:
     // case 1: we are waiting for event to finish
     if (mOutputState && mEventCount > 0)
     {
-      if (mEventCount >= mMinEventDuration)
-      {
-        mEventCount = 0;
-      } else
+      if (mEventCount >= mMinEventDuration) { mEventCount = 0; }
+      else
       {
         forcedState = true;
         mOutputBuffer(mLatency - 1) = 1;
         mEventCount++;
       }
       // case 2: we are waiting for silence to finish
-    } else if (!mOutputState && mSilenceCount > 0)
+    }
+    else if (!mOutputState && mSilenceCount > 0)
     {
-      if (mSilenceCount >= mMinSilenceDuration)
-      {
-        mSilenceCount = 0;
-      } else
+      if (mSilenceCount >= mMinSilenceDuration) { mSilenceCount = 0; }
+      else
       {
         forcedState = true;
         mOutputBuffer(mLatency - 1) = 0;
@@ -124,8 +120,9 @@ public:
         mOutputBuffer.segment(onsetIndex, mLatency - onsetIndex) = 1;
         mEventCount = mOnStateCount;
         mOutputState = true; // we are officially on
-      } else if (mOutputState && mOffStateCount >= mDownwardLatency &&
-                 mFillCount >= mLatency)
+      }
+      else if (mOutputState && mOffStateCount >= mDownwardLatency &&
+               mFillCount >= mLatency)
       {
 
         int offsetIndex = refineStart(mLatency - mDownwardLatency,
@@ -139,7 +136,8 @@ public:
         mOutputBuffer(mLatency - 1) = 0;
         mEventCount = 1;
         mOutputState = true; // we are officially on, starting next sample
-      } else
+      }
+      else
       {
         mOutputBuffer(mLatency - 1) = mOutputState ? 1 : 0;
       }
@@ -203,14 +201,17 @@ private:
     { // change from 0 to 1
       mOffStateCount = 0;
       mOnStateCount = 1;
-    } else if (mInputState && !nextState)
+    }
+    else if (mInputState && !nextState)
     {
       mOnStateCount = 0;
       mOffStateCount = 1;
-    } else if (mInputState && nextState)
+    }
+    else if (mInputState && nextState)
     {
       mOnStateCount++;
-    } else if (!mInputState && !nextState)
+    }
+    else if (!mInputState && !nextState)
     {
       mOffStateCount++;
     }

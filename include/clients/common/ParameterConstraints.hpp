@@ -12,10 +12,10 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "ParameterTrackChanges.hpp"
 #include "ParameterTypes.hpp"
 #include "Result.hpp"
-
 #include <algorithm>
 #include <cmath>
 #include <sstream>
+
 namespace fluid {
 namespace client {
 

@@ -8,23 +8,19 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include "../../algorithms/public/STFT.hpp"
-#include "../../data/FluidTensor.hpp"
-#include "../../data/TensorTypes.hpp"
 #include "../common/BufferedProcess.hpp"
 #include "../common/FluidBaseClient.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
+#include "../../algorithms/public/STFT.hpp"
+#include "../../data/FluidTensor.hpp"
+#include "../../data/TensorTypes.hpp"
 
 namespace fluid {
 namespace client {
 
-enum STFTParamIndex
-{
-  kFFT,
-  kMaxFFT
-};
+enum STFTParamIndex { kFFT, kMaxFFT };
 
 auto constexpr STFTParams = defineParameters(
     FFTParam<kMaxFFT>("fftSettings", "FFT Settings", 1024, -1, -1),

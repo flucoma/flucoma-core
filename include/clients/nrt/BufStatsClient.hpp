@@ -8,17 +8,16 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include "../../algorithms/public/Stats.hpp"
 #include "../common/FluidBaseClient.hpp"
 #include "../common/FluidNRTClientWrapper.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterTypes.hpp"
+#include "../../algorithms/public/Stats.hpp"
 
 namespace fluid {
 namespace client {
 
-enum BufStatsParamIndex
-{
+enum BufStatsParamIndex {
   kSource,
   kOffset,
   kNumFrames,

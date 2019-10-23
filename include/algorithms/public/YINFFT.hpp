@@ -8,11 +8,10 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include "../../data/TensorTypes.hpp"
 #include "../util/FFT.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/PeakDetection.hpp"
-
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 
 namespace fluid {

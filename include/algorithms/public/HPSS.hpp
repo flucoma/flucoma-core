@@ -1,4 +1,3 @@
-
 /*
 Copyright 2017-2019 University of Huddersfield.
 Licensed under the BSD-3 License.
@@ -10,11 +9,10 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "../../data/TensorTypes.hpp"
 #include "../util/AlgorithmUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/MedianFilter.hpp"
-
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 
 namespace fluid {
@@ -23,16 +21,11 @@ namespace algorithm {
 class HPSS
 {
 public:
-  using ArrayXXd  = Eigen::ArrayXXd;
+  using ArrayXXd = Eigen::ArrayXXd;
   using ArrayXXcd = Eigen::ArrayXXcd;
-  using ArrayXcd  = Eigen::ArrayXcd;
+  using ArrayXcd = Eigen::ArrayXcd;
 
-  enum HPSSMode
-  {
-    kClassic,
-    kCoupled,
-    kAdvanced
-  };
+  enum HPSSMode { kClassic, kCoupled, kAdvanced };
 
   void init(int nBins, int maxVSize, int maxHSize, int vSize, int hSize,
             int mode, double hThresholdX1, double hThresholdY1,

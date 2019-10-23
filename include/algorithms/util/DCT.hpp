@@ -9,9 +9,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "../../data/TensorTypes.hpp"
 #include "../util/FluidEigenMappings.hpp"
-
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <cassert>
 #include <cmath>
@@ -22,8 +21,8 @@ namespace algorithm {
 class DCT
 {
 public:
-  using ArrayXd   = Eigen::ArrayXd;
-  using MatrixXd  = Eigen::MatrixXd;
+  using ArrayXd = Eigen::ArrayXd;
+  using MatrixXd = Eigen::MatrixXd;
 
   void init(int inputSize, int outputSize)
   {

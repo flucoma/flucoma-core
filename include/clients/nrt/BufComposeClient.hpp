@@ -9,20 +9,19 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "../../data/FluidTensor.hpp"
-#include "../../data/TensorTypes.hpp"
 #include "../common/FluidBaseClient.hpp"
 #include "../common/FluidNRTClientWrapper.hpp"
 #include "../common/OfflineClient.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
 #include "../common/Result.hpp"
+#include "../../data/FluidTensor.hpp"
+#include "../../data/TensorTypes.hpp"
 
 namespace fluid {
 namespace client {
 
-enum
-{
+enum {
   kSource,
   kOffset,
   kNumFrames,
@@ -134,8 +133,8 @@ public:
                           Slice(dstStart, dstEnd - dstStart))
               .apply(applyGain);
         }
-
-      } else // just copy what we're affecting
+      }
+      else // just copy what we're affecting
       {
         destinationOrig.resize(nChannels, nFrames);
         for (int i = 0; i < nChannels; ++i)
@@ -188,7 +187,8 @@ public:
       if (!resizeResult.ok()) return resizeResult;
       for (int i = 0; i < destination.numChans(); ++i)
         destination.samps(i) = destinationOrig.row(i);
-    } else
+    }
+    else
     {
       for (int i = 0; i < nChannels; ++i)
         destination.samps(dstStart, nFrames, dstStartChan + i) =

@@ -9,11 +9,10 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "../../data/FluidTensor.hpp"
-#include "../../data/TensorTypes.hpp"
 #include "../util/AlgorithmUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
-
+#include "../../data/FluidTensor.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Dense>
 
 namespace fluid {

@@ -8,8 +8,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include "../../data/TensorTypes.hpp"
 #include "Result.hpp"
+#include "../../data/TensorTypes.hpp"
 
 namespace fluid {
 namespace client {

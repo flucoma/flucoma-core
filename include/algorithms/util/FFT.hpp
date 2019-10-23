@@ -9,7 +9,6 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "HISSTools_FFT/HISSTools_FFT.h"
-
 #include <Eigen/Core>
 
 namespace fluid {
@@ -81,11 +80,11 @@ public:
   }
 
 protected:
-  size_t              mMaxSize{16384};
-  size_t              mSize{1024};
-  size_t              mFrameSize{513};
-  size_t              mLog2Size{10};
-  
+  size_t mMaxSize{16384};
+  size_t mSize{1024};
+  size_t mFrameSize{513};
+  size_t mLog2Size{10};
+
   FFT_SETUP_D         mSetup;
   FFT_SPLIT_COMPLEX_D mSplit;
 

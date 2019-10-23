@@ -8,9 +8,6 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include "../../algorithms/util/DCT.hpp"
-#include "../../algorithms/util/MelBands.hpp"
-#include "../../data/TensorTypes.hpp"
 #include "../common/AudioClient.hpp"
 #include "../common/BufferedProcess.hpp"
 #include "../common/FluidBaseClient.hpp"
@@ -19,13 +16,15 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTrackChanges.hpp"
 #include "../common/ParameterTypes.hpp"
+#include "../../algorithms/util/DCT.hpp"
+#include "../../algorithms/util/MelBands.hpp"
+#include "../../data/TensorTypes.hpp"
 
 namespace fluid {
 namespace client {
 
 
-enum MFCCParamIndex
-{
+enum MFCCParamIndex {
   kNCoefs,
   kNBands,
   kMinFreq,

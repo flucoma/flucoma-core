@@ -8,14 +8,13 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include "../../algorithms/public/HPSS.hpp"
-#include "../../algorithms/public/STFT.hpp"
 #include "../common/BufferedProcess.hpp"
 #include "../common/FluidBaseClient.hpp"
 #include "../common/FluidNRTClientWrapper.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterTypes.hpp"
-
+#include "../../algorithms/public/HPSS.hpp"
+#include "../../algorithms/public/STFT.hpp"
 #include <complex>
 #include <string>
 #include <tuple>
@@ -23,8 +22,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 namespace fluid {
 namespace client {
 
-enum HPSSParamIndex
-{
+enum HPSSParamIndex {
   kHSize,
   kPSize,
   kMode,
@@ -95,7 +93,8 @@ public:
           get<kHThresh>().value[1].second, get<kPThresh>().value[0].first,
           get<kPThresh>().value[0].second, get<kPThresh>().value[1].first,
           get<kPThresh>().value[0].second);
-    } else
+    }
+    else
     {
       mHPSS.setVSize(get<kPSize>());
       if (mTrackHSize.changed(get<kHSize>())) mHPSS.setHSize(get<kHSize>());

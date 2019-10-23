@@ -9,10 +9,6 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "../../algorithms/public/CepstrumF0.hpp"
-#include "../../algorithms/public/HPS.hpp"
-#include "../../algorithms/public/YINFFT.hpp"
-#include "../../data/TensorTypes.hpp"
 #include "../common/AudioClient.hpp"
 #include "../common/BufferedProcess.hpp"
 #include "../common/FluidBaseClient.hpp"
@@ -20,14 +16,16 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
-
+#include "../../algorithms/public/CepstrumF0.hpp"
+#include "../../algorithms/public/HPS.hpp"
+#include "../../algorithms/public/YINFFT.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <tuple>
 
 namespace fluid {
 namespace client {
 
-enum PitchParamIndex
-{
+enum PitchParamIndex {
   kAlgorithm,
   kMinFreq,
   kMaxFreq,

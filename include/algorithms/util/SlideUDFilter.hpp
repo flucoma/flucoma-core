@@ -25,10 +25,8 @@ public:
   double processSample(double x)
   {
     double y;
-    if (x > y0)
-    {
-      y = y0 + (mBUp * (x - y0));
-    } else
+    if (x > y0) { y = y0 + (mBUp * (x - y0)); }
+    else
     {
       y = y0 + (mBDown * (x - y0));
     }

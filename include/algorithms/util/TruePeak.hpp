@@ -8,10 +8,9 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include "../../data/TensorTypes.hpp"
 #include "../util/FFT.hpp"
 #include "../util/FluidEigenMappings.hpp"
-
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Eigen>
 #include <cmath>
 
@@ -40,10 +39,8 @@ public:
   {
     using namespace Eigen;
     ArrayXd in = _impl::asEigen<Array>(input);
-    if (mSampleRate >= 192000)
-    {
-      return in.abs().maxCoeff();
-    } else
+    if (mSampleRate >= 192000) { return in.abs().maxCoeff(); }
+    else
     {
       double   peak;
       ArrayXcd transform = mFFT.process(in);

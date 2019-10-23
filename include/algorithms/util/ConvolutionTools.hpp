@@ -8,23 +8,16 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include <vector>
-
 #include <HISSTools_FFT/HISSTools_FFT.h>
 #include <SIMDSupport.hpp>
+#include <vector>
 
 namespace fluid {
 namespace algorithm {
 
 // The edge mode determines wraparound etc.
 
-enum EdgeMode
-{
-  kEdgeLinear,
-  kEdgeWrap,
-  kEdgeWrapCentre,
-  kEdgeFold
-};
+enum EdgeMode { kEdgeLinear, kEdgeWrap, kEdgeWrapCentre, kEdgeFold };
 
 namespace impl { // Here is the underlying implementation
                  // See the bottom of the file for interface
@@ -335,7 +328,8 @@ void arrangeOutput(T output, FFT_SPLIT_COMPLEX_D spectrum, size_t minSize,
     else
       wrap(output, spectrum, (linearSize - (2 * (minSize - 1))),
            fftSize - extraSize, extraSize);
-  } else
+  }
+  else
   {
     size_t offset = minSize / 2;
 
@@ -349,7 +343,8 @@ void arrangeOutput(T output, FFT_SPLIT_COMPLEX_D spectrum, size_t minSize,
       wrap(output, spectrum, 0, maxSize - offset, offset);
       wrap(output, spectrum, sizeOut - endWrap, fftSize - (minSize - 1),
            endWrap);
-    } else
+    }
+    else
     {
       fold(output, spectrum, 0, fftSize - (offset - 1), offset);
       fold(output, spectrum, sizeOut - offset, maxSize, offset);
@@ -369,7 +364,8 @@ void binaryOp(FFT_SPLIT_COMPLEX_D& io1, FFT_SPLIT_COMPLEX_D& in2,
   {
     op(io1.realp[0], io1.imagp[0], io1.realp[0], io1.imagp[0], in2.realp[0],
        in2.imagp[0], scale);
-  } else if (dataLength < vecSize)
+  }
+  else if (dataLength < vecSize)
   {
     const int currentVecSize = SIMDLimits<double>::max_size / 2;
 
@@ -386,7 +382,8 @@ void binaryOp(FFT_SPLIT_COMPLEX_D& io1, FFT_SPLIT_COMPLEX_D& in2,
 
     for (size_t i = 0; i < (dataLength / currentVecSize); i++)
       op(real1[i], imag1[i], real1[i], imag1[i], real2[i], imag2[i], scaleVec);
-  } else
+  }
+  else
   {
     SIMDType<double, vecSize>* real1 =
         reinterpret_cast<SIMDType<double, vecSize>*>(io1.realp);

@@ -8,10 +8,9 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include "../../data/TensorTypes.hpp"
 #include "../util/ARModel.hpp"
 #include "../util/FluidEigenMappings.hpp"
-
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <algorithm>
 #include <cmath>
@@ -179,9 +178,8 @@ private:
     {
       if (!click && (mBackwardWindowedError[i] > loThresh) &&
           (mForwardWindowedError[i] > hiThresh))
-      {
-        click = true;
-      } else if (click && (mBackwardWindowedError[i] < loThresh))
+      { click = true; }
+      else if (click && (mBackwardWindowedError[i] < loThresh))
       {
         click = false;
 

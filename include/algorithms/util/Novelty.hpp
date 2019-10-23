@@ -8,11 +8,10 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include "../../data/FluidTensor.hpp"
+#include "FluidEigenMappings.hpp"
 #include "../public/WindowFuncs.hpp"
 #include "../util/AlgorithmUtils.hpp"
-#include "FluidEigenMappings.hpp"
-
+#include "../../data/FluidTensor.hpp"
 #include <Eigen/Core>
 #include <limits>
 

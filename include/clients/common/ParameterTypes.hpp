@@ -12,7 +12,6 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "BufferAdaptor.hpp"
 #include "ParameterTrackChanges.hpp"
 #include "Result.hpp"
-
 #include <memory>
 #include <tuple>
 #include <utility>

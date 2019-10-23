@@ -8,9 +8,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include "../../data/FluidTensor.hpp"
 #include "FluidEigenMappings.hpp"
-
+#include "../../data/FluidTensor.hpp"
 #include <Eigen/Core>
 #include <limits>
 
@@ -44,7 +43,8 @@ public:
           double newIndex = i + p;
           double newVal = current - 0.25 * (prev - next) * p;
           peaks.push_back(make_pair(newIndex, newVal));
-        } else
+        }
+        else
         {
           peaks.push_back(make_pair(static_cast<double>(i), input(i)));
         }
@@ -54,9 +54,8 @@ public:
       return left.second > right.second;
     });
     if (numPeaks > 0 && peaks.size() > 0)
-    {
-      return pairs_vector(peaks.begin(), peaks.begin() + numPeaks);
-    } else
+    { return pairs_vector(peaks.begin(), peaks.begin() + numPeaks); }
+    else
       return peaks;
   }
 };

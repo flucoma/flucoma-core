@@ -9,13 +9,12 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "../../data/TensorTypes.hpp"
+#include "WindowFuncs.hpp"
 #include "../util/AlgorithmUtils.hpp"
 #include "../util/ConvolutionTools.hpp"
 #include "../util/FFT.hpp"
 #include "../util/FluidEigenMappings.hpp"
-#include "WindowFuncs.hpp"
-
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <queue>
 
@@ -99,7 +98,8 @@ public:
     {
       result.col(0) = ArrayXd::Zero(mBins);
       result.col(1) = ArrayXd::Zero(mBins);
-    } else
+    }
+    else
     {
       ArrayXcd resultFrame = mBuf.front();
       ArrayXd  resultMag = resultFrame.abs().real();

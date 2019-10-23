@@ -9,7 +9,6 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "../../data/FluidTensor.hpp"
-
 #include <Eigen/Core>
 #include <algorithm>
 
@@ -53,7 +52,8 @@ auto asFluid(PlainObjectBase<Derived>& a)
       return {slice, a.data()};
     }
     return {a.data(), 0, a.rows(), a.cols()};
-  } else
+  }
+  else
     return {a.data(), 0, a.rows()};
 }
 
@@ -76,7 +76,8 @@ auto asFluid(F<T, N>& a)
             static_cast<Eigen::Index>(a.cols()),
             Stride<Dynamic, Dynamic>(a.descriptor().strides[0],
                                      a.descriptor().strides[1])};
-  } else
+  }
+  else
   {
     return {a.data(), static_cast<Eigen::Index>(a.rows()), 1,
             Stride<Dynamic, Dynamic>(a.descriptor().strides[0], 1)};
@@ -103,7 +104,8 @@ auto asEigen(const F<T, N>& a)
             static_cast<Eigen::Index>(a.cols()),
             Stride<Dynamic, Dynamic>(a.descriptor().strides[0],
                                      a.descriptor().strides[1])};
-  } else
+  }
+  else
   {
     return {a.data(), static_cast<Eigen::Index>(a.rows()), 1,
             Stride<Dynamic, Dynamic>(a.descriptor().strides[0], 1)};

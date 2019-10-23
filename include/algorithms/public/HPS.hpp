@@ -1,4 +1,3 @@
-
 /*
 Copyright 2017-2019 University of Huddersfield.
 Licensed under the BSD-3 License.
@@ -10,8 +9,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "../../data/TensorTypes.hpp"
 #include "../util/FluidEigenMappings.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 
 namespace fluid {
@@ -39,7 +38,7 @@ public:
 
     for (int i = 2; i < nHarmonics; i++)
     {
-      int hBins = nBins / i;
+      int     hBins = nBins / i;
       ArrayXd h = ArrayXd::Zero(hBins);
       for (int j = 0; j < hBins; j++) h(j) = mag(j * i);
       ArrayXd hp = ArrayXd::Zero(nBins);

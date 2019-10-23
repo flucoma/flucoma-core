@@ -23,7 +23,7 @@ BinPackParameters: true
 BraceWrapping:
   AfterClass:      true
   AfterControlStatement: true
-  AfterEnum:       true
+  AfterEnum:       false
   AfterFunction:   true
   AfterNamespace:  false
   AfterObjCDeclaration: false
@@ -31,11 +31,11 @@ BraceWrapping:
   AfterUnion:      true
   AfterExternBlock: false
   BeforeCatch:     false
-  BeforeElse:      false
+  BeforeElse:      true
   IndentBraces:    false
   SplitEmptyFunction: false
   SplitEmptyRecord: false
-  SplitEmptyNamespace: false
+  SplitEmptyNamespace: false  
 BreakBeforeBinaryOperators: None
 BreakBeforeBraces: Custom
 BreakBeforeInheritanceComma: false
@@ -59,13 +59,20 @@ ForEachMacros:
   - foreach
   - Q_FOREACH
   - BOOST_FOREACH
-IncludeBlocks:   Preserve
+IncludeBlocks:   Merge
+# Try and group includes by 'locality'
+# We use "" with rel paths for headers in same repo
+# Headers in quotes wiht no relative path at top 
+# Group ../ and ../../ with different priorities, so they get sorted separately
+# <> headers *with a folder break* likely not to be STL -> STL / systems headers last
 IncludeCategories:
-  - Regex:           '^"(llvm|llvm-c|clang|clang-c)/'
-    Priority:        2
-  - Regex:           '^(<|"(gtest|gmock|isl|json)/)'
+  - Regex:           '<.+/' 
+    Priority:        4
+  - Regex:           '"../../' 
     Priority:        3
-  - Regex:           '.*'
+  - Regex:           '../' #
+    Priority:        2
+  - Regex:           '".+hpp"'
     Priority:        1
 IncludeIsMainRegex: '(Test)?$'
 IndentCaseLabels: false

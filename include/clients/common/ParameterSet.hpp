@@ -156,8 +156,7 @@ template <size_t... Os, typename... Ts>
 class ParameterSetView<
     const ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>>
 {
-  enum ConstraintTypes
-  {
+  enum ConstraintTypes {
     kAll,
     kNonRelational,
     kRelational,

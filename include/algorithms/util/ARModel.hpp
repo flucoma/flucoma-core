@@ -8,10 +8,9 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include "../public/WindowFuncs.hpp"
 #include "ConvolutionTools.hpp"
 #include "Toeplitz.hpp"
-
+#include "../public/WindowFuncs.hpp"
 #include <Eigen/Eigen>
 #include <algorithm>
 #include <cmath>
@@ -120,7 +119,8 @@ private:
       }
 
       for (int i = 0; i < size; i++) frame[i] = input[i] * mWindow(i) * 2.0;
-    } else
+    }
+    else
       std::copy(input, input + size, frame.data());
 
     VectorXd autocorrelation(size);
