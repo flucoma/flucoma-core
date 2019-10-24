@@ -1,0 +1,84 @@
+#pragma once
+
+#include "algorithms/util/FluidEigenMappings.hpp"
+#include "data/TensorTypes.hpp"
+
+#include <Eigen/Core>
+#include <cassert>
+#include <cmath>
+
+namespace fluid {
+namespace algorithm {
+
+class Scaling {
+public:
+  using ArrayXd = Eigen::ArrayXd;
+  using ArrayXXd = Eigen::ArrayXXd;
+
+  void init(double min, double max, RealMatrixView in) {
+    using namespace Eigen;
+    using namespace _impl;
+    mMin = min;
+    mMax = max;
+    ArrayXXd input = asEigen<Array>(in);
+    mDataMin = input.colwise().minCoeff();
+    mDataMax = input.colwise().maxCoeff();
+    mDataRange = mDataMax - mDataMin;
+    mInitialized = true;
+  }
+
+  void init(double min, double max, RealVectorView dataMin,
+            RealVectorView dataMax) {
+    using namespace Eigen;
+    using namespace _impl;
+    mMin = min;
+    mMax = max;
+    mDataMin = asEigen<Array>(dataMin);
+    mDataMax = asEigen<Array>(dataMax);
+    mDataRange = mDataMax - mDataMin;
+    mInitialized = true;
+  }
+
+  void processFrame(const RealVectorView in, RealVectorView out) {
+    using namespace Eigen;
+    using namespace _impl;
+    ArrayXd input = asEigen<Array>(in);
+    ArrayXd result = (input - mDataMin) / mDataRange;
+    result = mMin + (result * (mMax - mMin));
+    out = asFluid(result);
+  }
+
+  void process(const RealMatrixView in, RealMatrixView out) {
+    using namespace Eigen;
+    using namespace _impl;
+    ArrayXXd input = asEigen<Array>(in);
+    ArrayXXd result = (input.rowwise() - mDataMin.transpose());
+    result = result.rowwise() / mDataRange.transpose();
+    result = mMin + (result * (mMax - mMin));
+    out = asFluid(result);
+  }
+
+  void setMin(double min) { mMin = min; }
+  void setMax(double max) { mMax = max; }
+  bool initialized() { return mInitialized; }
+
+  void getDataMin(RealVectorView out){
+    using namespace _impl;
+    out = asFluid(mDataMin);
+  }
+
+  void getDataMax(RealVectorView out){
+    using namespace _impl;
+    out = asFluid(mDataMax);
+  }
+
+
+  double mMin{0.0};
+  double mMax{1.0};
+  ArrayXd mDataMin;
+  ArrayXd mDataMax;
+  ArrayXd mDataRange;
+  bool mInitialized{false};
+};
+}; // namespace algorithm
+}; // namespace fluid

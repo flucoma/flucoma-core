@@ -130,6 +130,7 @@ public:
   );
 
   const DataSet getDataSet() const { return mDataSet; }
+  void  setDataSet(DataSet ds) const {mDataSet = ds; }
 
 private:
   using result = MessageResult<void>;

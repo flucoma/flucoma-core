@@ -102,6 +102,10 @@ public:
     mData[key] = std::vector<double>(value.begin(), value.end());
   }
 
+  void add(string key, FluidTensorView<double, 1> value) {
+    mData[key] = std::vector<double>(value.begin(), value.end());
+  }
+
   void add(string key, FluidTensorView<int, 2> value) {
     mData[key] = std::vector<int>(value.begin(), value.end());
   }
@@ -128,6 +132,12 @@ public:
     std::vector<double> tmp = mData[key];
     value = FluidTensorView<double, 2>{tmp.data(), 0, rows, cols};
   }
+
+  void get(string key, FluidTensorView<double, 1> value, size_t rows) {
+    std::vector<double> tmp = mData[key];
+    value = FluidTensorView<double, 1>{tmp.data(), 0, rows};
+  }
+
 
   void get(string key, FluidTensorView<int, 2> value, size_t rows,
            size_t cols) {
