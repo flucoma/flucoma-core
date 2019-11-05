@@ -12,6 +12,8 @@
 #include "../common/ParameterSet.hpp"
 #include "../../data/TensorTypes.hpp"
 
+#include "../nrt/FluidNRTClientWrapper.hpp"
+
 namespace fluid {
 namespace client {
 
@@ -50,7 +52,14 @@ public:
   }
 }; // class
 
-using RTGainClient = ClientWrapper<GainClient>; 
+using RTGainClient = ClientWrapper<GainClient>;
+
+auto constexpr NRTGainParams = makeNRTParams<GainClient>({InputBufferParam("source", "Source Buffer"),InputBufferParam("gainbuffer","Gain Buffer")},  {BufferParam("harmonic","Harmonic Buffer"), BufferParam("percussive","Percussive Buffer"), BufferParam("residual", "Residual Buffer")});
+
+using NRTGain = NRTStreamAdaptor<RTGainClient, decltype(NRTGainParams), NRTGainParams, 2, 1>;
+  
+using NRTThreadedGain = NRTThreadingAdaptor<NRTGain>;
+
 
 } // namespace client
 } // namespace fluid

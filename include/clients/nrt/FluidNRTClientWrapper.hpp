@@ -30,6 +30,22 @@ auto constexpr makeWrapperInputs(B b)
           );
 }
 
+template<typename B>
+auto constexpr makeWrapperInputs(B b1,B b2)
+{
+    return defineParameters(std::forward<B>(b1),
+          LongParam("startFrame", "Source Offset",0, Min(0)),
+          LongParam("numFrames","Number of Frames", -1),
+          LongParam("startChan","Start Channel",0, Min(0)),
+          LongParam("numChans","Number of Channels", -1),
+          std::forward<B>(b2),
+          LongParam("startFrameB", "Source Offset B",0, Min(0)),
+          LongParam("numFramesB","Number of Frames B", -1),
+          LongParam("startChanB","Start Channel B",0, Min(0)),
+          LongParam("numChansB","Number of Channels B", -1)
+          );
+}
+
 template<typename...B>
 auto constexpr makeWrapperOutputs(B...b)
 {
@@ -410,6 +426,12 @@ auto constexpr makeNRTParams(impl::InputBufferSpec&& in, impl::BufferSpec(&& out
   return impl::joinParameterDescriptors(impl::joinParameterDescriptors(impl::makeWrapperInputs(in), impl::spitOuts(out, std::make_index_sequence<Ms>())), RTClient::getParameterDescriptors());
 }
 
+template<class RTClient, size_t Ns, size_t Ms>
+auto constexpr makeNRTParams(impl::InputBufferSpec(&& in)[Ns], impl::BufferSpec(&& out)[Ms])
+{
+  return impl::joinParameterDescriptors(impl::joinParameterDescriptors(impl::spitIns(in, std::make_index_sequence<Ns>()), impl::spitOuts(out, std::make_index_sequence<Ms>())), RTClient::getParameterDescriptors());
+}
+  
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<typename NRTClient>
