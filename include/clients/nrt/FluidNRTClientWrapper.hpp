@@ -226,7 +226,7 @@ private:
   template<size_t...Is>
   std::array<BufferProcessSpec, sizeof...(Is)> fetchInputBuffers(std::index_sequence<Is...>)
   {
-    return {{fetchInputBuffer<Is*5>()}...};
+    return {fetchInputBuffer<Is*5>()...};
   }
 
   template<size_t...Is>
