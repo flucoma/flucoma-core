@@ -54,7 +54,7 @@ public:
 
 using RTGainClient = ClientWrapper<GainClient>;
 
-auto constexpr NRTGainParams = makeNRTParams<GainClient>({InputBufferParam("source", "Source Buffer"),InputBufferParam("gainbuffer","Gain Buffer")},  {BufferParam("harmonic","Harmonic Buffer"), BufferParam("percussive","Percussive Buffer"), BufferParam("residual", "Residual Buffer")});
+auto constexpr NRTGainParams = makeNRTParams<GainClient>({InputBufferParam("source", "Source Buffer"),InputBufferParam("gainbuffer","Gain Buffer")},  {BufferParam("out","output Buffer")});
 
 using NRTGain = NRTStreamAdaptor<RTGainClient, decltype(NRTGainParams), NRTGainParams, 2, 1>;
   
