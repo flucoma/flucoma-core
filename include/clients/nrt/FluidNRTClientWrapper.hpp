@@ -420,12 +420,6 @@ using NRTControlAdaptor = impl::NRTClientWrapper<impl::StreamingControl, RTClien
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class RTClient, size_t Ms>
-auto constexpr makeNRTParams(impl::InputBufferSpec&& in, impl::BufferSpec(&& out)[Ms])
-{
-  return impl::joinParameterDescriptors(impl::joinParameterDescriptors(impl::makeWrapperInputs(in), impl::spitOuts(out, std::make_index_sequence<Ms>())), RTClient::getParameterDescriptors());
-}
-
 template<class RTClient, size_t Ns, size_t Ms>
 auto constexpr makeNRTParams(impl::InputBufferSpec(&& in)[Ns], impl::BufferSpec(&& out)[Ms])
 {
