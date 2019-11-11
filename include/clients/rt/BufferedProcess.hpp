@@ -34,13 +34,13 @@ public:
       mSource.pull(windowIn, mFrameTime);
       processFunc(windowIn, windowOut);
       mSink.push(windowOut, mFrameTime);
-      
+
       if(FluidTask* t = c.task())
         if(!t->processUpdate(std::min(mFrameTime + hopSize,mHostSize),mHostSize)) break;
     }
     mFrameTime = mFrameTime < mHostSize ? mFrameTime : mFrameTime - mHostSize;
   }
-  
+
   template <typename F>
   void processInput(std::size_t windowSize, std::size_t hopSize, FluidContext& c, bool reset, F processFunc) {
     assert(windowSize <= maxWindowSizeIn() && "Window bigger than maximum");
@@ -49,7 +49,7 @@ public:
       RealMatrixView windowIn  = mFrameIn(Slice(0), Slice(0, windowSize));
       mSource.pull(windowIn, mFrameTime);
       processFunc(windowIn);
-      
+
       if(FluidTask* t = c.task())
         if(!t->processUpdate(std::min(mFrameTime + hopSize,mHostSize),mHostSize)) break;
     }
@@ -65,10 +65,10 @@ public:
     mSource.reset();
     mSink.reset();
   }
-  
+
   std::size_t maxWindowSizeIn() const noexcept { return mFrameIn.cols(); }
   std::size_t maxWindowSizeOut() const noexcept { return mFrameOut.cols(); }
-    
+
   void maxSize(std::size_t framesIn, std::size_t framesOut, std::size_t channelsIn,
                std::size_t channelsOut) {
     mSource.setSize(framesIn);
@@ -80,15 +80,18 @@ public:
       mFrameIn.resize(channelsIn, framesIn);
     if (channelsOut > mFrameOut.rows() || framesOut > mFrameOut.cols())
       mFrameOut.resize(channelsOut, framesOut);
-      
+
     mFrameTime = 0;
   }
 
   template<typename T> void push(HostMatrix<T> in) {
     mSource.push(in);
   }
-  template<typename T> void pull(HostMatrix<T> out){ mSink.pull(out); }
   
+  void push(RealMatrix in) { mSource.push(in); }
+
+  template<typename T> void pull(HostMatrix<T> out){ mSink.pull(out); }
+
   size_t channelsIn()  const noexcept { return mSource.channels(); }
   size_t channelsOut() const noexcept { return mSink.channels(); }
 private:
@@ -173,7 +176,10 @@ private:
     bool newParams = mTrackValues.changed(fftParams.winSize(), fftParams.hopSize(), fftParams.fftSize());
     size_t hostBufferSize = input[0].size();
     if(mTrackHostVS.changed(hostBufferSize))
+    {
       mBufferedProcess.hostSize(hostBufferSize);
+      mInputs.resize(mBufferedProcess.channelsIn(),hostBufferSize);
+    }
 
     if (!mSTFT.get() || newParams)
       mSTFT.reset(new algorithm::STFT(fftParams.winSize(), fftParams.fftSize(), fftParams.hopSize()));
@@ -185,14 +191,15 @@ private:
 
     if (fftParams.frameSize() != mSpectrumIn.cols())
       mSpectrumIn.resize(chansIn, fftParams.frameSize());
-    
+
     if (fftParams.frameSize() != mSpectrumOut.cols())
       mSpectrumOut.resize(chansOut, fftParams.frameSize());
-    
+
     if (Normalise && std::max(mBufferedProcess.maxWindowSizeIn(), hostBufferSize) > mFrameAndWindow.cols())
       mFrameAndWindow.resize(chansOut, std::max(mBufferedProcess.maxWindowSizeIn(), hostBufferSize));
 
-    mBufferedProcess.push(HostMatrix<T>(input[0]));
+    for(auto i=0u; i<chansIn;++i) mInputs.row(i) = input[i];
+    mBufferedProcess.push(mInputs);
     return fftParams;
   }
 
@@ -204,6 +211,7 @@ private:
   std::unique_ptr<algorithm::STFT> mSTFT;
   std::unique_ptr<algorithm::ISTFT> mISTFT;
   BufferedProcess mBufferedProcess;
+  RealMatrix mInputs;
 };
 
 } // namespace client
