@@ -1,34 +1,32 @@
+/*
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See LICENSE file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
 #pragma once
 
-#include "BufferedProcess.hpp"
 #include "../common/AudioClient.hpp"
+#include "../common/BufferedProcess.hpp"
 #include "../common/FluidBaseClient.hpp"
+#include "../common/FluidNRTClientWrapper.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
-#include "../nrt/FluidNRTClientWrapper.hpp"
 #include "../../algorithms/public/Loudness.hpp"
-#include "../../algorithms/public/RTNoveltySegmentation.hpp"
+#include "../../algorithms/public/NoveltySegmentation.hpp"
 #include "../../algorithms/public/STFT.hpp"
 #include "../../algorithms/public/YINFFT.hpp"
 #include "../../algorithms/util/DCT.hpp"
 #include "../../algorithms/util/MelBands.hpp"
 #include "../../algorithms/util/TruePeak.hpp"
 #include "../../data/TensorTypes.hpp"
-
 #include <tuple>
 
 namespace fluid {
 namespace client {
-
-using algorithm::DCT;
-using algorithm::Loudness;
-using algorithm::MelBands;
-using algorithm::STFT;
-using algorithm::TruePeak;
-using algorithm::YINFFT;
-
-using algorithm::RTNoveltySegmentation;
 
 enum NoveltyParamIndex {
   kFeature,
@@ -57,53 +55,59 @@ auto constexpr NoveltyParams = defineParameters(
                            Min(1)));
 
 template <typename T>
-class NoveltySlice
+class NoveltySliceClient
     : public FluidBaseClient<decltype(NoveltyParams), NoveltyParams>,
       public AudioIn,
-      public AudioOut {
+      public AudioOut
+{
 
-  using HostVector = HostVector<T>;
+  using HostVector = FluidTensorView<T, 1>;
 
 public:
-  NoveltySlice(ParamSetViewType &p) : FluidBaseClient(p) {
+  NoveltySliceClient(ParamSetViewType& p) : FluidBaseClient(p)
+  {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::audioChannelsOut(1);
   }
 
-  void process(std::vector<HostVector> &input, std::vector<HostVector> &output,FluidContext& c, 
-               bool reset = false) {
-    using algorithm::RTNoveltySegmentation;
+  void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
+               FluidContext& c, bool reset = false)
+  {
+    using algorithm::NoveltySegmentation;
     using std::size_t;
 
-    if (!input[0].data() || !output[0].data())
-      return;
+    if (!input[0].data() || !output[0].data()) return;
 
     size_t hostVecSize = input[0].size();
     size_t windowSize = get<kFFT>().winSize();
-    int feature = get<kFeature>();
+    int    feature = get<kFeature>();
     if (mParamsTracker.changed(hostVecSize, get<kFeature>(), get<kKernelSize>(),
                                get<kThreshold>(), get<kFilterSize>(),
-                               windowSize)) {
+                               windowSize))
+    {
       mBufferedProcess.hostSize(hostVecSize);
       mBufferedProcess.maxSize(windowSize, windowSize,
                                FluidBaseClient::audioChannelsIn(),
                                FluidBaseClient::audioChannelsOut());
       int nDims = 2;
-      if (feature < 3) {
+      if (feature < 3)
+      {
         mSpectrum.resize(get<kFFT>().frameSize());
         mMagnitude.resize(get<kFFT>().frameSize());
-        mSTFT = STFT(get<kFFT>().winSize(), get<kFFT>().fftSize(),
-                     get<kFFT>().hopSize());
+        mSTFT = algorithm::STFT(get<kFFT>().winSize(), get<kFFT>().fftSize(),
+                                get<kFFT>().hopSize());
       }
-      if (feature == 0) {
-        nDims = get<kFFT>().frameSize();
-      } else if (feature == 1) {
+      if (feature == 0) { nDims = get<kFFT>().frameSize(); }
+      else if (feature == 1)
+      {
         mBands.resize(40);
         mMelBands.init(20, 2000, 40, get<kFFT>().frameSize(), sampleRate(),
                        true);
         mDCT.init(40, 13);
         nDims = 13;
-      } else if (feature == 3) {
+      }
+      else if (feature == 3)
+      {
         mLoudness.init(windowSize, sampleRate());
       }
       mFeature.resize(nDims);
@@ -113,12 +117,13 @@ public:
     RealMatrix in(1, hostVecSize);
     in.row(0) = input[0];
     RealMatrix out(1, hostVecSize);
-    int frameOffset = 0; // in case kHopSize < hostVecSize
+    int        frameOffset = 0; // in case kHopSize < hostVecSize
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.process(
         windowSize, windowSize, get<kFFT>().hopSize(), c, reset,
         [&, this](RealMatrixView in, RealMatrixView) {
-          switch (feature) {
+          switch (feature)
+          {
           case 0:
             mSTFT.processFrame(in.row(0), mSpectrum);
             mSTFT.magnitude(mSpectrum, mFeature);
@@ -138,45 +143,49 @@ public:
             mLoudness.processFrame(in.row(0), mFeature, true, true);
             break;
           }
-          if(frameOffset < out.row(0).size())out.row(0)(frameOffset) = mNovelty.processFrame(mFeature);
+          if (frameOffset < out.row(0).size())
+            out.row(0)(frameOffset) = mNovelty.processFrame(mFeature);
           frameOffset += get<kFFT>().hopSize();
         });
     output[0] = out.row(0);
   }
 
-  long latency() {
+  long latency()
+  {
     return get<kFFT>().winSize() +
            ((get<kKernelSize>() - 1) / 2) * get<kFFT>().hopSize() +
            (get<kFilterSize>() - 1) * get<kFFT>().hopSize();
   }
 
 private:
-  RTNoveltySegmentation mNovelty{get<kMaxKernelSize>(), get<kMaxFilterSize>()};
+  algorithm::NoveltySegmentation mNovelty{get<kMaxKernelSize>(),
+                                          get<kMaxFilterSize>()};
   ParameterTrackChanges<size_t, size_t, size_t, double, size_t, size_t>
-      mParamsTracker;
+                  mParamsTracker;
   BufferedProcess mBufferedProcess;
-  STFT mSTFT{get<kFFT>().winSize(), get<kFFT>().fftSize(),
-             get<kFFT>().hopSize()};
-  MelBands mMelBands;
-  DCT mDCT;
+  algorithm::STFT mSTFT{get<kFFT>().winSize(), get<kFFT>().fftSize(),
+                        get<kFFT>().hopSize()};
   FluidTensor<std::complex<double>, 1> mSpectrum;
-  FluidTensor<double, 1> mMagnitude;
-  FluidTensor<double, 1> mBands;
-  FluidTensor<double, 1> mFeature;
-  YINFFT mYinFFT;
-  Loudness mLoudness{get<kMaxFFTSize>()};
+  FluidTensor<double, 1>               mMagnitude;
+  FluidTensor<double, 1>               mBands;
+  FluidTensor<double, 1>               mFeature;
+  algorithm::MelBands                  mMelBands;
+  algorithm::DCT                       mDCT;
+  algorithm::YINFFT                    mYinFFT;
+  algorithm::Loudness                  mLoudness{get<kMaxFFTSize>()};
 };
 
-auto constexpr NRTNoveltySliceParams =
-    makeNRTParams<NoveltySlice>({InputBufferParam("source", "Source Buffer")},
-                                  {BufferParam("indices", "Indices Buffer")});
+auto constexpr NRTNoveltySliceParams = makeNRTParams<NoveltySliceClient>(
+    {InputBufferParam("source", "Source Buffer")},
+    {BufferParam("indices", "Indices Buffer")});
 template <typename T>
-using NRTNoveltySlice =
-    NRTSliceAdaptor<NoveltySlice<T>, decltype(NRTNoveltySliceParams),
+using NRTNoveltySliceClient =
+    NRTSliceAdaptor<NoveltySliceClient<T>, decltype(NRTNoveltySliceParams),
                     NRTNoveltySliceParams, 1, 1>;
 
 template <typename T>
-using NRTThreadingNoveltySlice = NRTThreadingAdaptor<NRTNoveltySlice<T>>;
+using NRTThreadingNoveltySliceClient =
+    NRTThreadingAdaptor<NRTNoveltySliceClient<T>>;
 
 } // namespace client
 } // namespace fluid

@@ -7,36 +7,17 @@ under the European Union’s Horizon 2020 research and innovation programme
 (grant agreement No 725899).
 */
 #pragma once
+
 #include <cmath>
 
 namespace fluid {
 namespace algorithm {
 
-class SlideUDFilter
-{
-public:
-  void init(double rampUpTime, double rampDownTime, double x0Val)
-  {
-    mBUp = 1.0 / rampUpTime;
-    mBDown = 1.0 / rampDownTime;
-    y0 = x0Val;
-  }
+constexpr double epsilon = std::numeric_limits<double>::epsilon();
+constexpr double pi = M_PI;
+constexpr double twoPi = 2 * M_PI;
+constexpr double silence = 6.3095734448019e-08;
+constexpr double silenceDB = -144;
 
-  double processSample(double x)
-  {
-    double y;
-    if (x > y0) { y = y0 + (mBUp * (x - y0)); }
-    else
-    {
-      y = y0 + (mBDown * (x - y0));
-    }
-    y0 = y;
-    return y;
-  }
-
-private:
-  double mBUp{0.0}, mBDown{0.0};
-  double y0{0.0};
-};
 }; // namespace algorithm
 }; // namespace fluid

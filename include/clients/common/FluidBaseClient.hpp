@@ -1,3 +1,11 @@
+/*
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See LICENSE file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
 #pragma once
 
 #include "AudioClient.hpp"
@@ -16,25 +24,24 @@ namespace client {
 
 enum ProcessState { kNoProcess, kProcessing, kDone, kDoneStillProcessing };
 
-template<typename ParamType, ParamType& PD>
+template <typename ParamType, ParamType& PD>
 class FluidBaseClient //<const Tuple<Ts...>>
 {
 public:
-  
   using ParamDescType = ParamType;
   using ParamSetType = ParameterSet<ParamDescType>;
   using ParamSetViewType = ParameterSetView<ParamDescType>;
-    
-  FluidBaseClient(ParamSetViewType& p) : mParams(std::ref(p)){}
-  
-  template<size_t N>
+
+  FluidBaseClient(ParamSetViewType& p) : mParams(std::ref(p)) {}
+
+  template <size_t N>
   auto& get() const
   {
     return mParams.get().template get<N>();
   }
 
   template <size_t N, typename T>
-  void set(T &&x, Result *reportage) noexcept
+  void set(T&& x, Result* reportage) noexcept
   {
     mParams.template set(std::forward<T>(x), reportage);
   }
@@ -44,8 +51,11 @@ public:
   size_t controlChannelsIn() const noexcept { return mControlChannelsIn; }
   size_t controlChannelsOut() const noexcept { return mControlChannelsOut; }
 
-  size_t maxControlChannelsOut() const noexcept { return mMaxControlChannelsOut; }
-  bool   controlTrigger() const noexcept { return mControlTrigger; }
+  size_t maxControlChannelsOut() const noexcept
+  {
+    return mMaxControlChannelsOut;
+  }
+  bool controlTrigger() const noexcept { return mControlTrigger; }
 
   size_t audioBuffersIn() const noexcept { return mBuffersIn; }
   size_t audioBuffersOut() const noexcept { return mBuffersOut; }
@@ -53,8 +63,8 @@ public:
   constexpr static ParamDescType& getParameterDescriptors() { return PD; }
 
   const double sampleRate() const noexcept { return mSampleRate; };
-  void  sampleRate(double sr) { mSampleRate = sr; }
-  
+  void         sampleRate(double sr) { mSampleRate = sr; }
+
   void setParams(ParamSetViewType& p) { mParams = p; }
 
 protected:
@@ -62,23 +72,26 @@ protected:
   void audioChannelsOut(const size_t x) noexcept { mAudioChannelsOut = x; }
   void controlChannelsIn(const size_t x) noexcept { mControlChannelsIn = x; }
   void controlChannelsOut(const size_t x) noexcept { mControlChannelsOut = x; }
-  void maxControlChannelsOut(const size_t x) noexcept { mMaxControlChannelsOut = x; }
+  void maxControlChannelsOut(const size_t x) noexcept
+  {
+    mMaxControlChannelsOut = x;
+  }
 
   void controlTrigger(const bool x) noexcept { mControlTrigger = x; }
 
   void audioBuffersIn(const size_t x) noexcept { mBuffersIn = x; }
   void audioBuffersOut(const size_t x) noexcept { mBuffersOut = x; }
 
-  std::reference_wrapper<ParamSetViewType>   mParams;
+  std::reference_wrapper<ParamSetViewType> mParams;
 
 private:
-  size_t mAudioChannelsIn       = 0;
-  size_t mAudioChannelsOut      = 0;
-  size_t mControlChannelsIn     = 0;
-  size_t mControlChannelsOut    = 0;
+  size_t mAudioChannelsIn = 0;
+  size_t mAudioChannelsOut = 0;
+  size_t mControlChannelsIn = 0;
+  size_t mControlChannelsOut = 0;
   size_t mMaxControlChannelsOut = 0;
   bool   mControlTrigger{false};
-  size_t mBuffersIn  = 0;
+  size_t mBuffersIn = 0;
   size_t mBuffersOut = 0;
   double mSampleRate = 0;
 };

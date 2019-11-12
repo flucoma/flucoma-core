@@ -1,7 +1,15 @@
+/*
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See LICENSE file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
 #pragma once
 
-#include "FluidNRTClientWrapper.hpp"
 #include "../common/FluidBaseClient.hpp"
+#include "../common/FluidNRTClientWrapper.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterTypes.hpp"
 #include "../../algorithms/public/Stats.hpp"
@@ -9,7 +17,7 @@
 namespace fluid {
 namespace client {
 
-enum BufferStatsParamIndex {
+enum BufStatsParamIndex {
   kSource,
   kOffset,
   kNumFrames,
@@ -22,7 +30,7 @@ enum BufferStatsParamIndex {
   kHigh
 };
 
-auto constexpr BufferStatsParams = defineParameters(
+auto constexpr BufStatsParams = defineParameters(
     InputBufferParam("source", "Source Buffer"),
     LongParam("startFrame", "Source Offset", 0, Min(0)),
     LongParam("numFrames", "Number of Frames", -1),
@@ -38,15 +46,17 @@ auto constexpr BufferStatsParams = defineParameters(
                LowerLimit<kMiddle>()));
 
 template <typename T>
-class BufferStats
-    : public FluidBaseClient<decltype(BufferStatsParams), BufferStatsParams>,
+class BufStatsClient
+    : public FluidBaseClient<decltype(BufStatsParams), BufStatsParams>,
       public OfflineIn,
-      public OfflineOut {
+      public OfflineOut
+{
 
 public:
-  BufferStats(ParamSetViewType &p) : FluidBaseClient(p) {}
+  BufStatsClient(ParamSetViewType& p) : FluidBaseClient(p) {}
 
-  Result process(FluidContext& c) {
+  Result process(FluidContext& c)
+  {
     algorithm::Stats processor;
 
     if (!get<kSource>().get())
@@ -56,7 +66,7 @@ public:
       return {Result::Status::kError, "No output buffer supplied"};
 
     BufferAdaptor::ReadAccess source(get<kSource>().get());
-    BufferAdaptor::Access dest(get<kStats>().get());
+    BufferAdaptor::Access     dest(get<kStats>().get());
 
     if (!source.exists())
       return {Result::Status::kError, "Input buffer not found"};
@@ -92,33 +102,35 @@ public:
     if (numFrames <= get<kNumDerivatives>())
       return {Result::Status::kError, "Not enough frames"};
 
-    int outputSize = processor.numStats() * (get<kNumDerivatives>() + 1);
-    Result resizeResult = dest.resize(outputSize, numChannels, source.sampleRate());
-    
-    if(!resizeResult.ok()) return resizeResult;
+    int    outputSize = processor.numStats() * (get<kNumDerivatives>() + 1);
+    Result resizeResult =
+        dest.resize(outputSize, numChannels, source.sampleRate());
+
+    if (!resizeResult.ok()) return resizeResult;
 
     processor.init(get<kNumDerivatives>(), get<kLow>(), get<kMiddle>(),
                    get<kHigh>());
-    for (int i = 0; i < numChannels; i++) {
+    for (int i = 0; i < numChannels; i++)
+    {
       auto sourceChannel = FluidTensor<double, 1>(numFrames);
       auto destChannel = FluidTensor<double, 1>(outputSize);
       for (int j = 0; j < numFrames; j++)
         sourceChannel(j) =
             source.samps(get<kOffset>(), numFrames, get<kStartChan>() + i)(j);
       processor.process(sourceChannel, destChannel);
-     
-      if(c.task() && !c.task()->processUpdate(i + 1, numChannels)) return {Result::Status::kCancelled,""};
-     
-      for (int j = 0; j < outputSize; j++)
-        dest.samps(i)(j) = destChannel(j);
+
+      if (c.task() && !c.task()->processUpdate(i + 1, numChannels))
+        return {Result::Status::kCancelled, ""};
+
+      for (int j = 0; j < outputSize; j++) dest.samps(i)(j) = destChannel(j);
     }
 
     return {Result::Status::kOk, ""};
   }
 };
-    
+
 template <typename T>
-using NRTThreadedBufferStats = NRTThreadingAdaptor<BufferStats<T>>;
-    
+using NRTThreadedBufStatsClient = NRTThreadingAdaptor<BufStatsClient<T>>;
+
 } // namespace client
 } // namespace fluid

@@ -1,9 +1,11 @@
 /*
- @file GainClient.hpp
-
- Simple multi-input client, just does modulation of signal 1 by signal 2, or
- scalar gain change
- */
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See LICENSE file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
 #pragma once
 
 #include "../common/AudioClient.hpp"
@@ -21,33 +23,40 @@ constexpr auto GainParams = defineParameters(FloatParam("gain", "Gain", 1.0));
 
 /// @class GainAudioClient
 template <typename T>
-class GainClient : public FluidBaseClient<decltype(GainParams), GainParams>, public AudioIn, public AudioOut
+class GainClient : public FluidBaseClient<decltype(GainParams), GainParams>,
+                   public AudioIn,
+                   public AudioOut
 {
-  using HostVector = FluidTensorView<T,1>;
+  using HostVector = FluidTensorView<T, 1>;
+
 public:
-  GainClient(ParamSetViewType &p) : FluidBaseClient(p) {
+  GainClient(ParamSetViewType& p) : FluidBaseClient(p)
+  {
     FluidBaseClient::audioChannelsIn(2);
     FluidBaseClient::audioChannelsOut(1);
   }
 
   size_t latency() { return 0; }
 
-  void process(std::vector<HostVector> &input, std::vector<HostVector> &output, FluidContext&, bool reset = false)
+  void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
+               FluidContext&, bool reset = false)
   {
     // Data is stored with samples laid out in rows, one channel per row
-    if (!input[0].data())
-      return;
+    if (!input[0].data()) return;
 
     // Copy the input samples
     output[0] = input[0];
 
     // 2nd input? -> ar version
-    if (input[1].data()) {
-        // Apply gain from the second channel
-        output[0].apply(input[1], [](T &x, T &y) { x *= y; });
-    } else {
+    if (input[1].data())
+    {
+      // Apply gain from the second channel
+      output[0].apply(input[1], [](T& x, T& y) { x *= y; });
+    }
+    else
+    {
       double g = get<kGain>();
-      output[0].apply([g](T &x) { x *= g; });
+      output[0].apply([g](T& x) { x *= g; });
     }
   }
 }; // class
