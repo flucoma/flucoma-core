@@ -10,7 +10,7 @@
 namespace fluid {
 namespace algorithm {
 
-class Scaling {
+class Normalization {
 public:
   using ArrayXd = Eigen::ArrayXd;
   using ArrayXXd = Eigen::ArrayXXd;
@@ -71,7 +71,6 @@ public:
     using namespace _impl;
     out = asFluid(mDataMax);
   }
-
 
   double mMin{0.0};
   double mMax{1.0};
