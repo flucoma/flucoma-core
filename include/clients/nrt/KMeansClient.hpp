@@ -25,7 +25,7 @@ namespace fluid {
 namespace client {
 
 class KMeansClient : public FluidBaseClient, OfflineIn, OfflineOut {
-  enum { kNDims, kK };
+
 
 public:
   using string = std::string;
@@ -33,24 +33,25 @@ public:
 
   template <typename T> Result process(FluidContext &) { return {}; }
 
-  FLUID_DECLARE_PARAMS(
-    LongParam<Fixed<true>>("nDims", "Dimension size", 1,
-                                              Min(1)),
-    LongParam<Fixed<true>>("k", "Number of clusters", 2, Min(2)));
+  FLUID_DECLARE_PARAMS();
 
-  KMeansClient(ParamSetViewType &p) : mParams(p), mDims(get<kNDims>()), mK(get<kK>()), mDataSet(get<kNDims>()) {
+  KMeansClient(ParamSetViewType &p) : mParams(p) {
     //mDims = get<kNDims>();
-    mModel.init(mK, mDims);
+    //mModel.init(mK, mDims);
   }
 
-  MessageResult<void> train(DataSetClientRef datasetClient, int maxIter = 100, BufferPtr init = nullptr) {
+  MessageResult<void> train(DataSetClientRef datasetClient, int k, int maxIter = 100, BufferPtr init = nullptr) {
     auto weakPtr = datasetClient.get();
     if(auto datasetClientPtr = weakPtr.lock())
     {
-      auto dataset = datasetClientPtr->getDataSet();
-      if (dataset.size() == 0) return {Result::Status::kError, EmptyDataSetError};
+      auto dataSet = datasetClientPtr->getDataSet();
+      if (dataSet.size() == 0) return {Result::Status::kError, EmptyDataSetError};
+      mDims = dataSet.pointSize();
+      mK = k;
+      mModel.init(mK, mDims);
+
       if (init == nullptr){
-        mModel.train(dataset, maxIter);
+        mModel.train(dataSet, maxIter);
       }
       else {
         BufferAdaptor::Access buf(init.get());
@@ -63,13 +64,57 @@ public:
 
         FluidTensor<double, 2> points(mDims, mK);
         points = buf.samps(0, mDims, 0);
-        mModel.train(dataset, maxIter, points);
+        mModel.train(dataSet, maxIter, points);
       }
       //(const FluidDataSet<std::string, double, std::string, 1> &dataset, int maxIter,
       //           RealMatrixView initialMeans = RealMatrixView(nullptr, 0, 0, 0))
     }
     else {
       return {Result::Status::kError,"DataSet doesn't exist"};
+    }
+    return {};
+  }
+
+  MessageResult<void> cluster(DataSetClientRef datasetClient, LabelSetClientRef labelClient, int k, int maxIter = 100, BufferPtr init = nullptr) {
+    auto dataPtr = datasetClient.get().lock();
+    auto labelPtr = labelClient.get().lock();
+    if(dataPtr && labelPtr)
+    {
+      auto dataSet = dataPtr->getDataSet();
+      if (dataSet.size() == 0) return {Result::Status::kError, EmptyDataSetError};
+      mDims = dataSet.pointSize();
+      mK = k;
+      mModel.init(mK, mDims);
+      if (init == nullptr){
+        mModel.train(dataSet, maxIter);
+      }
+      else {
+        BufferAdaptor::Access buf(init.get());
+        if (buf.numFrames() != mDims)
+          return {Result::Status::kError,WrongPointSizeError};
+        if(buf.numChans() != mK){
+          return {Result::Status::kError,WrongInitError};
+        }
+        return {Result::Status::kError,"Not implemented"};
+
+        FluidTensor<double, 2> points(mDims, mK);
+        points = buf.samps(0, mDims, 0);
+
+        mModel.train(dataSet, maxIter, points);
+      }
+      auto ids = dataSet.getIds();
+      FluidTensor<int, 1> assignments(dataSet.size());
+      mModel.getAssignments(assignments);
+      FluidDataSet<string, string, 1> result(1);
+      for(int i = 0; i < ids.size(); i++){
+        int clusterId = assignments(i);
+        FluidTensor<string, 1> point = {std::to_string(clusterId)};
+        result.add(ids(i), point);
+      }
+      labelPtr->setLabelSet(result);
+    }
+    else {
+      return {Result::Status::kError,"Missing DataSet or LabelSet"};
     }
     return {};
   }
@@ -115,6 +160,7 @@ public:
   }
 
   FLUID_DECLARE_MESSAGES(makeMessage("train", &KMeansClient::train),
+                         makeMessage("cluster", &KMeansClient::cluster),
                          makeMessage("predict", &KMeansClient::predict),
                          makeMessage("write", &KMeansClient::write),
                          makeMessage("read", &KMeansClient::read));
@@ -122,7 +168,6 @@ public:
 private:
   MessageResult<void> mOKResult{Result::Status::kOk};
   MessageResult<void> mWriteError{Result::Status::kError, WriteError};
-  mutable FluidDataSet<string, double, 1> mDataSet;
   mutable algorithm::KMeans mModel;
   size_t mDims;
   size_t mK;

@@ -50,6 +50,14 @@ public:
     }
   }
 
+  size_t getClusterSize(int cluster){
+    size_t count = 0;
+    for(int i = 0; i < mAssignments.size(); i++){
+      if(mAssignments(i) == cluster) count++;
+    }
+    return count;
+  }
+
   int vq(RealVectorView point) {
     assert(point.size() == mDims);
     return assignPoint(_impl::asEigen<Eigen::Array>(point));
@@ -70,6 +78,9 @@ public:
     return mK;
   }
 
+  void getAssignments(FluidTensor<int, 1> out){
+    out = _impl::asFluid(mAssignments);
+  }
 private:
   double distance(Eigen::ArrayXd v1, Eigen::ArrayXd v2) {
     return (v1 - v2).matrix().norm();

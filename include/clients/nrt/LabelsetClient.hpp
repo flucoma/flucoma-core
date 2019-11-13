@@ -61,7 +61,9 @@ public:
     return mLabelSet.remove(id) ? mOKResult : mNotFoundError;
   }
 
-  MessageResult<int> size() { return mLabelSet.size(); }
+  MessageResult<int> size() {
+    return mLabelSet.size();
+  }
 
   MessageResult<void> clear() {
     mLabelSet = LabelSet(1);
@@ -105,6 +107,8 @@ public:
   );
 
   const LabelSet getLabelSet() const { return mLabelSet; }
+  void setLabelSet(LabelSet ls) const {mLabelSet = ls; }
+
 
 private:
   using result = MessageResult<void>;
