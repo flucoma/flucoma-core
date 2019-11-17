@@ -93,18 +93,12 @@ public:
     if (!input[0].data() || !output[0].data()) return;
     size_t hostVecSize = input[0].size();
 
-    if (mTrackValues.changed(get<kAbsRampUpTime>(), get<kAbsRampDownTime>(),
-                             get<kAbsOnThreshold>(), get<kAbsOffThreshold>(),
-                             get<kMinTimeAboveThreshold>(),
-                             get<kMinEventDuration>(), get<kUpwardLookupTime>(),
-                             get<kMinTimeBelowThreshold>(),
-                             get<kMinSilencetDuration>(),
-                             get<kDownwardLookupTime>(), get<kRelRampUpTime>(),
-                             get<kRelRampDownTime>(), get<kRelOnThreshold>(),
-                             get<kRelOffThreshold>(), get<kHiPassFreq>()) ||
+    double hiPassFreq = std::min(get<kHiPassFreq>() / sampleRate(), 0.5);
+
+    if (mTrackValues.changed(get<kMinTimeAboveThreshold>(), get<kUpwardLookupTime>(),
+                             get<kMinTimeBelowThreshold>(), get<kDownwardLookupTime>()) ||
         !mAlgorithm.initialized())
     {
-      double hiPassFreq = std::min(get<kHiPassFreq>() / sampleRate(), 0.5);
       mAlgorithm.init(hiPassFreq, get<kAbsRampUpTime>(), get<kRelRampUpTime>(),
                       get<kAbsRampDownTime>(), get<kRelRampDownTime>(),
                       get<kAbsOnThreshold>(), get<kRelOnThreshold>(),
@@ -112,6 +106,15 @@ public:
                       get<kMinEventDuration>(), get<kUpwardLookupTime>(),
                       get<kAbsOffThreshold>(), get<kMinTimeBelowThreshold>(),
                       get<kMinSilencetDuration>(), get<kDownwardLookupTime>());
+    } else {
+      mAlgorithm.updateParams(
+        hiPassFreq, get<kAbsRampUpTime>(), get<kRelRampUpTime>(),
+        get<kAbsRampDownTime>(), get<kRelRampDownTime>(),
+        get<kAbsOnThreshold>(), get<kRelOnThreshold>(),
+        get<kRelOffThreshold>(),
+        get<kMinEventDuration>(),
+        get<kAbsOffThreshold>(),
+        get<kMinSilencetDuration>());
     }
 
     for (int i = 0; i < input[0].size(); i++)
@@ -126,9 +129,7 @@ public:
   }
 
 private:
-  ParameterTrackChanges<double, double, double, double, size_t, size_t, size_t,
-                        size_t, size_t, size_t, double, double, double, double,
-                        double>
+  ParameterTrackChanges<size_t, size_t, size_t, size_t>
                                   mTrackValues;
   algorithm::EnvelopeSegmentation mAlgorithm{get<kMaxSize>(), get<kOutput>()};
 };

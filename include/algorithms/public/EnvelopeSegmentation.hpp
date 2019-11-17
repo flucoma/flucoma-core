@@ -63,7 +63,36 @@ public:
     assert(mLatency <= mMaxSize);
     initBuffers();
     initFilters();
+    initSliders();
     mInitialized = true;
+  }
+
+  void updateParams (double hiPassFreq, int rampUpTime, int rampUpTime2,
+                     int rampDownTime, int rampDownTime2, double onThreshold,
+                     double relOnThreshold, double relOffThreshold,
+                       int minEventDuration,
+                       double offThreshold,
+                     int minSilenceDuration) {
+      if (mHiPassFreq != hiPassFreq){
+          mHiPassFreq = hiPassFreq;
+          initFilters();
+      }
+      if (mRampUpTime != rampUpTime || mRampDownTime != rampDownTime) {
+          mRampUpTime = rampUpTime;
+          mRampDownTime = rampDownTime;
+          mSlide.updateCoeffs(mRampUpTime, mRampDownTime);
+      }
+      if (mRampUpTime2 != rampUpTime2 || mRampDownTime2 != rampDownTime2) {
+          mRampUpTime2 = rampUpTime2;
+          mRampDownTime2 = rampDownTime2;
+          mSlide2.updateCoeffs(mRampUpTime2, mRampDownTime2);
+      }
+      mOnThreshold = onThreshold;
+      mRelOnThreshold = relOnThreshold;
+      mRelOffThreshold = relOffThreshold;
+      mMinEventDuration = minEventDuration;
+      mOffThreshold = offThreshold;
+      mMinSilenceDuration = minSilenceDuration;
   }
 
   int  getLatency() { return mLatency; }
@@ -182,8 +211,11 @@ private:
   {
     mHiPass1.init(mHiPassFreq);
     mHiPass2.init(mHiPassFreq);
-    mSlide.init(mRampUpTime, mRampDownTime, -144);
-    mSlide2.init(mRampUpTime2, mRampDownTime2, -144);
+  }
+
+  void initSliders() {
+    mSlide.init(mRampUpTime, mRampDownTime, -144); // -144dB
+    mSlide2.init(mRampUpTime2, mRampDownTime2, -144); // -144dB
   }
 
   int refineStart(int start, int nSamples, bool direction = true)
