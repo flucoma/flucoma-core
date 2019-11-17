@@ -104,7 +104,7 @@ public:
                              get<kRelOffThreshold>(), get<kHiPassFreq>()) ||
         !mAlgorithm.initialized())
     {
-      double hiPassFreq = std::max(get<kHiPassFreq>() / sampleRate(), 1.0);
+      double hiPassFreq = std::min(get<kHiPassFreq>() / sampleRate(), 0.5);
       mAlgorithm.init(hiPassFreq, get<kAbsRampUpTime>(), get<kRelRampUpTime>(),
                       get<kAbsRampDownTime>(), get<kRelRampDownTime>(),
                       get<kAbsOnThreshold>(), get<kRelOnThreshold>(),
