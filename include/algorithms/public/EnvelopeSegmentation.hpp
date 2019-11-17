@@ -170,12 +170,12 @@ public:
 private:
   void initBuffers()
   {
-    mInputBuffer = mInputStorage.segment(0, std::max(mLatency, 1));
-    mOutputBuffer = mOutputStorage.segment(0, std::max(mLatency, 1));
+    mInputBuffer = mInputStorage.segment(0, std::max(mLatency, 1)).setConstant(-144); // -144dB
+    mOutputBuffer = mOutputStorage.segment(0, std::max(mLatency, 1)).setZero();
     mInputState = false;
     mOutputState = false;
     mRetriggerState = false;
-    mFillCount = 0;
+    mFillCount = std::max(mLatency, 1); //has been off since the begining of time.
   }
 
   void initFilters()
