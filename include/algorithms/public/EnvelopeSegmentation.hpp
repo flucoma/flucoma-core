@@ -102,11 +102,25 @@ public:
   {
     assert(mInitialized);
     double filtered = mHiPass2.processSample(mHiPass1.processSample(in));
-    double rectified =
-        std::max(std::abs(filtered), 6.3095734448019e-08); // -144dB
-    double dB = 20 * std::log10(rectified);
-    double smoothed = mSlide.processSample(dB);
-    double smoothed2 = mSlide2.processSample(dB);
+
+    //original order from compression paper
+    // double rectified = std::max(std::abs(filtered), 6.3095734448019e-08); // -144dB
+    // double dB = 20 * std::log10(rectified);
+    // double smoothed = mSlide.processSample(dB);
+    // double smoothed2 = mSlide2.processSample(dB);
+
+    // pa's first max implementation (rectify cap smooth then dB convert)
+    double rectified = std::max(std::abs(filtered), 6.3095734448019e-08); // -144dB//
+    double smoothed = 20 * std::log10(mSlide.processSample(rectified));
+    double smoothed2 = 20 * std::log10(mSlide2.processSample(rectified));
+
+    // pa's second max implementation: capping to minthresh before slide
+    // double rectified = std::abs(filtered);
+    // double dB = 20 * std::log10(rectified);
+    // double floor = std::max(dB, (std::min(mOffThreshold, mOnThreshold) - 2.));//need to remove a few dBs because we never reach the floor in our sliding (for the comparison later)
+    // double smoothed = mSlide.processSample(floor);
+    // double smoothed2 = mSlide2.processSample(floor);
+
     double relEnv = smoothed2 - smoothed;
     bool   forcedState = false;
     // case 1: we are waiting for event to finish
@@ -135,8 +149,8 @@ public:
     if (!forcedState)
     {
       bool nextState = mInputState;
-      if (!mInputState && smoothed > mOnThreshold) { nextState = true; }
-      if (mInputState && smoothed < mOffThreshold) { nextState = false; }
+      if (!mInputState && smoothed >= mOnThreshold) { nextState = true; }
+      if (mInputState && smoothed <= mOffThreshold) { nextState = false; }
       updateCounters(nextState);
       // establish and refine
       if (!mOutputState && mOnStateCount >= mMinTimeAboveThreshold &&
@@ -160,6 +174,8 @@ public:
         mSilenceCount = mOffStateCount;
         mOutputState = false; // we are officially off
       }
+
+      // enveloppe differential retrigging
       if (shouldRetrigger(relEnv))
       {
         mOutputBuffer(mLatency - 1) = 0;
@@ -174,15 +190,20 @@ public:
 
       mInputState = nextState;
     }
+
+////////////////////// to be removed and replace the return to case 0
     double output;
     switch (mOutputType)
     {
     case 0: output = mOutputBuffer(0); break;
     case 1: output = filtered; break;
-    case 2: output = std::pow(10.0, smoothed / 20.0); break;
-    case 3: output = std::pow(10.0, relEnv / 20.0); break;
-    case 4: output = mInputBuffer(1) - mInputBuffer(0);
+    case 2: output = smoothed; break; //std::pow(10.0, smoothed / 20.0); break;
+    case 3: output = relEnv; break; //std::pow(10.0, relEnv / 20.0); break;
+    // case 4: output = mInputBuffer(1) - mInputBuffer(0);
     }
+/////////////////////// up to here
+
+    //
     if (mLatency > 1)
     {
       mOutputBuffer.segment(0, mLatency - 1) =
@@ -199,7 +220,8 @@ public:
 private:
   void initBuffers()
   {
-    mInputBuffer = mInputStorage.segment(0, std::max(mLatency, 1)).setConstant(-144); // -144dB
+    // mInputBuffer = mInputStorage.segment(0, std::max(mLatency, 1)).setConstant(-144); // -144dB
+    mInputBuffer = mInputStorage.segment(0, std::max(mLatency, 1)).setConstant(6.3095734448019e-08); // -144dB
     mOutputBuffer = mOutputStorage.segment(0, std::max(mLatency, 1)).setZero();
     mInputState = false;
     mOutputState = false;
@@ -214,8 +236,10 @@ private:
   }
 
   void initSliders() {
-    mSlide.init(mRampUpTime, mRampDownTime, -144); // -144dB
-    mSlide2.init(mRampUpTime2, mRampDownTime2, -144); // -144dB
+    // mSlide.init(mRampUpTime, mRampDownTime, -144); // -144dB
+    // mSlide2.init(mRampUpTime2, mRampDownTime2, -144); // -144dB
+    mSlide.init(mRampUpTime, mRampDownTime, 6.3095734448019e-08); // -144dB
+    mSlide2.init(mRampUpTime2, mRampDownTime2, 6.3095734448019e-08); // -144dB
   }
 
   int refineStart(int start, int nSamples, bool direction = true)
