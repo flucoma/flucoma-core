@@ -51,7 +51,7 @@ public:
     if (!data)
       return {Result::Status::kError, NoBufferError};
     BufferAdaptor::Access buf(data.get());
-    if (buf.numFrames() != mDims)
+    if (buf.numFrames() != mTree.nDims())
       return {Result::Status::kError, WrongPointSizeError};
     if (k > mTree.nPoints()){
       return {Result::Status::kError, SmallDataSetError};
@@ -59,8 +59,8 @@ public:
     if(k <= 0 ){
       return {Result::Status::kError, "k should be at least 1"};
     }
-    FluidTensor<double, 1> point(mDims);
-    point = buf.samps(0, mDims, 0);
+    FluidTensor<double, 1> point(mTree.nDims());
+    point = buf.samps(0, mTree.nDims(), 0);
     FluidDataSet<std::string, double,1> nearest = mTree.kNearest(point, k);
     FluidTensor<std::string, 1> result{nearest.getIds()};
     return result;
@@ -71,7 +71,7 @@ public:
     if (!data)
       return {Result::Status::kError, NoBufferError};
     BufferAdaptor::Access buf(data.get());
-    if (buf.numFrames() != mDims)
+    if (buf.numFrames() != mTree.nDims())
       return {Result::Status::kError, WrongPointSizeError};
     if (k > mTree.nPoints()){
       return {Result::Status::kError, SmallDataSetError};
@@ -79,8 +79,8 @@ public:
     if(k <= 0 ){
       return {Result::Status::kError, "k should be at least 1"};
     }
-    FluidTensor<double, 1> point(mDims);
-    point = buf.samps(0, mDims, 0);
+    FluidTensor<double, 1> point(mTree.nDims());
+    point = buf.samps(0, mTree.nDims(), 0);
     FluidDataSet<std::string, double,1> nearest = mTree.kNearest(point, k);
     FluidTensor<double, 1> result{nearest.getData().col(0)};
     return result;
@@ -127,7 +127,6 @@ private:
   MessageResult<void> mOKResult{Result::Status::kOk};
   MessageResult<void> mWriteError{Result::Status::kError, WriteError};
   mutable algorithm::KDTree mTree{1};
-  size_t mDims;
 };
 
 using NRTThreadedKDTreeClient =
