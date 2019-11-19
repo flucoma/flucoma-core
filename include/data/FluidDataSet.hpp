@@ -65,6 +65,7 @@ public:
         return false;
       else {
         mData.deleteRow(pos->second);
+        mIds.deleteRow(pos->second);
         mIndex.erase(id);
       }
       return true;

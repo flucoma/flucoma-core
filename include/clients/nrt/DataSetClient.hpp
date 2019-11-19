@@ -53,8 +53,8 @@ public:
     if (!data)
       return mNoBufferError;
     BufferAdaptor::Access buf(data.get());
-    if (buf.numFrames() < mDims)
-      return mWrongSizeError;
+    Result resizeResult = buf.resize(mDims, 1, buf.sampleRate());
+    if(!resizeResult.ok()) return resizeResult;
     FluidTensor<double, 1> point(mDims);
     point = buf.samps(0, mDims, 0);
     bool result = mDataSet.get(id, point);
@@ -83,6 +83,7 @@ public:
   }
 
   MessageResult<int> size() { return mDataSet.size(); }
+  MessageResult<int> cols() { return mDataSet.pointSize(); }
 
   MessageResult<void> clear() {
     mDataSet = DataSet(get<kNDims>());
@@ -124,6 +125,7 @@ public:
       makeMessage("updatePoint", &DataSetClient::updatePoint),
       makeMessage("deletePoint", &DataSetClient::deletePoint),
       makeMessage("size", &DataSetClient::size),
+      makeMessage("cols", &DataSetClient::cols),
       makeMessage("clear", &DataSetClient::clear),
       makeMessage("write", &DataSetClient::write),
       makeMessage("read", &DataSetClient::read)
