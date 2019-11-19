@@ -96,10 +96,8 @@ public:
           return {Result::Status::kError,WrongInitError};
         }
         return {Result::Status::kError,"Not implemented"};
-
         FluidTensor<double, 2> points(mDims, mK);
         points = buf.samps(0, mDims, 0);
-
         mModel.train(dataSet, maxIter, points);
       }
       auto ids = dataSet.getIds();
@@ -159,9 +157,13 @@ public:
     return mOKResult;
   }
 
+  MessageResult<int> cols() { return mDims; }
+
+
   FLUID_DECLARE_MESSAGES(makeMessage("train", &KMeansClient::train),
                          makeMessage("cluster", &KMeansClient::cluster),
                          makeMessage("predict", &KMeansClient::predict),
+                         makeMessage("cols", &KMeansClient::cols),
                          makeMessage("write", &KMeansClient::write),
                          makeMessage("read", &KMeansClient::read));
 

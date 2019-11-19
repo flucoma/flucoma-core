@@ -46,7 +46,6 @@ public:
       } else {
         mAssignments = assignments;
       }
-      std::cout<<maxIter<<std::endl;
     }
   }
 
@@ -78,7 +77,7 @@ public:
     return mK;
   }
 
-  void getAssignments(FluidTensor<int, 1> out){
+  void getAssignments(FluidTensorView<int, 1> out){
     out = _impl::asFluid(mAssignments);
   }
 private:
