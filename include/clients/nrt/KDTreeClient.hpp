@@ -20,7 +20,7 @@ namespace fluid {
 namespace client {
 
 class KDTreeClient : public FluidBaseClient, OfflineIn, OfflineOut {
-  enum { kNDims };
+
 
 public:
   using string = std::string;
@@ -29,12 +29,9 @@ public:
 
   template <typename T> Result process(FluidContext &) { return {}; }
 
-  FLUID_DECLARE_PARAMS(LongParam<Fixed<true>>("nDims", "Dimension size", 1,
-                                              Min(1)));
+  FLUID_DECLARE_PARAMS();
 
-  KDTreeClient(ParamSetViewType &p) : mParams(p), mDataSet(get<kNDims>()) {
-    mDims = get<kNDims>();
-  }
+  KDTreeClient(ParamSetViewType &p) : mParams(p) {}
 
   MessageResult<void> index(DataSetClientRef datasetClient) {
     auto weakPtr = datasetClient.get();
@@ -47,6 +44,8 @@ public:
     }
     return {Result::Status::kOk};
   }
+
+  MessageResult<int> cols(){return mTree.nDims();}
 
   MessageResult<FluidTensor<std::string, 1>> kNearest(BufferPtr data, int k) const {
     if (!data)
@@ -119,6 +118,7 @@ public:
   FLUID_DECLARE_MESSAGES(makeMessage("index", &KDTreeClient::index),
                          makeMessage("kNearest", &KDTreeClient::kNearest),
                          makeMessage("kNearestDist", &KDTreeClient::kNearestDist),
+                         makeMessage("cols", &KDTreeClient::cols),
                          makeMessage("write", &KDTreeClient::write),
                          makeMessage("read", &KDTreeClient::read)
   );
@@ -126,7 +126,6 @@ public:
 private:
   MessageResult<void> mOKResult{Result::Status::kOk};
   MessageResult<void> mWriteError{Result::Status::kError, WriteError};
-  mutable FluidDataSet<string, double, 1> mDataSet;
   mutable algorithm::KDTree mTree{1};
   size_t mDims;
 };
