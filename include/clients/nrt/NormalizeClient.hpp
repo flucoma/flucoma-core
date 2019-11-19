@@ -51,7 +51,7 @@ public:
     return {};
   }
 
-  MessageResult<int> size() { return mDims;}
+  MessageResult<int> cols() { return mDims;}
 
   MessageResult<void> normalize(DataSetClientRef sourceClient,
                             DataSetClientRef destClient) const {
@@ -134,7 +134,7 @@ public:
   }
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &NormalizeClient::fit),
-                         makeMessage("size", &NormalizeClient::size),
+                         makeMessage("cols", &NormalizeClient::cols),
                          makeMessage("normalize", &NormalizeClient::normalize),
                          makeMessage("normalizePoint", &NormalizeClient::normalizePoint),
                          makeMessage("read", &NormalizeClient::read),
