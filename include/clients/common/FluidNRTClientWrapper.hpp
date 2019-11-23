@@ -118,7 +118,7 @@ public:
   Result process(FluidContext& c)
   {
 
-    
+
     auto constexpr inputCounter = std::make_index_sequence<Ins>();
     auto constexpr outputCounter = std::make_index_sequence<decideOuts>();
 
@@ -132,12 +132,12 @@ public:
     int count = 0;
     for(auto&& b: inputBuffers)
     {
-      
+
       intptr_t requestedFrames= b.nFrames;
       intptr_t requestedChans= b.nChans;
-      
+
       auto rangeCheck = bufferRangeCheck(b.buffer, b.startFrame, requestedFrames, b.startChan, requestedChans);
-      
+
       if(!rangeCheck.ok()) return rangeCheck;
 
       inFrames[count] = requestedFrames;
@@ -145,23 +145,23 @@ public:
       mClient.sampleRate(BufferAdaptor::ReadAccess(b.buffer).sampleRate());
       count++;
     }
-    
+
     if(std::all_of(outputBuffers.begin(), outputBuffers.end(),[](auto& b){
-      
+
       if(!b) return true;
-      
+
       BufferAdaptor::Access buf(b);
       return !buf.exists();
     }))
       return {Result::Status::kError, "No valid output has been set" }; //error
-    
-    
+
+
     Result r{Result::Status::kOk,""};
-    
+
     //Remove non-existent output buffers from the output buffers vector, so clients don't try and use them
     std::transform(outputBuffers.begin(), outputBuffers.end(),outputBuffers.begin(), [&r](auto& b)->BufferAdaptor*
     {
-      
+
       if(!b) return nullptr;
       BufferAdaptor::Access buf(b);
       if(! buf.exists())
@@ -170,13 +170,13 @@ public:
         r.addMessage("One or more of your output buffers doesn't exist\n");
       }
       return buf.exists()? b : nullptr;
-    }); 
+    });
 
-    
+
 
     size_t numFrames   = *std::min_element(inFrames.begin(),inFrames.end());
     size_t numChannels = *std::min_element(inChans.begin(), inChans.end());
-    
+
     Result processResult = AdaptorType<HostMatrix,HostVectorView>::process(mClient,inputBuffers,outputBuffers,numFrames,numChannels,c);
 
     if(!processResult.ok())
@@ -248,9 +248,9 @@ struct Streaming
       outputs.reserve(outputBuffers.size());
       for(int j = 0; j < outputBuffers.size(); ++j)
         outputs.emplace_back(outputData[j].row(i));
-      
+
       if(c.task()) c.task()->iterationUpdate(i, nChans);
-      
+
       client.process(inputs,outputs,c, true);
     }
 
@@ -263,7 +263,7 @@ struct Streaming
       for(int j = 0; j < nChans; ++j)
         thisOutput.samps(j) = outputData[i].row(j)(Slice(padding));
     }
-    
+
     return {};
   }
 };
@@ -318,11 +318,11 @@ struct StreamingControl
           outputs.emplace_back(outputData.row(k + i*nFeatures)(Slice(j,1)));
 
         client.process(inputs,outputs,dummyContext, true);
-        
+
         if(task && !task->processUpdate(j + 1 + (nHops * i),nHops * nChans)) break;
       }
     }
-    
+
     BufferAdaptor::Access thisOutput(outputBuffers[0]);
     Result resizeResult = thisOutput.resize(nHops - 1,nChans * nFeatures,sampleRate / controlRate);
     if(!resizeResult.ok()) return resizeResult;
@@ -332,9 +332,9 @@ struct StreamingControl
       for(int j = 0; j < nChans; ++j)
         thisOutput.samps(i + j * nFeatures) = outputData.row(i + j * nFeatures)(Slice(1));
     }
-    
+
     return {};
-    
+
   }
 };
 
@@ -388,9 +388,9 @@ auto constexpr makeNRTParams(impl::InputBufferSpec&& in, impl::BufferSpec(&& out
 {
   return impl::joinParameterDescriptors(impl::joinParameterDescriptors(impl::makeWrapperInputs(in), impl::spitOuts(out, std::make_index_sequence<Ms>())), RTClient<double>::getParameterDescriptors());
 }
-  
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-  
+
 template<typename NRTClient>
 class NRTThreadingAdaptor : public OfflineIn, public OfflineOut
 {
@@ -412,7 +412,7 @@ public:
   NRTThreadingAdaptor(ParamSetType& p)
    : mHostParams{p}, mClient{new NRTClient{mHostParams}}
   {}
-    
+
   ~NRTThreadingAdaptor()
   {
     if (mThreadedTask)
@@ -421,48 +421,48 @@ public:
       mThreadedTask.release();
     }
   }
-  
+
   //We need this so we can remake the client when the fake-sr changes in PD (TODO: something better; NRT clients shouldn't assume that the SR is lifetime constant)
   void recreateClient() { mClient.reset(new NRTClient{mHostParams}); }
-  
+
   Result enqueue(ParamSetType& p)
   {
     if (mThreadedTask && (mSynchronous|| !mQueueEnabled) )
       return {Result::Status::kError, "already processing"};
 
     mQueue.push_back(p);
-    
+
     return {};
   }
-  
+
   Result process()
   {
     if (mThreadedTask && (mSynchronous|| !mQueueEnabled) )
       return {Result::Status::kError, "already processing"};
-    
+
     if (mThreadedTask)
         return Result();
-    
+
     Result result;
-    
+
     if(mQueue.empty())
-      return {Result::Status::kWarning, "Process() called on empty queue"}; 
-    
+      return {Result::Status::kWarning, "Process() called on empty queue"};
+
     mThreadedTask = std::unique_ptr<ThreadedTask>(new ThreadedTask(mClient,mQueue.front(), mSynchronous, result));
     mQueue.pop_front();
-    
+
     if (mSynchronous)
       mThreadedTask = nullptr;
-    
+
     return result;
-  } 
-    
+  }
+
   ProcessState checkProgress(Result& result)
   {
     if (mThreadedTask)
     {
       auto state = mThreadedTask->checkProgress(result);
-      
+
       if (state == kDone)
       {
         if (!mQueue.empty())
@@ -478,46 +478,46 @@ public:
             mThreadedTask = nullptr;
         }
       }
-      
+
       return state;
     }
 
     return kNoProcess;
   }
-    
+
   void setSynchronous(bool synchronous)
   {
     mSynchronous = synchronous;
   }
-  
+
   void setQueueEnabled(bool queue) { mQueueEnabled = queue; }
-  
+
   double progress()
   {
     return mThreadedTask ? mThreadedTask->mTask.progress() : 0.0;
   }
-  
+
   void cancel()
   {
     mQueue.clear();
-      
+
     if (mThreadedTask)
       mThreadedTask->cancel(false);
   }
-  
+
   bool done() const
   {
     return mThreadedTask ? (mThreadedTask->mState == kDone || mThreadedTask->mState == kDoneStillProcessing) : false;
   }
-  
-  ProcessState state() const 
+
+  ProcessState state() const
   {
     return mThreadedTask ? mThreadedTask->mState : kNoProcess;
   }
-  
-  
+
+
 private:
-    
+
   struct ThreadedTask
   {
     template<size_t N, typename T>
@@ -529,7 +529,7 @@ private:
           param = typename T::type(new MemoryBufferAdaptor(param));
       }
     };
-    
+
     template<size_t N, typename T>
     struct BufferCopyBack
     {
@@ -538,7 +538,7 @@ private:
         if(param) static_cast<MemoryBufferAdaptor*>(param.get())->copyToOrigin();
       }
     };
-    
+
     template<size_t N, typename T>
     struct BufferDelete
     {
@@ -547,21 +547,21 @@ private:
         param.reset();
       }
     };
-      
+
     ThreadedTask(ClientPointer client, ParamSetType& hostParams,  bool synchronous, Result &result)
     : mState(kNoProcess), mClient(client), mProcessParams(hostParams), mContext{mTask}
     {
-      
+
       assert(mClient.get() != nullptr); //right?
-      
+
       if (synchronous)
       {
-        mClient->setParams(hostParams); 
+        mClient->setParams(hostParams);
         result = process();
       }
       else
       {
-        auto entry = [](ThreadedTask* owner) { owner->process(); };        
+        auto entry = [](ThreadedTask* owner) { owner->process(); };
         mProcessParams.template forEachParamType<BufferT, BufferCopy>();
         mProcessParams.template forEachParamType<InputBufferT, BufferCopy>();
         mClient->setParams(mProcessParams);
@@ -570,40 +570,40 @@ private:
         result = Result();
       }
     }
-    
+
     Result process()
     {
       assert(mClient.get() != nullptr); //right?
-    
+
       mState = kProcessing;
       Result r = mClient->process(mContext);
       mState = kDone;
-      
+
       if (mDetached)
         delete this;
-      
+
       return r;
     }
-      
+
     void cancel(bool detach)
     {
       mTask.cancel();
 
       mDetached = detach;
-      
+
       if (detach && mThread.joinable())
         mThread.detach();
     }
-      
+
     ProcessState checkProgress(Result& result)
     {
       ProcessState state = mState;
-      
+
       if (state == kDone)
       {
         if (mThread.get_id() != std::thread::id())
           mThread.join();
-        
+
         if (!mTask.cancelled())
         {
           mProcessParams.template forEachParamType<BufferT, BufferCopyBack>();
@@ -611,25 +611,25 @@ private:
         }
         else
           result = {Result::Status::kCancelled,""};
-        
+
         mProcessParams.template forEachParamType<BufferT, BufferDelete>();
         mState = kNoProcess;
       }
-      
+
       return state;
     }
-    
+
     ParamSetType mProcessParams;
     ProcessState mState;
     std::thread mThread;
-      
+
     Result mResult;
     ClientPointer mClient;
     FluidTask mTask;
     FluidContext mContext;
     bool mDetached = false;
   };
-  
+
   ParamSetType mHostParams;
   std::deque<ParamSetType> mQueue;
   bool mSynchronous = false;

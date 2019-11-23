@@ -1,15 +1,22 @@
+/*
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See LICENSE file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
 #pragma once
 
-#include "BufferedProcess.hpp"
 #include "../common/AudioClient.hpp"
+#include "../common/BufferedProcess.hpp"
 #include "../common/FluidBaseClient.hpp"
+#include "../common/FluidNRTClientWrapper.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
-#include "../nrt/FluidNRTClientWrapper.hpp"
 #include "../../algorithms/public/SpectralShape.hpp"
 #include "../../data/TensorTypes.hpp"
-
 #include <tuple>
 
 namespace fluid {
@@ -29,28 +36,29 @@ class SpectralShapeClient
     : public FluidBaseClient<decltype(SpectralShapeParams),
                              SpectralShapeParams>,
       public AudioIn,
-      public ControlOut {
-  using HostVector = HostVector<T>;
+      public ControlOut
+{
+  using HostVector = FluidTensorView<T, 1>;
 
 public:
-  SpectralShapeClient(ParamSetViewType &p)
-      : FluidBaseClient(p), mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0) {
+  SpectralShapeClient(ParamSetViewType& p)
+      : FluidBaseClient(p), mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0)
+  {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::controlChannelsOut(7);
     mDescriptors = FluidTensor<double, 1>(7);
   }
 
-  void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output, FluidContext& c, bool reset = false) {
-    using std::size_t;
-
-    if (!input[0].data() || !output[0].data())
-      return;
+  void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
+               FluidContext& c, bool reset = false)
+  {
+    if (!input[0].data() || !output[0].data()) return;
     assert(FluidBaseClient::controlChannelsOut() && "No control channels");
     assert(output.size() >= FluidBaseClient::controlChannelsOut() &&
            "Too few output channels");
 
-    if (mWinSizeTracker.changed(get<kFFT>().frameSize())) {
+    if (mWinSizeTracker.changed(get<kFFT>().frameSize()))
+    {
       mMagnitude.resize(get<kFFT>().frameSize());
       mBinHz = sampleRate() / get<kFFT>().fftSize();
     }
@@ -61,12 +69,14 @@ public:
           mAlgorithm.processFrame(mMagnitude, mDescriptors);
         });
 
-    for (int i = 0; i < 7; ++i){
-      //TODO: probably move this logic to algorithm
-      if(i==0||i==1||i==4)output[i](0) =  mBinHz * mDescriptors(i);
-      else output[i](0) = mDescriptors(i);
+    for (int i = 0; i < 7; ++i)
+    {
+      // TODO: probably move this logic to algorithm
+      if (i == 0 || i == 1 || i == 4)
+        output[i](0) = mBinHz * mDescriptors(i);
+      else
+        output[i](0) = mDescriptors(i);
     }
-
   }
 
   size_t latency() { return get<kFFT>().winSize(); }
@@ -74,12 +84,13 @@ public:
   size_t controlRate() { return get<kFFT>().hopSize(); }
 
 private:
-  ParameterTrackChanges<size_t> mWinSizeTracker;
+  ParameterTrackChanges<size_t>                  mWinSizeTracker;
   STFTBufferedProcess<ParamSetViewType, T, kFFT> mSTFTBufferedProcess;
-  SpectralShape mAlgorithm{get<kMaxFFTSize>()};
+
+  SpectralShape          mAlgorithm{get<kMaxFFTSize>()};
   FluidTensor<double, 1> mMagnitude;
   FluidTensor<double, 1> mDescriptors;
-  double mBinHz;
+  double                 mBinHz;
 };
 
 auto constexpr NRTSpectralShapeParams = makeNRTParams<SpectralShapeClient>(
@@ -90,9 +101,10 @@ template <typename T>
 using NRTSpectralShapeClient =
     NRTControlAdaptor<SpectralShapeClient<T>, decltype(NRTSpectralShapeParams),
                       NRTSpectralShapeParams, 1, 1>;
-    
+
 template <typename T>
-using NRTThreadedSpectralShapeClient = NRTThreadingAdaptor<NRTSpectralShapeClient<T>>;
+using NRTThreadedSpectralShapeClient =
+    NRTThreadingAdaptor<NRTSpectralShapeClient<T>>;
 
 } // namespace client
 } // namespace fluid

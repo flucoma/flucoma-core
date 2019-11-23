@@ -1,33 +1,39 @@
+/*
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See LICENSE file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
 #pragma once
 
+#include "../util/AlgorithmUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include <Eigen/Core>
-#include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
 
 namespace fluid {
 namespace algorithm {
 
-using _impl::asEigen;
-using _impl::asFluid;
-using Eigen::ArrayXd;
-using Eigen::ArrayXXd;
-using Eigen::MatrixXd;
-using Eigen::Array;
-
-class MelBands {
+class MelBands
+{
 public:
   /*static inline double mel2hz(double x) {
       return 700.0 * (exp(x / 1127.01048) - 1.0);
     }*/
 
-  static inline double hz2mel(double x) {
+  static inline double hz2mel(double x)
+  {
     return 1127.01048 * log(x / 700.0 + 1.0);
   }
 
-  void init(double lo, double hi, int nBands, int nBins,
-            double sampleRate, bool logOutput) {
+  void init(double lo, double hi, int nBands, int nBins, double sampleRate,
+            bool logOutput)
+  {
+
+    using namespace Eigen;
     assert(hi > lo);
     assert(nBands > 1);
     mLo = lo;
@@ -44,34 +50,38 @@ public:
             .abs();
     ArrayXXd ramps = melFreqs.replicate(1, mBins);
     ramps.rowwise() -= fftFreqs.transpose();
-    for (int i = 0; i < mBands; i++) {
+    for (int i = 0; i < mBands; i++)
+    {
       ArrayXd lower = -ramps.row(i) / melD(i);
       ArrayXd upper = ramps.row(i + 2) / melD(i + 1);
       mFilters.row(i) = lower.min(upper).max(0);
     }
-    //ArrayXd enorm =
+    // ArrayXd enorm =
     //     2.0 / (melFreqs.segment(2, mBands) - melFreqs.segment(0, mBands));
-    //mFilters = (mFilters.array().colwise() *= enorm).matrix();
-    //mOutputBuffer = ArrayXd::Zero(mBands);
+    // mFilters = (mFilters.array().colwise() *= enorm).matrix();
+    // mOutputBuffer = ArrayXd::Zero(mBands);
     mLogOutput = logOutput;
   }
 
-  void processFrame(const RealVectorView in, RealVectorView out) {
+  void processFrame(const RealVectorView in, RealVectorView out)
+  {
+    using namespace Eigen;
     double const epsilon = std::numeric_limits<double>::epsilon();
     assert(in.size() == mBins);
-    ArrayXd frame = asEigen<Array>(in);
+    ArrayXd frame = _impl::asEigen<Eigen::Array>(in);
     ArrayXd result = (mFilters * frame.square().matrix()).array();
-    if(mLogOutput) result = 10*result.max(3.9810717055349695e-15).log10();
-    out = asFluid(result);
+    if (mLogOutput) result = 10 * result.max(3.9810717055349695e-15).log10();
+    out = _impl::asFluid(result);
   }
 
-  double mLo;
-  double mHi;
-  int mBins;
-  int mBands;
-  double mSampleRate;
-  MatrixXd mFilters;
-  bool mLogOutput;
+  double mLo{20.0};
+  double mHi{20000.0};
+  int    mBins{513};
+  int    mBands{40};
+  double mSampleRate{44100.0};
+  bool   mLogOutput{false};
+
+  Eigen::MatrixXd mFilters;
 
 private:
   // ArrayXd mOutputBuffer;

@@ -1,17 +1,25 @@
+/*
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See LICENSE file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
+
 #pragma once
 
-#include "BufferedProcess.hpp"
 #include "../common/AudioClient.hpp"
+#include "../common/BufferedProcess.hpp"
 #include "../common/FluidBaseClient.hpp"
+#include "../common/FluidNRTClientWrapper.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
-#include "../nrt/FluidNRTClientWrapper.hpp"
 #include "../../algorithms/public/CepstrumF0.hpp"
 #include "../../algorithms/public/HPS.hpp"
 #include "../../algorithms/public/YINFFT.hpp"
 #include "../../data/TensorTypes.hpp"
-
 #include <tuple>
 
 namespace fluid {
@@ -41,30 +49,33 @@ auto constexpr PitchParams = defineParameters(
 template <typename T>
 class PitchClient : public FluidBaseClient<decltype(PitchParams), PitchParams>,
                     public AudioIn,
-                    public ControlOut {
-  using HostVector = HostVector<T>;
+                    public ControlOut
+{
+  using HostVector = FluidTensorView<T, 1>;
   using size_t = std::size_t;
   using CepstrumF0 = algorithm::CepstrumF0;
   using HPS = algorithm::HPS;
   using YINFFT = algorithm::YINFFT;
 
 public:
-  PitchClient(ParamSetViewType &p)
-      : FluidBaseClient(p), mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0) {
+  PitchClient(ParamSetViewType& p)
+      : FluidBaseClient(p), mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0)
+  {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::controlChannelsOut(2);
     mDescriptors = FluidTensor<double, 1>(2);
   }
 
-  void process(std::vector<HostVector> &input,
-               std::vector<HostVector> &output, FluidContext& c, bool reset = false) {
-    if (!input[0].data() || !output[0].data())
-      return;
+  void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
+               FluidContext& c, bool reset = false)
+  {
+    if (!input[0].data() || !output[0].data()) return;
     assert(FluidBaseClient::controlChannelsOut() && "No control channels");
     assert(output.size() >= FluidBaseClient::controlChannelsOut() &&
            "Too few output channels");
 
-    if (mParamTracker.changed(get<kFFT>().frameSize())) {
+    if (mParamTracker.changed(get<kFFT>().frameSize()))
+    {
       cepstrumF0.init(get<kFFT>().frameSize());
       mMagnitude.resize(get<kFFT>().frameSize());
     }
@@ -72,7 +83,8 @@ public:
     mSTFTBufferedProcess.processInput(
         mParams, input, c, reset, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
-          switch (get<kAlgorithm>()) {
+          switch (get<kAlgorithm>())
+          {
           case 0:
             cepstrumF0.processFrame(mMagnitude, mDescriptors, get<kMinFreq>(),
                                     get<kMaxFreq>(), sampleRate());
@@ -96,11 +108,12 @@ public:
   size_t controlRate() { return get<kFFT>().hopSize(); }
 
 private:
-  ParameterTrackChanges<size_t> mParamTracker;
+  ParameterTrackChanges<size_t>                  mParamTracker;
   STFTBufferedProcess<ParamSetViewType, T, kFFT> mSTFTBufferedProcess;
-  CepstrumF0 cepstrumF0;
-  HPS hps;
-  YINFFT yinFFT;
+
+  CepstrumF0             cepstrumF0;
+  HPS                    hps;
+  YINFFT                 yinFFT;
   FluidTensor<double, 1> mMagnitude;
   FluidTensor<double, 1> mDescriptors;
 };
@@ -116,6 +129,6 @@ using NRTPitchClient =
 
 template <typename T>
 using NRTThreadedPitchClient = NRTThreadingAdaptor<NRTPitchClient<T>>;
-    
+
 } // namespace client
 } // namespace fluid

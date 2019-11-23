@@ -1,42 +1,44 @@
+/*
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See LICENSE file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
 
 #pragma once
 
-#include "../../data/TensorTypes.hpp"
+#include "../util/AlgorithmUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/KWeightingFilter.hpp"
 #include "../util/TruePeak.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Eigen>
-#include <fstream>
-#include <iostream>
 
 namespace fluid {
 namespace algorithm {
 
-using _impl::asEigen;
-using _impl::asFluid;
-using Eigen::Array;
-using Eigen::ArrayXd;
-
-using algorithm::KWeightingFilter;
-using algorithm::TruePeak;
-
-class Loudness {
+class Loudness
+{
 
 public:
   Loudness(int maxSize) : mTP(maxSize) {}
 
-  void init(int size, int sampleRate) {
+  void init(int size, int sampleRate)
+  {
     mFilter.init(sampleRate);
     mTP.init(size, sampleRate);
     mSize = size;
   }
 
-  void processFrame(const RealVectorView &input, RealVectorView output,
-                    bool weighting, bool truePeak) {
+  void processFrame(const RealVectorView& input, RealVectorView output,
+                    bool weighting, bool truePeak)
+  {
+    using namespace Eigen;
     assert(output.size() == 2);
     assert(input.size() == mSize);
-    double const epsilon = std::numeric_limits<double>::epsilon();
-    ArrayXd in = asEigen<Array>(input);
+    ArrayXd in = _impl::asEigen<Array>(input);
     ArrayXd filtered(mSize);
     for (int i = 0; i < mSize; i++)
       filtered(i) = weighting ? mFilter.processSample(in(i)) : in(i);
@@ -49,9 +51,9 @@ public:
   }
 
 private:
-  TruePeak mTP;
+  TruePeak         mTP;
   KWeightingFilter mFilter;
-  int mSize;
+  int              mSize{1024};
 };
 
 }; // namespace algorithm
