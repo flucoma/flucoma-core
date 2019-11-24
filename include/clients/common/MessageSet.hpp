@@ -18,11 +18,41 @@ struct Message
   using IndexList = std::index_sequence_for<Args...>;
   using ArgumentTypes = std::tuple<Args...>;
   using Client = T;
+  
+  template<size_t N>
+  using ArgType = typename std::tuple_element<N, ArgumentTypes>::type;
+  
   decltype(auto) operator()(Client& c, Args...args) const
   {
     return op(c,std::forward<Args>(args)...); 
     //(c.*op)(std::forward<Args>(args)...);
   }
+  
+  template<typename ArgType, template <size_t, typename> class Func, typename...ArgsToPass>
+  static void forEachArg(ArgumentTypes& tuple, ArgsToPass&&...args)
+  {
+    using ArgIndices =typename impl::FilterTupleIndices<IsArgType<ArgType>,ArgumentTypes,IndexList>::type;
+    forEachArgImpl<Func>(tuple, ArgIndices{}, std::forward<ArgsToPass>(args)...);
+  }
+  
+  private:
+  
+  template <template <size_t, typename> class Func, typename... ArgsToPass, size_t... Is>
+  static void forEachArgImpl(ArgumentTypes& tuple, std::index_sequence<Is...>, ArgsToPass&&... args)
+  {
+    (void)std::initializer_list<int>{
+      (Func<Is, ArgType<Is>>()(std::get<Is>(tuple), std::forward<ArgsToPass>(args)...), 0)...
+    };
+  }
+  
+  
+  template <typename ArgType>
+  struct IsArgType
+  {
+    template <typename U>
+    using apply = std::is_same<ArgType,U>;
+  };
+  
 };
 
 template<typename Ret, typename T, typename...Args>
