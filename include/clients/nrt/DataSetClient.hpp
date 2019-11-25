@@ -54,7 +54,11 @@ public:
       return mNoBufferError;
     BufferAdaptor::Access buf(data.get());
     Result resizeResult = buf.resize(mDims, 1, buf.sampleRate());
-    if(!resizeResult.ok()) return resizeResult;
+    if (!resizeResult.ok())
+      return {
+        resizeResult.status(),
+            resizeResult.message()
+		}; 
     FluidTensor<double, 1> point(mDims);
     point = buf.samps(0, mDims, 0);
     bool result = mDataSet.get(id, point);
