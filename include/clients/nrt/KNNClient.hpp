@@ -4,6 +4,7 @@
 #include "LabelSetClient.hpp"
 #include "DataSetErrorStrings.hpp"
 #include "algorithms/KNNClassifier.hpp"
+#include "algorithms/KNNRegressor.hpp"
 #include "data/FluidDataSet.hpp"
 
 #include <clients/common/FluidBaseClient.hpp>
