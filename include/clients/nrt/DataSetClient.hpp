@@ -62,7 +62,7 @@ public:
     FluidTensor<double, 1> point(mDims);
     point = buf.samps(0, mDims, 0);
     bool result = mDataSet.get(id, point);
-    mDataSet.print();
+//    mDataSet.print();
     if (result) {
       buf.samps(0, mDims, 0) = point;
       return {Result::Status::kOk};
