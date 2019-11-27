@@ -17,6 +17,11 @@ public:
   void init(int k, int dims) {
     mK = k;
     mDims = dims;
+    mTrained = false;
+  }
+
+  bool trained(){
+    return mTrained;
   }
 
   void train(const FluidDataSet<std::string, double, 1> &dataset, int maxIter,
@@ -36,6 +41,7 @@ public:
                          .round()
                          .cast<int>();
       mMeans = ArrayXXd::Zero(mK, mDims);
+
     }
 
     while (maxIter-- > 0) {
@@ -47,6 +53,7 @@ public:
         mAssignments = assignments;
       }
     }
+    mTrained = true;
   }
 
   size_t getClusterSize(int cluster){
@@ -63,7 +70,7 @@ public:
   }
 
   void getMeans(RealMatrixView out){
-    out = _impl::asFluid(mMeans);
+    if(mTrained) out = _impl::asFluid(mMeans);
   }
 
   void setMeans(RealMatrixView means){
@@ -140,6 +147,7 @@ private:
   Eigen::ArrayXXd mMeans;
   std::vector<bool> mEmpty;
   Eigen::VectorXi mAssignments;
+  bool mTrained{false};
 };
 } // namespace algorithm
 } // namespace fluid

@@ -40,8 +40,10 @@ public:
     //mModel.init(mK, mDims);
   }
 
-  MessageResult<void> train(DataSetClientRef datasetClient, int k, int maxIter = 100, BufferPtr init = nullptr) {
+  MessageResult<FluidTensor<intptr_t, 1>> train(DataSetClientRef datasetClient, int k, int maxIter = 100, BufferPtr init = nullptr) {
     auto weakPtr = datasetClient.get();
+    FluidTensor<intptr_t, 1> counts(k);
+    counts.fill(0);
     if(auto datasetClientPtr = weakPtr.lock())
     {
       auto dataSet = datasetClientPtr->getDataSet();
@@ -68,44 +70,38 @@ public:
       }
       //(const FluidDataSet<std::string, double, std::string, 1> &dataset, int maxIter,
       //           RealMatrixView initialMeans = RealMatrixView(nullptr, 0, 0, 0))
+      FluidTensor<int, 1> assignments(dataSet.size());
+      mModel.getAssignments(assignments);
+      for(auto a : assignments){
+        std::cout<<a<<" ";
+        counts[a]++;
+      }
     }
     else {
       return {Result::Status::kError,"DataSet doesn't exist"};
     }
-    return {};
+    return counts;
   }
 
-  MessageResult<void> cluster(DataSetClientRef datasetClient, LabelSetClientRef labelClient, int k, int maxIter = 100, BufferPtr init = nullptr) {
+  MessageResult<FluidTensor<intptr_t, 1>> predict(DataSetClientRef datasetClient, LabelSetClientRef labelClient) {
     auto dataPtr = datasetClient.get().lock();
     auto labelPtr = labelClient.get().lock();
+    if(!mModel.trained()){
+      return {Result::Status::kError, "No data fitted"};
+    }
+    FluidTensor<intptr_t, 1> counts(mModel.getK());
+    counts.fill(0);
     if(dataPtr && labelPtr)
     {
       auto dataSet = dataPtr->getDataSet();
       if (dataSet.size() == 0) return {Result::Status::kError, EmptyDataSetError};
-      mDims = dataSet.pointSize();
-      mK = k;
-      mModel.init(mK, mDims);
-      if (init == nullptr){
-        mModel.train(dataSet, maxIter);
-      }
-      else {
-        BufferAdaptor::Access buf(init.get());
-        if (buf.numFrames() != mDims)
-          return {Result::Status::kError,WrongPointSizeError};
-        if(buf.numChans() != mK){
-          return {Result::Status::kError,WrongInitError};
-        }
-        return {Result::Status::kError,"Not implemented"};
-        FluidTensor<double, 2> points(mDims, mK);
-        points = buf.samps(0, mDims, 0);
-        mModel.train(dataSet, maxIter, points);
-      }
       auto ids = dataSet.getIds();
       FluidTensor<int, 1> assignments(dataSet.size());
       mModel.getAssignments(assignments);
       FluidDataSet<string, string, 1> result(1);
       for(int i = 0; i < ids.size(); i++){
         int clusterId = assignments(i);
+        counts(clusterId)++;
         FluidTensor<string, 1> point = {std::to_string(clusterId)};
         result.add(ids(i), point);
       }
@@ -114,13 +110,16 @@ public:
     else {
       return {Result::Status::kError,"Missing DataSet or LabelSet"};
     }
-    return {};
+    return counts;
   }
 
-  MessageResult<int> predict(BufferPtr data) const {
+  MessageResult<int> predictPoint(BufferPtr data) const {
     if (!data)
       return {Result::Status::kError, NoBufferError};
     BufferAdaptor::Access buf(data.get());
+    if(!mModel.trained()){
+      return {Result::Status::kError, "No data fitted"};
+    }
     if (buf.numFrames() != mDims)
       return {Result::Status::kError, WrongPointSizeError};
 
@@ -161,8 +160,9 @@ public:
 
 
   FLUID_DECLARE_MESSAGES(makeMessage("train", &KMeansClient::train),
-                         makeMessage("cluster", &KMeansClient::cluster),
+                         makeMessage("fit", &KMeansClient::train),
                          makeMessage("predict", &KMeansClient::predict),
+                         makeMessage("predictPoint", &KMeansClient::predictPoint),
                          makeMessage("cols", &KMeansClient::cols),
                          makeMessage("write", &KMeansClient::write),
                          makeMessage("read", &KMeansClient::read));
