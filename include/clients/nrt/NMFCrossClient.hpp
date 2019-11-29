@@ -23,7 +23,7 @@ public:
     InputBufferParam("source", "Source Buffer"),
     InputBufferParam("target", "Target Buffer"),
     BufferParam("output", "Output Buffer"),
-    LongParam("temporal sparsity", "Time sparsity", 10, Min(1), Max(50)),
+    LongParam("timesparsity", "Time sparsity", 10, Min(1), Max(50)),
     LongParam("polyphony", "Polyphony", 7, Min(1), Max(50)),
     LongParam("iterations", "Number of Iterations", 50, Min(1)),
     FFTParam("fftSettings", "FFT Settings", 1024, -1, -1)
