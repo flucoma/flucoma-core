@@ -84,6 +84,10 @@ public:
     return mK;
   }
 
+  int nAssigned(){
+    return mAssignments.size();
+  }
+
   void getAssignments(FluidTensorView<int, 1> out){
     out = _impl::asFluid(mAssignments);
   }
