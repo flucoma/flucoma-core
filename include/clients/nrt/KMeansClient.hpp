@@ -94,6 +94,7 @@ public:
     {
       auto dataSet = dataPtr->getDataSet();
       if (dataSet.size() == 0) return {Result::Status::kError, EmptyDataSetError};
+      if (dataSet.size() != mModel.nAssigned()) return {Result::Status::kError, "Wrong number of points"};
       auto ids = dataSet.getIds();
       FluidTensor<int, 1> assignments(dataSet.size());
       mModel.getAssignments(assignments);
