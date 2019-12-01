@@ -116,6 +116,7 @@ public:
   }
 
   FLUID_DECLARE_MESSAGES(makeMessage("index", &KDTreeClient::index),
+                         makeMessage("fit", &KDTreeClient::index),
                          makeMessage("kNearest", &KDTreeClient::kNearest),
                          makeMessage("kNearestDist", &KDTreeClient::kNearestDist),
                          makeMessage("cols", &KDTreeClient::cols),
