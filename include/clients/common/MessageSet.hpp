@@ -102,7 +102,7 @@ public:
   template <size_t N>
   auto& get() const
   {
-    return std::get<0>(std::get<N>(mMessages));
+    return std::get<N>(mMessages);
   }
 
   template <size_t N,typename...Us>
