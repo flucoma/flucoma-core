@@ -73,7 +73,6 @@ public:
       FluidTensor<int, 1> assignments(dataSet.size());
       mModel.getAssignments(assignments);
       for(auto a : assignments){
-        std::cout<<a<<" ";
         counts[a]++;
       }
     }
@@ -83,14 +82,14 @@ public:
     return counts;
   }
 
-  MessageResult<FluidTensor<intptr_t, 1>> predict(DataSetClientRef datasetClient, LabelSetClientRef labelClient) {
+  MessageResult<void> getClusters(DataSetClientRef datasetClient, LabelSetClientRef labelClient) {
     auto dataPtr = datasetClient.get().lock();
     auto labelPtr = labelClient.get().lock();
     if(!mModel.trained()){
       return {Result::Status::kError, "No data fitted"};
     }
-    FluidTensor<intptr_t, 1> counts(mModel.getK());
-    counts.fill(0);
+    //FluidTensor<intptr_t, 1> counts(mModel.getK());
+    //counts.fill(0);
     if(dataPtr && labelPtr)
     {
       auto dataSet = dataPtr->getDataSet();
@@ -101,7 +100,7 @@ public:
       FluidDataSet<string, string, 1> result(1);
       for(int i = 0; i < ids.size(); i++){
         int clusterId = assignments(i);
-        counts(clusterId)++;
+        //counts(clusterId)++;
         FluidTensor<string, 1> point = {std::to_string(clusterId)};
         result.add(ids(i), point);
       }
@@ -110,7 +109,8 @@ public:
     else {
       return {Result::Status::kError,"Missing DataSet or LabelSet"};
     }
-    return counts;
+    //return counts;
+    return {};
   }
 
   MessageResult<int> predictPoint(BufferPtr data) const {
@@ -126,6 +126,37 @@ public:
     FluidTensor<double, 1> point(mDims);
     point = buf.samps(0, mDims, 0);
     return mModel.vq(point);
+  }
+
+  MessageResult<FluidTensor<intptr_t, 1>> predict(DataSetClientRef datasetClient, LabelSetClientRef labelClient) const {
+    auto dataPtr = datasetClient.get().lock();
+    auto labelPtr = labelClient.get().lock();
+    if(!mModel.trained()){
+      return {Result::Status::kError, "No data fitted"};
+    }
+    FluidTensor<intptr_t, 1> counts(mModel.getK());
+    counts.fill(0);
+    if(dataPtr && labelPtr)
+    {
+      auto dataSet = dataPtr->getDataSet();
+      if (dataSet.size() == 0) return {Result::Status::kError, EmptyDataSetError};
+      auto ids = dataSet.getIds();
+      FluidTensor<double, 1> query(mDims);
+      FluidDataSet<string, string, 1> result(1);
+
+      for(int i = 0; i < ids.size(); i++){
+        dataSet.get(ids(i), query);
+        int clusterId = mModel.vq(query);
+        counts(clusterId)++;
+        FluidTensor<string, 1> point = {std::to_string(clusterId)};
+        result.add(ids(i), point);
+      }
+      labelPtr->setLabelSet(result);
+    }
+    else {
+      return {Result::Status::kError,"Missing DataSet or LabelSet"};
+    }
+    return counts;
   }
 
   MessageResult<void> write(string fileName) {
@@ -163,6 +194,7 @@ public:
                          makeMessage("fit", &KMeansClient::train),
                          makeMessage("predict", &KMeansClient::predict),
                          makeMessage("predictPoint", &KMeansClient::predictPoint),
+                         makeMessage("getClusters", &KMeansClient::getClusters),
                          makeMessage("cols", &KMeansClient::cols),
                          makeMessage("write", &KMeansClient::write),
                          makeMessage("read", &KMeansClient::read));
