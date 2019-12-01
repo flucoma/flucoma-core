@@ -1,5 +1,5 @@
 #pragma once
-
+#include "clients/nrt/FluidNRTClientWrapper.hpp"
 #include "clients/common/ParameterTypes.hpp"
 #include "clients/common/ParameterConstraints.hpp"
 #include "clients/common/ParameterSet.hpp"
