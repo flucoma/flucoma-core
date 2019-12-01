@@ -2,6 +2,7 @@
 
 #include "data/TensorTypes.hpp"
 #include "algorithms/util/FluidEigenMappings.hpp"
+#include "algorithms/public/STFT.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <iostream>

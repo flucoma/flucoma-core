@@ -1,6 +1,7 @@
 #pragma once
 
 #include "algorithms/util/FluidEigenMappings.hpp"
+#include "algorithms/public/STFT.hpp"
 #include "data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <cmath>
@@ -15,6 +16,7 @@ public:
                int winSize, int fftSize, int hopSize) {
     using namespace Eigen;
     using namespace _impl;
+    using namespace std::complex_literals;
     const auto &epsilon = std::numeric_limits<double>::epsilon();
     auto stft = STFT(winSize, fftSize, hopSize);
     auto istft = ISTFT(winSize, fftSize, hopSize);
@@ -28,7 +30,7 @@ public:
       stft.process(asFluid(tmp), asFluid(phase));
       phase = phase.arg();
       //phase = 1j * phase / (phase.abs() + epsilon);
-      spectrogram = magnitude * 1j * phase.exp();
+      spectrogram = magnitude * 1i * phase.exp();
     }
     in = asFluid(spectrogram);
   }
