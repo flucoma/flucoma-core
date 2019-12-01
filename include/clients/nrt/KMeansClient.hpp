@@ -1,8 +1,9 @@
 #pragma once
 
-//#include "DataSetClient.hpp"
+#include "DataSetClient.hpp"
 #include "DataSetErrorStrings.hpp"
 #include "data/FluidDataSet.hpp"
+#include "LabelSetClient.hpp"
 #include "algorithms/KMeans.hpp"
 
 #include <clients/common/FluidBaseClient.hpp>
@@ -18,7 +19,7 @@
 #include <nlohmann/json.hpp>
 #include <data/FluidTensor.hpp>
 #include <data/TensorTypes.hpp>
-#include<data/FluidFile.hpp>
+#include <data/FluidFile.hpp>
 
 
 namespace fluid {

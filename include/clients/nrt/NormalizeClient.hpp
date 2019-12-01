@@ -1,6 +1,6 @@
 #pragma once
 
-//#include "DataSetClient.hpp"
+#include "DataSetClient.hpp"
 #include "DataSetErrorStrings.hpp"
 #include "algorithms/Normalization.hpp"
 #include "data/FluidDataSet.hpp"
