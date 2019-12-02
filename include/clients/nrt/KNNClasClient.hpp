@@ -72,6 +72,7 @@ public:
   }
 
   FLUID_DECLARE_MESSAGES(makeMessage("index", &KNNClasClient::index),
+                         makeMessage("fit", &KNNClasClient::index),
                          makeMessage("classify", &KNNClasClient::classify));
 
 private:

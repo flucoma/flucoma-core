@@ -83,6 +83,7 @@ public:
     }
 
   FLUID_DECLARE_MESSAGES(makeMessage("index", &KNNClient::index),
+                         makeMessage("fit", &KNNClient::index)
                          makeMessage("classify", &KNNClient::classify),
                        makeMessage("regress", &KNNClient::regress));
 
