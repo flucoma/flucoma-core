@@ -12,7 +12,7 @@ namespace algorithm {
 class GriffinLim {
 
 public:
-  void process(ComplexMatrix in, int nSamples, int nIter,
+  void process(ComplexMatrixView in, int nSamples, int nIter,
                int winSize, int fftSize, int hopSize) {
     using namespace Eigen;
     using namespace _impl;
