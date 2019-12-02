@@ -85,7 +85,9 @@ public:
   FLUID_DECLARE_MESSAGES(makeMessage("index", &KNNClient::index),
                          makeMessage("fit", &KNNClient::index),
                          makeMessage("classify", &KNNClient::classify),
-                       makeMessage("regress", &KNNClient::regress));
+                         makeMessage("classifyPoint", &KNNClient::classify),
+                       makeMessage("regress", &KNNClient::regress),
+                       makeMessage("regressPoint", &KNNClient::regress));
 
 private:
   mutable algorithm::KDTree mTree{0};

@@ -67,6 +67,7 @@ public:
 
   FLUID_DECLARE_MESSAGES(makeMessage("index", &KNNRegClient::index),
                          makeMessage("fit", &KNNRegClient::index),
+                         makeMessage("regressPoint", &KNNRegClient::regress),
                          makeMessage("regress", &KNNRegClient::regress));
 
 private:
