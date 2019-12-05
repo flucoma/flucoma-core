@@ -38,24 +38,36 @@ public:
     using namespace algorithm;
 
     auto source = BufferAdaptor::ReadAccess(get<kSource>().get());
+    auto target = BufferAdaptor::ReadAccess(get<kTarget>().get());
+    BufferAdaptor::Access output(get<kOutput>().get());
+
     double sampleRate = source.sampleRate();
     auto fftParams = get<kFFT>();
 
-    size_t srcFrames = source.numFrames();
-    size_t srcWindows  = std::floor((srcFrames + fftParams.hopSize()) / fftParams.hopSize());
+    if(!source.exists())
+      return {Result::Status::kError, "Source Buffer Supplied But Invalid"};
 
-    size_t nBins     = fftParams.frameSize();
-
-    BufferAdaptor::ReadAccess target(get<kTarget>().get());
     if(!target.exists())
       return {Result::Status::kError, "Target Buffer Supplied But Invalid"};
 
-    BufferAdaptor::Access output(get<kOutput>().get());
 
     if(!output.exists())
       return {Result::Status::kError, "Output Buffer Supplied But Invalid"};
 
+
+    size_t srcFrames = source.numFrames();
     size_t tgtFrames = target.numFrames();
+
+    if (srcFrames <= 0)
+      return {Result::Status::kError, "Empty source buffer"};
+
+    if (tgtFrames <= 0)
+      return {Result::Status::kError, "Empty target buffer"};
+
+
+    size_t srcWindows  = std::floor((srcFrames + fftParams.hopSize()) / fftParams.hopSize());
+    size_t nBins     = fftParams.frameSize();
+
     size_t tgtWindows  = std::floor((tgtFrames + fftParams.hopSize()) / fftParams.hopSize());
     auto stft = STFT(fftParams.winSize(), fftParams.fftSize(), fftParams.hopSize());
     auto istft = ISTFT(fftParams.winSize(), fftParams.fftSize(), fftParams.hopSize());
