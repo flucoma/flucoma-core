@@ -45,6 +45,7 @@ public:
     auto weakPtr = datasetClient.get();
     FluidTensor<intptr_t, 1> counts(k);
     counts.fill(0);
+    if(k <= 1) return {Result::Status::kError,"K should be at least 2"};
     if(auto datasetClientPtr = weakPtr.lock())
     {
       auto dataSet = datasetClientPtr->getDataSet();
