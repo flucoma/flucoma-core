@@ -31,11 +31,13 @@ public:
             RealVectorView dataMax) {
     using namespace Eigen;
     using namespace _impl;
+    const double epsilon = std::numeric_limits<double>::epsilon();
     mMin = min;
     mMax = max;
     mDataMin = asEigen<Array>(dataMin);
     mDataMax = asEigen<Array>(dataMax);
     mDataRange = mDataMax - mDataMin;
+    mDataRange = mDataRange.max(epsilon);
     mInitialized = true;
   }
 
