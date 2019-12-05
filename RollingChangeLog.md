@@ -23,6 +23,5 @@ date: December 5th, 2019
 - audiotransport windows are restricted to fft sizes for now
 - MAX: (buf)audiotransport and bufnmfcross should be their own standalone object soon
 - MAX: bufnmfcross: progress bar does not work in blocking 0
-- instacrash with fluid.kmeans [fit validdataset wordinsteadofnumberofclusters]
 - instacrash with fluid.dataset [getPoint] on an empty dataset
 - Max: a few ref missing
