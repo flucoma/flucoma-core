@@ -378,7 +378,7 @@ private:
  of given container
  ****/
 template <typename T, size_t N>
-using FluidTensorInitializer = typename _impl::FluidTensorInit<T, N>::type;
+using FluidTensorInitializer = typename fluid::_impl::FluidTensorInit<T, N>::type;
 
 /********************
  FluidTensorSlice describes the shape of a container or subview of a container,
