@@ -86,6 +86,7 @@ class MessageResult: public Result
     using type = T; 
     using Result::Result;
     MessageResult(T data): mData{data} {}
+	MessageResult() = default; 
     operator T() const { return mData; }
   private:
     T mData;
