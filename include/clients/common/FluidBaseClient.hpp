@@ -62,15 +62,9 @@ public:
 
   constexpr static ParamDescType& getParameterDescriptors() { return PD; }
 
-<<<<<<< HEAD
-  const double sampleRate() const noexcept { return mSampleRate; };
-  void         sampleRate(double sr) { mSampleRate = sr; }
-
-=======
   double sampleRate() const noexcept { return mSampleRate; };
-  void  sampleRate(double sr) { mSampleRate = sr; }
+  void   sampleRate(double sr) { mSampleRate = sr; }
   
->>>>>>> Squish warnings
   void setParams(ParamSetViewType& p) { mParams = p; }
 
 protected:
