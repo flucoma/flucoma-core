@@ -14,6 +14,8 @@ ENDIF (APPLE)
 # Grab the Fluid Decpomposition header files so they can be added to IDE builds
 file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/include/**/*.hpp")
 
+set(FETCHCONTENT_QUIET FALSE)
+
 # Either download or point to dependencies
 FetchContent_Declare(
   HISSTools
@@ -38,14 +40,14 @@ if(EIGEN_PATH) #if hiss path is set, this will stop it downloading
   get_filename_component(FETCHCONTENT_SOURCE_DIR_EIGEN ${EIGEN_PATH} ABSOLUTE)
 endif()
 
-FetchContent_GetProperties(hisstools)
+FetchContent_GetProperties(HISSTools)
 if(NOT hisstools_POPULATED)
-  FetchContent_Populate(hisstools)
+  FetchContent_Populate(HISSTools)
 endif()
 
-FetchContent_GetProperties(eigen)
+FetchContent_GetProperties(Eigen)
 if(NOT eigen_POPULATED)
-  FetchContent_Populate(eigen)
+  FetchContent_Populate(Eigen)
 endif()
 
 # HISSTools FFT target
