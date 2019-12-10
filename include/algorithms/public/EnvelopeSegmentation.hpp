@@ -110,16 +110,16 @@ public:
     // double smoothed2 = mSlide2.processSample(dB);
 
     // pa's first max implementation (rectify cap smooth then dB convert)
-    double rectified = std::max(std::abs(filtered), 6.3095734448019e-08); // -144dB//
-    double smoothed = 20 * std::log10(mSlide.processSample(rectified));
-    double smoothed2 = 20 * std::log10(mSlide2.processSample(rectified));
+//    double rectified = std::max(std::abs(filtered), 6.3095734448019e-08); // -144dB//
+//    double smoothed = 20 * std::log10(mSlide.processSample(rectified));
+//    double smoothed2 = 20 * std::log10(mSlide2.processSample(rectified));
 
     // pa's second max implementation: capping to minthresh before slide
-    // double rectified = std::abs(filtered);
-    // double dB = 20 * std::log10(rectified);
-    // double floor = std::max(dB, (std::min(mOffThreshold, mOnThreshold) - 2.));//need to remove a few dBs because we never reach the floor in our sliding (for the comparison later)
-    // double smoothed = mSlide.processSample(floor);
-    // double smoothed2 = mSlide2.processSample(floor);
+     double rectified = std::abs(filtered);
+     double dB = 20 * std::log10(rectified);
+     double floor = std::max(dB, (std::min(mOffThreshold, mOnThreshold) - 3.));//need to remove a few dBs to gain the advantage of not starting from too low (more nervous) but allowing a bit of headroom (for the expon slides to go down faster) - maybe a dithered version would be better (TODO)
+     double smoothed = mSlide.processSample(floor);
+     double smoothed2 = mSlide2.processSample(floor);
 
     double relEnv = smoothed2 - smoothed;
     bool   forcedState = false;
@@ -220,8 +220,8 @@ public:
 private:
   void initBuffers()
   {
-    // mInputBuffer = mInputStorage.segment(0, std::max(mLatency, 1)).setConstant(-144); // -144dB
-    mInputBuffer = mInputStorage.segment(0, std::max(mLatency, 1)).setConstant(6.3095734448019e-08); // -144dB
+//     mInputBuffer = mInputStorage.segment(0, std::max(mLatency, 1)).setConstant(-144); // -144dB
+      mInputBuffer = mInputStorage.segment(0, std::max(mLatency, 1)).setConstant(std::min(mOffThreshold, mOnThreshold) - 3.); //threshold of silence
     mOutputBuffer = mOutputStorage.segment(0, std::max(mLatency, 1)).setZero();
     mInputState = false;
     mOutputState = false;
@@ -236,11 +236,13 @@ private:
   }
 
   void initSlides() {
-    // mSlide.init(mRampUpTime, mRampDownTime, -144); // -144dB
-    // mSlide2.init(mRampUpTime2, mRampDownTime2, -144); // -144dB
-    mSlide.init(mRampUpTime, mRampDownTime, 6.3095734448019e-08); // -144dB
-    mSlide2.init(mRampUpTime2, mRampDownTime2, 6.3095734448019e-08); // -144dB
-  }
+//     mSlide.init(mRampUpTime, mRampDownTime, -144); // -144dB
+//     mSlide2.init(mRampUpTime2, mRampDownTime2, -144); // -144dB
+//    mSlide.init(mRampUpTime, mRampDownTime, 6.3095734448019e-08); // -144dB
+//    mSlide2.init(mRampUpTime2, mRampDownTime2, 6.3095734448019e-08); // -144dB
+      mSlide.init(mRampUpTime, mRampDownTime, (std::min(mOffThreshold, mOnThreshold) - 3.));
+      mSlide2.init(mRampUpTime2, mRampDownTime2, (std::min(mOffThreshold, mOnThreshold) - 3.));
+}
 
   int refineStart(int start, int nSamples, bool direction = true)
   {
