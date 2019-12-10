@@ -63,7 +63,7 @@ public:
     assert(mLatency <= mMaxSize);
     initBuffers();
     initFilters();
-    initSliders();
+    initSlides();
     mInitialized = true;
   }
 
@@ -235,7 +235,7 @@ private:
     mHiPass2.init(mHiPassFreq);
   }
 
-  void initSliders() {
+  void initSlides() {
     // mSlide.init(mRampUpTime, mRampDownTime, -144); // -144dB
     // mSlide2.init(mRampUpTime2, mRampDownTime2, -144); // -144dB
     mSlide.init(mRampUpTime, mRampDownTime, 6.3095734448019e-08); // -144dB
