@@ -97,8 +97,8 @@ public:
 
     auto       dstStart = get<kDestOffset>();
     auto       dstStartChan = get<kDestStartChan>();
-    auto       dstEnd{0};
-    auto       dstEndChan{0};
+    size_t     dstEnd{0};
+    size_t     dstEndChan{0};
     bool       destinationResizeNeeded{false};
     HostMatrix destinationOrig(0, 0);
 
@@ -122,8 +122,8 @@ public:
                                    // to resize it
       {
         destinationOrig.resize(
-            std::max<unsigned>(dstEndChan, destination.numChans()),
-            std::max<unsigned>(dstEnd, destination.numFrames()));
+            std::max<size_t>(dstEndChan, destination.numChans()),
+            std::max<size_t>(dstEnd, destination.numFrames()));
         if (destination.numChans() > 0 && destination.numFrames() > 0)
         {
           for (int i = 0; i < destination.numChans(); ++i)
