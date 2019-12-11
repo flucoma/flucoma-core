@@ -25,7 +25,7 @@ class TruePeak
 public:
   TruePeak(int maxSize) : mFFT(maxSize), mIFFT(maxSize * 4) {}
 
-  void init(int size, int sampleRate)
+  void init(int size, double sampleRate)
   {
     mSampleRate = sampleRate;
     mFFTSize = std::pow(2, std::ceil(std::log(size) / std::log(2)));
@@ -57,7 +57,7 @@ private:
   FFT      mFFT;
   IFFT     mIFFT;
   ArrayXcd mBuffer;
-  int      mSampleRate{44100.0};
+  double   mSampleRate{44100.0};
   int      mFactor{4};
   int      mFFTSize{1024};
 };
