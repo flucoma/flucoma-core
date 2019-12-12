@@ -77,8 +77,8 @@ public:
   }
 
   // Return a slice of the buffer
-  FluidTensorView<float, 1> samps(size_t channel) { return mData.col(channel); }
-  FluidTensorView<float, 1> samps(size_t offset, size_t nframes,
+  FluidTensorView<float, 1> samps override (size_t channel) { return mData.col(channel); }
+  FluidTensorView<float, 1> samps override (size_t offset, size_t nframes,
                                   size_t chanoffset)
   {
     return mData(Slice(offset, nframes), Slice(chanoffset, 1)).col(0);
