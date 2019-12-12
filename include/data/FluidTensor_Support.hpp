@@ -454,7 +454,7 @@ private:
 
   /// Recursively populate a new slice from an old one,
   template <size_t M> // terminate
-  size_t doSlice(const fluid::FluidTensorSlice<M>& os)
+  size_t doSlice(const fluid::FluidTensorSlice<M>&)
   {
     return 0;
   }

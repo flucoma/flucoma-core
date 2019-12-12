@@ -17,7 +17,7 @@ namespace client {
 class MemoryBufferAdaptor : public BufferAdaptor
 {
 public:
-  MemoryBufferAdaptor(size_t chans, size_t frames, double sampleRate)
+  MemoryBufferAdaptor(size_t chans, size_t frames, double /*sampleRate*/)
       : mData(frames, chans)
   {}
 

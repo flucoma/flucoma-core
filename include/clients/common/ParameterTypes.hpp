@@ -111,8 +111,8 @@ struct EnumT : ParamTypeBase
   struct EnumConstraint
   {
     template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
-    constexpr void clamp(EnumUnderlyingType& v, Tuple& allParams, Descriptor& d,
-                         Result* r) const
+    constexpr void clamp(EnumUnderlyingType& v, Tuple& /*allParams*/, Descriptor& d,
+                         Result*) const
     {
       auto& e = d.template get<N>();
       v = std::max<EnumUnderlyingType>(
@@ -126,7 +126,7 @@ struct FloatArrayT : ParamTypeBase
   using type = FloatArrayUnderlyingType;
   template <std::size_t N>
   FloatArrayT(const char* name, const char* displayName,
-              type::value_type (&defaultValues)[N])
+              type::value_type (&/*defaultValues*/)[N])
       : ParamTypeBase(name, displayName)
   {}
   const std::size_t fixedSize;
@@ -138,7 +138,7 @@ struct LongArrayT : ParamTypeBase
   using type = LongArrayUnderlyingType;
   template <std::size_t N>
   LongArrayT(const char* name, const char* displayName,
-             type::value_type (&defaultValues)[N])
+             type::value_type (&/*defaultValues*/)[N])
       : ParamTypeBase(name, displayName)
   {}
   const std::size_t fixedSize;
@@ -217,7 +217,7 @@ template <>
 struct ConstrainMaxFFTSize<false>
 {
   template <intptr_t N, typename T>
-  size_t clamp(intptr_t x, T& constraints) const
+  intptr_t clamp(intptr_t x, T& /*constraints*/) const
   {
     return x;
   }
@@ -306,7 +306,7 @@ public:
   struct FFTSettingsConstraint
   {
     template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
-    constexpr void clamp(FFTParams& v, Tuple& allParams, Descriptor& d,
+    constexpr void clamp(FFTParams& v, Tuple& allParams, Descriptor&,
                          Result* r) const
     {
       FFTParams input = v;

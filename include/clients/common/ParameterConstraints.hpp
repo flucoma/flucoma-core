@@ -31,7 +31,7 @@ struct MinImpl
   const T value;
   template <size_t Offset, size_t N, typename U, typename Tuple,
             typename Descriptor>
-  constexpr void clamp(U& x, Tuple& params, Descriptor& d, Result* r) const
+  constexpr void clamp(U& x, Tuple& /*params*/, Descriptor& d, Result* r) const
   {
     U oldX = x;
     x = std::max<U>(x, value);
@@ -51,7 +51,7 @@ struct MaxImpl
   const T value;
   template <size_t Offset, size_t N, typename U, typename Tuple,
             typename Descriptor>
-  constexpr void clamp(U& x, Tuple& params, Descriptor& d, Result* r) const
+  constexpr void clamp(U& x, Tuple& /*params*/, Descriptor& d, Result* r) const
   {
 
     U oldX = x;
@@ -221,7 +221,7 @@ struct FrequencyAmpPairConstraint
   constexpr FrequencyAmpPairConstraint() {}
 
   template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
-  constexpr void clamp(type& v, Tuple& allParams, Descriptor&, Result* r) const
+  constexpr void clamp(type& v, Tuple& allParams, Descriptor&, Result*) const
   {
     auto& vals = v.value;
     auto& inParams = std::get<N>(allParams);
@@ -253,7 +253,7 @@ struct FrequencyAmpPairConstraint
 struct PowerOfTwo
 {
   template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
-  constexpr void clamp(LongUnderlyingType& x, Tuple& params, Descriptor& d,
+  constexpr void clamp(LongUnderlyingType& x, Tuple& /*params*/, Descriptor& d,
                        Result* r) const
   {
 
@@ -274,8 +274,8 @@ struct PowerOfTwo
 struct Odd
 {
   template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
-  constexpr void clamp(LongUnderlyingType& x, Tuple& params, Descriptor& d,
-                       Result* r) const
+  constexpr void clamp(LongUnderlyingType& x, Tuple& /*params*/, Descriptor&,
+                       Result*) const
   {
     x = x % 2 ? x : x + 1;
   }

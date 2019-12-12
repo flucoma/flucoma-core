@@ -22,7 +22,7 @@ namespace impl {
 
 template <typename T>
 Result spikesToTimes(FluidTensorView<T, 2> changePoints, BufferAdaptor* output,
-                     size_t hopSize, size_t timeOffset, size_t numFrames,
+                     size_t hopSize, size_t timeOffset, size_t /*numFrames*/,
                      double sampleRate)
 {
 
