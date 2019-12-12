@@ -192,7 +192,7 @@ protected:
 
 public:
   constexpr ParameterSetView(const DescriptorSetType& d, ValueRefTuple t)
-      : mDescriptors{std::cref(d)}, mParams{t}, mKeepConstrained(false)
+      : mDescriptors{std::cref(d)}, mKeepConstrained(false), mParams{t}
   {}
 
   auto keepConstrained(bool keep)
@@ -430,7 +430,7 @@ public:
 
 private:
   template <size_t... Is>
-  constexpr auto create(const DescriptorSetType& d,
+  constexpr auto create(const DescriptorSetType&,
                         std::index_sequence<Is...>) const
   {
     return std::make_tuple(ViewType::template descriptor<Is>().defaultValue...);
