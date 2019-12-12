@@ -94,7 +94,7 @@ public:
   }
   size_t      numFrames() const override { return mData.rows(); }
   size_t      numChans() const override { return mData.cols(); }
-  double      sampleRate() const { return mSampleRate; }
+  double      sampleRate() const override { return mSampleRate; }
   std::string asString() const override { return ""; }
   void        refresh() override { mWrite = true; }
 
