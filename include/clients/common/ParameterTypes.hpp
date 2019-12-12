@@ -522,7 +522,7 @@ struct ParamLiterals<FloatPairsArrayT>
   static std::array<type, 4> getLiteral(const FloatPairsArrayT::type& p)
   {
     auto v = p.value;
-    return {v[0].first, v[0].second, v[1].first, v[1].second};
+    return {{v[0].first, v[0].second, v[1].first, v[1].second}};
   }
 };
 
@@ -533,7 +533,7 @@ struct ParamLiterals<FFTParamsT>
 
   static std::array<type, 3> getLiteral(const FFTParams& p)
   {
-    return {p.winSize(), p.hopRaw(), p.fftRaw()};
+    return {{p.winSize(), p.hopRaw(), p.fftRaw()}};
   }
 };
 } // namespace impl

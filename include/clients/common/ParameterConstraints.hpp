@@ -80,12 +80,12 @@ struct LowerLimitImpl : public Relational
     {
       r->set(Result::Status::kWarning);
       std::array<T, sizeof...(Is)> constraintValues{
-          std::get<Is + Offset>(params)...};
+          {std::get<Is + Offset>(params)...}};
       size_t minPos = std::distance(
           constraintValues.begin(),
           std::min_element(constraintValues.begin(), constraintValues.end()));
       std::array<const char*, sizeof...(Is)> constraintNames{
-          d.template get<Is + Offset>().name...};
+          {d.template get<Is + Offset>().name...}};
       r->addMessage(d.template get<N>().name, " value (", oldV,
                     ") below parameter ", constraintNames[minPos], " (", v,
                     ')');
@@ -108,12 +108,12 @@ struct UpperLimitImpl : public Relational
     {
       r->set(Result::Status::kWarning);
       std::array<T, sizeof...(Is)> constraintValues{
-          std::get<Is + Offset>(params)...};
+        {std::get<Is + Offset>(params)...}};
       size_t maxPos = std::distance(
           constraintValues.begin(),
           std::max_element(constraintValues.begin(), constraintValues.end()));
       std::array<const char*, sizeof...(Is)> constraintNames{
-          d.template get<Is + Offset>().name...};
+        {d.template get<Is + Offset>().name...}};
       r->addMessage(d.template get<N>().name, " value, ", oldV,
                     ", above parameter ", constraintNames[maxPos], " (", v,
                     ')');
