@@ -73,12 +73,12 @@ public:
     static constexpr bool     refine = false;
     static constexpr double   robustFactor = 3.0;
 
-    size_t order = get<kOrder>();
-    size_t blockSize = get<kBlockSize>();
-    size_t padding = get<kPadding>();
-    size_t hostVecSize = input[0].size();
-    size_t maxWinIn = 2 * blockSize + padding;
-    size_t maxWinOut = maxWinIn; // blockSize - padding;
+    index order = get<kOrder>();
+    index blockSize = get<kBlockSize>();
+    index padding = get<kPadding>();
+    index hostVecSize = input[0].size();
+    index maxWinIn = 2 * blockSize + padding;
+    index maxWinOut = maxWinIn; // blockSize - padding;
 
     if (mTrackValues.changed(order, blockSize, padding, hostVecSize) ||
         !mExtractor.initialized())
@@ -96,9 +96,9 @@ public:
     double skew = pow(2, get<kSkew>());
     double threshFwd = get<kThreshFwd>();
     double thresBack = get<kThreshBack>();
-    size_t halfWindow = round(get<kWinSize>() / 2);
-    size_t debounce = get<kDebounce>();
-    size_t minSeg = get<kMinSeg>();
+    index halfWindow = round(get<kWinSize>() / 2);
+    index debounce = get<kDebounce>();
+    index minSeg = get<kMinSeg>();
 
     mExtractor.setDetectionParameters(skew, threshFwd, thresBack, halfWindow,
                                       debounce, minSeg);
@@ -120,22 +120,22 @@ public:
     if (output[0].data()) output[0] = out.row(0);
   }
 
-  size_t latency()
+  index latency()
   {
     return get<kPadding>() + get<kBlockSize>() - get<kOrder>();
   }
 
 private:
-  ParameterTrackChanges<size_t, size_t, size_t, size_t> mTrackValues;
+  ParameterTrackChanges<index, index, index, index> mTrackValues;
   // std::unique_ptr<algorithm::TransientSegmentation> mExtractor;
   algorithm::TransientSegmentation mExtractor{get<kOrder>(), 3, 3.0};
 
   BufferedProcess   mBufferedProcess;
   FluidTensor<T, 1> mTransients;
-  size_t            mHostSize{0};
-  size_t            mOrder{0};
-  size_t            mBlocksize{0};
-  size_t            mPadding{0};
+  index            mHostSize{0};
+  index            mOrder{0};
+  index            mBlocksize{0};
+  index            mPadding{0};
 };
 
 auto constexpr NRTTransientSliceParams = makeNRTParams<TransientsSliceClient>(

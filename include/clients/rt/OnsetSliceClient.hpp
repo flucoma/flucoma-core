@@ -74,8 +74,8 @@ public:
 
     if (!input[0].data() || !output[0].data()) return;
 
-    size_t hostVecSize = input[0].size();
-    size_t totalWindow = get<kFFT>().winSize() + get<kFrameDelta>();
+    index hostVecSize = input[0].size();
+    index totalWindow = get<kFFT>().winSize() + get<kFrameDelta>();
 
     if (mBufferParamsTracker.changed(hostVecSize, get<kFFT>().winSize(),
                                      get<kFrameDelta>()))
@@ -112,8 +112,8 @@ public:
 
 private:
   OnsetSegmentation                             mAlgorithm{get<kMaxFFTSize>()};
-  ParameterTrackChanges<size_t, size_t, size_t> mBufferParamsTracker;
-  ParameterTrackChanges<size_t>                 mMaxSizeTracker;
+  ParameterTrackChanges<index, index, index> mBufferParamsTracker;
+  ParameterTrackChanges<index>                 mMaxSizeTracker;
   BufferedProcess                               mBufferedProcess;
   RealMatrix                                    mTmp;
 };

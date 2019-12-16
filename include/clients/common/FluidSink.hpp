@@ -8,6 +8,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
+#include "../../data/FluidIndex.hpp"
 #include "../../data/FluidTensor.hpp"
 #include <cassert>
 
@@ -33,7 +34,7 @@ public:
   FluidSink(FluidSink&&) noexcept = default;
   FluidSink& operator=(FluidSink&&) noexcept = default;
 
-  FluidSink(const size_t size, const size_t channels = 1)
+  FluidSink(const index size, const index channels = 1)
       : matrix(channels, size), mSize(size), mChannels(channels)
   {}
 
@@ -46,22 +47,22 @@ public:
    This *adds* the content of the frame to whatever is
    already there
    **/
-  void push(const_view_type x, size_t frameTime)
+  void push(const_view_type x, index frameTime)
   {
     assert(x.rows() == mChannels);
 
-    size_t blocksize = x.cols();
+    index blocksize = x.cols();
 
     assert(blocksize <= bufferSize());
 
-    size_t offset = frameTime;
+    index offset = frameTime;
 
     if (offset + blocksize > bufferSize()) { return; }
 
     offset += mCounter;
     offset = offset < bufferSize() ? offset : offset - bufferSize();
 
-    size_t size = ((offset + blocksize) > bufferSize()) ? bufferSize() - offset
+    index size = ((offset + blocksize) > bufferSize()) ? bufferSize() - offset
                                                         : blocksize;
 
     addIn(x(Slice(0), Slice(0, size)), offset, size);
@@ -74,12 +75,12 @@ public:
   void pull(view_type out)
   {
 
-    size_t blocksize = out.cols();
+    index blocksize = out.cols();
     if (blocksize > bufferSize()) { return; }
 
-    size_t offset = mCounter;
+    index offset = mCounter;
 
-    size_t size =
+    index size =
         offset + blocksize > bufferSize() ? bufferSize() - offset : blocksize;
 
     outAndZero(out(Slice(0), Slice(0, size)), offset, size);
@@ -93,7 +94,7 @@ public:
 
    This should be called from an audio host's DSP setup routine
    **/
-  void reset(size_t channels = 0)
+  void reset(index channels = 0)
   {
     if (channels) mChannels = channels;
 
@@ -105,16 +106,16 @@ public:
     }
   }
 
-  void setSize(size_t n) { mSize = n; }
+  void setSize(index n) { mSize = n; }
 
-  void setHostBufferSize(size_t n) { mHostBufferSize = n; }
+  void setHostBufferSize(index n) { mHostBufferSize = n; }
 
-  size_t channels() const noexcept { return mChannels; }
-  size_t size() const noexcept { return mSize; }
-  size_t hostBufferSize() const noexcept { return mHostBufferSize; }
+  index channels() const noexcept { return mChannels; }
+  index size() const noexcept { return mSize; }
+  index hostBufferSize() const noexcept { return mHostBufferSize; }
 
 private:
-  void addIn(const_view_type in, size_t offset, size_t size)
+  void addIn(const_view_type in, index offset, index size)
   {
     if (size)
     {
@@ -124,7 +125,7 @@ private:
     }
   }
 
-  void outAndZero(view_type out, size_t offset, size_t size)
+  void outAndZero(view_type out, index offset, index size)
   {
     if (size)
     {
@@ -137,12 +138,12 @@ private:
   }
 
   template <typename OutputIt>
-  void outAndZero(OutputIt out, OutputIt end, size_t outOffset, size_t offset,
-                  size_t size)
+  void outAndZero(OutputIt out, OutputIt end, index outOffset, index offset,
+                  index size)
   {
     if (size)
     {
-      for (size_t i = 0; (i < mChannels && out != end); ++i, ++out)
+      for (index i = 0; (i < mChannels && out != end); ++i, ++out)
       {
         auto outSlice = matrix(++i, Slice(offset, size));
         *out->copy_to(outSlice, outOffset, size);
@@ -152,12 +153,12 @@ private:
     }
   }
 
-  size_t bufferSize() const { return mSize + mHostBufferSize; }
+  index bufferSize() const { return mSize + mHostBufferSize; }
 
   tensor_type matrix;
-  size_t      mSize;
-  size_t      mChannels;
-  size_t      mCounter = 0;
-  size_t      mHostBufferSize = 0;
+  index      mSize;
+  index      mChannels;
+  index      mCounter = 0;
+  index      mHostBufferSize = 0;
 };
 } // namespace fluid

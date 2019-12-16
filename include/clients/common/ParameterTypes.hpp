@@ -12,6 +12,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "BufferAdaptor.hpp"
 #include "ParameterTrackChanges.hpp"
 #include "Result.hpp"
+#include "../../data/FluidIndex.hpp"
 #include <memory>
 #include <tuple>
 #include <utility>
@@ -22,8 +23,8 @@ namespace fluid {
 namespace client {
 
 using FloatUnderlyingType = double;
-using LongUnderlyingType = intptr_t; // signed int equal to pointer size, k thx
-using EnumUnderlyingType = intptr_t;
+using LongUnderlyingType = index; // signed int equal to pointer size, k thx
+using EnumUnderlyingType = index;
 using BufferUnderlyingType = std::shared_ptr<BufferAdaptor>;
 using InputBufferUnderlyingType = std::shared_ptr<const BufferAdaptor>;
 using FloatArrayUnderlyingType = std::vector<FloatUnderlyingType>;
@@ -53,7 +54,7 @@ struct FloatT : ParamTypeBase
                    const type defaultVal)
       : ParamTypeBase(name, displayName), defaultValue(defaultVal)
   {}
-  const std::size_t fixedSize = 1;
+  const index fixedSize = 1;
   const type        defaultValue;
 };
 
@@ -64,7 +65,7 @@ struct LongT : ParamTypeBase
                   const type defaultVal)
       : ParamTypeBase(name, displayName), defaultValue(defaultVal)
   {}
-  const std::size_t fixedSize = 1;
+  const index fixedSize = 1;
   const type        defaultValue;
 };
 
@@ -74,7 +75,7 @@ struct BufferT : ParamTypeBase
   constexpr BufferT(const char* name, const char* displayName)
       : ParamTypeBase(name, displayName)
   {}
-  const std::size_t    fixedSize = 1;
+  const index    fixedSize = 1;
   const std::nullptr_t defaultValue{nullptr};
 }; // no non-relational conditions for buffer?
 
@@ -85,17 +86,17 @@ struct InputBufferT : ParamTypeBase
   constexpr InputBufferT(const char* name, const char* displayName)
       : ParamTypeBase(name, displayName)
   {}
-  const std::size_t    fixedSize = 1;
+  const index    fixedSize = 1;
   const std::nullptr_t defaultValue{nullptr};
 };
 
 struct EnumT : ParamTypeBase
 {
   using type = EnumUnderlyingType;
-  template <std::size_t... N>
+  template <index... N>
   constexpr EnumT(const char* name, const char* displayName, type defaultVal,
                   const char (&... string)[N])
-      : strings{string...}, ParamTypeBase(name, displayName), fixedSize(1),
+      : ParamTypeBase(name, displayName), strings{string...}, fixedSize(1),
         numOptions(sizeof...(N)), defaultValue(defaultVal)
   {
     static_assert(sizeof...(N) > 0, "Fluid Param: No enum strings supplied!");
@@ -104,9 +105,9 @@ struct EnumT : ParamTypeBase
   }
   const char* strings[16]; // unilateral descision klaxon: if you have more than
                            // 16 things in an Enum, you need to rethink
-  const std::size_t fixedSize;
-  const std::size_t numOptions;
-  const type        defaultValue;
+  const index fixedSize;
+  const index numOptions;
+  const type  defaultValue;
 
   struct EnumConstraint
   {
@@ -129,7 +130,7 @@ struct FloatArrayT : ParamTypeBase
               type::value_type (&/*defaultValues*/)[N])
       : ParamTypeBase(name, displayName)
   {}
-  const std::size_t fixedSize;
+  const index fixedSize;
 };
 
 struct LongArrayT : ParamTypeBase
@@ -141,17 +142,17 @@ struct LongArrayT : ParamTypeBase
              type::value_type (&/*defaultValues*/)[N])
       : ParamTypeBase(name, displayName)
   {}
-  const std::size_t fixedSize;
+  const index fixedSize;
 };
 
 struct BufferArrayT : ParamTypeBase
 {
 
   using type = BufferArrayUnderlyingType;
-  BufferArrayT(const char* name, const char* displayName, const size_t size)
+  BufferArrayT(const char* name, const char* displayName, const index size)
       : ParamTypeBase(name, displayName), fixedSize(size)
   {}
-  const std::size_t fixedSize;
+  const index fixedSize;
 };
 
 // Pair of frequency amplitude pairs for HPSS threshold
@@ -202,7 +203,7 @@ struct FloatPairsArrayT : ParamTypeBase
   constexpr FloatPairsArrayT(const char* name, const char* displayName)
       : ParamTypeBase(name, displayName)
   {}
-  const std::size_t         fixedSize{4};
+  const index         fixedSize{4};
   const FloatPairsArrayType defaultValue{0.0, 1.0, 1.0, 1.0};
 };
 
@@ -217,7 +218,7 @@ template <>
 struct ConstrainMaxFFTSize<false>
 {
   template <intptr_t N, typename T>
-  intptr_t clamp(intptr_t x, T& /*constraints*/) const
+  index clamp(intptr_t x, T& /*constraints*/) const
   {
     return x;
   }
@@ -227,7 +228,7 @@ template <>
 struct ConstrainMaxFFTSize<true>
 {
   template <intptr_t N, typename T>
-  size_t clamp(intptr_t x, T& constraints) const
+  index clamp(intptr_t x, T& constraints) const
   {
     return std::min<intptr_t>(x, std::get<N>(constraints));
   }
@@ -264,9 +265,10 @@ public:
     return *this;
   }
 
-  size_t fftSize() const noexcept
+  index fftSize() const noexcept
   {
-    return mFFTSize < 0 ? nextPow2(mWindowSize, true) : mFFTSize;
+    assert(mWindowSize >= 0 && mWindowSize <= asSigned(std::numeric_limits<uint32_t>::max()));
+    return mFFTSize < 0 ? nextPow2(static_cast<uint32_t>(mWindowSize), true) : mFFTSize;
   }
   intptr_t fftRaw() const noexcept { return mFFTSize; }
   intptr_t hopRaw() const noexcept { return mHopSize; }
@@ -281,17 +283,17 @@ public:
   void setFFT(intptr_t fft) { mFFTSize = fft; }
   void setHop(intptr_t hop) { mHopSize = hop; }
 
-  static intptr_t nextPow2(uint32_t x, bool up)
+  static index nextPow2(uint32_t x, bool up)
   {
     /// http://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
-    if (!x) return x;
+    if (!x) return static_cast<index>(x);
     --x;
     x |= (x >> 1);
     x |= (x >> 2);
     x |= (x >> 4);
     x |= (x >> 8);
     x |= (x >> 16);
-    return up ? ++x : x - (x >> 1);
+    return static_cast<index>(up ? ++x : x - (x >> 1));
   }
 
   bool operator==(const FFTParams& x)
@@ -305,7 +307,7 @@ public:
   template <int MaxFFTIndex = -1>
   struct FFTSettingsConstraint
   {
-    template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
+    template <int Offset, size_t N, typename Tuple, typename Descriptor>
     constexpr void clamp(FFTParams& v, Tuple& allParams, Descriptor&,
                          Result* r) const
     {
@@ -334,9 +336,11 @@ public:
           // If we drag down we want it to leap down by powers of 2, but with a
           // lower bound at th nearest power of 2 >= winSize
           bool up = inParams.trackFFT.template direction<0>() > 0;
-          int  fft = v.fftRaw();
-          fft = (fft & (fft - 1)) == 0 ? fft : v.nextPow2(v.fftRaw(), up);
-          fft = std::max<int>(fft, v.nextPow2(v.winSize(), true));
+          index  fft = v.fftRaw();
+          assert(fft <= asSigned(std::numeric_limits<uint32_t>::max()));
+          fft = (fft & (fft - 1)) == 0 ? fft : v.nextPow2(static_cast<uint32_t>(v.fftRaw()), up);
+          assert(v.winSize() >= 0 && v.winSize() <= asSigned(std::numeric_limits<uint32_t>::max()));
+          fft = std::max<index>(fft, v.nextPow2(static_cast<uint32_t>(v.winSize()), true));
           v.setFFT(fft);
           //          v.setFFT(std::max(v.fftRaw(), v.nextPow2(v.winSize(),
           //          true)));
@@ -352,10 +356,14 @@ public:
       //          inParams.fftRaw()),trackFFT.template direction<0>() > 0));
       //
       constexpr bool     HasMaxFFT = MaxFFTIndex > 0;
-      constexpr intptr_t I = MaxFFTIndex + Offset;
+      
+      static_assert(std::numeric_limits<index>::max() >= MaxFFTIndex + Offset,"MaxFFT + Offset too big! You must have a ridiculous number of parameters");
+      
+      constexpr index I = static_cast <index>(MaxFFTIndex + Offset);
 
       // Now check (optionally) against MaxFFTSize
-      size_t clippedFFT = std::max<intptr_t>(
+      
+      index clippedFFT = std::max<index>(
           ConstrainMaxFFTSize<HasMaxFFT>{}.template clamp<I, Tuple>(v.fftSize(),
                                                                     allParams),
           4);
@@ -401,12 +409,12 @@ struct FFTParamsT : ParamTypeBase
   using type = FFTParams;
 
   constexpr FFTParamsT(const char* name, const char* displayName,
-                       int winDefault, int hopDefault, int fftDefault)
+                       index winDefault, index hopDefault, index fftDefault)
       : ParamTypeBase(name, displayName), defaultValue{winDefault, hopDefault,
                                                        fftDefault}
   {}
 
-  const std::size_t fixedSize = 3;
+  const index fixedSize = 3;
   const type        defaultValue;
 };
 
@@ -496,8 +504,8 @@ template <intptr_t MaxFFTIndex = -1, typename... Constraints>
 constexpr ParamSpec<FFTParamsT, Fixed<false>,
                     FFTParams::FFTSettingsConstraint<MaxFFTIndex>,
                     Constraints...>
-FFTParam(const char* name, const char* displayName, int winDefault,
-         int hopDefault, int fftDefault, const Constraints... c)
+FFTParam(const char* name, const char* displayName, index winDefault,
+         index hopDefault, index fftDefault, const Constraints... c)
 {
   return {FFTParamsT(name, displayName, winDefault, hopDefault, fftDefault),
           std::tuple_cat(
@@ -552,7 +560,7 @@ public:
     mArray = impl::ParamLiterals<T>::getLiteral(v);
   }
   ValueType    value() { return make(std::make_index_sequence<N>()); }
-  LiteralType& operator[](size_t idx) { return mArray[idx]; }
+  LiteralType& operator[](index idx) { return mArray[asUnsigned(idx)]; }
 
 private:
   template <size_t... Is>

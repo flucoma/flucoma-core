@@ -71,7 +71,7 @@ public:
   {
     if (!input[0].data() || !output[0].data()) return;
     assert(FluidBaseClient::controlChannelsOut() && "No control channels");
-    assert(output.size() >= FluidBaseClient::controlChannelsOut() &&
+    assert(asSigned(output.size()) >= FluidBaseClient::controlChannelsOut() &&
            "Too few output channels");
 
     if (mParamTracker.changed(get<kFFT>().frameSize()))
@@ -104,11 +104,11 @@ public:
                        : 69 + (12 * log2(mDescriptors(0) / 440.0)); // pitch
     output[1](0) = mDescriptors(1); // pitch confidence
   }
-  size_t latency() { return get<kFFT>().winSize(); }
-  size_t controlRate() { return get<kFFT>().hopSize(); }
+  index latency() { return get<kFFT>().winSize(); }
+  index controlRate() { return get<kFFT>().hopSize(); }
 
 private:
-  ParameterTrackChanges<size_t>                  mParamTracker;
+  ParameterTrackChanges<index>                  mParamTracker;
   STFTBufferedProcess<ParamSetViewType, T, kFFT> mSTFTBufferedProcess;
 
   CepstrumF0             cepstrumF0;

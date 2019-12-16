@@ -65,8 +65,7 @@ public:
   {
     if (!input[0].data() || !output[0].data()) return;
     assert(FluidBaseClient::controlChannelsOut() && "No control channels");
-    assert(output.size() >= FluidBaseClient::controlChannelsOut() &&
-           "Too few output channels");
+    assert(output.size() >= asUnsigned(FluidBaseClient::controlChannelsOut()) && "Too few output channels");
 
     if (mTracker.changed(get<kFFT>().frameSize(), get<kNBands>(),
                          get<kMinFreq>(), get<kMaxFreq>()))
@@ -82,15 +81,15 @@ public:
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
           mMelBands.processFrame(mMagnitude, mBands);
         });
-    for (int i = 0; i < get<kNBands>(); ++i) output[i](0) = mBands(i);
+    for (index i = 0; i < get<kNBands>(); ++i) output[asUnsigned(i)](0) = mBands(i);
   }
 
-  size_t latency() { return get<kFFT>().winSize(); }
+  index latency() { return get<kFFT>().winSize(); }
 
-  size_t controlRate() { return get<kFFT>().hopSize(); }
+  index controlRate() { return get<kFFT>().hopSize(); }
 
 private:
-  ParameterTrackChanges<size_t, size_t, double, double> mTracker;
+  ParameterTrackChanges<index, index, double, double> mTracker;
   STFTBufferedProcess<ParamSetViewType, T, kFFT, false> mSTFTBufferedProcess;
 
   algorithm::MelBands mMelBands;

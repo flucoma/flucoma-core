@@ -53,14 +53,14 @@ public:
     controlChannelsOut(get<kMaxRank>());
   }
 
-  size_t latency() { return get<kFFT>().winSize(); }
+  index latency() { return get<kFFT>().winSize(); }
 
   void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
                FluidContext& c, bool reset = false)
   {
     if (!input[0].data()) return;
     assert(FluidBaseClient::controlChannelsOut() && "No control channels");
-    assert(output.size() >= FluidBaseClient::controlChannelsOut() &&
+    assert(output.size() >= asUnsigned(FluidBaseClient::controlChannelsOut()) &&
            "Too few output channels");
 
     if (get<kFilterbuf>().get())
@@ -71,7 +71,7 @@ public:
 
       if (!filterBuffer.valid()) { return; }
 
-      size_t rank = std::min<size_t>(filterBuffer.numChans(), get<kMaxRank>());
+      index rank = std::min<index>(filterBuffer.numChans(), get<kMaxRank>());
 
       if (filterBuffer.numFrames() != fftParams.frameSize()) { return; }
 
@@ -84,7 +84,7 @@ public:
         mNMF.init(rank, get<kIterations>());
       }
 
-      for (size_t i = 0; i < tmpFilt.rows(); ++i)
+      for (index i = 0; i < tmpFilt.rows(); ++i)
         tmpFilt.row(i) = filterBuffer.samps(i);
 
       //      controlTrigger(false);
@@ -95,12 +95,12 @@ public:
             //          controlTrigger(true);
           });
 
-      for (size_t i = 0; i < rank; ++i) output[i](0) = tmpOut(i);
+      for (index i = 0; i < rank; ++i) output[asUnsigned(i)](0) = tmpOut(i);
     }
   }
 
 private:
-  ParameterTrackChanges<size_t, size_t>                 mTrackValues;
+  ParameterTrackChanges<index, index>                 mTrackValues;
   STFTBufferedProcess<ParamSetViewType, T, kFFT, false> mSTFTProcessor;
   algorithm::NMF                                        mNMF{get<kMaxRank>()};
 

@@ -9,6 +9,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "Result.hpp"
+#include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
 
 namespace fluid {
@@ -44,22 +45,22 @@ public:
 
     bool exists() const { return mAdaptor ? mAdaptor->exists() : false; }
 
-    FluidTensorView<const float, 1> samps(size_t channel) const
+    FluidTensorView<const float, 1> samps(index channel) const
     {
       assert(mAdaptor);
       return mAdaptor->samps(channel);
     }
 
-    FluidTensorView<const float, 1> samps(size_t offset, size_t nframes,
-                                          size_t chanoffset) const
+    FluidTensorView<const float, 1> samps(index offset, index nframes,
+                                          index chanoffset) const
     {
       assert(mAdaptor);
       return mAdaptor->samps(offset, nframes, chanoffset);
     }
 
-    size_t numFrames() const { return mAdaptor ? mAdaptor->numFrames() : 0; }
+    index numFrames() const { return mAdaptor ? mAdaptor->numFrames() : 0; }
 
-    size_t numChans() const { return mAdaptor ? mAdaptor->numChans() : 0; }
+    index numChans() const { return mAdaptor ? mAdaptor->numChans() : 0; }
 
     double sampleRate() const { return mAdaptor ? mAdaptor->sampleRate() : 0; }
 
@@ -86,20 +87,20 @@ public:
     Access(Access&&) noexcept = default;
     Access& operator=(Access&&) noexcept = default;
 
-    FluidTensorView<float, 1> samps(size_t channel)
+    FluidTensorView<float, 1> samps(index channel)
     {
       assert(mMutableAdaptor);
       return mMutableAdaptor->samps(channel);
     }
 
-    FluidTensorView<float, 1> samps(size_t offset, size_t nframes,
-                                    size_t chanoffset)
+    FluidTensorView<float, 1> samps(index offset, index nframes,
+                                    index chanoffset)
     {
       assert(mMutableAdaptor);
       return mMutableAdaptor->samps(offset, nframes, chanoffset);
     }
 
-    const Result resize(size_t frames, size_t channels, double sampleRate)
+    const Result resize(index frames, index channels, double sampleRate)
     {
       return mMutableAdaptor
                  ? mMutableAdaptor->resize(frames, channels, sampleRate)
@@ -129,18 +130,18 @@ private:
   virtual void         release() const = 0;
   virtual bool         valid() const = 0;
   virtual bool         exists() const = 0;
-  virtual const Result resize(size_t frames, size_t channels,
+  virtual const Result resize(index frames, index channels,
                               double sampleRate) = 0;
   virtual std::string  asString() const = 0;
   // Return a slice of the buffer
-  virtual FluidTensorView<float, 1>       samps(size_t channel) = 0;
-  virtual FluidTensorView<float, 1>       samps(size_t offset, size_t nframes,
-                                                size_t chanoffset) = 0;
-  virtual FluidTensorView<const float, 1> samps(size_t channel) const = 0;
-  virtual FluidTensorView<const float, 1> samps(size_t offset, size_t nframes,
-                                                size_t chanoffset) const = 0;
-  virtual size_t                          numFrames() const = 0;
-  virtual size_t                          numChans() const = 0;
+  virtual FluidTensorView<float, 1>       samps(index channel) = 0;
+  virtual FluidTensorView<float, 1>       samps(index offset, index nframes,
+                                                index chanoffset) = 0;
+  virtual FluidTensorView<const float, 1> samps(index channel) const = 0;
+  virtual FluidTensorView<const float, 1> samps(index offset, index nframes,
+                                                index chanoffset) const = 0;
+  virtual index                          numFrames() const = 0;
+  virtual index                          numChans() const = 0;
   virtual double                          sampleRate() const = 0;
   virtual void                            refresh(){};
   friend std::ostream& operator<<(std::ostream& os, const BufferAdaptor* b);
@@ -151,8 +152,8 @@ std::ostream& operator<<(std::ostream& os, const BufferAdaptor* b)
   return os << b->asString();
 }
 
-Result bufferRangeCheck(const BufferAdaptor* b, intptr_t startFrame,
-                        intptr_t& nFrames, intptr_t startChan, intptr_t& nChans)
+Result bufferRangeCheck(const BufferAdaptor* b, index startFrame,
+                        index& nFrames, index startChan, index& nChans)
 {
   if (!b) return {Result::Status::kError, "Input buffer not set"}; // error
 
