@@ -61,7 +61,7 @@ public:
   }
 
   void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
-               FluidContext& c, bool reset = false)
+               FluidContext& c)
   {
 
     if (!input[0].data()) return;
@@ -94,7 +94,7 @@ public:
     }
 
     mSTFTBufferedProcess.process(
-        mParams, input, output, c, reset,
+        mParams, input, output, c, 
         [this](ComplexMatrixView in, ComplexMatrixView out) {
           mSinesExtractor.processFrame(in.row(0), out.transpose());
         });
@@ -105,6 +105,7 @@ public:
     return get<kFFT>().winSize() +
            (get<kFFT>().hopSize() * get<kMinTrackLen>());
   }
+  void reset(){ mSTFTBufferedProcess.reset(); }
 
 private:
   STFTBufferedProcess<ParamSetViewType, T, kFFT> mSTFTBufferedProcess;

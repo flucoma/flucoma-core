@@ -64,7 +64,7 @@ public:
   }
 
   void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
-               FluidContext& c, bool reset = false)
+               FluidContext& c)
   {
     using namespace std;
     if (!input[0].data() || (!output[0].data() && !output[1].data())) return;
@@ -109,7 +109,7 @@ public:
 
     mBufferedProcess.process(
         mExtractor.inputSize(), mExtractor.hopSize(), mExtractor.hopSize(), c,
-        reset, [this](RealMatrixView in, RealMatrixView out) {
+         [this](RealMatrixView in, RealMatrixView out) {
           mExtractor.process(in.row(0), out.row(0), out.row(1));
         });
 
@@ -124,6 +124,8 @@ public:
   {
     return get<kPadding>() + get<kBlockSize>() - get<kOrder>();
   }
+  
+  void reset(){ mBufferedProcess.reset(); }
 
 private:
   ParameterTrackChanges<index, index, index, index> mTrackValues;

@@ -55,7 +55,7 @@ public:
   }
 
   void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
-               FluidContext& c, bool reset = false)
+               FluidContext& c)
   {
     if (!input[0].data() || !output[0].data()) return;
     assert(FluidBaseClient::controlChannelsOut() && "No control channels");
@@ -74,7 +74,7 @@ public:
     RealMatrix in(1, hostVecSize);
     in.row(0) = input[0];
     mBufferedProcess.push(RealMatrixView(in));
-    mBufferedProcess.processInput(get<kWindowSize>(), get<kHopSize>(), c, reset,
+    mBufferedProcess.processInput(get<kWindowSize>(), get<kHopSize>(), c, 
                                   [&](RealMatrixView frame) {
                                     mAlgorithm.processFrame(
                                         frame.row(0), mDescriptors,
@@ -86,6 +86,8 @@ public:
   }
 
   index latency() { return get<kWindowSize>(); }
+  
+  void reset(){ mBufferedProcess.reset(); }
 
   index controlRate() { return get<kHopSize>(); }
 

@@ -66,7 +66,7 @@ public:
   }
 
   void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
-               FluidContext& c, bool reset = false)
+               FluidContext& c)
   {
     if (!input[0].data() || !output[0].data()) return;
     assert(FluidBaseClient::controlChannelsOut() && "No control channels");
@@ -85,7 +85,7 @@ public:
     }
 
     mSTFTBufferedProcess.processInput(
-        mParams, input, c, reset, [&](ComplexMatrixView in) {
+        mParams, input, c,  [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
           mMelBands.processFrame(mMagnitude, mBands);
           mDCT.processFrame(mBands, mCoefficients);
@@ -94,6 +94,8 @@ public:
   }
 
   index latency() { return get<kFFT>().winSize(); }
+  
+  void reset(){ mSTFTBufferedProcess.reset(); }
 
   index controlRate() { return get<kFFT>().hopSize(); }
 

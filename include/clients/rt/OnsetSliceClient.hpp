@@ -67,7 +67,7 @@ public:
   }
 
   void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
-               FluidContext& c, bool reset = false)
+               FluidContext& c)
   {
     using algorithm::OnsetSegmentation;
     using std::size_t;
@@ -100,7 +100,7 @@ public:
     int        frameOffset = 0; // in case kHopSize < hostVecSize
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.process(
-        totalWindow, totalWindow, get<kFFT>().hopSize(), c, reset,
+        totalWindow, totalWindow, get<kFFT>().hopSize(), c, 
         [&, this](RealMatrixView in, RealMatrixView) {
           out.row(0)(frameOffset) = mAlgorithm.processFrame(in.row(0));
           frameOffset += get<kFFT>().hopSize();
@@ -108,7 +108,9 @@ public:
     output[0] = out.row(0);
   }
 
-  long latency() { return get<kFFT>().winSize() + get<kFrameDelta>(); }
+  index latency() { return get<kFFT>().winSize() + get<kFrameDelta>(); }
+
+  void reset() { mBufferedProcess.reset(); }
 
 private:
   OnsetSegmentation                             mAlgorithm{get<kMaxFFTSize>()};
