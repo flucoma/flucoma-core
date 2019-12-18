@@ -12,6 +12,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "ParameterConstraints.hpp"
 #include "ParameterTypes.hpp"
 #include "TupleUtilities.hpp"
+#include "../../data/FluidIndex.hpp"
 #include <functional>
 #include <tuple>
 
@@ -82,14 +83,14 @@ public:
 
 
   template <typename T>
-  size_t NumOf() const
+  index NumOf() const
   {
     return
         typename impl::FilterTupleIndices<T, DescriptorType, IndexList>::size();
   }
 
-  static constexpr size_t NumFixedParams = FixedIndexList::size();
-  static constexpr size_t NumMutableParams = MutableIndexList::size();
+  static constexpr index NumFixedParams = FixedIndexList::size();
+  static constexpr index NumMutableParams = MutableIndexList::size();
 
   constexpr ParameterDescriptorSet(const Ts&&... ts)
       : mDescriptors{std::make_tuple(ts...)}
@@ -98,8 +99,8 @@ public:
       : mDescriptors{t}
   {}
 
-  constexpr size_t size() const noexcept { return sizeof...(Ts); }
-  constexpr size_t count() const noexcept { return countImpl(IndexList()); }
+  constexpr index size() const noexcept { return sizeof...(Ts); }
+  constexpr index count() const noexcept { return countImpl(IndexList()); }
 
   template <template <size_t N, typename T> class Func>
   void iterate() const
@@ -131,9 +132,9 @@ private:
   const DescriptorType mDescriptors;
 
   template <size_t... Is>
-  constexpr size_t countImpl(std::index_sequence<Is...>) const noexcept
+  constexpr index countImpl(std::index_sequence<Is...>) const noexcept
   {
-    size_t count{0};
+    index count{0};
     std::initializer_list<int>{
         (count = count + std::get<0>(std::get<Is>(mDescriptors)).fixedSize,
          0)...};
@@ -143,7 +144,7 @@ private:
   template <template <size_t N, typename T> class Op, size_t... Is>
   void iterateImpl(std::index_sequence<Is...>) const
   {
-    std::initializer_list<int>{
+    (void)std::initializer_list<int>{
         (Op<Is, ParamType<Is>>()(std::get<0>(std::get<Is>(mDescriptors))),
          0)...};
   }
@@ -192,7 +193,7 @@ protected:
 
 public:
   constexpr ParameterSetView(const DescriptorSetType& d, ValueRefTuple t)
-      : mDescriptors{std::cref(d)}, mParams{t}, mKeepConstrained(false)
+      : mDescriptors{std::cref(d)}, mKeepConstrained(false), mParams{t}
   {}
 
   auto keepConstrained(bool keep)
@@ -258,7 +259,7 @@ public:
     if (reportage) reportage->reset();
     auto&        constraints = constraint<N>();
     auto&        param = std::get<N>(mParams);
-    const size_t offset = std::get<N>(std::make_tuple(Os...));
+    const index offset = std::get<N>(std::make_tuple(Os...));
     param = mKeepConstrained
                 ? constrain<offset, N, kAll>(x, constraints, reportage)
                 : x;
@@ -307,11 +308,14 @@ private:
             size_t... Is>
   void forEachParamImpl(std::index_sequence<Is...>, Args&&... args)
   {
-    std::initializer_list<int>{
+    (void)std::initializer_list<int>{
         (Func<Is, ParamType<Is>>()(get<Is>(), std::forward<Args>(args)...),
          0)...};
   }
 
+#ifdef _MSC_VER
+#pragma warning(disable:4100) //unused params on Args pack contents; don't know why,but it's not true
+#endif
   template <template <size_t, typename> class Func, typename... Args,
             size_t... Is>
   auto setParameterValuesImpl(std::index_sequence<Is...>, bool reportage,
@@ -319,12 +323,15 @@ private:
   {
     static std::array<Result, sizeof...(Ts)> results;
 
-    std::initializer_list<int>{
+    (void)std::initializer_list<int>{
         (set<Is>(Func<Is, ParamType<Is>>()(std::forward<Args>(args)...),
                  reportage ? &results[Is] : nullptr),
          0)...};
 
     return results;
+#ifdef _MSC_VER
+#pragma warning(default:4100)
+#endif
   }
 
   template <size_t Offset, size_t N, ConstraintTypes C, typename T,
@@ -333,16 +340,18 @@ private:
   {
     using CT = std::tuple<Constraints...>;
     using Idx = std::index_sequence_for<Constraints...>;
-    switch (C)
-    {
-    case kAll: return constrainImpl<Offset, N>(thisParam, c, Idx(), r);
-    case kNonRelational:
-      return constrainImpl<Offset, N>(thisParam, c,
-                                      NonRelationalList<CT, Idx>(), r);
-    case kRelational:
-      return constrainImpl<Offset, N>(thisParam, c, RelationalList<CT, Idx>(),
-                                      r);
-    }
+	switch (C)
+	{
+		//case kAll: return constrainImpl<Offset, N>(thisParam, c, Idx(), r);
+	case kNonRelational:
+		return constrainImpl<Offset, N>(thisParam, c,
+			NonRelationalList<CT, Idx>(), r);
+	case kRelational:
+		return constrainImpl<Offset, N>(thisParam, c, RelationalList<CT, Idx>(),
+			r);
+	//kAll:
+	default:return constrainImpl<Offset, N>(thisParam, c, Idx(), r);
+	}
   }
 
   template <size_t Offset, size_t N, typename T, typename Constraints,
@@ -363,11 +372,11 @@ private:
   {
     std::array<Result, sizeof...(Is)> results;
 
-    std::initializer_list<int>{
+    (void)std::initializer_list<int>{
         (paramValue<Is>(mParams) = constrain<Os, Is, kNonRelational>(
              paramValue<Is>(mParams), constraint<Is>(), &std::get<Is>(results)),
          0)...};
-    std::initializer_list<int>{
+    (void)std::initializer_list<int>{
         (paramValue<Is>(mParams) = constrain<Os, Is, kRelational>(
              paramValue<Is>(mParams), constraint<Is>(), &std::get<Is>(results)),
          0)...};
@@ -430,7 +439,7 @@ public:
 
 private:
   template <size_t... Is>
-  constexpr auto create(const DescriptorSetType& d,
+  constexpr auto create(const DescriptorSetType&,
                         std::index_sequence<Is...>) const
   {
     return std::make_tuple(ViewType::template descriptor<Is>().defaultValue...);

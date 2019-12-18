@@ -76,8 +76,8 @@ public:
   Result process(FluidContext& c)
   {
 
-    intptr_t nFrames = get<kNumFrames>();
-    intptr_t nChannels = get<kNumChans>();
+    index nFrames = get<kNumFrames>();
+    index nChannels = get<kNumChans>();
     auto     rangeCheck = bufferRangeCheck(get<kSource>().get(), get<kOffset>(),
                                        nFrames, get<kStartChan>(), nChannels);
 
@@ -87,9 +87,9 @@ public:
     double sampleRate = source.sampleRate();
     auto   fftParams = get<kFFT>();
 
-    size_t nWindows =
-        std::floor((nFrames + fftParams.hopSize()) / fftParams.hopSize());
-    size_t nBins = fftParams.frameSize();
+    index nWindows =
+        static_cast<index>(std::floor((nFrames + fftParams.hopSize()) / fftParams.hopSize()));
+    index nBins = fftParams.frameSize();
 
     bool       hasFilters{false};
     const bool seedFilters{get<kFiltersUpdate>() > 0};
@@ -197,7 +197,7 @@ public:
     const double progressTotal =
         get<kIterations>() + (hasResynth ? 3 * get<kRank>() : 0);
 
-    for (size_t i = 0; i < nChannels; ++i)
+    for (index i = 0; i < nChannels; ++i)
     {
       if (c.task() && !c.task()->iterationUpdate(i, nChannels))
         return {Result::Status::kCancelled, ""};
@@ -208,7 +208,7 @@ public:
       int progressCount{0};
       // For multichannel dictionaries, seed data could be all over the place,
       // so we'll build it up by hand :-/
-      for (size_t j = 0; j < get<kRank>(); ++j)
+      for (index j = 0; j < get<kRank>(); ++j)
       {
         if (seedFilters || fixFilters)
         {
@@ -241,7 +241,7 @@ public:
       {
         //        auto finalFilters = m.getW();
         auto filters = BufferAdaptor::Access{get<kFilters>().get()};
-        for (size_t j = 0; j < get<kRank>(); ++j)
+        for (index j = 0; j < get<kRank>(); ++j)
         { filters.samps(i * get<kRank>() + j) = outputFilters.row(j); }
       }
 
@@ -254,7 +254,7 @@ public:
         auto scale = 1. / (maxH);
         auto envelopes = BufferAdaptor::Access{get<kEnvelopes>().get()};
 
-        for (size_t j = 0; j < get<kRank>(); ++j)
+        for (index j = 0; j < get<kRank>(); ++j)
         {
           auto env = envelopes.samps(i * get<kRank>() + j);
           env = outputEnvelopes.col(j);
@@ -269,15 +269,15 @@ public:
         auto resynthMags = FluidTensor<double, 2>(nWindows, nBins);
         auto resynthSpectrum =
             FluidTensor<std::complex<double>, 2>(nWindows, nBins);
-        auto istft = algorithm::ISTFT{static_cast<size_t>(fftParams.winSize()),
-                                      static_cast<size_t>(fftParams.fftSize()),
-                                      static_cast<size_t>(fftParams.hopSize())};
+        auto istft = algorithm::ISTFT{fftParams.winSize(),
+                                      fftParams.fftSize(),
+                                      fftParams.hopSize()};
         auto resynthAudio = FluidTensor<double, 1>(nFrames);
         auto resynth = BufferAdaptor::Access{get<kResynth>().get()};
 
-        const int subProgress = 3 * get<kRank>();
+        //const index subProgress = 3 * get<kRank>();
 
-        for (size_t j = 0; j < get<kRank>(); ++j)
+        for (index j = 0; j < get<kRank>(); ++j)
         {
           algorithm::NMF::estimate(outputFilters, outputEnvelopes, j,
                                    resynthMags);

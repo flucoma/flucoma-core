@@ -15,10 +15,14 @@ namespace algorithm {
 class SlideUDFilter
 {
 public:
+  void updateCoeffs(double rampUpTime, double rampDownTime){
+      mBUp = 1.0 / rampUpTime;
+      mBDown = 1.0 / rampDownTime;
+  }
+
   void init(double rampUpTime, double rampDownTime, double x0Val)
   {
-    mBUp = 1.0 / rampUpTime;
-    mBDown = 1.0 / rampDownTime;
+    updateCoeffs(rampUpTime, rampDownTime);
     y0 = x0Val;
   }
 

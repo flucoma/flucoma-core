@@ -63,7 +63,36 @@ public:
     assert(mLatency <= mMaxSize);
     initBuffers();
     initFilters();
+    initSlides();
     mInitialized = true;
+  }
+
+  void updateParams (double hiPassFreq, int rampUpTime, int rampUpTime2,
+                     int rampDownTime, int rampDownTime2, double onThreshold,
+                     double relOnThreshold, double relOffThreshold,
+                       int minEventDuration,
+                       double offThreshold,
+                     int minSilenceDuration) {
+      if (mHiPassFreq != hiPassFreq){
+          mHiPassFreq = hiPassFreq;
+          initFilters();
+      }
+      if (mRampUpTime != rampUpTime || mRampDownTime != rampDownTime) {
+          mRampUpTime = rampUpTime;
+          mRampDownTime = rampDownTime;
+          mSlide.updateCoeffs(mRampUpTime, mRampDownTime);
+      }
+      if (mRampUpTime2 != rampUpTime2 || mRampDownTime2 != rampDownTime2) {
+          mRampUpTime2 = rampUpTime2;
+          mRampDownTime2 = rampDownTime2;
+          mSlide2.updateCoeffs(mRampUpTime2, mRampDownTime2);
+      }
+      mOnThreshold = onThreshold;
+      mRelOnThreshold = relOnThreshold;
+      mRelOffThreshold = relOffThreshold;
+      mMinEventDuration = minEventDuration;
+      mOffThreshold = offThreshold;
+      mMinSilenceDuration = minSilenceDuration;
   }
 
   int  getLatency() { return mLatency; }
@@ -73,11 +102,13 @@ public:
   {
     assert(mInitialized);
     double filtered = mHiPass2.processSample(mHiPass1.processSample(in));
-    double rectified =
-        std::max(std::abs(filtered), 6.3095734448019e-08); // -144dB
-    double dB = 20 * std::log10(rectified);
-    double smoothed = mSlide.processSample(dB);
-    double smoothed2 = mSlide2.processSample(dB);
+      
+      double rectified = std::abs(filtered);
+     double dB = 20 * std::log10(rectified);
+     double floor = std::max(dB, (std::min(mOffThreshold, mOnThreshold) - 3.));//need to remove a few dBs to gain the advantage of not starting from too low (more nervous) but allowing a bit of headroom (for the expon slides to go down faster) - maybe a dithered version would be better (TODO)
+     double smoothed = mSlide.processSample(floor);
+     double smoothed2 = mSlide2.processSample(floor);
+
     double relEnv = smoothed2 - smoothed;
     bool   forcedState = false;
     // case 1: we are waiting for event to finish
@@ -106,8 +137,8 @@ public:
     if (!forcedState)
     {
       bool nextState = mInputState;
-      if (!mInputState && smoothed > mOnThreshold) { nextState = true; }
-      if (mInputState && smoothed < mOffThreshold) { nextState = false; }
+      if (!mInputState && smoothed >= mOnThreshold) { nextState = true; }
+      if (mInputState && smoothed <= mOffThreshold) { nextState = false; }
       updateCounters(nextState);
       // establish and refine
       if (!mOutputState && mOnStateCount >= mMinTimeAboveThreshold &&
@@ -131,6 +162,8 @@ public:
         mSilenceCount = mOffStateCount;
         mOutputState = false; // we are officially off
       }
+
+      // enveloppe differential retrigging
       if (shouldRetrigger(relEnv))
       {
         mOutputBuffer(mLatency - 1) = 0;
@@ -145,15 +178,20 @@ public:
 
       mInputState = nextState;
     }
+
+////////////////////// to be removed and replace the return to case 0
     double output;
     switch (mOutputType)
     {
     case 0: output = mOutputBuffer(0); break;
     case 1: output = filtered; break;
-    case 2: output = std::pow(10.0, smoothed / 20.0); break;
-    case 3: output = std::pow(10.0, relEnv / 20.0); break;
-    case 4: output = mInputBuffer(1) - mInputBuffer(0);
+    case 2: output = smoothed; break; //std::pow(10.0, smoothed / 20.0); break;
+    case 3: output = relEnv; break; //std::pow(10.0, relEnv / 20.0); break;
+    // case 4: output = mInputBuffer(1) - mInputBuffer(0);
     }
+/////////////////////// up to here
+
+    //
     if (mLatency > 1)
     {
       mOutputBuffer.segment(0, mLatency - 1) =
@@ -170,21 +208,24 @@ public:
 private:
   void initBuffers()
   {
-    mInputBuffer = mInputStorage.segment(0, std::max(mLatency, 1));
-    mOutputBuffer = mOutputStorage.segment(0, std::max(mLatency, 1));
+      mInputBuffer = mInputStorage.segment(0, std::max(mLatency, 1)).setConstant(std::min(mOffThreshold, mOnThreshold) - 3.); //threshold of silence
+    mOutputBuffer = mOutputStorage.segment(0, std::max(mLatency, 1)).setZero();
     mInputState = false;
     mOutputState = false;
     mRetriggerState = false;
-    mFillCount = 0;
+    mFillCount = std::max(mLatency, 1); //has been off since the begining of time.
   }
 
   void initFilters()
   {
     mHiPass1.init(mHiPassFreq);
     mHiPass2.init(mHiPassFreq);
-    mSlide.init(mRampUpTime, mRampDownTime, -144);
-    mSlide2.init(mRampUpTime2, mRampDownTime2, -144);
   }
+
+  void initSlides() {
+      mSlide.init(mRampUpTime, mRampDownTime, (std::min(mOffThreshold, mOnThreshold) - 3.));
+      mSlide2.init(mRampUpTime2, mRampDownTime2, (std::min(mOffThreshold, mOnThreshold) - 3.));
+}
 
   int refineStart(int start, int nSamples, bool direction = true)
   {

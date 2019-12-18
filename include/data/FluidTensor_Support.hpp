@@ -13,6 +13,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "FluidMeta.hpp"
+#include "FluidIndex.hpp"
 #include <algorithm>  //copy,copy_n
 #include <array>      //std::array
 #include <cassert>    //assert()
@@ -30,12 +31,12 @@ namespace fluid {
 struct Slice
 {
   Slice() : start(-1), length(-1), stride(1) {}
-  explicit Slice(size_t s) : start(s), length(-1), stride(1) {}
-  Slice(size_t s, size_t l, size_t n = 1) : start(s), length(l), stride(n) {}
+  explicit Slice(index s) : start(s), length(-1), stride(1) {}
+  Slice(index s, index l, index n = 1) : start(s), length(l), stride(n) {}
 
-  size_t start;
-  size_t length;
-  size_t stride;
+  index start;
+  index length;
+  index stride;
 };
 
 ///*****************************************************************************
@@ -47,7 +48,7 @@ struct FluidTensorSlice;
 template <typename... Args>
 constexpr bool isSliceSequence()
 {
-  return all((std::is_convertible<Args, size_t>() ||
+  return all((std::is_convertible<Args, index>() ||
               std::is_same<Args, Slice>())...) &&
          some(std::is_same<Args, Slice>()...);
 }
@@ -55,13 +56,13 @@ constexpr bool isSliceSequence()
 template <typename... Args>
 constexpr bool isIndexSequence()
 {
-  return all(std::is_convertible<Args, size_t>()...);
+  return all(std::is_convertible<Args, index>()...);
 }
 
 
 // Alias integral_constant<size_t,N>
 template <std::size_t N>
-using SizeConstant = std::integral_constant<std::size_t, N>;
+using SizeConstant = std::integral_constant<index, N>;
 
 namespace impl {
 ///*****************************************************************************
@@ -71,9 +72,9 @@ namespace impl {
 template <size_t N, typename... Dims>
 bool checkBounds(const fluid::FluidTensorSlice<N>& slice, Dims... dims)
 {
-  size_t indexes[N]{size_t(dims)...};
+  index indexes[N]{index(dims)...};
   return std::equal(indexes, indexes + N, slice.extents.begin(),
-                    std::less<size_t>{});
+                    std::less<index>{});
 }
 
 /// FluidTensorInit is used for instantiating a tensor with values from a braced
@@ -114,9 +115,9 @@ std::enable_if_t<(N == 1)> addExtents(I& first, const List& list)
 
 /// This is the function we call from main code.
 template <size_t N, typename List>
-std::array<size_t, N> deriveExtents(const List& list)
+std::array<index, N> deriveExtents(const List& list)
 {
-  std::array<size_t, N> a;
+  std::array<index, N> a;
   auto                  f = a.begin();
   addExtents<N>(f, list);
   return a;
@@ -169,7 +170,7 @@ struct SliceIterator
       // The size in desc gives the size of the
       // overall container, not the size of the slice
       // this seems preferable to littering the code with transpose flags
-      size_t size = 0;
+      index size = 0;
       if (s.strides[N - 1] == 1) // Not transposed
         size = s.strides[0] * s.extents[0];
       else // transposed
@@ -181,8 +182,9 @@ struct SliceIterator
   }
 
   const FluidTensorSlice<N>& descriptor() { return mDesc; }
-  T&                         operator*() const { return *mPtr; }
-  T*                         operator->() const { return mPtr; }
+  
+  T&  operator*() const { return *mPtr; }
+  T*  operator->() const { return mPtr; }
 
   // Forward iterator pre- and post-increment
   SliceIterator& operator++()
@@ -210,23 +212,23 @@ private:
   /// TODO I would like this to be more beautiful (this is from Origin impl)
   void increment()
   {
-    std::size_t d = N - 1;
+    index d = N - 1;
     while (true)
     {
-      mPtr += mDesc.strides[d];
-      ++mIndexes[d];
+      mPtr += mDesc.strides[asUnsigned(d)];
+      ++mIndexes[asUnsigned(d)];
 
       // If have not yet counted to the extent of the current dimension, then
       // we will continue to do so in the next iteration.
-      if (mIndexes[d] != mDesc.extents[d]) break;
+      if (mIndexes[asUnsigned(d)] != mDesc.extents[asUnsigned(d)]) break;
 
       // Otherwise, if we have not counted to the extent in the outermost
       // dimension, move to the next dimension and try again. If d is 0, then
       // we have counted through the entire slice.
       if (d != 0)
       {
-        mPtr -= mDesc.strides[d] * mDesc.extents[d];
-        mIndexes[d] = 0;
+        mPtr -= mDesc.strides[asUnsigned(d)] * mDesc.extents[asUnsigned(d)];
+        mIndexes[asUnsigned(d)] = 0;
         --d;
       }
       else
@@ -237,7 +239,7 @@ private:
   }
 
   FluidTensorSlice<N>   mDesc;
-  std::array<size_t, N> mIndexes;
+  std::array<index, N>  mIndexes;
   pointer               mPtr;
   pointer               mBase;
 };
@@ -281,7 +283,7 @@ struct FluidTensorSlice
             typename I = typename std::remove_reference<R>::type::iterator,
             typename = std::enable_if_t<
                 IsIteratorType<I, std::forward_iterator_tag>::value>>
-  FluidTensorSlice(size_t s, R&& range) : start(s)
+  FluidTensorSlice(index s, R&& range) : start(s)
   {
     assert(range.size() == N && "Input list size doesn't match dimensions");
     std::copy(range.begin(), range.end(), extents.begin());
@@ -291,7 +293,7 @@ struct FluidTensorSlice
 
   template <std::size_t M, typename T, std::size_t D>
   FluidTensorSlice(const FluidTensorSlice<M>& s, std::integral_constant<T, D>,
-                   std::size_t                n)
+                   index                n)
       : size(s.size / s.extents[D]), start(s.start + n * s.strides[D])
   {
     static_assert(D <= N, "");
@@ -307,7 +309,7 @@ struct FluidTensorSlice
   // e.g  FluidTensorSlice<2> my_slice<2>(s, {3,4}).
   // The number of dimenions given needs
   // to match the N that the slice is templated on.
-  FluidTensorSlice(size_t s, std::initializer_list<size_t> exts) : start(s)
+  FluidTensorSlice(index s, std::initializer_list<index> exts) : start(s)
   {
     // TODO: we're on  14 now, so this can be enforced statically
     assert(exts.size() == N && "Wrong number of dimensions in extents");
@@ -316,8 +318,8 @@ struct FluidTensorSlice
   }
 
   /// As above, but also taking a list of strides
-  FluidTensorSlice(size_t s, std::initializer_list<size_t> exts,
-                   std::initializer_list<size_t> str)
+  FluidTensorSlice(index s, std::initializer_list<index> exts,
+                   std::initializer_list<index> str)
       : start(s)
   {
     assert(exts.size() == N && "Wrong number of dimensions in extents");
@@ -334,7 +336,7 @@ struct FluidTensorSlice
   {
     static_assert(sizeof...(Dims) == N,
                   "Number of arguments must match matrix dimensions");
-    extents = {{size_t(dims)...}};
+    extents = {{index(dims)...}};
     init();
   }
 
@@ -343,33 +345,33 @@ struct FluidTensorSlice
   FluidTensorSlice(FluidTensorSlice<M> s, const Args... args)
   {
     start = s.start + doSlice(s, args...);
-    size = std::accumulate(extents.begin(), extents.end(), 1,
-                           std::multiplies<std::size_t>());
+    size = std::accumulate(extents.begin(), extents.end(), index(1),
+                           std::multiplies<index>());
   }
 
   /// Operator () is used for mapping indices back onto a flat data structure
   template <typename... Dims> // dims > 2
-  std::enable_if_t<(N > 2) && isIndexSequence<Dims...>(), size_t>
+  std::enable_if_t<(N > 2) && isIndexSequence<Dims...>(), index>
   operator()(Dims... dims) const
   {
     static_assert(sizeof...(Dims) == N, "");
-    size_t args[N]{size_t(dims)...};
-    return std::inner_product(args, args + N, strides.begin(), size_t(0));
+    size_t args[N]{Index(dims)...};
+    return std::inner_product(args, args + N, strides.begin(), index(0));
   }
 
   template <size_t DIM = N> // 1D
-  std::enable_if_t<DIM == 1, size_t> operator()(size_t i) const
+  std::enable_if_t<DIM == 1, index> operator()(index i) const
   {
     return i * strides[0];
   }
 
   template <size_t DIM = N> // 2D
-  std::enable_if_t<DIM == 2, size_t> operator()(size_t i, size_t j) const
+  std::enable_if_t<DIM == 2, index> operator()(index i, index j) const
   {
     return i * strides[0] + j;
   }
 
-  void grow(size_t dim, intptr_t amount)
+  void grow(index dim, index amount)
   {
     assert(dim < N);
     assert(extents[dim] + amount >= 0);
@@ -403,12 +405,12 @@ struct FluidTensorSlice
   }
   bool operator!=(const FluidTensorSlice& rhs) const { return !(*this == rhs); }
 
-  std::size_t                size;      // num of elements
-  std::size_t                start = 0; // offset
-  std::array<std::size_t, N> extents;   // number of elements in each dimension
-  std::array<std::size_t, N> strides;   // offset between elements in each dim
+  index                size;      // num of elements
+  index                start = 0; // offset
+  std::array<index, N> extents;   // number of elements in each dimension
+  std::array<index, N> strides;   // offset between elements in each dim
 
-  void reset(std::size_t s, std::initializer_list<std::size_t> exts)
+  void reset(index s, std::initializer_list<index> exts)
   {
     std::copy(exts.begin(), exts.end(), extents.begin());
     start = s;
@@ -422,20 +424,20 @@ private:
   void init()
   {
     strides[N - 1] = 1;
-    for (size_t i = N - 1; i != 0; --i)
-      strides[i - 1] = strides[i] * extents[i];
+    for (index i = N - 1; i != 0; --i)
+      strides[asUnsigned(i - 1)] = strides[asUnsigned(i)] * extents[asUnsigned(i)];
     size = extents[0] * strides[0];
   }
 
   /// doSliceDim does the hard work in making an new slice from an existing one
   template <size_t D, size_t M>
-  size_t doSliceDim(const fluid::FluidTensorSlice<M>& newSlice, size_t n)
+  index doSliceDim(const fluid::FluidTensorSlice<M>& newSlice, index n)
   {
     return doSliceDim<D>(newSlice, fluid::Slice(n, 1, 1));
   }
 
   template <size_t D, size_t M>
-  size_t doSliceDim(const fluid::FluidTensorSlice<M>& ns, Slice s)
+  index doSliceDim(const fluid::FluidTensorSlice<M>& ns, Slice s)
   {
 
     if (s.start >= ns.extents[D]) s.start = 0;
@@ -454,18 +456,18 @@ private:
 
   /// Recursively populate a new slice from an old one,
   template <size_t M> // terminate
-  size_t doSlice(const fluid::FluidTensorSlice<M>& os)
+  index doSlice(const fluid::FluidTensorSlice<M>&)
   {
     return 0;
   }
 
   template <size_t M, typename T, typename... Args> // recurse
-  size_t doSlice(const fluid::FluidTensorSlice<M>& ns, const T& s,
+  index doSlice(const fluid::FluidTensorSlice<M>& ns, const T& s,
                  const Args&... args)
   {
     constexpr size_t D = N - sizeof...(Args) - 1;
-    size_t           m = doSliceDim<D>(ns, s);
-    size_t           n = doSlice(ns, args...);
+    index           m = doSliceDim<D>(ns, s);
+    index           n = doSlice(ns, args...);
     return n + m;
   }
 };

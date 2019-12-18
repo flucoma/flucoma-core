@@ -65,8 +65,8 @@ public:
     // is special...
     if (!get<kSource>().get()) { return {Result::Status::kError, "No input"}; }
 
-    size_t nChannels{0};
-    size_t nFrames{0};
+    index nChannels{0};
+    index nFrames{0};
 
     {
       BufferAdaptor::ReadAccess source(get<kSource>().get());
@@ -95,10 +95,10 @@ public:
                 " out of range."};
     }
 
-    auto       dstStart = get<kDestOffset>();
-    auto       dstStartChan = get<kDestStartChan>();
-    auto       dstEnd{0};
-    auto       dstEndChan{0};
+    index      dstStart = get<kDestOffset>();
+    index      dstStartChan = get<kDestStartChan>();
+    index      dstEnd{0};
+    index      dstEndChan{0};
     bool       destinationResizeNeeded{false};
     HostMatrix destinationOrig(0, 0);
 
@@ -115,18 +115,18 @@ public:
       destinationResizeNeeded = (dstEnd > destination.numFrames()) ||
                                 (dstEndChan > destination.numChans());
 
-      auto applyGain = [this](T& x) { x *= get<kDestGain>(); };
+      auto applyGain = [this](T& x) { x *= static_cast<T>(get<kDestGain>()); };
 
 
       if (destinationResizeNeeded) // copy the whole of desintation if we have
                                    // to resize it
       {
         destinationOrig.resize(
-            std::max<unsigned>(dstEndChan, destination.numChans()),
-            std::max<unsigned>(dstEnd, destination.numFrames()));
+            std::max<index>(dstEndChan, destination.numChans()),
+            std::max<index>(dstEnd, destination.numFrames()));
         if (destination.numChans() > 0 && destination.numFrames() > 0)
         {
-          for (int i = 0; i < destination.numChans(); ++i)
+          for (index i = 0; i < destination.numChans(); ++i)
             destinationOrig.row(i)(Slice(0, destination.numFrames())) =
                 destination.samps(i);
           destinationOrig(Slice(dstStartChan, dstEndChan - dstStartChan),
@@ -137,7 +137,7 @@ public:
       else // just copy what we're affecting
       {
         destinationOrig.resize(nChannels, nFrames);
-        for (int i = 0; i < nChannels; ++i)
+        for (index i = 0; i < nChannels; ++i)
         {
           destinationOrig.row(i) =
               destination.samps(dstStart, nFrames, dstStartChan + i);
@@ -153,11 +153,11 @@ public:
       BufferAdaptor::ReadAccess source(get<kSource>().get());
       auto                      gain = get<kGain>();
       // iterates through the copying of the first source
-      for (size_t i = dstStartChan, j = 0; j < nChannels; ++i, ++j)
+      for (index i = dstStartChan, j = 0; j < nChannels; ++i, ++j)
       {
         // Special repeating channel voodoo
         ConstHostVector sourceChunk{
-            source.samps(get<kOffset>(), std::min(nFrames, source.numFrames()),
+            source.samps(get<kOffset>(), std::min<index>(nFrames, source.numFrames()),
                          (get<kStartChan>() + j) % source.numChans())};
 
         HostVector destinationChunk{destinationOrig.row(j)};
@@ -172,7 +172,7 @@ public:
             destinationChunk.begin(),
             [gain](const T& src, T& dst) { return dst + src * gain; });
 
-        if (c.task() && !c.task()->processUpdate(j + 1, nChannels))
+        if (c.task() && !c.task()->processUpdate(static_cast<double>(j + 1), static_cast<double>(nChannels)))
           return {Result::Status::kCancelled, ""};
       }
     }
@@ -185,12 +185,12 @@ public:
           destination.resize(destinationOrig.cols(), destinationOrig.rows(),
                              destination.sampleRate());
       if (!resizeResult.ok()) return resizeResult;
-      for (int i = 0; i < destination.numChans(); ++i)
+      for (index i = 0; i < destination.numChans(); ++i)
         destination.samps(i) = destinationOrig.row(i);
     }
     else
     {
-      for (int i = 0; i < nChannels; ++i)
+      for (index i = 0; i < nChannels; ++i)
         destination.samps(dstStart, nFrames, dstStartChan + i) =
             destinationOrig.row(i);
       destination.refresh(); // make sure the buffer is marked dirty

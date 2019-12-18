@@ -100,7 +100,7 @@ public:
         });
   }
 
-  size_t latency()
+  index latency()
   {
     return get<kFFT>().winSize() +
            (get<kFFT>().hopSize() * get<kMinTrackLen>());
@@ -110,13 +110,13 @@ private:
   STFTBufferedProcess<ParamSetViewType, T, kFFT> mSTFTBufferedProcess;
   // std::unique_ptr<algorithm::SineExtraction> mSinesExtractor;
   algorithm::SineExtraction mSinesExtractor{get<kMaxFFTSize>()};
-  ParameterTrackChanges<size_t, size_t, size_t, size_t, size_t> mTrackValues;
+  ParameterTrackChanges<index, index, index, index, index> mTrackValues;
 
-  size_t mWinSize{0};
-  size_t mHopSize{0};
-  size_t mFFTSize{0};
-  size_t mBandwidth{0};
-  size_t mMinTrackLen{0};
+  index mWinSize{0};
+  index mHopSize{0};
+  index mFFTSize{0};
+  index mBandwidth{0};
+  index mMinTrackLen{0};
 };
 
 auto constexpr NRTSineParams =

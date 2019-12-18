@@ -49,14 +49,14 @@ public:
     audioChannelsOut(get<kMaxRank>());
   }
 
-  size_t latency() { return get<kFFT>().winSize(); }
+  index latency() { return get<kFFT>().winSize(); }
 
   void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
                FluidContext& c, bool reset = false)
   {
     if (!input[0].data()) return;
     assert(audioChannelsOut() && "No control channels");
-    assert(output.size() >= audioChannelsOut() && "Too few output channels");
+    assert(output.size() >= asUnsigned(audioChannelsOut()) && "Too few output channels");
 
     if (get<kFilterbuf>().get())
     {
@@ -66,7 +66,7 @@ public:
 
       if (!filterBuffer.valid()) { return; }
 
-      size_t rank = std::min<size_t>(filterBuffer.numChans(), get<kMaxRank>());
+      index rank = std::min<index>(filterBuffer.numChans(), get<kMaxRank>());
 
       if (filterBuffer.numFrames() != fftParams.frameSize()) { return; }
 
@@ -80,7 +80,7 @@ public:
         mNMF.init(rank, get<kIterations>());
       }
 
-      for (size_t i = 0; i < tmpFilt.rows(); ++i)
+      for (index i = 0; i < tmpFilt.rows(); ++i)
         tmpFilt.row(i) = filterBuffer.samps(i);
 
       //      controlTrigger(false);
@@ -91,7 +91,7 @@ public:
             mNMF.processFrame(tmpMagnitude.row(0), tmpFilt, tmpOut,
                               get<kIterations>(), tmpEstimate.row(0));
             mMask.init(tmpEstimate, 1);
-            for (size_t i = 0; i < rank; ++i)
+            for (index i = 0; i < rank; ++i)
             {
               algorithm::NMF::estimate(tmpFilt, RealMatrixView(tmpOut), i,
                                        tmpSource);
@@ -103,7 +103,7 @@ public:
   }
 
 private:
-  ParameterTrackChanges<size_t, size_t>                mTrackValues;
+  ParameterTrackChanges<index, index>                mTrackValues;
   STFTBufferedProcess<ParamSetViewType, T, kFFT, true> mSTFTProcessor;
 
   algorithm::NMF       mNMF{get<kMaxRank>()};
@@ -116,8 +116,8 @@ private:
   RealMatrix tmpEstimate;
   RealMatrix tmpSource;
 
-  size_t mNBins{0};
-  size_t mRank{0};
+  index mNBins{0};
+  index mRank{0};
 };
 } // namespace client
 } // namespace fluid

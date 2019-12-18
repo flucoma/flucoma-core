@@ -70,7 +70,7 @@ public:
   {
     if (!input[0].data() || !output[0].data()) return;
     assert(FluidBaseClient::controlChannelsOut() && "No control channels");
-    assert(output.size() >= FluidBaseClient::controlChannelsOut() &&
+    assert(output.size() >= asUnsigned(FluidBaseClient::controlChannelsOut()) &&
            "Too few output channels");
 
     if (mTracker.changed(get<kFFT>().frameSize(), get<kNCoefs>(),
@@ -90,15 +90,15 @@ public:
           mMelBands.processFrame(mMagnitude, mBands);
           mDCT.processFrame(mBands, mCoefficients);
         });
-    for (int i = 0; i < get<kNCoefs>(); ++i) output[i](0) = mCoefficients(i);
+    for (index i = 0; i < get<kNCoefs>(); ++i) output[asUnsigned(i)](0) = mCoefficients(i);
   }
 
-  size_t latency() { return get<kFFT>().winSize(); }
+  index latency() { return get<kFFT>().winSize(); }
 
-  size_t controlRate() { return get<kFFT>().hopSize(); }
+  index controlRate() { return get<kFFT>().hopSize(); }
 
 private:
-  ParameterTrackChanges<size_t, size_t, size_t, double, double> mTracker;
+  ParameterTrackChanges<index, index, index, double, double> mTracker;
   STFTBufferedProcess<ParamSetViewType, T, kFFT, false> mSTFTBufferedProcess;
 
   algorithm::MelBands mMelBands;

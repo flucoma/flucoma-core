@@ -42,7 +42,7 @@ public:
     FluidBaseClient::audioChannelsOut(1);
   }
 
-  size_t latency() { return get<kFFT>().winSize(); }
+  index latency() { return get<kFFT>().winSize(); }
 
   void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
                FluidContext& c, bool reset = false)
