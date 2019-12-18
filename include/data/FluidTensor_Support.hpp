@@ -99,6 +99,11 @@ struct FluidTensorInit<T, 0>; /// things should barf if this happens
 
 /// addExtents & deriveExtents drill down through the nested init lists to work
 /// out the dimensions of the resulting structure.
+template <std::size_t N, typename I, typename List> /// terminate
+std::enable_if_t<(N == 1)> addExtents(I& first, const List& list)
+{
+  *first++ = list.size(); // deepest nesting
+}
 
 template <std::size_t N, typename I, typename List> /// recursion
 std::enable_if_t<(N > 1)> addExtents(I& first, const List& list)
@@ -107,11 +112,7 @@ std::enable_if_t<(N > 1)> addExtents(I& first, const List& list)
   addExtents<N - 1>(++first, *list.begin());
 }
 
-template <std::size_t N, typename I, typename List> /// terminate
-std::enable_if_t<(N == 1)> addExtents(I& first, const List& list)
-{
-  *first++ = list.size(); // deepest nesting
-}
+
 
 /// This is the function we call from main code.
 template <size_t N, typename List>
@@ -127,6 +128,11 @@ std::array<index, N> deriveExtents(const List& list)
 /// addList and insertFlat populate our container with the contents of
 /// a nested initializer list structure.
 
+template <class T, class Vec> // terminate
+void addList(const T* first, const T* last, Vec& vec)
+{
+  vec.insert(vec.end(), first, last);
+}
 
 template <class T, class Vec> // recurse
 void addList(const std::initializer_list<T>* first,
@@ -135,11 +141,7 @@ void addList(const std::initializer_list<T>* first,
   for (; first != last; ++first) addList(first->begin(), first->end(), vec);
 }
 
-template <class T, class Vec> // terminate
-void addList(const T* first, const T* last, Vec& vec)
-{
-  vec.insert(vec.end(), first, last);
-}
+
 
 
 // Recurse
@@ -291,9 +293,8 @@ struct FluidTensorSlice
   }
 
 
-  template <std::size_t M, typename T, std::size_t D>
-  FluidTensorSlice(const FluidTensorSlice<M>& s, std::integral_constant<T, D>,
-                   index                n)
+  template <std::size_t M, index D>
+  FluidTensorSlice(const FluidTensorSlice<M>& s, SizeConstant<D>, index n)
       : size(s.size / s.extents[D]), start(s.start + n * s.strides[D])
   {
     static_assert(D <= N, "");
@@ -440,9 +441,9 @@ private:
   index doSliceDim(const fluid::FluidTensorSlice<M>& ns, Slice s)
   {
 
-    if (s.start >= ns.extents[D]) s.start = 0;
+    if (s.start < 0 || s.start >= ns.extents[D]) s.start = 0;
 
-    if (s.length > ns.extents[D] || s.start + s.length > ns.extents[D])
+    if (s.length < 0 || s.length > ns.extents[D] || s.start + s.length > ns.extents[D])
       s.length = ns.extents[D] - s.start;
 
     if (s.start + s.length * s.stride > ns.extents[D])
