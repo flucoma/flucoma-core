@@ -30,13 +30,13 @@ namespace fluid {
 ///*****************************************************************************
 struct Slice
 {
-  Slice() : start(-1), length(-1), stride(1) {}
-  explicit Slice(index s) : start(s), length(-1), stride(1) {}
-  Slice(index s, index l, index n = 1) : start(s), length(l), stride(n) {}
+  Slice() : start(size_t(-1)), length(size_t(-1)), stride(1) {}
+  explicit Slice(index s) : start(size_t(s)), length(size_t(-1)), stride(1) {}
+  Slice(index s, index l, index n = 1) : start(size_t(s)), length(size_t(l)), stride(size_t(n)) {}
 
-  index start;
-  index length;
-  index stride;
+  size_t start;
+  size_t length;
+  size_t stride;
 };
 
 ///*****************************************************************************
