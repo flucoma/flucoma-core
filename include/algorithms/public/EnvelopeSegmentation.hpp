@@ -105,7 +105,7 @@ public:
       
       double rectified = std::abs(filtered);
      double dB = 20 * std::log10(rectified);
-     double floor = std::max(dB, (std::min(mOffThreshold, mOnThreshold) - 3.));//need to remove a few dBs to gain the advantage of not starting from too low (more nervous) but allowing a bit of headroom (for the expon slides to go down faster) - maybe a dithered version would be better (TODO)
+     double floor = std::max(dB, (std::min(mOffThreshold, mOnThreshold) - 1.));//need to remove a dB or so, to gain the advantage of not starting from too low (not from absolute silence floor makes it more nervous) but allowing a bit of headroom (for the expon slides to go down faster) - maybe a dithered version would be better (TODO)
      double smoothed = mSlide.processSample(floor);
      double smoothed2 = mSlide2.processSample(floor);
 
