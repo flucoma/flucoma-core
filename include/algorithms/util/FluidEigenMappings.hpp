@@ -47,8 +47,8 @@ auto asFluid(PlainObjectBase<Derived>& a)
     {
       // Respect the colmajorness of an eigen type
       auto slice = FluidTensorSlice<N>(
-          0, {static_cast<size_t>(a.rows()), static_cast<size_t>(a.cols())},
-          {1, static_cast<size_t>(a.rows())});
+          0, {a.rows(), a.cols()},
+          {1, a.rows()});
       return {slice, a.data()};
     }
     return {a.data(), 0, a.rows(), a.cols()};
