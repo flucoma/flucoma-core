@@ -105,7 +105,7 @@ std::cout << "3x3 col\n" << threebythree.col(0) << '\n' << '\n';
   fluid::FluidTensor<double, 1> r2(tinit2.row(0));
   std::cout << "1 2 3?\n" << r2 << '\n';
 
-  return 0;
+//  return 0;
   
 
   // tinit2.row(1) = r2(fluid::slice(0,3));
@@ -168,29 +168,22 @@ std::cout << "3x3 col\n" << threebythree.col(0) << '\n' << '\n';
   // Test double** constructor for 2D
   size_t x(10);
   size_t y(10);
-  // Make a pointer to double[]
-  double *twodeecee[x];
-  for (int i = 0; i < x; ++i) {
-    twodeecee[i] = new double[y];
-    std::iota(twodeecee[i], twodeecee[i] + y, i * y);
-  }
+
   // Create
-  fluid::FluidTensor<double, 2> twodeeTest(twodeecee, x, y);
+  fluid::FluidTensor<double, 2> twodeeTest(x, y);
+  //brute force fill
+  for (int i = 0; i < x*y; ++i)
+    *(twodeeTest.data() + i) = i;
+  
   // Look
   std::cout << twodeeTest << '\n';
 
   // Test stepping through a column whilst we're here
   size_t colOffset = 3;
   auto c2 = twodeeTest.col(colOffset);
-  for (int i = 0; i < y; i++) {
-    // use() with integer types to get elements
-    assert(c2[i] == twodeecee[i][colOffset]);
-  }
+
   std::cout << "Col 3: " << c2 << '\n';
 
-  // Free memory from double**, we're done with it
-  for (int i = 0; i < x; ++i)
-    delete twodeecee[i];
 
   // Make a new blank 2D tensor
   fluid::FluidTensor<double, 2> copyCol(2, 10);
