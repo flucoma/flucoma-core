@@ -1,5 +1,9 @@
 cmake_minimum_required (VERSION 3.11)
 
+if(APPLE) #has to be before first project() call. grrrrrr
+  set(CMAKE_OSX_DEPLOYMENT_TARGET 10.7)  
+endif()
+
 project (fluid_decomposition LANGUAGES CXX)
 include(FetchContent)
 set(HISS_PATH "" CACHE PATH "The path to a HISSTools_Library folder. Will pull from github if not set")
@@ -67,6 +71,8 @@ set_target_properties(HISSTools_FFT PROPERTIES
     CXX_EXTENSIONS OFF
 )
 
+
+
 #HISSTools Audiofile Target
 add_library(
   HISSTools_AudioFile STATIC
@@ -80,6 +86,8 @@ set_target_properties(HISSTools_AudioFile PROPERTIES
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
+
+
 
 #Fluid Decomposition header-only target
 add_library(FLUID_DECOMPOSITION INTERFACE)
@@ -106,4 +114,9 @@ endif()
 
 if(APPLE)
   target_compile_definitions(FLUID_DECOMPOSITION INTERFACE -DEIGEN_USE_BLAS)
+  #targeting <= 10.9, need to really emphasise that we want libc++ both to compiler and linker
+  target_compile_options(HISSTools_FFT PUBLIC -stdlib=libc++)
+  target_compile_options(HISSTools_AudioFile PUBLIC -stdlib=libc++)
+  target_compile_options(FLUID_DECOMPOSITION INTERFACE -stdlib=libc++)
+  target_link_libraries(FLUID_DECOMPOSITION INTERFACE -stdlib=libc++)
 endif()
