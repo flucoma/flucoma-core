@@ -71,7 +71,7 @@ public:
     FluidBaseClient::audioChannelsOut(3);
   }
 
-  size_t latency()
+  index latency()
   {
     return ((get<kHSize>() - 1) * get<kFFT>().hopSize()) +
            get<kFFT>().winSize();
@@ -82,7 +82,7 @@ public:
   {
     if (!input[0].data()) return;
 
-    int nBins = get<kFFT>().frameSize();
+    index nBins = get<kFFT>().frameSize();
 
     if (mTrackChangesAlgo.changed(nBins, get<kMaxPSize>(), get<kMaxHSize>()))
     {
@@ -124,8 +124,8 @@ public:
 private:
   STFTBufferedProcess<ParamSetViewType, T, kFFT, true> mSTFTBufferedProcess;
 
-  ParameterTrackChanges<size_t, size_t, size_t> mTrackChangesAlgo;
-  ParameterTrackChanges<size_t>                 mTrackHSize;
+  ParameterTrackChanges<index, index, index> mTrackChangesAlgo;
+  ParameterTrackChanges<index>                 mTrackHSize;
 
   algorithm::HPSS mHPSS;
 };

@@ -55,7 +55,7 @@ public:
       {
         if (!buf.resize(1, 1, buf.sampleRate()).ok())
           return {Result::Status::kError, "Buffer resize failed"};
-        buf.samps(0)(0) = wait;
+        buf.samps(0)(0) = static_cast<float>(wait);
         return {Result::Status::kOk, ""};
       }
       else

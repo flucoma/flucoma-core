@@ -7,6 +7,7 @@
 #include "../common/ParameterTypes.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/SpikesToTimes.hpp"
+#include "../../data/FluidIndex.hpp"
 #include "../../data/FluidTensor.hpp"
 #include "../../data/TensorTypes.hpp"
 
@@ -100,13 +101,13 @@ public:
   template <std::size_t N> auto& get() noexcept { return mParams.get().template get<N>(); }
 //  template <std::size_t N> bool changed() noexcept { return mParams.template changed<N>(); }
 
-  size_t audioChannelsIn()    const noexcept { return 0; }
-  size_t audioChannelsOut()   const noexcept { return 0; }
-  size_t controlChannelsIn()  const noexcept { return 0; }
-  size_t controlChannelsOut() const noexcept { return 0; }
+  index audioChannelsIn()    const noexcept { return 0; }
+  index audioChannelsOut()   const noexcept { return 0; }
+  index controlChannelsIn()  const noexcept { return 0; }
+  index controlChannelsOut() const noexcept { return 0; }
   ///Map delegate audio / control channels to audio buffers
-  size_t audioBuffersIn()  const noexcept { return mClient.audioChannelsIn();  }
-  size_t audioBuffersOut() const noexcept { return isControl ? 1 : mClient.audioChannelsOut(); }
+  index audioBuffersIn()  const noexcept { return mClient.audioChannelsIn();  }
+  index audioBuffersOut() const noexcept { return isControl ? 1 : mClient.audioChannelsOut(); }
 
   void setParams(ParamSetViewType& p)
   {
@@ -125,23 +126,23 @@ public:
     auto inputBuffers  = fetchInputBuffers(inputCounter);
     auto outputBuffers = fetchOutputBuffers(outputCounter);
 
-    std::array<intptr_t,Ins> inFrames;
-    std::array<intptr_t,Ins> inChans;
+    std::array<index,Ins> inFrames;
+    std::array<index,Ins> inChans;
 
     //check buffers exist
-    int count = 0;
+    index count = 0;
     for(auto&& b: inputBuffers)
     {
 
-      intptr_t requestedFrames= b.nFrames;
-      intptr_t requestedChans= b.nChans;
+      index requestedFrames= b.nFrames;
+      index requestedChans= b.nChans;
 
       auto rangeCheck = bufferRangeCheck(b.buffer, b.startFrame, requestedFrames, b.startChan, requestedChans);
 
       if(!rangeCheck.ok()) return rangeCheck;
 
-      inFrames[count] = requestedFrames;
-      inChans[count] =  requestedChans;
+      inFrames[asUnsigned(count)] = requestedFrames;
+      inChans[asUnsigned(count)] =  requestedChans;
       mClient.sampleRate(BufferAdaptor::ReadAccess(b.buffer).sampleRate());
       count++;
     }
@@ -174,8 +175,8 @@ public:
 
 
 
-    size_t numFrames   = *std::min_element(inFrames.begin(),inFrames.end());
-    size_t numChannels = *std::min_element(inChans.begin(), inChans.end());
+    index numFrames   = *std::min_element(inFrames.begin(),inFrames.end());
+    index numChannels = *std::min_element(inChans.begin(), inChans.end());
 
     Result processResult = AdaptorType<HostMatrix,HostVectorView>::process(mClient,inputBuffers,outputBuffers,numFrames,numChannels,c);
 
@@ -216,7 +217,7 @@ template<typename HostMatrix, typename HostVectorView>
 struct Streaming
 {
   template <typename Client,typename InputList, typename OutputList>
-  static Result process(Client& client, InputList& inputBuffers,OutputList& outputBuffers, size_t nFrames, size_t nChans, FluidContext& c)
+  static Result process(Client& client, InputList& inputBuffers,OutputList& outputBuffers, index nFrames, index nChans, FluidContext& c)
   {
     //To account for process latency we need to copy the buffers with padding
     std::vector<HostMatrix> outputData;
@@ -225,43 +226,43 @@ struct Streaming
     outputData.reserve(outputBuffers.size());
     inputData.reserve(inputBuffers.size());
 
-    size_t padding = client.latency();
+    index padding = client.latency();
 
     std::fill_n(std::back_inserter(outputData), outputBuffers.size(), HostMatrix(nChans,nFrames + padding));
     std::fill_n(std::back_inserter(inputData), inputBuffers.size(), HostMatrix(nChans,nFrames + padding));
 
     double sampleRate{0};
 
-    for(int i = 0; i < nChans; ++i)
+    for(index i = 0; i < nChans; ++i)
     {
       std::vector<HostVectorView> inputs;
       inputs.reserve(inputBuffers.size());
-      for(int j = 0; j < inputBuffers.size(); ++j)
+      for(index j = 0; j < asSigned(inputBuffers.size()); ++j)
       {
-        BufferAdaptor::ReadAccess thisInput(inputBuffers[j].buffer);
+        BufferAdaptor::ReadAccess thisInput(inputBuffers[asUnsigned(j)].buffer);
         if (i==0 && j==0) sampleRate = thisInput.sampleRate();
-        inputData[j].row(i)(Slice(0,nFrames)) = thisInput.samps(inputBuffers[j].startFrame,nFrames,inputBuffers[j].startChan + i);
-        inputs.emplace_back(inputData[j].row(i));
+        inputData[asUnsigned(j)].row(i)(Slice(0,nFrames)) = thisInput.samps(inputBuffers[asUnsigned(j)].startFrame,nFrames,inputBuffers[asUnsigned(j)].startChan + i);
+        inputs.emplace_back(inputData[asUnsigned(j)].row(i));
       }
 
       std::vector<HostVectorView> outputs;
       outputs.reserve(outputBuffers.size());
-      for(int j = 0; j < outputBuffers.size(); ++j)
-        outputs.emplace_back(outputData[j].row(i));
+      for(index j = 0; j < asSigned(outputBuffers.size()); ++j)
+        outputs.emplace_back(outputData[asUnsigned(j)].row(i));
 
       if(c.task()) c.task()->iterationUpdate(i, nChans);
 
       client.process(inputs,outputs,c, true);
     }
 
-    for(int i = 0; i < outputBuffers.size(); ++i)
+    for(index i = 0; i < asSigned(outputBuffers.size()); ++i)
     {
-      if(!outputBuffers[i]) continue;
-      BufferAdaptor::Access thisOutput(outputBuffers[i]);
+      if(!outputBuffers[asUnsigned(i)]) continue;
+      BufferAdaptor::Access thisOutput(outputBuffers[asUnsigned(i)]);
       Result r = thisOutput.resize(nFrames,nChans,sampleRate);
       if(!r.ok()) return r;
-      for(int j = 0; j < nChans; ++j)
-        thisOutput.samps(j) = outputData[i].row(j)(Slice(padding));
+      for(index j = 0; j < nChans; ++j)
+        thisOutput.samps(j) = outputData[asUnsigned(i)].row(j)(Slice(padding));
     }
 
     return {};
@@ -272,17 +273,17 @@ template<typename HostMatrix,typename HostVectorView>
 struct StreamingControl
 {
   template <typename Client,typename InputList, typename OutputList>
-  static Result process(Client& client, InputList& inputBuffers,OutputList& outputBuffers, size_t nFrames, size_t nChans, FluidContext& c)
+  static Result process(Client& client, InputList& inputBuffers,OutputList& outputBuffers, index nFrames, index nChans, FluidContext& c)
   {
         //To account for process latency we need to copy the buffers with padding
       std::vector<HostMatrix> inputData;
-      size_t nFeatures = client.controlChannelsOut();
+      index nFeatures = client.controlChannelsOut();
 //      outputData.reserve(nFeatures);
       inputData.reserve(inputBuffers.size());
 
-      size_t padding = client.latency();
-      size_t controlRate = client.controlRate();
-      size_t nHops = (nFrames + padding) / controlRate;
+      index padding = client.latency();
+      index controlRate = client.controlRate();
+      index nHops = (nFrames + padding) / controlRate;
 
       //in contrast to the plain streaming case, we're going to call process() iteratively with a vector size = the control vector size, so we get KR where expected
       //TODO make this whole mess less baroque and opaque
@@ -291,35 +292,35 @@ struct StreamingControl
       HostMatrix outputData(nChans * nFeatures, nHops);
       double sampleRate{0};
       //Copy input data
-      for(int i = 0; i < nChans; ++i)
+      for(index i = 0; i < nChans; ++i)
       {
-        for(int j = 0; j < inputBuffers.size(); ++j)
+        for(index j = 0; j < asSigned(inputBuffers.size()); ++j)
         {
-          BufferAdaptor::ReadAccess thisInput(inputBuffers[j].buffer);
+          BufferAdaptor::ReadAccess thisInput(inputBuffers[asUnsigned(j)].buffer);
           if(i==0 && j==0) sampleRate = thisInput.sampleRate();
-          inputData[j].row(i)(Slice(0,nFrames)) = thisInput.samps(inputBuffers[j].startFrame,nFrames,inputBuffers[j].startChan + i);
+          inputData[asUnsigned(j)].row(i)(Slice(0,nFrames)) = thisInput.samps(inputBuffers[asUnsigned(j)].startFrame,nFrames,inputBuffers[asUnsigned(j)].startChan + i);
         }
       }
     FluidTask* task = c.task();
     FluidContext dummyContext;
-    for(int i = 0; i < nChans; ++i)
+    for(index i = 0; i < nChans; ++i)
     {
-      for(int j = 0; j < nHops; ++j )
+      for(index j = 0; j < nHops; ++j )
       {
-        size_t t = j * controlRate;
+        index t = j * controlRate;
         std::vector<HostVectorView> inputs;
         inputs.reserve(inputBuffers.size());
         std::vector<HostVectorView> outputs;
         outputs.reserve(outputBuffers.size());
-        for(int k = 0; k < inputBuffers.size(); ++k)
-          inputs.emplace_back(inputData[k].row(i)(Slice(t,controlRate)));
+        for(index k = 0; k < asSigned(inputBuffers.size()); ++k)
+          inputs.emplace_back(inputData[asUnsigned(k)].row(i)(Slice(t,controlRate)));
 
-        for(int k = 0; k < nFeatures; ++k)
+        for(index k = 0; k < nFeatures; ++k)
           outputs.emplace_back(outputData.row(k + i*nFeatures)(Slice(j,1)));
 
         client.process(inputs,outputs,dummyContext, true);
 
-        if(task && !task->processUpdate(j + 1 + (nHops * i),nHops * nChans)) break;
+        if(task && !task->processUpdate(j + 1 + (nHops * i),static_cast<double>(nHops * nChans))) break;
       }
     }
 
@@ -327,9 +328,9 @@ struct StreamingControl
     Result resizeResult = thisOutput.resize(nHops - 1,nChans * nFeatures,sampleRate / controlRate);
     if(!resizeResult.ok()) return resizeResult;
 
-    for(int i = 0; i < nFeatures; ++i)
+    for(index i = 0; i < nFeatures; ++i)
     {
-      for(int j = 0; j < nChans; ++j)
+      for(index j = 0; j < nChans; ++j)
         thisOutput.samps(i + j * nFeatures) = outputData.row(i + j * nFeatures)(Slice(1));
     }
 
@@ -344,17 +345,17 @@ template<typename HostMatrix,typename HostVectorView>
 struct Slicing
 {
   template <typename Client,typename InputList, typename OutputList>
-  static Result process(Client& client, InputList& inputBuffers,OutputList& outputBuffers, size_t nFrames, size_t nChans, FluidContext& c)
+  static Result process(Client& client, InputList& inputBuffers,OutputList& outputBuffers, index nFrames, index nChans, FluidContext& c)
   {
 
     assert(inputBuffers.size() == 1);
     assert(outputBuffers.size() == 1);
-    size_t padding = client.latency();
+    index padding = client.latency();
     HostMatrix monoSource(1,nFrames + padding);
 
     BufferAdaptor::ReadAccess src(inputBuffers[0].buffer);
     // Make a mono sum;
-    for (size_t i = inputBuffers[0].startChan; i < nChans + inputBuffers[0].startChan ; ++i)
+    for (index i = inputBuffers[0].startChan; i < nChans + inputBuffers[0].startChan ; ++i)
       monoSource.row(0)(Slice(0,nFrames)).apply(src.samps(i), [](float &x, float y) { x += y; });
 
     HostMatrix onsetPoints(1,nFrames + padding);
@@ -371,19 +372,19 @@ struct Slicing
 } //namespace impl
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class RTClient, typename Params, Params& PD, size_t Ins, size_t Outs>
+template<class RTClient, typename Params, Params& PD, index Ins, index Outs>
 using NRTStreamAdaptor = impl::NRTClientWrapper<impl::Streaming, RTClient, Params, PD, Ins, Outs>;
 
-template<class RTClient,typename Params, Params& PD, size_t Ins, size_t Outs>
+template<class RTClient,typename Params, Params& PD, index Ins, index Outs>
 using NRTSliceAdaptor = impl::NRTClientWrapper<impl::Slicing, RTClient, Params, PD, Ins, Outs>;
 
-template<class RTClient,typename Params, Params& PD, size_t Ins, size_t Outs>
+template<class RTClient,typename Params, Params& PD, index Ins, index Outs>
 using NRTControlAdaptor = impl::NRTClientWrapper<impl::StreamingControl, RTClient, Params, PD, Ins, Outs>;
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<template <typename T> class RTClient, size_t Ms>
+template<template <typename T> class RTClient, index Ms>
 auto constexpr makeNRTParams(impl::InputBufferSpec&& in, impl::BufferSpec(&& out)[Ms])
 {
   return impl::joinParameterDescriptors(impl::joinParameterDescriptors(impl::makeWrapperInputs(in), impl::spitOuts(out, std::make_index_sequence<Ms>())), RTClient<double>::getParameterDescriptors());
@@ -402,12 +403,12 @@ public:
 
   constexpr static ParamDescType& getParameterDescriptors() { return NRTClient::getParameterDescriptors(); }
 
-  size_t audioChannelsIn()    const noexcept { return 0; }
-  size_t audioChannelsOut()   const noexcept { return 0; }
-  size_t controlChannelsIn()  const noexcept { return 0; }
-  size_t controlChannelsOut() const noexcept { return 0; }
-  size_t audioBuffersIn()  const noexcept { return ParamDescType:: template NumOf<InputBufferT>();   }
-  size_t audioBuffersOut() const noexcept { return ParamDescType:: template NumOf<BufferT>();  }
+  index audioChannelsIn()    const noexcept { return 0; }
+  index audioChannelsOut()   const noexcept { return 0; }
+  index controlChannelsIn()  const noexcept { return 0; }
+  index controlChannelsOut() const noexcept { return 0; }
+  index audioBuffersIn()  const noexcept { return ParamDescType:: template NumOf<InputBufferT>();   }
+  index audioBuffersOut() const noexcept { return ParamDescType:: template NumOf<BufferT>();  }
 
   NRTThreadingAdaptor(ParamSetType& p)
    : mHostParams{p}, mClient{new NRTClient{mHostParams}}

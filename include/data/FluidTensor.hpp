@@ -12,6 +12,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "FluidTensor_Support.hpp"
+#include "FluidIndex.hpp"
 #include <array>
 #include <cassert>
 #include <initializer_list>
@@ -117,7 +118,7 @@ public:
   FluidTensor(Dims... dims) : mDesc(dims...)
   {
     static_assert(sizeof...(dims) == N, "Number of dimensions doesn't match");
-    mContainer.resize(mDesc.size);
+    mContainer.resize(asUnsigned(mDesc.size));
   }
 
   /// Construct/assign from nested initializer_list of elements
@@ -171,59 +172,59 @@ public:
 
   /// TODO If these aren't used, removed
   /// 2D copy from T**
-  template <typename U = T, size_t D = N, typename = std::enable_if_t<D == 2>()>
-  FluidTensor(T** input, size_t dim1, size_t dim2)
-      : mContainer(dim1 * dim2, 0), mDesc(0, {dim1, dim2})
-  {
-    for (int i = 0; i < dim1; ++i)
-      std::copy(input[i], input[i] + dim2, mContainer.data() + (i * dim2));
-  }
+//  template <typename U = T, size_t D = N, typename = std::enable_if_t<D == 2>()>
+//  FluidTensor(T** input, size_t dim1, size_t dim2)
+//      : mContainer(dim1 * dim2, 0), mDesc(0, {dim1, dim2})
+//  {
+//    for (int i = 0; i < dim1; ++i)
+//      std::copy(input[i], input[i] + dim2, mContainer.data() + (i * dim2));
+//  }
 
   /// 1D copy from T*
   template <typename U = T, size_t D = N, typename = std::enable_if_t<D == 1>()>
-  FluidTensor(T* input, size_t dim, size_t stride = 1)
+  FluidTensor(T* input, index dim, index stride = 1)
       : mContainer(dim), mDesc(0, {dim})
   {
-    for (size_t i = 0, j = 0; i < dim; ++i, j += stride)
-      mContainer[i] = input[j];
+    for (index i = 0, j = 0; i < dim; ++i, j += stride)
+      mContainer[asUnsigned(i)] = input[asUnsigned(j)];
   }
 
   /// 1D copy from std::vector
   template <typename U = T, size_t D = N, typename = std::enable_if_t<D == 1>()>
   FluidTensor(std::vector<T>&& input)
-      : mContainer(input), mDesc(0, {input.size()})
+      : mContainer(input), mDesc(0, {asSigned(input.size())})
   {}
 
   template <typename U = T, size_t D = N, typename = std::enable_if_t<D == 1>()>
   FluidTensor(std::vector<T>& input)
-      : mContainer(input), mDesc(0, {input.size()})
+      : mContainer(input), mDesc(0, {asSigned(input.size())})
   {}
 
 
   ///***************************************************************************
   /// row / col access: returns Views of dim N-1
-  const FluidTensorView<const T, N - 1> row(const size_t i) const
+  const FluidTensorView<const T, N - 1> row(const index i) const
   {
     assert(i < rows());
     FluidTensorSlice<N - 1> row(mDesc, SizeConstant<0>(), i);
     return {row, mContainer.data()};
   }
 
-  FluidTensorView<T, N - 1> row(const size_t i)
+  FluidTensorView<T, N - 1> row(const index i)
   {
     assert(i < rows());
     FluidTensorSlice<N - 1> row(mDesc, SizeConstant<0>(), i);
     return {row, mContainer.data()};
   }
 
-  const FluidTensorView<const T, N - 1> col(const size_t i) const
+  const FluidTensorView<const T, N - 1> col(const index i) const
   {
     assert(i < cols());
     FluidTensorSlice<N - 1> col(mDesc, SizeConstant<1>(), i);
     return {col, data()};
   }
 
-  FluidTensorView<T, N - 1> col(const size_t i)
+  FluidTensorView<T, N - 1> col(const index i)
   {
     assert(i < cols());
     FluidTensorSlice<N - 1> col(mDesc, SizeConstant<1>(), i);
@@ -233,19 +234,20 @@ public:
   ///***************************************************************************
   /// slicing and element access (see Slice class)
 
-  FluidTensorView<T, N - 1> operator[](const size_t i) { return row(i); }
+  FluidTensorView<T, N - 1> operator[](const index i) { return row(i); }
 
-  const FluidTensorView<const T, N - 1> operator[](const size_t i) const
+  const FluidTensorView<const T, N - 1> operator[](const index i) const
   {
     return row(i);
   }
 
   /// element access
   template <typename... Args>
-  std::enable_if_t<isIndexSequence<Args...>(), T&> operator()(Args... args)
+  std::enable_if_t<isIndexSequence<Args...>(), T&>
+  operator()(Args... args)
   {
     assert(impl::checkBounds(mDesc, args...) && "Arguments out of bounds");
-    return *(data() + mDesc(args...));
+    return *(data() + mDesc(index(args)...));
   }
 
   template <typename... Args>
@@ -253,7 +255,7 @@ public:
   operator()(Args... args) const
   {
     assert(impl::checkBounds(mDesc, args...) && "Arguments out of bounds");
-    return *(data() + mDesc(args...));
+    return *(data() + mDesc(Index(args)...));
   }
 
   /// Slicing
@@ -287,10 +289,10 @@ public:
   const_iterator begin() const { return mContainer.cbegin(); }
   const_iterator end() const { return mContainer.cend(); }
 
-  size_t extent(size_t n) const { return mDesc.extents[n]; };
-  size_t rows() const { return extent(0); }
-  size_t cols() const { return extent(1); }
-  size_t size() const { return mContainer.size(); }
+  index extent(index n) const { return mDesc.extents[asUnsigned(n)]; };
+  index rows() const { return extent(0); }
+  index cols() const { return extent(1); }
+  index size() const { return asSigned(mContainer.size()); }
   const FluidTensorSlice<N>& descriptor() const { return mDesc; }
   FluidTensorSlice<N>&       descriptor() { return mDesc; }
   const T*                   data() const { return mContainer.data(); }
@@ -302,10 +304,10 @@ public:
   {
     static_assert(sizeof...(dims) == N, "Number of dimensions doesn't match");
     mDesc = FluidTensorSlice<N>(dims...);
-    mContainer.resize(mDesc.size);
+    mContainer.resize(asUnsigned(mDesc.size));
   }
 
-  void resizeDim(size_t dim, intptr_t amount)
+  void resizeDim(index dim, index amount)
   {
     if (amount == 0) return;
     mDesc.grow(dim, amount);
@@ -314,7 +316,7 @@ public:
 
   // Specialise for N=1
   template <typename dummy = void>
-  std::enable_if_t<N == 1, dummy> deleteRow(size_t index)
+  std::enable_if_t<N == 1, dummy> deleteRow(index index)
   {
     auto begin = mContainer.begin() + index;
     auto end = begin + 1;
@@ -323,7 +325,7 @@ public:
   }
 
   template <typename dummy = void>
-  std::enable_if_t<(N > 1), dummy> deleteRow(size_t index)
+  std::enable_if_t<(N > 1), dummy> deleteRow(index index)
   {
     auto r = row(index);
     auto begin = mContainer.begin() + r.descriptor().start;
@@ -387,7 +389,7 @@ public:
 
   T&       operator()() { return elem; }
   const T& operator()() const { return elem; }
-  size_t   size() const { return 1; }
+  index   size() const { return 1; }
 
 private:
   T elem;
@@ -418,8 +420,8 @@ public:
   /// Construct around an arbitary pointer, with an offset and some dimensions
   template <typename... Dims,
             typename = std::enable_if_t<isIndexSequence<Dims...>()>>
-  FluidTensorView(T* p, std::size_t start, Dims... dims)
-      : mDesc(start, {static_cast<std::size_t>(dims)...}), mRef(p)
+  FluidTensorView(T* p, index start, Dims... dims)
+      : mDesc(start, {static_cast<index>(dims)...}), mRef(p)
   {}
 
 
@@ -460,20 +462,20 @@ public:
   FluidTensorView& operator=(const FluidTensorView& x)
   {
     assert(sameExtents(mDesc, x.descriptor()));
-    std::array<size_t, N> a;
+    std::array<index, N> a;
     // Get the element-wise minimum of our extents and x's
     std::transform(mDesc.extents.begin(), mDesc.extents.end(),
                    x.descriptor().extents.begin(), a.begin(),
-                   [](size_t a, size_t b) { return std::min(a, b); });
+                   [](index a, index b) { return std::min(a, b); });
 
-    size_t count =
-        std::accumulate(a.begin(), a.end(), 1, std::multiplies<size_t>());
+    index count =
+        std::accumulate(a.begin(), a.end(), index(1), std::multiplies<index>());
 
     // Have to do this because haven't implemented += for slice iterator
     // (yet), so can't stop at arbitary offset from begin
     auto it = x.begin();
     auto ot = begin();
-    for (int i = 0; i < count; ++i, ++it, ++ot) *ot = *it;
+    for (index i = 0; i < count; ++i, ++it, ++ot) *ot = *it;
     return *this;
   }
 
@@ -481,13 +483,13 @@ public:
   FluidTensorView& operator=(const FluidTensor<T, N>& x)
   {
     assert(sameExtents(mDesc, x.descriptor()));
-    std::array<size_t, N> a;
+    std::array<index, N> a;
     // Get the element-wise minimum of our extents and x's
     std::transform(mDesc.extents.begin(), mDesc.extents.end(),
                    x.descriptor().extents.begin(), a.begin(),
-                   [](size_t a, size_t b) { return std::min(a, b); });
+                   [](index a, index b) { return std::min(a, b); });
     size_t count =
-        std::accumulate(a.begin(), a.end(), 1, std::multiplies<size_t>());
+        std::accumulate(a.begin(), a.end(), index(1), std::multiplies<index>());
 
     // Have to do this because haven't implemented += for slice iterator
     // (yet), so can't stop at arbitary offset from begin
@@ -503,20 +505,20 @@ public:
   {
     static_assert(std::is_convertible<T, U>(), "Can't convert between types");
     assert(sameExtents(mDesc, x.descriptor()));
-    std::array<size_t, N> a;
+    std::array<index, N> a;
     // Get the element-wise minimum of our extents and x's
     std::transform(mDesc.extents.begin(), mDesc.extents.end(),
                    x.descriptor().extents.begin(), a.begin(),
-                   [](size_t a, size_t b) { return std::min(a, b); });
+                   [](index a, index b) { return std::min(a, b); });
 
-    size_t count =
-        std::accumulate(a.begin(), a.end(), 1, std::multiplies<size_t>());
+    index count =
+        std::accumulate(a.begin(), a.end(), index(1), std::multiplies<index>());
 
     // Have to do this because haven't implemented += for slice iterator (yet),
     // so can't stop at arbitary offset from begin
     auto it = x.begin();
     auto ot = begin();
-    for (int i = 0; i < count; ++i, ++it, ++ot) *ot = *it;
+    for (index i = 0; i < count; ++i, ++it, ++ot) *ot = static_cast<T>(*it);
     return *this;
   }
 
@@ -533,10 +535,10 @@ public:
   /// Repoint a view (TODO const version?)
   template <typename... Dims,
             typename = std::enable_if_t<isIndexSequence<Dims...>()>>
-  void reset(T* p, std::size_t start, Dims... dims)
+  void reset(T* p, index start, Dims... dims)
   {
     mRef = p;
-    mDesc.reset(start, {static_cast<std::size_t>(dims)...});
+    mDesc.reset(start, {static_cast<index>(dims)...});
   }
 
   /// Element access
@@ -545,14 +547,14 @@ public:
   operator()(Args... args) const
   {
     assert(impl::checkBounds(mDesc, args...) && "Arguments out of bounds");
-    return *(data() + mDesc(args...));
+    return *(data() + mDesc(Index(args)...));
   }
 
   template <typename... Args>
   std::enable_if_t<isIndexSequence<Args...>(), T&> operator()(Args... args)
   {
     assert(impl::checkBounds(mDesc, args...) && "Arguments out of bounds");
-    return *(data() + mDesc(args...));
+    return *(data() + mDesc(index(args)...));
   }
 
   /// slicing
@@ -574,50 +576,50 @@ public:
   const const_iterator end() const { return {mDesc, mRef, true}; }
 
   /// c style element access
-  FluidTensorView<T, N - 1> operator[](const size_t i) { return row(i); }
+  FluidTensorView<T, N - 1> operator[](const index i) { return row(i); }
   /// TODO sould be const T
-  const FluidTensorView<const T, N - 1> operator[](const size_t i) const
+  const FluidTensorView<const T, N - 1> operator[](const index i) const
   {
     return row(i);
   }
 
-  const FluidTensorView<const T, N - 1> row(const size_t i) const
+  const FluidTensorView<const T, N - 1> row(const index i) const
   {
     assert(i < extent(0));
     FluidTensorSlice<N - 1> row(mDesc, SizeConstant<0>(), i);
     return {row, mRef};
   }
 
-  FluidTensorView<T, N - 1> row(const size_t i)
+  FluidTensorView<T, N - 1> row(const index i)
   {
     assert(i < extent(0));
     FluidTensorSlice<N - 1> row(mDesc, SizeConstant<0>(), i);
     return {row, mRef};
   }
 
-  const FluidTensorView<const T, N - 1> col(const size_t i) const
+  const FluidTensorView<const T, N - 1> col(const index i) const
   {
     assert(i < extent(1));
     FluidTensorSlice<N - 1> col(mDesc, SizeConstant<1>(), i);
     return {col, mRef};
   }
 
-  FluidTensorView<T, N - 1> col(const size_t i)
+  FluidTensorView<T, N - 1> col(const index i)
   {
     assert(i < extent(1));
     FluidTensorSlice<N - 1> col(mDesc, SizeConstant<1>(), i);
     return {col, mRef};
   }
 
-  size_t extent(const size_t n) const
+  index extent(const index n) const
   {
-    assert(n < mDesc.extents.size());
-    return mDesc.extents[n];
+    assert(n < asSigned(mDesc.extents.size()));
+    return mDesc.extents[asUnsigned(n)];
   }
 
-  size_t rows() const { return mDesc.extents[0]; }
-  size_t cols() const { return order > 1 ? mDesc.extents[1] : 0; }
-  size_t size() const { return mDesc.size; }
+  index rows() const { return mDesc.extents[0]; }
+  index cols() const { return order > 1 ? mDesc.extents[1] : 0; }
+  index size() const { return mDesc.size; }
   void   fill(const T x) { std::fill(begin(), end(), x); }
 
   FluidTensorView<T, N> transpose() { return {mDesc.transpose(), mRef}; }
@@ -696,7 +698,7 @@ public:
   FluidTensorView& operator=(U& x)
   {
     static_assert(std::is_convertible<T, U>(), "Can't convert");
-    *elem = x;
+    *elem = static_cast<T>(x);
     return *this;
   }
 
@@ -714,7 +716,7 @@ public:
 
 private:
   pointer elem;
-  size_t  mStart;
+  index  mStart;
 }; // View<T,0>
 
 } // namespace fluid

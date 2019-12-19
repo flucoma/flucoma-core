@@ -31,7 +31,7 @@ struct MinImpl
   const T value;
   template <size_t Offset, size_t N, typename U, typename Tuple,
             typename Descriptor>
-  constexpr void clamp(U& x, Tuple& params, Descriptor& d, Result* r) const
+  constexpr void clamp(U& x, Tuple& /*params*/, Descriptor& d, Result* r) const
   {
     U oldX = x;
     x = std::max<U>(x, value);
@@ -51,7 +51,7 @@ struct MaxImpl
   const T value;
   template <size_t Offset, size_t N, typename U, typename Tuple,
             typename Descriptor>
-  constexpr void clamp(U& x, Tuple& params, Descriptor& d, Result* r) const
+  constexpr void clamp(U& x, Tuple& /*params*/, Descriptor& d, Result* r) const
   {
 
     U oldX = x;
@@ -80,14 +80,14 @@ struct LowerLimitImpl : public Relational
     {
       r->set(Result::Status::kWarning);
       std::array<T, sizeof...(Is)> constraintValues{
-          std::get<Is + Offset>(params)...};
-      size_t minPos = std::distance(
+          {std::get<Is + Offset>(params)...}};
+      index minPos = std::distance(
           constraintValues.begin(),
           std::min_element(constraintValues.begin(), constraintValues.end()));
       std::array<const char*, sizeof...(Is)> constraintNames{
-          d.template get<Is + Offset>().name...};
+          {d.template get<Is + Offset>().name...}};
       r->addMessage(d.template get<N>().name, " value (", oldV,
-                    ") below parameter ", constraintNames[minPos], " (", v,
+                    ") below parameter ", constraintNames[asUnsigned(minPos)], " (", v,
                     ')');
     }
   }
@@ -108,14 +108,14 @@ struct UpperLimitImpl : public Relational
     {
       r->set(Result::Status::kWarning);
       std::array<T, sizeof...(Is)> constraintValues{
-          std::get<Is + Offset>(params)...};
-      size_t maxPos = std::distance(
+          {std::get<Is + Offset>(params)...}};
+      index maxPos = std::distance(
           constraintValues.begin(),
           std::max_element(constraintValues.begin(), constraintValues.end()));
       std::array<const char*, sizeof...(Is)> constraintNames{
-          d.template get<Is + Offset>().name...};
+        {d.template get<Is + Offset>().name...}};
       r->addMessage(d.template get<N>().name, " value, ", oldV,
-                    ", above parameter ", constraintNames[maxPos], " (", v,
+                    ", above parameter ", constraintNames[asUnsigned(maxPos)], " (", v,
                     ')');
     }
   }
@@ -129,7 +129,7 @@ struct FrameSizeUpperLimitImpl : public Relational
   void clamp(T& v, Tuple& params, Descriptor& d, Result* r) const
   {
     T      oldV = v;
-    size_t frameSize = std::get<FFTIndex + Offset>(params).frameSize();
+    index frameSize = std::get<FFTIndex + Offset>(params).frameSize();
     v = std::min<T>(v, frameSize);
 
     if (r && oldV != v)
@@ -149,7 +149,7 @@ struct MaxFrameSizeUpperLimitImpl : public Relational
   void clamp(T& v, Tuple& params, Descriptor& d, Result* r) const
   {
     T      oldV = v;
-    size_t frameSize = (std::get<MaxFFTSizeIndex + Offset>(params) + 1) / 2;
+    index frameSize = (std::get<MaxFFTSizeIndex + Offset>(params) + 1) / 2;
     v = std::min<T>(v, frameSize);
 
     if (r && oldV != v)
@@ -168,10 +168,10 @@ struct FrameSizeLowerLimitImpl : public Relational
   void clamp(FFTParams& v, Tuple& params, Descriptor& d, Result* r) const
   {
     FFTParams oldV = v;
-    size_t    frameSize = v.frameSize();
-    frameSize = std::max<intptr_t>(std::get<Lower + Offset>(params), frameSize);
-
-    intptr_t newsize = 2 * FFTParams::nextPow2(frameSize - 1, true);
+    index    frameSize = v.frameSize();
+    frameSize = std::max<index>(std::get<Lower + Offset>(params), frameSize);
+    assert((frameSize - 1) >=0 && (frameSize - 1) <= asSigned(std::numeric_limits<uint32_t>::max()));
+    intptr_t newsize = 2 * FFTParams::nextPow2(static_cast<uint32_t>(frameSize - 1), true);
     if (v.fftRaw() == -1)
       v.setWin(newsize);
     else
@@ -221,7 +221,7 @@ struct FrequencyAmpPairConstraint
   constexpr FrequencyAmpPairConstraint() {}
 
   template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
-  constexpr void clamp(type& v, Tuple& allParams, Descriptor&, Result* r) const
+  constexpr void clamp(type& v, Tuple& allParams, Descriptor&, Result*) const
   {
     auto& vals = v.value;
     auto& inParams = std::get<N>(allParams);
@@ -253,7 +253,7 @@ struct FrequencyAmpPairConstraint
 struct PowerOfTwo
 {
   template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
-  constexpr void clamp(LongUnderlyingType& x, Tuple& params, Descriptor& d,
+  constexpr void clamp(LongUnderlyingType& x, Tuple& /*params*/, Descriptor& d,
                        Result* r) const
   {
 
@@ -274,8 +274,8 @@ struct PowerOfTwo
 struct Odd
 {
   template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
-  constexpr void clamp(LongUnderlyingType& x, Tuple& params, Descriptor& d,
-                       Result* r) const
+  constexpr void clamp(LongUnderlyingType& x, Tuple& /*params*/, Descriptor&,
+                       Result*) const
   {
     x = x % 2 ? x : x + 1;
   }

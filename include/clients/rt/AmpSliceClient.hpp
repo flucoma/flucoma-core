@@ -91,20 +91,14 @@ public:
   {
 
     if (!input[0].data() || !output[0].data()) return;
-    size_t hostVecSize = input[0].size();
+    index hostVecSize = input[0].size();
 
-    if (mTrackValues.changed(get<kAbsRampUpTime>(), get<kAbsRampDownTime>(),
-                             get<kAbsOnThreshold>(), get<kAbsOffThreshold>(),
-                             get<kMinTimeAboveThreshold>(),
-                             get<kMinEventDuration>(), get<kUpwardLookupTime>(),
-                             get<kMinTimeBelowThreshold>(),
-                             get<kMinSilencetDuration>(),
-                             get<kDownwardLookupTime>(), get<kRelRampUpTime>(),
-                             get<kRelRampDownTime>(), get<kRelOnThreshold>(),
-                             get<kRelOffThreshold>(), get<kHiPassFreq>()) ||
+    double hiPassFreq = std::min(get<kHiPassFreq>() / sampleRate(), 0.5);
+
+    if (mTrackValues.changed(get<kMinTimeAboveThreshold>(), get<kUpwardLookupTime>(),
+                             get<kMinTimeBelowThreshold>(), get<kDownwardLookupTime>()) ||
         !mAlgorithm.initialized())
     {
-      double hiPassFreq = std::max(get<kHiPassFreq>() / sampleRate(), 1.0);
       mAlgorithm.init(hiPassFreq, get<kAbsRampUpTime>(), get<kRelRampUpTime>(),
                       get<kAbsRampDownTime>(), get<kRelRampDownTime>(),
                       get<kAbsOnThreshold>(), get<kRelOnThreshold>(),
@@ -112,13 +106,22 @@ public:
                       get<kMinEventDuration>(), get<kUpwardLookupTime>(),
                       get<kAbsOffThreshold>(), get<kMinTimeBelowThreshold>(),
                       get<kMinSilencetDuration>(), get<kDownwardLookupTime>());
+    } else {
+      mAlgorithm.updateParams(
+        hiPassFreq, get<kAbsRampUpTime>(), get<kRelRampUpTime>(),
+        get<kAbsRampDownTime>(), get<kRelRampDownTime>(),
+        get<kAbsOnThreshold>(), get<kRelOnThreshold>(),
+        get<kRelOffThreshold>(),
+        get<kMinEventDuration>(),
+        get<kAbsOffThreshold>(),
+        get<kMinSilencetDuration>());
     }
 
-    for (int i = 0; i < input[0].size(); i++)
+    for (index i = 0; i < input[0].size(); i++)
     { output[0](i) = mAlgorithm.processSample(input[0](i)); }
   }
 
-  size_t latency()
+  index latency()
   {
     return std::max(
         get<kMinTimeAboveThreshold>() + get<kUpwardLookupTime>(),
@@ -126,9 +129,7 @@ public:
   }
 
 private:
-  ParameterTrackChanges<double, double, double, double, size_t, size_t, size_t,
-                        size_t, size_t, size_t, double, double, double, double,
-                        double>
+  ParameterTrackChanges<index, index, index, index>
                                   mTrackValues;
   algorithm::EnvelopeSegmentation mAlgorithm{get<kMaxSize>(), get<kOutput>()};
 };
@@ -138,18 +139,18 @@ struct NRTAmpSlicing
 {
   template <typename Client, typename InputList, typename OutputList>
   static Result process(Client& client, InputList& inputBuffers,
-                        OutputList& outputBuffers, size_t nFrames,
-                        size_t nChans, FluidContext& c)
+                        OutputList& outputBuffers, index nFrames,
+                        index nChans, FluidContext& c)
   {
     assert(inputBuffers.size() == 1);
     assert(outputBuffers.size() == 1);
-    size_t padding = client.latency();
+    index padding = client.latency();
     using HostMatrixView = FluidTensorView<typename HostMatrix::type, 2>;
     HostMatrix monoSource(1, nFrames + padding);
 
     BufferAdaptor::ReadAccess src(inputBuffers[0].buffer);
     // Make a mono sum;
-    for (size_t i = 0; i < nChans; ++i)
+    for (index i = 0; i < nChans; ++i)
       monoSource.row(0)(Slice(0, nFrames))
           .apply(src.samps(i), [](float& x, float y) { x += y; });
 
@@ -162,7 +163,7 @@ struct NRTAmpSlicing
 
     // add onset at start if needed
     if (output[0](padding) == 1) { switchPoints(0, 0) = 1; }
-    for (int i = 1; i < nFrames - 1; i++)
+    for (index i = 1; i < nFrames - 1; i++)
     {
       if (output[0](padding + i) == 1 && output[0](padding + i - 1) == 0)
         switchPoints(0, i) = 1;

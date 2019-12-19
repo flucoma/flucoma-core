@@ -59,9 +59,9 @@ public:
   {
     if (!input[0].data() || !output[0].data()) return;
     assert(FluidBaseClient::controlChannelsOut() && "No control channels");
-    assert(output.size() >= FluidBaseClient::controlChannelsOut() &&
+    assert(output.size() >= asUnsigned(FluidBaseClient::controlChannelsOut()) &&
            "Too few output channels");
-    size_t hostVecSize = input[0].size();
+    index hostVecSize = input[0].size();
     if (mBufferParamsTracker.changed(hostVecSize, get<kWindowSize>(),
                                      get<kHopSize>()))
     {
@@ -85,12 +85,12 @@ public:
     output[1](0) = mDescriptors(1);
   }
 
-  size_t latency() { return get<kWindowSize>(); }
+  index latency() { return get<kWindowSize>(); }
 
-  size_t controlRate() { return get<kHopSize>(); }
+  index controlRate() { return get<kHopSize>(); }
 
 private:
-  ParameterTrackChanges<size_t, size_t, size_t> mBufferParamsTracker;
+  ParameterTrackChanges<index, index, index> mBufferParamsTracker;
 
   algorithm::Loudness mAlgorithm{get<kMaxWindowSize>()};
 

@@ -16,6 +16,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "ParameterTypes.hpp"
 #include "Result.hpp"
 #include "TupleUtilities.hpp"
+#include "../../data/FluidIndex.hpp"
 #include "../../data/FluidMeta.hpp"
 #include <tuple>
 
@@ -46,19 +47,19 @@ public:
     mParams.template set(std::forward<T>(x), reportage);
   }
 
-  size_t audioChannelsIn() const noexcept { return mAudioChannelsIn; }
-  size_t audioChannelsOut() const noexcept { return mAudioChannelsOut; }
-  size_t controlChannelsIn() const noexcept { return mControlChannelsIn; }
-  size_t controlChannelsOut() const noexcept { return mControlChannelsOut; }
+  index audioChannelsIn() const noexcept { return mAudioChannelsIn; }
+  index audioChannelsOut() const noexcept { return mAudioChannelsOut; }
+  index controlChannelsIn() const noexcept { return mControlChannelsIn; }
+  index controlChannelsOut() const noexcept { return mControlChannelsOut; }
 
-  size_t maxControlChannelsOut() const noexcept
+  index maxControlChannelsOut() const noexcept
   {
     return mMaxControlChannelsOut;
   }
   bool controlTrigger() const noexcept { return mControlTrigger; }
 
-  size_t audioBuffersIn() const noexcept { return mBuffersIn; }
-  size_t audioBuffersOut() const noexcept { return mBuffersOut; }
+  index audioBuffersIn() const noexcept { return mBuffersIn; }
+  index audioBuffersOut() const noexcept { return mBuffersOut; }
 
   constexpr static ParamDescType& getParameterDescriptors() { return PD; }
 
@@ -68,31 +69,31 @@ public:
   void setParams(ParamSetViewType& p) { mParams = p; }
 
 protected:
-  void audioChannelsIn(const size_t x) noexcept { mAudioChannelsIn = x; }
-  void audioChannelsOut(const size_t x) noexcept { mAudioChannelsOut = x; }
-  void controlChannelsIn(const size_t x) noexcept { mControlChannelsIn = x; }
-  void controlChannelsOut(const size_t x) noexcept { mControlChannelsOut = x; }
-  void maxControlChannelsOut(const size_t x) noexcept
+  void audioChannelsIn(const index x) noexcept { mAudioChannelsIn = x; }
+  void audioChannelsOut(const index x) noexcept { mAudioChannelsOut = x; }
+  void controlChannelsIn(const index x) noexcept { mControlChannelsIn = x; }
+  void controlChannelsOut(const index x) noexcept { mControlChannelsOut = x; }
+  void maxControlChannelsOut(const index x) noexcept
   {
     mMaxControlChannelsOut = x;
   }
 
   void controlTrigger(const bool x) noexcept { mControlTrigger = x; }
 
-  void audioBuffersIn(const size_t x) noexcept { mBuffersIn = x; }
-  void audioBuffersOut(const size_t x) noexcept { mBuffersOut = x; }
+  void audioBuffersIn(const index x) noexcept { mBuffersIn = x; }
+  void audioBuffersOut(const index x) noexcept { mBuffersOut = x; }
 
   std::reference_wrapper<ParamSetViewType> mParams;
 
 private:
-  size_t mAudioChannelsIn = 0;
-  size_t mAudioChannelsOut = 0;
-  size_t mControlChannelsIn = 0;
-  size_t mControlChannelsOut = 0;
-  size_t mMaxControlChannelsOut = 0;
+  index mAudioChannelsIn = 0;
+  index mAudioChannelsOut = 0;
+  index mControlChannelsIn = 0;
+  index mControlChannelsOut = 0;
+  index mMaxControlChannelsOut = 0;
   bool   mControlTrigger{false};
-  size_t mBuffersIn = 0;
-  size_t mBuffersOut = 0;
+  index mBuffersIn = 0;
+  index mBuffersOut = 0;
   double mSampleRate = 0;
 };
 

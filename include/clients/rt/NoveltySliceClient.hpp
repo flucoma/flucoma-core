@@ -74,13 +74,12 @@ public:
                FluidContext& c, bool reset = false)
   {
     using algorithm::NoveltySegmentation;
-    using std::size_t;
 
     if (!input[0].data() || !output[0].data()) return;
 
-    size_t hostVecSize = input[0].size();
-    size_t windowSize = get<kFFT>().winSize();
-    int    feature = get<kFeature>();
+    index hostVecSize = input[0].size();
+    index windowSize = get<kFFT>().winSize();
+    index feature = get<kFeature>();
     if (mParamsTracker.changed(hostVecSize, get<kFeature>(), get<kKernelSize>(),
                                get<kThreshold>(), get<kFilterSize>(),
                                windowSize))
@@ -89,7 +88,7 @@ public:
       mBufferedProcess.maxSize(windowSize, windowSize,
                                FluidBaseClient::audioChannelsIn(),
                                FluidBaseClient::audioChannelsOut());
-      int nDims = 2;
+      index nDims = 2;
       if (feature < 3)
       {
         mSpectrum.resize(get<kFFT>().frameSize());
@@ -117,7 +116,7 @@ public:
     RealMatrix in(1, hostVecSize);
     in.row(0) = input[0];
     RealMatrix out(1, hostVecSize);
-    int        frameOffset = 0; // in case kHopSize < hostVecSize
+    index      frameOffset = 0; // in case kHopSize < hostVecSize
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.process(
         windowSize, windowSize, get<kFFT>().hopSize(), c, reset,
@@ -160,7 +159,7 @@ public:
 private:
   algorithm::NoveltySegmentation mNovelty{get<kMaxKernelSize>(),
                                           get<kMaxFilterSize>()};
-  ParameterTrackChanges<size_t, size_t, size_t, double, size_t, size_t>
+  ParameterTrackChanges<index, index, index, double, index, index>
                   mParamsTracker;
   BufferedProcess mBufferedProcess;
   algorithm::STFT mSTFT{get<kFFT>().winSize(), get<kFFT>().fftSize(),
