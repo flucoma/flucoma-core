@@ -11,23 +11,37 @@ find_library(SNDFILE_LIBRARY NAMES libsndfile.dylib
 foreach (EXAMPLE  audiofile;fluidtensor;stft;nmf;
 									fluidbuffer;sineextraction;transient_extractor;
 								median_filter;rthpss;rtsineextraction;novelty;paramDescriptorList;onset;transient_segmentation;envseg)
-
+          
 	add_executable (
 			test_${EXAMPLE} test_${EXAMPLE}.cpp
 	)
+  
+  set_target_properties(test_${EXAMPLE} PROPERTIES
+      CXX_STANDARD 14
+      CXX_STANDARD_REQUIRED ON
+      CXX_EXTENSIONS OFF
+  )
+  
 	target_include_directories(
 	  test_${EXAMPLE}
 		PRIVATE ${SNDFILE_INCLUDE_DIR}
 	)
 	target_link_libraries(
-		test_${EXAMPLE} PRIVATE FLUID_DECOMPOSITION  ${SNDFILE_LIBRARY} HISSTools_FFT
+		test_${EXAMPLE} PRIVATE FLUID_DECOMPOSITION  ${SNDFILE_LIBRARY} HISSTools_FFT 
 	)
 	target_compile_options(
-		test_${EXAMPLE} PRIVATE "$<$<NOT:$<CONFIG:DEBUG>>:-mavx>"
+		test_${EXAMPLE} PRIVATE "$<$<NOT:$<CONFIG:DEBUG>>:-mavx>" -stdlib=libc++
 	)
-  source_group(TREE  ${root}  FILES ${HEADERS})
-
-
+  
+  if(APPLE)	
+    set_target_properties(test_${EXAMPLE} PROPERTIES
+      OSX_ARCHITECTURES "x86_64"
+    )
+    target_compile_options(test_${EXAMPLE} PRIVATE -stdlib=libc++)
+    target_link_libraries(test_${EXAMPLE} PRIVATE -stdlib=libc++) 
+  endif() 
+  
+  # source_group(TREE ${root}  FILES ${HEADERS})
 endforeach (EXAMPLE)
 
 # file(GLOB LIBRARY_HEADERS ${PROJECT_SOURCE_DIR}/../include/*/*.hpp)

@@ -120,3 +120,10 @@ if(APPLE)
   target_compile_options(FLUID_DECOMPOSITION INTERFACE -stdlib=libc++)
   target_link_libraries(FLUID_DECOMPOSITION INTERFACE -stdlib=libc++)
 endif()
+
+#Examples 
+if(APPLE)
+  add_subdirectory(
+   "${CMAKE_CURRENT_SOURCE_DIR}/examples" EXCLUDE_FROM_ALL
+  )
+endif() 
