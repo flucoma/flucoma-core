@@ -267,7 +267,7 @@ public:
 
   index fftSize() const noexcept
   {
-    assert(mWindowSize >= 0 && mWindowSize <= asSigned(std::numeric_limits<uint32_t>::max()));
+    assert(mWindowSize >= 0 && asUnsigned(mWindowSize) <= std::numeric_limits<uint32_t>::max());
     return mFFTSize < 0 ? nextPow2(static_cast<uint32_t>(mWindowSize), true) : mFFTSize;
   }
   intptr_t fftRaw() const noexcept { return mFFTSize; }
