@@ -1,5 +1,7 @@
 cmake_minimum_required (VERSION 3.11)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/script PARENT_SCOPE)
+
 if(APPLE) #has to be before first project() call. grrrrrr
   set(CMAKE_OSX_DEPLOYMENT_TARGET 10.7)  
 endif()
@@ -71,8 +73,6 @@ set_target_properties(HISSTools_FFT PROPERTIES
     CXX_EXTENSIONS OFF
 )
 
-
-
 #HISSTools Audiofile Target
 add_library(
   HISSTools_AudioFile STATIC
@@ -86,8 +86,6 @@ set_target_properties(HISSTools_AudioFile PROPERTIES
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
-
-
 
 #Fluid Decomposition header-only target
 add_library(FLUID_DECOMPOSITION INTERFACE)

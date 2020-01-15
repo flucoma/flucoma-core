@@ -1,0 +1,10 @@
+#pragma once
+
+namespace fluid{
+namespace client{
+  inline const char* fluidVersion()
+  {
+    return "@FLUID_VERSION_TAG@"; 
+  }
+}
+}
