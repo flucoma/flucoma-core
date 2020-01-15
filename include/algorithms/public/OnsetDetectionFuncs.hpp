@@ -1,4 +1,5 @@
 /*
+Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
 Copyright 2017-2019 University of Huddersfield.
 Licensed under the BSD-3 License.
 See LICENSE file in the project root for full license information.
