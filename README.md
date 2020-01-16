@@ -42,3 +42,5 @@ Because CMake is a system for generating build scripts, rather than a build syst
 The code base uses standard-compliant C++14 and, as such, should be portable to a range of platforms. So far, it has been successfully deployed to Max OS (>= 10.7, using clang); Windows (10 and up, using MSVC); and Linux (Ubuntu 16.04 and up, using GCC), for intel architectures at 32- and 64-bit. Please check that your compiler version supports the full C++14 feature set.
 
 In principle, it should be possible to build for other architectures, but this has not yet been explored and certain parts of the build process may make assumptions about Intel-ness. 
+
+> This project has received funding from the European Research Council (ERC) under the European Union’s Horizon 2020 research and innovation programme (grant agreement No 725899).
