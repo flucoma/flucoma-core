@@ -562,7 +562,10 @@ private:
       }
       else
       {
-        auto entry = [](ThreadedTask* owner) { owner->process(); };
+        auto entry = [](ThreadedTask* owner)
+        {
+          owner->mResult  = owner->process();
+        };
         mProcessParams.template forEachParamType<BufferT, BufferCopy>();
         mProcessParams.template forEachParamType<InputBufferT, BufferCopy>();
         mClient->setParams(mProcessParams);
@@ -607,7 +610,8 @@ private:
 
         if (!mTask.cancelled())
         {
-          mProcessParams.template forEachParamType<BufferT, BufferCopyBack>();
+          if(mResult.status() != Result::Status::kError)
+            mProcessParams.template forEachParamType<BufferT, BufferCopyBack>();
           result = mResult;
         }
         else
