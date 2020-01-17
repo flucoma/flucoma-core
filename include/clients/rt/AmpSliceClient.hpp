@@ -153,7 +153,7 @@ struct NRTAmpSlicing
     // Make a mono sum;
     for (index i = 0; i < nChans; ++i)
       monoSource.row(0)(Slice(0, nFrames))
-          .apply(src.samps(i), [](float& x, float y) { x += y; });
+          .apply(src.samps(inputBuffers[0].startFrame,nFrames,i), [](float& x, float y) { x += y; });
 
     HostMatrix                  switchPoints(2, nFrames);
     HostMatrix                  binaryOut(1, nFrames + padding);

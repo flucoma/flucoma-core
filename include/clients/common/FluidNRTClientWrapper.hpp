@@ -356,7 +356,7 @@ struct Slicing
     BufferAdaptor::ReadAccess src(inputBuffers[0].buffer);
     // Make a mono sum;
     for (index i = inputBuffers[0].startChan; i < nChans + inputBuffers[0].startChan ; ++i)
-      monoSource.row(0)(Slice(0,nFrames)).apply(src.samps(i), [](float &x, float y) { x += y; });
+      monoSource.row(0)(Slice(0,nFrames)).apply(src.samps(inputBuffers[0].startFrame,nFrames,i), [](float &x, float y) { x += y; });
 
     HostMatrix onsetPoints(1,nFrames + padding);
 
