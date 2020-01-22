@@ -109,7 +109,7 @@ public:
     output[0] = out.row(0);
   }
 
-  long latency() { return get<kFFT>().winSize() + get<kFrameDelta>(); }
+  long latency() { return get<kFFT>().hopSize() + get<kFrameDelta>(); }
 
 private:
   OnsetSegmentation                             mAlgorithm{get<kMaxFFTSize>()};
