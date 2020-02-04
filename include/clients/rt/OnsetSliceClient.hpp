@@ -43,7 +43,7 @@ auto constexpr OnsetParams = defineParameters(
               "Rectified Complex Domain"),
     FloatParam("threshold", "Threshold", 0.5, Min(0)),
     LongParam("minSliceLength", "Minimum Length of Slice", 2, Min(0)),
-    LongParam("filterSize", "Filter Size", 5, Min(0), Odd(), Max(101)),
+    LongParam("filterSize", "Filter Size", 5, Min(1), Odd(), Max(101)),
     // LongParam("frameDelta", "Frame Delta", 0, Min(0),
     // UpperLimit<kWinSize>()),
     LongParam("frameDelta", "Frame Delta", 0, Min(0)),
