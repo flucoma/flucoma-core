@@ -176,19 +176,15 @@ public:
           }
         });
 
-    if (Normalise)
+    RealMatrixView unnormalisedFrame = mFrameAndWindow(Slice(0), Slice(0, input[0].size()));
+    mBufferedProcess.pull(unnormalisedFrame);
+    for (index i = 0; i < chansOut; ++i)
     {
-      RealMatrixView unnormalisedFrame =
-          mFrameAndWindow(Slice(0), Slice(0, input[0].size()));
-      mBufferedProcess.pull(unnormalisedFrame);
-      for (index i = 0; i < chansOut; ++i)
-      {
-        unnormalisedFrame.row(i).apply(unnormalisedFrame.row(chansOut),
-                                       [](double& x, double g) {
-                                         if (x > 0) { x /= (g>0) ? g : 1; }
-                                       });
-        if (output[asUnsigned(i)].data()) output[asUnsigned(i)] = unnormalisedFrame.row(i);
-      }
+      if (Normalise) unnormalisedFrame.row(i).apply(unnormalisedFrame.row(chansOut),
+                                     [](double& x, double g) {
+                                       if (x != 0) { x /= (g>0) ? g : 1; }
+                                     });
+      if (output[asUnsigned(i)].data()) output[asUnsigned(i)] = unnormalisedFrame.row(i);
     }
   }
 
@@ -237,8 +233,8 @@ private:
     if (fftParams.frameSize() != mSpectrumOut.cols())
       mSpectrumOut.resize(chansOut, fftParams.frameSize());
 
-    if ((std::max(mBufferedProcess.maxWindowSizeIn(),
-                              hostBufferSize) > mFrameAndWindow.cols()) && Normalise)
+    if (std::max(mBufferedProcess.maxWindowSizeIn(),
+                              hostBufferSize) > mFrameAndWindow.cols())
       mFrameAndWindow.resize(
           chansOut,
           std::max(mBufferedProcess.maxWindowSizeIn(), hostBufferSize));
