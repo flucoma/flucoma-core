@@ -25,7 +25,7 @@ class PeakDetection
 
 public:
   pairs_vector process(const Eigen::Ref<ArrayXd>& input, int numPeaks = 0,
-                       double minHeight = 0, bool interpolate = true)
+                       double minHeight = 0, bool interpolate = true, bool sort = true)
   {
     using std::make_pair;
     pairs_vector peaks;
@@ -51,9 +51,11 @@ public:
         }
       }
     }
-    std::sort(peaks.begin(), peaks.end(), [](auto& left, auto& right) {
-      return left.second > right.second;
-    });
+    if(sort){
+      std::sort(peaks.begin(), peaks.end(), [](auto& left, auto& right) {
+        return left.second > right.second;
+      });
+    }
     if (numPeaks > 0 && peaks.size() > 0)
     { return pairs_vector(peaks.begin(), peaks.begin() + numPeaks); }
     else
