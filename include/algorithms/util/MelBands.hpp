@@ -31,7 +31,7 @@ public:
   }
 
   void init(double lo, double hi, int nBands, int nBins, double sampleRate,
-            bool logOutput)
+            bool logOutput, bool usePower, int windowSize, bool magNorm)
   {
 
     using namespace Eigen;
@@ -42,6 +42,12 @@ public:
     mBands = nBands;
     mSampleRate = sampleRate;
     mBins = nBins;
+    mWindowSize = windowSize;
+    mUsePower = usePower;
+    mMagNorm = magNorm;
+    mScale1 = 1.0 /(mWindowSize / 4.0);// scale to original amplitude
+    int fftSize = 2 * (mBins - 1);
+    mScale2 = 1.0 / (2.0 * double(fftSize) / mWindowSize);
     ArrayXd melFreqs = ArrayXd::LinSpaced(mBands + 2, hz2mel(lo), hz2mel(hi));
     melFreqs = 700.0 * ((melFreqs / 1127.01048).exp() - 1.0);
     mFilters = MatrixXd::Zero(mBands, mBins);
@@ -57,10 +63,6 @@ public:
       ArrayXd upper = ramps.row(i + 2) / melD(i + 1);
       mFilters.row(i) = lower.min(upper).max(0);
     }
-    // ArrayXd enorm =
-    //     2.0 / (melFreqs.segment(2, mBands) - melFreqs.segment(0, mBands));
-    // mFilters = (mFilters.array().colwise() *= enorm).matrix();
-    // mOutputBuffer = ArrayXd::Zero(mBands);
     mLogOutput = logOutput;
   }
 
@@ -70,8 +72,21 @@ public:
     double const epsilon = std::numeric_limits<double>::epsilon();
     assert(in.size() == mBins);
     ArrayXd frame = _impl::asEigen<Eigen::Array>(in);
-    ArrayXd result = (mFilters * frame.square().matrix()).array();
-    if (mLogOutput) result = 10 * result.max(3.9810717055349695e-15).log10();
+    if(mMagNorm) frame = frame * mScale1;
+    ArrayXd result;
+    if(mUsePower) {
+      result =(mFilters * frame.square().matrix()).array();
+    }
+    else
+    {
+      result = (mFilters * frame.matrix()).array();
+    }
+    if(mMagNorm) {
+      double energy =  frame.sum() * mScale2;
+      result = result * energy / result.sum();
+    }
+
+    if (mLogOutput) result = 10 * result.max(epsilon).log10();
     out = _impl::asFluid(result);
   }
 
@@ -81,11 +96,12 @@ public:
   int    mBands{40};
   double mSampleRate{44100.0};
   bool   mLogOutput{false};
-
+  bool mUsePower{true};
+  int mWindowSize{1024};
+  bool mMagNorm{false};
+  double mScale1{1.0};
+  double mScale2{1.0};
   Eigen::MatrixXd mFilters;
-
-private:
-  // ArrayXd mOutputBuffer;
 };
 }; // namespace algorithm
 }; // namespace fluid

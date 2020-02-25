@@ -29,6 +29,7 @@ enum MFCCParamIndex {
   kMinFreq,
   kMaxFreq,
   kMaxNBands,
+  kNormalize,
   kFFT,
   kMaxFFTSize
 };
@@ -40,6 +41,7 @@ auto constexpr MelBandsParams = defineParameters(
     FloatParam("maxFreq", "High Frequency Bound", 20000, Min(0)),
     LongParam<Fixed<true>>("maxNumBands", "Maximum Number of Bands", 120,
                            Min(2), MaxFrameSizeUpperLimit<kMaxFFTSize>()),
+    EnumParam("normalize", "Normalize", 0, "No", "Yes"),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
 
@@ -66,15 +68,17 @@ public:
   {
     if (!input[0].data() || !output[0].data()) return;
     assert(FluidBaseClient::controlChannelsOut() && "No control channels");
-    assert(output.size() >= asUnsigned(FluidBaseClient::controlChannelsOut()) && "Too few output channels");
-
-    if (mTracker.changed(get<kFFT>().frameSize(), get<kNBands>(),
-                         get<kMinFreq>(), get<kMaxFreq>()))
+    assert(output.size() >= asUnsigned(FluidBaseClient::controlChannelsOut()) &&
+           "Too few output channels");
+    if (mTracker.changed(get<kFFT>().winSize(), get<kFFT>().frameSize(),
+                         get<kNBands>(), get<kMinFreq>(), get<kMaxFreq>(),
+                         get<kNormalize>()))
     {
       mMagnitude.resize(get<kFFT>().frameSize());
       mBands.resize(get<kNBands>());
       mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
-                     get<kFFT>().frameSize(), sampleRate(), false);
+                     get<kFFT>().frameSize(), sampleRate(), false, false,
+                     get<kFFT>().winSize(), get<kNormalize>() == 1);
     }
 
     mSTFTBufferedProcess.processInput(
@@ -82,7 +86,8 @@ public:
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
           mMelBands.processFrame(mMagnitude, mBands);
         });
-    for (index i = 0; i < get<kNBands>(); ++i) output[asUnsigned(i)](0) = mBands(i);
+    for (index i = 0; i < get<kNBands>(); ++i)
+      output[asUnsigned(i)](0) = mBands(i);
   }
 
   index latency() { return get<kFFT>().winSize(); }
@@ -90,7 +95,7 @@ public:
   index controlRate() { return get<kFFT>().hopSize(); }
 
 private:
-  ParameterTrackChanges<index, index, double, double> mTracker;
+  ParameterTrackChanges<index, index, index, index, double, double> mTracker;
   STFTBufferedProcess<ParamSetViewType, T, kFFT, false> mSTFTBufferedProcess;
 
   algorithm::MelBands mMelBands;

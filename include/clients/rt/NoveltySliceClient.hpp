@@ -102,7 +102,7 @@ public:
       {
         mBands.resize(40);
         mMelBands.init(20, 2000, 40, get<kFFT>().frameSize(), sampleRate(),
-                       true);
+                       true, false, get<kFFT>().winSize(), false);
         mDCT.init(40, 13);
         nDims = 13;
       }
