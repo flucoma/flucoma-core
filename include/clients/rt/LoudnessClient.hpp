@@ -64,7 +64,7 @@ public:
            "Too few output channels");
     index hostVecSize = input[0].size();
     if (mBufferParamsTracker.changed(hostVecSize, get<kWindowSize>(),
-                                     get<kHopSize>()))
+                                     get<kHopSize>(), sampleRate()))
     {
       mBufferedProcess.hostSize(hostVecSize);
       mBufferedProcess.maxSize(get<kWindowSize>(), get<kWindowSize>(),
@@ -91,7 +91,7 @@ public:
   index controlRate() { return get<kHopSize>(); }
 
 private:
-  ParameterTrackChanges<index, index, index> mBufferParamsTracker;
+  ParameterTrackChanges<index, index, index, double> mBufferParamsTracker;
 
   algorithm::Loudness mAlgorithm{get<kMaxWindowSize>()};
 

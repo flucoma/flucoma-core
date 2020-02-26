@@ -96,8 +96,10 @@ public:
 
     double hiPassFreq = std::min(get<kHiPassFreq>() / sampleRate(), 0.5);
 
-    if (mTrackValues.changed(get<kMinTimeAboveThreshold>(), get<kUpwardLookupTime>(),
-                             get<kMinTimeBelowThreshold>(), get<kDownwardLookupTime>()) ||
+    if (mTrackValues.changed(get<kMinTimeAboveThreshold>(),
+                             get<kUpwardLookupTime>(),
+                             get<kMinTimeBelowThreshold>(),
+                             get<kDownwardLookupTime>(), sampleRate()) ||
         !mAlgorithm.initialized())
     {
       mAlgorithm.init(hiPassFreq, get<kAbsRampUpTime>(), get<kRelRampUpTime>(),
@@ -107,15 +109,15 @@ public:
                       get<kMinEventDuration>(), get<kUpwardLookupTime>(),
                       get<kAbsOffThreshold>(), get<kMinTimeBelowThreshold>(),
                       get<kMinSilencetDuration>(), get<kDownwardLookupTime>());
-    } else {
-      mAlgorithm.updateParams(
-        hiPassFreq, get<kAbsRampUpTime>(), get<kRelRampUpTime>(),
-        get<kAbsRampDownTime>(), get<kRelRampDownTime>(),
-        get<kAbsOnThreshold>(), get<kRelOnThreshold>(),
-        get<kRelOffThreshold>(),
-        get<kMinEventDuration>(),
-        get<kAbsOffThreshold>(),
-        get<kMinSilencetDuration>());
+    }
+    else
+    {
+      mAlgorithm.updateParams(hiPassFreq, get<kAbsRampUpTime>(),
+                              get<kRelRampUpTime>(), get<kAbsRampDownTime>(),
+                              get<kRelRampDownTime>(), get<kAbsOnThreshold>(),
+                              get<kRelOnThreshold>(), get<kRelOffThreshold>(),
+                              get<kMinEventDuration>(), get<kAbsOffThreshold>(),
+                              get<kMinSilencetDuration>());
     }
 
     for (index i = 0; i < input[0].size(); i++)
@@ -130,8 +132,7 @@ public:
   }
 
 private:
-  ParameterTrackChanges<index, index, index, index>
-                                  mTrackValues;
+  ParameterTrackChanges<index, index, index, index, double> mTrackValues;
   algorithm::EnvelopeSegmentation mAlgorithm{get<kMaxSize>(), get<kOutput>()};
 };
 
@@ -140,8 +141,8 @@ struct NRTAmpSlicing
 {
   template <typename Client, typename InputList, typename OutputList>
   static Result process(Client& client, InputList& inputBuffers,
-                        OutputList& outputBuffers, index nFrames,
-                        index nChans, FluidContext& c)
+                        OutputList& outputBuffers, index nFrames, index nChans,
+                        FluidContext& c)
   {
     assert(inputBuffers.size() == 1);
     assert(outputBuffers.size() == 1);
@@ -153,7 +154,8 @@ struct NRTAmpSlicing
     // Make a mono sum;
     for (index i = 0; i < nChans; ++i)
       monoSource.row(0)(Slice(0, nFrames))
-          .apply(src.samps(inputBuffers[0].startFrame,nFrames,i), [](float& x, float y) { x += y; });
+          .apply(src.samps(inputBuffers[0].startFrame, nFrames, i),
+                 [](float& x, float y) { x += y; });
 
     HostMatrix                  switchPoints(2, nFrames);
     HostMatrix                  binaryOut(1, nFrames + padding);

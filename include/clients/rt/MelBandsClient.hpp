@@ -71,8 +71,8 @@ public:
     assert(output.size() >= asUnsigned(FluidBaseClient::controlChannelsOut()) &&
            "Too few output channels");
     if (mTracker.changed(get<kFFT>().winSize(), get<kFFT>().frameSize(),
-                         get<kNBands>(), get<kMinFreq>(), get<kMaxFreq>(),
-                         get<kNormalize>()))
+                         get<kNBands>(), get<kNormalize>(), get<kMinFreq>(),
+                         get<kMaxFreq>(), sampleRate()))
     {
       mMagnitude.resize(get<kFFT>().frameSize());
       mBands.resize(get<kNBands>());
@@ -95,7 +95,8 @@ public:
   index controlRate() { return get<kFFT>().hopSize(); }
 
 private:
-  ParameterTrackChanges<index, index, index, index, double, double> mTracker;
+  ParameterTrackChanges<index, index, index, index, double, double, double>
+                                                        mTracker;
   STFTBufferedProcess<ParamSetViewType, T, kFFT, false> mSTFTBufferedProcess;
 
   algorithm::MelBands mMelBands;

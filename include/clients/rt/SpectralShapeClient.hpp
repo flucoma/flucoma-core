@@ -58,7 +58,7 @@ public:
     assert(output.size() >= asUnsigned(FluidBaseClient::controlChannelsOut()) &&
            "Too few output channels");
 
-    if (mWinSizeTracker.changed(get<kFFT>().frameSize()))
+    if (mTracker.changed(get<kFFT>().frameSize(), sampleRate()))
     {
       mMagnitude.resize(get<kFFT>().frameSize());
       mBinHz = sampleRate() / get<kFFT>().fftSize();
@@ -85,7 +85,7 @@ public:
   index controlRate() { return get<kFFT>().hopSize(); }
 
 private:
-  ParameterTrackChanges<index>                  mWinSizeTracker;
+  ParameterTrackChanges<index, double>           mTracker;
   STFTBufferedProcess<ParamSetViewType, T, kFFT> mSTFTBufferedProcess;
 
   SpectralShape          mAlgorithm{get<kMaxFFTSize>()};

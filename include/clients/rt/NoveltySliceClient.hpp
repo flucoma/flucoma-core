@@ -83,7 +83,7 @@ public:
     index feature = get<kFeature>();
     if (mParamsTracker.changed(hostVecSize, get<kFeature>(), get<kKernelSize>(),
                                get<kThreshold>(), get<kFilterSize>(),
-                               windowSize))
+                               windowSize, sampleRate()))
     {
       mBufferedProcess.hostSize(hostVecSize);
       mBufferedProcess.maxSize(windowSize, windowSize,
@@ -160,7 +160,7 @@ public:
 private:
   algorithm::NoveltySegmentation mNovelty{get<kMaxKernelSize>(),
                                           get<kMaxFilterSize>()};
-  ParameterTrackChanges<index, index, index, double, index, index>
+  ParameterTrackChanges<index, index, index, double, index, index, double>
                   mParamsTracker;
   BufferedProcess mBufferedProcess;
   algorithm::STFT mSTFT{get<kFFT>().winSize(), get<kFFT>().fftSize(),
