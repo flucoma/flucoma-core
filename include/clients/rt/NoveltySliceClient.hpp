@@ -34,6 +34,7 @@ enum NoveltyParamIndex {
   kKernelSize,
   kThreshold,
   kFilterSize,
+  kDebounce,
   kFFT,
   kMaxFFTSize,
   kMaxKernelSize,
@@ -47,6 +48,7 @@ auto constexpr NoveltyParams = defineParameters(
     FloatParam("threshold", "Threshold", 0.5, Min(0)),
     LongParam("filterSize", "Smoothing Filter Size", 1, Min(1),
               UpperLimit<kMaxFilterSize>()),
+    LongParam("minSliceLength", "Minimum Length of Slice", 2, Min(0)),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
                            PowerOfTwo{}),
@@ -114,6 +116,8 @@ public:
       mNovelty.init(get<kKernelSize>(), get<kThreshold>(), get<kFilterSize>(),
                     nDims);
     }
+    
+    mNovelty.setMinSliceLength(get<kDebounce>());
     RealMatrix in(1, hostVecSize);
     in.row(0) = input[0];
     RealMatrix out(1, hostVecSize);

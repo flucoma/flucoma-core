@@ -39,9 +39,12 @@ public:
     mFilterBuffer.setZero();
   }
 
+  void setMinSliceLength(int val) { mDebounce = val; }
+
   double processFrame(const RealVectorView input)
   {
     double novelty = mNovelty.processFrame(_impl::asEigen<Eigen::Array>(input));
+    double detected = 0.;
     if (mFilterSize > 1)
     {
       mFilterBuffer.segment(0, mFilterSize - 1) =
@@ -50,11 +53,17 @@ public:
     mPeakBuffer.segment(0, 2) = mPeakBuffer.segment(1, 2);
     mFilterBuffer(mFilterSize - 1) = novelty;
     mPeakBuffer(2) = mFilterBuffer.mean();
-    if (mPeakBuffer(1) > mPeakBuffer(0) && mPeakBuffer(1) > mPeakBuffer(2) &&
-        mPeakBuffer(1) > mThreshold)
-      return 1;
-    else
-      return 0;
+    if (mPeakBuffer(1) > mPeakBuffer(0) &&
+               mPeakBuffer(1) > mPeakBuffer(2) && mPeakBuffer(1) > mThreshold &&
+               mDebounceCount == 0)
+    {
+      detected = 1.0;
+      mDebounceCount = mDebounce;
+    }
+    else {
+      if (mDebounceCount > 0) mDebounceCount--;
+    }
+    return detected;
   }
 
 private:
@@ -64,6 +73,8 @@ private:
   ArrayXd mFilterBufferStorage;
   ArrayXd mPeakBuffer{3};
   Novelty mNovelty;
+  int     mDebounce{2};
+  int     mDebounceCount{1};
 };
 } // namespace algorithm
 } // namespace fluid
