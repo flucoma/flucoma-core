@@ -35,7 +35,7 @@ BraceWrapping:
   IndentBraces:    false
   SplitEmptyFunction: false
   SplitEmptyRecord: false
-  SplitEmptyNamespace: false  
+  SplitEmptyNamespace: false
 BreakBeforeBinaryOperators: None
 BreakBeforeBraces: Custom
 BreakBeforeInheritanceComma: false
@@ -62,13 +62,13 @@ ForEachMacros:
 IncludeBlocks:   Merge
 # Try and group includes by 'locality'
 # We use "" with rel paths for headers in same repo
-# Headers in quotes wiht no relative path at top 
+# Headers in quotes wiht no relative path at top
 # Group ../ and ../../ with different priorities, so they get sorted separately
 # <> headers *with a folder break* likely not to be STL -> STL / systems headers last
 IncludeCategories:
-  - Regex:           '<.+/' 
+  - Regex:           '<.+/'
     Priority:        4
-  - Regex:           '"../../' 
+  - Regex:           '"../../'
     Priority:        3
   - Regex:           '../' #
     Priority:        2
@@ -115,7 +115,7 @@ SpacesInContainerLiterals: true
 SpacesInCStyleCastParentheses: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
-Standard:        c++14
+Standard:        Cpp11
 TabWidth:        8
 UseTab:          Never
 ...
