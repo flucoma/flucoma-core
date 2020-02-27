@@ -83,7 +83,7 @@ public:
     }
     if(mMagNorm) {
       double energy =  frame.sum() * mScale2;
-      result = result * energy / result.sum();
+      result = result * energy / std::max(epsilon, result.sum());
     }
 
     if (mLogOutput) result = 10 * result.max(epsilon).log10();
