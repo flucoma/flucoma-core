@@ -40,14 +40,20 @@ enum SinesParamIndex {
 extern auto constexpr SinesParams = defineParameters(
     LongParam("bandwidth", "Bandwidth", 76, Min(1),
               FrameSizeUpperLimit<kFFT>()),
-    FloatParam("deathThreshold", "Track death threshold", -96, Min(-144), Max(0)),
-    FloatParam("birthLowThreshold", "Track birth low frequency threshold", -24, Min(-144), Max(0)),
-    FloatParam("birthHighThreshold", "Track birth jigh frequency threshold", -60, Min(-144), Max(0)),
+    FloatParam("deathThreshold", "Track death threshold", -96, Min(-144),
+               Max(0)),
+    FloatParam("birthLowThreshold", "Track birth low frequency threshold", -24,
+               Min(-144), Max(0)),
+    FloatParam("birthHighThreshold", "Track birth jigh frequency threshold",
+               -60, Min(-144), Max(0)),
     LongParam("minTrackLen", "Min Track Length", 15, Min(1)),
     EnumParam("trackingMethod", "Tracking method", 0, "Greedy", "Munkres"),
-    FloatParam("trackMagRange", "Tracking Magnitude Range (dB)", 15., Min(1.), Max(200.)),
-    FloatParam("trackFreqRange", "Tracking Frequency Range (Hz)", 50., Min(1.), Max(10000.)),
-    FloatParam("trackProb", "Tracking matching probability", 1.0, Min(0.0), Max(1.0)),
+    FloatParam("trackMagRange", "Tracking Magnitude Range (dB)", 15., Min(1.),
+               Max(200.)),
+    FloatParam("trackFreqRange", "Tracking Frequency Range (Hz)", 50., Min(1.),
+               Max(10000.)),
+    FloatParam("trackProb", "Tracking matching probability", 1.0, Min(0.0),
+               Max(1.0)),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1,
                           FrameSizeLowerLimit<kBandwidth>()),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
@@ -76,8 +82,8 @@ public:
     if (!input[0].data()) return;
     if (!output[0].data() && !output[1].data()) return;
     if (!mSinesExtractor.initialized() ||
-        mTrackValues.changed(get<kFFT>().winSize(),
-                             get<kFFT>().fftSize(), get<kBandwidth>()))
+        mTrackValues.changed(get<kFFT>().winSize(), get<kFFT>().fftSize(),
+                             get<kBandwidth>(), sampleRate()))
     {
       mSinesExtractor.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
                            get<kBandwidth>());
@@ -94,7 +100,8 @@ public:
     mSTFTBufferedProcess.process(
         mParams, input, output, c, reset,
         [this](ComplexMatrixView in, ComplexMatrixView out) {
-          mSinesExtractor.processFrame(in.row(0), out.transpose(),sampleRate());
+          mSinesExtractor.processFrame(in.row(0), out.transpose(),
+                                       sampleRate());
         });
   }
 
@@ -107,7 +114,7 @@ public:
 private:
   STFTBufferedProcess<ParamSetViewType, T, kFFT> mSTFTBufferedProcess;
   algorithm::SineExtraction mSinesExtractor{get<kMaxFFTSize>()};
-  ParameterTrackChanges<size_t, size_t, size_t> mTrackValues;
+  ParameterTrackChanges<size_t, size_t, size_t, double> mTrackValues;
 
   size_t mWinSize{0};
   size_t mHopSize{0};

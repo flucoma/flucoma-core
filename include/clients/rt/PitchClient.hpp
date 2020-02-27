@@ -75,7 +75,7 @@ public:
     assert(asSigned(output.size()) >= FluidBaseClient::controlChannelsOut() &&
            "Too few output channels");
 
-    if (mParamTracker.changed(get<kFFT>().frameSize()))
+    if (mParamTracker.changed(get<kFFT>().frameSize(), sampleRate()))
     {
       cepstrumF0.init(get<kFFT>().frameSize());
       mMagnitude.resize(get<kFFT>().frameSize());
@@ -109,7 +109,7 @@ public:
   index controlRate() { return get<kFFT>().hopSize(); }
 
 private:
-  ParameterTrackChanges<index>                  mParamTracker;
+  ParameterTrackChanges<index, double>           mParamTracker;
   STFTBufferedProcess<ParamSetViewType, T, kFFT> mSTFTBufferedProcess;
 
   CepstrumF0             cepstrumF0;
