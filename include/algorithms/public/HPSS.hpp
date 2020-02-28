@@ -75,40 +75,38 @@ public:
     ArrayXcd frame = _impl::asEigen<Array>(in);
     ArrayXd  mag = frame.abs().real();
     mV.block(0, 0, mBins, mHSize - 1) = mV.block(0, 1, mBins, mHSize - 1);
+    mH.block(0, 0, mBins, mHSize - 1) = mH.block(0, 1, mBins, mHSize - 1);
     mBuf.block(0, 0, mBins, mHSize - 1) = mBuf.block(0, 1, mBins, mHSize - 1);
     ArrayXd padded =
         ArrayXd::Zero(mVSize + mVSize * std::ceil(mBins / double(mVSize)));
     ArrayXd resultV = ArrayXd::Zero(padded.size());
+    ArrayXd tmp = ArrayXd::Zero(padded.size());
     padded.segment(v2, mBins) = mag;
-    MedianFilter mVMedianFilter = MedianFilter(padded, mVSize);
-    mVMedianFilter.process(resultV);
-    mV.block(0, mHSize - 1, mBins, 1) = resultV.segment(v2, mBins);
+    mVFilter.init(mVSize);
+    for (int i = 0; i < padded.size(); i++)
+    { tmp(i) = mVFilter.processSample(padded(i)); }
+    mV.block(0, mHSize - 1, mBins, 1) = tmp.segment(v2 * 3, mBins);
     mBuf.block(0, mHSize - 1, mBins, 1) = frame;
     ArrayXd tmpRow = ArrayXd::Zero(2 * mHSize);
     for (int i = 0; i < mBins; i++)
     {
-      mHFilters[i].insertRight(mag(i));
-      mHFilters[i].process(tmpRow);
-      mH.row(i) = tmpRow.segment(h2, mHSize).transpose();
+      mH(i, h2 + 1) = mHFilters[i].processSample(mag(i));
     }
     ArrayXXcd result(mBins, 3);
     ArrayXd   harmonicMask = ArrayXd::Ones(mBins);
     ArrayXd   percussiveMask = ArrayXd::Ones(mBins);
     ArrayXd   residualMask =
         mMode == kAdvanced ? ArrayXd::Ones(mBins) : ArrayXd::Zero(mBins);
-
     switch (mMode)
     {
-    case kClassic:
-    {
+    case kClassic: {
       ArrayXd HV = mH.col(0) + mV.col(0);
       ArrayXd mult = (1.0 / HV.max(epsilon));
       harmonicMask = (mH.col(0) * mult);
       percussiveMask = (mV.col(0) * mult);
       break;
     }
-    case kCoupled:
-    {
+    case kCoupled: {
       harmonicMask = ((mH.col(0) / mV.col(0)) >
                       makeThreshold(mHThresholdX1, mHThresholdY1, mHThresholdX2,
                                     mHThresholdY2))
@@ -116,8 +114,7 @@ public:
       percussiveMask = 1 - harmonicMask;
       break;
     }
-    case kAdvanced:
-    {
+    case kAdvanced: {
       harmonicMask = ((mH.col(0) / mV.col(0)) >
                       makeThreshold(mHThresholdX1, mHThresholdY1, mHThresholdX2,
                                     mHThresholdY2))
@@ -160,12 +157,10 @@ public:
     mH.setZero();
     mV.setZero();
     mBuf.setZero();
-    std::vector<MedianFilter> newFilters;
-    mHFilters.swap(newFilters);
-    for (int i = 0; i < mBins; i++)
-    {
-      ArrayXd tmp = ArrayXd::Zero(2 * newHSize);
-      mHFilters.emplace_back(MedianFilter(tmp, newHSize));
+    
+    mHFilters = std::vector<MedianFilter>(mBins);
+    for (int i = 0; i < mBins; i++){
+      mHFilters[i].init(newHSize);
     }
     mHSize = newHSize;
   }
@@ -229,6 +224,7 @@ private:
   }
 
   std::vector<MedianFilter> mHFilters;
+  MedianFilter              mVFilter;
 
   size_t    mBins{513};
   size_t    mMaxVSize{101};

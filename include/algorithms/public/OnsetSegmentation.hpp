@@ -15,6 +15,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/ConvolutionTools.hpp"
 #include "../util/FFT.hpp"
 #include "../util/FluidEigenMappings.hpp"
+#include "../util/MedianFilter.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Eigen>
 #include <algorithm>
@@ -36,24 +37,7 @@ public:
         mFFTSize(maxSize), mWindowSize(maxSize), mHopSize(maxSize / 2)
   {
     makeWindow();
-    initFilter();
-  }
-
-  void initFilter()
-  {
-    mFilter = std::deque<double>(mFilterSize, 0);
-    mSorting = std::vector<int>(mFilterSize);
-    std::iota(mSorting.begin(), mSorting.end(), 0);
-  }
-
-  void sortFilter()
-  {
-    for (int i = 1; i < mFilter.size(); ++i)
-    {
-      for (int j = i; j > 0 && mFilter[mSorting[j - 1]] > mFilter[mSorting[j]];
-           --j)
-      { std::swap(mSorting[j - 1], mSorting[j]); }
-    }
+    mFilter.init(mFilterSize);
   }
 
   void makeWindow()
@@ -90,11 +74,7 @@ public:
 
     mHopSize = hopSize;
     mFrameDelta = frameDelta;
-    if (mFilterSize != filterSize)
-    {
-      mFilterSize = filterSize;
-      initFilter();
-    }
+    if (mFilter.size() != filterSize) mFilter.init(filterSize);
     mThreshold = threshold;
     mFunction = function;
     mDebounce = debounce;
@@ -119,10 +99,7 @@ public:
       funcVal =
           OnsetDetectionFuncs::map()[odf](frame, prevFrame, prevPrevFrame);
     }
-    filteredFuncVal = funcVal - mFilter[mSorting[(mFilterSize - 1) / 2]];
-    mFilter.push_back(funcVal);
-    mFilter.pop_front();
-    sortFilter();
+    filteredFuncVal = funcVal - mFilter.processSample(funcVal);
     prevPrevFrame = prevFrame;
     prevFrame = frame;
 
@@ -155,12 +132,11 @@ private:
   double             mThreshold{0.1};
   int                mDebounce{2};
   int                mDebounceCount{1};
-  std::deque<double> mFilter{5, 0};
-  std::vector<int>   mSorting{5};
   ArrayXcd           prevFrame;
   ArrayXcd           prevPrevFrame;
   double             mPrevFuncVal{0.0};
   WindowTypes        mWindowType{WindowTypes::kHann};
+  MedianFilter       mFilter;
 };
 
 }; // namespace algorithm
