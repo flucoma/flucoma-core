@@ -93,7 +93,7 @@ public:
     ArrayXd          frameSines = additiveSynthesis(sinePeaks, sampleRate);
     ArrayXXcd        result(mBins, 2);
 
-    if (mBuf.size() < mTracking.minTrackLength())
+    if (mBuf.size() <= mTracking.minTrackLength())
     {
       result.col(0) = ArrayXd::Zero(mBins);
       result.col(1) = ArrayXd::Zero(mBins);
@@ -122,6 +122,7 @@ public:
     out = _impl::asFluid(result);
     mCurrentFrame++;
   }
+
 
   void reset() { mCurrentFrame = 0; }
 
