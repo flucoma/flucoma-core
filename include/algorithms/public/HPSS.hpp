@@ -78,7 +78,7 @@ public:
     mH.block(0, 0, mBins, mHSize - 1) = mH.block(0, 1, mBins, mHSize - 1);
     mBuf.block(0, 0, mBins, mHSize - 1) = mBuf.block(0, 1, mBins, mHSize - 1);
     ArrayXd padded =
-        ArrayXd::Zero(mVSize + mVSize * std::ceil(mBins / double(mVSize)));
+        ArrayXd::Zero(2 * mVSize + mBins);
     ArrayXd resultV = ArrayXd::Zero(padded.size());
     ArrayXd tmp = ArrayXd::Zero(padded.size());
     padded.segment(v2, mBins) = mag;
@@ -157,7 +157,7 @@ public:
     mH.setZero();
     mV.setZero();
     mBuf.setZero();
-    
+
     mHFilters = std::vector<MedianFilter>(mBins);
     for (int i = 0; i < mBins; i++){
       mHFilters[i].init(newHSize);
