@@ -1,3 +1,38 @@
+# v.1.0.0 RC1
+date: 
+
+## New Features:
+* BREAKING CHANGE: (buf)melbands how has normalised amplitude output which is independent of window and fft size
+* (buf)NoveltySlice now has a minimum slice length parameter
+* BREAKING CHANGE: (buf)sines now have new parameter names, and a new option to select which algorith is used to track the sines. It also has improved sound quality and more refined thresholding.
+* BREAKING CHANGE: (buf)AmpSlice is now 2 objects, (buf)AmpGate for the absolute, and (buf)AmpSlice for the relative
+* (buf)AmpSlice and (buf)AmpGate has 0Hz highpassfreq to bypass the high pass filter.
+
+## Bug Fixes:
+* (Pd on Windows) now works ;-)
+* BREAKING CHANGE: buf* processes now use the buffer's sampling rate (or the SR attribute for Pd)
+* BREAKING CHANGE: (buf)ampslice now works much faster and consistenlty but thresholds and times will have to be tweaked
+* (Pd) BREAKING CHANGE: all non-real-time (buf) objects have lost the tilde (~) in their name to be consistent with the language conventions.
+* BREAKING CHANGE: (buf)OnsetSlice latency reporting (rt) and offset (buf) are now more accurate but will have changed for similar threshold
+** BREAKING CHANGE: (buf)NoveltySlice latency reporting (rt) and offset (buf) are now more accurate but will have changed for similar threshold
+* (buf)HPSS speed is improved
+* Many edge cases were found and sorted.
+* (Max) parameters updates now behave all the time in real-time
+
+## Improvements:
+* (Pd+CLI) documentation is now more accurate and consistently formatted
+* cross reference between documents (see also)
+* credits, references and acknowledgements are streamlined and consistent
+* (Pd) better code for pinknoise abstraction
+
+## New Example:
+* (SC+Pd) most Max examples are now ported to the two other CCEs
+** (SC) Gerard's GUI demos of algorithms are now available
+
+## Known Bugs:
+
+
+===
 # beta-02: multithreading!
 date: 9 October 2019
 
