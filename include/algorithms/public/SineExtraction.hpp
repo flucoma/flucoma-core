@@ -16,6 +16,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/PartialTracking.hpp"
 #include "../util/PeakDetection.hpp"
+#include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <queue>
@@ -33,11 +34,11 @@ class SineExtraction
   using vector = std::vector<T>;
 
 public:
-  SineExtraction(int maxFFTSize)
+  SineExtraction(index maxFFTSize)
       : mBins(maxFFTSize / 2 + 1), mMaxFFTSize(maxFFTSize), mFFT(maxFFTSize)
   {}
 
-  void init(int windowSize, int fftSize, int bandwidth)
+  void init(index windowSize, index fftSize, index bandwidth)
   {
     mWindowSize = windowSize;
     mBins = fftSize / 2 + 1;
@@ -52,13 +53,13 @@ public:
 
   void computeWindowTransform()
   {
-    int halfBW = mMaxFFTSize / 2;
+    index halfBW = mMaxFFTSize / 2;
     mWindowTransform = ArrayXd::Zero(mMaxFFTSize);
     ArrayXd window = ArrayXd::Zero(mWindowSize);
     WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](mWindowSize, window);
     ArrayXcd transform =
         mFFT.process(Eigen::Map<ArrayXd>(window.data(), mWindowSize));
-    for (int i = 0; i < halfBW; i++)
+    for (index i = 0; i < halfBW; i++)
     {
       mWindowTransform(halfBW + i) = mWindowTransform(halfBW - i) =
           abs(transform(i));
@@ -71,12 +72,14 @@ public:
     assert(mInitialized);
     using Eigen::Array;
     using Eigen::ArrayXXcd;
-    int      fftSize = 2 * (mBins - 1);
+    index fftSize = 2 * (mBins - 1);
+
     ArrayXcd frame = _impl::asEigen<Array>(in);
     mBuf.push(frame);
     ArrayXd mag = frame.abs().real();
     mag = mag * mScale;
-    ArrayXd          logMag = 20 * mag.max(epsilon).log10();
+    ArrayXd logMag = 20 * mag.max(epsilon).log10();
+
     vector<SinePeak> peaks;
     auto tmpPeaks = mPeakDetection.process(logMag, 0, -infinity, true, false);
     for (auto p : tmpPeaks)
@@ -102,7 +105,7 @@ public:
     {
       ArrayXcd resultFrame = mBuf.front();
       ArrayXd  resultMag = resultFrame.abs().real();
-      for (int i = 0; i < mBins; i++)
+      for (index i = 0; i < mBins; i++)
       {
         if (frameSines(i) >= resultMag(i))
         {
@@ -138,15 +141,16 @@ public:
     mTracking.setBirthHighThreshold(threshold);
   }
 
-  void setMinTrackLength(int minTrackLength)
+  void setMinTrackLength(index minTrackLength)
   {
-    if(minTrackLength!=mTracking.getMinTrackLength()){
+    if (minTrackLength != mTracking.getMinTrackLength())
+    {
       mBuf = std::queue<ArrayXcd>();
       mTracking.setMinTrackLength(minTrackLength);
     }
   }
 
-  void setMethod(int method) { mTracking.setMethod(method); }
+  void setMethod(index method) { mTracking.setMethod(method); }
 
   void setZetaA(double zetaA) { mTracking.setZetaA(zetaA); }
 
@@ -166,32 +170,32 @@ private:
 
   ArrayXd synthesizePeak(SinePeak p, double sampleRate)
   {
-    int     halfBW = mBandwidth / 2;
+    index   halfBW = mBandwidth / 2;
     ArrayXd sine = ArrayXd::Zero(mBins);
     double  freqBin = p.freq * 2 * (mBins - 1) / sampleRate;
     if (freqBin >= mBins - 1) freqBin = mBins - 1;
     if (freqBin < 0) freqBin = 0;
-    int    freqBinFloor = std::floor(freqBin);
-    int    freqBinCeil = std::ceil(freqBin);
+    index  freqBinFloor = std::floor(freqBin);
+    index  freqBinCeil = std::ceil(freqBin);
     double amp = 0.5 * std::pow(10, p.logMag / 20);
     double incr =
         0.5 * static_cast<double>(mWindowTransform.size()) / (mBins - 1);
     double pos = mWindowTransform.size() / 2;
-    for (int i = freqBinFloor; pos < mWindowTransform.size() - 2 &&
-                               i < std::min(freqBinCeil + halfBW, mBins - 1);
+    for (index i = freqBinFloor; pos < mWindowTransform.size() - 2 &&
+                                 i < std::min(freqBinCeil + halfBW, mBins - 1);
          i++, pos += incr)
     {
-      int    floor = std::floor(pos);
+      index  floor = std::floor(pos);
       double frac1 = pos - floor;
       double val = frac1 * mWindowTransform(floor) +
                    (1 - frac1) * mWindowTransform(floor + 1);
       sine[i] = amp * val;
     }
     pos = mWindowTransform.size() / 2;
-    for (int i = freqBinFloor;
-         pos > 1 && i > std::max(freqBinFloor - halfBW, 0); i--, pos -= incr)
+    for (index i = freqBinFloor;
+         pos > 1 && i > std::max(freqBinFloor - halfBW, asSigned(0)); i--, pos -= incr)
     {
-      int    floor = std::floor(pos);
+      index  floor = std::floor(pos);
       double frac = pos - floor;
       double val = frac * mWindowTransform(floor) +
                    (1 - frac) * mWindowTransform(floor + 1);
@@ -202,7 +206,7 @@ private:
 
   PeakDetection        mPeakDetection;
   PartialTracking      mTracking;
-  int                  mBins{513};
+  index                mBins{513};
   double               mDeathThreshold{-96.};
   double               mMagWeight{0.01};
   double               mFreqWeight{0.5};
@@ -212,9 +216,9 @@ private:
   ArrayXd              mWindowTransform;
   double               mScale{1.0};
   bool                 mInitialized{false};
-  int                  mBandwidth{76};
-  int                  mWindowSize{1024};
-  int                  mMaxFFTSize{16384};
+  index                mBandwidth{76};
+  index                mWindowSize{1024};
+  index                mMaxFFTSize{16384};
   FFT                  mFFT;
 };
 } // namespace algorithm
