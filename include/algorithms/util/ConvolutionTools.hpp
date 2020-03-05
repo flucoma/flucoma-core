@@ -282,8 +282,8 @@ void fold(double* output, const FFT_SPLIT_COMPLEX_D spectrum, size_t outOffset,
 
 template <class T>
 void arrangeOutput(T output, FFT_SPLIT_COMPLEX_D spectrum, size_t minSize,
-                   size_t sizeOut, size_t linearSize, size_t fftSize,
-                   EdgeMode mode, ConvolveOp op)
+                   size_t sizeOut, size_t linearSize, size_t /*fftSize*/,
+                   EdgeMode mode, ConvolveOp)
 {
   size_t offset =
       (mode == kEdgeFold || mode == kEdgeWrapCentre) ? (minSize - 1) / 2 : 0;
@@ -314,7 +314,7 @@ void arrangeOutput(T output, FFT_SPLIT_COMPLEX_D spectrum, size_t minSize,
 template <class T>
 void arrangeOutput(T output, FFT_SPLIT_COMPLEX_D spectrum, size_t minSize,
                    size_t sizeOut, size_t linearSize, size_t fftSize,
-                   EdgeMode mode, CorrelateOp op)
+                   EdgeMode mode, CorrelateOp)
 {
   size_t maxSize = (linearSize - minSize) + 1;
 
@@ -530,7 +530,7 @@ void binarySpectralOperationReal(double* output, const double* in1,
 
 // Convolution (Real)
 
-static void convolveReal(double* output, const double* in1, size_t size1,
+void convolveReal(double* output, const double* in1, size_t size1,
                          const double* in2, size_t size2,
                          EdgeMode mode = kEdgeWrap)
 {
@@ -540,7 +540,7 @@ static void convolveReal(double* output, const double* in1, size_t size1,
 
 // Correlation (Real)
 
-static void correlateReal(double* output, const double* in1, size_t size1,
+void correlateReal(double* output, const double* in1, size_t size1,
                           const double* in2, size_t size2,
                           EdgeMode mode = kEdgeWrap)
 {
@@ -550,7 +550,7 @@ static void correlateReal(double* output, const double* in1, size_t size1,
 
 // Autocorrelation (Real) (inefficient for now)
 
-static void autocorrelateReal(double* output, const double* in, size_t size,
+void autocorrelateReal(double* output, const double* in, size_t size,
                               EdgeMode mode = kEdgeWrap)
 {
   correlateReal(output, in, size, in, size, mode);
@@ -558,7 +558,7 @@ static void autocorrelateReal(double* output, const double* in, size_t size,
 
 // Convolution (Complex)
 
-static void convolve(double* rOut, double* iOut, const double* rIn1,
+void convolve(double* rOut, double* iOut, const double* rIn1,
                      size_t sizeR1, const double* iIn1, size_t sizeI1,
                      const double* rIn2, size_t sizeR2, const double* iIn2,
                      size_t sizeI2, EdgeMode mode = kEdgeWrap)
@@ -569,7 +569,7 @@ static void convolve(double* rOut, double* iOut, const double* rIn1,
 
 // Correlation (Complex)
 
-static void correlate(double* rOut, double* iOut, const double* rIn1,
+void correlate(double* rOut, double* iOut, const double* rIn1,
                       size_t sizeR1, const double* iIn1, size_t sizeI1,
                       const double* rIn2, size_t sizeR2, const double* iIn2,
                       size_t sizeI2, EdgeMode mode = kEdgeWrap)
@@ -581,7 +581,7 @@ static void correlate(double* rOut, double* iOut, const double* rIn1,
 
 // Autocorrelation (Complex) (inefficient for now)
 
-static void autocorrelate(double* rOut, double* iOut, const double* rIn,
+void autocorrelate(double* rOut, double* iOut, const double* rIn,
                           size_t sizeR, const double* iIn, size_t sizeI,
                           EdgeMode mode = kEdgeWrap)
 {
