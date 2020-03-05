@@ -30,7 +30,7 @@ class STFT
   using ArrayXXcd = Eigen::ArrayXXcd;
 
 public:
-  STFT(size_t windowSize, size_t fftSize, size_t hopSize)
+  STFT(index windowSize, index fftSize, index hopSize)
       : mWindowSize(windowSize), mHopSize(hopSize), mFrameSize(fftSize / 2 + 1),
         mFFT(fftSize)
   {
@@ -39,14 +39,14 @@ public:
   }
 
   static void magnitude(const FluidTensorView<std::complex<double>, 2>& in,
-                        FluidTensorView<double, 2>                 out)
+                        FluidTensorView<double, 2>                      out)
   {
     ArrayXXd mag = _impl::asEigen<Eigen::Array>(in).abs().real();
     out = _impl::asFluid(mag);
   }
 
   static void magnitude(const FluidTensorView<std::complex<double>, 1>& in,
-                        FluidTensorView<double, 1>                 out)
+                        FluidTensorView<double, 1>                      out)
   {
     ArrayXd mag = _impl::asEigen<Eigen::Array>(in).abs().real();
     out = _impl::asFluid(mag);
@@ -55,14 +55,14 @@ public:
 
   void process(const RealVectorView audio, ComplexMatrixView spectrogram)
   {
-    int     halfWindow = mWindowSize / 2;
+    index   halfWindow = mWindowSize / 2;
     ArrayXd padded(audio.size() + mWindowSize + mHopSize);
     padded.fill(0);
     padded.segment(halfWindow, audio.size()) =
         Eigen::Map<const ArrayXd>(audio.data(), audio.size());
-    int       nFrames = floor((padded.size() - mWindowSize) / mHopSize);
+    index     nFrames = floor((padded.size() - mWindowSize) / mHopSize);
     ArrayXXcd result(nFrames, mFrameSize);
-    for (int i = 0; i < nFrames; i++)
+    for (index i = 0; i < nFrames; i++)
     {
       result.row(i) =
           mFFT.process(padded.segment(i * mHopSize, mWindowSize) * mWindow);
@@ -84,9 +84,9 @@ public:
   }
 
 private:
-  size_t  mWindowSize;
-  size_t  mHopSize;
-  size_t  mFrameSize;
+  index   mWindowSize;
+  index   mHopSize;
+  index   mFrameSize;
   ArrayXd mWindow;
   FFT     mFFT;
 };
@@ -97,9 +97,9 @@ class ISTFT
   using ArrayXXcd = Eigen::ArrayXXcd;
 
 public:
-  ISTFT(size_t windowSize, size_t fftSize, size_t hopSize)
-      : mWindowSize(windowSize), mHopSize(hopSize), mFrameSize(fftSize / 2 + 1),
-        mScale(1 / double(fftSize)), mIFFT(fftSize), mBuffer(mWindowSize)
+  ISTFT(index windowSize, index fftSize, index hopSize)
+      : mWindowSize(windowSize), mHopSize(hopSize), mScale(1 / double(fftSize)),
+        mIFFT(fftSize), mBuffer(mWindowSize)
   {
     mWindow = ArrayXd::Zero(mWindowSize);
     WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](mWindowSize, mWindow);
@@ -110,14 +110,14 @@ public:
   {
     const auto& epsilon = std::numeric_limits<double>::epsilon;
 
-    int halfWindow = mWindowSize / 2;
-    int nFrames = spectrogram.rows();
-    int outputSize = mWindowSize + (nFrames - 1) * mHopSize;
+    index halfWindow = mWindowSize / 2;
+    index nFrames = spectrogram.rows();
+    index outputSize = mWindowSize + (nFrames - 1) * mHopSize;
     outputSize += mWindowSize + mHopSize;
     ArrayXXcd specData = _impl::asEigen<Eigen::Array>(spectrogram);
     ArrayXd   outputPadded = ArrayXd::Zero(outputSize);
     ArrayXd   norm = ArrayXd::Zero(outputSize);
-    for (int i = 0; i < nFrames; i++)
+    for (index i = 0; i < nFrames; i++)
     {
       ArrayXd frame = mIFFT.process(specData.row(i)).segment(0, mWindowSize);
       outputPadded.segment(i * mHopSize, mWindowSize) +=
@@ -144,9 +144,8 @@ public:
   }
 
 private:
-  size_t  mWindowSize{1024};
-  size_t  mHopSize{512};
-  size_t  mFrameSize{513};
+  index   mWindowSize{1024};
+  index   mHopSize{512};
   ArrayXd mWindow;
   ArrayXd mWindowSquared;
   double  mScale{1};
