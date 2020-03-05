@@ -145,7 +145,7 @@ public:
   }
 
 private:
-  const void assignMunkres(vector<SinePeak> sinePeaks, double maxAmp)
+  void assignMunkres(vector<SinePeak> sinePeaks, double maxAmp)
   {
     using namespace Eigen;
     typedef Array<bool, Dynamic, Dynamic> ArrayXXb;
@@ -195,7 +195,7 @@ private:
         {
           if (usefulCost(i, j) < spuriousCost(i, j))
           {
-            cost(i, j) = abs(usefulCost(i, j));
+            cost(i, j) = std::abs(usefulCost(i, j));
             useful(i, j) = true;
           }
           else
@@ -259,13 +259,13 @@ private:
     mPrevMaxAmp = maxAmp;
   }
 
-  const double birthThreshold(SinePeak peak, double maxAmp)
+  double birthThreshold(SinePeak peak, double maxAmp)
   {
     return maxAmp + mBirthLowThreshold - mBirthRange +
            mBirthRange * std::pow(0.0075, peak.freq / 20000.0);
   }
 
-  const void assignGreedy(vector<SinePeak> sinePeaks, double maxAmp)
+  void assignGreedy(vector<SinePeak> sinePeaks, double maxAmp)
   {
     using namespace std;
     vector<tuple<double, SineTrack*, SinePeak*>> distances;
