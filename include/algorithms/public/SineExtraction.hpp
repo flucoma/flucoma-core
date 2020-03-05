@@ -210,7 +210,7 @@ private:
   double               mDeathThreshold{-96.};
   double               mMagWeight{0.01};
   double               mFreqWeight{0.5};
-  size_t               mCurrentFrame{0};
+  index               mCurrentFrame{0};
   vector<SineTrack>    mTracks;
   std::queue<ArrayXcd> mBuf;
   ArrayXd              mWindowTransform;
