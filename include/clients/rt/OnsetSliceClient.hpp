@@ -108,6 +108,7 @@ public:
   }
 
   long latency() { return get<kFFT>().hopSize() + get<kFrameDelta>(); }
+  void reset() { mBufferedProcess.reset(); }
 
 private:
   OnsetSegmentation                             mAlgorithm{get<kMaxFFTSize>()};
