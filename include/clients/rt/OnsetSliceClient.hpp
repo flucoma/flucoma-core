@@ -44,8 +44,6 @@ auto constexpr OnsetParams = defineParameters(
     FloatParam("threshold", "Threshold", 0.5, Min(0)),
     LongParam("minSliceLength", "Minimum Length of Slice", 2, Min(0)),
     LongParam("filterSize", "Filter Size", 5, Min(1), Odd(), Max(101)),
-    // LongParam("frameDelta", "Frame Delta", 0, Min(0),
-    // UpperLimit<kWinSize>()),
     LongParam("frameDelta", "Frame Delta", 0, Min(0)),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
@@ -68,7 +66,7 @@ public:
   }
 
   void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
-               FluidContext& c, bool reset = false)
+               FluidContext& c)
   {
     using algorithm::OnsetSegmentation;
     using std::size_t;
@@ -101,7 +99,7 @@ public:
     int        frameOffset = 0; // in case kHopSize < hostVecSize
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.process(
-        totalWindow, totalWindow, get<kFFT>().hopSize(), c, reset,
+        totalWindow, totalWindow, get<kFFT>().hopSize(), c,
         [&, this](RealMatrixView in, RealMatrixView) {
           out.row(0)(frameOffset) = mAlgorithm.processFrame(in.row(0));
           frameOffset += get<kFFT>().hopSize();

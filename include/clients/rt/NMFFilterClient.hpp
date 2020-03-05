@@ -51,9 +51,11 @@ public:
   }
 
   index latency() { return get<kFFT>().winSize(); }
+   
+   void reset(){ mSTFTProcessor.reset(); }
 
   void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
-               FluidContext& c, bool reset = false)
+               FluidContext& c)
   {
     if (!input[0].data()) return;
     assert(audioChannelsOut() && "No control channels");
@@ -86,7 +88,7 @@ public:
 
       //      controlTrigger(false);
       mSTFTProcessor.process(
-          mParams, input, output, c, reset,
+          mParams, input, output, c, 
           [&](ComplexMatrixView in, ComplexMatrixView out) {
             algorithm::STFT::magnitude(in, tmpMagnitude);
             mNMF.processFrame(tmpMagnitude.row(0), tmpFilt, tmpOut,

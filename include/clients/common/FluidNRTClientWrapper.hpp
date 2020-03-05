@@ -252,7 +252,8 @@ struct Streaming
 
       if(c.task()) c.task()->iterationUpdate(i, nChans);
 
-      client.process(inputs,outputs,c, true);
+      client.reset();
+      client.process(inputs,outputs,c);
     }
 
     for(index i = 0; i < asSigned(outputBuffers.size()); ++i)
@@ -318,7 +319,8 @@ struct StreamingControl
         for(index k = 0; k < nFeatures; ++k)
           outputs.emplace_back(outputData.row(k + i*nFeatures)(Slice(j,1)));
 
-        client.process(inputs,outputs,dummyContext, true);
+        client.reset();
+        client.process(inputs,outputs,dummyContext);
 
         if(task && !task->processUpdate(j + 1 + (nHops * i),static_cast<double>(nHops * nChans))) break;
       }
@@ -363,7 +365,8 @@ struct Slicing
     std::vector<HostVectorView> input  {monoSource.row(0)};
     std::vector<HostVectorView> output {onsetPoints.row(0)};
 
-    client.process(input,output,c,true);
+    client.reset();
+    client.process(input,output,c);
 
     return impl::spikesToTimes(onsetPoints(0,Slice(padding,nFrames)), outputBuffers[0], 1, inputBuffers[0].startFrame, nFrames,src.sampleRate());
   }

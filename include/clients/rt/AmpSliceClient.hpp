@@ -88,7 +88,7 @@ public:
   }
 
   void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
-               FluidContext& c, bool reset = false)
+               FluidContext& c)
   {
 
     if (!input[0].data() || !output[0].data()) return;
@@ -130,6 +130,8 @@ public:
         get<kMinTimeAboveThreshold>() + get<kUpwardLookupTime>(),
         std::max(get<kMinTimeBelowThreshold>(), get<kDownwardLookupTime>()));
   }
+  
+  void reset(){}
 
 private:
   ParameterTrackChanges<index, index, index, index, double> mTrackValues;
@@ -161,7 +163,9 @@ struct NRTAmpSlicing
     HostMatrix                  binaryOut(1, nFrames + padding);
     std::vector<HostVectorView> input{monoSource.row(0)};
     std::vector<HostVectorView> output{binaryOut.row(0)};
-    client.process(input, output, c, true);
+    
+    client.reset(); 
+    client.process(input, output, c);
     // convert binary to spikes
 
     // add onset at start if needed

@@ -39,8 +39,10 @@ public:
 
   size_t latency() { return 0; }
 
+  void reset() {}
+
   void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
-               FluidContext&, bool /*reset*/ = false)
+               FluidContext&)
   {
     // Data is stored with samples laid out in rows, one channel per row
     if (!input[0].data()) return;

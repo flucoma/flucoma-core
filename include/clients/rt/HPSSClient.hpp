@@ -77,9 +77,11 @@ public:
     return ((get<kHSize>() - 1) * get<kFFT>().hopSize()) +
            get<kFFT>().winSize();
   }
+  
+  void reset(){ mSTFTBufferedProcess.reset(); }
 
   void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
-               FluidContext& c, bool reset = false)
+               FluidContext& c)
   {
     if (!input[0].data()) return;
 
@@ -116,7 +118,7 @@ public:
     }
 
     mSTFTBufferedProcess.process(
-        mParams, input, output, c, reset,
+        mParams, input, output, c, 
         [&](ComplexMatrixView in, ComplexMatrixView out) {
           mHPSS.processFrame(in.row(0), out.transpose());
         });

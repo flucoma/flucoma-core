@@ -74,7 +74,7 @@ public:
   }
 
   void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
-               FluidContext& c, bool reset = false)
+               FluidContext& c)
   {
     using algorithm::NoveltySegmentation;
 
@@ -124,7 +124,7 @@ public:
     index      frameOffset = 0; // in case kHopSize < hostVecSize
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.process(
-        windowSize, windowSize, get<kFFT>().hopSize(), c, reset,
+        windowSize, windowSize, get<kFFT>().hopSize(), c, 
         [&, this](RealMatrixView in, RealMatrixView) {
           switch (feature)
           {
@@ -154,12 +154,14 @@ public:
     output[0] = out.row(0);
   }
 
-  long latency()
+  index latency()
   {
     return get<kFFT>().winSize() +
            ((get<kKernelSize>() - 1) / 2) * get<kFFT>().hopSize() +
            (get<kFilterSize>() - 1) * get<kFFT>().hopSize();
   }
+
+  void reset(){ mBufferedProcess.reset(); }
 
 private:
   algorithm::NoveltySegmentation mNovelty{get<kMaxKernelSize>(),
