@@ -32,11 +32,11 @@ struct SinePeak
 struct SineTrack
 {
   std::vector<SinePeak> peaks;
-  int                   startFrame;
-  int                   endFrame;
-  bool                  active;
-  bool                  assigned;
-  size_t                trackId;
+  int    startFrame;
+  int    endFrame;
+  bool   active;
+  bool   assigned;
+  size_t trackId;
 };
 
 class PartialTracking
@@ -80,6 +80,12 @@ public:
   {
     mMinTrackLength = minTrackLength;
   }
+
+  int getMinTrackLength()
+  {
+    return mMinTrackLength;
+  }
+
 
   void setBirthLowThreshold(double threshold)
   {

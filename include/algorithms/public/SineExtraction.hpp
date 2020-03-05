@@ -140,7 +140,10 @@ public:
 
   void setMinTrackLength(int minTrackLength)
   {
-    mTracking.setMinTrackLength(minTrackLength);
+    if(minTrackLength!=mTracking.getMinTrackLength()){
+      mBuf = std::queue<ArrayXcd>();
+      mTracking.setMinTrackLength(minTrackLength);
+    }
   }
 
   void setMethod(int method) { mTracking.setMethod(method); }
