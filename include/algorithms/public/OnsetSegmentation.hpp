@@ -33,7 +33,7 @@ public:
   using ArrayXcd = Eigen::ArrayXcd;
 
   OnsetSegmentation(index maxSize)
-      : mMaxSize(maxSize), mWindowStorage(maxSize), mFFT(maxSize),
+      : mFFT(maxSize), mWindowStorage(maxSize), mMaxSize(maxSize),
         mFFTSize(maxSize), mWindowSize(maxSize), mHopSize(maxSize / 2)
   {
     makeWindow();
