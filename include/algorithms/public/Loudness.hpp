@@ -24,9 +24,9 @@ class Loudness
 {
 
 public:
-  Loudness(int maxSize) : mTP(maxSize) {}
+  Loudness(index maxSize) : mTP(maxSize) {}
 
-  void init(int size, int sampleRate)
+  void init(index size, index sampleRate)
   {
     mFilter.init(sampleRate);
     mTP.init(size, sampleRate);
@@ -41,7 +41,7 @@ public:
     assert(input.size() == mSize);
     ArrayXd in = _impl::asEigen<Array>(input);
     ArrayXd filtered(mSize);
-    for (int i = 0; i < mSize; i++)
+    for (index i = 0; i < mSize; i++)
       filtered(i) = weighting ? mFilter.processSample(in(i)) : in(i);
     double loudness =
         -0.691 + 10 * std::log10(filtered.square().mean() + epsilon);
@@ -54,7 +54,7 @@ public:
 private:
   TruePeak         mTP;
   KWeightingFilter mFilter;
-  int              mSize{1024};
+  index            mSize{1024};
 };
 
 }; // namespace algorithm

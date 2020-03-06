@@ -59,35 +59,35 @@ public:
     static ODFMap _funcs = {
 
         {ODF::kEnergy,
-         [](ArrayXcd cur, ArrayXcd prev, ArrayXcd prevprev) {
+         [](ArrayXcd cur, ArrayXcd /*prev*/, ArrayXcd /*prevprev*/) {
            return cur.abs().real().square().mean();
          }},
         {ODF::kHFC,
-         [](ArrayXcd cur, ArrayXcd prev, ArrayXcd prevprev) {
-           int     n = cur.size();
+         [](ArrayXcd cur, ArrayXcd /*prev*/, ArrayXcd /*prevprev*/) {
+           index   n = cur.size();
            ArrayXd space = ArrayXd(n);
            space.setLinSpaced(0, n);
            return (space * cur.abs().real().square()).mean();
          }},
         {ODF::kSpectralFlux,
-         [](ArrayXcd cur, ArrayXcd prev, ArrayXcd prevprev) {
+         [](ArrayXcd cur, ArrayXcd prev, ArrayXcd /*prevprev*/) {
            return (cur.abs().real() - prev.abs().real()).max(0.0).mean();
          }},
         {ODF::kMKL,
-         [](ArrayXcd cur, ArrayXcd prev, ArrayXcd prevprev) {
+         [](ArrayXcd cur, ArrayXcd prev, ArrayXcd /*prevprev*/) {
            ArrayXd mag1 = cur.abs().real().max(epsilon);
            ArrayXd mag2 = prev.abs().real().max(epsilon);
            return (mag1 / mag2).max(epsilon).log().mean();
          }},
         {ODF::kIS,
-         [](ArrayXcd cur, ArrayXcd prev, ArrayXcd prevprev) {
+         [](ArrayXcd cur, ArrayXcd prev, ArrayXcd /*prevprev*/) {
            ArrayXd mag1 = cur.abs().real().max(epsilon);
            ArrayXd mag2 = prev.abs().real().max(epsilon);
            ArrayXd ratio = (mag1 / mag2).square().max(epsilon);
            return (ratio - ratio.log() - 1).mean();
          }},
         {ODF::kCosine,
-         [](ArrayXcd cur, ArrayXcd prev, ArrayXcd prevprev) {
+         [](ArrayXcd cur, ArrayXcd prev, ArrayXcd /*prevprev*/) {
            ArrayXd mag1 = cur.abs().real().max(epsilon);
            ArrayXd mag2 = prev.abs().real().max(epsilon);
            double  norm = mag1.matrix().norm() * mag2.matrix().norm();

@@ -32,8 +32,8 @@ public:
   using ArrayXd = Eigen::ArrayXd;
   using ArrayXcd = Eigen::ArrayXcd;
 
-  OnsetSegmentation(int maxSize)
-      : mMaxSize(maxSize), mWindowStorage(maxSize), mFFT(maxSize),
+  OnsetSegmentation(index maxSize)
+      : mFFT(maxSize), mWindowStorage(maxSize), mMaxSize(maxSize),
         mFFTSize(maxSize), mWindowSize(maxSize), mHopSize(maxSize / 2)
   {
     makeWindow();
@@ -49,9 +49,9 @@ public:
     prevPrevFrame = ArrayXcd::Zero(mFFTSize / 2 + 1);
   }
 
-  void updateParameters(int fftSize, int windowSize, int hopSize,
-                        int frameDelta, int function, int filterSize,
-                        double threshold, int debounce)
+  void updateParameters(index fftSize, index windowSize, index hopSize,
+                        index frameDelta, index function, index filterSize,
+                        double threshold, index debounce)
   {
     assert(fftSize <= mMaxSize);
     assert(windowSize <= mMaxSize);
@@ -119,24 +119,24 @@ public:
 
 private:
   using WindowTypes = WindowFuncs::WindowTypes;
-  FFT                mFFT{1024};
-  ArrayXd            mWindowStorage;
-  ArrayXd            mWindow;
-  int                mMaxSize{16384};
-  int                mFFTSize{1024};
-  int                mWindowSize{1024};
-  int                mHopSize{512};
-  int                mFrameDelta{0};
-  int                mFunction{0};
-  int                mFilterSize{5};
-  double             mThreshold{0.1};
-  int                mDebounce{2};
-  int                mDebounceCount{1};
-  ArrayXcd           prevFrame;
-  ArrayXcd           prevPrevFrame;
-  double             mPrevFuncVal{0.0};
-  WindowTypes        mWindowType{WindowTypes::kHann};
-  MedianFilter       mFilter;
+  FFT          mFFT{1024};
+  ArrayXd      mWindowStorage;
+  ArrayXd      mWindow;
+  index        mMaxSize{16384};
+  index        mFFTSize{1024};
+  index        mWindowSize{1024};
+  index        mHopSize{512};
+  index        mFrameDelta{0};
+  index        mFunction{0};
+  index        mFilterSize{5};
+  double       mThreshold{0.1};
+  index        mDebounce{2};
+  index        mDebounceCount{1};
+  ArrayXcd     prevFrame;
+  ArrayXcd     prevPrevFrame;
+  double       mPrevFuncVal{0.0};
+  WindowTypes  mWindowType{WindowTypes::kHann};
+  MedianFilter mFilter;
 };
 
 }; // namespace algorithm
