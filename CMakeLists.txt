@@ -127,6 +127,13 @@ if(APPLE)
   target_link_libraries(FLUID_DECOMPOSITION INTERFACE -stdlib=libc++)
 endif()
 
+#Apply any vector instruction flags 
+include("${CMAKE_CURRENT_SOURCE_DIR}/script/flucoma_simdcmd.cmake")
+if(DEFINED FLUID_ARCH)
+  target_compile_options(HISSTools_FFT PUBLIC ${FLUID_ARCH})
+  target_compile_options(HISSTools_AudioFile PUBLIC ${FLUID_ARCH})
+  target_compile_options(FLUID_DECOMPOSITION INTERFACE ${FLUID_ARCH})
+endif()
 #Examples 
 if(APPLE)
   add_subdirectory(
