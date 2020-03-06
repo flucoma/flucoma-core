@@ -96,7 +96,7 @@ public:
     ArrayXd          frameSines = additiveSynthesis(sinePeaks, sampleRate);
     ArrayXXcd        result(mBins, 2);
 
-    if (mBuf.size() <= mTracking.minTrackLength())
+    if (asSigned(mBuf.size()) <= mTracking.minTrackLength())
     {
       result.col(0) = ArrayXd::Zero(mBins);
       result.col(1) = ArrayXd::Zero(mBins);
@@ -175,8 +175,8 @@ private:
     double  freqBin = p.freq * 2 * (mBins - 1) / sampleRate;
     if (freqBin >= mBins - 1) freqBin = mBins - 1;
     if (freqBin < 0) freqBin = 0;
-    index  freqBinFloor = std::floor(freqBin);
-    index  freqBinCeil = std::ceil(freqBin);
+    index  freqBinFloor = static_cast<index>(std::floor(freqBin));
+    index  freqBinCeil =  static_cast<index>(std::ceil(freqBin));
     double amp = 0.5 * std::pow(10, p.logMag / 20);
     double incr =
         0.5 * static_cast<double>(mWindowTransform.size()) / (mBins - 1);
@@ -185,7 +185,7 @@ private:
                                  i < std::min(freqBinCeil + halfBW, mBins - 1);
          i++, pos += incr)
     {
-      index  floor = std::floor(pos);
+      index  floor = static_cast<index>(std::floor(pos));
       double frac1 = pos - floor;
       double val = frac1 * mWindowTransform(floor) +
                    (1 - frac1) * mWindowTransform(floor + 1);
@@ -193,9 +193,10 @@ private:
     }
     pos = mWindowTransform.size() / 2;
     for (index i = freqBinFloor;
-         pos > 1 && i > std::max(freqBinFloor - halfBW, asSigned(0)); i--, pos -= incr)
+         pos > 1 && i > std::max(freqBinFloor - halfBW, asSigned(0));
+         i--, pos -= incr)
     {
-      index  floor = std::floor(pos);
+      index  floor = static_cast<index>(std::floor(pos));
       double frac = pos - floor;
       double val = frac * mWindowTransform(floor) +
                    (1 - frac) * mWindowTransform(floor + 1);
@@ -208,9 +209,7 @@ private:
   PartialTracking      mTracking;
   index                mBins{513};
   double               mDeathThreshold{-96.};
-  double               mMagWeight{0.01};
-  double               mFreqWeight{0.5};
-  index               mCurrentFrame{0};
+  index                mCurrentFrame{0};
   vector<SineTrack>    mTracks;
   std::queue<ArrayXcd> mBuf;
   ArrayXd              mWindowTransform;

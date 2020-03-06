@@ -98,30 +98,30 @@ public:
     mSinesExtractor.setDelta(get<kTrackProb>());
 
     mSTFTBufferedProcess.process(
-        mParams, input, output, c, 
+        mParams, input, output, c,
         [this](ComplexMatrixView in, ComplexMatrixView out) {
           mSinesExtractor.processFrame(in.row(0), out.transpose(),
                                        sampleRate());
         });
   }
 
-  size_t latency()
+  index latency()
   {
     return get<kFFT>().winSize() +
            (get<kFFT>().hopSize() * get<kMinTrackLen>());
   }
-  void reset(){ mSTFTBufferedProcess.reset(); }
+  void reset() { mSTFTBufferedProcess.reset(); }
 
 private:
   STFTBufferedProcess<ParamSetViewType, T, kFFT> mSTFTBufferedProcess;
   algorithm::SineExtraction mSinesExtractor{get<kMaxFFTSize>()};
-  ParameterTrackChanges<size_t, size_t, size_t, double> mTrackValues;
+  ParameterTrackChanges<index, index, index, double> mTrackValues;
 
-  size_t mWinSize{0};
-  size_t mHopSize{0};
-  size_t mFFTSize{0};
-  size_t mBandwidth{0};
-  size_t mMinTrackLen{0};
+  index mWinSize{0};
+  index mHopSize{0};
+  index mFFTSize{0};
+  index mBandwidth{0};
+  index mMinTrackLen{0};
 };
 
 auto constexpr NRTSineParams =
