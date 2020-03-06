@@ -119,7 +119,7 @@ if(CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 if(APPLE)
-  target_compile_definitions(FLUID_DECOMPOSITION INTERFACE -DEIGEN_USE_BLAS)
+  target_compile_definitions(FLUID_DECOMPOSITION INTERFACE EIGEN_USE_BLAS=1;EIGEN_MPL2_ONLY=1)
   #targeting <= 10.9, need to really emphasise that we want libc++ both to compiler and linker
   target_compile_options(HISSTools_FFT PUBLIC -stdlib=libc++)
   target_compile_options(HISSTools_AudioFile PUBLIC -stdlib=libc++)
