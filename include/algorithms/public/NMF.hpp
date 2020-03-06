@@ -169,9 +169,9 @@ private:
       }
       MatrixXd R = W * H;
       R = R.cwiseMax(epsilon);
-      double divergence = (V.cwiseProduct(V.cwiseQuotient(R)) - V + R).sum();
       for (auto& cb : mCallbacks)
         if (!cb(i + 1)) return;
+      //double divergence = (V.cwiseProduct(V.cwiseQuotient(R)) - V + R).sum();
       // divergenceCurve.push_back(divergence);
       // divergenceCurve(mIterations);
       // std::cout << "Divergence " << divergence << "\n";
