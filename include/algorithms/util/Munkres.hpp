@@ -12,6 +12,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #include "../util/AlgorithmUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
+#include "../../data/FluidIndex.hpp"
 #include <Eigen/Core>
 #include <cassert>
 #include <cmath>
@@ -24,10 +25,10 @@ class Munkres
 {
 public:
   using intPair = std::pair<int, int>;
-  void init(int rows, int cols)
+  void init(index rows, index cols)
   {
     using namespace Eigen;
-    int N = std::max(rows, cols);
+    index N = std::max(rows, cols);
     mCost = ArrayXXd::Zero(N, N);
     mRowMin = ArrayXd::Zero(N);
     mColMin = ArrayXd::Zero(N);
@@ -113,7 +114,7 @@ public:
         if (mMask(i, j) == 1) { mColCover(j) = 1; }
       }
     }
-    int nCovered = (mColCover == 1).count();
+    Eigen::Index nCovered = (mColCover == 1).count();
     return nCovered >= mMask.rows() || nCovered >= mMask.cols();
   }
 
