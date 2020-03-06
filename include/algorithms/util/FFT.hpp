@@ -10,6 +10,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "HISSTools_FFT/HISSTools_FFT.h"
+#include "../../data/FluidIndex.hpp"
 #include <Eigen/Core>
 
 namespace fluid {
@@ -26,12 +27,13 @@ public:
 
   FFT() = delete;
 
-  FFT(size_t size)
+  FFT(index size)
       : mMaxSize(size), mSize(size), mFrameSize(size / 2 + 1),
-        mLog2Size(log2(size)), mOutputBuffer(mFrameSize),
-        mRealBuffer(mFrameSize), mImagBuffer(mFrameSize)
+        mLog2Size(static_cast<index>(std::log2(size))),
+        mOutputBuffer(mFrameSize), mRealBuffer(mFrameSize),
+        mImagBuffer(mFrameSize)
   {
-    hisstools_create_setup(&mSetup, mLog2Size);
+    hisstools_create_setup(&mSetup, asUnsigned(mLog2Size));
     mSplit.realp = mRealBuffer.data();
     mSplit.imagp = mImagBuffer.data();
   }
@@ -58,17 +60,18 @@ public:
     return *this;
   }
 
-  void resize(size_t newSize)
+  void resize(index newSize)
   {
     assert(newSize <= mMaxSize);
     mFrameSize = newSize / 2 + 1;
-    mLog2Size = log2(newSize);
+    mLog2Size = static_cast<index>(std::log2(newSize));
     mSize = newSize;
   }
 
   Eigen::Ref<ArrayXcd> process(const ArrayXdRef& input)
   {
-    hisstools_rfft(mSetup, input.data(), &mSplit, input.size(), mLog2Size);
+    hisstools_rfft(mSetup, input.data(), &mSplit, asUnsigned(input.size()),
+                   asUnsigned(mLog2Size));
     mSplit.realp[mFrameSize - 1] = mSplit.imagp[0];
     mSplit.imagp[mFrameSize - 1] = 0;
     mSplit.imagp[0] = 0;
@@ -81,10 +84,10 @@ public:
   }
 
 protected:
-  size_t mMaxSize{16384};
-  size_t mSize{1024};
-  size_t mFrameSize{513};
-  size_t mLog2Size{10};
+  index mMaxSize{16384};
+  index mSize{1024};
+  index mFrameSize{513};
+  index mLog2Size{10};
 
   FFT_SETUP_D         mSetup;
   FFT_SPLIT_COMPLEX_D mSplit;
@@ -99,7 +102,7 @@ class IFFT : public FFT
 {
 
 public:
-  IFFT(size_t size) : FFT(size), mOutputBuffer(size) {}
+  IFFT(index size) : FFT(size), mOutputBuffer(size) {}
 
   using ArrayXcdRef = Eigen::Ref<const ArrayXcd>;
   using ArrayXdRef = Eigen::Ref<ArrayXd>;
@@ -112,7 +115,8 @@ public:
       mSplit.imagp[i] = input[i].imag();
     }
     mSplit.imagp[0] = mSplit.realp[mFrameSize - 1];
-    hisstools_rifft(mSetup, &mSplit, mOutputBuffer.data(), mLog2Size);
+    hisstools_rifft(mSetup, &mSplit, mOutputBuffer.data(),
+                    asUnsigned(mLog2Size));
     return mOutputBuffer.segment(0, mSize);
   }
 
