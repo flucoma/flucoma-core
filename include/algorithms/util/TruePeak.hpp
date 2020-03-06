@@ -24,9 +24,9 @@ class TruePeak
   using ArrayXcd = Eigen::ArrayXcd;
 
 public:
-  TruePeak(int maxSize) : mFFT(maxSize), mIFFT(maxSize * 4) {}
+  TruePeak(index maxSize) : mFFT(maxSize), mIFFT(maxSize * 4) {}
 
-  void init(int size, double sampleRate)
+  void init(index size, double sampleRate)
   {
     mSampleRate = sampleRate;
     mFFTSize = std::pow(2, std::ceil(std::log(size) / std::log(2)));
@@ -59,8 +59,8 @@ private:
   IFFT     mIFFT;
   ArrayXcd mBuffer;
   double   mSampleRate{44100.0};
-  int      mFactor{4};
-  int      mFFTSize{1024};
+  index    mFactor{4};
+  index    mFFTSize{1024};
 };
 }; // namespace algorithm
 }; // namespace fluid
