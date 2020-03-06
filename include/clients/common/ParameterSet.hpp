@@ -136,7 +136,7 @@ private:
   constexpr index countImpl(std::index_sequence<Is...>) const noexcept
   {
     index count{0};
-    std::initializer_list<int>{
+    (void) std::initializer_list<int>{
         (count = count + std::get<0>(std::get<Is>(mDescriptors)).fixedSize,
          0)...};
     return count;
