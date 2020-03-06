@@ -64,7 +64,7 @@ public:
          }},
         {ODF::kHFC,
          [](ArrayXcd cur, ArrayXcd prev, ArrayXcd prevprev) {
-           int     n = cur.size();
+           index   n = cur.size();
            ArrayXd space = ArrayXd(n);
            space.setLinSpaced(0, n);
            return (space * cur.abs().real().square()).mean();
