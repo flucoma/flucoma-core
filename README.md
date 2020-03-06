@@ -27,11 +27,11 @@ cmake ..
 ```
 By default, CMake will download Eigen and the HISSTools library directly at this point. This is the simplest option, and guarantees that the versions used match the versions we build and test against. 
 
-However, to use versions already on your file system, you can set CMake cache variables `EIGEN_PATH` and `HISSTOOLS_PATH`. You may wish to do this if you are working directly on one of these dependencies, and wish to experiment with pushable changes to these alongside this library. 
+However, to use versions already on your file system, you can set CMake cache variables `EIGEN_PATH` and `HISS_PATH`. You may wish to do this if you are working directly on one of these dependencies, and wish to experiment with pushable changes to these alongside this library. 
 
 Cache variables are set either in the CMake GUI, or using `ccmake`, or by passing on the command line `cmake -D<CACHE VARIABLE>=<VALUE>`. For instance: 
 ```
-cmake -DEIGEN_PATH=~/code/eigen -DHISSTOOLS_PATH=~/code/hisstools_library ..
+cmake -DEIGEN_PATH=~/code/eigen -DHISS_PATH=~/code/hisstools_library ..
 ```
 Because CMake is a system for generating build scripts, rather than a build system in and of itself, the other choice you have is about what sort of build system it produces output for. The default on Mac OS and Linux is to use `make`, and on Windows, to use the most recent version of Visual Studio installed. This project requires "Visual Studio 17" >= 15.9
 
