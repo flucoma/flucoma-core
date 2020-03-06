@@ -13,6 +13,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/AlgorithmUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/MedianFilter.hpp"
+#include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 
@@ -28,8 +29,8 @@ public:
 
   enum HPSSMode { kClassic, kCoupled, kAdvanced };
 
-  void init(int nBins, int maxVSize, int maxHSize, int vSize, int hSize,
-            int mode, double hThresholdX1, double hThresholdY1,
+  void init(index nBins, index maxVSize, index maxHSize, index vSize,
+            index hSize, index mode, double hThresholdX1, double hThresholdY1,
             double hThresholdX2, double hThresholdY2, double pThresholdX1,
             double pThresholdY1, double pThresholdX2, double pThresholdY2)
   {
@@ -69,29 +70,26 @@ public:
   {
     using namespace Eigen;
 
-    int h2 = (mHSize - 1) / 2;
-    int v2 = (mVSize - 1) / 2;
+    index h2 = (mHSize - 1) / 2;
+    index v2 = (mVSize - 1) / 2;
 
     ArrayXcd frame = _impl::asEigen<Array>(in);
     ArrayXd  mag = frame.abs().real();
     mV.block(0, 0, mBins, mHSize - 1) = mV.block(0, 1, mBins, mHSize - 1);
     mH.block(0, 0, mBins, mHSize - 1) = mH.block(0, 1, mBins, mHSize - 1);
     mBuf.block(0, 0, mBins, mHSize - 1) = mBuf.block(0, 1, mBins, mHSize - 1);
-    ArrayXd padded =
-        ArrayXd::Zero(2 * mVSize + mBins);
+    ArrayXd padded = ArrayXd::Zero(2 * mVSize + mBins);
     ArrayXd resultV = ArrayXd::Zero(padded.size());
     ArrayXd tmp = ArrayXd::Zero(padded.size());
     padded.segment(v2, mBins) = mag;
     mVFilter.init(mVSize);
-    for (int i = 0; i < padded.size(); i++)
+    for (index i = 0; i < padded.size(); i++)
     { tmp(i) = mVFilter.processSample(padded(i)); }
     mV.block(0, mHSize - 1, mBins, 1) = tmp.segment(v2 * 3, mBins);
     mBuf.block(0, mHSize - 1, mBins, 1) = frame;
     ArrayXd tmpRow = ArrayXd::Zero(2 * mHSize);
-    for (int i = 0; i < mBins; i++)
-    {
-      mH(i, h2 + 1) = mHFilters[i].processSample(mag(i));
-    }
+    for (index i = 0; i < mBins; i++)
+    { mH(i, h2 + 1) = mHFilters[i].processSample(mag(i)); }
     ArrayXXcd result(mBins, 3);
     ArrayXd   harmonicMask = ArrayXd::Ones(mBins);
     ArrayXd   percussiveMask = ArrayXd::Ones(mBins);
@@ -140,13 +138,13 @@ public:
     out = _impl::asFluid(result);
   }
 
-  void setMode(int mode)
+  void setMode(index mode)
   {
     assert(mode >= 0 && mode <= 2);
     mMode = mode;
   }
 
-  void setHSize(int newHSize)
+  void setHSize(index newHSize)
   {
     using namespace Eigen;
     assert(newHSize <= mMaxHSize);
@@ -159,13 +157,11 @@ public:
     mBuf.setZero();
 
     mHFilters = std::vector<MedianFilter>(mBins);
-    for (int i = 0; i < mBins; i++){
-      mHFilters[i].init(newHSize);
-    }
+    for (index i = 0; i < mBins; i++) { mHFilters[i].init(newHSize); }
     mHSize = newHSize;
   }
 
-  void setVSize(int newVSize)
+  void setVSize(index newVSize)
   {
     assert(newVSize <= mMaxVSize);
     assert(newVSize % 2);
@@ -210,9 +206,9 @@ private:
   {
     using namespace Eigen;
     ArrayXd threshold = ArrayXd::Ones(mBins);
-    int     kneeStart = floor(x1 * mBins);
-    int     kneeEnd = floor(x2 * mBins);
-    int     kneeLength = kneeEnd - kneeStart;
+    index   kneeStart = floor(x1 * mBins);
+    index   kneeEnd = floor(x2 * mBins);
+    index   kneeLength = kneeEnd - kneeStart;
     threshold.segment(0, kneeStart) =
         ArrayXd::Constant(kneeStart, 10).pow(y1 / 20.0);
     threshold.segment(kneeStart, kneeLength) =
@@ -226,12 +222,12 @@ private:
   std::vector<MedianFilter> mHFilters;
   MedianFilter              mVFilter;
 
-  size_t    mBins{513};
-  size_t    mMaxVSize{101};
-  size_t    mMaxHSize{101};
-  size_t    mVSize{31};
-  size_t    mHSize{17};
-  int       mMode{0};
+  index     mBins{513};
+  index     mMaxVSize{101};
+  index     mMaxHSize{101};
+  index     mVSize{31};
+  index     mHSize{17};
+  index       mMode{0};
   ArrayXXd  mMaxH;
   ArrayXXd  mMaxV;
   ArrayXXcd mMaxBuf;
