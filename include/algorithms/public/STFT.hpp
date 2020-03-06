@@ -132,7 +132,6 @@ public:
 
   void processFrame(const ComplexVectorView frame, RealVectorView audio)
   {
-    assert(frame.size() == mFrameSize);
     mBuffer = mIFFT.process(_impl::asEigen<Eigen::Array>(frame))
                   .segment(0, mWindowSize) *
               mWindow * mScale;
