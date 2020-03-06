@@ -14,6 +14,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/AlgorithmUtils.hpp"
 #include "../util/FFT.hpp"
 #include "../util/FluidEigenMappings.hpp"
+#include "../../data/FluidIndex.hpp"
 #include "../../data/FluidTensor.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
@@ -23,7 +24,6 @@ namespace algorithm {
 
 class STFT
 {
-
   using ArrayXd = Eigen::ArrayXd;
   using ArrayXXd = Eigen::ArrayXXd;
   using ArrayXcd = Eigen::ArrayXcd;
@@ -60,7 +60,8 @@ public:
     padded.fill(0);
     padded.segment(halfWindow, audio.size()) =
         Eigen::Map<const ArrayXd>(audio.data(), audio.size());
-    index     nFrames = floor((padded.size() - mWindowSize) / mHopSize);
+    index nFrames = static_cast<index>(std::floor((padded.size() - mWindowSize) / mHopSize));
+
     ArrayXXcd result(nFrames, mFrameSize);
     for (index i = 0; i < nFrames; i++)
     {
