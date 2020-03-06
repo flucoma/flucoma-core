@@ -8,13 +8,19 @@
 
 cmake_minimum_required (VERSION 3.11)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/script PARENT_SCOPE)
+get_directory_property(hasParent PARENT_DIRECTORY)
+
+#set module path at top level so wrapper projects can easily include fluid_version script
+if(hasParent)
+  set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/script PARENT_SCOPE)
+endif()  
 
 if(APPLE) #has to be before first project() call. grrrrrr
   set(CMAKE_OSX_DEPLOYMENT_TARGET 10.7)  
 endif()
 
 project (fluid_decomposition LANGUAGES CXX)
+
 include(FetchContent)
 set(HISS_PATH "" CACHE PATH "The path to a HISSTools_Library folder. Will pull from github if not set")
 set(EIGEN_PATH "" CACHE PATH "The path to an Eigen installation (>=3.3.5). Will pull from github if not set")
