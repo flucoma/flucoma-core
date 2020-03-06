@@ -29,9 +29,9 @@ public:
   using MatrixXd = Eigen::MatrixXd;
   using VectorXd = Eigen::VectorXd;
 
-  Novelty(int maxSize) : mKernelStorage(maxSize, maxSize) {}
+  Novelty(index maxSize) : mKernelStorage(maxSize, maxSize) {}
 
-  void init(int kernelSize, int nDims)
+  void init(index kernelSize, index nDims)
   {
     assert(kernelSize % 2);
     mKernelSize = kernelSize;
@@ -44,7 +44,7 @@ public:
   double processFrame(const ArrayXd& input)
   {
     using std::vector;
-    int halfKernel = (mKernelSize - 1) / 2;
+    index halfKernel = (mKernelSize - 1) / 2;
     mBufer.block(0, 0, mKernelSize - 1, mNDims) =
         mBufer.block(1, 0, mKernelSize - 1, mNDims);
 
@@ -70,7 +70,7 @@ private:
   void createKernel()
   {
     mKernel = mKernelStorage.block(0, 0, mKernelSize, mKernelSize);
-    int     h = (mKernelSize - 1) / 2;
+    index   h = (mKernelSize - 1) / 2;
     ArrayXd gaussian = ArrayXd::Zero(mKernelSize);
     WindowFuncs::map()[WindowFuncs::WindowTypes::kGaussian](mKernelSize,
                                                             gaussian);
@@ -81,13 +81,13 @@ private:
     mNorm = mKernel.square().sum();
   }
 
-  int      mKernelSize{3};
-  int      mNDims{513};
+  index    mKernelSize{3};
+  index    mNDims{513};
   ArrayXXd mKernel;
   ArrayXXd mKernelStorage;
   MatrixXd mSimilarity;
   MatrixXd mBufer;
-  int      mNorm{1};
+  index    mNorm{1};
 };
 } // namespace algorithm
 } // namespace fluid

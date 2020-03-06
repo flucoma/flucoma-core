@@ -25,11 +25,11 @@ class NoveltySegmentation
 public:
   using ArrayXd = Eigen::ArrayXd;
 
-  NoveltySegmentation(int maxKernelSize, int maxFilterSize)
+  NoveltySegmentation(index maxKernelSize, index maxFilterSize)
       : mNovelty(maxKernelSize), mFilterBufferStorage(maxFilterSize)
   {}
 
-  void init(int kernelSize, double threshold, int filterSize, int nDims)
+  void init(index kernelSize, double threshold, index filterSize, index nDims)
   {
     assert(kernelSize % 2);
     mThreshold = threshold;
@@ -39,7 +39,7 @@ public:
     mFilterBuffer.setZero();
   }
 
-  void setMinSliceLength(int val) { mDebounce = val; }
+  void setMinSliceLength(index val) { mDebounce = val; }
 
   double processFrame(const RealVectorView input)
   {
@@ -53,14 +53,14 @@ public:
     mPeakBuffer.segment(0, 2) = mPeakBuffer.segment(1, 2);
     mFilterBuffer(mFilterSize - 1) = novelty;
     mPeakBuffer(2) = mFilterBuffer.mean();
-    if (mPeakBuffer(1) > mPeakBuffer(0) &&
-               mPeakBuffer(1) > mPeakBuffer(2) && mPeakBuffer(1) > mThreshold &&
-               mDebounceCount == 0)
+    if (mPeakBuffer(1) > mPeakBuffer(0) && mPeakBuffer(1) > mPeakBuffer(2) &&
+        mPeakBuffer(1) > mThreshold && mDebounceCount == 0)
     {
       detected = 1.0;
       mDebounceCount = mDebounce;
     }
-    else {
+    else
+    {
       if (mDebounceCount > 0) mDebounceCount--;
     }
     return detected;
@@ -68,13 +68,13 @@ public:
 
 private:
   double  mThreshold{0.5};
-  int     mFilterSize{3};
+  index   mFilterSize{3};
   ArrayXd mFilterBuffer;
   ArrayXd mFilterBufferStorage;
   ArrayXd mPeakBuffer{3};
   Novelty mNovelty;
-  int     mDebounce{2};
-  int     mDebounceCount{1};
+  index   mDebounce{2};
+  index   mDebounceCount{1};
 };
 } // namespace algorithm
 } // namespace fluid
