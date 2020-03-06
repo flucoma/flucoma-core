@@ -44,15 +44,12 @@ public:
   double processFrame(const ArrayXd& input)
   {
     using std::vector;
-    index halfKernel = (mKernelSize - 1) / 2;
     mBufer.block(0, 0, mKernelSize - 1, mNDims) =
         mBufer.block(1, 0, mKernelSize - 1, mNDims);
-
     ArrayXXd x = mBufer.block(mKernelSize - 1, 0, 1, mNDims);
     VectorXd in1 = input.matrix();
     mBufer.block(mKernelSize - 1, 0, 1, mNDims) = in1.transpose();
     VectorXd tmp = mBufer * input.matrix();
-
     VectorXd norm =
         mBufer.rowwise().norm().cwiseMax(epsilon) * input.matrix().norm();
     norm = norm.cwiseMax(epsilon);
