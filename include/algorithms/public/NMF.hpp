@@ -25,11 +25,12 @@ class NMF
 public:
   // pass iteration number; returns true if able to continue (i.e. not
   // cancelled)
-  using ProgressCallback = std::function<bool(int)>;
+  using ProgressCallback = std::function<bool(index)>;
 
-  NMF(int maxRank) : mRank(maxRank) {}
+  NMF(index maxRank) : mRank(maxRank) {}
 
-  void init(int rank, int nIterations, bool updateW = true, bool updateH = true)
+  void init(index rank, index nIterations, bool updateW = true,
+            bool updateH = true)
   {
     mRank = rank;
     mIterations = nIterations;
@@ -38,7 +39,7 @@ public:
   }
 
   static void estimate(const RealMatrixView W, const RealMatrixView H,
-                       int index, RealMatrixView V)
+                       index index, RealMatrixView V)
   {
     using namespace Eigen;
     using namespace _impl;
@@ -51,12 +52,12 @@ public:
 
   // processFrame computes activations of a dictionary W in a given frame
   void processFrame(const RealVectorView x, const RealMatrixView W0,
-                    RealVectorView out, int nIterations = 10,
+                    RealVectorView out, index nIterations = 10,
                     RealVectorView v = RealVectorView(nullptr, 0, 0))
   {
     using namespace Eigen;
     using namespace _impl;
-    int      rank = W0.extent(0);
+    index    rank = W0.extent(0);
     MatrixXd W = asEigen<Matrix>(W0).transpose();
     VectorXd h =
         MatrixXd::Random(rank, 1) * 0.5 + MatrixXd::Constant(rank, 1, 0.5);
@@ -94,8 +95,8 @@ public:
   {
     using namespace Eigen;
     using namespace _impl;
-    int      nFrames = X.extent(0);
-    int      nBins = X.extent(1);
+    index    nFrames = X.extent(0);
+    index    nBins = X.extent(1);
     MatrixXd W;
     if (W0.extent(0) == 0 && W0.extent(1) == 0)
     {
@@ -178,10 +179,10 @@ private:
     V = W * H;
   }
 
-  int  mRank{1};
-  int  mIterations{100};
-  bool mUpdateW{true};
-  bool mUpdateH{true};
+  index mRank{1};
+  index mIterations{100};
+  bool  mUpdateW{true};
+  bool  mUpdateH{true};
 
   std::vector<ProgressCallback> mCallbacks;
 };
