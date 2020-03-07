@@ -15,11 +15,11 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "amd64.*|x86_64.*|AMD64.*|i686.*|i386.*|x86.*"
     set(SIMD_OPT -mavx)
   endif() 
 elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")   
-   set(SIMD_OPT mfloat-abi=hard -mfpu=neon) 
+   set(SIMD_OPT -march=armv7-a -mtune=cortex-a8 -mfloat-abi=hard -mfpu=neon) 
 else() 
     message(WARNING "Don't know about ${CMAKE_SYSTEM_PROCESSOR} type: if you know the compiler flag for enabling vector instructions, please pass this to CMake with -DFLUID_ARCH")
 endif()
 
 if(SIMD_OPT)
-set(FLUID_ARCH ${SIMD_OPT} CACHE STRING "Flag for using vector instruction sets")
+  set(FLUID_ARCH ${SIMD_OPT} CACHE STRING "Flag for using vector instruction sets")
 endif()
