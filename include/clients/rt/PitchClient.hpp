@@ -121,8 +121,8 @@ private:
 };
 
 auto constexpr NRTPitchParams =
-    makeNRTParams<PitchClient>({InputBufferParam("source", "Source Buffer")},
-                               {BufferParam("features", "Features Buffer")});
+    makeNRTParams<PitchClient>(InputBufferParam("source", "Source Buffer"),
+                               BufferParam("features", "Features Buffer"));
 
 template <typename T>
 using NRTPitchClient =

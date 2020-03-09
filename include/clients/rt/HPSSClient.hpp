@@ -134,10 +134,10 @@ private:
 };
 
 auto constexpr NRTHPSSParams =
-    makeNRTParams<HPSSClient>({InputBufferParam("source", "Source Buffer")},
-                              {BufferParam("harmonic", "Harmonic Buffer"),
+    makeNRTParams<HPSSClient>(InputBufferParam("source", "Source Buffer"),
+                              BufferParam("harmonic", "Harmonic Buffer"),
                                BufferParam("percussive", "Percussive Buffer"),
-                               BufferParam("residual", "Residual Buffer")});
+                               BufferParam("residual", "Residual Buffer"));
 
 template <typename T>
 using NRTHPSSClient = NRTStreamAdaptor<HPSSClient<T>, decltype(NRTHPSSParams),

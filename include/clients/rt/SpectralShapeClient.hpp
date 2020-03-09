@@ -97,8 +97,8 @@ private:
 };
 
 auto constexpr NRTSpectralShapeParams = makeNRTParams<SpectralShapeClient>(
-    {InputBufferParam("source", "Source Buffer")},
-    {BufferParam("features", "Features Buffer")});
+    InputBufferParam("source", "Source Buffer"),
+    BufferParam("features", "Features Buffer"));
 
 template <typename T>
 using NRTSpectralShapeClient =

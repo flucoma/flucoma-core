@@ -140,9 +140,9 @@ private:
 };
 
 auto constexpr NRTTransientParams = makeNRTParams<TransientClient>(
-    {InputBufferParam("source", "Source Buffer")},
-    {BufferParam("transients", "Transients Buffer"),
-     BufferParam("residual", "Residual Buffer")});
+    InputBufferParam("source", "Source Buffer"),
+    BufferParam("transients", "Transients Buffer"),
+     BufferParam("residual", "Residual Buffer"));
 
 template <typename T>
 using NRTTransientsClient =

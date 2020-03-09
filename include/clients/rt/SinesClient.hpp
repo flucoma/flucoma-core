@@ -125,9 +125,9 @@ private:
 };
 
 auto constexpr NRTSineParams =
-    makeNRTParams<SinesClient>({InputBufferParam("source", "Source Buffer")},
-                               {BufferParam("sines", "Sines Buffer"),
-                                BufferParam("residual", "Residual Buffer")});
+    makeNRTParams<SinesClient>(InputBufferParam("source", "Source Buffer"),
+                               BufferParam("sines", "Sines Buffer"),
+                                BufferParam("residual", "Residual Buffer"));
 
 template <typename T>
 using NRTSinesClient = NRTStreamAdaptor<SinesClient<T>, decltype(NRTSineParams),

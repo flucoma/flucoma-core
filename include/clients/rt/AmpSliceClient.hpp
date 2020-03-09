@@ -192,8 +192,8 @@ struct NRTAmpSlicing
 };
 
 auto constexpr NRTAmpSliceParams =
-    makeNRTParams<AmpSliceClient>({InputBufferParam("source", "Source Buffer")},
-                                  {BufferParam("indices", "Indices Buffer")});
+    makeNRTParams<AmpSliceClient>(InputBufferParam("source", "Source Buffer"),
+                                  BufferParam("indices", "Indices Buffer"));
 
 template <typename T>
 using NRTAmpSliceClient =

@@ -108,8 +108,8 @@ private:
 };
 
 auto constexpr NRTMelBandsParams =
-    makeNRTParams<MelBandsClient>({InputBufferParam("source", "Source Buffer")},
-                                  {BufferParam("features", "Output Buffer")});
+    makeNRTParams<MelBandsClient>(InputBufferParam("source", "Source Buffer"),
+                                  BufferParam("features", "Output Buffer"));
 
 template <typename T>
 using NRTMelBandsClient =

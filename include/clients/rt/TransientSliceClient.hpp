@@ -142,8 +142,8 @@ private:
 };
 
 auto constexpr NRTTransientSliceParams = makeNRTParams<TransientsSliceClient>(
-    {InputBufferParam("source", "Source Buffer")},
-    {BufferParam("indices", "Indices Buffer")});
+    InputBufferParam("source", "Source Buffer"),
+    BufferParam("indices", "Indices Buffer"));
 
 template <typename T>
 using NRTTransientSliceClient =

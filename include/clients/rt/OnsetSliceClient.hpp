@@ -119,8 +119,8 @@ private:
 };
 
 auto constexpr NRTOnsetSliceParams = makeNRTParams<OnsetSliceClient>(
-    {InputBufferParam("source", "Source Buffer")},
-    {BufferParam("indices", "Indices Buffer")});
+    InputBufferParam("source", "Source Buffer"),
+    BufferParam("indices", "Indices Buffer"));
 template <typename T>
 using NRTOnsetSliceClient =
     NRTSliceAdaptor<OnsetSliceClient<T>, decltype(NRTOnsetSliceParams),
