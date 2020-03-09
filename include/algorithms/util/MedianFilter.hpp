@@ -10,6 +10,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "../../data/FluidTensor.hpp"
+#include "../../data/FluidIndex.hpp"
 #include <cassert>
 #include <deque>
 
@@ -20,13 +21,13 @@ class MedianFilter
 {
 
 public:
-  void init(size_t size)
+  void init(index size)
   {
     assert(size % 2);
     mFilterSize = size;
     mMiddle = (mFilterSize - 1) / 2;
-    mUnsorted = std::deque<double>(mFilterSize, 0);
-    mSorted = std::deque<double>(mFilterSize, 0);
+    mUnsorted = std::deque<double>(asUnsigned(mFilterSize), 0);
+    mSorted = std::deque<double>(asUnsigned(mFilterSize), 0);
   }
 
   double processSample(double val)
@@ -56,12 +57,12 @@ public:
     std::advance(it, mMiddle);
     return *it;
   }
-  
-  size_t size() { return mFilterSize; }
+
+  index size() { return mFilterSize; }
 
 private:
-  size_t mFilterSize;
-  size_t mMiddle;
+  index mFilterSize;
+  index mMiddle;
 
   std::deque<double> mUnsorted{5, 0};
   std::deque<double> mSorted{5, 0};
