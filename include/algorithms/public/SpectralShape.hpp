@@ -12,6 +12,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/AlgorithmUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/TensorTypes.hpp"
+#include "../../data/FluidIndex.hpp"
 #include <Eigen/Eigen>
 
 namespace fluid {
@@ -23,14 +24,14 @@ class SpectralShape
   using ArrayXd = Eigen::ArrayXd;
 
 public:
-  SpectralShape(size_t maxFrame) : mMagBuffer(maxFrame) {}
+  SpectralShape(index maxFrame) : mMagBuffer(maxFrame) {}
 
   void processFrame(Eigen::Ref<ArrayXd> in)
   {
     double const epsilon = std::numeric_limits<double>::epsilon();
 
     ArrayXd x = in.max(epsilon);
-    int     size = x.size();
+    index   size = x.size();
     double  xSum = x.sum();
     ArrayXd xSquare = x.square();
     ArrayXd lin = ArrayXd::LinSpaced(size, 0, size - 1);
@@ -44,7 +45,7 @@ public:
     double rolloff = size - 1;
     double cumSum = 0;
     double target = 0.95 * xSquare.sum();
-    for (int i = 0; cumSum <= target && i < size; i++)
+    for (index i = 0; cumSum <= target && i < size; i++)
     {
       cumSum += xSquare(i);
       if (cumSum > target)
