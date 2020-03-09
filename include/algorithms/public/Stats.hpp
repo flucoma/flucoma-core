@@ -11,6 +11,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/TensorTypes.hpp"
+#include "../../data/FluidIndex.hpp"
 #include <Eigen/Core>
 #include <cassert>
 #include <cmath>
@@ -21,7 +22,7 @@ namespace algorithm {
 class Stats
 {
 public:
-  void init(int numDerivatives, double low, double mid, double high)
+  void init(index numDerivatives, double low, double mid, double high)
   {
     assert(numDerivatives <= 2);
     mNumDerivatives = numDerivatives;
@@ -29,12 +30,12 @@ public:
     mMiddle = mid / 100.0;
     mHigh = high / 100.0;
   }
-  int numStats() { return 7; }
+  index numStats() { return 7; }
 
   Eigen::Ref<Eigen::ArrayXd> computeStats(Eigen::Ref<Eigen::ArrayXd> input)
   {
     using namespace Eigen;
-    int     length = input.size();
+    index   length = input.size();
     ArrayXd out = ArrayXd::Zero(7);
     double  mean = input.mean();
     double  std = std::sqrt((input - mean).square().mean());
@@ -56,7 +57,7 @@ public:
     using fluid::Slice;
     assert(out.size() == numStats() * (mNumDerivatives + 1));
     ArrayXd input = asEigen<Array>(in);
-    int     length = input.size();
+    index   length = input.size();
     ArrayXd raw = computeStats(input);
     out(Slice(0, numStats())) = asFluid(raw);
     if (mNumDerivatives > 0)
@@ -75,7 +76,7 @@ public:
     }
   }
 
-  int    mNumDerivatives{0};
+  index  mNumDerivatives{0};
   double mLow{0};
   double mMiddle{0.5};
   double mHigh{1};
