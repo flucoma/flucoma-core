@@ -25,7 +25,7 @@ class RatioMask
   using ArrayXXd = Eigen::ArrayXXd;
 
 public:
-  void init(RealMatrixView denominator, int exponent)
+  void init(RealMatrixView denominator, index exponent)
   {
     using namespace _impl;
     using namespace Eigen;
@@ -50,7 +50,7 @@ public:
 
 private:
   ArrayXXd mMultiplier;
-  int      mExponent{1};
+  index      mExponent{1};
 };
 
 } // namespace algorithm
