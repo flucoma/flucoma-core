@@ -26,7 +26,7 @@ class CepstrumF0
 public:
   using ArrayXd = Eigen::ArrayXd;
 
-  void init(int size)
+  void init(index size)
   {
     mDCT.init(size, size);
     mCepstrum = ArrayXd(size);
@@ -42,8 +42,8 @@ public:
     ArrayXd logMag = mag.max(epsilon).log();
     double  pitch = sampleRate / minFreq;
     double  confidence = 0;
-    int     minBin = std::round(sampleRate / maxFreq);
-    int     maxBin = std::round(sampleRate / minFreq);
+    index   minBin = std::lrint(sampleRate / maxFreq);
+    index   maxBin = std::lrint(sampleRate / minFreq);
 
     mDCT.processFrame(logMag, mCepstrum);
 

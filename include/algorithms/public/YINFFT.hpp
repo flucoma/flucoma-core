@@ -29,7 +29,7 @@ public:
     PeakDetection pd;
     ArrayXd       mag = _impl::asEigen<Array>(input);
     ArrayXd       squareMag = mag.square();
-    int           nBins = mag.size();
+    index         nBins = mag.size();
     FFT           fft(2 * (mag.size() - 1));
     double        squareMagSum = 2 * squareMag.sum();
     ArrayXd       squareMagSym(2 * (nBins - 1));
@@ -41,7 +41,7 @@ public:
     if (minFreq == 0) minFreq = 1;
     yin(0) = 1;
     double tmpSum = 0;
-    for (int i = 1; i < nBins; i++)
+    for (index i = 1; i < nBins; i++)
     {
       tmpSum += yin(i);
       yin(i) *= i / tmpSum;
@@ -52,8 +52,8 @@ public:
     {
       ArrayXd yinFlip = -yin;
       // segment from max to min freq
-      int minBin = std::round(sampleRate / maxFreq);
-      int maxBin = std::round(sampleRate / minFreq);
+      index minBin = std::lrint(sampleRate / maxFreq);
+      index maxBin = std::lrint(sampleRate / minFreq);
       if (minBin > yinFlip.size() - 1) minBin = yinFlip.size() - 1;
       if (maxBin > yinFlip.size() - minBin - 1)
         maxBin = yinFlip.size() - minBin - 1;

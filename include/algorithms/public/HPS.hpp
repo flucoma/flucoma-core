@@ -22,7 +22,7 @@ class HPS
 
 public:
   void processFrame(const RealVectorView& input, RealVectorView output,
-                    int nHarmonics, double minFreq, double maxFreq,
+                    index nHarmonics, double minFreq, double maxFreq,
                     double sampleRate)
   {
     using namespace Eigen;
@@ -30,18 +30,18 @@ public:
 
     ArrayXd mag = _impl::asEigen<Array>(input);
     ArrayXd hps = mag;
-    int     nBins = mag.size();
+    index   nBins = mag.size();
     double  binHz = sampleRate / ((nBins - 1) * 2);
-    int     minBin = std::round(minFreq / binHz);
-    int     maxBin = std::round(maxFreq / binHz);
+    index   minBin = std::lrint(minFreq / binHz);
+    index   maxBin = std::lrint(maxFreq / binHz);
     double  f0 = minBin * binHz;
     double  confidence = 0;
 
-    for (int i = 2; i < nHarmonics; i++)
+    for (index i = 2; i < nHarmonics; i++)
     {
-      int     hBins = nBins / i;
+      index   hBins = nBins / i;
       ArrayXd h = ArrayXd::Zero(hBins);
-      for (int j = 0; j < hBins; j++) h(j) = mag(j * i);
+      for (index j = 0; j < hBins; j++) h(j) = mag(j * i);
       ArrayXd hp = ArrayXd::Zero(nBins);
       hp.segment(0, hBins) = h;
       hps = hps * hp;
@@ -50,7 +50,9 @@ public:
     if (maxBin > minBin)
     {
       hps = hps.segment(minBin, maxBin - minBin);
-      confidence = hps.sum() == 0 ? 0 : hps.maxCoeff(&maxIndex) / hps.sum();
+      double maxVal =  hps.maxCoeff(&maxIndex);
+      double sum = hps.sum();
+      confidence = sum == 0 ? 0 : maxVal / sum;
       f0 = (minBin + maxIndex) * binHz;
     }
     output(0) = f0;

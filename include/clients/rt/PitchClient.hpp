@@ -53,7 +53,6 @@ class PitchClient : public FluidBaseClient<decltype(PitchParams), PitchParams>,
                     public ControlOut
 {
   using HostVector = FluidTensorView<T, 1>;
-  using size_t = std::size_t;
   using CepstrumF0 = algorithm::CepstrumF0;
   using HPS = algorithm::HPS;
   using YINFFT = algorithm::YINFFT;
@@ -100,10 +99,10 @@ public:
             break;
           }
         });
-    output[0](0) = get<kUnit>() == 0
+    output[0](0) = static_cast<T>(get<kUnit>() == 0
                        ? mDescriptors(0)
-                       : 69 + (12 * log2(mDescriptors(0) / 440.0)); // pitch
-    output[1](0) = mDescriptors(1); // pitch confidence
+                       : 69 + (12 * log2(mDescriptors(0) / 440.0))); // pitch
+    output[1](0) = static_cast<T>(mDescriptors(1)); // pitch confidence
   }
   index latency() { return get<kFFT>().winSize(); }
   index controlRate() { return get<kFFT>().hopSize(); }

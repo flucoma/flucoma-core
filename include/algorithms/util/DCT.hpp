@@ -25,14 +25,14 @@ public:
   using ArrayXd = Eigen::ArrayXd;
   using MatrixXd = Eigen::MatrixXd;
 
-  void init(int inputSize, int outputSize)
+  void init(index inputSize, index outputSize)
   {
     using std::sqrt;
     assert(inputSize >= outputSize);
     mInputSize = inputSize;
     mOutputSize = outputSize;
     mTable = MatrixXd::Zero(mOutputSize, mInputSize);
-    for (int i = 0; i < mOutputSize; i++)
+    for (index i = 0; i < mOutputSize; i++)
     {
       double  scale = i == 0 ? 1.0 / sqrt(inputSize) : sqrt(2.0 / inputSize);
       ArrayXd freqs = ((M_PI / inputSize) * i) *
@@ -52,8 +52,8 @@ public:
   {
     output = (mTable * input.matrix()).array();
   }
-  int      mInputSize{40};
-  int      mOutputSize{13};
+  index      mInputSize{40};
+  index      mOutputSize{13};
   MatrixXd mTable;
 };
 }; // namespace algorithm
