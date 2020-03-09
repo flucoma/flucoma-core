@@ -12,6 +12,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/ARModel.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/TensorTypes.hpp"
+#include "../../data/FluidIndex.hpp"
 #include <Eigen/Core>
 #include <algorithm>
 #include <cmath>
@@ -29,13 +30,13 @@ class TransientExtraction
   using VectorXd = Eigen::VectorXd;
 
 public:
-  TransientExtraction(size_t order, size_t iterations, double robustFactor,
+  TransientExtraction(index order, index iterations, double robustFactor,
                       bool refine)
       : mModel(order, iterations, robustFactor)
   {}
 
-  void init(size_t order, size_t iterations, double robustFactor, bool refine,
-            int blockSize, int padSize)
+  void init(index order, index iterations, double robustFactor, bool refine,
+            index blockSize, index padSize)
   {
     mModel = ARModel(order, iterations, robustFactor);
     prepareStream(blockSize, padSize);
@@ -43,7 +44,7 @@ public:
   }
 
   void setDetectionParameters(double power, double threshHi, double threshLo,
-                              int halfWindow = 7, int hold = 25)
+                              index halfWindow = 7, index hold = 25)
   {
     mDetectPowerFactor = power;
     mDetectThreshHi = threshHi;
@@ -52,19 +53,19 @@ public:
     mDetectHold = hold;
   }
 
-  void prepareStream(int blockSize, int padSize)
+  void prepareStream(index blockSize, index padSize)
   {
     mBlockSize = std::max(blockSize, modelOrder());
     mPadSize = std::max(padSize, modelOrder());
     resizeStorage();
   }
 
-  int modelOrder() const { return static_cast<int>(mModel.order()); }
-  int blockSize() const { return mBlockSize; }
-  int hopSize() const { return mBlockSize - modelOrder(); }
-  int padSize() const { return mPadSize; }
-  int inputSize() const { return hopSize() + mPadSize; }
-  int analysisSize() const { return mBlockSize + mPadSize + mPadSize; }
+  index modelOrder() const { return static_cast<index>(mModel.order()); }
+  index blockSize() const { return mBlockSize; }
+  index hopSize() const { return mBlockSize - modelOrder(); }
+  index padSize() const { return mPadSize; }
+  index inputSize() const { return hopSize() + mPadSize; }
+  index analysisSize() const { return mBlockSize + mPadSize + mPadSize; }
 
   const double* getDetect() const { return mDetect.data(); }
   const double* getForwardError() const
@@ -84,7 +85,7 @@ public:
     return mBackwardWindowedError.data();
   }
 
-  int detect(const double* input, int inSize)
+  index detect(const double* input, index inSize)
   {
     frame(input, inSize);
     analyse();
@@ -93,40 +94,40 @@ public:
     return mCount;
   }
 
-  // int extract(double *transients, double *residual, const double *input,
-  //            int inSize) {
+  // index extract(double *transients, double *residual, const double *input,
+  //            index inSize) {
 
   void process(const RealVectorView input, RealVectorView transients,
                RealVectorView residual)
   {
-    int inSize = input.extent(0);
+    index inSize = input.extent(0);
     frame(input.data(), inSize);
     analyse();
     detection();
-    interpolate(transients.data(), residual.data());
+    indexerpolate(transients.data(), residual.data());
     // return mCount;
   }
 
-  // int extract(double *transients, double *residual, const double *input,
-  //            int inSize, const double *unknowns) {
+  // index extract(double *transients, double *residual, const double *input,
+  //            index inSize, const double *unknowns) {
   void process(const RealVectorView input, const RealVectorView unknowns,
                RealVectorView transients, RealVectorView residual)
   {
-    int inSize = input.extent(0);
+    index inSize = input.extent(0);
     std::copy(unknowns.data(), unknowns.data() + hopSize(), mDetect.data());
     mCount = 0;
-    for (int i = 0, size = hopSize(); i < size; i++)
+    for (index i = 0, size = hopSize(); i < size; i++)
       if (mDetect[i]) mCount++;
     frame(input.data(), inSize);
     if (mCount) analyse();
-    interpolate(transients.data(), residual.data());
+    indexerpolate(transients.data(), residual.data());
     // return mCount;
   }
 
   bool initialized() { return mInitialized; }
 
 private:
-  void frame(const double* input, int inSize)
+  void frame(const double* input, index inSize)
   {
     inSize = std::min(inSize, inputSize());
     std::copy(mInput.data() + hopSize(),
@@ -168,14 +169,14 @@ private:
 
     // Detection
 
-    int          count = 0;
+    index        count = 0;
     const double hiThresh = mDetectThreshHi;
     const double loThresh = mDetectThreshLo;
-    const int    offHold = mDetectHold;
+    const index  offHold = mDetectHold;
 
     bool click = false;
 
-    for (int i = 0, size = hopSize(); i < size; i++)
+    for (index i = 0, size = hopSize(); i < size; i++)
     {
       if (!click && (mBackwardWindowedError[i] > loThresh) &&
           (mForwardWindowedError[i] > hiThresh))
@@ -184,7 +185,7 @@ private:
       {
         click = false;
 
-        for (int j = i; (j < i + offHold) && (j < size); j++)
+        for (index j = i; (j < i + offHold) && (j < size); j++)
         {
           if (mBackwardWindowedError[j] > loThresh)
           {
@@ -211,13 +212,13 @@ private:
     /*
     const double frameRMS = calcStat<&Descriptors::RMS>(input, blockSize());
 
-    for (int i = 0, size = hopSize(); i < size;)
+    for (index i = 0, size = hopSize(); i < size;)
     {
       for (; i < size; i++)
           if (mDetect[i])
             break;
 
-      int beg = i;
+      index beg = i;
 
       for (; i < size; i++)
         if (!mDetect[i])
@@ -240,18 +241,18 @@ private:
   }
 
   template <double Method(const RealVectorView&)>
-  double calcStat(const double* input, int size)
+  double calcStat(const double* input, index size)
   {
     RealVectorView view(const_cast<double*>(input), 0, size);
     return Method(view);
   }
 
-  void interpolate(double* transients, double* residual)
+  void indexerpolate(double* transients, double* residual)
   {
     const double* input = mInput.data() + padSize() + modelOrder();
     const double* parameters = mModel.getParameters();
-    int           order = modelOrder();
-    int           size = blockSize();
+    index         order = modelOrder();
+    index         size = blockSize();
 
     if (!mCount)
     {
@@ -269,15 +270,15 @@ private:
 
     // Form data
 
-    for (int i = 0; i < size - order; i++)
+    for (index i = 0; i < size - order; i++)
     {
-      for (int j = 0; j < order; j++)
+      for (index j = 0; j < order; j++)
         A(i, j + i) = -parameters[order - (j + 1)];
 
       A(i, order + i) = 1.0;
     }
 
-    for (int i = 0, uCount = 0, kCount = 0; i < size; i++)
+    for (index i = 0, uCount = 0, kCount = 0; i < size; i++)
     {
       if (i >= order && mDetect[i - order])
         U(i, uCount++) = 1.0;
@@ -296,7 +297,7 @@ private:
 
     // Write the output
 
-    for (int i = 0, uCount = 0; i < (size - order); i++)
+    for (index i = 0, uCount = 0; i < (size - order); i++)
     {
       if (mDetect[i])
         residual[i] = u(uCount++);
@@ -306,22 +307,22 @@ private:
 
     if (mRefine) refine(residual, size, Au, u);
 
-    for (int i = 0; i < (size - order); i++)
+    for (index i = 0; i < (size - order); i++)
       transients[i] = input[i + order] - residual[i];
 
-    // Copy the residual into the correct place
+    // Copy the residual indexo the correct place
 
     std::copy(residual, residual + (size - order),
               mInput.data() + padSize() + order + order);
   }
 
-  void refine(double* io, int size, Eigen::MatrixXd& Au, Eigen::MatrixXd& ls)
+  void refine(double* io, index size, Eigen::MatrixXd& Au, Eigen::MatrixXd& ls)
   {
     const double energy = mModel.variance() * mCount;
     double       energyLS = 0.0;
-    int          order = modelOrder();
+    index        order = modelOrder();
 
-    for (int i = 0; i < (size - order); i++)
+    for (index i = 0; i < (size - order); i++)
     {
       if (mDetect[i])
       {
@@ -343,7 +344,7 @@ private:
 
       // Write the output
 
-      for (int i = 0, uCount = 0; i < (size - order); i++)
+      for (index i = 0, uCount = 0; i < (size - order); i++)
       {
         if (mDetect[i]) io[i] = u(uCount++);
       }
@@ -360,7 +361,7 @@ private:
     std::normal_distribution<double> gaussian(0.0, sqrt(variance));
     double                           sum = 0.0;
 
-    for (int i = 0; i < output.size(); i++)
+    for (index i = 0; i < output.size(); i++)
     {
       output[i] = gaussian(mRandomGenerator);
       sum += output[i] * output[i];
@@ -369,43 +370,44 @@ private:
     return sum;
   }
 
-  template <void (ARModel::*Method)(double*, const double*, int)>
-  void errorCalculation(double* error, const double* input, int size,
+  template <void (ARModel::*Method)(double*, const double*, index)>
+  void errorCalculation(double* error, const double* input, index size,
                         double normFactor)
   {
     (mModel.*Method)(error, input, size);
 
     // Take absolutes and normalise
 
-    for (int i = 0; i < size; i++) error[i] = std::fabs(error[i]) * normFactor;
+    for (index i = 0; i < size; i++)
+      error[i] = std::fabs(error[i]) * normFactor;
   }
 
   // Triangle window
 
   double calcWindow(double norm) { return std::min(norm, 1.0 - norm); }
 
-  void windowError(double* errorWindowed, const double* error, int size)
+  void windowError(double* errorWindowed, const double* error, index size)
   {
-    const int    windowSize = mDetectHalfWindow * 2 + 1;
-    const int    windowOffset = mDetectHalfWindow;
+    const index  windowSize = mDetectHalfWindow * 2 + 1;
+    const index  windowOffset = mDetectHalfWindow;
     const double powFactor = mDetectPowerFactor;
 
     // Calculate window normalisation factor
 
     double windowNormFactor = 0.0;
 
-    for (int j = 0; j < windowSize; j++)
+    for (index j = 0; j < windowSize; j++)
       windowNormFactor += calcWindow((double) j / windowSize);
 
     windowNormFactor = 1.0 / windowNormFactor;
 
     // Do window processing
 
-    for (int i = 0; i < size; i++)
+    for (index i = 0; i < size; i++)
     {
       double windowed = 0.0;
 
-      for (int j = 1; j < windowSize; j++)
+      for (index j = 1; j < windowSize; j++)
       {
         const double value = pow(fabs(error[i - windowOffset + j]), powFactor);
         windowed += value * calcWindow((double) j / windowSize);
@@ -430,12 +432,12 @@ private:
 
   std::mt19937_64 mRandomGenerator{std::random_device()()};
 
-  int    mBlockSize{0};
-  int    mPadSize{0};
-  int    mCount{0};
+  index  mBlockSize{0};
+  index  mPadSize{0};
+  index  mCount{0};
   bool   mRefine{false};
-  int    mDetectHalfWindow{1};
-  int    mDetectHold{25};
+  index  mDetectHalfWindow{1};
+  index  mDetectHold{25};
   double mDetectPowerFactor{1.4};
   double mDetectThreshHi{1.5};
   double mDetectThreshLo{3.0};

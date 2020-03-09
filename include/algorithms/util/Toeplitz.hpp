@@ -10,6 +10,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include <Eigen/Core>
+#include "../../data/FluidIndex.hpp"
 
 namespace fluid {
 namespace algorithm {
@@ -18,7 +19,7 @@ template <typename Scalar>
 Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>
 toeplitz(const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& vec)
 {
-  size_t size = vec.size();
+  index size = vec.size();
 
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> mat(size, size);
 

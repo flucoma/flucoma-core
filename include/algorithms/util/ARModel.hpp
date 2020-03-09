@@ -12,6 +12,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "ConvolutionTools.hpp"
 #include "Toeplitz.hpp"
 #include "../public/WindowFuncs.hpp"
+#include "../../data/FluidIndex.hpp"
 #include <Eigen/Eigen>
 #include <algorithm>
 #include <cmath>
@@ -28,7 +29,7 @@ class ARModel
   using VectorXd = Eigen::VectorXd;
 
 public:
-  ARModel(size_t order, size_t iterations = 3, bool useWindow = true,
+  ARModel(index order, index iterations = 3, bool useWindow = true,
           double robustFactor = 3.0)
       : mParameters(VectorXd::Zero(order)), mOrder(order),
         mIterations(iterations), mUseWindow(useWindow),
@@ -37,9 +38,9 @@ public:
 
   const double* getParameters() const { return mParameters.data(); }
   double        variance() const { return mVariance; }
-  size_t        order() const { return mOrder; }
+  index        order() const { return mOrder; }
 
-  void estimate(const double* input, int size)
+  void estimate(const double* input, index size)
   {
     if (mIterations)
       robustEstimate(input, size);
@@ -49,14 +50,14 @@ public:
 
   double fowardPrediction(const double* input)
   {
-    return modelPredict<std::negate<int>>(input);
+    return modelPredict<std::negate<index>>(input);
   }
 
   double backwardPrediction(const double* input)
   {
     struct Identity
     {
-      int operator()(int a) { return a; }
+      index operator()(index a) { return a; }
     };
     return modelPredict<Identity>(input);
   }
@@ -71,12 +72,12 @@ public:
     return modelError<&ARModel::backwardPrediction>(input);
   }
 
-  void forwardErrorArray(double* errors, const double* input, int size)
+  void forwardErrorArray(double* errors, const double* input, index size)
   {
     modelErrorArray<&ARModel::forwardError>(errors, input, size);
   }
 
-  void backwardErrorArray(double* errors, const double* input, int size)
+  void backwardErrorArray(double* errors, const double* input, index size)
   {
     modelErrorArray<&ARModel::backwardError>(errors, input, size);
   }
@@ -89,7 +90,7 @@ private:
   {
     double estimate = 0.0;
 
-    for (int i = 0; i < mOrder; i++)
+    for (index i = 0; i < mOrder; i++)
       estimate += mParameters(i) * input[Op()(i + 1)];
 
     return estimate;
@@ -102,12 +103,12 @@ private:
   }
 
   template <double (ARModel::*Method)(const double*)>
-  void modelErrorArray(double* errors, const double* input, int size)
+  void modelErrorArray(double* errors, const double* input, index size)
   {
-    for (int i = 0; i < size; i++) errors[i] = (this->*Method)(input + i);
+    for (index i = 0; i < size; i++) errors[i] = (this->*Method)(input + i);
   }
 
-  void directEstimate(const double* input, int size, bool updateVariance)
+  void directEstimate(const double* input, index size, bool updateVariance)
   {
     std::vector<double> frame(size);
 
@@ -119,7 +120,7 @@ private:
         WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](size, mWindow);
       }
 
-      for (int i = 0; i < size; i++) frame[i] = input[i] * mWindow(i) * 2.0;
+      for (index i = 0; i < size; i++) frame[i] = input[i] * mWindow(i) * 2.0;
     }
     else
       std::copy(input, input + size, frame.data());
@@ -150,24 +151,24 @@ private:
 
       double variance = mat(0, 0);
 
-      for (int i = 0; i < mOrder - 1; i++)
+      for (index i = 0; i < mOrder - 1; i++)
         variance -= mParameters(i) * mat(0, i + 1);
 
       setVariance((variance - (mParameters(mOrder - 1) * pN)) / size);
     }
   }
 
-  void robustEstimate(const double* input, int size)
+  void robustEstimate(const double* input, index size)
   {
     std::vector<double> estimates(size + mOrder);
 
-    // Calculate an intial estimate of parameters
+    // Calculate an indexial estimate of parameters
 
     directEstimate(input, size, true);
 
     // Initialise Estimates
 
-    for (int i = 0; i < mOrder + size; i++) estimates[i] = input[i - mOrder];
+    for (index i = 0; i < mOrder + size; i++) estimates[i] = input[i - mOrder];
 
     // Variance
 
@@ -175,7 +176,7 @@ private:
 
     // Iterate
 
-    for (size_t iterations = mIterations; iterations--;)
+    for (index iterations = mIterations; iterations--;)
       robustIteration(estimates.data() + mOrder, input, size);
   }
 
@@ -184,14 +185,14 @@ private:
     return cs * psiFunction((input - prediction) / cs);
   }
 
-  void robustVariance(double* estimates, const double* input, int size)
+  void robustVariance(double* estimates, const double* input, index size)
   {
     const double cs = mRobustFactor * sqrt(mVariance);
     double       residualSqSum = 0.0;
 
     // Iterate to find new filtered input
 
-    for (int i = 0; i < size; i++)
+    for (index i = 0; i < size; i++)
     {
       const double residual =
           robustResidual(input[i], fowardPrediction(estimates + i), cs);
@@ -201,13 +202,13 @@ private:
     setVariance(residualSqSum / size);
   }
 
-  void robustIteration(double* estimates, const double* input, int size)
+  void robustIteration(double* estimates, const double* input, index size)
   {
     const double cs = mRobustFactor * sqrt(mVariance);
 
     // Iterate to find new filtered input
 
-    for (int i = 0; i < size; i++)
+    for (index i = 0; i < size; i++)
     {
       const double prediction = fowardPrediction(estimates);
       estimates[0] = prediction + robustResidual(input[i], prediction, cs);
@@ -237,8 +238,8 @@ private:
   double   mVariance{0.0};
   ArrayXd  mWindow;
   bool     mUseWindow{true};
-  size_t   mOrder{20};
-  size_t   mIterations{3};
+  index   mOrder{20};
+  index   mIterations{3};
   double   mRobustFactor{3.0};
   double   mMinVariance{0.0};
 };
