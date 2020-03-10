@@ -10,6 +10,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include <cmath>
+#include "../../data/FluidIndex.hpp"
 
 namespace fluid {
 namespace algorithm {
@@ -63,7 +64,7 @@ public:
     mA[2] = shelvA[0] * hiA[2] + shelvA[1] * hiA[1] + shelvA[2] * hiA[0];
     mA[3] = shelvA[1] * hiA[2] + shelvA[2] * hiA[1];
     mA[4] = shelvA[2] * hiA[2];
-    for (int i = 0; i < 5; i++)
+    for (index i = 0; i < 5; i++)
     {
       mX[i] = 0;
       mY[i] = 0;
@@ -74,10 +75,10 @@ public:
   {
     double y = 0;
     mX[0] = x;
-    for (int i = 1; i < 5; i++) y -= mA[i] * mY[i - 1];
-    for (int i = 0; i < 5; i++) y += mB[i] * mX[i];
+    for (index i = 1; i < 5; i++) y -= mA[i] * mY[i - 1];
+    for (index i = 0; i < 5; i++) y += mB[i] * mX[i];
 
-    for (int i = 4; i > 0; i--)
+    for (index i = 4; i > 0; i--)
     {
       mX[i] = mX[i - 1];
       mY[i] = mY[i - 1];
