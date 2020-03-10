@@ -86,7 +86,7 @@ public:
           mMelBands.processFrame(mMagnitude, mBands);
         });
     for (index i = 0; i < get<kNBands>(); ++i)
-      output[asUnsigned(i)](0) = mBands(i);
+      output[asUnsigned(i)](0) = static_cast<T>(mBands(i));
   }
 
   index latency() { return get<kFFT>().winSize(); }

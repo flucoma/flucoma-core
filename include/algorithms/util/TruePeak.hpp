@@ -29,7 +29,7 @@ public:
   void init(index size, double sampleRate)
   {
     mSampleRate = sampleRate;
-    mFFTSize = std::pow(2, std::ceil(std::log(size) / std::log(2)));
+    mFFTSize = static_cast<index>(std::pow(2, std::ceil(std::log(size) / std::log(2))));
     mFactor = sampleRate < 96000 ? 4 : 2;
     mFFT.resize(mFFTSize);
     mIFFT.resize(mFFTSize * mFactor);

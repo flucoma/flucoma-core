@@ -84,7 +84,7 @@ private:
   ArrayXXd mKernelStorage;
   MatrixXd mSimilarity;
   MatrixXd mBufer;
-  index    mNorm{1};
+  double   mNorm{1.};
 };
 } // namespace algorithm
 } // namespace fluid

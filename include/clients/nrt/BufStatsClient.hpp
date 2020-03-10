@@ -83,11 +83,11 @@ public:
               ") out of range."};
 
     index numFrames = get<kNumFrames>() == -1
-                        ? (source.numFrames() - get<kOffset>())
-                        : get<kNumFrames>();
+                          ? (source.numFrames() - get<kOffset>())
+                          : get<kNumFrames>();
     index numChannels = get<kNumChans>() == -1
-                          ? (source.numChans() - get<kStartChan>())
-                          : get<kNumChans>();
+                            ? (source.numChans() - get<kStartChan>())
+                            : get<kNumChans>();
 
     if (get<kOffset>() + numFrames > source.numFrames())
       return {Result::Status::kError, "Start frame + num frames (",
@@ -103,7 +103,7 @@ public:
     if (numFrames <= get<kNumDerivatives>())
       return {Result::Status::kError, "Not enough frames"};
 
-    index    outputSize = processor.numStats() * (get<kNumDerivatives>() + 1);
+    index  outputSize = processor.numStats() * (get<kNumDerivatives>() + 1);
     Result resizeResult =
         dest.resize(outputSize, numChannels, source.sampleRate());
 
@@ -123,7 +123,7 @@ public:
       if (c.task() && !c.task()->processUpdate(i + 1, numChannels))
         return {Result::Status::kCancelled, ""};
 
-      for (index j = 0; j < outputSize; j++) dest.samps(i)(j) = destChannel(j);
+      for (index j = 0; j < outputSize; j++) dest.samps(i)(j) = static_cast<float>(destChannel(j));
     }
 
     return {Result::Status::kOk, ""};

@@ -74,14 +74,14 @@ public:
     {
       // TODO: probably move this logic to algorithm
       if (i == 0 || i == 1 || i == 4)
-        output[asUnsigned(i)](0) = mBinHz * mDescriptors(i);
+        output[asUnsigned(i)](0) = static_cast<T>(mBinHz * mDescriptors(i));
       else
-        output[asUnsigned(i)](0) = mDescriptors(i);
+        output[asUnsigned(i)](0) = static_cast<T>(mDescriptors(i));
     }
   }
 
   index latency() { return get<kFFT>().winSize(); }
-  
+
   void reset(){ mSTFTBufferedProcess.reset(); }
 
   index controlRate() { return get<kFFT>().hopSize(); }

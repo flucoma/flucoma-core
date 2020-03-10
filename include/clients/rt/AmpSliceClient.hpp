@@ -44,8 +44,8 @@ enum AmpSliceParamIndex {
 };
 
 auto constexpr AmpSliceParams = defineParameters(
-    FloatParam("absRampUp", "Absolute Envelope Ramp Up Length", 10, Min(1)),
-    FloatParam("absRampDown", "Absolute Envelope Ramp Down Length", 10, Min(1)),
+    LongParam("absRampUp", "Absolute Envelope Ramp Up Length", 10, Min(1)),
+    LongParam("absRampDown", "Absolute Envelope Ramp Down Length", 10, Min(1)),
     FloatParam("absThreshOn", "Absolute Envelope Threshold On", -90, Min(-144),
                Max(144)),
     FloatParam("absThreshOff", "Absolute Envelope Threshold Off", -90,
@@ -61,8 +61,8 @@ auto constexpr AmpSliceParams = defineParameters(
               Min(0)),
     LongParam("lookAhead", "Absolute Envelope Forward Lookup Length", 0,
               Min(0)),
-    FloatParam("relRampUp", "Relative Envelope Ramp Up Length", 1, Min(1)),
-    FloatParam("relRampDown", "Relative Envelope Ramp Down Length", 1, Min(1)),
+    LongParam("relRampUp", "Relative Envelope Ramp Up Length", 1, Min(1)),
+    LongParam("relRampDown", "Relative Envelope Ramp Down Length", 1, Min(1)),
     FloatParam("relThreshOn", "Relative Envelope Threshold On", 144, Min(-144),
                Max(144)),
     FloatParam("relThreshOff", "Relative Envelope Threshold Off", -144,
@@ -120,7 +120,7 @@ public:
     }
 
     for (index i = 0; i < input[0].size(); i++)
-    { output[0](i) = mAlgorithm.processSample(input[0](i)); }
+    { output[0](i) = static_cast<T>(mAlgorithm.processSample(input[0](i))); }
   }
 
   index latency()

@@ -43,9 +43,9 @@ public:
     double  kurtosis = ((input - mean) / (std == 0 ? 1 : std)).pow(4).mean();
     ArrayXd sorted = input;
     std::sort(sorted.data(), sorted.data() + length);
-    double low = sorted(std::round(mLow * (length - 1)));
-    double mid = sorted(std::round(mMiddle * (length - 1)));
-    double high = sorted(std::round(mHigh * (length - 1)));
+    double low = sorted(std::lrint(mLow * (length - 1)));
+    double mid = sorted(std::lrint(mMiddle * (length - 1)));
+    double high = sorted(std::lrint(mHigh * (length - 1)));
     out << mean, std, skewness, kurtosis, low, mid, high;
     return out;
   }

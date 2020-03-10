@@ -55,7 +55,7 @@ public:
   }
 
   index latency() { return get<kFFT>().winSize(); }
-  
+
   void reset(){ mSTFTProcessor.reset(); }
 
   void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
@@ -98,7 +98,7 @@ public:
             //          controlTrigger(true);
           });
 
-      for (index i = 0; i < rank; ++i) output[asUnsigned(i)](0) = tmpOut(i);
+      for (index i = 0; i < rank; ++i) output[asUnsigned(i)](0) = static_cast<T>(tmpOut(i));
     }
   }
 

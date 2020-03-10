@@ -92,7 +92,7 @@ public:
           mMelBands.processFrame(mMagnitude, mBands);
           mDCT.processFrame(mBands, mCoefficients);
         });
-    for (index i = 0; i < get<kNCoefs>(); ++i) output[asUnsigned(i)](0) = mCoefficients(i);
+    for (index i = 0; i < get<kNCoefs>(); ++i) output[asUnsigned(i)](0) = static_cast<T>(mCoefficients(i));
   }
 
   index latency() { return get<kFFT>().winSize(); }

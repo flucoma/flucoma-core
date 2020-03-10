@@ -89,7 +89,7 @@ public:
     mBuf.block(0, mHSize - 1, mBins, 1) = frame;
     ArrayXd tmpRow = ArrayXd::Zero(2 * mHSize);
     for (index i = 0; i < mBins; i++)
-    { mH(i, h2 + 1) = mHFilters[i].processSample(mag(i)); }
+    { mH(i, h2 + 1) = mHFilters[asUnsigned(i)].processSample(mag(i)); }
     ArrayXXcd result(mBins, 3);
     ArrayXd   harmonicMask = ArrayXd::Ones(mBins);
     ArrayXd   percussiveMask = ArrayXd::Ones(mBins);
@@ -156,8 +156,8 @@ public:
     mV.setZero();
     mBuf.setZero();
 
-    mHFilters = std::vector<MedianFilter>(mBins);
-    for (index i = 0; i < mBins; i++) { mHFilters[i].init(newHSize); }
+    mHFilters = std::vector<MedianFilter>(asUnsigned(mBins));
+    for (index i = 0; i < mBins; i++) { mHFilters[asUnsigned(i)].init(newHSize); }
     mHSize = newHSize;
   }
 
@@ -206,8 +206,8 @@ private:
   {
     using namespace Eigen;
     ArrayXd threshold = ArrayXd::Ones(mBins);
-    index   kneeStart = floor(x1 * mBins);
-    index   kneeEnd = floor(x2 * mBins);
+    index   kneeStart = static_cast<index>(std::floor(x1 * mBins));
+    index   kneeEnd = static_cast<index>(std::floor(x2 * mBins));
     index   kneeLength = kneeEnd - kneeStart;
     threshold.segment(0, kneeStart) =
         ArrayXd::Constant(kneeStart, 10).pow(y1 / 20.0);

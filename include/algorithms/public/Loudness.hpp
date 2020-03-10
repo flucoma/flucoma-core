@@ -26,7 +26,7 @@ class Loudness
 public:
   Loudness(index maxSize) : mTP(maxSize) {}
 
-  void init(index size, index sampleRate)
+  void init(index size, double sampleRate)
   {
     mFilter.init(sampleRate);
     mTP.init(size, sampleRate);

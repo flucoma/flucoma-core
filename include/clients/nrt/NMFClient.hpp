@@ -270,9 +270,9 @@ public:
         auto resynthMags = FluidTensor<double, 2>(nWindows, nBins);
         auto resynthSpectrum =
             FluidTensor<std::complex<double>, 2>(nWindows, nBins);
-        auto istft = algorithm::ISTFT{asUnsigned(fftParams.winSize()),
-                                      asUnsigned(fftParams.fftSize()),
-                                      asUnsigned(fftParams.hopSize())};
+        auto istft = algorithm::ISTFT{fftParams.winSize(),
+                                      fftParams.fftSize(),
+                                      fftParams.hopSize()};
         auto resynthAudio = FluidTensor<double, 1>(nFrames);
         auto resynth = BufferAdaptor::Access{get<kResynth>().get()};
 
