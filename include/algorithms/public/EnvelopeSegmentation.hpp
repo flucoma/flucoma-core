@@ -31,8 +31,8 @@ public:
   EnvelopeSegmentation(index maxSize, index outputType)
       : mMaxSize(maxSize), mOutputType(outputType)
   {
-    mInputStorage = ArrayXd(maxSize);
-    mOutputStorage = ArrayXd(maxSize);
+    mInputStorage = ArrayXd(mMaxSize);
+    mOutputStorage = ArrayXd(mMaxSize);
   }
 
   void init(double hiPassFreq, index rampUpTime, index rampUpTime2,
@@ -157,8 +157,7 @@ public:
       {
         index onsetIndex =
             refineStart(mLatency - mMinTimeAboveThreshold - mUpwardLookupTime,
-                        mUpwardLookupTime, true);
-        index numSamples = onsetIndex - mMinTimeAboveThreshold;
+                        mUpwardLookupTime);
         mOutputBuffer.segment(onsetIndex, mLatency - onsetIndex) = 1;
         mEventCount = mOnStateCount;
         mOutputState = true; // we are officially on
@@ -168,7 +167,7 @@ public:
       {
 
         index offsetIndex = refineStart(mLatency - mDownwardLatency,
-                                        mDownwardLookupTime, false);
+                                        mDownwardLookupTime);
         mOutputBuffer.segment(offsetIndex, mLatency - offsetIndex) = 0;
         mSilenceCount = mOffStateCount;
         mOutputState = false; // we are officially off
@@ -246,7 +245,7 @@ private:
                  (std::min(mOffThreshold, mOnThreshold) - 3.));
   }
 
-  index refineStart(index start, index nSamples, bool direction = true)
+  index refineStart(index start, index nSamples)
   {
     if (nSamples < 2) return start + nSamples;
     ArrayXd        seg = mInputBuffer.segment(start, nSamples);

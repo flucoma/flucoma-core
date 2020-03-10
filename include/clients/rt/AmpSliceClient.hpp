@@ -88,11 +88,10 @@ public:
   }
 
   void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
-               FluidContext& c)
+               FluidContext&)
   {
 
     if (!input[0].data() || !output[0].data()) return;
-    index hostVecSize = input[0].size();
 
     double hiPassFreq = std::min(get<kHiPassFreq>() / sampleRate(), 0.5);
 
@@ -130,7 +129,7 @@ public:
         get<kMinTimeAboveThreshold>() + get<kUpwardLookupTime>(),
         std::max(get<kMinTimeBelowThreshold>(), get<kDownwardLookupTime>()));
   }
-  
+
   void reset(){}
 
 private:
@@ -163,8 +162,8 @@ struct NRTAmpSlicing
     HostMatrix                  binaryOut(1, nFrames + padding);
     std::vector<HostVectorView> input{monoSource.row(0)};
     std::vector<HostVectorView> output{binaryOut.row(0)};
-    
-    client.reset(); 
+
+    client.reset();
     client.process(input, output, c);
     // convert binary to spikes
 
