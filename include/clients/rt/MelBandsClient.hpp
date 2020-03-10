@@ -17,8 +17,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTrackChanges.hpp"
 #include "../common/ParameterTypes.hpp"
-#include "../../algorithms/util/DCT.hpp"
-#include "../../algorithms/util/MelBands.hpp"
+#include "../../algorithms/public/MelBands.hpp"
 #include "../../data/TensorTypes.hpp"
 
 namespace fluid {
@@ -91,7 +90,7 @@ public:
   }
 
   index latency() { return get<kFFT>().winSize(); }
-  
+
   void reset(){ mSTFTBufferedProcess.reset(); }
 
   index controlRate() { return get<kFFT>().hopSize(); }

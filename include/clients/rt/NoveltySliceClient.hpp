@@ -20,8 +20,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../algorithms/public/NoveltySegmentation.hpp"
 #include "../../algorithms/public/STFT.hpp"
 #include "../../algorithms/public/YINFFT.hpp"
-#include "../../algorithms/util/DCT.hpp"
-#include "../../algorithms/util/MelBands.hpp"
+#include "../../algorithms/public/DCT.hpp"
+#include "../../algorithms/public/MelBands.hpp"
 #include "../../algorithms/util/TruePeak.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <tuple>
@@ -116,7 +116,7 @@ public:
       mNovelty.init(get<kKernelSize>(), get<kThreshold>(), get<kFilterSize>(),
                     nDims);
     }
-    
+
     mNovelty.setMinSliceLength(get<kDebounce>());
     RealMatrix in(1, hostVecSize);
     in.row(0) = input[0];
@@ -124,7 +124,7 @@ public:
     index      frameOffset = 0; // in case kHopSize < hostVecSize
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.process(
-        windowSize, windowSize, get<kFFT>().hopSize(), c, 
+        windowSize, windowSize, get<kFFT>().hopSize(), c,
         [&, this](RealMatrixView in, RealMatrixView) {
           switch (feature)
           {
