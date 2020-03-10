@@ -30,8 +30,8 @@ public:
     return 1127.01048 * log(x / 700.0 + 1.0);
   }
 
-  void init(double lo, double hi, int nBands, int nBins, double sampleRate,
-            bool logOutput, bool usePower, int windowSize, bool magNorm)
+  void init(double lo, double hi, index nBands, index nBins, double sampleRate,
+            bool logOutput, bool usePower, index windowSize, bool magNorm)
   {
 
     using namespace Eigen;
@@ -45,8 +45,8 @@ public:
     mWindowSize = windowSize;
     mUsePower = usePower;
     mMagNorm = magNorm;
-    mScale1 = 1.0 /(mWindowSize / 4.0);// scale to original amplitude
-    int fftSize = 2 * (mBins - 1);
+    mScale1 = 1.0 / (mWindowSize / 4.0); // scale to original amplitude
+    index fftSize = 2 * (mBins - 1);
     mScale2 = 1.0 / (2.0 * double(fftSize) / mWindowSize);
     ArrayXd melFreqs = ArrayXd::LinSpaced(mBands + 2, hz2mel(lo), hz2mel(hi));
     melFreqs = 700.0 * ((melFreqs / 1127.01048).exp() - 1.0);
@@ -57,7 +57,7 @@ public:
             .abs();
     ArrayXXd ramps = melFreqs.replicate(1, mBins);
     ramps.rowwise() -= fftFreqs.transpose();
-    for (int i = 0; i < mBands; i++)
+    for (index i = 0; i < mBands; i++)
     {
       ArrayXd lower = -ramps.row(i) / melD(i);
       ArrayXd upper = ramps.row(i + 2) / melD(i + 1);
@@ -72,17 +72,16 @@ public:
     double const epsilon = std::numeric_limits<double>::epsilon();
     assert(in.size() == mBins);
     ArrayXd frame = _impl::asEigen<Eigen::Array>(in);
-    if(mMagNorm) frame = frame * mScale1;
+    if (mMagNorm) frame = frame * mScale1;
     ArrayXd result;
-    if(mUsePower) {
-      result =(mFilters * frame.square().matrix()).array();
-    }
+    if (mUsePower) { result = (mFilters * frame.square().matrix()).array(); }
     else
     {
       result = (mFilters * frame.matrix()).array();
     }
-    if(mMagNorm) {
-      double energy =  frame.sum() * mScale2;
+    if (mMagNorm)
+    {
+      double energy = frame.sum() * mScale2;
       result = result * energy / std::max(epsilon, result.sum());
     }
 
@@ -90,17 +89,17 @@ public:
     out = _impl::asFluid(result);
   }
 
-  double mLo{20.0};
-  double mHi{20000.0};
-  int    mBins{513};
-  int    mBands{40};
-  double mSampleRate{44100.0};
-  bool   mLogOutput{false};
-  bool mUsePower{true};
-  int mWindowSize{1024};
-  bool mMagNorm{false};
-  double mScale1{1.0};
-  double mScale2{1.0};
+  double          mLo{20.0};
+  double          mHi{20000.0};
+  index           mBins{513};
+  index           mBands{40};
+  double          mSampleRate{44100.0};
+  bool            mLogOutput{false};
+  bool            mUsePower{true};
+  index           mWindowSize{1024};
+  bool            mMagNorm{false};
+  double          mScale1{1.0};
+  double          mScale2{1.0};
   Eigen::MatrixXd mFilters;
 };
 }; // namespace algorithm
