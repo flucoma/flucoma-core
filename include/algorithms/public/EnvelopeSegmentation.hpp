@@ -14,6 +14,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/SlideUDFilter.hpp"
 #include "../../data/TensorTypes.hpp"
+#include "../../data/FluidIndex.hpp"
 #include <Eigen/Core>
 #include <algorithm>
 #include <cmath>
@@ -27,20 +28,20 @@ class EnvelopeSegmentation
   using ArrayXd = Eigen::ArrayXd;
 
 public:
-  EnvelopeSegmentation(size_t maxSize, int outputType)
+  EnvelopeSegmentation(index maxSize, index outputType)
       : mMaxSize(maxSize), mOutputType(outputType)
   {
     mInputStorage = ArrayXd(maxSize);
     mOutputStorage = ArrayXd(maxSize);
   }
 
-  void init(double hiPassFreq, int rampUpTime, int rampUpTime2,
-            int rampDownTime, int rampDownTime2, double onThreshold,
+  void init(double hiPassFreq, index rampUpTime, index rampUpTime2,
+            index rampDownTime, index rampDownTime2, double onThreshold,
             double relOnThreshold, double relOffThreshold,
-            int minTimeAboveThreshold, int minEventDuration,
-            int upwardLookupTime, double offThreshold,
-            int minTimeBelowThreshold, int minSilenceDuration,
-            int downwardLookupTime)
+            index minTimeAboveThreshold, index minEventDuration,
+            index upwardLookupTime, double offThreshold,
+            index minTimeBelowThreshold, index minSilenceDuration,
+            index downwardLookupTime)
   {
     mHiPassFreq = hiPassFreq;
     mRampUpTime = rampUpTime;
@@ -57,7 +58,7 @@ public:
     mMinTimeBelowThreshold = minTimeBelowThreshold,
     mMinSilenceDuration = minSilenceDuration;
     mDownwardLookupTime = downwardLookupTime;
-    mDownwardLatency = std::max(minTimeBelowThreshold, mDownwardLookupTime);
+    mDownwardLatency = std::max<index>(minTimeBelowThreshold, mDownwardLookupTime);
     mLatency =
         std::max(mMinTimeAboveThreshold + mUpwardLookupTime, mDownwardLatency);
     if (mLatency < 0) mLatency = 1;
@@ -68,47 +69,56 @@ public:
     mInitialized = true;
   }
 
-  void updateParams (double hiPassFreq, int rampUpTime, int rampUpTime2,
-                     int rampDownTime, int rampDownTime2, double onThreshold,
-                     double relOnThreshold, double relOffThreshold,
-                       int minEventDuration,
-                       double offThreshold,
-                     int minSilenceDuration) {
-      if (mHiPassFreq != hiPassFreq){
-          mHiPassFreq = hiPassFreq;
-          initFilters();
-      }
-      if (mRampUpTime != rampUpTime || mRampDownTime != rampDownTime) {
-          mRampUpTime = rampUpTime;
-          mRampDownTime = rampDownTime;
-          mSlide.updateCoeffs(mRampUpTime, mRampDownTime);
-      }
-      if (mRampUpTime2 != rampUpTime2 || mRampDownTime2 != rampDownTime2) {
-          mRampUpTime2 = rampUpTime2;
-          mRampDownTime2 = rampDownTime2;
-          mSlide2.updateCoeffs(mRampUpTime2, mRampDownTime2);
-      }
-      mOnThreshold = onThreshold;
-      mRelOnThreshold = relOnThreshold;
-      mRelOffThreshold = relOffThreshold;
-      mMinEventDuration = minEventDuration;
-      mOffThreshold = offThreshold;
-      mMinSilenceDuration = minSilenceDuration;
+  void updateParams(double hiPassFreq, index rampUpTime, index rampUpTime2,
+                    index rampDownTime, index rampDownTime2, double onThreshold,
+                    double relOnThreshold, double relOffThreshold,
+                    index minEventDuration, double offThreshold,
+                    index minSilenceDuration)
+  {
+    if (mHiPassFreq != hiPassFreq)
+    {
+      mHiPassFreq = hiPassFreq;
+      initFilters();
+    }
+    if (mRampUpTime != rampUpTime || mRampDownTime != rampDownTime)
+    {
+      mRampUpTime = rampUpTime;
+      mRampDownTime = rampDownTime;
+      mSlide.updateCoeffs(mRampUpTime, mRampDownTime);
+    }
+    if (mRampUpTime2 != rampUpTime2 || mRampDownTime2 != rampDownTime2)
+    {
+      mRampUpTime2 = rampUpTime2;
+      mRampDownTime2 = rampDownTime2;
+      mSlide2.updateCoeffs(mRampUpTime2, mRampDownTime2);
+    }
+    mOnThreshold = onThreshold;
+    mRelOnThreshold = relOnThreshold;
+    mRelOffThreshold = relOffThreshold;
+    mMinEventDuration = minEventDuration;
+    mOffThreshold = offThreshold;
+    mMinSilenceDuration = minSilenceDuration;
   }
 
-  int  getLatency() { return mLatency; }
-  bool initialized() { return mInitialized; }
+  index getLatency() { return mLatency; }
+  bool  initialized() { return mInitialized; }
 
   double processSample(const double in)
   {
     assert(mInitialized);
     double filtered = mHiPass2.processSample(mHiPass1.processSample(in));
-      
-      double rectified = std::abs(filtered);
-     double dB = 20 * std::log10(rectified);
-     double floor = std::max(dB, (std::min(mOffThreshold, mOnThreshold) - 1.));//need to remove a dB or so, to gain the advantage of not starting from too low (not from absolute silence floor makes it more nervous) but allowing a bit of headroom (for the expon slides to go down faster) - maybe a dithered version would be better (TODO)
-     double smoothed = mSlide.processSample(floor);
-     double smoothed2 = mSlide2.processSample(floor);
+
+    double rectified = std::abs(filtered);
+    double dB = 20 * std::log10(rectified);
+    double floor = std::max(
+        dB, (std::min(mOffThreshold, mOnThreshold) -
+             1.)); // need to remove a dB or so, to gain the advantage of not
+                   // starting from too low (not from absolute silence floor
+                   // makes it more nervous) but allowing a bit of headroom (for
+                   // the expon slides to go down faster) - maybe a dithered
+                   // version would be better (TODO)
+    double smoothed = mSlide.processSample(floor);
+    double smoothed2 = mSlide2.processSample(floor);
 
     double relEnv = smoothed2 - smoothed;
     bool   forcedState = false;
@@ -145,10 +155,10 @@ public:
       if (!mOutputState && mOnStateCount >= mMinTimeAboveThreshold &&
           mFillCount >= mLatency)
       {
-        int onsetIndex =
+        index onsetIndex =
             refineStart(mLatency - mMinTimeAboveThreshold - mUpwardLookupTime,
                         mUpwardLookupTime, true);
-        int numSamples = onsetIndex - mMinTimeAboveThreshold;
+        index numSamples = onsetIndex - mMinTimeAboveThreshold;
         mOutputBuffer.segment(onsetIndex, mLatency - onsetIndex) = 1;
         mEventCount = mOnStateCount;
         mOutputState = true; // we are officially on
@@ -157,8 +167,8 @@ public:
                mFillCount >= mLatency)
       {
 
-        int offsetIndex = refineStart(mLatency - mDownwardLatency,
-                                      mDownwardLookupTime, false);
+        index offsetIndex = refineStart(mLatency - mDownwardLatency,
+                                        mDownwardLookupTime, false);
         mOutputBuffer.segment(offsetIndex, mLatency - offsetIndex) = 0;
         mSilenceCount = mOffStateCount;
         mOutputState = false; // we are officially off
@@ -180,17 +190,19 @@ public:
       mInputState = nextState;
     }
 
-////////////////////// to be removed and replace the return to case 0
+    ////////////////////// to be removed and replace the return to case 0
     double output;
     switch (mOutputType)
     {
     case 0: output = mOutputBuffer(0); break;
     case 1: output = filtered; break;
-    case 2: output = smoothed; break; //std::pow(10.0, smoothed / 20.0); break;
-    case 3: output = relEnv; break; //std::pow(10.0, relEnv / 20.0); break;
-    // case 4: output = mInputBuffer(1) - mInputBuffer(0);
+    case 2: output = smoothed; break; // std::pow(10.0, smoothed / 20.0); break;
+    case 3:
+      output = relEnv;
+      break; // std::pow(10.0, relEnv / 20.0); break;
+      // case 4: output = mInputBuffer(1) - mInputBuffer(0);
     }
-/////////////////////// up to here
+    /////////////////////// up to here
 
     //
     if (mLatency > 1)
@@ -209,12 +221,15 @@ public:
 private:
   void initBuffers()
   {
-      mInputBuffer = mInputStorage.segment(0, std::max(mLatency, 1)).setConstant(std::min(mOffThreshold, mOnThreshold) - 3.); //threshold of silence
-    mOutputBuffer = mOutputStorage.segment(0, std::max(mLatency, 1)).setZero();
+    mInputBuffer = mInputStorage.segment(0, std::max<index>(mLatency, 1))
+                       .setConstant(std::min(mOffThreshold, mOnThreshold) -
+                                    3.); // threshold of silence
+    mOutputBuffer = mOutputStorage.segment(0, std::max<index>(mLatency, 1)).setZero();
     mInputState = false;
     mOutputState = false;
     mRetriggerState = false;
-    mFillCount = std::max(mLatency, 1); //has been off since the begining of time.
+    mFillCount =
+        std::max<index>(mLatency, 1); // has been off since the begining of time.
   }
 
   void initFilters()
@@ -223,12 +238,15 @@ private:
     mHiPass2.init(mHiPassFreq);
   }
 
-  void initSlides() {
-      mSlide.init(mRampUpTime, mRampDownTime, (std::min(mOffThreshold, mOnThreshold) - 3.));
-      mSlide2.init(mRampUpTime2, mRampDownTime2, (std::min(mOffThreshold, mOnThreshold) - 3.));
-}
+  void initSlides()
+  {
+    mSlide.init(mRampUpTime, mRampDownTime,
+                (std::min(mOffThreshold, mOnThreshold) - 3.));
+    mSlide2.init(mRampUpTime2, mRampDownTime2,
+                 (std::min(mOffThreshold, mOnThreshold) - 3.));
+  }
 
-  int refineStart(int start, int nSamples, bool direction = true)
+  index refineStart(index start, index nSamples, bool direction = true)
   {
     if (nSamples < 2) return start + nSamples;
     ArrayXd        seg = mInputBuffer.segment(start, nSamples);
@@ -271,27 +289,27 @@ private:
     return false;
   }
 
-  int                 mMaxSize;
-  int                 mLatency;
-  int                 mFillCount;
+  index               mMaxSize;
+  index               mLatency;
+  index               mFillCount;
   double              mHiPassFreq{0.2};
-  int                 mRampUpTime{100};
-  int                 mRampUpTime2{50};
-  int                 mRampDownTime{100};
-  int                 mRampDownTime2{50};
+  index               mRampUpTime{100};
+  index               mRampUpTime2{50};
+  index               mRampDownTime{100};
+  index               mRampDownTime2{50};
   double              mOnThreshold{-33};
   double              mRelOnThreshold{-33};
   bool                mRetriggerState{false};
-  int                 mMinTimeAboveThreshold{440};
-  int                 mMinEventDuration{440};
-  int                 mDownwardLookupTime{10};
-  int                 mDownwardLatency;
+  index               mMinTimeAboveThreshold{440};
+  index               mMinEventDuration{440};
+  index               mDownwardLookupTime{10};
+  index               mDownwardLatency;
   double              mOffThreshold{-42};
   double              mRelOffThreshold{-42};
-  int                 mMinTimeBelowThreshold{10};
-  int                 mMinSilenceDuration{10};
-  int                 mUpwardLookupTime{24};
-  int                 mOutputType;
+  index               mMinTimeBelowThreshold{10};
+  index               mMinSilenceDuration{10};
+  index               mUpwardLookupTime{24};
+  index               mOutputType;
   ArrayXd             mInputBuffer;
   ArrayXd             mOutputBuffer;
   ArrayXd             mInputStorage;
@@ -302,10 +320,10 @@ private:
   ButterworthHPFilter mHiPass2;
   SlideUDFilter       mSlide;
   SlideUDFilter       mSlide2;
-  int                 mOnStateCount{0};
-  int                 mOffStateCount{0};
-  int                 mEventCount{0};
-  int                 mSilenceCount{0};
+  index               mOnStateCount{0};
+  index               mOffStateCount{0};
+  index               mEventCount{0};
+  index               mSilenceCount{0};
   bool                mInitialized{false};
 };
 }; // namespace algorithm
