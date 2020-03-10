@@ -24,53 +24,27 @@ namespace fluid {
 namespace client {
 
 enum AmpSliceParamIndex {
-  kAbsRampUpTime,
-  kAbsRampDownTime,
-  kAbsOnThreshold,
-  kAbsOffThreshold,
-  kMinEventDuration,
-  kMinSilencetDuration,
-  kMinTimeAboveThreshold,
-  kMinTimeBelowThreshold,
-  kUpwardLookupTime,
-  kDownwardLookupTime,
-  kRelRampUpTime,
-  kRelRampDownTime,
-  kRelOnThreshold,
-  kRelOffThreshold,
+  kFastRampUpTime,
+  kFastRampDownTime,
+  kSlowRampUpTime,
+  kSlowRampDownTime,
+  kOnThreshold,
+  kOffThreshold,
+  kSilenceThreshold,
   kHiPassFreq,
-  kMaxSize,
-  kOutput
+  kDebounce,
 };
 
 auto constexpr AmpSliceParams = defineParameters(
-    LongParam("absRampUp", "Absolute Envelope Ramp Up Length", 10, Min(1)),
-    LongParam("absRampDown", "Absolute Envelope Ramp Down Length", 10, Min(1)),
-    FloatParam("absThreshOn", "Absolute Envelope Threshold On", -90, Min(-144),
-               Max(144)),
-    FloatParam("absThreshOff", "Absolute Envelope Threshold Off", -90,
-               Min(-144), Max(144)),
-    LongParam("minSliceLength", "Minimum Length of Slice", 1, Min(1)),
-    LongParam("minSilenceLength", "Absolute Envelope Minimum Length of Silence",
-              1, Min(1)),
-    LongParam("minLengthAbove", "Required Minimal Length Above Threshold", 1,
-              Min(1)),
-    LongParam("minLengthBelow", "Required Minimal Length Below Threshold", 1,
-              Min(1)),
-    LongParam("lookBack", "Absolute Envelope Backward Lookup Length", 0,
-              Min(0)),
-    LongParam("lookAhead", "Absolute Envelope Forward Lookup Length", 0,
-              Min(0)),
-    LongParam("relRampUp", "Relative Envelope Ramp Up Length", 1, Min(1)),
-    LongParam("relRampDown", "Relative Envelope Ramp Down Length", 1, Min(1)),
-    FloatParam("relThreshOn", "Relative Envelope Threshold On", 144, Min(-144),
-               Max(144)),
-    FloatParam("relThreshOff", "Relative Envelope Threshold Off", -144,
-               Min(-144), Max(144)),
+    FloatParam("fastRampUp", "Fast Envelope Ramp Up Length", 1, Min(1)),
+    FloatParam("fastRampDown", "Fast Envelope Ramp Down Length", 1, Min(1)),
+    FloatParam("slowRampUp", "Slow Envelope Ramp Up Length", 100, Min(1)),
+    FloatParam("slowRampDown", "Slow Envelope Ramp Down Length", 100, Min(1)),
+    FloatParam("onThreshold", "On Threshold (dB)", 144, Min(-144), Max(144)),
+    FloatParam("offThreshold", "Off Threshold (dB)", -144, Min(-144), Max(144)),
+    FloatParam("floor", "Floor value (dB)", -145, Min(-144), Max(144)),
     FloatParam("highPassFreq", "High-Pass Filter Cutoff", 85, Min(1)),
-    LongParam<Fixed<true>>("maxSize", "Maximum Total Latency", 88200,
-                           Min(1)), // TODO
-    LongParam("outputType", "Output Type (temporarily)", 0, Min(0)));
+    LongParam("minSliceLength", "Minimum Length of Slice", 2, Min(0)));
 
 template <typename T>
 class AmpSliceClient
@@ -95,99 +69,29 @@ public:
 
     double hiPassFreq = std::min(get<kHiPassFreq>() / sampleRate(), 0.5);
 
-    if (mTrackValues.changed(get<kMinTimeAboveThreshold>(),
-                             get<kUpwardLookupTime>(),
-                             get<kMinTimeBelowThreshold>(),
-                             get<kDownwardLookupTime>(), sampleRate()) ||
-        !mAlgorithm.initialized())
+    if (mTrackValues.changed(sampleRate()) || !mAlgorithm.initialized())
     {
-      mAlgorithm.init(hiPassFreq, get<kAbsRampUpTime>(), get<kRelRampUpTime>(),
-                      get<kAbsRampDownTime>(), get<kRelRampDownTime>(),
-                      get<kAbsOnThreshold>(), get<kRelOnThreshold>(),
-                      get<kRelOffThreshold>(), get<kMinTimeAboveThreshold>(),
-                      get<kMinEventDuration>(), get<kUpwardLookupTime>(),
-                      get<kAbsOffThreshold>(), get<kMinTimeBelowThreshold>(),
-                      get<kMinSilencetDuration>(), get<kDownwardLookupTime>());
+      mAlgorithm.init(hiPassFreq, get<kFastRampUpTime>(),
+                      get<kSlowRampUpTime>(), get<kFastRampDownTime>(),
+                      get<kSlowRampDownTime>(), get<kOnThreshold>(),
+                      get<kOffThreshold>(), get<kSilenceThreshold>(),
+                      get<kDebounce>());
     }
-    else
-    {
-      mAlgorithm.updateParams(hiPassFreq, get<kAbsRampUpTime>(),
-                              get<kRelRampUpTime>(), get<kAbsRampDownTime>(),
-                              get<kRelRampDownTime>(), get<kAbsOnThreshold>(),
-                              get<kRelOnThreshold>(), get<kRelOffThreshold>(),
-                              get<kMinEventDuration>(), get<kAbsOffThreshold>(),
-                              get<kMinSilencetDuration>());
-    }
-
+    mAlgorithm.updateParams(
+        hiPassFreq, get<kFastRampUpTime>(), get<kSlowRampUpTime>(),
+        get<kFastRampDownTime>(), get<kSlowRampDownTime>(), get<kOnThreshold>(),
+        get<kOffThreshold>(), get<kSilenceThreshold>(), get<kDebounce>());
     for (index i = 0; i < input[0].size(); i++)
-    { output[0](i) = static_cast<T>(mAlgorithm.processSample(input[0](i))); }
+    { output[0](i) = mAlgorithm.processSample(input[0](i)); }
   }
 
-  index latency()
-  {
-    return std::max(
-        get<kMinTimeAboveThreshold>() + get<kUpwardLookupTime>(),
-        std::max(get<kMinTimeBelowThreshold>(), get<kDownwardLookupTime>()));
-  }
+  index latency() { return 0; }
 
-  void reset(){}
+  void reset() {}
 
 private:
-  ParameterTrackChanges<index, index, index, index, double> mTrackValues;
-  algorithm::EnvelopeSegmentation mAlgorithm{get<kMaxSize>(), get<kOutput>()};
-};
-
-template <typename HostMatrix, typename HostVectorView>
-struct NRTAmpSlicing
-{
-  template <typename Client, typename InputList, typename OutputList>
-  static Result process(Client& client, InputList& inputBuffers,
-                        OutputList& outputBuffers, index nFrames, index nChans,
-                        FluidContext& c)
-  {
-    assert(inputBuffers.size() == 1);
-    assert(outputBuffers.size() == 1);
-    index padding = client.latency();
-    using HostMatrixView = FluidTensorView<typename HostMatrix::type, 2>;
-    HostMatrix monoSource(1, nFrames + padding);
-
-    BufferAdaptor::ReadAccess src(inputBuffers[0].buffer);
-    // Make a mono sum;
-    for (index i = 0; i < nChans; ++i)
-      monoSource.row(0)(Slice(0, nFrames))
-          .apply(src.samps(inputBuffers[0].startFrame, nFrames, i),
-                 [](float& x, float y) { x += y; });
-
-    HostMatrix                  switchPoints(2, nFrames);
-    HostMatrix                  binaryOut(1, nFrames + padding);
-    std::vector<HostVectorView> input{monoSource.row(0)};
-    std::vector<HostVectorView> output{binaryOut.row(0)};
-
-    client.reset();
-    client.process(input, output, c);
-    // convert binary to spikes
-
-    // add onset at start if needed
-    if (output[0](padding) == 1) { switchPoints(0, 0) = 1; }
-    for (index i = 1; i < nFrames - 1; i++)
-    {
-      if (output[0](padding + i) == 1 && output[0](padding + i - 1) == 0)
-        switchPoints(0, i) = 1;
-      else
-        switchPoints(0, i) = 0;
-      if (output[0](padding + i) == 0 && output[0](padding + i - 1) == 1)
-        switchPoints(1, i) = 1;
-      else
-        switchPoints(1, i) = 0;
-    }
-    // add offset at end if needed
-    if (output[0](nFrames + padding - 1) == 1)
-    { switchPoints(1, nFrames - 1) = 1; }
-
-    return impl::spikesToTimes(HostMatrixView{switchPoints}, outputBuffers[0],
-                               1, inputBuffers[0].startFrame, nFrames,
-                               src.sampleRate());
-  }
+  ParameterTrackChanges<double>   mTrackValues;
+  algorithm::EnvelopeSegmentation mAlgorithm;
 };
 
 auto constexpr NRTAmpSliceParams =
@@ -196,9 +100,8 @@ auto constexpr NRTAmpSliceParams =
 
 template <typename T>
 using NRTAmpSliceClient =
-    impl::NRTClientWrapper<NRTAmpSlicing, AmpSliceClient<T>,
-                           decltype(NRTAmpSliceParams), NRTAmpSliceParams, 1,
-                           1>;
+    NRTSliceAdaptor<AmpSliceClient<T>, decltype(NRTAmpSliceParams),
+                    NRTAmpSliceParams, 1, 1>;
 
 template <typename T>
 using NRTThreadedAmpSliceClient = NRTThreadingAdaptor<NRTAmpSliceClient<T>>;
