@@ -75,7 +75,7 @@ public:
     mSplit.realp[mFrameSize - 1] = mSplit.imagp[0];
     mSplit.imagp[mFrameSize - 1] = 0;
     mSplit.imagp[0] = 0;
-    for (int i = 0; i < mFrameSize; i++)
+    for (index i = 0; i < mFrameSize; i++)
     {
       mOutputBuffer(i) =
           0.5 * std::complex<double>(mSplit.realp[i], mSplit.imagp[i]);
@@ -109,7 +109,7 @@ public:
 
   Eigen::Ref<ArrayXd> process(const Eigen::Ref<const ArrayXcd>& input)
   {
-    for (int i = 0; i < input.size(); i++)
+    for (index i = 0; i < input.size(); i++)
     {
       mSplit.realp[i] = input[i].real();
       mSplit.imagp[i] = input[i].imag();
