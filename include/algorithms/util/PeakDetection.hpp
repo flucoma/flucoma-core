@@ -24,13 +24,13 @@ class PeakDetection
   using pairs_vector = std::vector<std::pair<double, double>>;
 
 public:
-  pairs_vector process(const Eigen::Ref<ArrayXd>& input, int numPeaks = 0,
+  pairs_vector process(const Eigen::Ref<ArrayXd>& input, index numPeaks = 0,
                        double minHeight = 0, bool interpolate = true, bool sort = true)
   {
     using std::make_pair;
     pairs_vector peaks;
 
-    for (int i = 1; i < input.size() - 1; i++)
+    for (index i = 1; i < input.size() - 1; i++)
     {
       double current = input(i);
       double prev = input(i - 1);
