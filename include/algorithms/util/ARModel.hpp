@@ -29,16 +29,14 @@ class ARModel
   using VectorXd = Eigen::VectorXd;
 
 public:
-  ARModel(index order, index iterations = 3, bool useWindow = true,
-          double robustFactor = 3.0)
+  ARModel(index order, index iterations = 3, double robustFactor = 3.0)
       : mParameters(VectorXd::Zero(order)), mOrder(order),
-        mIterations(iterations), mUseWindow(useWindow),
-        mRobustFactor(robustFactor)
+        mIterations(iterations), mRobustFactor(robustFactor)
   {}
 
   const double* getParameters() const { return mParameters.data(); }
   double        variance() const { return mVariance; }
-  index        order() const { return mOrder; }
+  index         order() const { return mOrder; }
 
   void estimate(const double* input, index size)
   {
@@ -110,7 +108,7 @@ private:
 
   void directEstimate(const double* input, index size, bool updateVariance)
   {
-    std::vector<double> frame(size);
+    std::vector<double> frame(asUnsigned(size));
 
     if (mUseWindow)
     {
@@ -120,13 +118,15 @@ private:
         WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](size, mWindow);
       }
 
-      for (index i = 0; i < size; i++) frame[i] = input[i] * mWindow(i) * 2.0;
+      for (index i = 0; i < size; i++)
+        frame[asUnsigned(i)] = input[asUnsigned(i)] * mWindow(i) * 2.0;
     }
     else
       std::copy(input, input + size, frame.data());
 
     VectorXd autocorrelation(size);
-    algorithm::autocorrelateReal(autocorrelation.data(), frame.data(), size);
+    algorithm::autocorrelateReal(autocorrelation.data(), frame.data(),
+                                 asUnsigned(size));
 
     // Resize to the desired order (only keep coefficients for up to the order
     // we need)
@@ -160,15 +160,16 @@ private:
 
   void robustEstimate(const double* input, index size)
   {
-    std::vector<double> estimates(size + mOrder);
+    std::vector<double> estimates(asUnsigned(size + mOrder));
 
-    // Calculate an indexial estimate of parameters
+    // Calculate an initial estimate of parameters
 
     directEstimate(input, size, true);
 
     // Initialise Estimates
 
-    for (index i = 0; i < mOrder + size; i++) estimates[i] = input[i - mOrder];
+    for (index i = mOrder; i < mOrder + size; i++)
+      estimates[asUnsigned(i - mOrder)] = input[asUnsigned(i - mOrder)];
 
     // Variance
 
@@ -222,8 +223,7 @@ private:
 
   void setVariance(double variance)
   {
-    if (variance) variance = std::max(mMinVariance, variance);
-
+    if (variance > 0) variance = std::max(mMinVariance, variance);
     mVariance = variance;
   }
 
@@ -238,8 +238,8 @@ private:
   double   mVariance{0.0};
   ArrayXd  mWindow;
   bool     mUseWindow{true};
-  index   mOrder{20};
-  index   mIterations{3};
+  index    mOrder{20};
+  index    mIterations{3};
   double   mRobustFactor{3.0};
   double   mMinVariance{0.0};
 };

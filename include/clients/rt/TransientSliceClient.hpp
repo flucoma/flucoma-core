@@ -71,7 +71,6 @@ public:
     if (!input[0].data() || !output[0].data()) return;
 
     static constexpr unsigned iterations = 3;
-    static constexpr bool     refine = false;
     static constexpr double   robustFactor = 3.0;
 
     index order = get<kOrder>();
@@ -97,9 +96,9 @@ public:
     double skew = pow(2, get<kSkew>());
     double threshFwd = get<kThreshFwd>();
     double thresBack = get<kThreshBack>();
-    index halfWindow = round(get<kWinSize>() / 2);
-    index debounce = get<kDebounce>();
-    index minSeg = get<kMinSeg>();
+    index  halfWindow = lrint(get<kWinSize>() / 2);
+    index  debounce = get<kDebounce>();
+    index  minSeg = get<kMinSeg>();
 
     mExtractor.setDetectionParameters(skew, threshFwd, thresBack, halfWindow,
                                       debounce, minSeg);
@@ -110,7 +109,7 @@ public:
     mBufferedProcess.push(RealMatrixView(in));
 
     mBufferedProcess.process(mExtractor.inputSize(), mExtractor.hopSize(),
-                             mExtractor.hopSize(), c, 
+                             mExtractor.hopSize(), c,
                              [this](RealMatrixView in, RealMatrixView out) {
                                mExtractor.process(in.row(0), out.row(0));
                              });
@@ -125,8 +124,8 @@ public:
   {
     return get<kPadding>() + get<kBlockSize>() - get<kOrder>();
   }
-    
-  void reset(){ mBufferedProcess.reset(); }
+
+  void reset() { mBufferedProcess.reset(); }
 
 private:
   ParameterTrackChanges<index, index, index, index> mTrackValues;
@@ -135,10 +134,10 @@ private:
 
   BufferedProcess   mBufferedProcess;
   FluidTensor<T, 1> mTransients;
-  index            mHostSize{0};
-  index            mOrder{0};
-  index            mBlocksize{0};
-  index            mPadding{0};
+  index             mHostSize{0};
+  index             mOrder{0};
+  index             mBlocksize{0};
+  index             mPadding{0};
 };
 
 auto constexpr NRTTransientSliceParams = makeNRTParams<TransientsSliceClient>(

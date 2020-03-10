@@ -71,7 +71,6 @@ public:
     if (!input[0].data() || (!output[0].data() && !output[1].data())) return;
 
     static constexpr unsigned iterations = 3;
-    static constexpr bool     refine = false;
     static constexpr double   robustFactor = 3.0;
 
     index order = get<kOrder>();
@@ -84,7 +83,7 @@ public:
     if (mTrackValues.changed(order, blockSize, padding, hostVecSize) ||
         !mExtractor.initialized())
     {
-      mExtractor.init(order, iterations, robustFactor, refine, blockSize,
+      mExtractor.init(order, iterations, robustFactor, blockSize,
                       padding);
       // mExtractor.reset(new algorithm::TransientExtraction(order, iterations,
       // robustFactor, refine)); mExtractor->prepareStream(blockSize, padding);
@@ -97,8 +96,8 @@ public:
     double skew = pow(2, get<kSkew>());
     double threshFwd = get<kThreshFwd>();
     double thresBack = get<kThreshBack>();
-    index halfWindow = static_cast<index>(round(get<kWinSize>() / 2));
-    index debounce = get<kDebounce>();
+    index  halfWindow = static_cast<index>(round(get<kWinSize>() / 2));
+    index  debounce = get<kDebounce>();
 
     mExtractor.setDetectionParameters(skew, threshFwd, thresBack, halfWindow,
                                       debounce);
@@ -110,7 +109,7 @@ public:
 
     mBufferedProcess.process(
         mExtractor.inputSize(), mExtractor.hopSize(), mExtractor.hopSize(), c,
-         [this](RealMatrixView in, RealMatrixView out) {
+        [this](RealMatrixView in, RealMatrixView out) {
           mExtractor.process(in.row(0), out.row(0), out.row(1));
         });
 
@@ -125,24 +124,24 @@ public:
   {
     return get<kPadding>() + get<kBlockSize>() - get<kOrder>();
   }
-  
-  void reset(){ mBufferedProcess.reset(); }
+
+  void reset() { mBufferedProcess.reset(); }
 
 private:
   ParameterTrackChanges<index, index, index, index> mTrackValues;
   // std::unique_ptr<algorithm::TransientExtraction> mExtractor;
-  algorithm::TransientExtraction mExtractor{get<kOrder>(), 3, 3.0, false};
+  algorithm::TransientExtraction mExtractor{get<kOrder>(), 3, 3.0};
   BufferedProcess                mBufferedProcess;
-  index                         mHostSize{0};
-  index                         mOrder{0};
-  index                         mBlocksize{0};
-  index                         mPadding{0};
+  index                          mHostSize{0};
+  index                          mOrder{0};
+  index                          mBlocksize{0};
+  index                          mPadding{0};
 };
 
 auto constexpr NRTTransientParams = makeNRTParams<TransientClient>(
     InputBufferParam("source", "Source Buffer"),
     BufferParam("transients", "Transients Buffer"),
-     BufferParam("residual", "Residual Buffer"));
+    BufferParam("residual", "Residual Buffer"));
 
 template <typename T>
 using NRTTransientsClient =

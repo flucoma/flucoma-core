@@ -11,8 +11,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #include "../util/ARModel.hpp"
 #include "../util/FluidEigenMappings.hpp"
-#include "../../data/TensorTypes.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <algorithm>
 #include <cmath>
@@ -30,12 +30,11 @@ class TransientExtraction
   using VectorXd = Eigen::VectorXd;
 
 public:
-  TransientExtraction(index order, index iterations, double robustFactor,
-                      bool refine)
+  TransientExtraction(index order, index iterations, double robustFactor)
       : mModel(order, iterations, robustFactor)
   {}
 
-  void init(index order, index iterations, double robustFactor, bool refine,
+  void init(index order, index iterations, double robustFactor,
             index blockSize, index padSize)
   {
     mModel = ARModel(order, iterations, robustFactor);
@@ -104,7 +103,7 @@ public:
     frame(input.data(), inSize);
     analyse();
     detection();
-    indexerpolate(transients.data(), residual.data());
+    interpolate(transients.data(), residual.data());
     // return mCount;
   }
 
@@ -117,10 +116,10 @@ public:
     std::copy(unknowns.data(), unknowns.data() + hopSize(), mDetect.data());
     mCount = 0;
     for (index i = 0, size = hopSize(); i < size; i++)
-      if (mDetect[i]) mCount++;
+      if (mDetect[asUnsigned(i)]!=0) mCount++;
     frame(input.data(), inSize);
     if (mCount) analyse();
-    indexerpolate(transients.data(), residual.data());
+    interpolate(transients.data(), residual.data());
     // return mCount;
   }
 
@@ -178,16 +177,16 @@ private:
 
     for (index i = 0, size = hopSize(); i < size; i++)
     {
-      if (!click && (mBackwardWindowedError[i] > loThresh) &&
-          (mForwardWindowedError[i] > hiThresh))
+      if (!click && (mBackwardWindowedError[asUnsigned(i)] > loThresh) &&
+          (mForwardWindowedError[asUnsigned(i)] > hiThresh))
       { click = true; }
-      else if (click && (mBackwardWindowedError[i] < loThresh))
+      else if (click && (mBackwardWindowedError[asUnsigned(i)] < loThresh))
       {
         click = false;
 
         for (index j = i; (j < i + offHold) && (j < size); j++)
         {
-          if (mBackwardWindowedError[j] > loThresh)
+          if (mBackwardWindowedError[asUnsigned(j)] > loThresh)
           {
             click = true;
             break;
@@ -197,7 +196,7 @@ private:
 
       if (click) count++;
 
-      mDetect[i] = click ? 1.0 : 0.0;
+      mDetect[asUnsigned(i)] = click ? 1.0 : 0.0;
     }
 
     // Count Validation
@@ -247,7 +246,7 @@ private:
     return Method(view);
   }
 
-  void indexerpolate(double* transients, double* residual)
+  void interpolate(double* transients, double* residual)
   {
     const double* input = mInput.data() + padSize() + modelOrder();
     const double* parameters = mModel.getParameters();
@@ -280,7 +279,7 @@ private:
 
     for (index i = 0, uCount = 0, kCount = 0; i < size; i++)
     {
-      if (i >= order && mDetect[i - order])
+      if (i >= order && mDetect[asUnsigned(i - order)] != 0)
         U(i, uCount++) = 1.0;
       else
       {
@@ -299,7 +298,7 @@ private:
 
     for (index i = 0, uCount = 0; i < (size - order); i++)
     {
-      if (mDetect[i])
+      if (mDetect[asUnsigned(i)] != 0)
         residual[i] = u(uCount++);
       else
         residual[i] = input[i + order];
@@ -324,7 +323,7 @@ private:
 
     for (index i = 0; i < (size - order); i++)
     {
-      if (mDetect[i])
+      if (mDetect[asUnsigned(i)] != 0)
       {
         const double error = mModel.forwardError(io + i);
         energyLS += error * error;
@@ -337,16 +336,18 @@ private:
 
       Eigen::LLT<Eigen::MatrixXd> M(Au.transpose() *
                                     Au); // Cholesky decomposition
-      Eigen::VectorXd             u(mCount);
 
-      double          sum = randomSampling(u, (energy - energyLS) / mCount);
+      Eigen::VectorXd u(mCount);
+
+      double sum = randomSampling(u, (energy - energyLS) / mCount);
+
       Eigen::MatrixXd correction = M.solve(u) + ls;
 
       // Write the output
 
       for (index i = 0, uCount = 0; i < (size - order); i++)
       {
-        if (mDetect[i]) io[i] = u(uCount++);
+        if (mDetect[asUnsigned(i)] != 0) io[asUnsigned(i)] = u(uCount++);
       }
 
       std::cout << "Energy is " << energyLS << " expected " << energy << "\n";
@@ -420,12 +421,12 @@ private:
 
   void resizeStorage()
   {
-    mInput.resize(analysisSize() + modelOrder(), 0.0);
-    mDetect.resize(hopSize(), 0.0);
-    mForwardError.resize(mBlockSize + modelOrder(), 0.0);
-    mBackwardError.resize(mBlockSize + modelOrder(), 0.0);
-    mForwardWindowedError.resize(hopSize(), 0.0);
-    mBackwardWindowedError.resize(hopSize(), 0.0);
+    mInput.resize(asUnsigned(analysisSize() + modelOrder()), 0.0);
+    mDetect.resize(asUnsigned(hopSize()), 0.0);
+    mForwardError.resize(asUnsigned(mBlockSize + modelOrder()), 0.0);
+    mBackwardError.resize(asUnsigned(mBlockSize + modelOrder()), 0.0);
+    mForwardWindowedError.resize(asUnsigned(hopSize()), 0.0);
+    mBackwardWindowedError.resize(asUnsigned(hopSize()), 0.0);
   }
 
   ARModel mModel;

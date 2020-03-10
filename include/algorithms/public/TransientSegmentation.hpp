@@ -21,7 +21,7 @@ class TransientSegmentation : public algorithm::TransientExtraction
 
 public:
   TransientSegmentation(index order, index iterations, double robustFactor)
-      : TransientExtraction(order, iterations, robustFactor, false)
+      : TransientExtraction(order, iterations, robustFactor)
   {}
 
   void setDetectionParameters(double power, double threshHi, double threshLo,
@@ -36,7 +36,7 @@ public:
   void init(index order, index iterations, double robustFactor, index blockSize,
             index padSize)
   {
-    TransientExtraction::init(order, iterations, robustFactor, false, blockSize,
+    TransientExtraction::init(order, iterations, robustFactor, blockSize,
                               padSize);
     mLastDetection = false;
     mDebounce = 0;
@@ -55,7 +55,7 @@ public:
     const double* transientDetection = getDetect();
     for (index i = 0; i < std::min<index>(hopSize(), output.size()); i++)
     {
-      output(i) = (transientDetection[i] && !mLastDetection && !mDebounce);
+      output(i) = (transientDetection[i] != 0 && !mLastDetection && !mDebounce);
       mDebounce = output(i) == 1.0 ? mMinSegment : std::max<index>(0, --mDebounce);
       mLastDetection = transientDetection[i] == 1.0;
     }
