@@ -37,7 +37,7 @@ template <typename TensorThing>
 std::enable_if_t<(TensorThing::order > 1), std::ostream&>
 printTensorThing(std::ostream& o, TensorThing& t)
 {
-  for (size_t i = 0; i < t.rows(); ++i) o << t.row(i) << '\n';
+  for (index i = 0; i < t.rows(); ++i) o << t.row(i) << '\n';
   return o;
 }
 
