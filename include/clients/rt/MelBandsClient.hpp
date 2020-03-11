@@ -40,7 +40,7 @@ auto constexpr MelBandsParams = defineParameters(
     FloatParam("maxFreq", "High Frequency Bound", 20000, Min(0)),
     LongParam<Fixed<true>>("maxNumBands", "Maximum Number of Bands", 120,
                            Min(2), MaxFrameSizeUpperLimit<kMaxFFTSize>()),
-    EnumParam("normalize", "Normalize", 0, "No", "Yes"),
+    EnumParam("normalize", "Normalize", 1, "No", "Yes"),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
 
