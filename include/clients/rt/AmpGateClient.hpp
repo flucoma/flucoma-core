@@ -39,8 +39,8 @@ enum AmpGateParamIndex {
 };
 
 auto constexpr AmpGateParams = defineParameters(
-    FloatParam("RampUp", "Ramp Up Length", 10, Min(1)),
-    FloatParam("RampDown", "Ramp Down Length", 10, Min(1)),
+    LongParam("RampUp", "Ramp Up Length", 10, Min(1)),
+    LongParam("RampDown", "Ramp Down Length", 10, Min(1)),
     FloatParam("OnThreshold", "On Threshold", -90, Min(-144), Max(144)),
     FloatParam("OffThreshold", "Off Threshold", -90, Min(-144), Max(144)),
     LongParam("minSliceLength", "Minimum Length of Slice", 1, Min(1)),
@@ -98,7 +98,7 @@ public:
     }
 
     for (index i = 0; i < input[0].size(); i++)
-    { output[0](i) = mAlgorithm.processSample(input[0](i)); }
+    { output[0](i) = static_cast<T>(mAlgorithm.processSample(input[0](i))); }
   }
 
   void reset() {}
