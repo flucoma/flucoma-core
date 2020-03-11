@@ -47,7 +47,7 @@ public:
     mMinEventDuration = minEventDuration;
     mUpwardLookupTime = upwardLookupTime;
     mOffThreshold = offThreshold;
-    mFloor = std::min<index>(mOffThreshold, mOnThreshold);
+    mFloor = std::min(mOffThreshold, mOnThreshold);
     mMindeximeBelowThreshold = mindeximeBelowThreshold,
     mMinSilenceDuration = minSilenceDuration;
     mDownwardLookupTime = downwardLookupTime;
@@ -82,7 +82,7 @@ public:
     mMinEventDuration = minEventDuration;
     mOffThreshold = offThreshold;
     mMinSilenceDuration = minSilenceDuration;
-    mFloor = std::min<index>(mOffThreshold, mOnThreshold);
+    mFloor = std::min(mOffThreshold, mOnThreshold);
   }
 
   index getLatency() { return mLatency; }
@@ -96,7 +96,7 @@ public:
       filtered = mHiPass2.processSample(mHiPass1.processSample(in));
     double rectified = std::abs(filtered);
     double dB = 20 * std::log10(rectified);
-    double clipped = std::max<index>(dB, mFloor);
+    double clipped = std::max(dB, mFloor);
     double smoothed = mSlide.processSample(clipped);
     bool   forcedState = false;
     // case 1: we are waiting for event to finish
