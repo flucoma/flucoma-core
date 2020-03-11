@@ -25,7 +25,7 @@ namespace client {
 
 enum SinesParamIndex {
   kBandwidth,
-  kDeathThreshold,
+  kDetectionThreshold,
   kBirthLowThreshold,
   kBirthHighThreshold,
   kMinTrackLen,
@@ -40,7 +40,7 @@ enum SinesParamIndex {
 extern auto constexpr SinesParams = defineParameters(
     LongParam("bandwidth", "Bandwidth", 76, Min(1),
               FrameSizeUpperLimit<kFFT>()),
-    FloatParam("deathThreshold", "Track Death Threshold", -96, Min(-144),
+    FloatParam("detectionThreshold", "Peak Detection Threshold", -96, Min(-144),
                Max(0)),
     FloatParam("birthLowThreshold", "Track Birth Low Frequency Threshold", -24,
                Min(-144), Max(0)),
@@ -52,7 +52,7 @@ extern auto constexpr SinesParams = defineParameters(
                Max(200.)),
     FloatParam("trackFreqRange", "Tracking Frequency Range (Hz)", 50., Min(1.),
                Max(10000.)),
-    FloatParam("trackProb", "Tracking Matching Probability", 1.0, Min(0.0),
+    FloatParam("trackProb", "Tracking Matching Probability", 0.5, Min(0.0),
                Max(1.0)),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1,
                           FrameSizeLowerLimit<kBandwidth>()),
@@ -88,7 +88,7 @@ public:
       mSinesExtractor.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
                            get<kBandwidth>());
     }
-    mSinesExtractor.setDeathThreshold(get<kDeathThreshold>());
+    mSinesExtractor.setDeathThreshold(get<kDetectionThreshold>());
     mSinesExtractor.setBirthHighThreshold(get<kBirthHighThreshold>());
     mSinesExtractor.setBirthLowThreshold(get<kBirthLowThreshold>());
     mSinesExtractor.setMinTrackLength(get<kMinTrackLen>());
