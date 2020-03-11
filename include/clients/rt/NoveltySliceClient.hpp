@@ -16,12 +16,12 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
+#include "../../algorithms/public/DCT.hpp"
 #include "../../algorithms/public/Loudness.hpp"
+#include "../../algorithms/public/MelBands.hpp"
 #include "../../algorithms/public/NoveltySegmentation.hpp"
 #include "../../algorithms/public/STFT.hpp"
 #include "../../algorithms/public/YINFFT.hpp"
-#include "../../algorithms/public/DCT.hpp"
-#include "../../algorithms/public/MelBands.hpp"
 #include "../../algorithms/util/TruePeak.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <tuple>
@@ -157,11 +157,11 @@ public:
   index latency()
   {
     return get<kFFT>().winSize() +
-           ((get<kKernelSize>() - 1) / 2) * get<kFFT>().hopSize() +
-           (get<kFilterSize>() - 1) * get<kFFT>().hopSize();
+  (get<kFilterSize>() / 2) +
+  ((get<kKernelSize>() + 1) / 2);
   }
 
-  void reset(){ mBufferedProcess.reset(); }
+  void reset() { mBufferedProcess.reset(); }
 
 private:
   algorithm::NoveltySegmentation mNovelty{get<kMaxKernelSize>(),
