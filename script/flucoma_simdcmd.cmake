@@ -10,7 +10,7 @@ include_guard()
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "amd64.*|x86_64.*|AMD64.*|i686.*|i386.*|x86.*")
   if(MSVC)
-    set(SIMD_OPT /ARCH:AVX)
+    set(SIMD_OPT /arch:AVX)
   else()
     set(SIMD_OPT -mavx)
   endif() 
