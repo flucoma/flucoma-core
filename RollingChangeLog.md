@@ -2,7 +2,7 @@
 date: 
 
 ## New Features:
-* BREAKING CHANGE: (buf)melbands how has normalised amplitude output which is independent of window and fft size
+* BREAKING CHANGE: (buf)melbands how has normalised amplitude output option, on by default, which is independent of window and fft size
 * (buf)NoveltySlice now has a minimum slice length parameter
 * BREAKING CHANGE: (buf)sines now have new parameter names, and a new option to select which algorith is used to track the sines. It also has improved sound quality and more refined thresholding.
 * BREAKING CHANGE: (buf)AmpSlice is now 2 objects, (buf)AmpGate for the absolute, and (buf)AmpSlice for the relative
