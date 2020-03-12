@@ -27,7 +27,7 @@ class EnvelopeGate
   using ArrayXd = Eigen::ArrayXd;
 
 public:
-  EnvelopeGate(index maxSize) : mMaxSize(maxSize)
+  EnvelopeGate(index maxSize)
   {
     mInputStorage = ArrayXd(maxSize);
     mOutputStorage = ArrayXd(maxSize);
@@ -56,7 +56,6 @@ public:
     mLatency = std::max<index>(mMindeximeAboveThreshold + mUpwardLookupTime,
                                mDownwardLatency);
     if (mLatency < 0) mLatency = 1;
-    assert(mLatency <= mMaxSize);
     initBuffers();
     initFilters();
     initSlide();
@@ -217,7 +216,6 @@ private:
     }
   }
 
-  index               mMaxSize;
   index               mLatency;
   index               mFillCount;
   double              mHiPassFreq{0.2};

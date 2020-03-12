@@ -27,9 +27,9 @@ class EnvelopeSegmentation
   using ArrayXd = Eigen::ArrayXd;
 
 public:
-  void init(double hiPassFreq, int fastRampUpTime, int slowRampUpTime,
-            int fastRampDownTime, int slowRampDownTime, double onThreshold,
-            double offThreshold, double floor, int debounce)
+  void init(double hiPassFreq, index fastRampUpTime, index slowRampUpTime,
+            index fastRampDownTime, index slowRampDownTime, double onThreshold,
+            double offThreshold, double floor, index debounce)
   {
     mHiPassFreq = hiPassFreq;
     mFastRampUpTime = fastRampUpTime;
@@ -45,10 +45,10 @@ public:
     mInitialized = true;
   }
 
-  void updateParams(double hiPassFreq, int fastRampUpTime, int slowRampUpTime,
-                    int fastRampDownTime, int slowRampDownTime,
-                    double onThreshold, double offThreshold, double floor,
-                    int debounce)
+  void updateParams(double hiPassFreq, index fastRampUpTime,
+                    index slowRampUpTime, index fastRampDownTime,
+                    index slowRampDownTime, double onThreshold,
+                    double offThreshold, double floor, index debounce)
   {
     if (hiPassFreq != mHiPassFreq)
     {
@@ -125,10 +125,10 @@ private:
   }
 
   double              mHiPassFreq{0.2};
-  int                 mFastRampUpTime{100};
-  int                 mFastRampDownTime{100};
-  int                 mSlowRampUpTime{100};
-  int                 mSlowRampDownTime{100};
+  index               mFastRampUpTime{100};
+  index               mFastRampDownTime{100};
+  index               mSlowRampUpTime{100};
+  index               mSlowRampDownTime{100};
   double              mOnThreshold{-33};
   double              mOffThreshold{-42};
   ButterworthHPFilter mHiPass1;
@@ -137,8 +137,8 @@ private:
   SlideUDFilter       mSlowSlide;
   bool                mInitialized{false};
   double              mFloor{-45};
-  int                 mDebounce{2};
-  int                 mDebounceCount{1};
+  index               mDebounce{2};
+  index               mDebounceCount{1};
   double              mPrevValue;
   bool                mState{false};
 };
