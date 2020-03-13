@@ -179,7 +179,7 @@ private:
 
   void initFilters()
   {
-    mHiPass1.init(mHiPassFreq > 0);
+    mHiPass1.init(mHiPassFreq);
     mHiPass2.init(mHiPassFreq);
   }
 
