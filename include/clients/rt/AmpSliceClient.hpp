@@ -43,7 +43,7 @@ auto constexpr AmpSliceParams = defineParameters(
     FloatParam("onThreshold", "On Threshold (dB)", 144, Min(-144), Max(144)),
     FloatParam("offThreshold", "Off Threshold (dB)", -144, Min(-144), Max(144)),
     FloatParam("floor", "Floor value (dB)", -145, Min(-144), Max(144)),
-    FloatParam("highPassFreq", "High-Pass Filter Cutoff", 85, Min(1)),
+    FloatParam("highPassFreq", "High-Pass Filter Cutoff", 85, Min(0)),
     LongParam("minSliceLength", "Minimum Length of Slice", 2, Min(0)));
 
 template <typename T>

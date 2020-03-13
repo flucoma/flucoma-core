@@ -51,7 +51,7 @@ auto constexpr AmpGateParams = defineParameters(
               Min(1)),
     LongParam("lookBack", "Backward Lookup Length", 0, Min(0)),
     LongParam("lookAhead", "Forward Lookup Length", 0, Min(0)),
-    FloatParam("highPassFreq", "High-Pass Filter Cutoff", 85, Min(1)),
+    FloatParam("highPassFreq", "High-Pass Filter Cutoff", 85, Min(0)),
     LongParam<Fixed<true>>("maxSize", "Maximum Total Latency", 88200, Min(1)));
 
 template <typename T>
