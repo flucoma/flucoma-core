@@ -47,7 +47,7 @@ public:
     mMinEventDuration = minEventDuration;
     mUpwardLookupTime = upwardLookupTime;
     mOffThreshold = offThreshold;
-    mFloor = std::min(mOffThreshold, mOnThreshold);
+    mFloor = std::min(mOffThreshold, mOnThreshold) - 1;
     mMindeximeBelowThreshold = mindeximeBelowThreshold,
     mMinSilenceDuration = minSilenceDuration;
     mDownwardLookupTime = downwardLookupTime;
@@ -81,7 +81,7 @@ public:
     mMinEventDuration = minEventDuration;
     mOffThreshold = offThreshold;
     mMinSilenceDuration = minSilenceDuration;
-    mFloor = std::min(mOffThreshold, mOnThreshold);
+    mFloor = std::min(mOffThreshold, mOnThreshold)  - 1;
   }
 
   index getLatency() { return mLatency; }
