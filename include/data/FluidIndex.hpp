@@ -16,7 +16,7 @@ namespace fluid{
   
   index asSigned(std::make_unsigned_t<index> s)
   {
-    assert(s <= std::numeric_limits<index>::max());
+    assert(s <= std::make_unsigned_t<index>(std::numeric_limits<index>::max()));
     return static_cast<index>(s);
   }
   
