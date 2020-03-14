@@ -2,19 +2,20 @@
 date: 
 
 ## New Features:
-* BREAKING CHANGE: (buf)melbands how has normalised amplitude output which is independent of window and fft size
+* BREAKING CHANGE: (buf)melbands how has normalised amplitude output option, on by default, which is independent of window and fft size
 * (buf)NoveltySlice now has a minimum slice length parameter
-* BREAKING CHANGE: (buf)sines now have new parameter names, and a new option to select which algorith is used to track the sines. It also has improved sound quality and more refined thresholding.
-* BREAKING CHANGE: (buf)AmpSlice is now 2 objects, (buf)AmpGate for the absolute, and (buf)AmpSlice for the relative
-* (buf)AmpSlice and (buf)AmpGate has 0Hz highpassfreq to bypass the high pass filter.
+* BREAKING CHANGE: (buf)sines now have new parameter names, and a new option to select which algorithm is used to track the sines. It also has improved sound quality and more refined thresholding.
+** BREAKING CHANGE: (buf)AmpSlice is now 2 objects, (buf)AmpGate for the absolute, and (buf)AmpSlice for the relative
+** (buf)AmpSlice and (buf)AmpGate has 0Hz highpassfreq to bypass the high pass filter.
+** BREAKING CHANGE: output name of bufnmf (either way)
 
 ## Bug Fixes:
 * (Pd on Windows) now works ;-)
 * BREAKING CHANGE: buf* processes now use the buffer's sampling rate (or the SR attribute for Pd)
-* BREAKING CHANGE: (buf)ampslice now works much faster and consistenlty but thresholds and times will have to be tweaked
+* BREAKING CHANGE: (buf)ampslice now works much faster and consistently but thresholds and times will have to be tweaked
 * (Pd) BREAKING CHANGE: all non-real-time (buf) objects have lost the tilde (~) in their name to be consistent with the language conventions.
 * BREAKING CHANGE: (buf)OnsetSlice latency reporting (rt) and offset (buf) are now more accurate but will have changed for similar threshold
-** BREAKING CHANGE: (buf)NoveltySlice latency reporting (rt) and offset (buf) are now more accurate but will have changed for similar threshold
+* BREAKING CHANGE: (buf)NoveltySlice latency reporting (rt) and offset (buf) are now more accurate but will have changed for similar threshold
 * (buf)HPSS speed is improved
 * Many edge cases were found and sorted.
 * (Max) parameters updates now behave all the time in real-time
@@ -27,7 +28,7 @@ date:
 
 ## New Example:
 * (SC+Pd) most Max examples are now ported to the two other CCEs
-** (SC) Gerard's GUI demos of algorithms are now available
+* (SC) Gerard's GUI demos of algorithms are now available
 
 ## Known Bugs:
 
@@ -42,7 +43,7 @@ date: 9 October 2019
 * CLI: BREAKING CHANGE: new executable naming convention, because we want it to be fluid.
 * CLI: CSV file output type
 * Max: new audio player in some help files, adapted from C74's [demosound]
-* pd (0.50.1+) lauching of html ref from the helpfiles
+* pd (0.50.1+) launching of html ref from the helpfiles
 
 ## Bug Fixes:
 * (Max) Reference pages are more complete (with all messages)

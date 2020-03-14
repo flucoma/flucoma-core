@@ -36,14 +36,14 @@ enum AmpSliceParamIndex {
 };
 
 auto constexpr AmpSliceParams = defineParameters(
-    FloatParam("fastRampUp", "Fast Envelope Ramp Up Length", 1, Min(1)),
-    FloatParam("fastRampDown", "Fast Envelope Ramp Down Length", 1, Min(1)),
-    FloatParam("slowRampUp", "Slow Envelope Ramp Up Length", 100, Min(1)),
-    FloatParam("slowRampDown", "Slow Envelope Ramp Down Length", 100, Min(1)),
+    LongParam("fastRampUp", "Fast Envelope Ramp Up Length", 1, Min(1)),
+    LongParam("fastRampDown", "Fast Envelope Ramp Down Length", 1, Min(1)),
+    LongParam("slowRampUp", "Slow Envelope Ramp Up Length", 100, Min(1)),
+    LongParam("slowRampDown", "Slow Envelope Ramp Down Length", 100, Min(1)),
     FloatParam("onThreshold", "On Threshold (dB)", 144, Min(-144), Max(144)),
     FloatParam("offThreshold", "Off Threshold (dB)", -144, Min(-144), Max(144)),
     FloatParam("floor", "Floor value (dB)", -145, Min(-144), Max(144)),
-    FloatParam("highPassFreq", "High-Pass Filter Cutoff", 85, Min(1)),
+    FloatParam("highPassFreq", "High-Pass Filter Cutoff", 85, Min(0)),
     LongParam("minSliceLength", "Minimum Length of Slice", 2, Min(0)));
 
 template <typename T>
@@ -82,7 +82,7 @@ public:
         get<kFastRampDownTime>(), get<kSlowRampDownTime>(), get<kOnThreshold>(),
         get<kOffThreshold>(), get<kSilenceThreshold>(), get<kDebounce>());
     for (index i = 0; i < input[0].size(); i++)
-    { output[0](i) = mAlgorithm.processSample(input[0](i)); }
+    { output[0](i) = static_cast<T>(mAlgorithm.processSample(input[0](i))); }
   }
 
   index latency() { return 0; }

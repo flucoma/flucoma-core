@@ -27,7 +27,7 @@ class EnvelopeGate
   using ArrayXd = Eigen::ArrayXd;
 
 public:
-  EnvelopeGate(index maxSize) : mMaxSize(maxSize)
+  EnvelopeGate(index maxSize)
   {
     mInputStorage = ArrayXd(maxSize);
     mOutputStorage = ArrayXd(maxSize);
@@ -47,7 +47,7 @@ public:
     mMinEventDuration = minEventDuration;
     mUpwardLookupTime = upwardLookupTime;
     mOffThreshold = offThreshold;
-    mFloor = std::min(mOffThreshold, mOnThreshold);
+    mFloor = std::min(mOffThreshold, mOnThreshold) - 1;
     mMindeximeBelowThreshold = mindeximeBelowThreshold,
     mMinSilenceDuration = minSilenceDuration;
     mDownwardLookupTime = downwardLookupTime;
@@ -56,7 +56,6 @@ public:
     mLatency = std::max<index>(mMindeximeAboveThreshold + mUpwardLookupTime,
                                mDownwardLatency);
     if (mLatency < 0) mLatency = 1;
-    assert(mLatency <= mMaxSize);
     initBuffers();
     initFilters();
     initSlide();
@@ -82,7 +81,7 @@ public:
     mMinEventDuration = minEventDuration;
     mOffThreshold = offThreshold;
     mMinSilenceDuration = minSilenceDuration;
-    mFloor = std::min(mOffThreshold, mOnThreshold);
+    mFloor = std::min(mOffThreshold, mOnThreshold)  - 1;
   }
 
   index getLatency() { return mLatency; }
@@ -180,7 +179,7 @@ private:
 
   void initFilters()
   {
-    mHiPass1.init(mHiPassFreq > 0);
+    mHiPass1.init(mHiPassFreq);
     mHiPass2.init(mHiPassFreq);
   }
 
@@ -217,7 +216,6 @@ private:
     }
   }
 
-  index               mMaxSize;
   index               mLatency;
   index               mFillCount;
   double              mHiPassFreq{0.2};
