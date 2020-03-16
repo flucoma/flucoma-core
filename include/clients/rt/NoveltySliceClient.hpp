@@ -157,8 +157,8 @@ public:
   index latency()
   {
     return get<kFFT>().winSize() +
-  (get<kFilterSize>() / 2) +
-  ((get<kKernelSize>() + 1) / 2);
+           (((get<kFilterSize>() / 2) + ((get<kKernelSize>() + 1) / 2)) *
+            get<kFFT>().hopSize());
   }
 
   void reset() { mBufferedProcess.reset(); }
