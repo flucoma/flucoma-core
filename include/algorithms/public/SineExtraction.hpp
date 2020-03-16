@@ -19,6 +19,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
+#include <fstream>
 #include <queue>
 
 namespace fluid {
@@ -78,8 +79,7 @@ public:
     mBuf.push(frame);
     ArrayXd mag = frame.abs().real();
     mag = mag * mScale;
-    ArrayXd logMag = 20 * mag.max(epsilon).log10();
-
+    ArrayXd          logMag = 20 * mag.max(epsilon).log10();
     vector<SinePeak> peaks;
     auto tmpPeaks = mPeakDetection.process(logMag, 0, -infinity, true, false);
     for (auto p : tmpPeaks)
@@ -95,7 +95,6 @@ public:
     vector<SinePeak> sinePeaks = mTracking.getActivePeaks();
     ArrayXd          frameSines = additiveSynthesis(sinePeaks, sampleRate);
     ArrayXXcd        result(mBins, 2);
-
     if (asSigned(mBuf.size()) <= mTracking.minTrackLength())
     {
       result.col(0) = ArrayXd::Zero(mBins);
@@ -105,6 +104,7 @@ public:
     {
       ArrayXcd resultFrame = mBuf.front();
       ArrayXd  resultMag = resultFrame.abs().real();
+
       for (index i = 0; i < mBins; i++)
       {
         if (frameSines(i) >= resultMag(i))
@@ -119,6 +119,7 @@ public:
           result(i, 1) = resultFrame(i) * (1 - sineWeight);
         }
       }
+
       mBuf.pop();
     }
     mTracking.prune();
@@ -176,32 +177,21 @@ private:
     if (freqBin >= mBins - 1) freqBin = mBins - 1;
     if (freqBin < 0) freqBin = 0;
     index  freqBinFloor = static_cast<index>(std::floor(freqBin));
-    index  freqBinCeil =  static_cast<index>(std::ceil(freqBin));
+    index  freqBinCeil = freqBinFloor + 1;
     double amp = 0.5 * std::pow(10, p.logMag / 20);
-    double incr =
-        0.5 * static_cast<double>(mWindowTransform.size()) / (mBins - 1);
-    double pos = mWindowTransform.size() / 2;
-    for (index i = freqBinFloor; pos < mWindowTransform.size() - 2 &&
-                                 i < std::min(freqBinCeil + halfBW, mBins - 1);
+    index  incr = mWindowTransform.size() / (mBins - 1) / 2;
+    index  pos = mWindowTransform.size() / 2 +
+                std::lrint((freqBinCeil - freqBin) * incr);
+    for (index i = freqBinCeil; pos < mWindowTransform.size() - 2 &&
+                                i < std::min(freqBinFloor + halfBW, mBins - 1);
          i++, pos += incr)
-    {
-      index  floor = static_cast<index>(std::floor(pos));
-      double frac1 = pos - floor;
-      double val = frac1 * mWindowTransform(floor) +
-                   (1 - frac1) * mWindowTransform(floor + 1);
-      sine[i] = amp * val;
-    }
-    pos = mWindowTransform.size() / 2;
+    { sine[i] = amp * mWindowTransform(pos); }
+    pos = (mWindowTransform.size() / 2) -
+          std::lrint((freqBin - freqBinFloor) * incr);
     for (index i = freqBinFloor;
          pos > 1 && i > std::max(freqBinFloor - halfBW, asSigned(0));
          i--, pos -= incr)
-    {
-      index  floor = static_cast<index>(std::floor(pos));
-      double frac = pos - floor;
-      double val = frac * mWindowTransform(floor) +
-                   (1 - frac) * mWindowTransform(floor + 1);
-      sine[i] = amp * val;
-    }
+    { sine[i] = amp * mWindowTransform(pos); }
     return sine;
   }
 
