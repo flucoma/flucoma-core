@@ -435,8 +435,8 @@ public:
 
   // Move construct /assign
 
-  ParameterSet(ParameterSet&&) noexcept = default;
-  ParameterSet& operator=(ParameterSet&&) noexcept = default;
+    ParameterSet(ParameterSet&&)  = default;
+    ParameterSet& operator=(ParameterSet&&) = default;
 
 private:
   template <size_t... Is>
