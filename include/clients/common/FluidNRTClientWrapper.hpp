@@ -368,7 +368,10 @@ struct Slicing
     client.reset();
     client.process(input,output,c);
 
-    if(std::count_if(onsetPoints.row(0).begin(),onsetPoints.row(0).end(),[](float x){return x > 0; }))
+    auto paddingAudio = onsetPoints(0,Slice(0,padding));
+    auto numNegativeTimeOnsets = std::count_if(paddingAudio.begin(),paddingAudio.end(),[](float x){return x > 0; });
+      
+    if(numNegativeTimeOnsets > 0 )
       onsetPoints(0,padding) = 1;  
 
     return impl::spikesToTimes(onsetPoints(0,Slice(padding,nFrames)), outputBuffers[0], 1, inputBuffers[0].startFrame, nFrames,src.sampleRate());
