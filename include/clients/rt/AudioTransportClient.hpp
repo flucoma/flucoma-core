@@ -6,8 +6,8 @@
 #include "clients/common/ParameterSet.hpp"
 #include "clients/common/ParameterTrackChanges.hpp"
 #include "clients/common/ParameterTypes.hpp"
-#include "clients/nrt/FluidNRTClientWrapper.hpp"
-#include "clients/rt/BufferedProcess.hpp"
+#include "clients/common/FluidNRTClientWrapper.hpp"
+#include "clients/common/BufferedProcess.hpp"
 #include <clients/common/AudioClient.hpp>
 #include <tuple>
 
@@ -40,15 +40,16 @@ public:
                        LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size",
                                               16384, Min(4), PowerOfTwo{}));
   AudioTransportClient(ParamSetViewType &p)
-      : mSTFTBufferedProcess{static_cast<size_t>(get<kMaxFFTSize>()), 2, 1}, mParams(p), mAlgorithm(get<kMaxFFTSize>()) {
+      : mParams{p}, mSTFTBufferedProcess{get<kMaxFFTSize>(), 2, 1}, mAlgorithm(get<kMaxFFTSize>())
+  {
     audioChannelsIn(2);
     audioChannelsOut(1);
   }
 
   template <typename T>
   void process(std::vector<FluidTensorView<T, 1>> &input,
-               std::vector<FluidTensorView<T, 1>> &output, FluidContext &c,
-               bool reset = false) {
+               std::vector<FluidTensorView<T, 1>> &output, FluidContext &c)
+  {
     if (!input[0].data() || !input[1].data())
       return;
     if (!mAlgorithm.initialized() ||
@@ -58,14 +59,14 @@ public:
                       get<kFFT>().hopSize(), get<kBandwidth>());
     }
     mSTFTBufferedProcess.process(
-        mParams, input, output, c, reset,
+        mParams, input, output, c,
         [this](ComplexMatrixView in, ComplexMatrixView out) {
       mAlgorithm.processFrame(in.row(0), in.row(1), get<kInterpolation>(), out.row(0));
         });
   }
 
   size_t latency() { return get<kFFT>().winSize(); }
-
+  void   reset() { mSTFTBufferedProcess.reset();  }
 private:
   STFTBufferedProcess<ParamSetViewType, kFFT> mSTFTBufferedProcess;
   algorithm::AudioTransport mAlgorithm;

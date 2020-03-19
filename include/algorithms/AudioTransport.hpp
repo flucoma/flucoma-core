@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "algorithms/public/Windows.hpp"
+#include "algorithms/public/WindowFuncs.hpp"
 #include "algorithms/util/ConvolutionTools.hpp"
 #include "algorithms/util/FFT.hpp"
 #include "algorithms/util/FluidEigenMappings.hpp"
@@ -45,8 +45,7 @@ public:
     mBandwidth = bandwidth;
     mWindow = ArrayXd::Zero(mWindowSize);
     mOnes = VectorXd::Ones(mBandwidth);
-    mWindow = Eigen::Map<ArrayXd>(windowFuncs[WindowType::kHann](mWindowSize).data(),
-                           mWindowSize);
+    WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](mWindowSize,mWindow); 
     computeWindowTransform(mWindow);
     mWNorm = mWindowTransform.square().sum();
     mFFTSize = fftSize;

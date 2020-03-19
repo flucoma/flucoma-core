@@ -11,7 +11,7 @@
 #include <clients/common/ParameterSet.hpp>
 #include <clients/common/ParameterTypes.hpp>
 #include <clients/common/Result.hpp>
-#include <clients/nrt/FluidNRTClientWrapper.hpp>
+#include <clients/common/FluidNRTClientWrapper.hpp>
 #include <data/FluidTensor.hpp>
 #include <data/TensorTypes.hpp>
 #include <string>
