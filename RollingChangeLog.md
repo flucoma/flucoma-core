@@ -1,13 +1,12 @@
-# v.1.0.0 RC1
+# 1.0.0-RC1
 date: 
 
 ## New Features:
 * BREAKING CHANGE: (buf)melbands how has normalised amplitude output option, on by default, which is independent of window and fft size
 * (buf)NoveltySlice now has a minimum slice length parameter
 * BREAKING CHANGE: (buf)sines now have new parameter names, and a new option to select which algorithm is used to track the sines. It also has improved sound quality and more refined thresholding.
-** BREAKING CHANGE: (buf)AmpSlice is now 2 objects, (buf)AmpGate for the absolute, and (buf)AmpSlice for the relative
-** (buf)AmpSlice and (buf)AmpGate has 0Hz highpassfreq to bypass the high pass filter.
-** BREAKING CHANGE: output name of bufnmf (either way)
+* BREAKING CHANGE: (buf)AmpSlice is now 2 objects, (buf)AmpGate for the absolute, and (buf)AmpSlice for the relative
+* (buf)AmpSlice and (buf)AmpGate has 0Hz highpassfreq to bypass the high pass filter.
 
 ## Bug Fixes:
 * (Pd on Windows) now works ;-)
@@ -19,6 +18,7 @@ date:
 * (buf)HPSS speed is improved
 * Many edge cases were found and sorted.
 * (Max) parameters updates now behave all the time in real-time
+* (SC) BREAKING CHANGE: bufnmf's audio output destination buffer is renamed properly to resynth
 
 ## Improvements:
 * (Pd+CLI) documentation is now more accurate and consistently formatted
@@ -31,7 +31,8 @@ date:
 * (SC) Gerard's GUI demos of algorithms are now available
 
 ## Known Bugs:
-
+* bufnmf progress output in multithreading mode (blocking 0) does not output progress.
+* (Mac) Notarization is not implemented yet since most CCEs are working on workarounds
 
 ===
 # beta-02: multithreading!
