@@ -1,43 +1,49 @@
-
+/*
+Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See license.md file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
 #pragma once
 
-#include "../../data/TensorTypes.hpp"
 #include "../util/FFT.hpp"
 #include "../util/FluidEigenMappings.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Eigen>
 #include <cmath>
-#include <fstream>
-#include <iostream>
 
 namespace fluid {
 namespace algorithm {
 
-using _impl::asEigen;
-using _impl::asFluid;
-using Eigen::Array;
-using Eigen::ArrayXcd;
-using Eigen::ArrayXd;
+class TruePeak
+{
 
-class TruePeak {
+  using ArrayXcd = Eigen::ArrayXcd;
 
 public:
-  TruePeak(int maxSize) : mFFT(maxSize), mIFFT(maxSize * 4) {}
+  TruePeak(index maxSize) : mFFT(maxSize), mIFFT(maxSize * 4) {}
 
-  void init(int size, int sampleRate) {
+  void init(index size, double sampleRate)
+  {
     mSampleRate = sampleRate;
-    mFFTSize = std::pow(2, std::ceil(std::log(size) / std::log(2)));
+    mFFTSize = static_cast<index>(std::pow(2, std::ceil(std::log(size) / std::log(2))));
     mFactor = sampleRate < 96000 ? 4 : 2;
     mFFT.resize(mFFTSize);
     mIFFT.resize(mFFTSize * mFactor);
     mBuffer = ArrayXcd::Zero((mFFTSize * mFactor / 2) + 1);
   }
 
-  double processFrame(const RealVectorView &input) {
-    ArrayXd in = asEigen<Array>(input);
-    if (mSampleRate >= 192000) {
-      return in.abs().maxCoeff();
-    } else {
-      double peak;
+  double processFrame(const RealVectorView& input)
+  {
+    using namespace Eigen;
+    ArrayXd in = _impl::asEigen<Array>(input);
+    if (mSampleRate >= 192000) { return in.abs().maxCoeff(); }
+    else
+    {
+      double   peak;
       ArrayXcd transform = mFFT.process(in);
       mBuffer.setZero();
       mBuffer.segment(0, transform.size()) = transform;
@@ -49,12 +55,12 @@ public:
   }
 
 private:
-  FFT mFFT;
-  IFFT mIFFT;
+  FFT      mFFT;
+  IFFT     mIFFT;
   ArrayXcd mBuffer;
-  int mSampleRate;
-  int mFactor;
-  int mFFTSize;
+  double   mSampleRate{44100.0};
+  index    mFactor{4};
+  index    mFFTSize{1024};
 };
 }; // namespace algorithm
 }; // namespace fluid

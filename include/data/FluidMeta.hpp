@@ -1,4 +1,15 @@
-///A place to keep metaprogramming gizmos. Quite probably with links to the stack overflow answer I got them from ;-)
+/*
+Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See license.md file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
+
+/// A place to keep metaprogramming gizmos. Quite probably with links to the
+/// stack overflow answer I got them from ;-)
 #pragma once
 
 #include <iterator>
@@ -31,13 +42,17 @@ namespace fluid {
 // Base case
 constexpr bool all() { return true; }
 // Recurse
-template <typename... Args> constexpr bool all(bool b, Args... args) {
+template <typename... Args>
+constexpr bool all(bool b, Args... args)
+{
   return b && all(args...);
 }
 // Base case
 constexpr bool some() { return false; }
 // Recurse
-template <typename... Args> constexpr bool some(bool b, Args... args) {
+template <typename... Args>
+constexpr bool some(bool b, Args... args)
+{
   return b || some(args...);
 }
 
@@ -52,58 +67,68 @@ using IsIteratorType =
                     typename std::iterator_traits<Iterator>::iterator_category>;
 
 
-//Detcting constexpr: https://stackoverflow.com/a/50169108
-// p() here could be anything <- well, not really: only certain things are recognised as constant expressions
-// Relies on the fact that the narrowing conversion in the first template will be an error except for constant expressions
-template<int (*p)()> std::true_type isConstexprImpl(decltype(int{(p(), 0U)}));
-template<int (*p)()> std::false_type isConstexprImpl(...);
-template<int (*p)()> using is_constexpr = decltype(isConstexprImpl<p>(0));
+// Detcting constexpr: https://stackoverflow.com/a/50169108
+// p() here could be anything <- well, not really: only certain things are
+// recognised as constant expressions Relies on the fact that the narrowing
+// conversion in the first template will be an error except for constant
+// expressions
+template <int (*p)()>
+std::true_type isConstexprImpl(decltype(int{(p(), 0U)}));
+template <int (*p)()>
+std::false_type isConstexprImpl(...);
+template <int (*p)()>
+using is_constexpr = decltype(isConstexprImpl<p>(0));
 
-template<class T, template <typename...> class Template>
-struct isSpecialization: std::false_type {};
+template <class T, template <typename...> class Template>
+struct isSpecialization : std::false_type
+{};
 
-template<template<typename...> class Template, typename...Args>
-struct  isSpecialization<Template<Args...>, Template>: std::true_type {}; 
+template <template <typename...> class Template, typename... Args>
+struct isSpecialization<Template<Args...>, Template> : std::true_type
+{};
 
 ////////////////////////////////////////////////////////////////////////////////
-//Thank you https://en.cppreference.com/w/cpp/experimental/is_detected
+// Thank you https://en.cppreference.com/w/cpp/experimental/is_detected
 
 namespace impl {
 
-template<typename...Ts>
+template <typename... Ts>
 using void_t = void;
 
-template <class Default, class AlwaysVoid,
-          template<class...> class Op, class... Args>
-struct Detector {
+template <class Default, class AlwaysVoid, template <class...> class Op,
+          class... Args>
+struct Detector
+{
   using value_t = std::false_type;
   using type = Default;
 };
- 
-template <class Default, template<class...> class Op, class... Args>
-struct Detector<Default, void_t<Op<Args...>>, Op, Args...> {
+
+template <class Default, template <class...> class Op, class... Args>
+struct Detector<Default, void_t<Op<Args...>>, Op, Args...>
+{
   // Note that std::void_t is a C++17 feature
   using value_t = std::true_type;
   using type = Op<Args...>;
 };
- 
+
 } // namespace impl
 
 
-struct Nonesuch {
-    ~Nonesuch() = delete;
-    Nonesuch(Nonesuch const&) = delete;
-    void operator=(Nonesuch const&) = delete;
+struct Nonesuch
+{
+  ~Nonesuch() = delete;
+  Nonesuch(Nonesuch const&) = delete;
+  void operator=(Nonesuch const&) = delete;
 };
 
-template <template<class...> class Op, class... Args>
-using isDetected = typename impl::Detector<Nonesuch, void, Op, Args...>::value_t;
- 
-template <template<class...> class Op, class... Args>
+template <template <class...> class Op, class... Args>
+using isDetected =
+    typename impl::Detector<Nonesuch, void, Op, Args...>::value_t;
+
+template <template <class...> class Op, class... Args>
 using Detected_t = typename impl::Detector<Nonesuch, void, Op, Args...>::type;
- 
-template <class Default, template<class...> class Op, class... Args>
+
+template <class Default, template <class...> class Op, class... Args>
 using DetectedOr = impl::Detector<Default, void, Op, Args...>;
 
-
-}
+} // namespace fluid

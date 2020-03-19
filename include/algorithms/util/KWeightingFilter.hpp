@@ -1,13 +1,25 @@
+/*
+Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See license.md file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
 #pragma once
+
 #include <cmath>
-#include <iostream>
+#include "../../data/FluidIndex.hpp"
 
 namespace fluid {
 namespace algorithm {
 
-class KWeightingFilter {
+class KWeightingFilter
+{
 public:
-  void init(double sampleRate) {
+  void init(double sampleRate)
+  {
     // from https://github.com/jiixyj/libebur128/blob/master/ebur128/ebur128.c
 
     // Shelving filter
@@ -52,46 +64,26 @@ public:
     mA[2] = shelvA[0] * hiA[2] + shelvA[1] * hiA[1] + shelvA[2] * hiA[0];
     mA[3] = shelvA[1] * hiA[2] + shelvA[2] * hiA[1];
     mA[4] = shelvA[2] * hiA[2];
-    for (int i = 0; i < 5; i++) {
+    for (index i = 0; i < 5; i++)
+    {
       mX[i] = 0;
       mY[i] = 0;
     }
-    //std::cout << sampleRate << std::endl;
-    //std::cout << K << std::endl;
-    for (int i = 0; i < 5; i++) {
-      //std::cout << mA[i] << std::endl;
-      //std::cout << mB[i] << std::endl;
-    }
-    for (int i = 0; i < 5; i++) {
-      //std::cout << mX[i] << std::endl;
-      //std::cout << mY[i] << std::endl;
-    }
-    //std::cout << "------"<< std::endl;
-  //  std::cout << "------"<< std::endl;
   }
 
-  double processSample(double x) {
+  double processSample(double x)
+  {
     double y = 0;
     mX[0] = x;
-    for (int i = 1; i < 5; i++) y-=mA[i] * mY[i - 1];
-    for (int i = 0; i < 5; i++) y+=mB[i] * mX[i];
+    for (index i = 1; i < 5; i++) y -= mA[i] * mY[i - 1];
+    for (index i = 0; i < 5; i++) y += mB[i] * mX[i];
 
-    /*for (int i = 0; i < 5; i++)
-      y = y + mB[i] * mX[i] - mA[i] * mY[i];*/
-    for (int i = 4; i > 0; i--) {
+    for (index i = 4; i > 0; i--)
+    {
       mX[i] = mX[i - 1];
       mY[i] = mY[i - 1];
     }
     mY[0] = y;
-    //std::cout << x << std::endl;
-    //std::cout << y << std::endl;
-    //std::cout << "------"<< std::endl;
-    for (int i = 0; i < 5; i++) {
-      //std::cout << mX[i] << std::endl;
-      //std::cout << mY[i] << std::endl;
-    }
-    //std::cout << "------"<< std::endl;
-    //std::cout << "------"<< std::endl;
     return y;
   }
 

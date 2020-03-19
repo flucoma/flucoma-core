@@ -1,15 +1,23 @@
+/*
+Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See license.md file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
 #pragma once
 
-#include "BufferedProcess.hpp"
+#include "../common/BufferedProcess.hpp"
 #include "../common/FluidBaseClient.hpp"
+#include "../common/FluidNRTClientWrapper.hpp"
 #include "../common/ParameterConstraints.hpp"
-#include "../common/ParameterTypes.hpp"
-#include "../common/ParameterTrackChanges.hpp"
 #include "../common/ParameterSet.hpp"
-#include "../nrt/FluidNRTClientWrapper.hpp"
+#include "../common/ParameterTrackChanges.hpp"
+#include "../common/ParameterTypes.hpp"
 #include "../../algorithms/public/TransientExtraction.hpp"
 #include "../../data/TensorTypes.hpp"
-
 #include <complex>
 #include <string>
 #include <tuple>
@@ -44,83 +52,93 @@ public:
     LongParam("clumpLength", "Clumping Window Length", 25, Min(0))
   );
 
-  TransientClient(ParamSetViewType& p) : mParams(p) {
+  TransientClient(ParamSetViewType& p) : mParams(p), mExtractor{get<kOrder>(), 3, 3.0}
+  {
     audioChannelsIn(1);
     audioChannelsOut(2);
   }
 
   template <typename T>
-  void process(std::vector<HostVector<T>> &input, std::vector<HostVector<T>> &output, FluidContext& c,
-               bool reset = false) {
+  void process(std::vector<HostVector<T>> &input, std::vector<HostVector<T>> &output, 
+              FluidContext& c) {
     if(!input[0].data() || (!output[0].data() && !output[1].data()))
       return;
 
     static constexpr unsigned iterations = 3;
-    static constexpr bool refine = false;
     static constexpr double robustFactor = 3.0;
 
-    std::size_t order = get<kOrder>();
-    std::size_t blockSize = get<kBlockSize>();
-    std::size_t padding = get<kPadding>();
-    std::size_t hostVecSize = input[0].size();
-    std::size_t maxWinIn = 2*blockSize + padding;
-    std::size_t maxWinOut = blockSize - order;
+    index order = get<kOrder>();
+    index blockSize = get<kBlockSize>();
+    index padding = get<kPadding>();
+    index hostVecSize = input[0].size();
+    index maxWinIn = 2 * blockSize + padding;
+    index maxWinOut = blockSize - order;
 
-    if (mTrackValues.changed(order, blockSize, padding, hostVecSize) || !mExtractor.get())
+    if (mTrackValues.changed(order, blockSize, padding, hostVecSize) ||
+        !mExtractor.initialized())
     {
-      mExtractor.reset(new algorithm::TransientExtraction(order, iterations, robustFactor, refine));
-      mExtractor->prepareStream(blockSize, padding);
+      mExtractor.init(order, iterations, robustFactor, blockSize,
+                      padding);
+      // mExtractor.reset(new algorithm::TransientExtraction(order, iterations,
+      // robustFactor, refine)); mExtractor->prepareStream(blockSize, padding);
       mBufferedProcess.hostSize(hostVecSize);
-      mBufferedProcess.maxSize(maxWinIn, maxWinOut, FluidBaseClient::audioChannelsIn(), FluidBaseClient::audioChannelsOut());
+      mBufferedProcess.maxSize(maxWinIn, maxWinOut,
+                               FluidBaseClient::audioChannelsIn(),
+                               FluidBaseClient::audioChannelsOut());
     }
 
-    double skew = std::pow(2, get<kSkew>());
+    double skew = pow(2, get<kSkew>());
     double threshFwd = get<kThreshFwd>();
     double thresBack = get<kThreshBack>();
-    size_t halfWindow = std::round(get<kWinSize>() / 2);
-    size_t debounce = get<kDebounce>();
+    index  halfWindow = static_cast<index>(round(get<kWinSize>() / 2));
+    index  debounce = get<kDebounce>();
 
-    mExtractor->setDetectionParameters(skew, threshFwd, thresBack, halfWindow, debounce);
+    mExtractor.setDetectionParameters(skew, threshFwd, thresBack, halfWindow,
+                                      debounce);
 
-    RealMatrix in(1,hostVecSize);
+    RealMatrix in(1, hostVecSize);
 
-    in.row(0) = input[0]; //need to convert float->double in some hosts
+    in.row(0) = input[0]; // need to convert float->double in some hosts
     mBufferedProcess.push(RealMatrixView(in));
 
-    mBufferedProcess.process(mExtractor->inputSize(), mExtractor->hopSize(), mExtractor->hopSize(), c, reset, [this](RealMatrixView in, RealMatrixView out)
-    {
-      mExtractor->process(in.row(0), out.row(0), out.row(1));
+    mBufferedProcess.process(
+        mExtractor.inputSize(), mExtractor.hopSize(), mExtractor.hopSize(), c,
+        [this](RealMatrixView in, RealMatrixView out) {
+          mExtractor.process(in.row(0), out.row(0), out.row(1));
     });
 
     RealMatrix out(2, hostVecSize);
     mBufferedProcess.pull(RealMatrixView(out));
 
-    if(output[0].data()) output[0] = out.row(0);
-    if(output[1].data()) output[1] = out.row(1);
+    if (output[0].data()) output[0] = out.row(0);
+    if (output[1].data()) output[1] = out.row(1);
   }
 
-  size_t latency()
+  index latency()
   {
     return get<kPadding>() + get<kBlockSize>() -  get<kOrder>();
   }
 
+  void reset() { mBufferedProcess.reset(); }
+
 private:
-  ParameterTrackChanges<size_t,size_t,size_t,size_t> mTrackValues;
-  std::unique_ptr<algorithm::TransientExtraction> mExtractor;
+  ParameterTrackChanges<index, index, index, index> mTrackValues;
+  // std::unique_ptr<algorithm::TransientExtraction> mExtractor;
+  algorithm::TransientExtraction mExtractor;
   BufferedProcess mBufferedProcess;
-  size_t mHostSize{0};
-  size_t mOrder{0};
-  size_t mBlocksize{0};
-  size_t mPadding{0};
+  index                          mHostSize{0};
+  index                          mOrder{0};
+  index                          mBlocksize{0};
+  index                          mPadding{0};
 };
 
 using RTTransientClient = ClientWrapper<TransientClient>;
 
 auto constexpr NRTTransientParams = makeNRTParams<RTTransientClient>({InputBufferParam("source", "Source Buffer")}, {BufferParam("transients","Transients Buffer"), BufferParam("residual","Residual Buffer")});
 
-using NRTTransients = NRTStreamAdaptor<RTTransientClient, decltype(NRTTransientParams), NRTTransientParams, 1, 2>;
+using NRTTransientsClient = NRTStreamAdaptor<RTTransientClient, decltype(NRTTransientParams), NRTTransientParams, 1, 2>;
 
-using NRTThreadedTransients = NRTThreadingAdaptor<NRTTransients>;
+using NRTThreadedTransientsClient = NRTThreadingAdaptor<NRTTransientsClient>;
 
 } // namespace client
 } // namespace fluid

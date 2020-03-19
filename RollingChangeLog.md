@@ -1,3 +1,67 @@
+# 1.0.0-RC1
+date: 
+
+## New Features:
+* BREAKING CHANGE: (buf)melbands how has normalised amplitude output option, on by default, which is independent of window and fft size
+* (buf)NoveltySlice now has a minimum slice length parameter
+* BREAKING CHANGE: (buf)sines now have new parameter names, and a new option to select which algorithm is used to track the sines. It also has improved sound quality and more refined thresholding.
+* BREAKING CHANGE: (buf)AmpSlice is now 2 objects, (buf)AmpGate for the absolute, and (buf)AmpSlice for the relative
+* (buf)AmpSlice and (buf)AmpGate has 0Hz highpassfreq to bypass the high pass filter.
+
+## Bug Fixes:
+* (Pd on Windows) now works ;-)
+* BREAKING CHANGE: buf* processes now use the buffer's sampling rate (or the SR attribute for Pd)
+* BREAKING CHANGE: (buf)ampslice now works much faster and consistently but thresholds and times will have to be tweaked
+* (Pd) BREAKING CHANGE: all non-real-time (buf) objects have lost the tilde (~) in their name to be consistent with the language conventions.
+* BREAKING CHANGE: (buf)OnsetSlice latency reporting (rt) and offset (buf) are now more accurate but will have changed for similar threshold
+* BREAKING CHANGE: (buf)NoveltySlice latency reporting (rt) and offset (buf) are now more accurate but will have changed for similar threshold
+* (buf)HPSS speed is improved
+* Many edge cases were found and sorted.
+* (Max) parameters updates now behave all the time in real-time
+* (SC) BREAKING CHANGE: bufnmf's audio output destination buffer is renamed properly to resynth
+
+## Improvements:
+* (Pd+CLI) documentation is now more accurate and consistently formatted
+* cross reference between documents (see also)
+* credits, references and acknowledgements are streamlined and consistent
+* (Pd) better code for pinknoise abstraction
+
+## New Example:
+* (SC+Pd) most Max examples are now ported to the two other CCEs
+* (SC) Gerard's GUI demos of algorithms are now available
+
+## Known Bugs:
+* bufnmf progress output in multithreading mode (blocking 0) does not output progress.
+* (Mac) Notarization is not implemented yet since most CCEs are working on workarounds
+
+===
+# beta-02: multithreading!
+date: 9 October 2019
+
+## New Features:
+* Max+Pd+SC: multithreading for all buf* objects! Make sure to read the tutorial on how to make the best use of various threading options you now have.
+* Pd: stereo examples of fluid.buf* objects are done
+* CLI: BREAKING CHANGE: new executable naming convention, because we want it to be fluid.
+* CLI: CSV file output type
+* Max: new audio player in some help files, adapted from C74's [demosound]
+* pd (0.50.1+) launching of html ref from the helpfiles
+
+## Bug Fixes:
+* (Max) Reference pages are more complete (with all messages)
+* (Max) Help patches better at making sound straight out of the box
+* (CLI) Some audio file format were wrong polarity, now sorted
+* (CLI) Mangled wav files on windows sorted
+* all: many little tweaks here and there, more stable and consistent documentation
+
+## New Example:
+* (all) nb_of_slice is updated and more intelligent
+
+## Known Bugs:
+* BufNoveltySlice might generate garbage strange values in the first frame
+* AmpSlice is noisy when some parameters are changed
+* (Max/PD) Successive use of some fluid.buf* objects with buffers of differing sample rates will stick at first sample rate received
+
+===
 # beta-01: some fixes and more
 date: 26 August 2019
 

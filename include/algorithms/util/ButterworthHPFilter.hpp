@@ -1,3 +1,12 @@
+/*
+Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See license.md file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
 #pragma once
 #include <cassert>
 #include <cmath>
@@ -5,9 +14,11 @@
 namespace fluid {
 namespace algorithm {
 
-class ButterworthHPFilter {
+class ButterworthHPFilter
+{
 public:
-  void init(double cutoff) { // as fraction of sample rate
+  void init(double cutoff)
+  { // as fraction of sample rate
     using std::pow;
     double c = tan(M_PI * cutoff);
     mB0 = 1.0 / (1.0 + M_SQRT2 * c + pow(c, 2.0));
@@ -17,7 +28,8 @@ public:
     mA1 = mB0 * (1.0 - M_SQRT2 * c + pow(c, 2.0));
   }
 
-  double processSample(double x) {
+  double processSample(double x)
+  {
     double y = mB0 * x + mB1 * mXnz1 + mB2 * mXnz2 - mA0 * mYnz1 - mA1 * mYnz2;
     mXnz2 = mXnz1;
     mXnz1 = x;
@@ -27,12 +39,12 @@ public:
   }
 
 private:
-  double mB0, mB1, mB2;
-  double mA0, mA1;
-  double mXnz1 = 0;
-  double mXnz2 = 0;
-  double mYnz1 = 0;
-  double mYnz2 = 0;
+  double mB0{0.0}, mB1{0.0}, mB2{0.0};
+  double mA0{0.0}, mA1{0.0};
+  double mXnz1{0.0};
+  double mXnz2{0.0};
+  double mYnz1{0.0};
+  double mYnz2{0.0};
 };
 }; // namespace algorithm
 }; // namespace fluid

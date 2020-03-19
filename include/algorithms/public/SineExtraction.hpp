@@ -1,272 +1,214 @@
+/*
+Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See license.md file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
 #pragma once
 
-#include "../../data/TensorTypes.hpp"
+#include "WindowFuncs.hpp"
+#include "../util/AlgorithmUtils.hpp"
 #include "../util/ConvolutionTools.hpp"
 #include "../util/FFT.hpp"
 #include "../util/FluidEigenMappings.hpp"
-#include "Windows.hpp"
-#include <Eigen/Eigen>
+#include "../util/PartialTracking.hpp"
+#include "../util/PeakDetection.hpp"
+#include "../../data/FluidIndex.hpp"
+#include "../../data/TensorTypes.hpp"
+#include <Eigen/Core>
+#include <fstream>
 #include <queue>
 
 namespace fluid {
 namespace algorithm {
 
-using _impl::asEigen;
-using _impl::asFluid;
-using Eigen::ArrayXcd;
-using Eigen::ArrayXd;
-using Eigen::Map;
-using Eigen::VectorXd;
-using std::vector;
 
-struct SinePeak {
-  // int centerBin;
-  double freq;
-  double logMag;
-  bool assigned;
-};
+class SineExtraction
+{
+  using ArrayXd = Eigen::ArrayXd;
+  using VectorXd = Eigen::VectorXd;
+  using ArrayXcd = Eigen::ArrayXcd;
+  template <typename T>
+  using vector = std::vector<T>;
 
-struct SineTrack {
-  vector<SinePeak> peaks;
-  int startFrame;
-  int endFrame;
-  bool active;
-  bool assigned;
-};
-
-class SineExtraction {
 public:
-  using RealMatrixView = FluidTensor<double, 2>;
-  using ComplexVectorView = FluidTensorView<std::complex<double>, 1>;
-  using ComplexMatrixView = FluidTensorView<std::complex<double>, 2>;
+  SineExtraction(index maxFFTSize)
+      : mBins(maxFFTSize / 2 + 1), mMaxFFTSize(maxFFTSize), mFFT(maxFFTSize)
+  {}
 
-  SineExtraction(int windowSize, int fftSize, int hopSize, int bandwidth,
-                   double threshold, int minTrackLength, double magWeight,
-                   double freqWeight)
-      : mWindowSize(windowSize),
-        mWindow(windowFuncs[WindowType::kHann](windowSize)), mFFTSize(fftSize),
-        mBins(fftSize / 2 + 1), mFFT(fftSize), mBandwidth(bandwidth),
-        mThreshold(threshold), mMinTrackLength(minTrackLength),
-        mMagWeight(magWeight), mFreqWeight(freqWeight), mCurrentFrame(0) {
-    mWindowTransform = computeWindowTransform(mWindow);
-    mOnes = VectorXd::Ones(mBandwidth);
-    mWNorm = mWindowTransform.square().sum();
+  void init(index windowSize, index fftSize, index bandwidth)
+  {
+    mWindowSize = windowSize;
+    mBins = fftSize / 2 + 1;
+    mCurrentFrame = 0;
+    mBuf = std::queue<ArrayXcd>();
+    mScale = 1.0 / (windowSize / 4.0); // scale to original amplitude
+    mBandwidth = bandwidth;
+    computeWindowTransform();
+    mTracking.init();
+    mInitialized = true;
   }
 
-  void processFrame(const ComplexVectorView in, ComplexMatrixView out) {
+  void computeWindowTransform()
+  {
+    index halfBW = mMaxFFTSize / 2;
+    mWindowTransform = ArrayXd::Zero(mMaxFFTSize);
+    ArrayXd window = ArrayXd::Zero(mWindowSize);
+    WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](mWindowSize, window);
+    ArrayXcd transform =
+        mFFT.process(Eigen::Map<ArrayXd>(window.data(), mWindowSize));
+    for (index i = 0; i < halfBW; i++)
+    {
+      mWindowTransform(halfBW + i) = mWindowTransform(halfBW - i) =
+          abs(transform(i));
+    }
+  }
+
+  void processFrame(const ComplexVectorView in, ComplexMatrixView out,
+                    double sampleRate)
+  {
+    assert(mInitialized);
     using Eigen::Array;
     using Eigen::ArrayXXcd;
-    const auto &epsilon = std::numeric_limits<double>::epsilon();
-    ArrayXcd frame = asEigen<Array>(in);
+    index fftSize = 2 * (mBins - 1);
+
+    ArrayXcd frame = _impl::asEigen<Array>(in);
     mBuf.push(frame);
     ArrayXd mag = frame.abs().real();
-    ArrayXd logMag = 20 * mag.max(epsilon).log10();
-    ArrayXd correlation = getWindowCorrelation(mag);
-    vector<SinePeak> peaks = findPeaks(correlation, mThreshold, logMag);
-    peakContinuation(mTracks, peaks, mag);
-    vector<SinePeak> sinePeaks = getActivePeaks(mTracks);
-    ArrayXd frameSines = additiveSynthesis(sinePeaks);
-    ArrayXXcd result(mBins, 2);
-    if (mBuf.size() <= mMinTrackLength) {
+    mag = mag * mScale;
+    ArrayXd          logMag = 20 * mag.max(epsilon).log10();
+    vector<SinePeak> peaks;
+    auto tmpPeaks = mPeakDetection.process(logMag, 0, -infinity, true, false);
+    for (auto p : tmpPeaks)
+    {
+      if (p.second > mDeathThreshold)
+      {
+        double hz = sampleRate * p.first / fftSize;
+        peaks.push_back({hz, p.second, false});
+      }
+    }
+    double maxAmp = 20 * std::log10(mag.maxCoeff());
+    mTracking.processFrame(peaks, maxAmp);
+    vector<SinePeak> sinePeaks = mTracking.getActivePeaks();
+    ArrayXd          frameSines = additiveSynthesis(sinePeaks, sampleRate);
+    ArrayXXcd        result(mBins, 2);
+    if (asSigned(mBuf.size()) <= mTracking.minTrackLength())
+    {
       result.col(0) = ArrayXd::Zero(mBins);
       result.col(1) = ArrayXd::Zero(mBins);
-    } else {
+    }
+    else
+    {
       ArrayXcd resultFrame = mBuf.front();
-      ArrayXd resultMag = resultFrame.abs().real();
-      ArrayXd frameResidual = resultMag - frameSines;
-      frameResidual = (frameResidual < 0).select(0, frameResidual);
-      ArrayXd all = frameSines + frameResidual;
-      ArrayXd mult = (1.0 / all.max(epsilon));
-      result.col(0) = resultFrame * (frameSines * mult).min(1.0);
-      result.col(1) = resultFrame * (frameResidual * mult).min(1.0);
+      ArrayXd  resultMag = resultFrame.abs().real();
+
+      for (index i = 0; i < mBins; i++)
+      {
+        if (frameSines(i) >= resultMag(i))
+        {
+          result(i, 0) = resultFrame(i);
+          result(i, 1) = 0;
+        }
+        else
+        {
+          double sineWeight = frameSines(i) / resultMag(i);
+          result(i, 0) = resultFrame(i) * sineWeight;
+          result(i, 1) = resultFrame(i) * (1 - sineWeight);
+        }
+      }
+
       mBuf.pop();
     }
-    auto iterator =
-        std::remove_if(mTracks.begin(), mTracks.end(), [&](SineTrack track) {
-          return (track.endFrame >= 0 &&
-                  track.endFrame <= mCurrentFrame - mMinTrackLength);
-        });
-    mTracks.erase(iterator, mTracks.end());
-    out = asFluid(result);
+    mTracking.prune();
+    out = _impl::asFluid(result);
     mCurrentFrame++;
   }
 
+
   void reset() { mCurrentFrame = 0; }
 
-  void setThreshold(double threshold) {
-    assert(0 <= threshold <= 1);
-    mThreshold = threshold;
+  void setDeathThreshold(double threshold) { mDeathThreshold = threshold; }
+
+  void setBirthLowThreshold(double threshold)
+  {
+    mTracking.setBirthLowThreshold(threshold);
   }
 
-  void setMinTrackLength(int minTrackLength) {
-    mMinTrackLength = minTrackLength;
+  void setBirthHighThreshold(double threshold)
+  {
+    mTracking.setBirthHighThreshold(threshold);
   }
 
-  void setMagWeight(double magWeight) {
-    assert(0 <= magWeight <= 1);
-    mMagWeight = magWeight;
+  void setMinTrackLength(index minTrackLength)
+  {
+    if (minTrackLength != mTracking.getMinTrackLength())
+    {
+      mBuf = std::queue<ArrayXcd>();
+      mTracking.setMinTrackLength(minTrackLength);
+    }
   }
 
-  void setFreqWeight(double freqWeight) {
-    assert(0 <= freqWeight <= 1);
-    mFreqWeight = freqWeight;
-  }
+  void setMethod(index method) { mTracking.setMethod(method); }
+
+  void setZetaA(double zetaA) { mTracking.setZetaA(zetaA); }
+
+  void setZetaF(double zetaF) { mTracking.setZetaF(zetaF); }
+
+  void setDelta(double delta) { mTracking.setDelta(delta); }
+
+  bool initialized() { return mInitialized; }
 
 private:
-  int mWindowSize;
-  vector<double> mWindow;
-  int mFFTSize;
-  int mBins;
-  FFT mFFT;
-  VectorXd mOnes;
-  ArrayXd mW;
-  double mWNorm;
-  int mBandwidth;
-  double mThreshold;
-  ArrayXd mWindowTransform;
-  int mMinTrackLength;
-  double mMagWeight;
-  double mFreqWeight;
-  size_t mCurrentFrame;
-  vector<SineTrack> mTracks;
-  std::queue<ArrayXcd> mBuf;
-
-  const void peakContinuation(vector<SineTrack> &tracks,
-                              vector<SinePeak> sinePeaks, const ArrayXd frame) {
-    using std::abs;
-    using std::get;
-    using std::log;
-    using std::sort;
-    using std::tuple;
-    using std::vector;
-
-    vector<tuple<double, SineTrack *, SinePeak *>> distances;
-    for (auto &&track : tracks) {
-      track.assigned = false;
-    }
-
-    for (auto &track : tracks) {
-      if (track.active) {
-        for (auto &&peak : sinePeaks) {
-          double dist =
-              mFreqWeight * abs(log(track.peaks.back().freq / peak.freq)) +
-              mMagWeight * abs(track.peaks.back().logMag - peak.logMag);
-          distances.push_back(std::make_tuple(dist, &track, &peak));
-        }
-      }
-    }
-
-    sort(distances.begin(), distances.end(),
-         [](tuple<double, SineTrack *, SinePeak *> const &t1,
-            tuple<double, SineTrack *, SinePeak *> const &t2) {
-           return get<0>(t1) < get<0>(t2);
-         });
-
-    for (auto &&pairing : distances) {
-      if (!get<1>(pairing)->assigned && !get<2>(pairing)->assigned) {
-        get<1>(pairing)->peaks.push_back(*get<2>(pairing));
-        get<1>(pairing)->assigned = true;
-        get<2>(pairing)->assigned = true;
-      }
-    }
-    // new tracks
-    for (auto &&peak : sinePeaks) {
-      if (!peak.assigned) {
-        tracks.push_back(SineTrack{vector<SinePeak>{peak},
-                                   static_cast<int>(mCurrentFrame), -1, true,
-                                   true});
-      }
-    }
-    // diying tracks
-    for (auto &&track : tracks) {
-      if (track.active && !track.assigned) {
-        track.active = false;
-        track.endFrame = mCurrentFrame;
-      }
-    }
-  }
-
-  vector<SinePeak> getActivePeaks(const vector<SineTrack> tracks) {
-    vector<SinePeak> sinePeaks;
-    int latencyFrame = mCurrentFrame - mMinTrackLength;
-    for (auto &&track : tracks) {
-      if (track.startFrame > latencyFrame)
-        continue;
-      if (track.endFrame >= 0 && track.endFrame <= latencyFrame)
-        continue;
-      if (track.endFrame >= 0 &&
-          track.endFrame - track.startFrame < mMinTrackLength)
-        continue;
-
-      sinePeaks.push_back(track.peaks[latencyFrame - track.startFrame]);
-    }
-    return sinePeaks;
-  }
-
-  ArrayXd getWindowCorrelation(const ArrayXd frame) {
-    ArrayXd squareMag = frame.square();
-    ArrayXd corr(frame.size());
-    ArrayXd spectrumNorm(frame.size());
-    correlateReal(corr.data(), frame.data(), frame.size(),
-                  mWindowTransform.data(), mBandwidth, kEdgeWrapCentre);
-    convolveReal(spectrumNorm.data(), squareMag.data(), frame.size(),
-                 mOnes.data(), mBandwidth, kEdgeWrapCentre);
-    corr = corr.square() / (spectrumNorm * mWNorm);
-    return corr;
-  }
-
-  ArrayXd computeWindowTransform(vector<double> window) {
-    int halfBW = mBandwidth / 2;
-    ArrayXd result = ArrayXd::Zero(mBandwidth);
-    ArrayXcd transform = mFFT.process(Map<ArrayXd>(window.data(), mWindowSize));
-    for (int i = 0; i < halfBW; i++) {
-      result(halfBW + i) = result(halfBW - i) = abs(transform(i));
-    }
-    return result;
-  }
-
-  vector<SinePeak> findPeaks(const ArrayXd correlation, double threshold,
-                             const ArrayXd logMag) {
-    vector<SinePeak> peaks;
-    for (int i = 1; i < correlation.size() - 1; i++) {
-      if (correlation(i) > correlation(i - 1) &&
-          correlation(i) > correlation(i + 1) && correlation(i) > threshold) {
-        double p =
-            0.5 * (correlation(i - 1) - correlation(i + 1)) /
-            (correlation(i - 1) - 2 * correlation(i) + correlation(i + 1));
-        double interpFreq = i + p;
-        double interpLogMag =
-            logMag(i) - 0.25 * (correlation(i - 1) - correlation(i + 1)) * p;
-
-        peaks.push_back(SinePeak{interpFreq, interpLogMag});
-      }
-    }
-    return peaks;
-  }
-
-  ArrayXd additiveSynthesis(const vector<SinePeak> peaks) {
+  ArrayXd additiveSynthesis(const vector<SinePeak> peaks, double sampleRate)
+  {
     ArrayXd result = ArrayXd::Zero(mBins);
-    for (auto &p : peaks) {
-      result += synthesizePeak(p);
-    }
+    for (auto& p : peaks) { result += synthesizePeak(p, sampleRate); }
     return result;
   }
 
-  ArrayXd synthesizePeak(SinePeak p) {
-    int halfBW = mBandwidth / 2;
+  ArrayXd synthesizePeak(SinePeak p, double sampleRate)
+  {
+    index   halfBW = mBandwidth / 2;
     ArrayXd sine = ArrayXd::Zero(mBins);
-    int freqBin = std::round(p.freq);
-    if(freqBin >= mBins - 1)freqBin = mBins - 1;
-    double amp = std::pow(10, p.logMag / 20);
-
-    for (int i = freqBin, j = 0; i < std::min(freqBin + halfBW, mBins - 1); i++, j++) {
-      sine[i] = amp * mWindowTransform(halfBW + j);
-    }
-    for (int i = freqBin, j = 0; i > std::max(freqBin - halfBW, 0); i--, j++) {
-      sine[i] = amp * mWindowTransform(halfBW - j);
-    }
+    double  freqBin = p.freq * 2 * (mBins - 1) / sampleRate;
+    if (freqBin >= mBins - 1) freqBin = mBins - 1;
+    if (freqBin < 0) freqBin = 0;
+    index  freqBinFloor = static_cast<index>(std::floor(freqBin));
+    index  freqBinCeil = freqBinFloor + 1;
+    double amp = 0.5 * std::pow(10, p.logMag / 20);
+    index  incr = mWindowTransform.size() / (mBins - 1) / 2;
+    index  pos = mWindowTransform.size() / 2 +
+                std::lrint((freqBinCeil - freqBin) * incr);
+    for (index i = freqBinCeil; pos < mWindowTransform.size() - 2 &&
+                                i < std::min(freqBinFloor + halfBW, mBins - 1);
+         i++, pos += incr)
+    { sine[i] = amp * mWindowTransform(pos); }
+    pos = (mWindowTransform.size() / 2) -
+          std::lrint((freqBin - freqBinFloor) * incr);
+    for (index i = freqBinFloor;
+         pos > 1 && i > std::max(freqBinFloor - halfBW, asSigned(0));
+         i--, pos -= incr)
+    { sine[i] = amp * mWindowTransform(pos); }
     return sine;
   }
+
+  PeakDetection        mPeakDetection;
+  PartialTracking      mTracking;
+  index                mBins{513};
+  double               mDeathThreshold{-96.};
+  index                mCurrentFrame{0};
+  vector<SineTrack>    mTracks;
+  std::queue<ArrayXcd> mBuf;
+  ArrayXd              mWindowTransform;
+  double               mScale{1.0};
+  bool                 mInitialized{false};
+  index                mBandwidth{76};
+  index                mWindowSize{1024};
+  index                mMaxFFTSize{16384};
+  FFT                  mFFT;
 };
 } // namespace algorithm
 } // namespace fluid

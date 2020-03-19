@@ -1,57 +1,70 @@
+/*
+Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See license.md file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
 #pragma once
 
-#include "../../data/TensorTypes.hpp"
 #include "TransientExtraction.hpp"
+#include "../../data/TensorTypes.hpp"
+#include "../../data/FluidIndex.hpp"
 
 namespace fluid {
 namespace algorithm {
 
-class TransientSegmentation : private algorithm::TransientExtraction {
+class TransientSegmentation : public algorithm::TransientExtraction
+{
 
 public:
-  TransientSegmentation(size_t order, size_t iterations, double robustFactor)
-      : TransientExtraction(order, iterations, robustFactor, false),
-        mMinSegment(25), mDebounce(0), mLastDetection(false) {}
+  TransientSegmentation(index order, index iterations, double robustFactor)
+      : TransientExtraction(order, iterations, robustFactor)
+  {}
 
   void setDetectionParameters(double power, double threshHi, double threshLo,
-                              int halfWindow = 7, int hold = 25,
-                              int minSegment = 50) {
+                              index halfWindow = 7, index hold = 25,
+                              index minSegment = 50)
+  {
     TransientExtraction::setDetectionParameters(power, threshHi, threshLo,
                                                 halfWindow, hold);
     mMinSegment = minSegment;
   }
 
-  void prepareStream(int blockSize, int padSize) {
-    TransientExtraction::prepareStream(blockSize, padSize);
+  void init(index order, index iterations, double robustFactor, index blockSize,
+            index padSize)
+  {
+    TransientExtraction::init(order, iterations, robustFactor, blockSize,
+                              padSize);
     mLastDetection = false;
     mDebounce = 0;
   }
 
-  int modelOrder() const { return TransientExtraction::modelOrder(); }
-  int blockSize() const { return TransientExtraction::blockSize(); }
-  int hopSize() const { return TransientExtraction::hopSize(); }
-  int padSize() const { return TransientExtraction::padSize(); }
-  int inputSize() const { return TransientExtraction::inputSize(); }
-  int analysisSize() const { return TransientExtraction::analysisSize(); }
+  index modelOrder() const { return TransientExtraction::modelOrder(); }
+  index blockSize() const { return TransientExtraction::blockSize(); }
+  index hopSize() const { return TransientExtraction::hopSize(); }
+  index padSize() const { return TransientExtraction::padSize(); }
+  index inputSize() const { return TransientExtraction::inputSize(); }
+  index analysisSize() const { return TransientExtraction::analysisSize(); }
 
-  void process(const RealVectorView input, RealVectorView output) {
+  void process(const RealVectorView input, RealVectorView output)
+  {
     detect(input.data(), input.extent(0));
-    const double *transientDetection = getDetect();
-    for (int i = 0; i < std::min<size_t>(hopSize(), output.size()); i++) {
-      output(i) = (transientDetection[i] && !mLastDetection && !mDebounce);
-      mDebounce = output(i) == 1.0 ? mMinSegment : std::max(0, --mDebounce);
+    const double* transientDetection = getDetect();
+    for (index i = 0; i < std::min<index>(hopSize(), output.size()); i++)
+    {
+      output(i) = (transientDetection[i] != 0 && !mLastDetection && !mDebounce);
+      mDebounce = output(i) == 1.0 ? mMinSegment : std::max<index>(0, --mDebounce);
       mLastDetection = transientDetection[i] == 1.0;
     }
   }
 
 private:
-  // void resizeStorage() { mDetect.resize(hopSize(), 0.0); }
-
-private:
-  int mMinSegment;
-  int mDebounce;
-  bool mLastDetection;
-  // std::vector<double> mDetect;
+  index mMinSegment{25};
+  index mDebounce{0};
+  bool  mLastDetection{false};
 };
 
 }; // namespace algorithm

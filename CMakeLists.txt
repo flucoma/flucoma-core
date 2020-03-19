@@ -1,185 +1,148 @@
-cmake_minimum_required (VERSION 3.8)
+# Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
+# Copyright 2017-2019 University of Huddersfield.
+# Licensed under the BSD-3 License.
+# See license.md file in the project root for full license information.
+# This project has received funding from the European Research Council (ERC)
+# under the European Union’s Horizon 2020 research and innovation programme
+# (grant agreement No 725899).
 
-# set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+cmake_minimum_required (VERSION 3.11)
+
+get_directory_property(hasParent PARENT_DIRECTORY)
+
+#set module path at top level so wrapper projects can easily include fluid_version script
+if(hasParent)
+  set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/script PARENT_SCOPE)
+endif()  
+
+if(APPLE) #has to be before first project() call. grrrrrr
+  set(CMAKE_OSX_DEPLOYMENT_TARGET 10.7)  
+endif()
+
 project (fluid_decomposition LANGUAGES CXX)
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-SET(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
 
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic")
+include(FetchContent)
+set(HISS_PATH "" CACHE PATH "The path to a HISSTools_Library folder. Will pull from github if not set")
+set(EIGEN_PATH "" CACHE PATH "The path to an Eigen installation (>=3.3.5). Will pull from github if not set")
 IF(APPLE)
-  set(CMAKE_OSX_DEPLOYMENT_TARGET "10.7" CACHE STRING "Minimum OS X deployment version")
-	set(CMAKE_OSX_ARCHITECTURES x86_64;i386)
-
   find_library(ACCELERATE Accelerate)
   IF (NOT ACCELERATE)
-    message(FATAL_ERROR "Accelerate not found")
+    message(FATAL_ERROR "Accelerate framework not found")
   ENDIF()
 ENDIF (APPLE)
 
-# TODO: Break into sub CMakeLists for algos / clients etc to avoid the list of doooom
-list(APPEND HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/CepstrumF0.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/EnvelopeSegmentation.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/HPS.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/HPSS.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/Loudness.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/NMF.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/NoveltySegmentation.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/OnsetDetectionFuncs.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/OnsetSegmentation.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/RTHPSS.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/RTNoveltySegmentation.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/RTSineExtraction.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/RatioMask.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/STFT.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/SineExtraction.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/SpectralShape.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/Stats.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/TransientExtraction.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/TransientSegmentation.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/WindowFuncs.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/Windows.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/public/YINFFT.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/ARModel.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/ButterworthHPFilter.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/ConvolutionTools.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/DCT.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/Descriptors.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/FFT.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/FluidEigenMappings.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/KWeightingFilter.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/MedianFilter.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/MelBands.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/Novelty.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/PeakDetection.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/RTNovelty.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/SlideUDFilter.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/Toeplitz.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/algorithms/util/TruePeak.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/AudioClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/BufferAdaptor.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/FluidBaseClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/FluidSink.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/FluidSource.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/MessageSet.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/MemoryBufferAdaptor.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/OfflineClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/ParameterConstraints.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/ParameterSet.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/ParameterTrackChanges.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/ParameterTypes.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/Result.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/SpikesToTimes.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/common/TupleUtilities.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/BufferComposeNRT.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/BufferStats.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/FluidNRTClientWrapper.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/MessageTest.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/nrt/NMFClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/AmpSlice.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/BaseSTFTClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/BufferedProcess.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/GainClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/HPSSClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/LoudnessClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/MFCCClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/MelBandsClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/NMFFilter.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/NMFMatch.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/NoveltySlice.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/OnsetSlice.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/PitchClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/SinesClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/SpectralShapeClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/TransientClient.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/clients/rt/TransientSlice.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/data/FluidMeta.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/data/FluidTensor.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/data/FluidTensor_Support.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/data/TensorTypes.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/include/util/TupleUtils.hpp )
+# Grab the Fluid Decpomposition header files so they can be added to IDE builds
+file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/include/**/*.hpp")
 
-set(root ${CMAKE_CURRENT_SOURCE_DIR})
+set(FETCHCONTENT_QUIET FALSE)
 
-# HISSTools FFT target: I'd rather this was a static lib; however, this way we
-# just inject the source into dependencies downstream, which is unitdy but works
+# Either download or point to dependencies
+FetchContent_Declare(
+  HISSTools
+  GIT_REPOSITORY https://github.com/AlexHarker/HISSTools_Library
+  GIT_PROGRESS TRUE
+  GIT_TAG 9d9a85f
+)
+
+FetchContent_Declare(
+  Eigen
+  GIT_REPOSITORY https://github.com/eigenteam/eigen-git-mirror/
+  GIT_PROGRESS TRUE
+  GIT_BRANCH "branches/3.3"
+  GIT_TAG "3.3.5"
+)
+
+if(HISS_PATH) #if hiss path is set, this will stop it downloading
+  get_filename_component(FETCHCONTENT_SOURCE_DIR_HISSTOOLS ${HISS_PATH} ABSOLUTE)
+endif()
+
+if(EIGEN_PATH) #if hiss path is set, this will stop it downloading
+  get_filename_component(FETCHCONTENT_SOURCE_DIR_EIGEN ${EIGEN_PATH} ABSOLUTE)
+endif()
+
+FetchContent_GetProperties(HISSTools)
+if(NOT hisstools_POPULATED)
+  FetchContent_Populate(HISSTools)
+endif()
+
+FetchContent_GetProperties(Eigen)
+if(NOT eigen_POPULATED)
+  FetchContent_Populate(Eigen)
+endif()
+
+# HISSTools FFT target
 add_library(
-  HISSTools_FFT INTERFACE
+  HISSTools_FFT STATIC "${hisstools_SOURCE_DIR}/HISSTools_FFT/HISSTools_FFT.cpp"
 )
-target_sources(HISSTools_FFT INTERFACE
-  ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/HISSTools_FFT/HISSTools_FFT.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/HISSTools_FFT/HISSTools_FFT.cpp
-)
+
 target_link_libraries(
-  HISSTools_FFT
-  INTERFACE ${ACCELERATE}
+  HISSTools_FFT PRIVATE ${ACCELERATE}
+)
+
+target_include_directories(HISSTools_FFT PUBLIC "${hisstools_SOURCE_DIR}")
+
+set_target_properties(HISSTools_FFT PROPERTIES
+    CXX_STANDARD 14
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
 )
 
 #HISSTools Audiofile Target
 add_library(
-  HISSTools_AudioFile INTERFACE
-)
-target_sources(
-  HISSTools_AudioFile
-  INTERFACE
-  "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/HISSTools_AudioFile/IAudioFile.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/HISSTools_AudioFile/OAudioFile.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/HISSTools_AudioFile/BaseAudioFile.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/HISSTools_AudioFile/IAudioFile.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/HISSTools_AudioFile/OAudioFile.cpp"
+  HISSTools_AudioFile STATIC
+  "${hisstools_SOURCE_DIR}/AudioFile/BaseAudioFile.cpp"
+  "${hisstools_SOURCE_DIR}/AudioFile/IAudioFile.cpp"
+  "${hisstools_SOURCE_DIR}/AudioFile/OAudioFile.cpp"
 )
 
-
-#Fluid Decomposition headers target
-add_library(
-  FLUID_DECOMPOSITION INTERFACE
+set_target_properties(HISSTools_AudioFile PROPERTIES
+    CXX_STANDARD 14
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
 )
+
+#Fluid Decomposition header-only target
+add_library(FLUID_DECOMPOSITION INTERFACE)
 
 target_include_directories(
-  FLUID_DECOMPOSITION
-  INTERFACE
-  "${CMAKE_CURRENT_SOURCE_DIR}/include"
+  FLUID_DECOMPOSITION INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
-
+target_include_directories(
+  FLUID_DECOMPOSITION SYSTEM INTERFACE #we don't want warnings from Eigen or HissTools
+  "${eigen_SOURCE_DIR}"
+  "${hisstools_SOURCE_DIR}"
+)
+target_link_libraries(
+  FLUID_DECOMPOSITION INTERFACE HISSTools_FFT
+)
 target_sources(
   FLUID_DECOMPOSITION INTERFACE ${HEADERS}
-)
-target_compile_features(
-  FLUID_DECOMPOSITION INTERFACE cxx_std_14
 )
 
 #GCC vomits on using HostVector = HostVector<U> without this flag on
 if(CMAKE_COMPILER_IS_GNUCXX)
-  target_compile_options(
-    FLUID_DECOMPOSITION INTERFACE -fpermissive
-  )
-ENDIF(CMAKE_COMPILER_IS_GNUCXX)
+  target_compile_options(FLUID_DECOMPOSITION INTERFACE -fpermissive)
+endif()
 
 if(APPLE)
-target_compile_definitions(
-  FLUID_DECOMPOSITION INTERFACE -DEIGEN_USE_BLAS
-)
-ENDIF(APPLE)
-# target_link_libraries(
-#   FLUID_DECOMPOSITION INTERFACE HISSTools_FFT
-# )
+  target_compile_definitions(FLUID_DECOMPOSITION INTERFACE EIGEN_USE_BLAS=1;EIGEN_MPL2_ONLY=1)
+  #targeting <= 10.9, need to really emphasise that we want libc++ both to compiler and linker
+  target_compile_options(HISSTools_FFT PUBLIC -stdlib=libc++)
+  target_compile_options(HISSTools_AudioFile PUBLIC -stdlib=libc++)
+  target_compile_options(FLUID_DECOMPOSITION INTERFACE -stdlib=libc++)
+  target_link_libraries(FLUID_DECOMPOSITION INTERFACE -stdlib=libc++)
+endif()
 
-# target_compile_options(
-#     FLUID_DECOMPOSITION
-#     INTERFACE
-#     "$<$<NOT:$<CONFIG:DEBUG>>: -mavx -msse -msse2 -msse3 -msse4>"
-# )
-
-target_include_directories(
-  FLUID_DECOMPOSITION
-  SYSTEM INTERFACE
-  "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty"
-)
-
-
-#add_subdirectory(
-#  "${CMAKE_CURRENT_SOURCE_DIR}/examples" EXCLUDE_FROM_ALL
-#)
-
-export(TARGETS FLUID_DECOMPOSITION HISSTools_FFT HISSTools_AudioFile FILE fluid_decomposition-exports.cmake)
+#Apply any vector instruction flags 
+include("${CMAKE_CURRENT_SOURCE_DIR}/script/flucoma_simdcmd.cmake")
+if(DEFINED FLUID_ARCH)
+  target_compile_options(HISSTools_FFT PUBLIC ${FLUID_ARCH})
+  target_compile_options(HISSTools_AudioFile PUBLIC ${FLUID_ARCH})
+  target_compile_options(FLUID_DECOMPOSITION INTERFACE ${FLUID_ARCH})
+endif()
+#Examples 
+if(APPLE)
+  add_subdirectory(
+   "${CMAKE_CURRENT_SOURCE_DIR}/examples" EXCLUDE_FROM_ALL
+  )
+endif() 

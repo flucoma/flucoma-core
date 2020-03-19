@@ -1,28 +1,38 @@
+/*
+Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See license.md file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
+
 #pragma once
 
-#include "BufferedProcess.hpp"
 #include "../common/AudioClient.hpp"
+#include "../common/BufferedProcess.hpp"
 #include "../common/FluidBaseClient.hpp"
+#include "../common/FluidNRTClientWrapper.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
-#include "../nrt/FluidNRTClientWrapper.hpp"
 #include "../../algorithms/public/CepstrumF0.hpp"
 #include "../../algorithms/public/HPS.hpp"
 #include "../../algorithms/public/YINFFT.hpp"
 #include "../../data/TensorTypes.hpp"
-
 #include <tuple>
 
 namespace fluid {
 namespace client {
 
-class PitchClient : public FluidBaseClient, public AudioIn, public ControlOut {
+class PitchClient : public FluidBaseClient, public AudioIn, public ControlOut
+{
   using size_t = std::size_t;
   using CepstrumF0 = algorithm::CepstrumF0;
   using HPS = algorithm::HPS;
   using YINFFT = algorithm::YINFFT;
-  
+
   enum PitchParamIndex {
     kAlgorithm,
     kMinFreq,
@@ -33,21 +43,20 @@ class PitchClient : public FluidBaseClient, public AudioIn, public ControlOut {
   };
 
 public:
+  FLUID_DECLARE_PARAMS(EnumParam("algorithm", "Algorithm", 2, "Cepstrum",
+                                 "Harmonic Product Spectrum", "YinFFT"),
+                       FloatParam("minFreq", "Minimum Frequency", 20, Min(0),
+                                  Max(10000), UpperLimit<kMaxFreq>()),
+                       FloatParam("maxFreq", "Maximum Frequency", 10000, Min(1),
+                                  Max(20000), LowerLimit<kMinFreq>()),
+                       EnumParam("unit", "Unit", 0, "Hz", "MIDI"),
+                       FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings",
+                                             1024, -1, -1),
+                       LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size",
+                                              16384, Min(4), PowerOfTwo{}));
 
-  FLUID_DECLARE_PARAMS(
-    EnumParam("algorithm", "Algorithm", 2, "Cepstrum",
-              "Harmonic Product Spectrum", "YinFFT"),
-    FloatParam("minFreq", "Minimum Frequency", 20, Min(0), Max(10000),
-               UpperLimit<kMaxFreq>()),
-    FloatParam("maxFreq", "Maximum Frequency", 10000, Min(1), Max(20000),
-               LowerLimit<kMinFreq>()),
-    EnumParam("unit", "Unit", 0, "Hz", "MIDI"),
-    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                           PowerOfTwo{})
-  );
-
-  PitchClient(ParamSetViewType &p): mParams(p), mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0)
+  PitchClient(ParamSetViewType& p)
+      : mParams(p), mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0)
   {
     audioChannelsIn(1);
     controlChannelsOut(2);
@@ -55,23 +64,25 @@ public:
   }
 
   template <typename T>
-  void process(std::vector<HostVector<T>> &input, std::vector<HostVector<T>> &output, FluidContext& c,
-               bool reset = false) {
-    if (!input[0].data() || !output[0].data())
-      return;
+  void process(std::vector<HostVector<T>>& input,
+               std::vector<HostVector<T>>& output, FluidContext& c)
+  {
+    if (!input[0].data() || !output[0].data()) return;
     assert(FluidBaseClient::controlChannelsOut() && "No control channels");
-    assert(output.size() >= FluidBaseClient::controlChannelsOut() &&
+    assert(asSigned(output.size()) >= FluidBaseClient::controlChannelsOut() &&
            "Too few output channels");
 
-    if (mParamTracker.changed(get<kFFT>().frameSize())) {
+    if (mParamTracker.changed(get<kFFT>().frameSize(), sampleRate()))
+    {
       cepstrumF0.init(get<kFFT>().frameSize());
       mMagnitude.resize(get<kFFT>().frameSize());
     }
 
     mSTFTBufferedProcess.processInput(
-        mParams, input, c, reset, [&](ComplexMatrixView in) {
+        mParams, input, c, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
-          switch (get<kAlgorithm>()) {
+          switch (get<kAlgorithm>())
+          {
           case 0:
             cepstrumF0.processFrame(mMagnitude, mDescriptors, get<kMinFreq>(),
                                     get<kMaxFreq>(), sampleRate());
@@ -86,20 +97,22 @@ public:
             break;
           }
         });
-    output[0](0) = get<kUnit>() == 0
-                       ? mDescriptors(0)
-                       : 69 + (12 * log2(mDescriptors(0) / 440.0)); // pitch
-    output[1](0) = mDescriptors(1); // pitch confidence
+    output[0](0) = static_cast<T>(
+        get<kUnit>() == 0 ? mDescriptors(0)
+                          : 69 + (12 * log2(mDescriptors(0) / 440.0))); // pitch
+    output[1](0) = static_cast<T>(mDescriptors(1)); // pitch confidence
   }
-  size_t latency() { return get<kFFT>().winSize(); }
-  size_t controlRate() { return get<kFFT>().hopSize(); }
+  index latency() { return get<kFFT>().winSize(); }
+  index controlRate() { return get<kFFT>().hopSize(); }
+  void  reset() { mSTFTBufferedProcess.reset(); }
 
 private:
-  ParameterTrackChanges<size_t> mParamTracker;
+  ParameterTrackChanges<index, double>        mParamTracker;
   STFTBufferedProcess<ParamSetViewType, kFFT> mSTFTBufferedProcess;
-  CepstrumF0 cepstrumF0;
-  HPS hps;
-  YINFFT yinFFT;
+
+  CepstrumF0             cepstrumF0;
+  HPS                    hps;
+  YINFFT                 yinFFT;
   FluidTensor<double, 1> mMagnitude;
   FluidTensor<double, 1> mDescriptors;
 };
@@ -108,11 +121,10 @@ using RTPitchClient = ClientWrapper<PitchClient>;
 
 auto constexpr NRTPitchParams =
     makeNRTParams<RTPitchClient>({InputBufferParam("source", "Source Buffer")},
-                               {BufferParam("features", "Features Buffer")});
+                                 {BufferParam("features", "Features Buffer")});
 
-using NRTPitchClient =
-    NRTControlAdaptor<RTPitchClient, decltype(NRTPitchParams), NRTPitchParams,
-                      1, 1>;
+using NRTPitchClient = NRTControlAdaptor<PitchClient, decltype(NRTPitchParams),
+                                         NRTPitchParams, 1, 1>;
 
 using NRTThreadedPitchClient = NRTThreadingAdaptor<NRTPitchClient>;
 
