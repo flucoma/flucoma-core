@@ -569,8 +569,20 @@ public:
 
   /// slicing
   template <typename... Args>
-  std::enable_if_t<isSliceSequence<Args...>(), FluidTensorView<T, N>>
+  std::enable_if_t<isSliceSequence<Args...>(), const FluidTensorView<T, N>>
   operator()(const Args&... args) const
+  {
+    static_assert(sizeof...(Args) == N,
+                  "Number of slices must match number of dimensions. Use "
+                  "an integral constant to represent the whole of a "
+                  "dimension,e.g. matrix(1,slice(0,10)).");
+    FluidTensorSlice<N> d{mDesc, args...};
+    return {d, mRef};
+  }
+  
+  template <typename... Args>
+  std::enable_if_t<isSliceSequence<Args...>(), FluidTensorView<T, N>>
+  operator()(const Args&... args)
   {
     static_assert(sizeof...(Args) == N,
                   "Number of slices must match number of dimensions. Use "
@@ -587,13 +599,13 @@ public:
 
   /// c style element access
   FluidTensorView<T, N - 1> operator[](const index i) { return row(i); }
-  /// TODO sould be const T
-  const FluidTensorView<const T, N - 1> operator[](const index i) const
+
+  const FluidTensorView<T, N - 1> operator[](const index i) const
   {
     return row(i);
   }
 
-  const FluidTensorView<const T, N - 1> row(const index i) const
+  const FluidTensorView<T, N - 1> row(const index i) const
   {
     assert(i < extent(0));
     FluidTensorSlice<N - 1> row(mDesc, SizeConstant<0>(), i);
@@ -607,7 +619,7 @@ public:
     return {row, mRef};
   }
 
-  const FluidTensorView<const T, N - 1> col(const index i) const
+  const FluidTensorView<T, N - 1> col(const index i) const
   {
     assert(i < extent(1));
     FluidTensorSlice<N - 1> col(mDesc, SizeConstant<1>(), i);
