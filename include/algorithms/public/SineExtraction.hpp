@@ -49,12 +49,15 @@ public:
     mBandwidth = bandwidth;
     computeWindowTransform();
     mTracking.init();
+    mWindowBinIncr = mWindowTransform.size() / (mBins - 1) / 2;
+    mInvWindowBinIncr = 1.0 / mWindowBinIncr;
     mInitialized = true;
   }
 
   void computeWindowTransform()
   {
     index halfBW = mMaxFFTSize / 2;
+    index fftSize = (mBins - 1) * 2;
     mWindowTransform = ArrayXd::Zero(mMaxFFTSize);
     ArrayXd window = ArrayXd::Zero(mWindowSize);
     WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](mWindowSize, window);
@@ -63,7 +66,7 @@ public:
     for (index i = 0; i < halfBW; i++)
     {
       mWindowTransform(halfBW + i) = mWindowTransform(halfBW - i) =
-          abs(transform(i));
+          std::abs(transform(i));
     }
   }
 
@@ -71,10 +74,8 @@ public:
                     double sampleRate)
   {
     assert(mInitialized);
-    using Eigen::Array;
-    using Eigen::ArrayXXcd;
-    index fftSize = 2 * (mBins - 1);
-
+    using namespace Eigen;
+    index    fftSize = 2 * (mBins - 1);
     ArrayXcd frame = _impl::asEigen<Array>(in);
     mBuf.push(frame);
     ArrayXd mag = frame.abs().real();
@@ -104,7 +105,6 @@ public:
     {
       ArrayXcd resultFrame = mBuf.front();
       ArrayXd  resultMag = resultFrame.abs().real();
-
       for (index i = 0; i < mBins; i++)
       {
         if (frameSines(i) >= resultMag(i))
@@ -119,7 +119,6 @@ public:
           result(i, 1) = resultFrame(i) * (1 - sineWeight);
         }
       }
-
       mBuf.pop();
     }
     mTracking.prune();
@@ -169,6 +168,14 @@ private:
     return result;
   }
 
+  double interpolateWindow(double pos)
+  {
+    index  floor = std::lrint(std::floor(pos));
+    double frac = pos - floor;
+    double dY = mWindowTransform(floor + 1) - mWindowTransform(floor);
+    return mWindowTransform(floor) + frac * mInvWindowBinIncr * dY;
+  }
+
   ArrayXd synthesizePeak(SinePeak p, double sampleRate)
   {
     index   halfBW = mBandwidth / 2;
@@ -176,22 +183,21 @@ private:
     double  freqBin = p.freq * 2 * (mBins - 1) / sampleRate;
     if (freqBin >= mBins - 1) freqBin = mBins - 1;
     if (freqBin < 0) freqBin = 0;
-    index  freqBinFloor = static_cast<index>(std::floor(freqBin));
+    index  freqBinFloor = std::lrint(std::floor(freqBin));
     index  freqBinCeil = freqBinFloor + 1;
     double amp = 0.5 * std::pow(10, p.logMag / 20);
-    index  incr = mWindowTransform.size() / (mBins - 1) / 2;
-    index  pos = mWindowTransform.size() / 2 +
-                std::lrint((freqBinCeil - freqBin) * incr);
+    double pos = mWindowTransform.size() / 2 +
+                 ((freqBinCeil - freqBin) * mWindowBinIncr);
     for (index i = freqBinCeil; pos < mWindowTransform.size() - 2 &&
-                                i < std::min(freqBinFloor + halfBW, mBins - 1);
-         i++, pos += incr)
-    { sine[i] = amp * mWindowTransform(pos); }
+                                i < std::min(freqBinCeil + halfBW, mBins - 1);
+         i++, pos += mWindowBinIncr)
+    { sine[i] = amp * interpolateWindow(pos); }
     pos = (mWindowTransform.size() / 2) -
-          std::lrint((freqBin - freqBinFloor) * incr);
+          ((freqBin - freqBinFloor) * mWindowBinIncr);
     for (index i = freqBinFloor;
          pos > 1 && i > std::max(freqBinFloor - halfBW, asSigned(0));
-         i--, pos -= incr)
-    { sine[i] = amp * mWindowTransform(pos); }
+         i--, pos -= mWindowBinIncr)
+    { sine[i] = amp * interpolateWindow(pos); }
     return sine;
   }
 
@@ -209,6 +215,8 @@ private:
   index                mWindowSize{1024};
   index                mMaxFFTSize{16384};
   FFT                  mFFT;
+  double               mWindowBinIncr;
+  double               mInvWindowBinIncr;
 };
 } // namespace algorithm
 } // namespace fluid
