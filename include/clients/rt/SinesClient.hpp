@@ -47,7 +47,7 @@ extern auto constexpr SinesParams = defineParameters(
     FloatParam("birthHighThreshold", "Track Birth High Frequency Threshold",
                -60, Min(-144), Max(0)),
     LongParam("minTrackLen", "Minimum Track Length", 15, Min(1)),
-    EnumParam("trackingMethod", "Tracking Method", 0, "Greedy", "Munkres"),
+    EnumParam("trackingMethod", "Tracking Method", 0, "Greedy", "Hungarian"),
     FloatParam("trackMagRange", "Tracking Magnitude Range (dB)", 15., Min(1.),
                Max(200.)),
     FloatParam("trackFreqRange", "Tracking Frequency Range (Hz)", 50., Min(1.),
