@@ -64,7 +64,7 @@ say which as a template parmeter, e.g. makeWrapper<Matrix>(myView)
 **/
 template <template <typename, int, int, int, int, int> class EigenType,
           typename T, size_t N, template <typename, size_t> class F>
-auto asFluid(F<T, N>& a)
+auto asEigen(F<T, N>& a)
     -> Map<EigenType<T, Dynamic, Dynamic, RowMajor, Dynamic, Dynamic>,
            Eigen::AlignmentType::Unaligned, Stride<Dynamic, Dynamic>>
 {
