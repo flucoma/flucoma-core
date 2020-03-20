@@ -167,9 +167,9 @@ private:
     directEstimate(input, size, true);
 
     // Initialise Estimates
-
+    
     for (index i = mOrder; i < mOrder + size; i++)
-      estimates[asUnsigned(i - mOrder)] = input[asUnsigned(i - mOrder)];
+      estimates[asUnsigned(i)] = input[i - mOrder];
 
     // Variance
 
@@ -237,7 +237,7 @@ private:
   VectorXd mParameters;
   double   mVariance{0.0};
   ArrayXd  mWindow;
-  bool     mUseWindow{true};
+  bool     mUseWindow{false};
   index    mOrder{20};
   index    mIterations{3};
   double   mRobustFactor{3.0};
