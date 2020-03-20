@@ -30,9 +30,8 @@ date:
 * (SC+Pd) most Max examples are now ported to the two other CCEs
 * (SC) Gerard's GUI demos of algorithms are now available
 
-## Known Bugs:
-* bufnmf progress output in multithreading mode (blocking 0) does not output progress.
-* (Mac) Notarization is not implemented yet since most CCEs are working on workarounds
+## Known Bugs/Issues:
+* (Mac) Notarization is not implemented yet, since most CCEs are working on workarounds...
 
 ===
 # beta-02: multithreading!
