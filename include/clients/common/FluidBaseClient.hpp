@@ -26,9 +26,9 @@ namespace client {
 
 enum ProcessState { kNoProcess, kProcessing, kDone, kDoneStillProcessing };
 
-template <typename ParamType, ParamType& PD>
-class FluidBaseClient //<const Tuple<Ts...>>
-{
+template <typename ParamType, const ParamType& PD>
+class FluidBaseClient
+{    
 public:
   using ParamDescType = ParamType;
   using ParamSetType = ParameterSet<ParamDescType>;
