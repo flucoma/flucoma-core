@@ -31,7 +31,7 @@ enum LoudnessParamIndex {
   kMaxWindowSize
 };
 
-auto constexpr LoudnessParams = defineParameters(
+extern auto constexpr LoudnessParams = defineParameters(
     EnumParam("kWeighting", "Apply K-Weighting", 1, "Off", "On"),
     EnumParam("truePeak", "Compute True Peak", 1, "Off", "On"),
     LongParam("windowSize", "Window Size", 1024, UpperLimit<kMaxWindowSize>()),

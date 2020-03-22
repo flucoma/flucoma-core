@@ -38,7 +38,7 @@ enum AmpGateParamIndex {
   kMaxSize
 };
 
-auto constexpr AmpGateParams = defineParameters(
+extern auto constexpr AmpGateParams = defineParameters(
     LongParam("RampUp", "Ramp Up Length", 10, Min(1)),
     LongParam("RampDown", "Ramp Down Length", 10, Min(1)),
     FloatParam("OnThreshold", "On Threshold", -90, Min(-144), Max(144)),

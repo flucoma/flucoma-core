@@ -35,7 +35,7 @@ enum OnsetParamIndex {
   kMaxFFTSize
 };
 
-auto constexpr OnsetParams = defineParameters(
+extern auto constexpr OnsetParams = defineParameters(
     EnumParam("metric", "Spectral Change Metric", 0, "Energy",
               "High Frequency Content", "Spectral Flux",
               "Modified Kullback-Leibler", "Itakura-Saito", "Cosine",

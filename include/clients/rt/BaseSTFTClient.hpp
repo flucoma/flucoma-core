@@ -23,7 +23,7 @@ namespace client {
 
 enum STFTParamIndex { kFFT, kMaxFFT };
 
-auto constexpr STFTParams = defineParameters(
+extern auto constexpr STFTParams = defineParameters(
     FFTParam<kMaxFFT>("fftSettings", "FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
                            PowerOfTwo{}));

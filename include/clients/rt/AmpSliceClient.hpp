@@ -35,7 +35,7 @@ enum AmpSliceParamIndex {
   kHiPassFreq,
 };
 
-auto constexpr AmpSliceParams = defineParameters(
+extern auto constexpr AmpSliceParams = defineParameters(
     LongParam("fastRampUp", "Fast Envelope Ramp Up Length", 1, Min(1)),
     LongParam("fastRampDown", "Fast Envelope Ramp Down Length", 1, Min(1)),
     LongParam("slowRampUp", "Slow Envelope Ramp Up Length", 100, Min(1)),

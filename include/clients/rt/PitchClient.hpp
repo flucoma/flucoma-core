@@ -35,7 +35,7 @@ enum PitchParamIndex {
   kMaxFFTSize
 };
 
-auto constexpr PitchParams = defineParameters(
+extern auto constexpr PitchParams = defineParameters(
     EnumParam("algorithm", "Algorithm", 2, "Cepstrum",
               "Harmonic Product Spectrum", "YinFFT"),
     FloatParam("minFreq", "Minimum Frequency", 20, Min(0), Max(10000),

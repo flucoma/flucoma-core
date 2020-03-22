@@ -36,7 +36,7 @@ enum TransientParamIndex {
   kDebounce
 };
 
-auto constexpr TransientParams = defineParameters(
+extern auto constexpr TransientParams = defineParameters(
     LongParam("order", "Order", 20, Min(10), LowerLimit<kWinSize>(),
               UpperLimit<kBlockSize>()),
     LongParam("blockSize", "Block Size", 256, Min(100), LowerLimit<kOrder>()),
