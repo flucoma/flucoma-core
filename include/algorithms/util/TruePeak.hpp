@@ -62,5 +62,5 @@ private:
   index    mFactor{4};
   index    mFFTSize{1024};
 };
-}; // namespace algorithm
-}; // namespace fluid
+} // namespace algorithm
+} // namespace fluid

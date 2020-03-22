@@ -33,4 +33,4 @@ toeplitz(const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& vec)
 }
 
 } // namespace algorithm
-}; // namespace fluid
+} // namespace fluid

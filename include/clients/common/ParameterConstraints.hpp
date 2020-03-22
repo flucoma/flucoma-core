@@ -195,7 +195,7 @@ template <typename T>
 auto constexpr Min(const T x)
 {
   return impl::MinImpl<T>(x);
-};
+}
 
 template <typename T>
 auto constexpr Max(const T x)

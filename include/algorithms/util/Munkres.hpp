@@ -253,5 +253,5 @@ private:
   Eigen::ArrayXi  mRowCover;
   Eigen::ArrayXi  mColCover;
 };
-}; // namespace algorithm
-}; // namespace fluid
+} // namespace algorithm
+} // namespace fluid

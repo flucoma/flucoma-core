@@ -78,5 +78,5 @@ private:
   ArrayXd mOutputBuffer{7};
 };
 
-}; // namespace algorithm
-}; // namespace fluid
+} // namespace algorithm
+} // namespace fluid

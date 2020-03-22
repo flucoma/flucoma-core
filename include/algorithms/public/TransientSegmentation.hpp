@@ -67,5 +67,5 @@ private:
   bool  mLastDetection{false};
 };
 
-}; // namespace algorithm
-}; // namespace fluid
+} // namespace algorithm
+} // namespace fluid

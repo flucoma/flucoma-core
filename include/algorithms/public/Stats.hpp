@@ -81,5 +81,5 @@ public:
   double mMiddle{0.5};
   double mHigh{1};
 };
-}; // namespace algorithm
-}; // namespace fluid
+} // namespace algorithm
+} // namespace fluid
