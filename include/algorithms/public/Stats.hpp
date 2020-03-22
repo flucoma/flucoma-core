@@ -32,7 +32,7 @@ public:
   }
   index numStats() { return 7; }
 
-  Eigen::Ref<Eigen::ArrayXd> computeStats(Eigen::Ref<Eigen::ArrayXd> input)
+  Eigen::ArrayXd computeStats(Eigen::Ref<Eigen::ArrayXd> input)
   {
     using namespace Eigen;
     index   length = input.size();
