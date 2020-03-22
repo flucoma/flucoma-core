@@ -108,7 +108,8 @@ private:
 
   void directEstimate(const double* input, index size, bool updateVariance)
   {
-    std::vector<double> frame(asUnsigned(size));
+    //copy input to a 32 byte aligned block (otherwise risk segfaults on Linux)
+    VectorXd frame = Eigen::Map<const VectorXd>(input,size);
 
     if (mUseWindow)
     {
@@ -118,11 +119,9 @@ private:
         WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](size, mWindow);
       }
 
-      for (index i = 0; i < size; i++)
-        frame[asUnsigned(i)] = input[asUnsigned(i)] * mWindow(i) * 2.0;
+      frame.array() *= mWindow;
     }
-    else
-      std::copy(input, input + size, frame.data());
+
 
     VectorXd autocorrelation(size);
     algorithm::autocorrelateReal(autocorrelation.data(), frame.data(),
