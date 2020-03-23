@@ -10,11 +10,11 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "OnsetDetectionFuncs.hpp"
 #include "WindowFuncs.hpp"
 #include "../util/FFT.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/MedianFilter.hpp"
+#include "../util/OnsetDetectionFuncs.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Eigen>
