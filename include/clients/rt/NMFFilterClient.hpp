@@ -23,7 +23,7 @@ namespace client {
 
 enum NMFFilterIndex { kFilterbuf, kMaxRank, kIterations, kFFT, kMaxFFTSize };
 
-auto constexpr NMFFilterParams = defineParameters(
+extern auto constexpr NMFFilterParams = defineParameters(
     InputBufferParam("bases", "Bases Buffer"),
     LongParam<Fixed<true>>("maxComponents", "Maximum Number of Components", 20,
                            Min(1)),

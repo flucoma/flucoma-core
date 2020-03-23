@@ -35,7 +35,7 @@ enum MFCCParamIndex {
   kMaxFFTSize
 };
 
-auto constexpr MFCCParams = defineParameters(
+extern auto constexpr MFCCParams = defineParameters(
 
     LongParam("numCoeffs", "Number of Cepstral Coefficients", 13, Min(2),
               UpperLimit<kNBands, kMaxNCoefs>()),

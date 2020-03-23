@@ -28,7 +28,7 @@ enum NMFMatchParamIndex {
   kMaxFFTSize
 };
 
-auto constexpr NMFMatchParams = defineParameters(
+extern auto constexpr NMFMatchParams = defineParameters(
     InputBufferParam("bases", "Bases Buffer"),
     LongParam<Fixed<true>>("maxComponents", "Maximum Number of Components", 20,
                            Min(1)),

@@ -41,7 +41,7 @@ enum NoveltyParamIndex {
   kMaxFilterSize,
 };
 
-auto constexpr NoveltyParams = defineParameters(
+extern auto constexpr NoveltyParams = defineParameters(
     EnumParam("feature", "Feature", 0, "Spectrum", "MFCC", "Pitch", "Loudness"),
     LongParam("kernelSize", "KernelSize", 3, Min(3), Odd(),
               UpperLimit<kMaxKernelSize>()),

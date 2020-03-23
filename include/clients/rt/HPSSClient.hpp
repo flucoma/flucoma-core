@@ -35,7 +35,7 @@ enum HPSSParamIndex {
   kMaxPSize
 };
 
-auto constexpr HPSSParams = defineParameters(
+extern auto constexpr HPSSParams = defineParameters(
     LongParam("harmFilterSize", "Harmonic Filter Size", 17,
               UpperLimit<kMaxHSize>(), Odd{}, Min(3)),
     LongParam("percFilterSize", "Percussive Filter Size", 31,

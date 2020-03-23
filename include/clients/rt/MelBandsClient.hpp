@@ -33,7 +33,7 @@ enum MFCCParamIndex {
   kMaxFFTSize
 };
 
-auto constexpr MelBandsParams = defineParameters(
+extern auto constexpr MelBandsParams = defineParameters(
     LongParam("numBands", "Number of Bands", 40, Min(2),
               UpperLimit<kMaxNBands>()),
     FloatParam("minFreq", "Low Frequency Bound", 20, Min(0)),
