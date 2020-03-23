@@ -12,6 +12,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/TensorTypes.hpp"
+#include "../../data/FluidIndex.hpp"
 #include <Eigen/Core>
 
 namespace fluid {
@@ -50,7 +51,7 @@ public:
     if (maxBin > minBin)
     {
       hps = hps.segment(minBin, maxBin - minBin);
-      double maxVal =  hps.maxCoeff(&maxIndex);
+      double maxVal = hps.maxCoeff(&maxIndex);
       double sum = hps.sum();
       confidence = sum == 0 ? 0 : maxVal / sum;
       f0 = (minBin + maxIndex) * binHz;

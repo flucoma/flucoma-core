@@ -34,8 +34,8 @@ public:
       : mModel(order, iterations, robustFactor)
   {}
 
-  void init(index order, index iterations, double robustFactor,
-            index blockSize, index padSize)
+  void init(index order, index iterations, double robustFactor, index blockSize,
+            index padSize)
   {
     mModel = ARModel(order, iterations, robustFactor);
     prepareStream(blockSize, padSize);
@@ -116,7 +116,7 @@ public:
     std::copy(unknowns.data(), unknowns.data() + hopSize(), mDetect.data());
     mCount = 0;
     for (index i = 0, size = hopSize(); i < size; i++)
-      if (mDetect[asUnsigned(i)]!=0) mCount++;
+      if (mDetect[asUnsigned(i)] != 0) mCount++;
     frame(input.data(), inSize);
     if (mCount) analyse();
     interpolate(transients.data(), residual.data());

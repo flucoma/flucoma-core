@@ -12,9 +12,9 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #include "../util/AlgorithmUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
-#include "../../data/FluidTensor.hpp"
+#include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
-#include <Eigen/Dense>
+#include <Eigen/Core>
 
 namespace fluid {
 namespace algorithm {
@@ -50,7 +50,7 @@ public:
 
 private:
   ArrayXXd mMultiplier;
-  index      mExponent{1};
+  index    mExponent{1};
 };
 
 } // namespace algorithm

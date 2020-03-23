@@ -12,11 +12,10 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #include "../util/AlgorithmUtils.hpp"
 #include "../../data/FluidIndex.hpp"
-#include <Eigen/Dense>
+#include <Eigen/Core>
 #include <cassert>
 #include <cmath>
 #include <map>
-#include <vector>
 
 namespace fluid {
 namespace algorithm {

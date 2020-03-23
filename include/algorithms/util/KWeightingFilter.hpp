@@ -9,8 +9,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include <cmath>
 #include "../../data/FluidIndex.hpp"
+#include <cmath>
 
 namespace fluid {
 namespace algorithm {

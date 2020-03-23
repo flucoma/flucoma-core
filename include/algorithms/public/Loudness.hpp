@@ -15,7 +15,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/KWeightingFilter.hpp"
 #include "../util/TruePeak.hpp"
 #include "../../data/TensorTypes.hpp"
-#include <Eigen/Eigen>
+#include "../../data/FluidIndex.hpp"
+#include <Eigen/Core>
 
 namespace fluid {
 namespace algorithm {

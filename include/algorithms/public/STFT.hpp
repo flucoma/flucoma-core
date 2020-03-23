@@ -60,7 +60,8 @@ public:
     padded.fill(0);
     padded.segment(halfWindow, audio.size()) =
         Eigen::Map<const ArrayXd>(audio.data(), audio.size());
-    index nFrames = static_cast<index>(std::floor((padded.size() - mWindowSize) / mHopSize));
+    index nFrames = static_cast<index>(
+        std::floor((padded.size() - mWindowSize) / mHopSize));
 
     ArrayXXcd result(nFrames, mFrameSize);
     for (index i = 0; i < nFrames; i++)

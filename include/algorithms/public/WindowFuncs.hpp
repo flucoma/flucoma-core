@@ -9,12 +9,12 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
+#include "../../data/FluidIndex.hpp"
 #include <Eigen/Core>
 #include <cassert>
 #include <cmath>
 #include <iostream>
 #include <map>
-#include "../../data/FluidIndex.hpp"
 
 namespace fluid {
 namespace algorithm {
@@ -50,7 +50,8 @@ public:
                       0.01168 * cos((M_PI * 2 * i) / size);
            }
          }},
-        {WindowTypes::kGaussian, [](index size, Eigen::Ref<Eigen::ArrayXd> out) {
+        {WindowTypes::kGaussian,
+         [](index size, Eigen::Ref<Eigen::ArrayXd> out) {
            using std::exp;
            double sigma = size / 3; // TODO: should be argument
            assert(size % 2);

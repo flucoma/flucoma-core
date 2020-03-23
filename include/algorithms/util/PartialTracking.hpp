@@ -137,7 +137,8 @@ public:
       if (track.endFrame >= 0 &&
           track.endFrame - track.startFrame < mMinTrackLength)
         continue;
-      sinePeaks.push_back(track.peaks[asUnsigned(latencyFrame - track.startFrame)]);
+      sinePeaks.push_back(
+          track.peaks[asUnsigned(latencyFrame - track.startFrame)]);
     }
     return sinePeaks;
   }
@@ -210,7 +211,8 @@ private:
       {
         index p = assignment(i);
         bool  aboveBirthThreshold =
-            mPrevPeaks[asUnsigned(i)].logMag > birthThreshold(mPrevPeaks[asUnsigned(i)], mPrevMaxAmp);
+            mPrevPeaks[asUnsigned(i)].logMag >
+            birthThreshold(mPrevPeaks[asUnsigned(i)], mPrevMaxAmp);
         if (assignment(i) >= useful.cols()) continue;
         if (useful(i, assignment(i)) && mPrevTracks[asUnsigned(i)] > 0 &&
             mPrevPeaks[asUnsigned(i)].assigned)
@@ -230,13 +232,13 @@ private:
                  !mPrevPeaks[asUnsigned(i)].assigned)
         {
           mLastTrackId = mLastTrackId + 1;
-          auto newTrack =
-              SineTrack{vector<SinePeak>{mPrevPeaks[asUnsigned(i)], sinePeaks[asUnsigned(p)]},
-                        mCurrentFrame - 1,
-                        -1,
-                        true,
-                        true,
-                        mLastTrackId};
+          auto newTrack = SineTrack{vector<SinePeak>{mPrevPeaks[asUnsigned(i)],
+                                                     sinePeaks[asUnsigned(p)]},
+                                    mCurrentFrame - 1,
+                                    -1,
+                                    true,
+                                    true,
+                                    mLastTrackId};
           mTracks.push_back(newTrack);
           sinePeaks[asUnsigned(p)].assigned = true;
           trackAssignment[asUnsigned(p)] = newTrack.trackId;

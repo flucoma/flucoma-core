@@ -12,16 +12,14 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #include "OnsetDetectionFuncs.hpp"
 #include "WindowFuncs.hpp"
-#include "../util/ConvolutionTools.hpp"
 #include "../util/FFT.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/MedianFilter.hpp"
-#include "../../data/TensorTypes.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Eigen>
 #include <algorithm>
 #include <cassert>
-#include <deque>
 
 namespace fluid {
 namespace algorithm {

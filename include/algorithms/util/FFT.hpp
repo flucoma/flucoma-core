@@ -9,9 +9,9 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include "HISSTools_FFT/HISSTools_FFT.h"
 #include "../../data/FluidIndex.hpp"
 #include <Eigen/Core>
+#include <HISSTools_FFT/HISSTools_FFT.h>
 
 namespace fluid {
 namespace algorithm {

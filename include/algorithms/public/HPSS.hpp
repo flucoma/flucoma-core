@@ -157,7 +157,8 @@ public:
     mBuf.setZero();
 
     mHFilters = std::vector<MedianFilter>(asUnsigned(mBins));
-    for (index i = 0; i < mBins; i++) { mHFilters[asUnsigned(i)].init(newHSize); }
+    for (index i = 0; i < mBins; i++)
+    { mHFilters[asUnsigned(i)].init(newHSize); }
     mHSize = newHSize;
   }
 
@@ -227,7 +228,7 @@ private:
   index     mMaxHSize{101};
   index     mVSize{31};
   index     mHSize{17};
-  index       mMode{0};
+  index     mMode{0};
   ArrayXXd  mMaxH;
   ArrayXXd  mMaxV;
   ArrayXXcd mMaxBuf;

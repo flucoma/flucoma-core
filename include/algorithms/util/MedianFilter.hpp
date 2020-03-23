@@ -9,8 +9,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include "../../data/FluidTensor.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/FluidTensor.hpp"
 #include <cassert>
 #include <deque>
 

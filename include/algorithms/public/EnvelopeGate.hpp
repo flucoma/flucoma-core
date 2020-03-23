@@ -14,8 +14,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/SlideUDFilter.hpp"
 #include "../../data/TensorTypes.hpp"
+#include "../../data/FluidIndex.hpp"
 #include <Eigen/Core>
-#include <algorithm>
 #include <cmath>
 
 namespace fluid {
@@ -81,7 +81,7 @@ public:
     mMinEventDuration = minEventDuration;
     mOffThreshold = offThreshold;
     mMinSilenceDuration = minSilenceDuration;
-    mFloor = std::min(mOffThreshold, mOnThreshold)  - 1;
+    mFloor = std::min(mOffThreshold, mOnThreshold) - 1;
   }
 
   index getLatency() { return mLatency; }
