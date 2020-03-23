@@ -41,7 +41,7 @@ FetchContent_Declare(
   HISSTools
   GIT_REPOSITORY https://github.com/AlexHarker/HISSTools_Library
   GIT_PROGRESS TRUE
-  GIT_TAG 9d9a85f
+  GIT_TAG 6c09283
 )
 
 FetchContent_Declare(
@@ -88,6 +88,17 @@ set_target_properties(HISSTools_FFT PROPERTIES
     POSITION_INDEPENDENT_CODE ON
 )
 
+# Brute force staic runtime on windwos 
+if(MSVC)
+  foreach(flag_var
+      CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+      CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
+    if(${flag_var} MATCHES "/MD")
+      string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+    endif()
+  endforeach()
+endif()
+
 #HISSTools Audiofile Target
 add_library(
   HISSTools_AudioFile STATIC
@@ -125,8 +136,10 @@ if(CMAKE_COMPILER_IS_GNUCXX)
   target_compile_options(FLUID_DECOMPOSITION INTERFACE -fpermissive)
 endif()
 
+target_compile_definitions(FLUID_DECOMPOSITION INTERFACE EIGEN_MPL2_ONLY=1)
+
 if(APPLE)
-  target_compile_definitions(FLUID_DECOMPOSITION INTERFACE EIGEN_USE_BLAS=1;EIGEN_MPL2_ONLY=1)
+  target_compile_definitions(FLUID_DECOMPOSITION INTERFACE EIGEN_USE_BLAS=1)
   #targeting <= 10.9, need to really emphasise that we want libc++ both to compiler and linker
   target_compile_options(HISSTools_FFT PUBLIC -stdlib=libc++)
   target_compile_options(HISSTools_AudioFile PUBLIC -stdlib=libc++)
