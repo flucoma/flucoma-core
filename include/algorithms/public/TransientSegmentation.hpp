@@ -12,6 +12,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "TransientExtraction.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
+#include <cmath>
 
 namespace fluid {
 namespace algorithm {

@@ -128,13 +128,14 @@ public:
 private:
   void frame(const double* input, index inSize)
   {
+    using namespace std;
     inSize = std::min(inSize, inputSize());
-    std::copy(mInput.data() + hopSize(),
+    copy(mInput.data() + hopSize(),
               mInput.data() + modelOrder() + padSize() + blockSize(),
               mInput.data());
-    std::copy(input, input + inSize,
+    copy(input, input + inSize,
               mInput.data() + modelOrder() + padSize() + modelOrder());
-    std::fill(mInput.data() + modelOrder() + padSize() + modelOrder() + inSize,
+    fill(mInput.data() + modelOrder() + padSize() + modelOrder() + inSize,
               mInput.data() + modelOrder() + analysisSize(), 0.0);
   }
 

@@ -18,6 +18,7 @@ Capability through Linear Programming". Proceedings of DAFx-2018.
 #include "../util/Munkres.hpp"
 #include "../../data/FluidIndex.hpp"
 #include <Eigen/Core>
+#include <cmath>
 #include <queue>
 
 namespace fluid {
@@ -33,11 +34,12 @@ struct SinePeak
 struct SineTrack
 {
   std::vector<SinePeak> peaks;
-  index                 startFrame;
-  index                 endFrame;
-  bool                  active;
-  bool                  assigned;
-  index                 trackId;
+
+  index startFrame;
+  index endFrame;
+  bool  active;
+  bool  assigned;
+  index trackId;
 };
 
 class PartialTracking
@@ -101,6 +103,7 @@ public:
 
   void updateVariances()
   {
+    using namespace std;
     mVarA = -pow(mZetaA, 2) * log((mDelta - 1) / (mDelta - 2));
     mVarF = -pow(mZetaF, 2) * log((mDelta - 1) / (mDelta - 2));
   }
@@ -147,6 +150,8 @@ private:
   void assignMunkres(vector<SinePeak> sinePeaks, double maxAmp)
   {
     using namespace Eigen;
+    using namespace std;
+
     typedef Array<bool, Dynamic, Dynamic> ArrayXXb;
     for (auto&& track : mTracks) { track.assigned = false; }
 

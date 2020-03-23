@@ -28,7 +28,7 @@ public:
 
   static inline double hz2mel(double x)
   {
-    return 1127.01048 * log(x / 700.0 + 1.0);
+    return 1127.01048 * std::log(x / 700.0 + 1.0);
   }
 
   void init(double lo, double hi, index nBands, index nBins, double sampleRate,
@@ -38,6 +38,7 @@ public:
     using namespace Eigen;
     assert(hi > lo);
     assert(nBands > 1);
+    
     mLo = lo;
     mHi = hi;
     mBands = nBands;
@@ -70,8 +71,8 @@ public:
   void processFrame(const RealVectorView in, RealVectorView out)
   {
     using namespace Eigen;
-    double const epsilon = std::numeric_limits<double>::epsilon();
     assert(in.size() == mBins);
+
     ArrayXd frame = _impl::asEigen<Eigen::Array>(in);
     if (mMagNorm) frame = frame * mScale1;
     ArrayXd result;
@@ -90,17 +91,18 @@ public:
     out = _impl::asFluid(result);
   }
 
-  double          mLo{20.0};
-  double          mHi{20000.0};
-  index           mBins{513};
-  index           mBands{40};
-  double          mSampleRate{44100.0};
-  bool            mLogOutput{false};
-  bool            mUsePower{true};
-  index           mWindowSize{1024};
-  bool            mMagNorm{false};
-  double          mScale1{1.0};
-  double          mScale2{1.0};
+  double mLo{20.0};
+  double mHi{20000.0};
+  index  mBins{513};
+  index  mBands{40};
+  double mSampleRate{44100.0};
+  bool   mLogOutput{false};
+  bool   mUsePower{true};
+  index  mWindowSize{1024};
+  bool   mMagNorm{false};
+  double mScale1{1.0};
+  double mScale2{1.0};
+
   Eigen::MatrixXd mFilters;
 };
 } // namespace algorithm

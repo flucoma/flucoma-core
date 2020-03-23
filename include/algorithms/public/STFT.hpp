@@ -18,6 +18,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../data/FluidTensor.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
+#include <cmath>
 
 namespace fluid {
 namespace algorithm {

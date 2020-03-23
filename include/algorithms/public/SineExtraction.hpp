@@ -19,8 +19,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
-#include <fstream>
 #include <queue>
+#include <cmath>
 
 namespace fluid {
 namespace algorithm {
@@ -177,24 +177,25 @@ private:
 
   ArrayXd synthesizePeak(SinePeak p, double sampleRate)
   {
+    using namespace std;
     index   halfBW = mBandwidth / 2;
     ArrayXd sine = ArrayXd::Zero(mBins);
     double  freqBin = p.freq * 2 * (mBins - 1) / sampleRate;
     if (freqBin >= mBins - 1) freqBin = mBins - 1;
     if (freqBin < 0) freqBin = 0;
-    index  freqBinFloor = std::lrint(std::floor(freqBin));
+    index  freqBinFloor = lrint(floor(freqBin));
     index  freqBinCeil = freqBinFloor + 1;
-    double amp = 0.5 * std::pow(10, p.logMag / 20);
+    double amp = 0.5 * pow(10, p.logMag / 20);
     double pos = mWindowTransform.size() / 2 +
                  ((freqBinCeil - freqBin) * mWindowBinIncr);
     for (index i = freqBinCeil; pos < mWindowTransform.size() - 2 &&
-                                i < std::min(freqBinCeil + halfBW, mBins - 1);
+                                i < min(freqBinCeil + halfBW, mBins - 1);
          i++, pos += mWindowBinIncr)
     { sine[i] = amp * interpolateWindow(pos); }
     pos = (mWindowTransform.size() / 2) -
           ((freqBin - freqBinFloor) * mWindowBinIncr);
     for (index i = freqBinFloor;
-         pos > 1 && i > std::max(freqBinFloor - halfBW, asSigned(0));
+         pos > 1 && i > max(freqBinFloor - halfBW, asSigned(0));
          i--, pos -= mWindowBinIncr)
     { sine[i] = amp * interpolateWindow(pos); }
     return sine;

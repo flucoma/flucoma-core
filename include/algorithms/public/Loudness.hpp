@@ -14,9 +14,10 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/KWeightingFilter.hpp"
 #include "../util/TruePeak.hpp"
-#include "../../data/TensorTypes.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
+#include <cmath>
 
 namespace fluid {
 namespace algorithm {
@@ -38,16 +39,16 @@ public:
                     bool weighting, bool truePeak)
   {
     using namespace Eigen;
+    using namespace std;
     assert(output.size() == 2);
     assert(input.size() == mSize);
     ArrayXd in = _impl::asEigen<Array>(input);
     ArrayXd filtered(mSize);
     for (index i = 0; i < mSize; i++)
       filtered(i) = weighting ? mFilter.processSample(in(i)) : in(i);
-    double loudness =
-        -0.691 + 10 * std::log10(filtered.square().mean() + epsilon);
+    double loudness = -0.691 + 10 * log10(filtered.square().mean() + epsilon);
     double peak = truePeak ? mTP.processFrame(input) : in.abs().maxCoeff();
-    peak = 20 * std::log10(peak + epsilon);
+    peak = 20 * log10(peak + epsilon);
     output(0) = loudness;
     output(1) = peak;
   }

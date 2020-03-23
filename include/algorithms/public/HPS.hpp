@@ -27,14 +27,16 @@ public:
                     double sampleRate)
   {
     using namespace Eigen;
+    using namespace std;
+    
     ArrayXd::Index maxIndex;
 
     ArrayXd mag = _impl::asEigen<Array>(input);
     ArrayXd hps = mag;
     index   nBins = mag.size();
     double  binHz = sampleRate / ((nBins - 1) * 2);
-    index   minBin = std::lrint(minFreq / binHz);
-    index   maxBin = std::lrint(maxFreq / binHz);
+    index   minBin = lrint(minFreq / binHz);
+    index   maxBin = lrint(maxFreq / binHz);
     double  f0 = minBin * binHz;
     double  confidence = 0;
 
