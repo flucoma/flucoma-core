@@ -46,5 +46,5 @@ private:
   double mYnz1{0.0};
   double mYnz2{0.0};
 };
-}; // namespace algorithm
-}; // namespace fluid
+} // namespace algorithm
+} // namespace fluid

@@ -102,5 +102,5 @@ public:
   double          mScale2{1.0};
   Eigen::MatrixXd mFilters;
 };
-}; // namespace algorithm
-}; // namespace fluid
+} // namespace algorithm
+} // namespace fluid

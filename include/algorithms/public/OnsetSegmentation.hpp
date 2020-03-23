@@ -140,5 +140,5 @@ private:
   MedianFilter mFilter;
 };
 
-}; // namespace algorithm
-}; // namespace fluid
+} // namespace algorithm
+} // namespace fluid

@@ -142,5 +142,5 @@ private:
   double              mPrevValue;
   bool                mState{false};
 };
-}; // namespace algorithm
-}; // namespace fluid
+} // namespace algorithm
+} // namespace fluid

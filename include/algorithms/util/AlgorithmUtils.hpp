@@ -21,5 +21,5 @@ constexpr double twoPi = 2 * M_PI;
 constexpr double silence = 6.3095734448019e-08;
 constexpr double silenceDB = -144;
 
-}; // namespace algorithm
-}; // namespace fluid
+} // namespace algorithm
+} // namespace fluid

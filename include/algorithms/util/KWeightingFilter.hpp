@@ -91,5 +91,5 @@ private:
   double mA[5], mB[5], mX[5], mY[5];
 };
 
-}; // namespace algorithm
-}; // namespace fluid
+} // namespace algorithm
+} // namespace fluid

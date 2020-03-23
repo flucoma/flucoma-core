@@ -246,5 +246,5 @@ private:
   bool                mInitialized{false};
   double              mFloor{-45};
 };
-}; // namespace algorithm
-}; // namespace fluid
+} // namespace algorithm
+} // namespace fluid

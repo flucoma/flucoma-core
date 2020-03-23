@@ -43,5 +43,5 @@ private:
   double mBUp{0.0}, mBDown{0.0};
   double y0{0.0};
 };
-}; // namespace algorithm
-}; // namespace fluid
+} // namespace algorithm
+} // namespace fluid

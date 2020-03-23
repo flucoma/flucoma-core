@@ -56,5 +56,5 @@ public:
   index      mOutputSize{13};
   MatrixXd mTable;
 };
-}; // namespace algorithm
-}; // namespace fluid
+} // namespace algorithm
+} // namespace fluid

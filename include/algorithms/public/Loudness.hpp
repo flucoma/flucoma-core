@@ -57,5 +57,5 @@ private:
   index            mSize{1024};
 };
 
-}; // namespace algorithm
-}; // namespace fluid
+} // namespace algorithm
+} // namespace fluid

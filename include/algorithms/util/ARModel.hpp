@@ -244,5 +244,5 @@ private:
   double   mMinVariance{0.0};
 };
 
-}; // namespace algorithm
-}; // namespace fluid
+} // namespace algorithm
+} // namespace fluid

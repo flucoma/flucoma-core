@@ -150,7 +150,7 @@ size_t ilog2(size_t value)
     return bitCount - 1U;
   else
     return bitCount;
-};
+}
 
 size_t calcLinearSize(size_t size1, size_t size2)
 {
