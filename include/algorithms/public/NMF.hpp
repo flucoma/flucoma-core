@@ -86,7 +86,6 @@ public:
       ArrayXd v2 = (W * h).array();
       v = asFluid(v2);
     }
-    // ArrayXdMap(out.data(), rank) = h.array();
   }
 
   void process(const RealMatrixView X, RealMatrixView W1, RealMatrixView H1,

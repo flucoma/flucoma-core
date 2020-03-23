@@ -40,7 +40,6 @@ public:
     using namespace Eigen;
     assert(mixture.cols() == targetMag.cols());
     assert(mixture.rows() == targetMag.rows());
-    // ComplexMatrixView result(mixture.extent(0), mixture.extent(1));
     ArrayXXcd tmp =
         asEigen<Array>(mixture) *
         (asEigen<Array>(targetMag).pow(mExponent) * mMultiplier.pow(mExponent))

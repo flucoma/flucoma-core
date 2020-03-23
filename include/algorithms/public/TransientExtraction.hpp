@@ -339,8 +339,6 @@ private:
 
       Eigen::VectorXd u(mCount);
 
-      double sum = randomSampling(u, (energy - energyLS) / mCount);
-
       Eigen::MatrixXd correction = M.solve(u) + ls;
 
       // Write the output
@@ -350,10 +348,6 @@ private:
         if (mDetect[asUnsigned(i)] != 0) io[asUnsigned(i)] = u(uCount++);
       }
 
-      std::cout << "Energy is " << energyLS << " expected " << energy << "\n";
-      std::cout << "Energy is " << sum << " should be " << (energy - energyLS)
-                << "\n";
-      if (energyLS > sum) std::cout << "******ENERGY DECREASE******\n";
     }
   }
 
