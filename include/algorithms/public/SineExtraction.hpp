@@ -57,7 +57,6 @@ public:
   void computeWindowTransform()
   {
     index halfBW = mMaxFFTSize / 2;
-    index fftSize = (mBins - 1) * 2;
     mWindowTransform = ArrayXd::Zero(mMaxFFTSize);
     ArrayXd window = ArrayXd::Zero(mWindowSize);
     WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](mWindowSize, window);
