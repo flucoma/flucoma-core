@@ -104,7 +104,7 @@ public:
       {
         mBands.resize(40);
         mMelBands.init(20, 2000, 40, get<kFFT>().frameSize(), sampleRate(),
-                       true, false, get<kFFT>().winSize(), false);
+                       get<kFFT>().winSize());
         mDCT.init(40, 13);
         nDims = 13;
       }
@@ -135,7 +135,7 @@ public:
           case 1:
             mSTFT.processFrame(in.row(0), mSpectrum);
             mSTFT.magnitude(mSpectrum, mMagnitude);
-            mMelBands.processFrame(mMagnitude, mBands);
+            mMelBands.processFrame(mMagnitude, mBands, true, false, false);
             mDCT.processFrame(mBands, mFeature);
             break;
           case 2:
@@ -175,7 +175,7 @@ private:
   FluidTensor<double, 1>               mMagnitude;
   FluidTensor<double, 1>               mBands;
   FluidTensor<double, 1>               mFeature;
-  algorithm::MelBands                  mMelBands;
+  algorithm::MelBands                  mMelBands{40, get<kMaxFFTSize>()};
   algorithm::DCT                       mDCT{40, 13};
   algorithm::YINFFT                    mYinFFT;
   algorithm::Loudness                  mLoudness{get<kMaxFFTSize>()};

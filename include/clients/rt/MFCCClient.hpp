@@ -82,15 +82,15 @@ public:
       mBands.resize(get<kNBands>());
       mCoefficients.resize(get<kNCoefs>());
       mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
-                     get<kFFT>().frameSize(), sampleRate(), true, false,
-                     get<kFFT>().winSize(), false);
+                     get<kFFT>().frameSize(), sampleRate(),
+                     get<kFFT>().winSize());
       mDCT.init(get<kNBands>(), get<kNCoefs>());
     }
 
     mSTFTBufferedProcess.processInput(
         mParams, input, c, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
-          mMelBands.processFrame(mMagnitude, mBands);
+          mMelBands.processFrame(mMagnitude, mBands, true, false, false);
           mDCT.processFrame(mBands, mCoefficients);
         });
     for (index i = 0; i < get<kNCoefs>(); ++i)
@@ -107,7 +107,7 @@ private:
   ParameterTrackChanges<index, index, index, double, double, double> mTracker;
   STFTBufferedProcess<ParamSetViewType, T, kFFT, false> mSTFTBufferedProcess;
 
-  algorithm::MelBands    mMelBands;
+  algorithm::MelBands    mMelBands{get<kMaxFFTSize>(), get<kMaxFFTSize>()};
   algorithm::DCT         mDCT{get<kMaxFFTSize>(), get<kMaxNCoefs>()};
   FluidTensor<double, 1> mMagnitude;
   FluidTensor<double, 1> mBands;
