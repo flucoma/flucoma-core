@@ -176,7 +176,7 @@ private:
   FluidTensor<double, 1>               mBands;
   FluidTensor<double, 1>               mFeature;
   algorithm::MelBands                  mMelBands;
-  algorithm::DCT                       mDCT;
+  algorithm::DCT                       mDCT{40, 13};
   algorithm::YINFFT                    mYinFFT;
   algorithm::Loudness                  mLoudness{get<kMaxFFTSize>()};
 };

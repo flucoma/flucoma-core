@@ -28,10 +28,12 @@ class CepstrumF0
 public:
   using ArrayXd = Eigen::ArrayXd;
 
-  void init(index size)
-  {
+  CepstrumF0(index maxSize) : mDCT(maxSize, maxSize), mCepstrumStorage(maxSize) {}
+
+  void init(index size) {
     mDCT.init(size, size);
-    mCepstrum = ArrayXd(size);
+    mCepstrum = mCepstrumStorage.segment(0, size);
+    mCepstrum.setZero();
   }
 
   void processFrame(const RealVectorView& input, RealVectorView output,
@@ -65,6 +67,7 @@ public:
 
 private:
   DCT     mDCT;
+  ArrayXd mCepstrumStorage;
   ArrayXd mCepstrum;
 };
 } // namespace algorithm
