@@ -28,8 +28,16 @@ class ParameterTrackChanges
   using indices = std::index_sequence_for<Args...>;
 
 public:
-  ParameterTrackChanges() = default;
+
   constexpr ParameterTrackChanges(const Args... args) : mValues{args...} {}
+
+  //Do we want *really* a default constructor? We're using it, but is it a good idea?
+  ParameterTrackChanges() = default;
+  
+  constexpr ParameterTrackChanges(const ParameterTrackChanges&) noexcept = default;
+  constexpr ParameterTrackChanges(ParameterTrackChanges&&) noexcept = default;
+  constexpr ParameterTrackChanges& operator=(const ParameterTrackChanges&) noexcept = default;
+  constexpr ParameterTrackChanges& operator=(ParameterTrackChanges&&) noexcept = default;
 
   bool changed(Args... args)
   {

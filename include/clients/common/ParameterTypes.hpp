@@ -242,13 +242,13 @@ public:
       : mWindowSize{win}, mHopSize{hop}, mFFTSize{fft}, trackWin{win},
         trackHop{hop}, trackFFT{fft}
   {}
+  
 
-  constexpr FFTParams(const FFTParams& p) = default;
-  constexpr FFTParams(FFTParams&& p) noexcept = default;
+  constexpr FFTParams(const FFTParams& p) noexcept = default; 
+  constexpr FFTParams( FFTParams&& p) noexcept = default;
 
-  // Assignment should not change the trackers
-
-  FFTParams& operator=(FFTParams&& p) noexcept
+  // Assignment shouldn't reset the trackers 
+  constexpr FFTParams& operator=(FFTParams&& p) noexcept
   {
     mWindowSize = p.mWindowSize;
     mHopSize = p.mHopSize;
@@ -257,7 +257,7 @@ public:
     return *this;
   }
 
-  FFTParams& operator=(const FFTParams& p)
+  constexpr FFTParams operator=(const FFTParams& p) noexcept
   {
     mWindowSize = p.mWindowSize;
     mHopSize = p.mHopSize;
@@ -395,11 +395,10 @@ public:
   };
 
 private:
-  intptr_t mWindowSize;
-  intptr_t mHopSize;
-  intptr_t mFFTSize;
-  bool     mHopChanged{false};
-
+  intptr_t mWindowSize{0};
+  intptr_t mHopSize{0};
+  intptr_t mFFTSize{0};
+ 
   ParameterTrackChanges<intptr_t> trackWin;
   ParameterTrackChanges<intptr_t> trackHop;
   ParameterTrackChanges<intptr_t> trackFFT;
