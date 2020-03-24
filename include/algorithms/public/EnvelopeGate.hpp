@@ -13,9 +13,9 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/ButterworthHPFilter.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/SlideUDFilter.hpp"
+#include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
-#include <algorithm>
 #include <cmath>
 
 namespace fluid {
@@ -39,6 +39,7 @@ public:
             index mindeximeBelowThreshold, index minSilenceDuration,
             index downwardLookupTime)
   {
+    using namespace std;
     mHiPassFreq = hiPassFreq;
     mRampUpTime = rampUpTime;
     mRampDownTime = rampDownTime;
@@ -47,14 +48,13 @@ public:
     mMinEventDuration = minEventDuration;
     mUpwardLookupTime = upwardLookupTime;
     mOffThreshold = offThreshold;
-    mFloor = std::min(mOffThreshold, mOnThreshold) - 1;
+    mFloor = min(mOffThreshold, mOnThreshold) - 1;
     mMindeximeBelowThreshold = mindeximeBelowThreshold,
     mMinSilenceDuration = minSilenceDuration;
     mDownwardLookupTime = downwardLookupTime;
-    mDownwardLatency =
-        std::max<index>(mindeximeBelowThreshold, mDownwardLookupTime);
-    mLatency = std::max<index>(mMindeximeAboveThreshold + mUpwardLookupTime,
-                               mDownwardLatency);
+    mDownwardLatency = max<index>(mindeximeBelowThreshold, mDownwardLookupTime);
+    mLatency = max<index>(mMindeximeAboveThreshold + mUpwardLookupTime,
+                          mDownwardLatency);
     if (mLatency < 0) mLatency = 1;
     initBuffers();
     initFilters();
@@ -81,7 +81,7 @@ public:
     mMinEventDuration = minEventDuration;
     mOffThreshold = offThreshold;
     mMinSilenceDuration = minSilenceDuration;
-    mFloor = std::min(mOffThreshold, mOnThreshold)  - 1;
+    mFloor = std::min(mOffThreshold, mOnThreshold) - 1;
   }
 
   index getLatency() { return mLatency; }
@@ -89,13 +89,14 @@ public:
 
   double processSample(const double in)
   {
+    using namespace std;
     assert(mInitialized);
     double filtered = in;
     if (mHiPassFreq > 0)
       filtered = mHiPass2.processSample(mHiPass1.processSample(in));
-    double rectified = std::abs(filtered);
-    double dB = 20 * std::log10(rectified);
-    double clipped = std::max(dB, mFloor);
+    double rectified = abs(filtered);
+    double dB = 20 * log10(rectified);
+    double clipped = max(dB, mFloor);
     double smoothed = mSlide.processSample(clipped);
     bool   forcedState = false;
     // case 1: we are waiting for event to finish
@@ -168,13 +169,14 @@ public:
 private:
   void initBuffers()
   {
-    mInputBuffer = mInputStorage.segment(0, std::max<index>(mLatency, 1))
+    using namespace std;
+    mInputBuffer = mInputStorage.segment(0, max<index>(mLatency, 1))
                        .setConstant(mFloor);
     mOutputBuffer =
-        mOutputStorage.segment(0, std::max<index>(mLatency, 1)).setZero();
+        mOutputStorage.segment(0, max<index>(mLatency, 1)).setZero();
     mInputState = false;
     mOutputState = false;
-    mFillCount = std::max<index>(mLatency, 1);
+    mFillCount = max<index>(mLatency, 1);
   }
 
   void initFilters()
@@ -188,7 +190,8 @@ private:
   index refineStart(index start, index nSamples)
   {
     if (nSamples < 2) return start + nSamples;
-    ArrayXd        seg = mInputBuffer.segment(start, nSamples);
+    ArrayXd seg = mInputBuffer.segment(start, nSamples);
+
     ArrayXd::Index index;
     seg.minCoeff(&index);
     return start + index;

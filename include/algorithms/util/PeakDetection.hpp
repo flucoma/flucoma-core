@@ -10,6 +10,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "FluidEigenMappings.hpp"
+#include "../../data/FluidIndex.hpp"
 #include "../../data/FluidTensor.hpp"
 #include <Eigen/Core>
 #include <limits>
@@ -25,7 +26,8 @@ class PeakDetection
 
 public:
   pairs_vector process(const Eigen::Ref<ArrayXd>& input, index numPeaks = 0,
-                       double minHeight = 0, bool interpolate = true, bool sort = true)
+                       double minHeight = 0, bool interpolate = true,
+                       bool sort = true)
   {
     using std::make_pair;
     pairs_vector peaks;
@@ -51,7 +53,8 @@ public:
         }
       }
     }
-    if(sort){
+    if (sort)
+    {
       std::sort(peaks.begin(), peaks.end(), [](auto& left, auto& right) {
         return left.second > right.second;
       });

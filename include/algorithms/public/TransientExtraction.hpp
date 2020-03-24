@@ -34,8 +34,8 @@ public:
       : mModel(order, iterations, robustFactor)
   {}
 
-  void init(index order, index iterations, double robustFactor,
-            index blockSize, index padSize)
+  void init(index order, index iterations, double robustFactor, index blockSize,
+            index padSize)
   {
     mModel = ARModel(order, iterations, robustFactor);
     prepareStream(blockSize, padSize);
@@ -116,7 +116,7 @@ public:
     std::copy(unknowns.data(), unknowns.data() + hopSize(), mDetect.data());
     mCount = 0;
     for (index i = 0, size = hopSize(); i < size; i++)
-      if (mDetect[asUnsigned(i)]!=0) mCount++;
+      if (mDetect[asUnsigned(i)] != 0) mCount++;
     frame(input.data(), inSize);
     if (mCount) analyse();
     interpolate(transients.data(), residual.data());
@@ -128,13 +128,14 @@ public:
 private:
   void frame(const double* input, index inSize)
   {
+    using namespace std;
     inSize = std::min(inSize, inputSize());
-    std::copy(mInput.data() + hopSize(),
+    copy(mInput.data() + hopSize(),
               mInput.data() + modelOrder() + padSize() + blockSize(),
               mInput.data());
-    std::copy(input, input + inSize,
+    copy(input, input + inSize,
               mInput.data() + modelOrder() + padSize() + modelOrder());
-    std::fill(mInput.data() + modelOrder() + padSize() + modelOrder() + inSize,
+    fill(mInput.data() + modelOrder() + padSize() + modelOrder() + inSize,
               mInput.data() + modelOrder() + analysisSize(), 0.0);
   }
 
@@ -339,8 +340,6 @@ private:
 
       Eigen::VectorXd u(mCount);
 
-      double sum = randomSampling(u, (energy - energyLS) / mCount);
-
       Eigen::MatrixXd correction = M.solve(u) + ls;
 
       // Write the output
@@ -350,10 +349,6 @@ private:
         if (mDetect[asUnsigned(i)] != 0) io[asUnsigned(i)] = u(uCount++);
       }
 
-      std::cout << "Energy is " << energyLS << " expected " << energy << "\n";
-      std::cout << "Energy is " << sum << " should be " << (energy - energyLS)
-                << "\n";
-      if (energyLS > sum) std::cout << "******ENERGY DECREASE******\n";
     }
   }
 

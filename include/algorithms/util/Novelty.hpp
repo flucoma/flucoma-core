@@ -12,9 +12,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "FluidEigenMappings.hpp"
 #include "../public/WindowFuncs.hpp"
 #include "../util/AlgorithmUtils.hpp"
-#include "../../data/FluidTensor.hpp"
+#include "../../data/FluidIndex.hpp"
 #include <Eigen/Core>
-#include <limits>
 
 namespace fluid {
 namespace algorithm {

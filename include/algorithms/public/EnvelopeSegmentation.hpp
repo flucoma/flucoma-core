@@ -14,8 +14,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/SlideUDFilter.hpp"
 #include "../../data/TensorTypes.hpp"
+#include "../../data/FluidIndex.hpp"
 #include <Eigen/Core>
-#include <algorithm>
 #include <cmath>
 
 namespace fluid {
@@ -81,13 +81,14 @@ public:
 
   double processSample(const double in)
   {
+    using namespace std;
     assert(mInitialized);
     double filtered = in;
     if (mHiPassFreq > 0)
       filtered = mHiPass2.processSample(mHiPass1.processSample(in));
-    double rectified = std::abs(filtered);
-    double dB = 20 * std::log10(rectified);
-    double clipped = std::max(dB, mFloor);
+    double rectified = abs(filtered);
+    double dB = 20 * log10(rectified);
+    double clipped = max(dB, mFloor);
     double fast = mFastSlide.processSample(clipped);
     double slow = mSlowSlide.processSample(clipped);
     double value = fast - slow;

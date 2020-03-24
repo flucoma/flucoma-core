@@ -10,8 +10,9 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "TransientExtraction.hpp"
-#include "../../data/TensorTypes.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/TensorTypes.hpp"
+#include <cmath>
 
 namespace fluid {
 namespace algorithm {
@@ -56,7 +57,8 @@ public:
     for (index i = 0; i < std::min<index>(hopSize(), output.size()); i++)
     {
       output(i) = (transientDetection[i] != 0 && !mLastDetection && !mDebounce);
-      mDebounce = output(i) == 1.0 ? mMinSegment : std::max<index>(0, mDebounce - 1);
+      mDebounce =
+          output(i) == 1.0 ? mMinSegment : std::max<index>(0, mDebounce - 1);
       mLastDetection = transientDetection[i] == 1.0;
     }
   }

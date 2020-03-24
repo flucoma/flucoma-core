@@ -166,7 +166,7 @@ private:
     directEstimate(input, size, true);
 
     // Initialise Estimates
-    
+
     for (index i = mOrder; i < mOrder + size; i++)
       estimates[asUnsigned(i)] = input[i - mOrder];
 

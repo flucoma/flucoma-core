@@ -14,8 +14,10 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/AlgorithmUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/PeakDetection.hpp"
+#include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Eigen>
+#include <cmath>
 
 namespace fluid {
 namespace algorithm {
@@ -36,6 +38,7 @@ public:
                     double minFreq, double maxFreq, double sampleRate)
   {
     using namespace Eigen;
+    using namespace std;
     PeakDetection pd;
 
     ArrayXd mag = _impl::asEigen<Array>(input);
@@ -57,7 +60,7 @@ public:
       }
     }
     output(0) = pitch;
-    output(1) = std::min(std::abs(confidence), 1.0);
+    output(1) = min(abs(confidence), 1.0);
   }
 
 private:

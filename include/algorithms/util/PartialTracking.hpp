@@ -18,6 +18,7 @@ Capability through Linear Programming". Proceedings of DAFx-2018.
 #include "../util/Munkres.hpp"
 #include "../../data/FluidIndex.hpp"
 #include <Eigen/Core>
+#include <cmath>
 #include <queue>
 
 namespace fluid {
@@ -33,11 +34,12 @@ struct SinePeak
 struct SineTrack
 {
   std::vector<SinePeak> peaks;
-  index                 startFrame;
-  index                 endFrame;
-  bool                  active;
-  bool                  assigned;
-  index                 trackId;
+
+  index startFrame;
+  index endFrame;
+  bool  active;
+  bool  assigned;
+  index trackId;
 };
 
 class PartialTracking
@@ -101,6 +103,7 @@ public:
 
   void updateVariances()
   {
+    using namespace std;
     mVarA = -pow(mZetaA, 2) * log((mDelta - 1) / (mDelta - 2));
     mVarF = -pow(mZetaF, 2) * log((mDelta - 1) / (mDelta - 2));
   }
@@ -137,7 +140,8 @@ public:
       if (track.endFrame >= 0 &&
           track.endFrame - track.startFrame < mMinTrackLength)
         continue;
-      sinePeaks.push_back(track.peaks[asUnsigned(latencyFrame - track.startFrame)]);
+      sinePeaks.push_back(
+          track.peaks[asUnsigned(latencyFrame - track.startFrame)]);
     }
     return sinePeaks;
   }
@@ -146,6 +150,8 @@ private:
   void assignMunkres(vector<SinePeak> sinePeaks, double maxAmp)
   {
     using namespace Eigen;
+    using namespace std;
+
     typedef Array<bool, Dynamic, Dynamic> ArrayXXb;
     for (auto&& track : mTracks) { track.assigned = false; }
 
@@ -210,7 +216,8 @@ private:
       {
         index p = assignment(i);
         bool  aboveBirthThreshold =
-            mPrevPeaks[asUnsigned(i)].logMag > birthThreshold(mPrevPeaks[asUnsigned(i)], mPrevMaxAmp);
+            mPrevPeaks[asUnsigned(i)].logMag >
+            birthThreshold(mPrevPeaks[asUnsigned(i)], mPrevMaxAmp);
         if (assignment(i) >= useful.cols()) continue;
         if (useful(i, assignment(i)) && mPrevTracks[asUnsigned(i)] > 0 &&
             mPrevPeaks[asUnsigned(i)].assigned)
@@ -230,13 +237,13 @@ private:
                  !mPrevPeaks[asUnsigned(i)].assigned)
         {
           mLastTrackId = mLastTrackId + 1;
-          auto newTrack =
-              SineTrack{vector<SinePeak>{mPrevPeaks[asUnsigned(i)], sinePeaks[asUnsigned(p)]},
-                        mCurrentFrame - 1,
-                        -1,
-                        true,
-                        true,
-                        mLastTrackId};
+          auto newTrack = SineTrack{vector<SinePeak>{mPrevPeaks[asUnsigned(i)],
+                                                     sinePeaks[asUnsigned(p)]},
+                                    mCurrentFrame - 1,
+                                    -1,
+                                    true,
+                                    true,
+                                    mLastTrackId};
           mTracks.push_back(newTrack);
           sinePeaks[asUnsigned(p)].assigned = true;
           trackAssignment[asUnsigned(p)] = newTrack.trackId;

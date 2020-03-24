@@ -10,7 +10,9 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
+#include "../util/AlgorithmUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
+#include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <cassert>
@@ -27,7 +29,7 @@ public:
 
   void init(index inputSize, index outputSize)
   {
-    using std::sqrt;
+    using namespace std;
     assert(inputSize >= outputSize);
     mInputSize = inputSize;
     mOutputSize = outputSize;
@@ -35,7 +37,7 @@ public:
     for (index i = 0; i < mOutputSize; i++)
     {
       double  scale = i == 0 ? 1.0 / sqrt(inputSize) : sqrt(2.0 / inputSize);
-      ArrayXd freqs = ((M_PI / inputSize) * i) *
+      ArrayXd freqs = ((pi / inputSize) * i) *
                       ArrayXd::LinSpaced(inputSize, 0.5, inputSize - 0.5);
       mTable.row(i) = freqs.cos() * scale;
     }
@@ -52,8 +54,8 @@ public:
   {
     output = (mTable * input.matrix()).array();
   }
-  index      mInputSize{40};
-  index      mOutputSize{13};
+  index    mInputSize{40};
+  index    mOutputSize{13};
   MatrixXd mTable;
 };
 } // namespace algorithm

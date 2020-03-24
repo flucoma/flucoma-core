@@ -13,6 +13,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/AlgorithmUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/TensorTypes.hpp"
+#include "../../data/FluidIndex.hpp"
 #include <Eigen/Core>
 #include <vector>
 
@@ -85,7 +86,6 @@ public:
       ArrayXd v2 = (W * h).array();
       v = asFluid(v2);
     }
-    // ArrayXdMap(out.data(), rank) = h.array();
   }
 
   void process(const RealMatrixView X, RealMatrixView W1, RealMatrixView H1,
@@ -171,7 +171,7 @@ private:
       R = R.cwiseMax(epsilon);
       for (auto& cb : mCallbacks)
         if (!cb(i + 1)) return;
-      //double divergence = (V.cwiseProduct(V.cwiseQuotient(R)) - V + R).sum();
+      // double divergence = (V.cwiseProduct(V.cwiseQuotient(R)) - V + R).sum();
       // divergenceCurve.push_back(divergence);
       // divergenceCurve(mIterations);
       // std::cout << "Divergence " << divergence << "\n";

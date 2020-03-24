@@ -12,9 +12,9 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #include "../util/AlgorithmUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
-#include "../../data/FluidTensor.hpp"
+#include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
-#include <Eigen/Dense>
+#include <Eigen/Core>
 
 namespace fluid {
 namespace algorithm {
@@ -40,7 +40,6 @@ public:
     using namespace Eigen;
     assert(mixture.cols() == targetMag.cols());
     assert(mixture.rows() == targetMag.rows());
-    // ComplexMatrixView result(mixture.extent(0), mixture.extent(1));
     ArrayXXcd tmp =
         asEigen<Array>(mixture) *
         (asEigen<Array>(targetMag).pow(mExponent) * mMultiplier.pow(mExponent))
@@ -50,7 +49,7 @@ public:
 
 private:
   ArrayXXd mMultiplier;
-  index      mExponent{1};
+  index    mExponent{1};
 };
 
 } // namespace algorithm

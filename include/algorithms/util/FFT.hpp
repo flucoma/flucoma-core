@@ -9,9 +9,9 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include "HISSTools_FFT/HISSTools_FFT.h"
 #include "../../data/FluidIndex.hpp"
 #include <Eigen/Core>
+#include <HISSTools_FFT/HISSTools_FFT.h>
 
 namespace fluid {
 namespace algorithm {
@@ -48,15 +48,16 @@ public:
 
   FFT& operator=(FFT&& other)
   {
+    using namespace std;
     mMaxSize = other.mMaxSize;
     mSize = other.mSize;
     mFrameSize = other.mFrameSize;
     mLog2Size = other.mLog2Size;
-    std::swap(mOutputBuffer, other.mOutputBuffer);
-    std::swap(mRealBuffer, other.mRealBuffer);
-    std::swap(mImagBuffer, other.mImagBuffer);
-    std::swap(mSplit, other.mSplit);
-    std::swap(mSetup, other.mSetup);
+    swap(mOutputBuffer, other.mOutputBuffer);
+    swap(mRealBuffer, other.mRealBuffer);
+    swap(mImagBuffer, other.mImagBuffer);
+    swap(mSplit, other.mSplit);
+    swap(mSetup, other.mSetup);
     return *this;
   }
 
