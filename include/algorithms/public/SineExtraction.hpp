@@ -19,8 +19,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
-#include <queue>
 #include <cmath>
+#include <queue>
 
 namespace fluid {
 namespace algorithm {
@@ -35,47 +35,31 @@ class SineExtraction
   using vector = std::vector<T>;
 
 public:
-  SineExtraction(index maxFFTSize)
-      : mBins(maxFFTSize / 2 + 1), mMaxFFTSize(maxFFTSize), mFFT(maxFFTSize)
-  {}
-
-  void init(index windowSize, index fftSize, index bandwidth)
+  void init(index windowSize, index fftSize, index transformSize)
   {
-    mWindowSize = windowSize;
     mBins = fftSize / 2 + 1;
     mCurrentFrame = 0;
     mBuf = std::queue<ArrayXcd>();
     mScale = 1.0 / (windowSize / 4.0); // scale to original amplitude
-    mBandwidth = bandwidth;
-    computeWindowTransform();
+    computeWindowTransform(windowSize, transformSize);
     mTracking.init();
     mWindowBinIncr = mWindowTransform.size() / (mBins - 1) / 2;
     mInvWindowBinIncr = 1.0 / mWindowBinIncr;
     mInitialized = true;
   }
 
-  void computeWindowTransform()
-  {
-    index halfBW = mMaxFFTSize / 2;
-    mWindowTransform = ArrayXd::Zero(mMaxFFTSize);
-    ArrayXd window = ArrayXd::Zero(mWindowSize);
-    WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](mWindowSize, window);
-    ArrayXcd transform =
-        mFFT.process(Eigen::Map<ArrayXd>(window.data(), mWindowSize));
-    for (index i = 0; i < halfBW; i++)
-    {
-      mWindowTransform(halfBW + i) = mWindowTransform(halfBW - i) =
-          std::abs(transform(i));
-    }
-  }
-
   void processFrame(const ComplexVectorView in, ComplexMatrixView out,
-                    double sampleRate)
+                    double sampleRate, double detectionThreshold,
+                    index minTrackLength, double birthLowThreshold,
+                    double birthHighThreshold, index trackMethod, double zetaA,
+                    double zetaF, double delta, index bandwidth)
   {
     assert(mInitialized);
     using namespace Eigen;
     index    fftSize = 2 * (mBins - 1);
     ArrayXcd frame = _impl::asEigen<Array>(in);
+    if (minTrackLength != mTracking.minTrackLength())
+    { mBuf = std::queue<ArrayXcd>(); }
     mBuf.push(frame);
     ArrayXd mag = frame.abs().real();
     mag = mag * mScale;
@@ -84,17 +68,21 @@ public:
     auto tmpPeaks = mPeakDetection.process(logMag, 0, -infinity, true, false);
     for (auto p : tmpPeaks)
     {
-      if (p.second > mDeathThreshold)
+      if (p.second > detectionThreshold)
       {
         double hz = sampleRate * p.first / fftSize;
         peaks.push_back({hz, p.second, false});
       }
     }
     double maxAmp = 20 * std::log10(mag.maxCoeff());
-    mTracking.processFrame(peaks, maxAmp);
+    mTracking.processFrame(peaks, maxAmp, minTrackLength, birthLowThreshold,
+                           birthHighThreshold, trackMethod, zetaA, zetaF,
+                           delta);
     vector<SinePeak> sinePeaks = mTracking.getActivePeaks();
-    ArrayXd          frameSines = additiveSynthesis(sinePeaks, sampleRate);
-    ArrayXXcd        result(mBins, 2);
+    ArrayXd          frameSines = ArrayXd::Zero(mBins);
+    for (auto& p : sinePeaks)
+    { frameSines += synthesizePeak(p, sampleRate, bandwidth); }
+    ArrayXXcd result(mBins, 2);
     if (asSigned(mBuf.size()) <= mTracking.minTrackLength())
     {
       result.col(0) = ArrayXd::Zero(mBins);
@@ -128,43 +116,23 @@ public:
 
   void reset() { mCurrentFrame = 0; }
 
-  void setDeathThreshold(double threshold) { mDeathThreshold = threshold; }
-
-  void setBirthLowThreshold(double threshold)
-  {
-    mTracking.setBirthLowThreshold(threshold);
-  }
-
-  void setBirthHighThreshold(double threshold)
-  {
-    mTracking.setBirthHighThreshold(threshold);
-  }
-
-  void setMinTrackLength(index minTrackLength)
-  {
-    if (minTrackLength != mTracking.getMinTrackLength())
-    {
-      mBuf = std::queue<ArrayXcd>();
-      mTracking.setMinTrackLength(minTrackLength);
-    }
-  }
-
-  void setMethod(index method) { mTracking.setMethod(method); }
-
-  void setZetaA(double zetaA) { mTracking.setZetaA(zetaA); }
-
-  void setZetaF(double zetaF) { mTracking.setZetaF(zetaF); }
-
-  void setDelta(double delta) { mTracking.setDelta(delta); }
-
   bool initialized() { return mInitialized; }
 
 private:
-  ArrayXd additiveSynthesis(const vector<SinePeak> peaks, double sampleRate)
+  void computeWindowTransform(index windowSize, index transformSize)
   {
-    ArrayXd result = ArrayXd::Zero(mBins);
-    for (auto& p : peaks) { result += synthesizePeak(p, sampleRate); }
-    return result;
+    index halfBW = transformSize / 2;
+    mWindowTransform = ArrayXd::Zero(transformSize);
+    ArrayXd window = ArrayXd::Zero(windowSize);
+    FFT     fft(transformSize);
+    WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](windowSize, window);
+    ArrayXcd transform =
+        fft.process(Eigen::Map<ArrayXd>(window.data(), windowSize));
+    for (index i = 0; i < halfBW; i++)
+    {
+      mWindowTransform(halfBW + i) = mWindowTransform(halfBW - i) =
+          std::abs(transform(i));
+    }
   }
 
   double interpolateWindow(double pos)
@@ -175,10 +143,10 @@ private:
     return mWindowTransform(floor) + frac * mInvWindowBinIncr * dY;
   }
 
-  ArrayXd synthesizePeak(SinePeak p, double sampleRate)
+  ArrayXd synthesizePeak(SinePeak p, double sampleRate, index bandwidth)
   {
     using namespace std;
-    index   halfBW = mBandwidth / 2;
+    index   halfBW = bandwidth / 2;
     ArrayXd sine = ArrayXd::Zero(mBins);
     double  freqBin = p.freq * 2 * (mBins - 1) / sampleRate;
     if (freqBin >= mBins - 1) freqBin = mBins - 1;
@@ -204,17 +172,12 @@ private:
   PeakDetection        mPeakDetection;
   PartialTracking      mTracking;
   index                mBins{513};
-  double               mDeathThreshold{-96.};
   index                mCurrentFrame{0};
   vector<SineTrack>    mTracks;
   std::queue<ArrayXcd> mBuf;
   ArrayXd              mWindowTransform;
   double               mScale{1.0};
   bool                 mInitialized{false};
-  index                mBandwidth{76};
-  index                mWindowSize{1024};
-  index                mMaxFFTSize{16384};
-  FFT                  mFFT;
   double               mWindowBinIncr;
   double               mInvWindowBinIncr;
 };

@@ -82,26 +82,20 @@ public:
     if (!input[0].data()) return;
     if (!output[0].data() && !output[1].data()) return;
     if (!mSinesExtractor.initialized() ||
-        mTrackValues.changed(get<kFFT>().winSize(), get<kFFT>().fftSize(),
-                             get<kBandwidth>(), sampleRate()))
+        mTrackValues.changed(get<kFFT>().winSize(), get<kFFT>().fftSize(), sampleRate()))
     {
       mSinesExtractor.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
-                           get<kBandwidth>());
+                           get<kMaxFFTSize>());
     }
-    mSinesExtractor.setDeathThreshold(get<kDetectionThreshold>());
-    mSinesExtractor.setBirthHighThreshold(get<kBirthHighThreshold>());
-    mSinesExtractor.setBirthLowThreshold(get<kBirthLowThreshold>());
-    mSinesExtractor.setMinTrackLength(get<kMinTrackLen>());
-    mSinesExtractor.setMethod(get<kTrackingMethod>());
-    mSinesExtractor.setZetaA(get<kTrackMagRange>());
-    mSinesExtractor.setZetaF(get<kTrackFreqRange>());
-    mSinesExtractor.setDelta(get<kTrackProb>());
 
     mSTFTBufferedProcess.process(
         mParams, input, output, c,
         [this](ComplexMatrixView in, ComplexMatrixView out) {
-          mSinesExtractor.processFrame(in.row(0), out.transpose(),
-                                       sampleRate());
+          mSinesExtractor.processFrame(in.row(0), out.transpose(), sampleRate(),
+                          get<kDetectionThreshold>(), get<kMinTrackLen>(),
+                          get<kBirthLowThreshold>(), get<kBirthHighThreshold>(),
+                          get<kTrackingMethod>(), get<kTrackMagRange>(),
+                         get<kTrackFreqRange>(), get<kTrackProb>(), get<kBandwidth>());
         });
   }
 
@@ -114,14 +108,8 @@ public:
 
 private:
   STFTBufferedProcess<ParamSetViewType, T, kFFT> mSTFTBufferedProcess;
-  algorithm::SineExtraction mSinesExtractor{get<kMaxFFTSize>()};
-  ParameterTrackChanges<index, index, index, double> mTrackValues;
-
-  index mWinSize{0};
-  index mHopSize{0};
-  index mFFTSize{0};
-  index mBandwidth{0};
-  index mMinTrackLen{0};
+  algorithm::SineExtraction mSinesExtractor;
+  ParameterTrackChanges<index, index, double> mTrackValues;
 };
 
 auto constexpr NRTSineParams =
