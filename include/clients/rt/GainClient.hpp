@@ -59,7 +59,7 @@ public:
     else
     {
       double g = get<kGain>();
-      output[0].apply([g](T& x) { x *= g; });
+      output[0].apply([g](T& x) { x *= static_cast<T>(g); });
     }
   }
 }; // class

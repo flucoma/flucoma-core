@@ -259,7 +259,7 @@ public:
         {
           auto env = envelopes.samps(i * get<kRank>() + j);
           env = outputEnvelopes.col(j);
-          env.apply([scale](float& x) { x *= scale; });
+          env.apply([scale](float& x) { x *= static_cast<float>(scale); });
         }
       }
 
