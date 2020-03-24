@@ -93,12 +93,12 @@ public:
             algorithm::STFT::magnitude(in, tmpMagnitude);
             mNMF.processFrame(tmpMagnitude.row(0), tmpFilt, tmpOut,
                               get<kIterations>(), tmpEstimate.row(0));
-            mMask.init(tmpEstimate, 1);
+            mMask.init(tmpEstimate);
             for (index i = 0; i < rank; ++i)
             {
               algorithm::NMF::estimate(tmpFilt, RealMatrixView(tmpOut), i,
                                        tmpSource);
-              mMask.process(in, RealMatrixView{tmpSource},
+              mMask.process(in, RealMatrixView{tmpSource}, 1,
                             ComplexMatrixView{out.row(i)});
             }
           });

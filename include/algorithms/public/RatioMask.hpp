@@ -25,16 +25,15 @@ class RatioMask
   using ArrayXXd = Eigen::ArrayXXd;
 
 public:
-  void init(RealMatrixView denominator, index exponent)
+  void init(RealMatrixView denominator)
   {
     using namespace _impl;
     using namespace Eigen;
-    mExponent = exponent;
     mMultiplier = (1 / asEigen<Array>(denominator).max(epsilon));
   }
 
   void process(const ComplexMatrixView& mixture, RealMatrixView targetMag,
-               ComplexMatrixView result)
+               index exponent, ComplexMatrixView result)
   {
     using namespace _impl;
     using namespace Eigen;
@@ -42,14 +41,13 @@ public:
     assert(mixture.rows() == targetMag.rows());
     ArrayXXcd tmp =
         asEigen<Array>(mixture) *
-        (asEigen<Array>(targetMag).pow(mExponent) * mMultiplier.pow(mExponent))
+        (asEigen<Array>(targetMag).pow(exponent) * mMultiplier.pow(exponent))
             .min(1.0);
     result = asFluid(tmp);
   }
 
 private:
   ArrayXXd mMultiplier;
-  index    mExponent{1};
 };
 
 } // namespace algorithm

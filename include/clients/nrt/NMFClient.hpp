@@ -266,7 +266,7 @@ public:
       if (hasResynth)
       {
         auto mask = algorithm::RatioMask();
-        mask.init(outputMags, 1);
+        mask.init(outputMags);
         auto resynthMags = FluidTensor<double, 2>(nWindows, nBins);
         auto resynthSpectrum =
             FluidTensor<std::complex<double>, 2>(nWindows, nBins);
@@ -284,7 +284,7 @@ public:
           if (c.task() &&
               !c.task()->processUpdate(++progressCount, progressTotal))
             return {Result::Status::kCancelled, ""};
-          mask.process(spectrum, resynthMags, resynthSpectrum);
+          mask.process(spectrum, resynthMags, 1, resynthSpectrum);
           if (c.task() &&
               !c.task()->processUpdate(++progressCount, progressTotal))
             return {Result::Status::kCancelled, ""};
