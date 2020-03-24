@@ -69,35 +69,32 @@ public:
     FluidBaseClient::audioChannelsOut(1);
   }
 
-  void process(std::vector<HostVector>& input, std::vector<HostVector>& output, FluidContext&)
+  void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
+               FluidContext&)
   {
 
     if (!input[0].data() || !output[0].data()) return;
 
     double hiPassFreq = std::min(get<kHiPassFreq>() / sampleRate(), 0.5);
 
-    if (mTrackValues.changed(get<kMinTimeAboveThreshold>(),
-                             get<kUpwardLookupTime>(),
-                             get<kMinTimeBelowThreshold>(),
-                             get<kDownwardLookupTime>(), sampleRate()) ||
+    if (mTrackValues.changed(
+            get<kOnThreshold>(), get<kOffThreshold>(),
+            get<kMinTimeAboveThreshold>(), get<kUpwardLookupTime>(),
+            get<kMinTimeBelowThreshold>(), get<kDownwardLookupTime>()) ||
         !mAlgorithm.initialized())
     {
-      mAlgorithm.init(hiPassFreq, get<kRampUpTime>(), get<kRampDownTime>(),
-                      get<kOnThreshold>(), get<kMinTimeAboveThreshold>(),
-                      get<kMinEventDuration>(), get<kUpwardLookupTime>(),
-                      get<kOffThreshold>(), get<kMinTimeBelowThreshold>(),
-                      get<kMinSilenceDuration>(), get<kDownwardLookupTime>());
-    }
-    else
-    {
-      mAlgorithm.updateParams(hiPassFreq, get<kRampUpTime>(),
-                              get<kRampDownTime>(), get<kOnThreshold>(),
-                              get<kMinEventDuration>(), get<kOffThreshold>(),
-                              get<kMinSilenceDuration>());
+      mAlgorithm.init(get<kOnThreshold>(), get<kOffThreshold>(),
+                      get<kMinTimeAboveThreshold>(), get<kUpwardLookupTime>(),
+                      get<kMinTimeBelowThreshold>(),
+                      get<kDownwardLookupTime>());
     }
 
     for (index i = 0; i < input[0].size(); i++)
-    { output[0](i) = static_cast<T>(mAlgorithm.processSample(input[0](i))); }
+    {
+      output[0](i) = static_cast<T>(mAlgorithm.processSample(
+          input[0](i), hiPassFreq, get<kRampUpTime>(), get<kRampDownTime>(),
+          get<kMinEventDuration>(), get<kMinSilenceDuration>()));
+    }
   }
 
   void reset() {}
@@ -110,7 +107,8 @@ public:
   }
 
 private:
-  ParameterTrackChanges<index, index, index, index, double> mTrackValues;
+  ParameterTrackChanges<double, double, index, index, index, index>
+                          mTrackValues;
   algorithm::EnvelopeGate mAlgorithm{get<kMaxSize>()};
 };
 
