@@ -21,10 +21,6 @@ class TransientSegmentation : public algorithm::TransientExtraction
 {
 
 public:
-  TransientSegmentation(index order, index iterations, double robustFactor)
-      : TransientExtraction(order, iterations, robustFactor)
-  {}
-
   void setDetectionParameters(double power, double threshHi, double threshLo,
                               index halfWindow = 7, index hold = 25,
                               index minSegment = 50)
@@ -34,21 +30,12 @@ public:
     mMinSegment = minSegment;
   }
 
-  void init(index order, index iterations, double robustFactor, index blockSize,
-            index padSize)
+  void init(index order, index blockSize, index padSize)
   {
-    TransientExtraction::init(order, iterations, robustFactor, blockSize,
-                              padSize);
+    TransientExtraction::init(order, blockSize, padSize);
     mLastDetection = false;
     mDebounce = 0;
   }
-
-  index modelOrder() const { return TransientExtraction::modelOrder(); }
-  index blockSize() const { return TransientExtraction::blockSize(); }
-  index hopSize() const { return TransientExtraction::hopSize(); }
-  index padSize() const { return TransientExtraction::padSize(); }
-  index inputSize() const { return TransientExtraction::inputSize(); }
-  index analysisSize() const { return TransientExtraction::analysisSize(); }
 
   void process(const RealVectorView input, RealVectorView output)
   {
