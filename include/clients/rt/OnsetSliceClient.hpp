@@ -85,14 +85,8 @@ public:
                                FluidBaseClient::audioChannelsOut());
       mTmp.resize(1, hostVecSize);
     }
-    if (mMaxSizeTracker.changed(get<kMaxFFTSize>()))
-    { mAlgorithm = OnsetSegmentation{static_cast<int>(get<kMaxFFTSize>())}; }
-    mAlgorithm.updateParameters(get<kFFT>().fftSize(), get<kFFT>().winSize(),
-                                get<kFFT>().hopSize(), get<kFrameDelta>(),
-                                get<kFunction>(), get<kFilterSize>(),
-                                get<kThreshold>(), get<kDebounce>());
-
-
+    if (mParamsTracker.changed(get<kFFT>().fftSize(), get<kFFT>().winSize()))
+    { mAlgorithm.init(get<kFFT>().winSize(), get<kFFT>().fftSize()); }
     RealMatrix in(1, hostVecSize);
     in.row(0) = input[0];
     RealMatrix out(1, hostVecSize);
@@ -101,7 +95,9 @@ public:
     mBufferedProcess.process(
         totalWindow, totalWindow, get<kFFT>().hopSize(), c,
         [&, this](RealMatrixView in, RealMatrixView) {
-          out.row(0)(frameOffset) = mAlgorithm.processFrame(in.row(0));
+          out.row(0)(frameOffset) = mAlgorithm.processFrame(
+              in.row(0), get<kFunction>(), get<kFilterSize>(), get<kDebounce>(),
+              get<kFrameDelta>());
           frameOffset += get<kFFT>().hopSize();
         });
     output[0] = out.row(0);
@@ -111,16 +107,16 @@ public:
   void reset() { mBufferedProcess.reset(); }
 
 private:
-  OnsetSegmentation                             mAlgorithm{get<kMaxFFTSize>()};
+  OnsetSegmentation                          mAlgorithm{get<kMaxFFTSize>()};
   ParameterTrackChanges<index, index, index> mBufferParamsTracker;
-  ParameterTrackChanges<index>                 mMaxSizeTracker;
-  BufferedProcess                               mBufferedProcess;
-  RealMatrix                                    mTmp;
+  ParameterTrackChanges<index, index>        mParamsTracker;
+  BufferedProcess                            mBufferedProcess;
+  RealMatrix                                 mTmp;
 };
 
-auto constexpr NRTOnsetSliceParams = makeNRTParams<OnsetSliceClient>(
-    InputBufferParam("source", "Source Buffer"),
-    BufferParam("indices", "Indices Buffer"));
+auto constexpr NRTOnsetSliceParams =
+    makeNRTParams<OnsetSliceClient>(InputBufferParam("source", "Source Buffer"),
+                                    BufferParam("indices", "Indices Buffer"));
 template <typename T>
 using NRTOnsetSliceClient =
     NRTSliceAdaptor<OnsetSliceClient<T>, decltype(NRTOnsetSliceParams),
