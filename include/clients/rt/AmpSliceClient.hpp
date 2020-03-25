@@ -69,7 +69,11 @@ public:
 
     double hiPassFreq = std::min(get<kHiPassFreq>() / sampleRate(), 0.5);
 
-    if (mTrackValues.changed(sampleRate()) || !mAlgorithm.initialized())
+    if (mTrackValues.changed(hiPassFreq, get<kFastRampUpTime>(),
+                    get<kSlowRampUpTime>(), get<kFastRampDownTime>(),
+                    get<kSlowRampDownTime>(), get<kOnThreshold>(),
+                    get<kOffThreshold>(), get<kSilenceThreshold>(),
+                    get<kDebounce>()) || !mAlgorithm.initialized())
     {
       mAlgorithm.init(hiPassFreq, get<kFastRampUpTime>(),
                       get<kSlowRampUpTime>(), get<kFastRampDownTime>(),
@@ -77,10 +81,6 @@ public:
                       get<kOffThreshold>(), get<kSilenceThreshold>(),
                       get<kDebounce>());
     }
-    mAlgorithm.updateParams(
-        hiPassFreq, get<kFastRampUpTime>(), get<kSlowRampUpTime>(),
-        get<kFastRampDownTime>(), get<kSlowRampDownTime>(), get<kOnThreshold>(),
-        get<kOffThreshold>(), get<kSilenceThreshold>(), get<kDebounce>());
     for (index i = 0; i < input[0].size(); i++)
     { output[0](i) = static_cast<T>(mAlgorithm.processSample(input[0](i))); }
   }
@@ -90,7 +90,7 @@ public:
   void reset() {}
 
 private:
-  ParameterTrackChanges<double>   mTrackValues;
+  ParameterTrackChanges<double, index, index, index,index,double, double, double,index >   mTrackValues;
   algorithm::EnvelopeSegmentation mAlgorithm;
 };
 
