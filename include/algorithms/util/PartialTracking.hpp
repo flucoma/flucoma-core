@@ -59,10 +59,23 @@ public:
 
   index minTrackLength() { return mMinTrackLength; }
 
-  void processFrame(vector<SinePeak> peaks, double maxAmp)
+  void processFrame(vector<SinePeak> peaks, double maxAmp, index minTrackLength,
+                    double birthLowThreshold, double birthHighThreshold,
+                    index method, double zetaA, double zetaF, double delta)
   {
     assert(mInitialized);
-    if (mMethod == 0)
+    mMinTrackLength = minTrackLength;
+    mBirthLowThreshold = birthLowThreshold;
+    mBirthHighThreshold = birthHighThreshold;
+    mBirthRange = mBirthLowThreshold - mBirthHighThreshold;
+    if (zetaA != mZetaA || zetaF != mZetaF || delta != mDelta)
+    {
+      mZetaA = zetaA;
+      mZetaF = zetaF;
+      mDelta = delta;
+      updateVariances();
+    }
+    if (method == 0)
       assignGreedy(peaks, maxAmp);
     else
       assignMunkres(peaks, maxAmp);
@@ -79,54 +92,6 @@ public:
     mTracks.erase(iterator, mTracks.end());
   }
 
-  void setMinTrackLength(index minTrackLength)
-  {
-    mMinTrackLength = minTrackLength;
-  }
-
-  index getMinTrackLength() { return mMinTrackLength; }
-
-
-  void setBirthLowThreshold(double threshold)
-  {
-    mBirthLowThreshold = threshold;
-    mBirthRange = mBirthLowThreshold - mBirthHighThreshold;
-  }
-
-  void setBirthHighThreshold(double threshold)
-  {
-    mBirthHighThreshold = threshold;
-    mBirthRange = mBirthLowThreshold - mBirthHighThreshold;
-  }
-
-  void setMethod(index method) { mMethod = method; }
-
-  void updateVariances()
-  {
-    using namespace std;
-    mVarA = -pow(mZetaA, 2) * log((mDelta - 1) / (mDelta - 2));
-    mVarF = -pow(mZetaF, 2) * log((mDelta - 1) / (mDelta - 2));
-  }
-
-  void setZetaA(double zetaA)
-  {
-    mZetaA = zetaA;
-    updateVariances();
-  }
-
-  void setZetaF(double zetaF)
-  {
-    mZetaF = zetaF;
-    updateVariances();
-  }
-
-  void setDelta(double delta)
-  {
-    mDelta = delta;
-    updateVariances();
-  }
-
-  bool initialized() { return mInitialized; }
 
   vector<SinePeak> getActivePeaks()
   {
@@ -147,6 +112,13 @@ public:
   }
 
 private:
+  void updateVariances()
+  {
+    using namespace std;
+    mVarA = -pow(mZetaA, 2) * log((mDelta - 1) / (mDelta - 2));
+    mVarF = -pow(mZetaF, 2) * log((mDelta - 1) / (mDelta - 2));
+  }
+
   void assignMunkres(vector<SinePeak> sinePeaks, double maxAmp)
   {
     using namespace Eigen;
@@ -337,7 +309,6 @@ private:
   vector<SinePeak>  mPrevPeaks;
   vector<index>     mPrevTracks;
   Munkres           mMunkres;
-  index             mMethod;
   double            mZetaA;
   double            mVarA;
   double            mZetaF;

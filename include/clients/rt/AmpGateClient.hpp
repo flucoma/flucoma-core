@@ -69,31 +69,27 @@ public:
     FluidBaseClient::audioChannelsOut(1);
   }
 
-  void process(std::vector<HostVector>& input, std::vector<HostVector>& output, FluidContext&)
+  void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
+               FluidContext&)
   {
 
     if (!input[0].data() || !output[0].data()) return;
 
     double hiPassFreq = std::min(get<kHiPassFreq>() / sampleRate(), 0.5);
 
-    if (mTrackValues.changed(get<kMinTimeAboveThreshold>(),
-                             get<kUpwardLookupTime>(),
-                             get<kMinTimeBelowThreshold>(),
-                             get<kDownwardLookupTime>(), sampleRate()) ||
+    if (mTrackValues.changed(
+            hiPassFreq, get<kRampUpTime>(), get<kRampDownTime>(),
+            get<kOnThreshold>(), get<kOffThreshold>(),
+            get<kMinTimeAboveThreshold>(), get<kMinEventDuration>(),
+            get<kUpwardLookupTime>(), get<kMinTimeBelowThreshold>(),
+            get<kMinSilenceDuration>(), get<kDownwardLookupTime>()) ||
         !mAlgorithm.initialized())
     {
       mAlgorithm.init(hiPassFreq, get<kRampUpTime>(), get<kRampDownTime>(),
-                      get<kOnThreshold>(), get<kMinTimeAboveThreshold>(),
-                      get<kMinEventDuration>(), get<kUpwardLookupTime>(),
-                      get<kOffThreshold>(), get<kMinTimeBelowThreshold>(),
+                      get<kOnThreshold>(), get<kOffThreshold>(),
+                      get<kMinTimeAboveThreshold>(), get<kMinEventDuration>(),
+                      get<kUpwardLookupTime>(), get<kMinTimeBelowThreshold>(),
                       get<kMinSilenceDuration>(), get<kDownwardLookupTime>());
-    }
-    else
-    {
-      mAlgorithm.updateParams(hiPassFreq, get<kRampUpTime>(),
-                              get<kRampDownTime>(), get<kOnThreshold>(),
-                              get<kMinEventDuration>(), get<kOffThreshold>(),
-                              get<kMinSilenceDuration>());
     }
 
     for (index i = 0; i < input[0].size(); i++)
@@ -110,7 +106,9 @@ public:
   }
 
 private:
-  ParameterTrackChanges<index, index, index, index, double> mTrackValues;
+  ParameterTrackChanges<double, index, index, double, double, index, index,
+                        index, index, index, index>
+                          mTrackValues;
   algorithm::EnvelopeGate mAlgorithm{get<kMaxSize>()};
 };
 

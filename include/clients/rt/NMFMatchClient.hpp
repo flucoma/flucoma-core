@@ -56,7 +56,7 @@ public:
 
   index latency() { return get<kFFT>().winSize(); }
 
-  void reset(){ mSTFTProcessor.reset(); }
+  void reset() { mSTFTProcessor.reset(); }
 
   void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
                FluidContext& c)
@@ -83,33 +83,31 @@ public:
         tmpFilt.resize(rank, fftParams.frameSize());
         tmpMagnitude.resize(1, fftParams.frameSize());
         tmpOut.resize(rank);
-        // mNMF.reset(new algorithm::NMF(rank, get<kIterations>()));
-        mNMF.init(rank, get<kIterations>());
       }
 
       for (index i = 0; i < tmpFilt.rows(); ++i)
         tmpFilt.row(i) = filterBuffer.samps(i);
 
       //      controlTrigger(false);
-      mSTFTProcessor.processInput(
-          mParams, input, c,  [&](ComplexMatrixView in) {
-            algorithm::STFT::magnitude(in, tmpMagnitude);
-            mNMF.processFrame(tmpMagnitude.row(0), tmpFilt, tmpOut);
-            //          controlTrigger(true);
-          });
+      mSTFTProcessor.processInput(mParams, input, c, [&](ComplexMatrixView in) {
+        algorithm::STFT::magnitude(in, tmpMagnitude);
+        mNMF.processFrame(tmpMagnitude.row(0), tmpFilt, tmpOut);
+        //          controlTrigger(true);
+      });
 
-      for (index i = 0; i < rank; ++i) output[asUnsigned(i)](0) = static_cast<T>(tmpOut(i));
+      for (index i = 0; i < rank; ++i)
+        output[asUnsigned(i)](0) = static_cast<T>(tmpOut(i));
     }
   }
 
 private:
-  ParameterTrackChanges<index, index>                 mTrackValues;
-  STFTBufferedProcess<ParamSetViewType, T, kFFT, false> mSTFTProcessor;
-  algorithm::NMF                                        mNMF{get<kMaxRank>()};
+  ParameterTrackChanges<index, index> mTrackValues;
+  algorithm::NMF                      mNMF;
+  FluidTensor<double, 2>              tmpFilt;
+  FluidTensor<double, 2>              tmpMagnitude;
+  FluidTensor<double, 1>              tmpOut;
 
-  FluidTensor<double, 2> tmpFilt;
-  FluidTensor<double, 2> tmpMagnitude;
-  FluidTensor<double, 1> tmpOut;
+  STFTBufferedProcess<ParamSetViewType, T, kFFT, false> mSTFTProcessor;
 
   size_t mNBins{0};
   size_t mRank{0};

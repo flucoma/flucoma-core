@@ -84,8 +84,7 @@ public:
     index windowSize = get<kFFT>().winSize();
     index feature = get<kFeature>();
     if (mParamsTracker.changed(hostVecSize, get<kFeature>(), get<kKernelSize>(),
-                               get<kThreshold>(), get<kFilterSize>(),
-                               windowSize, sampleRate()))
+                               get<kFilterSize>(), windowSize, sampleRate()))
     {
       mBufferedProcess.hostSize(hostVecSize);
       mBufferedProcess.maxSize(windowSize, windowSize,
@@ -104,7 +103,7 @@ public:
       {
         mBands.resize(40);
         mMelBands.init(20, 2000, 40, get<kFFT>().frameSize(), sampleRate(),
-                       true, false, get<kFFT>().winSize(), false);
+                       get<kFFT>().winSize());
         mDCT.init(40, 13);
         nDims = 13;
       }
@@ -113,11 +112,9 @@ public:
         mLoudness.init(windowSize, sampleRate());
       }
       mFeature.resize(nDims);
-      mNovelty.init(get<kKernelSize>(), get<kThreshold>(), get<kFilterSize>(),
-                    nDims);
+      mNovelty.init(get<kKernelSize>(), get<kFilterSize>(), nDims);
     }
-
-    mNovelty.setMinSliceLength(get<kDebounce>());
+    
     RealMatrix in(1, hostVecSize);
     in.row(0) = input[0];
     RealMatrix out(1, hostVecSize);
@@ -135,7 +132,7 @@ public:
           case 1:
             mSTFT.processFrame(in.row(0), mSpectrum);
             mSTFT.magnitude(mSpectrum, mMagnitude);
-            mMelBands.processFrame(mMagnitude, mBands);
+            mMelBands.processFrame(mMagnitude, mBands, true, false, false);
             mDCT.processFrame(mBands, mFeature);
             break;
           case 2:
@@ -148,7 +145,8 @@ public:
             break;
           }
           if (frameOffset < out.row(0).size())
-            out.row(0)(frameOffset) = mNovelty.processFrame(mFeature);
+            out.row(0)(frameOffset) = mNovelty.processFrame(
+                mFeature, get<kThreshold>(), get<kDebounce>());
           frameOffset += get<kFFT>().hopSize();
         });
     output[0] = out.row(0);
@@ -166,7 +164,7 @@ public:
 private:
   algorithm::NoveltySegmentation mNovelty{get<kMaxKernelSize>(),
                                           get<kMaxFilterSize>()};
-  ParameterTrackChanges<index, index, index, double, index, index, double>
+  ParameterTrackChanges<index, index, index, index, index, double>
                   mParamsTracker;
   BufferedProcess mBufferedProcess;
   algorithm::STFT mSTFT{get<kFFT>().winSize(), get<kFFT>().fftSize(),
@@ -175,8 +173,8 @@ private:
   FluidTensor<double, 1>               mMagnitude;
   FluidTensor<double, 1>               mBands;
   FluidTensor<double, 1>               mFeature;
-  algorithm::MelBands                  mMelBands;
-  algorithm::DCT                       mDCT;
+  algorithm::MelBands                  mMelBands{40, get<kMaxFFTSize>()};
+  algorithm::DCT                       mDCT{40, 13};
   algorithm::YINFFT                    mYinFFT;
   algorithm::Loudness                  mLoudness{get<kMaxFFTSize>()};
 };

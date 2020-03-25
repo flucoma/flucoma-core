@@ -45,38 +45,6 @@ public:
     mInitialized = true;
   }
 
-  void updateParams(double hiPassFreq, index fastRampUpTime,
-                    index slowRampUpTime, index fastRampDownTime,
-                    index slowRampDownTime, double onThreshold,
-                    double offThreshold, double floor, index debounce)
-  {
-    if (hiPassFreq != mHiPassFreq)
-    {
-      mHiPassFreq = hiPassFreq;
-      initFilters();
-    }
-
-    if (fastRampUpTime != mFastRampUpTime ||
-        fastRampDownTime != mFastRampDownTime)
-    {
-      mFastRampUpTime = fastRampUpTime;
-      mFastRampDownTime = fastRampDownTime;
-      mFastSlide.init(mFastRampUpTime, mFastRampDownTime, mFloor);
-    }
-
-    if (slowRampUpTime != mSlowRampUpTime ||
-        slowRampDownTime != mSlowRampDownTime)
-    {
-      mSlowRampUpTime = slowRampUpTime;
-      mSlowRampDownTime = slowRampDownTime;
-      mSlowSlide.init(mSlowRampUpTime, mSlowRampDownTime, mFloor);
-    }
-    mOnThreshold = onThreshold;
-    mOffThreshold = offThreshold;
-    mFloor = floor;
-    mDebounce = debounce;
-  }
-
   bool initialized() { return mInitialized; }
 
   double processSample(const double in)

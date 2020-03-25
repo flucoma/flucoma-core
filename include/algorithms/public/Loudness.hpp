@@ -33,6 +33,7 @@ public:
     mFilter.init(sampleRate);
     mTP.init(size, sampleRate);
     mSize = size;
+    mInitialized = true;
   }
 
   void processFrame(const RealVectorView& input, RealVectorView output,
@@ -40,6 +41,7 @@ public:
   {
     using namespace Eigen;
     using namespace std;
+    assert(mInitialized);
     assert(output.size() == 2);
     assert(input.size() == mSize);
     ArrayXd in = _impl::asEigen<Array>(input);
@@ -57,6 +59,7 @@ private:
   TruePeak         mTP;
   KWeightingFilter mFilter;
   index            mSize{1024};
+  bool             mInitialized{false};
 };
 
 } // namespace algorithm

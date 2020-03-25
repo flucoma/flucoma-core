@@ -30,14 +30,11 @@ class TransientExtraction
   using VectorXd = Eigen::VectorXd;
 
 public:
-  TransientExtraction(index order, index iterations, double robustFactor)
-      : mModel(order, iterations, robustFactor)
-  {}
 
-  void init(index order, index iterations, double robustFactor, index blockSize,
+  void init(index order, index blockSize,
             index padSize)
   {
-    mModel = ARModel(order, iterations, robustFactor);
+    mModel = ARModel(order);
     prepareStream(blockSize, padSize);
     mInitialized = true;
   }
@@ -87,28 +84,22 @@ public:
   index detect(const double* input, index inSize)
   {
     frame(input, inSize);
-    analyse();
+    analyze();
     detection();
-
     return mCount;
   }
-
-  // index extract(double *transients, double *residual, const double *input,
-  //            index inSize) {
 
   void process(const RealVectorView input, RealVectorView transients,
                RealVectorView residual)
   {
+    assert(mInitialized);
     index inSize = input.extent(0);
     frame(input.data(), inSize);
-    analyse();
+    analyze();
     detection();
     interpolate(transients.data(), residual.data());
-    // return mCount;
   }
 
-  // index extract(double *transients, double *residual, const double *input,
-  //            index inSize, const double *unknowns) {
   void process(const RealVectorView input, const RealVectorView unknowns,
                RealVectorView transients, RealVectorView residual)
   {
@@ -118,9 +109,8 @@ public:
     for (index i = 0, size = hopSize(); i < size; i++)
       if (mDetect[asUnsigned(i)] != 0) mCount++;
     frame(input.data(), inSize);
-    if (mCount) analyse();
+    if (mCount) analyze();
     interpolate(transients.data(), residual.data());
-    // return mCount;
   }
 
   bool initialized() { return mInitialized; }
@@ -139,7 +129,7 @@ private:
               mInput.data() + modelOrder() + analysisSize(), 0.0);
   }
 
-  void analyse()
+  void analyze()
   {
     mModel.setMinVariance(0.0000001);
     mModel.estimate(mInput.data() + modelOrder(), analysisSize());
@@ -150,9 +140,7 @@ private:
     const double* input = mInput.data() + modelOrder() + padSize();
 
     // Forward and backward error
-
     const double normFactor = 1.0 / sqrt(mModel.variance());
-
     errorCalculation<&ARModel::forwardErrorArray>(
         mForwardError.data(), input, blockSize() + mDetectHalfWindow + 1,
         normFactor);
@@ -161,14 +149,12 @@ private:
         normFactor);
 
     // Window error functions (brute force convolution)
-
     windowError(mForwardWindowedError.data(),
                 mForwardError.data() + modelOrder(), hopSize());
     windowError(mBackwardWindowedError.data(),
                 mBackwardError.data() + modelOrder(), hopSize());
 
     // Detection
-
     index        count = 0;
     const double hiThresh = mDetectThreshHi;
     const double loThresh = mDetectThreshLo;
@@ -201,7 +187,6 @@ private:
     }
 
     // Count Validation
-
     if (count > (hopSize() / 2))
     {
       std::fill(mDetect.data(), mDetect.data() + hopSize(), 0.0);
@@ -262,14 +247,12 @@ private:
     }
 
     // Declare matrices
-
     MatrixXd A = MatrixXd::Zero(size - order, size);
     MatrixXd U = MatrixXd::Zero(size, mCount);
     MatrixXd K = MatrixXd::Zero(size, size - mCount);
     VectorXd xK(size - mCount);
 
     // Form data
-
     for (index i = 0; i < size - order; i++)
     {
       for (index j = 0; j < order; j++)
@@ -290,13 +273,11 @@ private:
     }
 
     // Solve
-
     MatrixXd Au = A * U;
     MatrixXd M = -(Au.transpose() * Au);
     MatrixXd u = M.fullPivLu().solve(Au.transpose() * (A * K) * xK);
 
     // Write the output
-
     for (index i = 0, uCount = 0; i < (size - order); i++)
     {
       if (mDetect[asUnsigned(i)] != 0)
@@ -311,7 +292,6 @@ private:
       transients[i] = input[i + order] - residual[i];
 
     // Copy the residual indexo the correct place
-
     std::copy(residual, residual + (size - order),
               mInput.data() + padSize() + order + order);
   }
@@ -334,7 +314,6 @@ private:
     if (energyLS < energy)
     {
       // Create the square matrix and solve
-
       Eigen::LLT<Eigen::MatrixXd> M(Au.transpose() *
                                     Au); // Cholesky decomposition
 
@@ -343,7 +322,6 @@ private:
       Eigen::MatrixXd correction = M.solve(u) + ls;
 
       // Write the output
-
       for (index i = 0, uCount = 0; i < (size - order); i++)
       {
         if (mDetect[asUnsigned(i)] != 0) io[asUnsigned(i)] = u(uCount++);
@@ -373,13 +351,11 @@ private:
     (mModel.*Method)(error, input, size);
 
     // Take absolutes and normalise
-
     for (index i = 0; i < size; i++)
       error[i] = std::fabs(error[i]) * normFactor;
   }
 
   // Triangle window
-
   double calcWindow(double norm) { return std::min(norm, 1.0 - norm); }
 
   void windowError(double* errorWindowed, const double* error, index size)
@@ -389,7 +365,6 @@ private:
     const double powFactor = mDetectPowerFactor;
 
     // Calculate window normalisation factor
-
     double windowNormFactor = 0.0;
 
     for (index j = 0; j < windowSize; j++)
@@ -398,7 +373,6 @@ private:
     windowNormFactor = 1.0 / windowNormFactor;
 
     // Do window processing
-
     for (index i = 0; i < size; i++)
     {
       double windowed = 0.0;
@@ -424,7 +398,7 @@ private:
     mBackwardWindowedError.resize(asUnsigned(hopSize()), 0.0);
   }
 
-  ARModel mModel;
+  ARModel mModel{20};
 
   std::mt19937_64 mRandomGenerator{std::random_device()()};
 

@@ -27,13 +27,18 @@ public:
   using ArrayXd = Eigen::ArrayXd;
   using MatrixXd = Eigen::MatrixXd;
 
+  DCT(index maxInputSize, index maxOutputSize){
+    mTableStorage = MatrixXd::Zero(maxInputSize, maxOutputSize);
+  }
+  
   void init(index inputSize, index outputSize)
   {
     using namespace std;
     assert(inputSize >= outputSize);
     mInputSize = inputSize;
     mOutputSize = outputSize;
-    mTable = MatrixXd::Zero(mOutputSize, mInputSize);
+    mTable = mTableStorage.block(0, 0, mOutputSize, mInputSize);
+    mTable.setZero();
     for (index i = 0; i < mOutputSize; i++)
     {
       double  scale = i == 0 ? 1.0 / sqrt(inputSize) : sqrt(2.0 / inputSize);
@@ -42,6 +47,7 @@ public:
       mTable.row(i) = freqs.cos() * scale;
     }
   }
+
   void processFrame(const RealVector in, RealVectorView out)
   {
     assert(in.size() == mInputSize);
@@ -57,6 +63,7 @@ public:
   index    mInputSize{40};
   index    mOutputSize{13};
   MatrixXd mTable;
+  MatrixXd mTableStorage;
 };
 } // namespace algorithm
 } // namespace fluid

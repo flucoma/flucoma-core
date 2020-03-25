@@ -29,73 +29,70 @@ public:
 
   enum HPSSMode { kClassic, kCoupled, kAdvanced };
 
-  void init(index nBins, index maxVSize, index maxHSize, index vSize,
-            index hSize, index mode, double hThresholdX1, double hThresholdY1,
-            double hThresholdX2, double hThresholdY2, double pThresholdX1,
-            double pThresholdY1, double pThresholdX2, double pThresholdY2)
+  HPSS(index maxFFTSize, index maxVSize, index maxHSize)
+      : mMaxH(maxFFTSize / 2 + 1, maxHSize),
+        mMaxV(maxFFTSize / 2 + 1, maxVSize),
+        mMaxBuf(maxFFTSize / 2 + 1, maxHSize)
+  {}
+  void init(index nBins, index hSize)
   {
-    assert(maxVSize % 2);
-    assert(maxHSize % 2);
-    assert(vSize % 2);
+    using namespace Eigen;
     assert(hSize % 2);
-    assert(hSize <= maxHSize);
-    assert(vSize <= maxVSize);
-    assert(mode >= 0 && mode <= 3);
-    mMaxH = ArrayXXd::Zero(nBins, maxHSize);
-    mMaxV = ArrayXXd::Zero(nBins, maxHSize);
-    mMaxBuf = ArrayXXd::Zero(nBins, maxHSize);
+    assert(nBins < mMaxBuf.rows());
+    assert(hSize < mMaxBuf.cols());
 
-    mBins = nBins;
-    mMaxVSize = maxVSize;
-    mMaxHSize = maxHSize;
-    mVSize = vSize;
-    mMode = mode;
-    setHSize(hSize);
+    mH = mMaxH.block(0, 0, nBins, hSize);
+    mV = mMaxV.block(0, 0, nBins, hSize);
+    mBuf = mMaxBuf.block(0, 0, nBins, hSize);
+    mH.setZero();
+    mV.setZero();
+    mBuf.setZero();
 
-    mHThresholdX1 = hThresholdX1;
-    mHThresholdX2 = hThresholdX2;
-    mHThresholdY1 = hThresholdY1;
-    mHThresholdY2 = hThresholdY2;
-
-    mPThresholdX1 = pThresholdX1;
-    mPThresholdX2 = pThresholdX2;
-    mPThresholdY1 = pThresholdY1;
-    mPThresholdY2 = pThresholdY2;
-
+    mHFilters = std::vector<MedianFilter>(asUnsigned(nBins));
+    for (index i = 0; i < nBins; i++) { mHFilters[asUnsigned(i)].init(hSize); }
     mInitialized = true;
   }
 
-
-  void processFrame(const ComplexVectorView in, ComplexMatrixView out)
+  void processFrame(const ComplexVectorView in, ComplexMatrixView out,
+                    index vSize, index hSize, index mode, double hThresholdX1,
+                    double hThresholdY1, double hThresholdX2,
+                    double hThresholdY2, double pThresholdX1,
+                    double pThresholdY1, double pThresholdX2,
+                    double pThresholdY2)
   {
     using namespace Eigen;
+    assert(mInitialized);
 
-    index h2 = (mHSize - 1) / 2;
-    index v2 = (mVSize - 1) / 2;
+    index h2 = (hSize - 1) / 2;
+    index v2 = (vSize - 1) / 2;
+    index nBins = mH.rows();
 
     ArrayXcd frame = _impl::asEigen<Array>(in);
     ArrayXd  mag = frame.abs().real();
-    mV.block(0, 0, mBins, mHSize - 1) = mV.block(0, 1, mBins, mHSize - 1);
-    mH.block(0, 0, mBins, mHSize - 1) = mH.block(0, 1, mBins, mHSize - 1);
-    mBuf.block(0, 0, mBins, mHSize - 1) = mBuf.block(0, 1, mBins, mHSize - 1);
-    ArrayXd padded = ArrayXd::Zero(2 * mVSize + mBins);
+
+    mV.block(0, 0, nBins, hSize - 1) = mV.block(0, 1, nBins, hSize - 1);
+    mH.block(0, 0, nBins, hSize - 1) = mH.block(0, 1, nBins, hSize - 1);
+    mBuf.block(0, 0, nBins, hSize - 1) = mBuf.block(0, 1, nBins, hSize - 1);
+
+    ArrayXd padded = ArrayXd::Zero(2 * vSize + nBins);
     ArrayXd resultV = ArrayXd::Zero(padded.size());
     ArrayXd tmp = ArrayXd::Zero(padded.size());
-    padded.segment(v2, mBins) = mag;
-    mVFilter.init(mVSize);
+
+    padded.segment(v2, nBins) = mag;
+    mVFilter.init(vSize);
     for (index i = 0; i < padded.size(); i++)
     { tmp(i) = mVFilter.processSample(padded(i)); }
-    mV.block(0, mHSize - 1, mBins, 1) = tmp.segment(v2 * 3, mBins);
-    mBuf.block(0, mHSize - 1, mBins, 1) = frame;
-    ArrayXd tmpRow = ArrayXd::Zero(2 * mHSize);
-    for (index i = 0; i < mBins; i++)
+    mV.block(0, hSize - 1, nBins, 1) = tmp.segment(v2 * 3, nBins);
+    mBuf.block(0, hSize - 1, nBins, 1) = frame;
+    ArrayXd tmpRow = ArrayXd::Zero(2 * hSize);
+    for (index i = 0; i < nBins; i++)
     { mH(i, h2 + 1) = mHFilters[asUnsigned(i)].processSample(mag(i)); }
-    ArrayXXcd result(mBins, 3);
-    ArrayXd   harmonicMask = ArrayXd::Ones(mBins);
-    ArrayXd   percussiveMask = ArrayXd::Ones(mBins);
+    ArrayXXcd result(nBins, 3);
+    ArrayXd   harmonicMask = ArrayXd::Ones(nBins);
+    ArrayXd   percussiveMask = ArrayXd::Ones(nBins);
     ArrayXd   residualMask =
-        mMode == kAdvanced ? ArrayXd::Ones(mBins) : ArrayXd::Zero(mBins);
-    switch (mMode)
+        mode == kAdvanced ? ArrayXd::Ones(nBins) : ArrayXd::Zero(nBins);
+    switch (mode)
     {
     case kClassic: {
       ArrayXd HV = mH.col(0) + mV.col(0);
@@ -106,20 +103,20 @@ public:
     }
     case kCoupled: {
       harmonicMask = ((mH.col(0) / mV.col(0)) >
-                      makeThreshold(mHThresholdX1, mHThresholdY1, mHThresholdX2,
-                                    mHThresholdY2))
+                      makeThreshold(nBins, hThresholdX1, hThresholdY1,
+                                    hThresholdX2, hThresholdY2))
                          .cast<double>();
       percussiveMask = 1 - harmonicMask;
       break;
     }
     case kAdvanced: {
       harmonicMask = ((mH.col(0) / mV.col(0)) >
-                      makeThreshold(mHThresholdX1, mHThresholdY1, mHThresholdX2,
-                                    mHThresholdY2))
+                      makeThreshold(nBins, hThresholdX1, hThresholdY1,
+                                    hThresholdX2, hThresholdY2))
                          .cast<double>();
       percussiveMask = ((mV.col(0) / mH.col(0)) >
-                        makeThreshold(mPThresholdX1, mPThresholdY1,
-                                      mPThresholdX2, mPThresholdY2))
+                        makeThreshold(nBins, pThresholdX1, pThresholdY1,
+                                      pThresholdX2, pThresholdY2))
                            .cast<double>();
       residualMask = residualMask * (1 - harmonicMask);
       residualMask = residualMask * (1 - percussiveMask);
@@ -131,119 +128,41 @@ public:
       break;
     }
     }
-
     result.col(0) = mBuf.col(0) * harmonicMask.min(1.0);
     result.col(1) = mBuf.col(0) * percussiveMask.min(1.0);
     result.col(2) = mBuf.col(0) * residualMask.min(1.0);
     out = _impl::asFluid(result);
   }
 
-  void setMode(index mode)
-  {
-    assert(mode >= 0 && mode <= 2);
-    mMode = mode;
-  }
-
-  void setHSize(index newHSize)
-  {
-    using namespace Eigen;
-    assert(newHSize <= mMaxHSize);
-    assert(newHSize % 2);
-    mH = mMaxH.block(0, 0, mBins, newHSize);
-    mV = mMaxV.block(0, 0, mBins, newHSize);
-    mBuf = mMaxBuf.block(0, 0, mBins, newHSize);
-    mH.setZero();
-    mV.setZero();
-    mBuf.setZero();
-
-    mHFilters = std::vector<MedianFilter>(asUnsigned(mBins));
-    for (index i = 0; i < mBins; i++)
-    { mHFilters[asUnsigned(i)].init(newHSize); }
-    mHSize = newHSize;
-  }
-
-  void setVSize(index newVSize)
-  {
-    assert(newVSize <= mMaxVSize);
-    assert(newVSize % 2);
-    mVSize = newVSize;
-  }
-
-  void setHThresholdX1(double x)
-  {
-    assert(0 <= x && x <= 1);
-    mHThresholdX1 = x;
-  }
-
-  void setHThresholdX2(double x)
-  {
-    assert(0 <= x && x <= 1);
-    mHThresholdX2 = x;
-  }
-
-  void setPThresholdX1(double x)
-  {
-    assert(0 <= x && x <= 1);
-    mPThresholdX1 = x;
-  }
-
-  void setPThresholdX2(double x)
-  {
-    assert(0 <= x && x <= 1);
-    mPThresholdX2 = x;
-  }
-
-  void setHThresholdY1(double y) { mHThresholdY1 = y; }
-
-  void setHThresholdY2(double y) { mHThresholdY2 = y; }
-
-  void setPThresholdY1(double y) { mPThresholdY1 = y; }
-
-  void setPThresholdY2(double y) { mPThresholdY2 = y; }
-
-
 private:
-  Eigen::ArrayXd makeThreshold(double x1, double y1, double x2, double y2)
+  Eigen::ArrayXd makeThreshold(index nBins, double x1, double y1, double x2,
+                               double y2)
   {
     using namespace Eigen;
-    ArrayXd threshold = ArrayXd::Ones(mBins);
-    index   kneeStart = static_cast<index>(std::floor(x1 * mBins));
-    index   kneeEnd = static_cast<index>(std::floor(x2 * mBins));
+    ArrayXd threshold = ArrayXd::Ones(nBins);
+    index   kneeStart = static_cast<index>(std::floor(x1 * nBins));
+    index   kneeEnd = static_cast<index>(std::floor(x2 * nBins));
     index   kneeLength = kneeEnd - kneeStart;
     threshold.segment(0, kneeStart) =
         ArrayXd::Constant(kneeStart, 10).pow(y1 / 20.0);
     threshold.segment(kneeStart, kneeLength) =
         ArrayXd::Constant(kneeLength, 10)
             .pow(ArrayXd::LinSpaced(kneeLength, y1, y2) / 20.0);
-    threshold.segment(kneeEnd, mBins - kneeEnd) =
-        ArrayXd::Constant(mBins - kneeEnd, 10).pow(y2 / 20.0);
+    threshold.segment(kneeEnd, nBins - kneeEnd) =
+        ArrayXd::Constant(nBins - kneeEnd, 10).pow(y2 / 20.0);
     return threshold;
   }
 
   std::vector<MedianFilter> mHFilters;
   MedianFilter              mVFilter;
 
-  index     mBins{513};
-  index     mMaxVSize{101};
-  index     mMaxHSize{101};
-  index     mVSize{31};
-  index     mHSize{17};
-  index     mMode{0};
   ArrayXXd  mMaxH;
   ArrayXXd  mMaxV;
   ArrayXXcd mMaxBuf;
   ArrayXXd  mV;
   ArrayXXd  mH;
   ArrayXXcd mBuf;
-  double    mHThresholdX1{0.0};
-  double    mHThresholdY1{0.0};
-  double    mHThresholdX2{0.0};
-  double    mHThresholdY2{0.0};
-  double    mPThresholdX1{0.0};
-  double    mPThresholdY1{0.0};
-  double    mPThresholdX2{0.0};
-  double    mPThresholdY2{0.0};
-  bool      mInitialized = false;
+  bool      mInitialized{false};
 };
 } // namespace algorithm
 } // namespace fluid

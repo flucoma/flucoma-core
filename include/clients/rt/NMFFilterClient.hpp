@@ -51,15 +51,16 @@ public:
   }
 
   index latency() { return get<kFFT>().winSize(); }
-   
-   void reset(){ mSTFTProcessor.reset(); }
+
+  void reset() { mSTFTProcessor.reset(); }
 
   void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
                FluidContext& c)
   {
     if (!input[0].data()) return;
     assert(audioChannelsOut() && "No control channels");
-    assert(output.size() >= asUnsigned(audioChannelsOut()) && "Too few output channels");
+    assert(output.size() >= asUnsigned(audioChannelsOut()) &&
+           "Too few output channels");
 
     if (get<kFilterbuf>().get())
     {
@@ -80,7 +81,6 @@ public:
         tmpOut.resize(rank);
         tmpEstimate.resize(1, fftParams.frameSize());
         tmpSource.resize(1, fftParams.frameSize());
-        mNMF.init(rank, get<kIterations>());
       }
 
       for (index i = 0; i < tmpFilt.rows(); ++i)
@@ -88,17 +88,17 @@ public:
 
       //      controlTrigger(false);
       mSTFTProcessor.process(
-          mParams, input, output, c, 
+          mParams, input, output, c,
           [&](ComplexMatrixView in, ComplexMatrixView out) {
             algorithm::STFT::magnitude(in, tmpMagnitude);
             mNMF.processFrame(tmpMagnitude.row(0), tmpFilt, tmpOut,
                               get<kIterations>(), tmpEstimate.row(0));
-            mMask.init(tmpEstimate, 1);
+            mMask.init(tmpEstimate);
             for (index i = 0; i < rank; ++i)
             {
               algorithm::NMF::estimate(tmpFilt, RealMatrixView(tmpOut), i,
                                        tmpSource);
-              mMask.process(in, RealMatrixView{tmpSource},
+              mMask.process(in, RealMatrixView{tmpSource}, 1,
                             ComplexMatrixView{out.row(i)});
             }
           });
@@ -106,10 +106,10 @@ public:
   }
 
 private:
-  ParameterTrackChanges<index, index>                mTrackValues;
+  ParameterTrackChanges<index, index>                  mTrackValues;
   STFTBufferedProcess<ParamSetViewType, T, kFFT, true> mSTFTProcessor;
 
-  algorithm::NMF       mNMF{get<kMaxRank>()};
+  algorithm::NMF       mNMF;
   algorithm::RatioMask mMask;
 
   RealMatrix a;

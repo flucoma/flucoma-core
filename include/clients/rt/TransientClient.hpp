@@ -70,9 +70,6 @@ public:
     using namespace std;
     if (!input[0].data() || (!output[0].data() && !output[1].data())) return;
 
-    static constexpr unsigned iterations = 3;
-    static constexpr double   robustFactor = 3.0;
-
     index order = get<kOrder>();
     index blockSize = get<kBlockSize>();
     index padding = get<kPadding>();
@@ -83,10 +80,7 @@ public:
     if (mTrackValues.changed(order, blockSize, padding, hostVecSize) ||
         !mExtractor.initialized())
     {
-      mExtractor.init(order, iterations, robustFactor, blockSize,
-                      padding);
-      // mExtractor.reset(new algorithm::TransientExtraction(order, iterations,
-      // robustFactor, refine)); mExtractor->prepareStream(blockSize, padding);
+      mExtractor.init(order, blockSize, padding);
       mBufferedProcess.hostSize(hostVecSize);
       mBufferedProcess.maxSize(maxWinIn, maxWinOut,
                                FluidBaseClient::audioChannelsIn(),
@@ -130,7 +124,7 @@ public:
 private:
   ParameterTrackChanges<index, index, index, index> mTrackValues;
   // std::unique_ptr<algorithm::TransientExtraction> mExtractor;
-  algorithm::TransientExtraction mExtractor{get<kOrder>(), 3, 3.0};
+  algorithm::TransientExtraction mExtractor;
   BufferedProcess                mBufferedProcess;
   index                          mHostSize{0};
   index                          mOrder{0};

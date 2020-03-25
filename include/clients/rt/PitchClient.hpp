@@ -81,7 +81,7 @@ public:
     }
 
     mSTFTBufferedProcess.processInput(
-        mParams, input, c,  [&](ComplexMatrixView in) {
+        mParams, input, c, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
           switch (get<kAlgorithm>())
           {
@@ -99,20 +99,20 @@ public:
             break;
           }
         });
-    output[0](0) = static_cast<T>(get<kUnit>() == 0
-                       ? mDescriptors(0)
-                       : 69 + (12 * log2(mDescriptors(0) / 440.0))); // pitch
+    output[0](0) = static_cast<T>(
+        get<kUnit>() == 0 ? mDescriptors(0)
+                          : 69 + (12 * log2(mDescriptors(0) / 440.0))); // pitch
     output[1](0) = static_cast<T>(mDescriptors(1)); // pitch confidence
   }
   index latency() { return get<kFFT>().winSize(); }
   index controlRate() { return get<kFFT>().hopSize(); }
-  void reset(){ mSTFTBufferedProcess.reset(); }
+  void  reset() { mSTFTBufferedProcess.reset(); }
 
 private:
   ParameterTrackChanges<index, double>           mParamTracker;
   STFTBufferedProcess<ParamSetViewType, T, kFFT> mSTFTBufferedProcess;
 
-  CepstrumF0             cepstrumF0;
+  CepstrumF0             cepstrumF0{get<kMaxFFTSize>()};
   HPS                    hps;
   YINFFT                 yinFFT;
   FluidTensor<double, 1> mMagnitude;

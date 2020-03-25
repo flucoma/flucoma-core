@@ -22,6 +22,10 @@ namespace algorithm {
 class MelBands
 {
 public:
+  MelBands(index maxBands, index maxFFT)
+      : mFiltersStorage(maxBands, maxFFT / 2 + 1)
+  {}
+
   /*static inline double mel2hz(double x) {
       return 700.0 * (exp(x / 1127.01048) - 1.0);
     }*/
@@ -32,78 +36,60 @@ public:
   }
 
   void init(double lo, double hi, index nBands, index nBins, double sampleRate,
-            bool logOutput, bool usePower, index windowSize, bool magNorm)
+            index windowSize)
   {
 
     using namespace Eigen;
     assert(hi > lo);
     assert(nBands > 1);
-    
-    mLo = lo;
-    mHi = hi;
-    mBands = nBands;
-    mSampleRate = sampleRate;
-    mBins = nBins;
-    mWindowSize = windowSize;
-    mUsePower = usePower;
-    mMagNorm = magNorm;
-    mScale1 = 1.0 / (mWindowSize / 4.0); // scale to original amplitude
-    index fftSize = 2 * (mBins - 1);
-    mScale2 = 1.0 / (2.0 * double(fftSize) / mWindowSize);
-    ArrayXd melFreqs = ArrayXd::LinSpaced(mBands + 2, hz2mel(lo), hz2mel(hi));
+    mScale1 = 1.0 / (windowSize / 4.0); // scale to original amplitude
+    index fftSize = 2 * (nBins - 1);
+    mScale2 = 1.0 / (2.0 * double(fftSize) / windowSize);
+    ArrayXd melFreqs = ArrayXd::LinSpaced(nBands + 2, hz2mel(lo), hz2mel(hi));
     melFreqs = 700.0 * ((melFreqs / 1127.01048).exp() - 1.0);
-    mFilters = MatrixXd::Zero(mBands, mBins);
-    ArrayXd fftFreqs = ArrayXd::LinSpaced(mBins, 0, mSampleRate / 2.0);
+    mFilters = mFiltersStorage.block(0, 0, nBands, nBins);
+    mFilters.setZero();
+    ArrayXd fftFreqs = ArrayXd::LinSpaced(nBins, 0, sampleRate / 2.0);
     ArrayXd melD =
-        (melFreqs.segment(0, mBands + 1) - melFreqs.segment(1, mBands + 1))
+        (melFreqs.segment(0, nBands + 1) - melFreqs.segment(1, nBands + 1))
             .abs();
-    ArrayXXd ramps = melFreqs.replicate(1, mBins);
+    ArrayXXd ramps = melFreqs.replicate(1, nBins);
     ramps.rowwise() -= fftFreqs.transpose();
-    for (index i = 0; i < mBands; i++)
+    for (index i = 0; i < nBands; i++)
     {
       ArrayXd lower = -ramps.row(i) / melD(i);
       ArrayXd upper = ramps.row(i + 2) / melD(i + 1);
       mFilters.row(i) = lower.min(upper).max(0);
     }
-    mLogOutput = logOutput;
   }
 
-  void processFrame(const RealVectorView in, RealVectorView out)
+  void processFrame(const RealVectorView in, RealVectorView out, bool magNorm, bool usePower, bool logOutput)
   {
     using namespace Eigen;
-    assert(in.size() == mBins);
 
     ArrayXd frame = _impl::asEigen<Eigen::Array>(in);
-    if (mMagNorm) frame = frame * mScale1;
+    if (magNorm) frame = frame * mScale1;
     ArrayXd result;
-    if (mUsePower) { result = (mFilters * frame.square().matrix()).array(); }
+    if (usePower) { result = (mFilters * frame.square().matrix()).array(); }
     else
     {
       result = (mFilters * frame.matrix()).array();
     }
-    if (mMagNorm)
+    if (magNorm)
     {
       double energy = frame.sum() * mScale2;
       result = result * energy / std::max(epsilon, result.sum());
     }
 
-    if (mLogOutput) result = 10 * result.max(epsilon).log10();
+    if (logOutput) result = 10 * result.max(epsilon).log10();
     out = _impl::asFluid(result);
   }
 
-  double mLo{20.0};
-  double mHi{20000.0};
-  index  mBins{513};
-  index  mBands{40};
-  double mSampleRate{44100.0};
-  bool   mLogOutput{false};
-  bool   mUsePower{true};
-  index  mWindowSize{1024};
-  bool   mMagNorm{false};
   double mScale1{1.0};
   double mScale2{1.0};
 
   Eigen::MatrixXd mFilters;
+  Eigen::MatrixXd mFiltersStorage;
 };
 } // namespace algorithm
 } // namespace fluid

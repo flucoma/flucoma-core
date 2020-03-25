@@ -75,29 +75,31 @@ public:
            "Too few output channels");
 
     if (mTracker.changed(get<kFFT>().frameSize(), get<kNCoefs>(),
-                         get<kNBands>(), get<kMinFreq>(), get<kMaxFreq>(), sampleRate()))
+                         get<kNBands>(), get<kMinFreq>(), get<kMaxFreq>(),
+                         sampleRate()))
     {
       mMagnitude.resize(get<kFFT>().frameSize());
       mBands.resize(get<kNBands>());
       mCoefficients.resize(get<kNCoefs>());
       mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
-                                    get<kFFT>().frameSize(), sampleRate(), true, false,
-                                    get<kFFT>().winSize(), false);
+                     get<kFFT>().frameSize(), sampleRate(),
+                     get<kFFT>().winSize());
       mDCT.init(get<kNBands>(), get<kNCoefs>());
     }
 
     mSTFTBufferedProcess.processInput(
-        mParams, input, c,  [&](ComplexMatrixView in) {
+        mParams, input, c, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
-          mMelBands.processFrame(mMagnitude, mBands);
+          mMelBands.processFrame(mMagnitude, mBands, true, false, false);
           mDCT.processFrame(mBands, mCoefficients);
         });
-    for (index i = 0; i < get<kNCoefs>(); ++i) output[asUnsigned(i)](0) = static_cast<T>(mCoefficients(i));
+    for (index i = 0; i < get<kNCoefs>(); ++i)
+      output[asUnsigned(i)](0) = static_cast<T>(mCoefficients(i));
   }
 
   index latency() { return get<kFFT>().winSize(); }
 
-  void reset(){ mSTFTBufferedProcess.reset(); }
+  void reset() { mSTFTBufferedProcess.reset(); }
 
   index controlRate() { return get<kFFT>().hopSize(); }
 
@@ -105,9 +107,8 @@ private:
   ParameterTrackChanges<index, index, index, double, double, double> mTracker;
   STFTBufferedProcess<ParamSetViewType, T, kFFT, false> mSTFTBufferedProcess;
 
-  algorithm::MelBands mMelBands;
-  algorithm::DCT      mDCT;
-
+  algorithm::MelBands    mMelBands{get<kMaxFFTSize>(), get<kMaxFFTSize>()};
+  algorithm::DCT         mDCT{get<kMaxFFTSize>(), get<kMaxNCoefs>()};
   FluidTensor<double, 1> mMagnitude;
   FluidTensor<double, 1> mBands;
   FluidTensor<double, 1> mCoefficients;

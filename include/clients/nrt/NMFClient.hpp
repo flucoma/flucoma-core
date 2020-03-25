@@ -79,7 +79,7 @@ public:
 
     index nFrames = get<kNumFrames>();
     index nChannels = get<kNumChans>();
-    auto     rangeCheck = bufferRangeCheck(get<kSource>().get(), get<kOffset>(),
+    auto  rangeCheck = bufferRangeCheck(get<kSource>().get(), get<kOffset>(),
                                        nFrames, get<kStartChan>(), nChannels);
 
     if (!rangeCheck.ok()) return rangeCheck;
@@ -88,8 +88,8 @@ public:
     double sampleRate = source.sampleRate();
     auto   fftParams = get<kFFT>();
 
-    index nWindows =
-        static_cast<index>(std::floor((nFrames + fftParams.hopSize()) / fftParams.hopSize()));
+    index nWindows = static_cast<index>(
+        std::floor((nFrames + fftParams.hopSize()) / fftParams.hopSize()));
     index nBins = fftParams.frameSize();
 
     bool       hasFilters{false};
@@ -223,8 +223,7 @@ public:
         }
       }
 
-      auto nmf = algorithm::NMF(get<kRank>());
-      nmf.init(get<kRank>(), get<kIterations>(), !fixFilters, !fixEnvelopes);
+      auto nmf = algorithm::NMF();
       nmf.addProgressCallback(
           [&c, &progressCount, progressTotal](const int) -> bool {
             return c.task()
@@ -232,6 +231,7 @@ public:
                        : true;
           });
       nmf.process(magnitude, outputFilters, outputEnvelopes, outputMags,
+                  get<kRank>(), get<kIterations>(), !fixFilters, !fixEnvelopes,
                   seededFilters, seededEnvelopes);
 
       if (c.task() && c.task()->cancelled())
@@ -266,17 +266,16 @@ public:
       if (hasResynth)
       {
         auto mask = algorithm::RatioMask();
-        mask.init(outputMags, 1);
+        mask.init(outputMags);
         auto resynthMags = FluidTensor<double, 2>(nWindows, nBins);
         auto resynthSpectrum =
             FluidTensor<std::complex<double>, 2>(nWindows, nBins);
-        auto istft = algorithm::ISTFT{fftParams.winSize(),
-                                      fftParams.fftSize(),
+        auto istft = algorithm::ISTFT{fftParams.winSize(), fftParams.fftSize(),
                                       fftParams.hopSize()};
         auto resynthAudio = FluidTensor<double, 1>(nFrames);
         auto resynth = BufferAdaptor::Access{get<kResynth>().get()};
 
-        //const index subProgress = 3 * get<kRank>();
+        // const index subProgress = 3 * get<kRank>();
 
         for (index j = 0; j < get<kRank>(); ++j)
         {
@@ -285,7 +284,7 @@ public:
           if (c.task() &&
               !c.task()->processUpdate(++progressCount, progressTotal))
             return {Result::Status::kCancelled, ""};
-          mask.process(spectrum, resynthMags, resynthSpectrum);
+          mask.process(spectrum, resynthMags, 1, resynthSpectrum);
           if (c.task() &&
               !c.task()->processUpdate(++progressCount, progressTotal))
             return {Result::Status::kCancelled, ""};
