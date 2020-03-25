@@ -38,8 +38,8 @@ public:
   {
     using namespace Eigen;
     assert(hSize % 2);
-    assert(nBins < mMaxBuf.rows());
-    assert(hSize < mMaxBuf.cols());
+    assert(nBins <= mMaxBuf.rows());
+    assert(hSize <= mMaxBuf.cols());
 
     mH = mMaxH.block(0, 0, nBins, hSize);
     mV = mMaxV.block(0, 0, nBins, hSize);
