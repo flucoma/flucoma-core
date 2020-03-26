@@ -21,9 +21,8 @@ public:
     mBDown = 1.0 / rampDownTime;
   }
 
-  void init(double rampUpTime, double rampDownTime, double x0Val)
+  void init(double x0Val)
   {
-    updateCoeffs(rampUpTime, rampDownTime);
     y0 = x0Val;
   }
 

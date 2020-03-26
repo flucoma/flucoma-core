@@ -78,22 +78,23 @@ public:
     double hiPassFreq = std::min(get<kHiPassFreq>() / sampleRate(), 0.5);
 
     if (mTrackValues.changed(
-            hiPassFreq, get<kRampUpTime>(), get<kRampDownTime>(),
-            get<kOnThreshold>(), get<kOffThreshold>(),
-            get<kMinTimeAboveThreshold>(), get<kMinEventDuration>(),
-            get<kUpwardLookupTime>(), get<kMinTimeBelowThreshold>(),
-            get<kMinSilenceDuration>(), get<kDownwardLookupTime>()) ||
+            get<kMinTimeAboveThreshold>(), get<kUpwardLookupTime>(),
+            get<kMinTimeBelowThreshold>(), get<kDownwardLookupTime>()) ||
         !mAlgorithm.initialized())
     {
-      mAlgorithm.init(hiPassFreq, get<kRampUpTime>(), get<kRampDownTime>(),
-                      get<kOnThreshold>(), get<kOffThreshold>(),
-                      get<kMinTimeAboveThreshold>(), get<kMinEventDuration>(),
-                      get<kUpwardLookupTime>(), get<kMinTimeBelowThreshold>(),
-                      get<kMinSilenceDuration>(), get<kDownwardLookupTime>());
+      mAlgorithm.init(get<kOnThreshold>(), get<kOffThreshold>(),
+                      get<kMinTimeAboveThreshold>(), get<kUpwardLookupTime>(),
+                      get<kMinTimeBelowThreshold>(),
+                      get<kDownwardLookupTime>());
     }
 
     for (index i = 0; i < input[0].size(); i++)
-    { output[0](i) = static_cast<T>(mAlgorithm.processSample(input[0](i))); }
+    {
+      output[0](i) = static_cast<T>(mAlgorithm.processSample(
+          input[0](i), get<kOnThreshold>(), get<kOffThreshold>(),
+          get<kRampUpTime>(), get<kRampDownTime>(), hiPassFreq,
+          get<kMinEventDuration>(), get<kMinSilenceDuration>()));
+    }
   }
 
   void reset() {}
@@ -106,9 +107,8 @@ public:
   }
 
 private:
-  ParameterTrackChanges<double, index, index, double, double, index, index,
-                        index, index, index, index>
-                          mTrackValues;
+  ParameterTrackChanges<index, index, index, index> mTrackValues;
+
   algorithm::EnvelopeGate mAlgorithm{get<kMaxSize>()};
 };
 
