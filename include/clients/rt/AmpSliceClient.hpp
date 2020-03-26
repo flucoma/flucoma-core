@@ -70,7 +70,7 @@ public:
     double hiPassFreq = std::min(get<kHiPassFreq>() / sampleRate(), 0.5);
 
     if (!mAlgorithm.initialized())
-    { mAlgorithm.init(get<kSilenceThreshold>()); }
+    { mAlgorithm.init(get<kSilenceThreshold>(), hiPassFreq); }
     for (index i = 0; i < input[0].size(); i++)
     {
       output[0](i) = static_cast<T>(mAlgorithm.processSample(
@@ -82,7 +82,10 @@ public:
   }
   index latency() { return 0; }
 
-  void reset() {}
+  void reset() {
+    double hiPassFreq = std::min(get<kHiPassFreq>() / sampleRate(), 0.5);
+    mAlgorithm.init(get<kSilenceThreshold>(), hiPassFreq);
+  }
 
 private:
   algorithm::EnvelopeSegmentation mAlgorithm;

@@ -28,6 +28,10 @@ public:
     mB2 = mB0;
     mA0 = 2.0 * mB0 * (pow(c, 2.0) - 1.0);
     mA1 = mB0 * (1.0 - sqrtTwo * c + pow(c, 2.0));
+    mXnz1 = 0;
+    mXnz2 = 0;
+    mYnz1 = 0;
+    mYnz2 = 0;
   }
 
   double processSample(double x)

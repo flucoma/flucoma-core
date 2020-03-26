@@ -27,10 +27,15 @@ class EnvelopeSegmentation
   using ArrayXd = Eigen::ArrayXd;
 
 public:
-  void init(double floor)
+  void init(double floor, double hiPassFreq)
   {
     mFastSlide.init(floor);
     mSlowSlide.init(floor);
+    mDebounceCount = 1;
+    initFilters(hiPassFreq);
+    mHiPassFreq = hiPassFreq;
+    mPrevValue = 0;
+    mState = false;
     mInitialized = true;
   }
 
@@ -49,8 +54,9 @@ public:
       initFilters(hiPassFreq);
       mHiPassFreq = hiPassFreq;
     }
-    if (mHiPassFreq > 0)
+    if (mHiPassFreq > 0){
       filtered = mHiPass2.processSample(mHiPass1.processSample(in));
+    }
     double rectified = abs(filtered);
     double dB = 20 * log10(rectified);
     double clipped = max(dB, floor);
@@ -86,7 +92,7 @@ private:
 
   double mHiPassFreq{0};
   index  mDebounceCount{1};
-  double mPrevValue;
+  double mPrevValue{0};
   bool   mInitialized{false};
   bool   mState{false};
 

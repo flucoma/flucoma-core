@@ -34,6 +34,7 @@ public:
   }
 
   void init(double onThreshold, double offThreshold,
+            double hiPassFreq,
             index minTimeAboveThreshold, index upwardLookupTime,
             index minTimeBelowThreshold, index downwardLookupTime)
   {
@@ -47,9 +48,17 @@ public:
     mLatency = max<index>(mMinTimeAboveThreshold + mUpwardLookupTime,
                           mDownwardLatency);
     if (mLatency < 0) mLatency = 1;
+    mHiPassFreq = hiPassFreq;
+    initFilters(mHiPassFreq);
     double initVal = min(onThreshold, offThreshold) - 1;
     initBuffers(initVal);
     mSlide.init(initVal);
+    mInputState = false;
+    mOutputState = false;
+    mOnStateCount = 0;
+    mOffStateCount = 0;
+    mEventCount = 0;
+    mSilenceCount = 0;
     mInitialized = true;
   }
 

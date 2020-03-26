@@ -82,7 +82,7 @@ public:
             get<kMinTimeBelowThreshold>(), get<kDownwardLookupTime>()) ||
         !mAlgorithm.initialized())
     {
-      mAlgorithm.init(get<kOnThreshold>(), get<kOffThreshold>(),
+      mAlgorithm.init(get<kOnThreshold>(), get<kOffThreshold>(), hiPassFreq,
                       get<kMinTimeAboveThreshold>(), get<kUpwardLookupTime>(),
                       get<kMinTimeBelowThreshold>(),
                       get<kDownwardLookupTime>());
@@ -97,7 +97,13 @@ public:
     }
   }
 
-  void reset() {}
+  void reset()
+  {
+    double hiPassFreq = std::min(get<kHiPassFreq>() / sampleRate(), 0.5);
+    mAlgorithm.init(get<kOnThreshold>(), get<kOffThreshold>(), hiPassFreq,
+                    get<kMinTimeAboveThreshold>(), get<kUpwardLookupTime>(),
+                    get<kMinTimeBelowThreshold>(), get<kDownwardLookupTime>());
+  }
 
   index latency()
   {
