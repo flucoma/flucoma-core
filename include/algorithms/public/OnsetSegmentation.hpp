@@ -49,45 +49,17 @@ public:
     mWindowSize = windowSize;
   }
 
-  /*void updateParameters(index fftSize, index windowSize, index hopSize,
-                        index frameDelta, index function, index filterSize,
-                        double threshold, index debounce)
-  {
-    assert(fftSize <= mMaxSize);
-    assert(windowSize <= mMaxSize);
-    assert(windowSize <= fftSize);
-    assert(hopSize <= mMaxSize);
-    assert(frameDelta <= windowSize);
-    assert(filterSize % 2);
-
-    if (fftSize != mFFTSize)
-    {
-      mFFTSize = fftSize;
-      mFFT.resize(mFFTSize);
-      makeWindow();
-    }
-    if (windowSize != mWindowSize)
-    {
-      mWindowSize = windowSize;
-      makeWindow();
-    }
-
-    mHopSize = hopSize;
-    mFrameDelta = frameDelta;
-    if (mFilter.size() != filterSize) mFilter.init(filterSize);
-    mThreshold = threshold;
-    mFunction = function;
-    mDebounce = debounce;
-  }*/
-
-  double processFrame(RealVectorView input, index function, index filterSize, double threshold, index debounce = 0, index frameDelta = 0)
+  double processFrame(RealVectorView input, index function, index filterSize,
+                      double threshold, index debounce = 0,
+                      index frameDelta = 0)
   {
     assert(mInitialized);
-    ArrayXd  in = _impl::asEigen<Eigen::Array>(input);
-    double   funcVal = 0;
-    double   filteredFuncVal = 0;
-    double   detected = 0.;
-    if(filterSize != mFilter.size())mFilter.init(filterSize);
+    ArrayXd in = _impl::asEigen<Eigen::Array>(input);
+    double  funcVal = 0;
+    double  filteredFuncVal = 0;
+    double  detected = 0.;
+    if (!mFilter.initialized()|| filterSize != mFilter.size()) mFilter.init(filterSize);
+
     ArrayXcd frame = mFFT.process(in.segment(0, mWindowSize) * mWindow);
     auto     odf = static_cast<OnsetDetectionFuncs::ODF>(function);
     if (function > 1 && function < 5 && frameDelta != 0)

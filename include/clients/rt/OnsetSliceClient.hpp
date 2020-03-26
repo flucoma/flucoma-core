@@ -96,8 +96,8 @@ public:
         totalWindow, totalWindow, get<kFFT>().hopSize(), c,
         [&, this](RealMatrixView in, RealMatrixView) {
           out.row(0)(frameOffset) = mAlgorithm.processFrame(
-              in.row(0), get<kFunction>(), get<kFilterSize>(), get<kDebounce>(),
-              get<kFrameDelta>());
+              in.row(0), get<kFunction>(), get<kFilterSize>(),
+              get<kThreshold>(), get<kDebounce>(), get<kFrameDelta>());
           frameOffset += get<kFFT>().hopSize();
         });
     output[0] = out.row(0);

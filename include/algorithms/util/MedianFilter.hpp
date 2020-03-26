@@ -28,6 +28,7 @@ public:
     mMiddle = (mFilterSize - 1) / 2;
     mUnsorted = std::deque<double>(asUnsigned(mFilterSize), 0);
     mSorted = std::deque<double>(asUnsigned(mFilterSize), 0);
+    mInitialized = true;
   }
 
   double processSample(double val)
@@ -60,12 +61,15 @@ public:
 
   index size() { return mFilterSize; }
 
+  bool initialized() { return mInitialized; }
+
 private:
   index mFilterSize;
   index mMiddle;
+  bool  mInitialized;
 
-  std::deque<double> mUnsorted{5, 0};
-  std::deque<double> mSorted{5, 0};
+  std::deque<double> mUnsorted;
+  std::deque<double> mSorted;
 };
 } // namespace algorithm
 } // namespace fluid
