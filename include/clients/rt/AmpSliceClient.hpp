@@ -69,40 +69,33 @@ public:
 
     double hiPassFreq = std::min(get<kHiPassFreq>() / sampleRate(), 0.5);
 
-    if (mTrackValues.changed(hiPassFreq, get<kFastRampUpTime>(),
-                    get<kSlowRampUpTime>(), get<kFastRampDownTime>(),
-                    get<kSlowRampDownTime>(), get<kOnThreshold>(),
-                    get<kOffThreshold>(), get<kSilenceThreshold>(),
-                    get<kDebounce>()) || !mAlgorithm.initialized())
-    {
-      mAlgorithm.init(hiPassFreq, get<kFastRampUpTime>(),
-                      get<kSlowRampUpTime>(), get<kFastRampDownTime>(),
-                      get<kSlowRampDownTime>(), get<kOnThreshold>(),
-                      get<kOffThreshold>(), get<kSilenceThreshold>(),
-                      get<kDebounce>());
-    }
+    if (mTrackValues.changed(get<kSilenceThreshold>()) ||
+        !mAlgorithm.initialized())
+    { mAlgorithm.init(get<kSilenceThreshold>()); }
     for (index i = 0; i < input[0].size(); i++)
-    { output[0](i) = static_cast<T>(mAlgorithm.processSample(input[0](i))); }
+    {
+      output[0](i) = static_cast<T>(mAlgorithm.processSample(
+          input[0](i), get<kOnThreshold>(), get<kOffThreshold>(),
+          get<kFastRampUpTime>(), get<kSlowRampUpTime>(),
+          get<kFastRampDownTime>(), get<kSlowRampDownTime>(), hiPassFreq,
+          get<kDebounce>()));
+    }
   }
-
   index latency() { return 0; }
 
   void reset() {}
 
 private:
-  ParameterTrackChanges<double, index, index, index,index,double, double, double,index >   mTrackValues;
+  ParameterTrackChanges<double>   mTrackValues;
   algorithm::EnvelopeSegmentation mAlgorithm;
 };
-
 auto constexpr NRTAmpSliceParams =
     makeNRTParams<AmpSliceClient>(InputBufferParam("source", "Source Buffer"),
                                   BufferParam("indices", "Indices Buffer"));
-
 template <typename T>
 using NRTAmpSliceClient =
     NRTSliceAdaptor<AmpSliceClient<T>, decltype(NRTAmpSliceParams),
                     NRTAmpSliceParams, 1, 1>;
-
 template <typename T>
 using NRTThreadedAmpSliceClient = NRTThreadingAdaptor<NRTAmpSliceClient<T>>;
 

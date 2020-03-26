@@ -13,8 +13,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/ButterworthHPFilter.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/SlideUDFilter.hpp"
-#include "../../data/TensorTypes.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <cmath>
 
@@ -27,31 +27,30 @@ class EnvelopeSegmentation
   using ArrayXd = Eigen::ArrayXd;
 
 public:
-  void init(double hiPassFreq, index fastRampUpTime, index slowRampUpTime,
-            index fastRampDownTime, index slowRampDownTime, double onThreshold,
-            double offThreshold, double floor, index debounce)
+  void init(double floor)
   {
-    mHiPassFreq = hiPassFreq;
-    mFastRampUpTime = fastRampUpTime;
-    mSlowRampUpTime = slowRampUpTime;
-    mFastRampDownTime = fastRampDownTime;
-    mSlowRampDownTime = slowRampDownTime;
-    mOnThreshold = onThreshold;
-    mOffThreshold = offThreshold;
     mFloor = floor;
-    mDebounce = debounce;
-    initFilters();
-    initSlides();
+    mFastSlide.init(mFloor);
+    mSlowSlide.init(mFloor);
     mInitialized = true;
   }
 
-  bool initialized() { return mInitialized; }
-
-  double processSample(const double in)
+  double processSample(const double in, double onThreshold, double offThreshold,
+                       index fastRampUpTime, index slowRampUpTime,
+                       index fastRampDownTime, index slowRampDownTime,
+                       double hiPassFreq, index debounce)
   {
     using namespace std;
     assert(mInitialized);
+    mFastSlide.updateCoeffs(fastRampUpTime, fastRampDownTime);
+    mSlowSlide.updateCoeffs(slowRampUpTime, slowRampDownTime);
+
     double filtered = in;
+    if (hiPassFreq != mHiPassFreq)
+    {
+      initFilters(hiPassFreq);
+      mHiPassFreq = hiPassFreq;
+    }
     if (mHiPassFreq > 0)
       filtered = mHiPass2.processSample(mHiPass1.processSample(in));
     double rectified = abs(filtered);
@@ -62,56 +61,42 @@ public:
     double value = fast - slow;
     double detected = 0;
 
-    if (!mState && value > mOnThreshold && mPrevValue < mOnThreshold &&
+    if (!mState && value > onThreshold && mPrevValue < onThreshold &&
         mDebounceCount == 0)
     {
       detected = 1.0;
-      mDebounceCount = mDebounce;
+      mDebounceCount = debounce;
       mState = true;
     }
     else
     {
       if (mDebounceCount > 0) mDebounceCount--;
     }
-
-    if (mState && value < mOffThreshold) { mState = false; }
-
+    if (mState && value < offThreshold) { mState = false; }
     mPrevValue = value;
     return detected;
   }
 
+  bool initialized() { return mInitialized; }
+
 private:
-  void initFilters()
+  void initFilters(double cutoff)
   {
-    mHiPass1.init(mHiPassFreq);
-    mHiPass2.init(mHiPassFreq);
+    mHiPass1.init(cutoff);
+    mHiPass2.init(cutoff);
   }
 
-  void initSlides()
-  {
-    mFastSlide.updateCoeffs(mFastRampUpTime, mFastRampDownTime);
-    mFastSlide.init(mFloor);
-    mSlowSlide.updateCoeffs(mSlowRampUpTime, mSlowRampUpTime);
-    mSlowSlide.init(mFloor);
-  }
+  double mHiPassFreq{0};
+  double mFloor{-45};
+  index  mDebounceCount{1};
+  double mPrevValue;
+  bool   mInitialized{false};
+  bool   mState{false};
 
-  double              mHiPassFreq{0.2};
-  index               mFastRampUpTime{100};
-  index               mFastRampDownTime{100};
-  index               mSlowRampUpTime{100};
-  index               mSlowRampDownTime{100};
-  double              mOnThreshold{-33};
-  double              mOffThreshold{-42};
   ButterworthHPFilter mHiPass1;
   ButterworthHPFilter mHiPass2;
   SlideUDFilter       mFastSlide;
   SlideUDFilter       mSlowSlide;
-  bool                mInitialized{false};
-  double              mFloor{-45};
-  index               mDebounce{2};
-  index               mDebounceCount{1};
-  double              mPrevValue;
-  bool                mState{false};
 };
 } // namespace algorithm
 } // namespace fluid
