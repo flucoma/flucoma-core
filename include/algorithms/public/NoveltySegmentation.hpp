@@ -36,6 +36,7 @@ public:
     mNovelty.init(kernelSize, nDims);
     mFilterBuffer = mFilterBufferStorage.segment(0, filterSize);
     mFilterBuffer.setZero();
+    mDebounceCount = 1;
   }
 
   double processFrame(const RealVectorView input, double threshold,

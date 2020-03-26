@@ -38,6 +38,9 @@ public:
     makeWindow(windowSize);
     prevFrame = ArrayXcd::Zero(fftSize / 2 + 1);
     prevPrevFrame = ArrayXcd::Zero(fftSize / 2 + 1);
+    mFFT = FFT(fftSize);
+    mDebounceCount = 1;
+    mPrevFuncVal = 0;
     mInitialized = true;
   }
 

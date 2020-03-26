@@ -173,7 +173,6 @@ private:
   PartialTracking      mTracking;
   index                mBins{513};
   index                mCurrentFrame{0};
-  vector<SineTrack>    mTracks;
   std::queue<ArrayXcd> mBuf;
   ArrayXd              mWindowTransform;
   double               mScale{1.0};

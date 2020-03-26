@@ -51,9 +51,17 @@ class PartialTracking
 public:
   void init()
   {
+    using namespace std;
+
     mCurrentFrame = 0;
-    mTracks = std::vector<SineTrack>();
-    updateVariances();
+    mTracks = vector<SineTrack>();
+    mPrevPeaks = vector<SinePeak>();
+    mPrevTracks =  vector<index>();
+    mZetaA = 0;
+    mZetaF = 0;
+    mDelta = 0;
+    mPrevMaxAmp = 0;
+    mLastTrackId = 1;
     mInitialized = true;
   }
 
@@ -309,11 +317,11 @@ private:
   vector<SinePeak>  mPrevPeaks;
   vector<index>     mPrevTracks;
   Munkres           mMunkres;
-  double            mZetaA;
-  double            mVarA;
-  double            mZetaF;
-  double            mVarF;
-  double            mDelta;
+  double            mZetaA{0};
+  double            mVarA{0};
+  double            mZetaF{0};
+  double            mVarF{0};
+  double            mDelta{0};
   double            mPrevMaxAmp{0};
   index             mLastTrackId{1};
   double            mBirthLowThreshold{-24.};
