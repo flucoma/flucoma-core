@@ -89,8 +89,10 @@ private:
 
   void initSlides()
   {
-    mFastSlide.init(mFastRampUpTime, mFastRampDownTime, mFloor);
-    mSlowSlide.init(mSlowRampUpTime, mSlowRampDownTime, mFloor);
+    mFastSlide.updateCoeffs(mFastRampUpTime, mFastRampDownTime);
+    mFastSlide.init(mFloor);
+    mSlowSlide.updateCoeffs(mSlowRampUpTime, mSlowRampUpTime);
+    mSlowSlide.init(mFloor);
   }
 
   double              mHiPassFreq{0.2};
