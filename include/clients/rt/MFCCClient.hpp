@@ -90,7 +90,7 @@ public:
     mSTFTBufferedProcess.processInput(
         mParams, input, c, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
-          mMelBands.processFrame(mMagnitude, mBands, true, false, false);
+          mMelBands.processFrame(mMagnitude, mBands, false, false, true);
           mDCT.processFrame(mBands, mCoefficients);
         });
     for (index i = 0; i < get<kNCoefs>(); ++i)
