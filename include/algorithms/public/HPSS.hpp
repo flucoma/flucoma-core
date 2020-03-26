@@ -29,11 +29,16 @@ public:
 
   enum HPSSMode { kClassic, kCoupled, kAdvanced };
 
-  HPSS(index maxFFTSize, index maxVSize, index maxHSize)
+  HPSS(index maxFFTSize, index maxHSize)
       : mMaxH(maxFFTSize / 2 + 1, maxHSize),
-        mMaxV(maxFFTSize / 2 + 1, maxVSize),
+        mMaxV(maxFFTSize / 2 + 1, maxHSize),
         mMaxBuf(maxFFTSize / 2 + 1, maxHSize)
-  {}
+  {
+    mMaxH.setZero();
+    mMaxV.setZero();
+    mMaxBuf.setZero();
+  }
+
   void init(index nBins, index hSize)
   {
     using namespace Eigen;
@@ -65,8 +70,7 @@ public:
 
     index h2 = (hSize - 1) / 2;
     index v2 = (vSize - 1) / 2;
-    index nBins = mH.rows();
-
+    index nBins = in.size();
     ArrayXcd frame = _impl::asEigen<Array>(in);
     ArrayXd  mag = frame.abs().real();
 
@@ -133,6 +137,7 @@ public:
     result.col(2) = mBuf.col(0) * residualMask.min(1.0);
     out = _impl::asFluid(result);
   }
+  bool initialized() { return mInitialized; }
 
 private:
   Eigen::ArrayXd makeThreshold(index nBins, double x1, double y1, double x2,

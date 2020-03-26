@@ -87,9 +87,9 @@ public:
 
     index nBins = get<kFFT>().frameSize();
 
-    if (mTrackChanges.changed(nBins, get<kHSize>()))
+    if (!mHPSS.initialized() || mTrackChanges.changed(nBins, get<kHSize>()))
     {
-      mHPSS.init(nBins, get<kMaxHSize>());
+      mHPSS.init(nBins, get<kHSize>());
     }
 
     mSTFTBufferedProcess.process(
@@ -107,7 +107,7 @@ public:
 private:
   STFTBufferedProcess<ParamSetViewType, T, kFFT, true> mSTFTBufferedProcess;
   ParameterTrackChanges<index, index> mTrackChanges;
-  algorithm::HPSS mHPSS{get<kMaxFFT>(),get<kMaxPSize>(), get<kMaxHSize>()};
+  algorithm::HPSS mHPSS{get<kMaxFFT>(),get<kMaxHSize>()};
 };
 
 auto constexpr NRTHPSSParams =
