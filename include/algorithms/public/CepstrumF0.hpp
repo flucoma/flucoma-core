@@ -28,10 +28,13 @@ class CepstrumF0
 public:
   using ArrayXd = Eigen::ArrayXd;
 
-  CepstrumF0(index maxSize) : mDCT(maxSize, maxSize), mCepstrumStorage(maxSize) {}
+  CepstrumF0(index maxSize) : mCepstrumStorage(maxSize) {}
 
   void init(index size) {
+    //avoid allocation of maxSize^2 at constructor
+    mDCT = DCT(size, size);
     mDCT.init(size, size);
+
     mCepstrum = mCepstrumStorage.segment(0, size);
     mCepstrum.setZero();
   }
@@ -66,7 +69,7 @@ public:
   }
 
 private:
-  DCT     mDCT;
+  DCT     mDCT{0,0};
   ArrayXd mCepstrumStorage;
   ArrayXd mCepstrum;
 };
