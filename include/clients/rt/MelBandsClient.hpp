@@ -83,8 +83,8 @@ public:
     mSTFTBufferedProcess.processInput(
         mParams, input, c, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
-          mMelBands.processFrame(mMagnitude, mBands, false, false,
-                                 get<kNormalize>() == 1);
+          mMelBands.processFrame(mMagnitude, mBands, get<kNormalize>() == 1,
+                                 false, false);
         });
     for (index i = 0; i < get<kNBands>(); ++i)
       output[asUnsigned(i)](0) = static_cast<T>(mBands(i));

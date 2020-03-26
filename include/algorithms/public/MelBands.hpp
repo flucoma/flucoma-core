@@ -63,7 +63,8 @@ public:
     }
   }
 
-  void processFrame(const RealVectorView in, RealVectorView out, bool magNorm, bool usePower, bool logOutput)
+  void processFrame(const RealVectorView in, RealVectorView out, bool magNorm,
+                    bool usePower, bool logOutput)
   {
     using namespace Eigen;
 
