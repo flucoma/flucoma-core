@@ -58,7 +58,9 @@ public:
     double  funcVal = 0;
     double  filteredFuncVal = 0;
     double  detected = 0.;
-    if (!mFilter.initialized()|| filterSize != mFilter.size()) mFilter.init(filterSize);
+    if (filterSize >= 3 &&
+        (!mFilter.initialized() || filterSize != mFilter.size()))
+      mFilter.init(filterSize);
 
     ArrayXcd frame = mFFT.process(in.segment(0, mWindowSize) * mWindow);
     auto     odf = static_cast<OnsetDetectionFuncs::ODF>(function);
@@ -73,7 +75,11 @@ public:
       funcVal =
           OnsetDetectionFuncs::map()[odf](frame, prevFrame, prevPrevFrame);
     }
-    filteredFuncVal = funcVal - mFilter.processSample(funcVal);
+    if (filterSize >= 3)
+      filteredFuncVal = funcVal - mFilter.processSample(funcVal);
+    else
+      filteredFuncVal = funcVal - mPrevFuncVal;
+
     prevPrevFrame = prevFrame;
     prevFrame = frame;
 

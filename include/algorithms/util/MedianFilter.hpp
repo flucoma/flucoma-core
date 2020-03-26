@@ -23,6 +23,7 @@ class MedianFilter
 public:
   void init(index size)
   {
+    assert(size >= 3);
     assert(size % 2);
     mFilterSize = size;
     mMiddle = (mFilterSize - 1) / 2;
