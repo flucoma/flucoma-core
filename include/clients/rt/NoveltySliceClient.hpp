@@ -114,7 +114,7 @@ public:
       mFeature.resize(nDims);
       mNovelty.init(get<kKernelSize>(), get<kFilterSize>(), nDims);
     }
-    
+
     RealMatrix in(1, hostVecSize);
     in.row(0) = input[0];
     RealMatrix out(1, hostVecSize);
@@ -132,7 +132,7 @@ public:
           case 1:
             mSTFT.processFrame(in.row(0), mSpectrum);
             mSTFT.magnitude(mSpectrum, mMagnitude);
-            mMelBands.processFrame(mMagnitude, mBands, true, false, false);
+            mMelBands.processFrame(mMagnitude, mBands, false, false, true);
             mDCT.processFrame(mBands, mFeature);
             break;
           case 2:
