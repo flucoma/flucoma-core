@@ -29,14 +29,13 @@ class EnvelopeSegmentation
 public:
   void init(double floor)
   {
-    mFloor = floor;
-    mFastSlide.init(mFloor);
-    mSlowSlide.init(mFloor);
+    mFastSlide.init(floor);
+    mSlowSlide.init(floor);
     mInitialized = true;
   }
 
   double processSample(const double in, double onThreshold, double offThreshold,
-                       index fastRampUpTime, index slowRampUpTime,
+                       double floor, index fastRampUpTime, index slowRampUpTime,
                        index fastRampDownTime, index slowRampDownTime,
                        double hiPassFreq, index debounce)
   {
@@ -44,7 +43,6 @@ public:
     assert(mInitialized);
     mFastSlide.updateCoeffs(fastRampUpTime, fastRampDownTime);
     mSlowSlide.updateCoeffs(slowRampUpTime, slowRampDownTime);
-
     double filtered = in;
     if (hiPassFreq != mHiPassFreq)
     {
@@ -55,7 +53,7 @@ public:
       filtered = mHiPass2.processSample(mHiPass1.processSample(in));
     double rectified = abs(filtered);
     double dB = 20 * log10(rectified);
-    double clipped = max(dB, mFloor);
+    double clipped = max(dB, floor);
     double fast = mFastSlide.processSample(clipped);
     double slow = mSlowSlide.processSample(clipped);
     double value = fast - slow;
@@ -87,7 +85,6 @@ private:
   }
 
   double mHiPassFreq{0};
-  double mFloor{-45};
   index  mDebounceCount{1};
   double mPrevValue;
   bool   mInitialized{false};

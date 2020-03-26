@@ -69,16 +69,15 @@ public:
 
     double hiPassFreq = std::min(get<kHiPassFreq>() / sampleRate(), 0.5);
 
-    if (mTrackValues.changed(get<kSilenceThreshold>()) ||
-        !mAlgorithm.initialized())
+    if (!mAlgorithm.initialized())
     { mAlgorithm.init(get<kSilenceThreshold>()); }
     for (index i = 0; i < input[0].size(); i++)
     {
       output[0](i) = static_cast<T>(mAlgorithm.processSample(
           input[0](i), get<kOnThreshold>(), get<kOffThreshold>(),
-          get<kFastRampUpTime>(), get<kSlowRampUpTime>(),
-          get<kFastRampDownTime>(), get<kSlowRampDownTime>(), hiPassFreq,
-          get<kDebounce>()));
+          get<kSilenceThreshold>(), get<kFastRampUpTime>(),
+          get<kSlowRampUpTime>(), get<kFastRampDownTime>(),
+          get<kSlowRampDownTime>(), hiPassFreq, get<kDebounce>()));
     }
   }
   index latency() { return 0; }
@@ -86,7 +85,6 @@ public:
   void reset() {}
 
 private:
-  ParameterTrackChanges<double>   mTrackValues;
   algorithm::EnvelopeSegmentation mAlgorithm;
 };
 auto constexpr NRTAmpSliceParams =
