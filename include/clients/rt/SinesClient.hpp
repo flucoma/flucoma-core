@@ -82,7 +82,8 @@ public:
     if (!input[0].data()) return;
     if (!output[0].data() && !output[1].data()) return;
     if (!mSinesExtractor.initialized() ||
-        mTrackValues.changed(get<kFFT>().winSize(), get<kFFT>().fftSize(), sampleRate()))
+        mTrackValues.changed(get<kFFT>().winSize(), get<kFFT>().fftSize(),
+                             sampleRate()))
     {
       mSinesExtractor.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
                            get<kMaxFFTSize>());
@@ -91,11 +92,12 @@ public:
     mSTFTBufferedProcess.process(
         mParams, input, output, c,
         [this](ComplexMatrixView in, ComplexMatrixView out) {
-          mSinesExtractor.processFrame(in.row(0), out.transpose(), sampleRate(),
-                          get<kDetectionThreshold>(), get<kMinTrackLen>(),
-                          get<kBirthLowThreshold>(), get<kBirthHighThreshold>(),
-                          get<kTrackingMethod>(), get<kTrackMagRange>(),
-                         get<kTrackFreqRange>(), get<kTrackProb>(), get<kBandwidth>());
+          mSinesExtractor.processFrame(
+              in.row(0), out.transpose(), sampleRate(),
+              get<kDetectionThreshold>(), get<kMinTrackLen>(),
+              get<kBirthLowThreshold>(), get<kBirthHighThreshold>(),
+              get<kTrackingMethod>(), get<kTrackMagRange>(),
+              get<kTrackFreqRange>(), get<kTrackProb>(), get<kBandwidth>());
         });
   }
 
@@ -104,18 +106,23 @@ public:
     return get<kFFT>().winSize() +
            (get<kFFT>().hopSize() * get<kMinTrackLen>());
   }
-  void reset() { mSTFTBufferedProcess.reset(); }
+  void reset()
+  {
+    mSTFTBufferedProcess.reset();
+    mSinesExtractor.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
+                         get<kMaxFFTSize>());
+  }
 
 private:
   STFTBufferedProcess<ParamSetViewType, T, kFFT> mSTFTBufferedProcess;
-  algorithm::SineExtraction mSinesExtractor;
-  ParameterTrackChanges<index, index, double> mTrackValues;
+  algorithm::SineExtraction                      mSinesExtractor;
+  ParameterTrackChanges<index, index, double>    mTrackValues;
 };
 
 auto constexpr NRTSineParams =
     makeNRTParams<SinesClient>(InputBufferParam("source", "Source Buffer"),
                                BufferParam("sines", "Sines Buffer"),
-                                BufferParam("residual", "Residual Buffer"));
+                               BufferParam("residual", "Residual Buffer"));
 
 template <typename T>
 using NRTSinesClient = NRTStreamAdaptor<SinesClient<T>, decltype(NRTSineParams),

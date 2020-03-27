@@ -78,7 +78,11 @@ public:
            get<kFFT>().winSize();
   }
 
-  void reset(){ mSTFTBufferedProcess.reset(); }
+  void reset()
+  {
+    mSTFTBufferedProcess.reset();
+    mHPSS.init(get<kFFT>().frameSize(), get<kHSize>());
+  }
 
   void process(std::vector<HostVector>& input, std::vector<HostVector>& output,
                FluidContext& c)
@@ -88,33 +92,32 @@ public:
     index nBins = get<kFFT>().frameSize();
 
     if (!mHPSS.initialized() || mTrackChanges.changed(nBins, get<kHSize>()))
-    {
-      mHPSS.init(nBins, get<kHSize>());
-    }
+    { mHPSS.init(nBins, get<kHSize>()); }
 
     mSTFTBufferedProcess.process(
         mParams, input, output, c,
         [&](ComplexMatrixView in, ComplexMatrixView out) {
-          mHPSS.processFrame(in.row(0), out.transpose(),
-          get<kPSize>(), get<kHSize>(), get<kMode>(),
-          get<kHThresh>().value[0].first, get<kHThresh>().value[0].second,
-          get<kHThresh>().value[1].first, get<kHThresh>().value[1].second,
-          get<kPThresh>().value[0].first, get<kPThresh>().value[0].second,
-          get<kPThresh>().value[1].first, get<kPThresh>().value[1].second);
+          mHPSS.processFrame(
+              in.row(0), out.transpose(), get<kPSize>(), get<kHSize>(),
+              get<kMode>(), get<kHThresh>().value[0].first,
+              get<kHThresh>().value[0].second, get<kHThresh>().value[1].first,
+              get<kHThresh>().value[1].second, get<kPThresh>().value[0].first,
+              get<kPThresh>().value[0].second, get<kPThresh>().value[1].first,
+              get<kPThresh>().value[1].second);
         });
   }
 
 private:
   STFTBufferedProcess<ParamSetViewType, T, kFFT, true> mSTFTBufferedProcess;
-  ParameterTrackChanges<index, index> mTrackChanges;
-  algorithm::HPSS mHPSS{get<kMaxFFT>(),get<kMaxHSize>()};
+  ParameterTrackChanges<index, index>                  mTrackChanges;
+  algorithm::HPSS mHPSS{get<kMaxFFT>(), get<kMaxHSize>()};
 };
 
 auto constexpr NRTHPSSParams =
     makeNRTParams<HPSSClient>(InputBufferParam("source", "Source Buffer"),
                               BufferParam("harmonic", "Harmonic Buffer"),
-                               BufferParam("percussive", "Percussive Buffer"),
-                               BufferParam("residual", "Residual Buffer"));
+                              BufferParam("percussive", "Percussive Buffer"),
+                              BufferParam("residual", "Residual Buffer"));
 
 template <typename T>
 using NRTHPSSClient = NRTStreamAdaptor<HPSSClient<T>, decltype(NRTHPSSParams),

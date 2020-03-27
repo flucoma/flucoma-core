@@ -99,7 +99,17 @@ public:
 
   index latency() { return get<kFFT>().winSize(); }
 
-  void reset() { mSTFTBufferedProcess.reset(); }
+  void reset()
+  {
+    mSTFTBufferedProcess.reset();
+    mMagnitude.resize(get<kFFT>().frameSize());
+    mBands.resize(get<kNBands>());
+    mCoefficients.resize(get<kNCoefs>());
+    mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
+                   get<kFFT>().frameSize(), sampleRate(),
+                   get<kFFT>().winSize());
+    mDCT.init(get<kNBands>(), get<kNCoefs>());
+  }
 
   index controlRate() { return get<kFFT>().hopSize(); }
 

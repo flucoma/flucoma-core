@@ -92,8 +92,7 @@ public:
     int        frameOffset = 0; // in case kHopSize < hostVecSize
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.processInput(
-        totalWindow, get<kFFT>().hopSize(), c,
-        [&, this](RealMatrixView in) {
+        totalWindow, get<kFFT>().hopSize(), c, [&, this](RealMatrixView in) {
           out.row(0)(frameOffset) = mAlgorithm.processFrame(
               in.row(0), get<kFunction>(), get<kFilterSize>(),
               get<kThreshold>(), get<kDebounce>(), get<kFrameDelta>());
@@ -103,7 +102,11 @@ public:
   }
 
   long latency() { return get<kFFT>().hopSize() + get<kFrameDelta>(); }
-  void reset() { mBufferedProcess.reset(); }
+  void reset()
+  {
+    mBufferedProcess.reset();
+    mAlgorithm.init(get<kFFT>().winSize(), get<kFFT>().fftSize());
+  }
 
 private:
   OnsetSegmentation                          mAlgorithm{get<kMaxFFTSize>()};

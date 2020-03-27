@@ -75,20 +75,23 @@ public:
     RealMatrix in(1, hostVecSize);
     in.row(0) = input[0];
     mBufferedProcess.push(RealMatrixView(in));
-    mBufferedProcess.processInput(get<kWindowSize>(), get<kHopSize>(), c,
-                                  [&](RealMatrixView frame) {
-                                    mAlgorithm.processFrame(
-                                        frame.row(0), mDescriptors,
-                                        get<kKWeighting>() == 1,
-                                        get<kTruePeak>() == 1);
-                                  });
+    mBufferedProcess.processInput(
+        get<kWindowSize>(), get<kHopSize>(), c, [&](RealMatrixView frame) {
+          mAlgorithm.processFrame(frame.row(0), mDescriptors,
+                                  get<kKWeighting>() == 1,
+                                  get<kTruePeak>() == 1);
+        });
     output[0](0) = static_cast<T>(mDescriptors(0));
     output[1](0) = static_cast<T>(mDescriptors(1));
   }
 
   index latency() { return get<kWindowSize>(); }
 
-  void reset(){ mBufferedProcess.reset(); }
+  void reset()
+  {
+    mBufferedProcess.reset();
+    mAlgorithm.init(get<kWindowSize>(), sampleRate());
+  }
 
   index controlRate() { return get<kHopSize>(); }
 

@@ -80,7 +80,7 @@ public:
     if (mTrackValues.changed(order, blockSize, padding, hostVecSize) ||
         !mExtractor.initialized())
     {
-      mExtractor.init(order,blockSize, padding);
+      mExtractor.init(order, blockSize, padding);
       mBufferedProcess.hostSize(hostVecSize);
       mBufferedProcess.maxSize(maxWinIn, maxWinOut,
                                FluidBaseClient::audioChannelsIn(),
@@ -119,12 +119,15 @@ public:
     return get<kPadding>() + get<kBlockSize>() - get<kOrder>();
   }
 
-  void reset() { mBufferedProcess.reset(); }
+  void reset()
+  {
+    mBufferedProcess.reset();
+    mExtractor.init(get<kOrder>(), get<kBlockSize>(), get<kPadding>());
+  }
 
 private:
   ParameterTrackChanges<index, index, index, index> mTrackValues;
-  // std::unique_ptr<algorithm::TransientSegmentation> mExtractor;
-  algorithm::TransientSegmentation mExtractor;
+  algorithm::TransientSegmentation                  mExtractor;
 
   BufferedProcess   mBufferedProcess;
   FluidTensor<T, 1> mTransients;
