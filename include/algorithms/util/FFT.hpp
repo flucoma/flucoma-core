@@ -48,7 +48,7 @@ public:
 
   FFT& operator=(FFT&& other)
   {
-    using namespace std;
+    using std::swap;
     mMaxSize = other.mMaxSize;
     mSize = other.mSize;
     mFrameSize = other.mFrameSize;
