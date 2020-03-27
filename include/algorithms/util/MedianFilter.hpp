@@ -27,13 +27,14 @@ public:
     assert(size % 2);
     mFilterSize = size;
     mMiddle = (mFilterSize - 1) / 2;
-    mUnsorted = std::deque<double>(asUnsigned(mFilterSize), 0);
-    mSorted = std::deque<double>(asUnsigned(mFilterSize), 0);
+    mUnsorted.resize(asUnsigned(mFilterSize), 0);
+    mSorted.resize(asUnsigned(mFilterSize), 0);
     mInitialized = true;
   }
 
   double processSample(double val)
   {
+    assert(mInitialized);
     mUnsorted.push_back(val);
     double old = mUnsorted.front();
     mUnsorted.pop_front();
@@ -65,9 +66,9 @@ public:
   bool initialized() { return mInitialized; }
 
 private:
-  index mFilterSize;
-  index mMiddle;
-  bool  mInitialized;
+  index mFilterSize{0};
+  index mMiddle{0};
+  bool  mInitialized{false};
 
   std::deque<double> mUnsorted;
   std::deque<double> mSorted;
