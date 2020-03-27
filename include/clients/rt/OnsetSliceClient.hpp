@@ -83,7 +83,6 @@ public:
       mBufferedProcess.maxSize(totalWindow, totalWindow,
                                FluidBaseClient::audioChannelsIn(),
                                FluidBaseClient::audioChannelsOut());
-      mTmp.resize(1, hostVecSize);
     }
     if (mParamsTracker.changed(get<kFFT>().fftSize(), get<kFFT>().winSize()))
     { mAlgorithm.init(get<kFFT>().winSize(), get<kFFT>().fftSize()); }
@@ -92,9 +91,9 @@ public:
     RealMatrix out(1, hostVecSize);
     int        frameOffset = 0; // in case kHopSize < hostVecSize
     mBufferedProcess.push(RealMatrixView(in));
-    mBufferedProcess.process(
-        totalWindow, totalWindow, get<kFFT>().hopSize(), c,
-        [&, this](RealMatrixView in, RealMatrixView) {
+    mBufferedProcess.processInput(
+        totalWindow, get<kFFT>().hopSize(), c,
+        [&, this](RealMatrixView in) {
           out.row(0)(frameOffset) = mAlgorithm.processFrame(
               in.row(0), get<kFunction>(), get<kFilterSize>(),
               get<kThreshold>(), get<kDebounce>(), get<kFrameDelta>());
@@ -111,7 +110,6 @@ private:
   ParameterTrackChanges<index, index, index> mBufferParamsTracker;
   ParameterTrackChanges<index, index>        mParamsTracker;
   BufferedProcess                            mBufferedProcess;
-  RealMatrix                                 mTmp;
 };
 
 auto constexpr NRTOnsetSliceParams =
