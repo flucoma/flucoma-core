@@ -306,6 +306,7 @@ struct StreamingControl
     FluidContext dummyContext;
     for(index i = 0; i < nChans; ++i)
     {
+      client.reset();
       for(index j = 0; j < nHops; ++j )
       {
         index t = j * controlRate;
@@ -319,7 +320,7 @@ struct StreamingControl
         for(index k = 0; k < nFeatures; ++k)
           outputs.emplace_back(outputData.row(k + i*nFeatures)(Slice(j,1)));
 
-        client.reset();
+        
         client.process(inputs,outputs,dummyContext);
 
         if(task && !task->processUpdate(j + 1 + (nHops * i),static_cast<double>(nHops * nChans))) break;
