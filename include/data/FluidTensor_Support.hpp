@@ -13,8 +13,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "FluidMeta.hpp"
 #include "FluidIndex.hpp"
+#include "FluidMeta.hpp"
 #include <algorithm>  //copy,copy_n
 #include <array>      //std::array
 #include <cassert>    //assert()
@@ -114,13 +114,12 @@ std::enable_if_t<(N > 1)> addExtents(I& first, const List& list)
 }
 
 
-
 /// This is the function we call from main code.
 template <size_t N, typename List>
 std::array<index, N> deriveExtents(const List& list)
 {
   std::array<index, N> a;
-  auto                  f = a.begin();
+  auto                 f = a.begin();
   addExtents<N>(f, list);
   return a;
 }
@@ -141,8 +140,6 @@ void addList(const std::initializer_list<T>* first,
 {
   for (; first != last; ++first) addList(first->begin(), first->end(), vec);
 }
-
-
 
 
 // Recurse
@@ -185,9 +182,9 @@ struct SliceIterator
   }
 
   const FluidTensorSlice<N>& descriptor() { return mDesc; }
-  
-  T&  operator*() const { return *mPtr; }
-  T*  operator->() const { return mPtr; }
+
+  T& operator*() const { return *mPtr; }
+  T* operator->() const { return mPtr; }
 
   // Forward iterator pre- and post-increment
   SliceIterator& operator++()
@@ -241,10 +238,10 @@ private:
     }
   }
 
-  FluidTensorSlice<N>   mDesc;
-  std::array<index, N>  mIndexes;
-  pointer               mPtr;
-  pointer               mBase;
+  FluidTensorSlice<N>  mDesc;
+  std::array<index, N> mIndexes;
+  pointer              mPtr;
+  pointer              mBase;
 };
 } // namespace impl
 ///*****************************************************************************
@@ -427,7 +424,8 @@ private:
   {
     strides[N - 1] = 1;
     for (index i = N - 1; i != 0; --i)
-      strides[asUnsigned(i - 1)] = strides[asUnsigned(i)] * extents[asUnsigned(i)];
+      strides[asUnsigned(i - 1)] =
+          strides[asUnsigned(i)] * extents[asUnsigned(i)];
     size = extents[0] * strides[0];
   }
 
@@ -444,7 +442,8 @@ private:
 
     if (s.start < 0 || s.start >= ns.extents[D]) s.start = 0;
 
-    if (s.length < 0 || s.length > ns.extents[D] || s.start + s.length > ns.extents[D])
+    if (s.length < 0 || s.length > ns.extents[D] ||
+        s.start + s.length > ns.extents[D])
       s.length = ns.extents[D] - s.start;
 
     if (s.start + s.length * s.stride > ns.extents[D])
@@ -465,11 +464,11 @@ private:
 
   template <size_t M, typename T, typename... Args> // recurse
   index doSlice(const fluid::FluidTensorSlice<M>& ns, const T& s,
-                 const Args&... args)
+                const Args&... args)
   {
     constexpr size_t D = N - sizeof...(Args) - 1;
-    index           m = doSliceDim<D>(ns, s);
-    index           n = doSlice(ns, args...);
+    index            m = doSliceDim<D>(ns, s);
+    index            n = doSlice(ns, args...);
     return n + m;
   }
 };

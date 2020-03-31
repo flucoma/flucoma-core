@@ -32,7 +32,7 @@ Result spikesToTimes(FluidTensorView<T, 2> changePoints, BufferAdaptor* output,
 
   for (index i = 0; i < changePoints.rows(); ++i)
     numSpikes[asUnsigned(i)] = std::accumulate(changePoints.row(i).begin(),
-                                   changePoints.row(i).end(), 0);
+                                               changePoints.row(i).end(), 0);
 
   // if the number of spikes doesn't match, that's a badness, and warrants an
   // abort

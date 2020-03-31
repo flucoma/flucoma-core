@@ -48,12 +48,13 @@ private:
   {
     bool allSame = true;
     using std::get;
-    (void)std::initializer_list<int>{
+    (void) std::initializer_list<int>{
         (allSame = allSame && (get<Is>(mValues) == args), 0)...};
-    (void)std::initializer_list<int>{(get<Is>(mSignums) = static_cast<int>(
-                                    std::copysign(1, args - get<Is>(mValues))),
-                                0)...};
-    (void)std::initializer_list<int>{(get<Is>(mValues) = args, 0)...};
+    (void) std::initializer_list<int>{
+        (get<Is>(mSignums) =
+             static_cast<int>(std::copysign(1, args - get<Is>(mValues))),
+         0)...};
+    (void) std::initializer_list<int>{(get<Is>(mValues) = args, 0)...};
     return !allSame;
   }
 

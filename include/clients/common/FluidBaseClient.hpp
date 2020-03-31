@@ -28,7 +28,7 @@ enum ProcessState { kNoProcess, kProcessing, kDone, kDoneStillProcessing };
 
 template <typename ParamType, const ParamType& PD>
 class FluidBaseClient
-{    
+{
 public:
   using ParamDescType = ParamType;
   using ParamSetType = ParameterSet<ParamDescType>;
@@ -66,7 +66,7 @@ public:
 
   double sampleRate() const noexcept { return mSampleRate; };
   void   sampleRate(double sr) { mSampleRate = sr; }
-  
+
   void setParams(ParamSetViewType& p) { mParams = p; }
 
 protected:
@@ -87,14 +87,14 @@ protected:
   std::reference_wrapper<ParamSetViewType> mParams;
 
 private:
-  index mAudioChannelsIn = 0;
-  index mAudioChannelsOut = 0;
-  index mControlChannelsIn = 0;
-  index mControlChannelsOut = 0;
-  index mMaxControlChannelsOut = 0;
+  index  mAudioChannelsIn = 0;
+  index  mAudioChannelsOut = 0;
+  index  mControlChannelsIn = 0;
+  index  mControlChannelsOut = 0;
+  index  mMaxControlChannelsOut = 0;
   bool   mControlTrigger{false};
-  index mBuffersIn = 0;
-  index mBuffersOut = 0;
+  index  mBuffersIn = 0;
+  index  mBuffersOut = 0;
   double mSampleRate = 0;
 };
 

@@ -41,10 +41,10 @@ public:
 private:
   std::atomic<double> mProgress;
   bool                mCancel;
-  double              mTotalIterations{
-      1}; // if a wrapped single channel RT process is being run over multiple
-          // channels, progress needs reflect the total proportion, rather than
-          // going 0->1 n times
+  double              mTotalIterations{1};
+  // if a wrapped single channel RT process is being run over multiple
+  // channels, progress needs reflect the total proportion, rather than
+  // going 0->1 n times
   double mIteration{0};
 };
 

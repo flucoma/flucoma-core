@@ -12,8 +12,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "FluidTensor_Support.hpp"
 #include "FluidIndex.hpp"
+#include "FluidTensor_Support.hpp"
 #include <array>
 #include <cassert>
 #include <initializer_list>
@@ -173,13 +173,13 @@ public:
 
   /// TODO If these aren't used, removed
   /// 2D copy from T**
-//  template <typename U = T, size_t D = N, typename = std::enable_if_t<D == 2>()>
-//  FluidTensor(T** input, size_t dim1, size_t dim2)
-//      : mContainer(dim1 * dim2, 0), mDesc(0, {dim1, dim2})
-//  {
-//    for (int i = 0; i < dim1; ++i)
-//      std::copy(input[i], input[i] + dim2, mContainer.data() + (i * dim2));
-//  }
+  //  template <typename U = T, size_t D = N, typename = std::enable_if_t<D ==
+  //  2>()> FluidTensor(T** input, size_t dim1, size_t dim2)
+  //      : mContainer(dim1 * dim2, 0), mDesc(0, {dim1, dim2})
+  //  {
+  //    for (int i = 0; i < dim1; ++i)
+  //      std::copy(input[i], input[i] + dim2, mContainer.data() + (i * dim2));
+  //  }
 
   /// 1D copy from T*
   template <typename U = T, size_t D = N, typename = std::enable_if_t<D == 1>()>
@@ -244,8 +244,7 @@ public:
 
   /// element access
   template <typename... Args>
-  std::enable_if_t<isIndexSequence<Args...>(), T&>
-  operator()(Args... args)
+  std::enable_if_t<isIndexSequence<Args...>(), T&> operator()(Args... args)
   {
     assert(impl::checkBounds(mDesc, args...) && "Arguments out of bounds");
     return *(data() + mDesc(index(args)...));
@@ -390,7 +389,7 @@ public:
 
   T&       operator()() { return elem; }
   const T& operator()() const { return elem; }
-  index   size() const { return 1; }
+  index    size() const { return 1; }
 
 private:
   T elem;
@@ -621,7 +620,7 @@ public:
   index rows() const { return mDesc.extents[0]; }
   index cols() const { return order > 1 ? mDesc.extents[1] : 0; }
   index size() const { return mDesc.size; }
-  void   fill(const T x) { std::fill(begin(), end(), x); }
+  void  fill(const T x) { std::fill(begin(), end(), x); }
 
   FluidTensorView<T, N> transpose() { return {mDesc.transpose(), mRef}; }
   const FluidTensorView<const T, N> transpose() const
@@ -717,7 +716,7 @@ public:
 
 private:
   pointer elem;
-  index  mStart;
+  index   mStart;
 }; // View<T,0>
 
 } // namespace fluid

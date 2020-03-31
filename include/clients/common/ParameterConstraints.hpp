@@ -88,8 +88,8 @@ struct LowerLimitImpl : public Relational
       std::array<const char*, sizeof...(Is)> constraintNames{
           {d.template get<Is + Offset>().name...}};
       r->addMessage(d.template get<N>().name, " value (", oldV,
-                    ") below parameter ", constraintNames[asUnsigned(minPos)], " (", v,
-                    ')');
+                    ") below parameter ", constraintNames[asUnsigned(minPos)],
+                    " (", v, ')');
     }
   }
 };
@@ -114,10 +114,10 @@ struct UpperLimitImpl : public Relational
           constraintValues.begin(),
           std::max_element(constraintValues.begin(), constraintValues.end()));
       std::array<const char*, sizeof...(Is)> constraintNames{
-        {d.template get<Is + Offset>().name...}};
+          {d.template get<Is + Offset>().name...}};
       r->addMessage(d.template get<N>().name, " value, ", oldV,
-                    ", above parameter ", constraintNames[asUnsigned(maxPos)], " (", v,
-                    ')');
+                    ", above parameter ", constraintNames[asUnsigned(maxPos)],
+                    " (", v, ')');
     }
   }
 };
@@ -129,7 +129,7 @@ struct FrameSizeUpperLimitImpl : public Relational
             typename Descriptor>
   void clamp(T& v, Tuple& params, Descriptor& d, Result* r) const
   {
-    T      oldV = v;
+    T     oldV = v;
     index frameSize = std::get<FFTIndex + Offset>(params).frameSize();
     v = std::min<T>(v, frameSize);
 
@@ -149,7 +149,7 @@ struct MaxFrameSizeUpperLimitImpl : public Relational
             typename Descriptor>
   void clamp(T& v, Tuple& params, Descriptor& d, Result* r) const
   {
-    T      oldV = v;
+    T     oldV = v;
     index frameSize = (std::get<MaxFFTSizeIndex + Offset>(params) + 1) / 2;
     v = std::min<T>(v, frameSize);
 
@@ -169,10 +169,12 @@ struct FrameSizeLowerLimitImpl : public Relational
   void clamp(FFTParams& v, Tuple& params, Descriptor& d, Result* r) const
   {
     FFTParams oldV = v;
-    index    frameSize = v.frameSize();
+    index     frameSize = v.frameSize();
     frameSize = std::max<index>(std::get<Lower + Offset>(params), frameSize);
-    assert((frameSize - 1) >=0 && (frameSize - 1) <= asSigned(std::numeric_limits<uint32_t>::max()));
-    intptr_t newsize = 2 * FFTParams::nextPow2(static_cast<uint32_t>(frameSize - 1), true);
+    assert((frameSize - 1) >= 0 &&
+           (frameSize - 1) <= asSigned(std::numeric_limits<uint32_t>::max()));
+    intptr_t newsize =
+        2 * FFTParams::nextPow2(static_cast<uint32_t>(frameSize - 1), true);
     if (v.fftRaw() == -1)
       v.setWin(newsize);
     else

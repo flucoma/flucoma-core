@@ -56,7 +56,7 @@ struct FloatT : ParamTypeBase
       : ParamTypeBase(name, displayName), defaultValue(defaultVal)
   {}
   const index fixedSize = 1;
-  const type        defaultValue;
+  const type  defaultValue;
 };
 
 struct LongT : ParamTypeBase
@@ -67,7 +67,7 @@ struct LongT : ParamTypeBase
       : ParamTypeBase(name, displayName), defaultValue(defaultVal)
   {}
   const index fixedSize = 1;
-  const type        defaultValue;
+  const type  defaultValue;
 };
 
 struct BufferT : ParamTypeBase
@@ -76,7 +76,7 @@ struct BufferT : ParamTypeBase
   constexpr BufferT(const char* name, const char* displayName)
       : ParamTypeBase(name, displayName)
   {}
-  const index    fixedSize = 1;
+  const index          fixedSize = 1;
   const std::nullptr_t defaultValue{nullptr};
 }; // no non-relational conditions for buffer?
 
@@ -87,7 +87,7 @@ struct InputBufferT : ParamTypeBase
   constexpr InputBufferT(const char* name, const char* displayName)
       : ParamTypeBase(name, displayName)
   {}
-  const index    fixedSize = 1;
+  const index          fixedSize = 1;
   const std::nullptr_t defaultValue{nullptr};
 };
 
@@ -113,8 +113,8 @@ struct EnumT : ParamTypeBase
   struct EnumConstraint
   {
     template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
-    constexpr void clamp(EnumUnderlyingType& v, Tuple& /*allParams*/, Descriptor& d,
-                         Result*) const
+    constexpr void clamp(EnumUnderlyingType& v, Tuple& /*allParams*/,
+                         Descriptor&         d, Result*) const
     {
       auto& e = d.template get<N>();
       v = std::max<EnumUnderlyingType>(
@@ -204,7 +204,7 @@ struct FloatPairsArrayT : ParamTypeBase
   constexpr FloatPairsArrayT(const char* name, const char* displayName)
       : ParamTypeBase(name, displayName)
   {}
-  const index         fixedSize{4};
+  const index               fixedSize{4};
   const FloatPairsArrayType defaultValue{0.0, 1.0, 1.0, 1.0};
 };
 
@@ -268,8 +268,10 @@ public:
 
   index fftSize() const noexcept
   {
-    assert(mWindowSize >= 0 && asUnsigned(mWindowSize) <= std::numeric_limits<uint32_t>::max());
-    return mFFTSize < 0 ? nextPow2(static_cast<uint32_t>(mWindowSize), true) : mFFTSize;
+    assert(mWindowSize >= 0 &&
+           asUnsigned(mWindowSize) <= std::numeric_limits<uint32_t>::max());
+    return mFFTSize < 0 ? nextPow2(static_cast<uint32_t>(mWindowSize), true)
+                        : mFFTSize;
   }
   intptr_t fftRaw() const noexcept { return mFFTSize; }
   intptr_t hopRaw() const noexcept { return mHopSize; }
@@ -336,12 +338,16 @@ public:
           // This is all about making drag behaviour in GUI elements sensible
           // If we drag down we want it to leap down by powers of 2, but with a
           // lower bound at th nearest power of 2 >= winSize
-          bool up = inParams.trackFFT.template direction<0>() > 0;
-          index  fft = v.fftRaw();
+          bool  up = inParams.trackFFT.template direction<0>() > 0;
+          index fft = v.fftRaw();
           assert(fft <= asSigned(std::numeric_limits<uint32_t>::max()));
-          fft = (fft & (fft - 1)) == 0 ? fft : v.nextPow2(static_cast<uint32_t>(v.fftRaw()), up);
-          assert(v.winSize() >= 0 && v.winSize() <= asSigned(std::numeric_limits<uint32_t>::max()));
-          fft = std::max<index>(fft, v.nextPow2(static_cast<uint32_t>(v.winSize()), true));
+          fft = (fft & (fft - 1)) == 0
+                    ? fft
+                    : v.nextPow2(static_cast<uint32_t>(v.fftRaw()), up);
+          assert(v.winSize() >= 0 &&
+                 v.winSize() <= asSigned(std::numeric_limits<uint32_t>::max()));
+          fft = std::max<index>(
+              fft, v.nextPow2(static_cast<uint32_t>(v.winSize()), true));
           v.setFFT(fft);
           //          v.setFFT(std::max(v.fftRaw(), v.nextPow2(v.winSize(),
           //          true)));
@@ -356,14 +362,16 @@ public:
       //          v.nextPow2(std::max<intptr_t>(v.winSize(),
       //          inParams.fftRaw()),trackFFT.template direction<0>() > 0));
       //
-      constexpr bool     HasMaxFFT = MaxFFTIndex > 0;
-      
-      static_assert(std::numeric_limits<index>::max() >= MaxFFTIndex + Offset,"MaxFFT + Offset too big! You must have a ridiculous number of parameters");
-      
-      constexpr index I = static_cast <index>(MaxFFTIndex + Offset);
+      constexpr bool HasMaxFFT = MaxFFTIndex > 0;
+
+      static_assert(std::numeric_limits<index>::max() >= MaxFFTIndex + Offset,
+                    "MaxFFT + Offset too big! You must have a ridiculous "
+                    "number of parameters");
+
+      constexpr index I = static_cast<index>(MaxFFTIndex + Offset);
 
       // Now check (optionally) against MaxFFTSize
-      
+
       index clippedFFT = std::max<index>(
           ConstrainMaxFFTSize<HasMaxFFT>{}.template clamp<I, Tuple>(v.fftSize(),
                                                                     allParams),
@@ -416,7 +424,7 @@ struct FFTParamsT : ParamTypeBase
   {}
 
   const index fixedSize = 3;
-  const type        defaultValue;
+  const type  defaultValue;
 };
 
 template <typename T, typename Fixed, typename... Constraints>

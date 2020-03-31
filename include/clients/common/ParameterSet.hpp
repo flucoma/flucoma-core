@@ -145,7 +145,7 @@ private:
   template <template <size_t N, typename T> class Op, size_t... Is>
   void iterateImpl(std::index_sequence<Is...>) const
   {
-    (void)std::initializer_list<int>{
+    (void) std::initializer_list<int>{
         (Op<Is, ParamType<Is>>()(std::get<0>(std::get<Is>(mDescriptors))),
          0)...};
   }
@@ -158,11 +158,7 @@ template <size_t... Os, typename... Ts>
 class ParameterSetView<
     const ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>>
 {
-  enum ConstraintTypes {
-    kAll,
-    kNonRelational,
-    kRelational
-  };
+  enum ConstraintTypes { kAll, kNonRelational, kRelational };
 
 protected:
   using DescriptorSetType =
@@ -258,8 +254,8 @@ public:
   void set(typename ParamType<N>::type&& x, Result* reportage) noexcept
   {
     if (reportage) reportage->reset();
-    auto&        constraints = constraint<N>();
-    auto&        param = std::get<N>(mParams);
+    auto&       constraints = constraint<N>();
+    auto&       param = std::get<N>(mParams);
     const index offset = std::get<N>(std::make_tuple(Os...));
     param = mKeepConstrained
                 ? constrain<offset, N, kAll>(x, constraints, reportage)
@@ -309,13 +305,14 @@ private:
             size_t... Is>
   void forEachParamImpl(std::index_sequence<Is...>, Args&&... args)
   {
-    (void)std::initializer_list<int>{
+    (void) std::initializer_list<int>{
         (Func<Is, ParamType<Is>>()(get<Is>(), std::forward<Args>(args)...),
          0)...};
   }
 
 #ifdef _MSC_VER
-#pragma warning(disable:4100) //unused params on Args pack contents; don't know why,but it's not true
+#pragma warning(disable : 4100) // unused params on Args pack contents; don't
+                                // know why,but it's not true
 #endif
   template <template <size_t, typename> class Func, typename... Args,
             size_t... Is>
@@ -323,17 +320,17 @@ private:
                               Args&&... args)
   {
     static std::array<Result, sizeof...(Ts)> results;
-    
-    static_cast<void>(reportage); 
-    
-    (void)std::initializer_list<int>{
+
+    static_cast<void>(reportage);
+
+    (void) std::initializer_list<int>{
         (set<Is>(Func<Is, ParamType<Is>>()(std::forward<Args>(args)...),
                  reportage ? &results[Is] : nullptr),
          0)...};
 
     return results;
 #ifdef _MSC_VER
-#pragma warning(default:4100)
+#pragma warning(default : 4100)
 #endif
   }
 
@@ -343,18 +340,18 @@ private:
   {
     using CT = std::tuple<Constraints...>;
     using Idx = std::index_sequence_for<Constraints...>;
-	switch (C)
-	{
-		//case kAll: return constrainImpl<Offset, N>(thisParam, c, Idx(), r);
-	case kNonRelational:
-		return constrainImpl<Offset, N>(thisParam, c,
-			NonRelationalList<CT, Idx>(), r);
-	case kRelational:
-		return constrainImpl<Offset, N>(thisParam, c, RelationalList<CT, Idx>(),
-			r);
-	//kAll:
-	default:return constrainImpl<Offset, N>(thisParam, c, Idx(), r);
-	}
+    switch (C)
+    {
+      // case kAll: return constrainImpl<Offset, N>(thisParam, c, Idx(), r);
+    case kNonRelational:
+      return constrainImpl<Offset, N>(thisParam, c,
+                                      NonRelationalList<CT, Idx>(), r);
+    case kRelational:
+      return constrainImpl<Offset, N>(thisParam, c, RelationalList<CT, Idx>(),
+                                      r);
+    // kAll:
+    default: return constrainImpl<Offset, N>(thisParam, c, Idx(), r);
+    }
   }
 
   template <size_t Offset, size_t N, typename T, typename Constraints,
@@ -363,7 +360,7 @@ private:
                   Result* r)
   {
     T res = thisParam;
-    static_cast<void>(r); 
+    static_cast<void>(r);
     (void) std::initializer_list<int>{
         (std::get<Is>(c).template clamp<Offset, N>(res, mParams,
                                                    mDescriptors.get(), r),
@@ -376,11 +373,11 @@ private:
   {
     std::array<Result, sizeof...(Is)> results;
 
-    (void)std::initializer_list<int>{
+    (void) std::initializer_list<int>{
         (paramValue<Is>(mParams) = constrain<Os, Is, kNonRelational>(
              paramValue<Is>(mParams), constraint<Is>(), &std::get<Is>(results)),
          0)...};
-    (void)std::initializer_list<int>{
+    (void) std::initializer_list<int>{
         (paramValue<Is>(mParams) = constrain<Os, Is, kRelational>(
              paramValue<Is>(mParams), constraint<Is>(), &std::get<Is>(results)),
          0)...};
@@ -438,8 +435,8 @@ public:
 
   // Move construct /assign
 
-    ParameterSet(ParameterSet&&)  = default;
-    ParameterSet& operator=(ParameterSet&&) = default;
+  ParameterSet(ParameterSet&&) = default;
+  ParameterSet& operator=(ParameterSet&&) = default;
 
 private:
   template <size_t... Is>

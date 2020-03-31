@@ -141,10 +141,11 @@ private:
   virtual FluidTensorView<const float, 1> samps(index channel) const = 0;
   virtual FluidTensorView<const float, 1> samps(index offset, index nframes,
                                                 index chanoffset) const = 0;
-  virtual index                          numFrames() const = 0;
-  virtual index                          numChans() const = 0;
-  virtual double                          sampleRate() const = 0;
-  virtual void                            refresh(){};
+
+  virtual index        numFrames() const = 0;
+  virtual index        numChans() const = 0;
+  virtual double       sampleRate() const = 0;
+  virtual void         refresh(){};
   friend std::ostream& operator<<(std::ostream& os, const BufferAdaptor* b);
 };
 

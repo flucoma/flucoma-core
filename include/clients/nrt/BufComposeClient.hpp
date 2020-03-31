@@ -157,9 +157,9 @@ public:
       for (index i = dstStartChan, j = 0; j < nChannels; ++i, ++j)
       {
         // Special repeating channel voodoo
-        ConstHostVector sourceChunk{
-            source.samps(get<kOffset>(), std::min<index>(nFrames, source.numFrames()),
-                         (get<kStartChan>() + j) % source.numChans())};
+        ConstHostVector sourceChunk{source.samps(
+            get<kOffset>(), std::min<index>(nFrames, source.numFrames()),
+            (get<kStartChan>() + j) % source.numChans())};
 
         HostVector destinationChunk{destinationOrig.row(j)};
         if (destinationResizeNeeded)
@@ -173,7 +173,9 @@ public:
             destinationChunk.begin(),
             [gain](const T& src, T& dst) { return dst + src * gain; });
 
-        if (c.task() && !c.task()->processUpdate(static_cast<double>(j + 1), static_cast<double>(nChannels)))
+        if (c.task() &&
+            !c.task()->processUpdate(static_cast<double>(j + 1),
+                                     static_cast<double>(nChannels)))
           return {Result::Status::kCancelled, ""};
       }
     }

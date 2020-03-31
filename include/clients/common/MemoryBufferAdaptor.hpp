@@ -69,8 +69,7 @@ public:
   bool valid() const override { return mValid; }
   bool exists() const override { return mExists; }
 
-  const Result resize(index frames, index channels,
-                      double sampleRate) override
+  const Result resize(index frames, index channels, double sampleRate) override
   {
     mWrite = true;
     mSampleRate = sampleRate;
@@ -80,7 +79,10 @@ public:
   }
 
   // Return a slice of the buffer
-  FluidTensorView<float, 1> samps(index channel) override { return mData.col(channel); }
+  FluidTensorView<float, 1> samps(index channel) override
+  {
+    return mData.col(channel);
+  }
   FluidTensorView<float, 1> samps(index offset, index nframes,
                                   index chanoffset) override
   {
@@ -95,8 +97,8 @@ public:
   {
     return mData(Slice(offset, nframes), Slice(chanoffset, 1)).col(0);
   }
-  index      numFrames() const override { return mData.rows(); }
-  index      numChans() const override { return mData.cols(); }
+  index       numFrames() const override { return mData.rows(); }
+  index       numChans() const override { return mData.cols(); }
   double      sampleRate() const override { return mSampleRate; }
   std::string asString() const override { return ""; }
   void        refresh() override { mWrite = true; }

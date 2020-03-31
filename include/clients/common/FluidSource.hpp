@@ -56,7 +56,7 @@ public:
     index offset = mCounter;
 
     index size = ((offset + blocksize) > bufferSize()) ? bufferSize() - offset
-                                                        : blocksize;
+                                                       : blocksize;
 
     // Copy all channels (cols)
     copyIn(x(Slice(0), Slice(0, size)), offset, size);
@@ -78,7 +78,7 @@ public:
     index offset = mCounter;
 
     index size = ((offset + blocksize) > bufferSize()) ? bufferSize() - offset
-                                                        : blocksize;
+                                                       : blocksize;
 
     // Copy all channels (rows)
     copyIn(x(Slice(0), Slice(0, size)), offset, size);
@@ -190,8 +190,8 @@ private:
   }
 
   template <typename InputIt>
-  void copyIn(InputIt in, InputIt end, const index inStart,
-              const index offset, const index size)
+  void copyIn(InputIt in, InputIt end, const index inStart, const index offset,
+              const index size)
   {
     if (size)
     {
@@ -205,9 +205,9 @@ private:
   }
 
   tensor_type matrix;
-  index      mCounter = 0;
-  index      mSize;
-  index      mChannels;
-  index      mHostBufferSize = 0;
+  index       mCounter = 0;
+  index       mSize;
+  index       mChannels;
+  index       mHostBufferSize = 0;
 };
 } // namespace fluid

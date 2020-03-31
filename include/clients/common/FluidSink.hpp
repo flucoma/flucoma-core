@@ -64,7 +64,7 @@ public:
     offset = offset < bufferSize() ? offset : offset - bufferSize();
 
     index size = ((offset + blocksize) > bufferSize()) ? bufferSize() - offset
-                                                        : blocksize;
+                                                       : blocksize;
 
     addIn(x(Slice(0), Slice(0, size)), offset, size);
     addIn(x(Slice(0), Slice(size, blocksize - size)), 0, blocksize - size);
@@ -157,9 +157,9 @@ private:
   index bufferSize() const { return mSize + mHostBufferSize; }
 
   tensor_type matrix;
-  index      mSize;
-  index      mChannels;
-  index      mCounter = 0;
-  index      mHostBufferSize = 0;
+  index       mSize;
+  index       mChannels;
+  index       mCounter = 0;
+  index       mHostBufferSize = 0;
 };
 } // namespace fluid
