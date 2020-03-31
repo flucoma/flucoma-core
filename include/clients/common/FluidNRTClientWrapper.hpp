@@ -12,6 +12,7 @@
 #include "../../data/TensorTypes.hpp"
 
 #include <deque>
+#include <future>
 #include <vector>
 #include <thread>
 
@@ -465,11 +466,14 @@ public:
     if(mQueue.empty())
       return {Result::Status::kWarning, "Process() called on empty queue"};
 
-    mThreadedTask = std::unique_ptr<ThreadedTask>(new ThreadedTask(mClient,mQueue.front(), mSynchronous, result));
+    mThreadedTask = std::unique_ptr<ThreadedTask>(new ThreadedTask(mClient,mQueue.front(), mSynchronous));
     mQueue.pop_front();
 
     if (mSynchronous)
-      mThreadedTask = nullptr;
+    {
+      result = mThreadedTask->result(); 
+      mThreadedTask = nullptr;      
+    }
 
     return result;
   }
@@ -484,8 +488,7 @@ public:
       {
         if (!mQueue.empty())
         {
-            Result tempResult;
-            mThreadedTask = std::unique_ptr<ThreadedTask>(new ThreadedTask(mClient,mQueue.front(), false, tempResult));
+            mThreadedTask = std::unique_ptr<ThreadedTask>(new ThreadedTask(mClient,mQueue.front(), false));
             mQueue.pop_front();
             state = kDoneStillProcessing;
             mThreadedTask->mState = kDoneStillProcessing;
@@ -565,44 +568,50 @@ private:
       }
     };
 
-    ThreadedTask(ClientPointer client, ParamSetType& hostParams,  bool synchronous, Result &result)
+    ThreadedTask(ClientPointer client, ParamSetType& hostParams,  bool synchronous)
     : mProcessParams(hostParams), mState(kNoProcess), mClient(client), mContext{mTask}
     {
 
       assert(mClient.get() != nullptr); //right?
+      
+      std::promise<Result> resultPromise; 
+      mFutureResult = resultPromise.get_future();
 
       if (synchronous)
       {
         mClient->setParams(hostParams);
-        result = process();
+        process(std::move(resultPromise));
       }
       else
       {
-        auto entry = [](ThreadedTask* owner)
+        auto entry = [](ThreadedTask* owner, std::promise<Result> result)
         {
-          owner->mResult  = owner->process();
+           owner->process(std::move(result));
         };
         mProcessParams.template forEachParamType<BufferT, BufferCopy>();
         mProcessParams.template forEachParamType<InputBufferT, BufferCopy>();
         mClient->setParams(mProcessParams);
         mState = kProcessing;
-        mThread = std::thread(entry, this);
-        result = Result();
+        mThread = std::thread(entry, this, std::move(resultPromise));
       }
     }
 
-    Result process()
+    Result result()
+    {
+      return mFutureResult.get(); 
+    }
+    
+    void process(std::promise<Result> result)
     {
       assert(mClient.get() != nullptr); //right?
 
       mState = kProcessing;
       Result r = mClient->process(mContext);
+      result.set_value(r);
       mState = kDone;
 
       if (mDetached)
         delete this;
-
-      return r;
     }
 
     void cancel(bool detach)
@@ -622,13 +631,15 @@ private:
       if (state == kDone)
       {
         if (mThread.get_id() != std::thread::id())
+        {        
+          result = mFutureResult.get(); 
           mThread.join();
+        }
 
         if (!mTask.cancelled())
         {
-          if(mResult.status() != Result::Status::kError)
+          if(result.status() != Result::Status::kError)
             mProcessParams.template forEachParamType<BufferT, BufferCopyBack>();
-          result = mResult;
         }
         else
           result = {Result::Status::kCancelled,""};
@@ -643,7 +654,7 @@ private:
     ParamSetType mProcessParams;
     ProcessState mState;
     std::thread mThread;
-
+    std::future<Result> mFutureResult; 
     Result mResult;
     ClientPointer mClient;
     FluidTask mTask;
