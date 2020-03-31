@@ -155,8 +155,8 @@ if(DEFINED FLUID_ARCH)
   target_compile_options(FLUID_DECOMPOSITION INTERFACE ${FLUID_ARCH})
 endif()
 #Examples 
-if(APPLE)
-  add_subdirectory(
-   "${CMAKE_CURRENT_SOURCE_DIR}/examples" EXCLUDE_FROM_ALL
-  )
-endif() 
+#if(APPLE)
+#  add_subdirectory(
+#   "${CMAKE_CURRENT_SOURCE_DIR}/examples" EXCLUDE_FROM_ALL
+#  )
+#endif() 
