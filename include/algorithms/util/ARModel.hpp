@@ -228,7 +228,7 @@ private:
   VectorXd mParameters;
   double   mVariance{0.0};
   ArrayXd  mWindow;
-  bool     mUseWindow{false};
+  bool     mUseWindow{true};
   double   mMinVariance{0.0};
 };
 
