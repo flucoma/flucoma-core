@@ -1,5 +1,24 @@
+# 1.0.0-RC2
+date:
+
+## New Features:
+
+
+## Bug Fixes:
+
+
+## Improvements:
+
+
+## New Example:
+
+
+## Known Bugs/Issues:
+
+
+===
 # 1.0.0-RC1
-date: 
+date: 31 March 2020
 
 ## New Features:
 * BREAKING CHANGE: (buf)melbands how has normalised amplitude output option, on by default, which is independent of window and fft size
@@ -32,6 +51,8 @@ date:
 
 ## Known Bugs/Issues:
 * (Mac) Notarization is not implemented yet, since most CCEs are working on workarounds...
+* (SC) Current implementation of non-realtime objects does not work with remote servers
+* (Win - SC) calling cancel on threaded non-realtime processes crashes scsynth
 
 ===
 # beta-02: multithreading!
