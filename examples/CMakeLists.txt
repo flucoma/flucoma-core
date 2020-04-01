@@ -8,9 +8,7 @@ foreach (EXAMPLE  describe)
 		${EXAMPLE} PRIVATE FLUID_DECOMPOSITION  HISSTools_AudioFile HISSTools_FFT
 	)
 
-	target_compile_options(
-		${EXAMPLE} PRIVATE "$<$<NOT:$<CONFIG:DEBUG>>:-mavx>"
-	)
+	target_compile_options(${EXAMPLE} PRIVATE ${FLUID_ARCH})
 
 	set_target_properties(${EXAMPLE}
 	    PROPERTIES
@@ -19,5 +17,4 @@ foreach (EXAMPLE  describe)
 	    CXX_EXTENSIONS OFF
 	)
 	
-
 endforeach (EXAMPLE)

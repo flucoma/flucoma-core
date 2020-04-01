@@ -154,9 +154,8 @@ if(DEFINED FLUID_ARCH)
   target_compile_options(HISSTools_AudioFile PUBLIC ${FLUID_ARCH})
   target_compile_options(FLUID_DECOMPOSITION INTERFACE ${FLUID_ARCH})
 endif()
+
 #Examples
-if(APPLE)
-  add_subdirectory(
+add_subdirectory(
    "${CMAKE_CURRENT_SOURCE_DIR}/examples"
-  )
-endif()
+)
