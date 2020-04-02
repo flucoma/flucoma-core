@@ -10,18 +10,16 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "OnsetDetectionFuncs.hpp"
 #include "WindowFuncs.hpp"
-#include "../util/ConvolutionTools.hpp"
 #include "../util/FFT.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/MedianFilter.hpp"
-#include "../../data/TensorTypes.hpp"
+#include "../util/OnsetDetectionFuncs.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Eigen>
 #include <algorithm>
 #include <cassert>
-#include <deque>
 
 namespace fluid {
 namespace algorithm {
@@ -33,66 +31,46 @@ public:
   using ArrayXd = Eigen::ArrayXd;
   using ArrayXcd = Eigen::ArrayXcd;
 
-  OnsetSegmentation(index maxSize)
-      : mFFT(maxSize), mWindowStorage(maxSize), mMaxSize(maxSize),
-        mFFTSize(maxSize), mWindowSize(maxSize), mHopSize(maxSize / 2)
+  OnsetSegmentation(index maxSize) : mFFT(maxSize), mWindowStorage(maxSize) {}
+
+  void init(index windowSize, index fftSize)
   {
-    makeWindow();
-    mFilter.init(mFilterSize);
+    makeWindow(windowSize);
+    prevFrame = ArrayXcd::Zero(fftSize / 2 + 1);
+    prevPrevFrame = ArrayXcd::Zero(fftSize / 2 + 1);
+    mFFT.resize(fftSize);
+    mDebounceCount = 1;
+    mPrevFuncVal = 0;
+    mInitialized = true;
   }
 
-  void makeWindow()
+  void makeWindow(index windowSize)
   {
     mWindowStorage.setZero();
-    WindowFuncs::map()[mWindowType](mWindowSize, mWindowStorage);
-    mWindow = mWindowStorage.segment(0, mWindowSize);
-    prevFrame = ArrayXcd::Zero(mFFTSize / 2 + 1);
-    prevPrevFrame = ArrayXcd::Zero(mFFTSize / 2 + 1);
+    WindowFuncs::map()[mWindowType](windowSize, mWindowStorage);
+    mWindow = mWindowStorage.segment(0, windowSize);
+    mWindowSize = windowSize;
   }
 
-  void updateParameters(index fftSize, index windowSize, index hopSize,
-                        index frameDelta, index function, index filterSize,
-                        double threshold, index debounce)
+  double processFrame(RealVectorView input, index function, index filterSize,
+                      double threshold, index debounce = 0,
+                      index frameDelta = 0)
   {
-    assert(fftSize <= mMaxSize);
-    assert(windowSize <= mMaxSize);
-    assert(windowSize <= fftSize);
-    assert(hopSize <= mMaxSize);
-    assert(frameDelta <= windowSize);
-    assert(filterSize % 2);
+    assert(mInitialized);
+    ArrayXd in = _impl::asEigen<Eigen::Array>(input);
+    double  funcVal = 0;
+    double  filteredFuncVal = 0;
+    double  detected = 0.;
+    if (filterSize >= 3 &&
+        (!mFilter.initialized() || filterSize != mFilter.size()))
+      mFilter.init(filterSize);
 
-    if (fftSize != mFFTSize)
-    {
-      mFFTSize = fftSize;
-      mFFT.resize(mFFTSize);
-      makeWindow();
-    }
-    if (windowSize != mWindowSize)
-    {
-      mWindowSize = windowSize;
-      makeWindow();
-    }
-
-    mHopSize = hopSize;
-    mFrameDelta = frameDelta;
-    if (mFilter.size() != filterSize) mFilter.init(filterSize);
-    mThreshold = threshold;
-    mFunction = function;
-    mDebounce = debounce;
-  }
-
-  double processFrame(RealVectorView input)
-  {
-    ArrayXd  in = _impl::asEigen<Eigen::Array>(input);
-    double   funcVal = 0;
-    double   filteredFuncVal = 0;
-    double   detected = 0.;
     ArrayXcd frame = mFFT.process(in.segment(0, mWindowSize) * mWindow);
-    auto     odf = static_cast<OnsetDetectionFuncs::ODF>(mFunction);
-    if (mFunction > 1 && mFunction < 5 && mFrameDelta != 0)
+    auto     odf = static_cast<OnsetDetectionFuncs::ODF>(function);
+    if (function > 1 && function < 5 && frameDelta != 0)
     {
       ArrayXcd frame2 =
-          mFFT.process(in.segment(mFrameDelta, mWindowSize) * mWindow);
+          mFFT.process(in.segment(frameDelta, mWindowSize) * mWindow);
       funcVal = OnsetDetectionFuncs::map()[odf](frame2, frame, frame);
     }
     else
@@ -100,15 +78,19 @@ public:
       funcVal =
           OnsetDetectionFuncs::map()[odf](frame, prevFrame, prevPrevFrame);
     }
-    filteredFuncVal = funcVal - mFilter.processSample(funcVal);
+    if (filterSize >= 3)
+      filteredFuncVal = funcVal - mFilter.processSample(funcVal);
+    else
+      filteredFuncVal = funcVal - mPrevFuncVal;
+
     prevPrevFrame = prevFrame;
     prevFrame = frame;
 
-    if (filteredFuncVal > mThreshold && mPrevFuncVal < mThreshold &&
+    if (filteredFuncVal > threshold && mPrevFuncVal < threshold &&
         mDebounceCount == 0)
     {
       detected = 1.0;
-      mDebounceCount = mDebounce;
+      mDebounceCount = debounce;
     }
     else
     {
@@ -123,22 +105,15 @@ private:
   FFT          mFFT{1024};
   ArrayXd      mWindowStorage;
   ArrayXd      mWindow;
-  index        mMaxSize{16384};
-  index        mFFTSize{1024};
   index        mWindowSize{1024};
-  index        mHopSize{512};
-  index        mFrameDelta{0};
-  index        mFunction{0};
-  index        mFilterSize{5};
-  double       mThreshold{0.1};
-  index        mDebounce{2};
   index        mDebounceCount{1};
   ArrayXcd     prevFrame;
   ArrayXcd     prevPrevFrame;
   double       mPrevFuncVal{0.0};
   WindowTypes  mWindowType{WindowTypes::kHann};
   MedianFilter mFilter;
+  bool         mInitialized{false};
 };
 
-}; // namespace algorithm
-}; // namespace fluid
+} // namespace algorithm
+} // namespace fluid

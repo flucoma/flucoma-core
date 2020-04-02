@@ -12,6 +12,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #include "../util/AlgorithmUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
+#include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <vector>
@@ -27,26 +28,15 @@ public:
   // cancelled)
   using ProgressCallback = std::function<bool(index)>;
 
-  NMF(index maxRank) : mRank(maxRank) {}
-
-  void init(index rank, index nIterations, bool updateW = true,
-            bool updateH = true)
-  {
-    mRank = rank;
-    mIterations = nIterations;
-    mUpdateW = updateW;
-    mUpdateH = updateH;
-  }
-
   static void estimate(const RealMatrixView W, const RealMatrixView H,
-                       index index, RealMatrixView V)
+                       index idx, RealMatrixView V)
   {
     using namespace Eigen;
     using namespace _impl;
 
     MatrixXd W1 = asEigen<Matrix>(W).transpose();
     MatrixXd H1 = asEigen<Matrix>(H).transpose();
-    MatrixXd result = (W1.col(index) * H1.row(index)).transpose();
+    MatrixXd result = (W1.col(idx) * H1.row(idx)).transpose();
     V = asFluid(result);
   }
 
@@ -85,11 +75,11 @@ public:
       ArrayXd v2 = (W * h).array();
       v = asFluid(v2);
     }
-    // ArrayXdMap(out.data(), rank) = h.array();
   }
 
   void process(const RealMatrixView X, RealMatrixView W1, RealMatrixView H1,
-               RealMatrixView V1,
+               RealMatrixView V1, index rank, index nIterations, bool updateW,
+               bool           updateH = false,
                RealMatrixView W0 = RealMatrixView(nullptr, 0, 0, 0),
                RealMatrixView H0 = RealMatrixView(nullptr, 0, 0, 0))
   {
@@ -100,29 +90,29 @@ public:
     MatrixXd W;
     if (W0.extent(0) == 0 && W0.extent(1) == 0)
     {
-      W = MatrixXd::Random(nBins, mRank) * 0.5 +
-          MatrixXd::Constant(nBins, mRank, 0.5);
+      W = MatrixXd::Random(nBins, rank) * 0.5 +
+          MatrixXd::Constant(nBins, rank, 0.5);
     }
     else
     {
-      assert(W0.extent(0) == mRank);
+      assert(W0.extent(0) == rank);
       assert(W0.extent(1) == nBins);
       W = asEigen<Matrix>(W0).transpose();
     }
     MatrixXd H;
     if (H0.extent(0) == 0 && H0.extent(1) == 0)
     {
-      H = MatrixXd::Random(mRank, nFrames) * 0.5 +
-          MatrixXd::Constant(mRank, nFrames, 0.5);
+      H = MatrixXd::Random(rank, nFrames) * 0.5 +
+          MatrixXd::Constant(rank, nFrames, 0.5);
     }
     else
     {
       assert(H0.extent(0) == nFrames);
-      assert(H0.extent(1) == mRank);
+      assert(H0.extent(1) == rank);
       H = asEigen<Matrix>(H0).transpose();
     }
     MatrixXd V = asEigen<Matrix>(X).transpose();
-    multiplicativeUpdates(V, W, H);
+    multiplicativeUpdates(V, W, H, nIterations, updateW, updateH);
     MatrixXd VT = V.transpose();
     MatrixXd WT = W.transpose();
     MatrixXd HT = H.transpose();
@@ -140,7 +130,9 @@ public:
 private:
   using MatrixXd = Eigen::MatrixXd;
 
-  void multiplicativeUpdates(MatrixXd& V, MatrixXd& W, MatrixXd& H)
+  void multiplicativeUpdates(Eigen::Ref<MatrixXd> V, Eigen::Ref<MatrixXd> W,
+                             Eigen::Ref<MatrixXd> H, index nIterations,
+                             bool updateW, bool updateH)
   {
     using namespace Eigen;
     MatrixXd ones = MatrixXd::Ones(V.rows(), V.cols());
@@ -148,9 +140,9 @@ private:
     W = W.array().max(epsilon).matrix();
     W.colwise().normalize();
     H.rowwise().normalize();
-    for (auto i = 0; i < mIterations; ++i)
+    for (auto i = 0; i < nIterations; ++i)
     {
-      if (mUpdateW)
+      if (updateW)
       {
         ArrayXXd V1 = (W * H).array().max(epsilon);
         ArrayXXd wnum = ((V.array() / V1).matrix() * H.transpose()).array();
@@ -160,7 +152,7 @@ private:
         assert(W.allFinite());
       }
       ArrayXXd V2 = (W * H).array().max(epsilon);
-      if (mUpdateH)
+      if (updateH)
       {
         ArrayXXd hnum = (W.transpose() * (V.array() / V2).matrix()).array();
         ArrayXXd hden = (W.transpose() * ones).array();
@@ -171,18 +163,13 @@ private:
       R = R.cwiseMax(epsilon);
       for (auto& cb : mCallbacks)
         if (!cb(i + 1)) return;
-      //double divergence = (V.cwiseProduct(V.cwiseQuotient(R)) - V + R).sum();
+      // double divergence = (V.cwiseProduct(V.cwiseQuotient(R)) - V + R).sum();
       // divergenceCurve.push_back(divergence);
       // divergenceCurve(mIterations);
       // std::cout << "Divergence " << divergence << "\n";
     }
     V = W * H;
   }
-
-  index mRank{1};
-  index mIterations{100};
-  bool  mUpdateW{true};
-  bool  mUpdateH{true};
 
   std::vector<ProgressCallback> mCallbacks;
 };

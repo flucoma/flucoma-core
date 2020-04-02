@@ -8,6 +8,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 (grant agreement No 725899).
 */
 #pragma once
+
+#include "../util/AlgorithmUtils.hpp"
 #include <cassert>
 #include <cmath>
 
@@ -19,13 +21,17 @@ class ButterworthHPFilter
 public:
   void init(double cutoff)
   { // as fraction of sample rate
-    using std::pow;
-    double c = tan(M_PI * cutoff);
-    mB0 = 1.0 / (1.0 + M_SQRT2 * c + pow(c, 2.0));
+    using namespace std;
+    double c = tan(pi * cutoff);
+    mB0 = 1.0 / (1.0 + sqrtTwo * c + pow(c, 2.0));
     mB1 = -2.0 * mB0;
     mB2 = mB0;
     mA0 = 2.0 * mB0 * (pow(c, 2.0) - 1.0);
-    mA1 = mB0 * (1.0 - M_SQRT2 * c + pow(c, 2.0));
+    mA1 = mB0 * (1.0 - sqrtTwo * c + pow(c, 2.0));
+    mXnz1 = 0;
+    mXnz2 = 0;
+    mYnz1 = 0;
+    mYnz2 = 0;
   }
 
   double processSample(double x)
@@ -46,5 +52,5 @@ private:
   double mYnz1{0.0};
   double mYnz2{0.0};
 };
-}; // namespace algorithm
-}; // namespace fluid
+} // namespace algorithm
+} // namespace fluid

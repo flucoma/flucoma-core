@@ -74,31 +74,33 @@ public:
 
     double hiPassFreq = std::min(get<kHiPassFreq>() / sampleRate(), 0.5);
 
-    if (mTrackValues.changed(get<kMinTimeAboveThreshold>(),
-                             get<kUpwardLookupTime>(),
-                             get<kMinTimeBelowThreshold>(),
-                             get<kDownwardLookupTime>(), sampleRate()) ||
+    if (mTrackValues.changed(
+            get<kMinTimeAboveThreshold>(), get<kUpwardLookupTime>(),
+            get<kMinTimeBelowThreshold>(), get<kDownwardLookupTime>()) ||
         !mAlgorithm.initialized())
     {
-      mAlgorithm.init(hiPassFreq, get<kRampUpTime>(), get<kRampDownTime>(),
-                      get<kOnThreshold>(), get<kMinTimeAboveThreshold>(),
-                      get<kMinEventDuration>(), get<kUpwardLookupTime>(),
-                      get<kOffThreshold>(), get<kMinTimeBelowThreshold>(),
-                      get<kMinSilenceDuration>(), get<kDownwardLookupTime>());
-    }
-    else
-    {
-      mAlgorithm.updateParams(hiPassFreq, get<kRampUpTime>(),
-                              get<kRampDownTime>(), get<kOnThreshold>(),
-                              get<kMinEventDuration>(), get<kOffThreshold>(),
-                              get<kMinSilenceDuration>());
+      mAlgorithm.init(get<kOnThreshold>(), get<kOffThreshold>(), hiPassFreq,
+                      get<kMinTimeAboveThreshold>(), get<kUpwardLookupTime>(),
+                      get<kMinTimeBelowThreshold>(),
+                      get<kDownwardLookupTime>());
     }
 
     for (index i = 0; i < input[0].size(); i++)
-    { output[0](i) = static_cast<T>(mAlgorithm.processSample(input[0](i))); }
+    {
+      output[0](i) = static_cast<T>(mAlgorithm.processSample(
+          input[0](i), get<kOnThreshold>(), get<kOffThreshold>(),
+          get<kRampUpTime>(), get<kRampDownTime>(), hiPassFreq,
+          get<kMinEventDuration>(), get<kMinSilenceDuration>()));
+    }
   }
 
-  void reset() {}
+  void reset()
+  {
+    double hiPassFreq = std::min(get<kHiPassFreq>() / sampleRate(), 0.5);
+    mAlgorithm.init(get<kOnThreshold>(), get<kOffThreshold>(), hiPassFreq,
+                    get<kMinTimeAboveThreshold>(), get<kUpwardLookupTime>(),
+                    get<kMinTimeBelowThreshold>(), get<kDownwardLookupTime>());
+  }
 
   index latency()
   {
@@ -108,8 +110,9 @@ public:
   }
 
 private:
-  ParameterTrackChanges<index, index, index, index, double> mTrackValues;
-  algorithm::EnvelopeGate                                   mAlgorithm;
+  ParameterTrackChanges<index, index, index, index> mTrackValues;
+
+  algorithm::EnvelopeGate mAlgorithm;
 };
 
 template <typename HostMatrix, typename HostVectorView>
@@ -168,8 +171,8 @@ struct NRTAmpGate
 using RTAmpGateClient = ClientWrapper<AmpGateClient>;
 
 auto constexpr NRTAmpGateParams =
-    makeNRTParams<AmpGateClient>({InputBufferParam("source", "Source Buffer")},
-                                 {BufferParam("indices", "Indices Buffer")});
+    makeNRTParams<AmpGateClient>(InputBufferParam("source", "Source Buffer"),
+                                 BufferParam("indices", "Indices Buffer"));
 
 using NRTAmpGateClient =
     impl::NRTClientWrapper<NRTAmpGate, AmpGateClient,

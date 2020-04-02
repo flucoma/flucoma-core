@@ -150,7 +150,7 @@ size_t ilog2(size_t value)
     return bitCount - 1U;
   else
     return bitCount;
-};
+}
 
 size_t calcLinearSize(size_t size1, size_t size2)
 {
@@ -531,8 +531,7 @@ void binarySpectralOperationReal(double* output, const double* in1,
 // Convolution (Real)
 
 void convolveReal(double* output, const double* in1, size_t size1,
-                         const double* in2, size_t size2,
-                         EdgeMode mode = kEdgeWrap)
+                  const double* in2, size_t size2, EdgeMode mode = kEdgeWrap)
 {
   impl::binarySpectralOperationReal(output, in1, size1, in2, size2, mode,
                                     impl::ConvolveOp());
@@ -541,8 +540,7 @@ void convolveReal(double* output, const double* in1, size_t size1,
 // Correlation (Real)
 
 void correlateReal(double* output, const double* in1, size_t size1,
-                          const double* in2, size_t size2,
-                          EdgeMode mode = kEdgeWrap)
+                   const double* in2, size_t size2, EdgeMode mode = kEdgeWrap)
 {
   impl::binarySpectralOperationReal(output, in1, size1, in2, size2, mode,
                                     impl::CorrelateOp());
@@ -551,17 +549,17 @@ void correlateReal(double* output, const double* in1, size_t size1,
 // Autocorrelation (Real) (inefficient for now)
 
 void autocorrelateReal(double* output, const double* in, size_t size,
-                              EdgeMode mode = kEdgeWrap)
+                       EdgeMode mode = kEdgeWrap)
 {
   correlateReal(output, in, size, in, size, mode);
 }
 
 // Convolution (Complex)
 
-void convolve(double* rOut, double* iOut, const double* rIn1,
-                     size_t sizeR1, const double* iIn1, size_t sizeI1,
-                     const double* rIn2, size_t sizeR2, const double* iIn2,
-                     size_t sizeI2, EdgeMode mode = kEdgeWrap)
+void convolve(double* rOut, double* iOut, const double* rIn1, size_t sizeR1,
+              const double* iIn1, size_t sizeI1, const double* rIn2,
+              size_t sizeR2, const double* iIn2, size_t sizeI2,
+              EdgeMode mode = kEdgeWrap)
 {
   impl::binarySpectralOperation(rOut, iOut, rIn1, sizeR1, iIn1, sizeI1, rIn2,
                                 sizeR2, iIn2, sizeI2, mode, impl::ConvolveOp());
@@ -569,10 +567,10 @@ void convolve(double* rOut, double* iOut, const double* rIn1,
 
 // Correlation (Complex)
 
-void correlate(double* rOut, double* iOut, const double* rIn1,
-                      size_t sizeR1, const double* iIn1, size_t sizeI1,
-                      const double* rIn2, size_t sizeR2, const double* iIn2,
-                      size_t sizeI2, EdgeMode mode = kEdgeWrap)
+void correlate(double* rOut, double* iOut, const double* rIn1, size_t sizeR1,
+               const double* iIn1, size_t sizeI1, const double* rIn2,
+               size_t sizeR2, const double* iIn2, size_t sizeI2,
+               EdgeMode mode = kEdgeWrap)
 {
   impl::binarySpectralOperation(rOut, iOut, rIn1, sizeR1, iIn1, sizeI1, rIn2,
                                 sizeR2, iIn2, sizeI2, mode,
@@ -581,9 +579,8 @@ void correlate(double* rOut, double* iOut, const double* rIn1,
 
 // Autocorrelation (Complex) (inefficient for now)
 
-void autocorrelate(double* rOut, double* iOut, const double* rIn,
-                          size_t sizeR, const double* iIn, size_t sizeI,
-                          EdgeMode mode = kEdgeWrap)
+void autocorrelate(double* rOut, double* iOut, const double* rIn, size_t sizeR,
+                   const double* iIn, size_t sizeI, EdgeMode mode = kEdgeWrap)
 {
   correlate(rOut, iOut, rIn, sizeR, iIn, sizeI, rIn, sizeR, iIn, sizeI, mode);
 }

@@ -71,16 +71,43 @@ public:
       : mParams{p}, mNovelty{get<kMaxKernelSize>(), get<kMaxFilterSize>()},
         mSTFT{get<kFFT>().winSize(), get<kFFT>().fftSize(),
               get<kFFT>().hopSize()},
-        mLoudness{get<kMaxFFTSize>()}
+        mMelBands{40, get<kMaxFFTSize>()}, mLoudness{get<kMaxFFTSize>()}
   {
     audioChannelsIn(1);
     audioChannelsOut(1);
   }
 
+
+  void initAlgorithms(index feature, index windowSize)
+  {
+    index nDims = 2;
+    if (feature < 3)
+    {
+      mSpectrum.resize(get<kFFT>().frameSize());
+      mMagnitude.resize(get<kFFT>().frameSize());
+      mSTFT = algorithm::STFT(get<kFFT>().winSize(), get<kFFT>().fftSize(),
+                              get<kFFT>().hopSize());
+    }
+    if (feature == 0) { nDims = get<kFFT>().frameSize(); }
+    else if (feature == 1)
+    {
+      mBands.resize(40);
+      mMelBands.init(20, 2000, 40, get<kFFT>().frameSize(), sampleRate(),
+                     get<kFFT>().winSize());
+      mDCT.init(40, 13);
+      nDims = 13;
+    }
+    else if (feature == 3)
+    {
+      mLoudness.init(windowSize, sampleRate());
+    }
+    mFeature.resize(nDims);
+    mNovelty.init(get<kKernelSize>(), get<kFilterSize>(), nDims);
+  }
+
   template <typename T>
   void process(std::vector<HostVector<T>>& input,
-               std::vector<HostVector<T>>& output, FluidContext& c,
-               bool reset = false)
+               std::vector<HostVector<T>>& output, FluidContext& c)
   {
     using algorithm::NoveltySegmentation;
 
@@ -91,40 +118,14 @@ public:
     index windowSize = get<kFFT>().winSize();
     index feature = get<kFeature>();
     if (mParamsTracker.changed(hostVecSize, get<kFeature>(), get<kKernelSize>(),
-                               get<kThreshold>(), get<kFilterSize>(),
-                               windowSize, sampleRate()))
+                               get<kFilterSize>(), windowSize, sampleRate()))
     {
       mBufferedProcess.hostSize(hostVecSize);
       mBufferedProcess.maxSize(windowSize, windowSize,
                                FluidBaseClient::audioChannelsIn(),
                                FluidBaseClient::audioChannelsOut());
-      index nDims = 2;
-      if (feature < 3)
-      {
-        mSpectrum.resize(get<kFFT>().frameSize());
-        mMagnitude.resize(get<kFFT>().frameSize());
-        mSTFT = algorithm::STFT(get<kFFT>().winSize(), get<kFFT>().fftSize(),
-                                get<kFFT>().hopSize());
-      }
-      if (feature == 0) { nDims = get<kFFT>().frameSize(); }
-      else if (feature == 1)
-      {
-        mBands.resize(40);
-        mMelBands.init(20, 2000, 40, get<kFFT>().frameSize(), sampleRate(),
-                       true, false, get<kFFT>().winSize(), false);
-        mDCT.init(40, 13);
-        nDims = 13;
-      }
-      else if (feature == 3)
-      {
-        mLoudness.init(windowSize, sampleRate());
-      }
-      mFeature.resize(nDims);
-      mNovelty.init(get<kKernelSize>(), get<kThreshold>(), get<kFilterSize>(),
-                    nDims);
+      initAlgorithms(feature, windowSize);
     }
-
-    mNovelty.setMinSliceLength(get<kDebounce>());
     RealMatrix in(1, hostVecSize);
     in.row(0) = input[0];
     RealMatrix out(1, hostVecSize);
@@ -142,7 +143,7 @@ public:
           case 1:
             mSTFT.processFrame(in.row(0), mSpectrum);
             mSTFT.magnitude(mSpectrum, mMagnitude);
-            mMelBands.processFrame(mMagnitude, mBands);
+            mMelBands.processFrame(mMagnitude, mBands, false, false, true);
             mDCT.processFrame(mBands, mFeature);
             break;
           case 2:
@@ -155,7 +156,8 @@ public:
             break;
           }
           if (frameOffset < out.row(0).size())
-            out.row(0)(frameOffset) = mNovelty.processFrame(mFeature);
+            out.row(0)(frameOffset) = mNovelty.processFrame(
+                mFeature, get<kThreshold>(), get<kDebounce>());
           frameOffset += get<kFFT>().hopSize();
         });
     output[0] = out.row(0);
@@ -168,11 +170,15 @@ public:
             get<kFFT>().hopSize());
   }
 
-  void reset() { mBufferedProcess.reset(); }
+  void reset()
+  {
+    mBufferedProcess.reset();
+    initAlgorithms(get<kFeature>(), get<kFFT>().winSize());
+  }
 
 private:
   algorithm::NoveltySegmentation mNovelty;
-  ParameterTrackChanges<index, index, index, double, index, index, double>
+  ParameterTrackChanges<index, index, index, index, index, double>
                                        mParamsTracker;
   BufferedProcess                      mBufferedProcess;
   algorithm::STFT                      mSTFT;
@@ -181,7 +187,7 @@ private:
   FluidTensor<double, 1>               mBands;
   FluidTensor<double, 1>               mFeature;
   algorithm::MelBands                  mMelBands;
-  algorithm::DCT                       mDCT;
+  algorithm::DCT                       mDCT{40, 13};
   algorithm::YINFFT                    mYinFFT;
   algorithm::Loudness                  mLoudness;
 };
@@ -190,8 +196,8 @@ private:
 using RTNoveltySliceClient = ClientWrapper<NoveltySliceClient>;
 
 auto constexpr NRTNoveltySliceParams = makeNRTParams<RTNoveltySliceClient>(
-    {InputBufferParam("source", "Source Buffer")},
-    {BufferParam("indices", "Indices Buffer")});
+    InputBufferParam("source", "Source Buffer"),
+    BufferParam("indices", "Indices Buffer"));
 
 using NRTNoveltySliceClient =
     NRTSliceAdaptor<NoveltySliceClient, decltype(NRTNoveltySliceParams),

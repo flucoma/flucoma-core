@@ -51,7 +51,9 @@ public:
       LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
 
   MFCCClient(ParamSetViewType& p)
-      : mParams{p}, mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0)
+      : mParams{p}, mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0),
+        mMelBands(get<kMaxFFTSize>(), get<kMaxFFTSize>()),
+        mDCT(get<kMaxFFTSize>(), get<kMaxNCoefs>())
   {
     mBands = FluidTensor<double, 1>(get<kNBands>());
     mCoefficients = FluidTensor<double, 1>(get<kNCoefs>());
@@ -78,15 +80,15 @@ public:
       mBands.resize(get<kNBands>());
       mCoefficients.resize(get<kNCoefs>());
       mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
-                     get<kFFT>().frameSize(), sampleRate(), true, false,
-                     get<kFFT>().winSize(), false);
+                     get<kFFT>().frameSize(), sampleRate(),
+                     get<kFFT>().winSize());
       mDCT.init(get<kNBands>(), get<kNCoefs>());
     }
 
     mSTFTBufferedProcess.processInput(
         mParams, input, c, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
-          mMelBands.processFrame(mMagnitude, mBands);
+          mMelBands.processFrame(mMagnitude, mBands, false, false, true);
           mDCT.processFrame(mBands, mCoefficients);
         });
     for (index i = 0; i < get<kNCoefs>(); ++i)
@@ -95,7 +97,17 @@ public:
 
   index latency() { return get<kFFT>().winSize(); }
 
-  void reset() { mSTFTBufferedProcess.reset(); }
+  void reset()
+  {
+    mSTFTBufferedProcess.reset();
+    mMagnitude.resize(get<kFFT>().frameSize());
+    mBands.resize(get<kNBands>());
+    mCoefficients.resize(get<kNCoefs>());
+    mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
+                   get<kFFT>().frameSize(), sampleRate(),
+                   get<kFFT>().winSize());
+    mDCT.init(get<kNBands>(), get<kNCoefs>());
+  }
 
   index controlRate() { return get<kFFT>().hopSize(); }
 
@@ -103,9 +115,8 @@ private:
   ParameterTrackChanges<index, index, index, double, double, double> mTracker;
   STFTBufferedProcess<ParamSetViewType, kFFT, false> mSTFTBufferedProcess;
 
-  algorithm::MelBands mMelBands;
-  algorithm::DCT      mDCT;
-
+  algorithm::MelBands    mMelBands;
+  algorithm::DCT         mDCT;
   FluidTensor<double, 1> mMagnitude;
   FluidTensor<double, 1> mBands;
   FluidTensor<double, 1> mCoefficients;
@@ -114,8 +125,8 @@ private:
 using RTMFCCClient = ClientWrapper<MFCCClient>;
 
 auto constexpr NRTMFCCParams =
-    makeNRTParams<RTMFCCClient>({InputBufferParam("source", "Source Buffer")},
-                                {BufferParam("features", "Output Buffer")});
+    makeNRTParams<MFCCClient>(InputBufferParam("source", "Source Buffer"),
+                                BufferParam("features", "Output Buffer"));
 
 using NRTMFCCClient =
     NRTControlAdaptor<MFCCClient, decltype(NRTMFCCParams), NRTMFCCParams, 1, 1>;

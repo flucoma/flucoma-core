@@ -29,19 +29,19 @@ class ARModel
   using VectorXd = Eigen::VectorXd;
 
 public:
-  ARModel(index order, index iterations = 3, double robustFactor = 3.0)
-      : mParameters(VectorXd::Zero(order)), mOrder(order),
-        mIterations(iterations), mRobustFactor(robustFactor)
+  ARModel(index order)
+      : mParameters(VectorXd::Zero(order))
   {}
 
   const double* getParameters() const { return mParameters.data(); }
   double        variance() const { return mVariance; }
-  index         order() const { return mOrder; }
+  index         order() const { return mParameters.size(); }
 
-  void estimate(const double* input, index size)
+  void estimate(const double* input, index size, index nIterations = 3,
+                double robustFactor = 3.0)
   {
-    if (mIterations)
-      robustEstimate(input, size);
+    if (nIterations > 0)
+      robustEstimate(input, size, nIterations, robustFactor);
     else
       directEstimate(input, size, true);
   }
@@ -88,7 +88,7 @@ private:
   {
     double estimate = 0.0;
 
-    for (index i = 0; i < mOrder; i++)
+    for (index i = 0; i < mParameters.size(); i++)
       estimate += mParameters(i) * input[Op()(i + 1)];
 
     return estimate;
@@ -108,7 +108,8 @@ private:
 
   void directEstimate(const double* input, index size, bool updateVariance)
   {
-    std::vector<double> frame(asUnsigned(size));
+    // copy input to a 32 byte aligned block (otherwise risk segfaults on Linux)
+    VectorXd frame = Eigen::Map<const VectorXd>(input, size);
 
     if (mUseWindow)
     {
@@ -118,11 +119,9 @@ private:
         WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](size, mWindow);
       }
 
-      for (index i = 0; i < size; i++)
-        frame[asUnsigned(i)] = input[asUnsigned(i)] * mWindow(i) * 2.0;
+      frame.array() *= mWindow;
     }
-    else
-      std::copy(input, input + size, frame.data());
+
 
     VectorXd autocorrelation(size);
     algorithm::autocorrelateReal(autocorrelation.data(), frame.data(),
@@ -130,55 +129,49 @@ private:
 
     // Resize to the desired order (only keep coefficients for up to the order
     // we need)
-
-    double pN = mOrder < size ? autocorrelation(mOrder) : autocorrelation(0);
-    autocorrelation.conservativeResize(mOrder);
+    double pN = mParameters.size() < size ? autocorrelation(mParameters.size())
+                                          : autocorrelation(0);
+    autocorrelation.conservativeResize(mParameters.size());
 
     // Form a toeplitz matrix
-
     MatrixXd mat = toeplitz(autocorrelation);
 
     // Yule Walker
-
     autocorrelation(0) = pN;
     std::rotate(autocorrelation.data(), autocorrelation.data() + 1,
-                autocorrelation.data() + mOrder);
+                autocorrelation.data() + mParameters.size());
     mParameters = mat.llt().solve(autocorrelation);
 
     if (updateVariance)
     {
       // Calculate variance
-
       double variance = mat(0, 0);
 
-      for (index i = 0; i < mOrder - 1; i++)
+      for (index i = 0; i < mParameters.size() - 1; i++)
         variance -= mParameters(i) * mat(0, i + 1);
 
-      setVariance((variance - (mParameters(mOrder - 1) * pN)) / size);
+      setVariance((variance - (mParameters(mParameters.size() - 1) * pN)) /
+                  size);
     }
   }
 
-  void robustEstimate(const double* input, index size)
+  void robustEstimate(const double* input, index size, index nIterations, double robustFactor)
   {
-    std::vector<double> estimates(asUnsigned(size + mOrder));
+    std::vector<double> estimates(asUnsigned(size + mParameters.size()));
 
     // Calculate an initial estimate of parameters
-
     directEstimate(input, size, true);
 
     // Initialise Estimates
-
-    for (index i = mOrder; i < mOrder + size; i++)
-      estimates[asUnsigned(i - mOrder)] = input[asUnsigned(i - mOrder)];
+    for (index i = mParameters.size(); i < mParameters.size() + size; i++)
+      estimates[asUnsigned(i)] = input[i - mParameters.size()];
 
     // Variance
-
-    robustVariance(estimates.data() + mOrder, input, size);
+    robustVariance(estimates.data() + mParameters.size(), input, size, robustFactor);
 
     // Iterate
-
-    for (index iterations = mIterations; iterations--;)
-      robustIteration(estimates.data() + mOrder, input, size);
+    for (index iterations = nIterations; iterations--;)
+      robustIteration(estimates.data() + mParameters.size(), input, size, robustFactor);
   }
 
   double robustResidual(double input, double prediction, double cs)
@@ -186,39 +179,38 @@ private:
     return cs * psiFunction((input - prediction) / cs);
   }
 
-  void robustVariance(double* estimates, const double* input, index size)
+  void robustVariance(double* estimates, const double* input, index size,
+                      double robustFactor)
   {
-    const double cs = mRobustFactor * sqrt(mVariance);
-    double       residualSqSum = 0.0;
+    double residualSqSum = 0.0;
 
     // Iterate to find new filtered input
-
     for (index i = 0; i < size; i++)
     {
       const double residual =
-          robustResidual(input[i], fowardPrediction(estimates + i), cs);
+          robustResidual(input[i], fowardPrediction(estimates + i),
+                         robustFactor * sqrt(mVariance));
       residualSqSum += residual * residual;
     }
 
     setVariance(residualSqSum / size);
   }
 
-  void robustIteration(double* estimates, const double* input, index size)
+  void robustIteration(double* estimates, const double* input, index size,
+                       double robustFactor)
   {
-    const double cs = mRobustFactor * sqrt(mVariance);
-
     // Iterate to find new filtered input
-
     for (index i = 0; i < size; i++)
     {
       const double prediction = fowardPrediction(estimates);
-      estimates[0] = prediction + robustResidual(input[i], prediction, cs);
+      estimates[0] =
+          prediction +
+          robustResidual(input[i], prediction, robustFactor * sqrt(mVariance));
     }
 
     // New parameters
-
     directEstimate(estimates, size, false);
-    robustVariance(estimates, input, size);
+    robustVariance(estimates, input, size, robustFactor);
   }
 
   void setVariance(double variance)
@@ -228,7 +220,6 @@ private:
   }
 
   // Huber PSI function
-
   double psiFunction(double x)
   {
     return fabs(x) > 1 ? std::copysign(1.0, x) : x;
@@ -238,11 +229,8 @@ private:
   double   mVariance{0.0};
   ArrayXd  mWindow;
   bool     mUseWindow{true};
-  index    mOrder{20};
-  index    mIterations{3};
-  double   mRobustFactor{3.0};
   double   mMinVariance{0.0};
 };
 
-}; // namespace algorithm
-}; // namespace fluid
+} // namespace algorithm
+} // namespace fluid

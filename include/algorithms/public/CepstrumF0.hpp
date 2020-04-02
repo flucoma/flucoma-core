@@ -14,8 +14,10 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/AlgorithmUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/PeakDetection.hpp"
+#include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Eigen>
+#include <cmath>
 
 namespace fluid {
 namespace algorithm {
@@ -26,16 +28,22 @@ class CepstrumF0
 public:
   using ArrayXd = Eigen::ArrayXd;
 
-  void init(index size)
-  {
+  CepstrumF0(index maxSize) : mCepstrumStorage(maxSize) {}
+
+  void init(index size) {
+    //avoid allocation of maxSize^2 at constructor
+    mDCT = DCT(size, size);
     mDCT.init(size, size);
-    mCepstrum = ArrayXd(size);
+
+    mCepstrum = mCepstrumStorage.segment(0, size);
+    mCepstrum.setZero();
   }
 
   void processFrame(const RealVectorView& input, RealVectorView output,
                     double minFreq, double maxFreq, double sampleRate)
   {
     using namespace Eigen;
+    using namespace std;
     PeakDetection pd;
 
     ArrayXd mag = _impl::asEigen<Array>(input);
@@ -57,11 +65,12 @@ public:
       }
     }
     output(0) = pitch;
-    output(1) = std::min(std::abs(confidence), 1.0);
+    output(1) = min(abs(confidence), 1.0);
   }
 
 private:
-  DCT     mDCT;
+  DCT     mDCT{0,0};
+  ArrayXd mCepstrumStorage;
   ArrayXd mCepstrum;
 };
 } // namespace algorithm

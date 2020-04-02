@@ -11,9 +11,10 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #include "../util/AlgorithmUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
-#include "../../data/TensorTypes.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Eigen>
+#include <cmath>
 
 namespace fluid {
 namespace algorithm {
@@ -28,6 +29,7 @@ public:
 
   void processFrame(Eigen::Ref<ArrayXd> in)
   {
+    using namespace std;
     double const epsilon = std::numeric_limits<double>::epsilon();
 
     ArrayXd x = in.max(epsilon);
@@ -61,8 +63,8 @@ public:
     mOutputBuffer(2) = skewness;
     mOutputBuffer(3) = kurtosis;
     mOutputBuffer(4) = rolloff;
-    mOutputBuffer(5) = 20 * std::log10(std::max(flatness, epsilon));
-    mOutputBuffer(6) = 20 * std::log10(std::max(crest, epsilon));
+    mOutputBuffer(5) = 20 * log10(max(flatness, epsilon));
+    mOutputBuffer(6) = 20 * log10(max(crest, epsilon));
   }
 
   void processFrame(const RealVector& input, RealVectorView output)
@@ -78,5 +80,5 @@ private:
   ArrayXd mOutputBuffer{7};
 };
 
-}; // namespace algorithm
-}; // namespace fluid
+} // namespace algorithm
+} // namespace fluid

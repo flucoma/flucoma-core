@@ -79,46 +79,43 @@ public:
       mBufferedProcess.maxSize(totalWindow, totalWindow,
                                FluidBaseClient::audioChannelsIn(),
                                FluidBaseClient::audioChannelsOut());
-      mTmp.resize(1, hostVecSize);
     }
-    if (mMaxSizeTracker.changed(get<kMaxFFTSize>()))
-    { mAlgorithm = OnsetSegmentation{static_cast<int>(get<kMaxFFTSize>())}; }
-    mAlgorithm.updateParameters(get<kFFT>().fftSize(), get<kFFT>().winSize(),
-                                get<kFFT>().hopSize(), get<kFrameDelta>(),
-                                get<kFunction>(), get<kFilterSize>(),
-                                get<kThreshold>(), get<kDebounce>());
-
-
+    if (mParamsTracker.changed(get<kFFT>().fftSize(), get<kFFT>().winSize()))
+    { mAlgorithm.init(get<kFFT>().winSize(), get<kFFT>().fftSize()); }
     RealMatrix in(1, hostVecSize);
     in.row(0) = input[0];
     RealMatrix out(1, hostVecSize);
     int        frameOffset = 0; // in case kHopSize < hostVecSize
     mBufferedProcess.push(RealMatrixView(in));
-    mBufferedProcess.process(totalWindow, totalWindow, get<kFFT>().hopSize(), c,
-                             [&, this](RealMatrixView in, RealMatrixView) {
-                               out.row(0)(frameOffset) =
-                                   mAlgorithm.processFrame(in.row(0));
-                               frameOffset += get<kFFT>().hopSize();
-                             });
+    mBufferedProcess.processInput(
+        totalWindow, get<kFFT>().hopSize(), c, [&, this](RealMatrixView in) {
+          out.row(0)(frameOffset) = mAlgorithm.processFrame(
+              in.row(0), get<kFunction>(), get<kFilterSize>(),
+              get<kThreshold>(), get<kDebounce>(), get<kFrameDelta>());
+          frameOffset += get<kFFT>().hopSize();
+        });
     output[0] = out.row(0);
   }
 
   long latency() { return get<kFFT>().hopSize() + get<kFrameDelta>(); }
-  void reset() { mBufferedProcess.reset(); }
+  void reset()
+  {
+    mBufferedProcess.reset();
+    mAlgorithm.init(get<kFFT>().winSize(), get<kFFT>().fftSize());
+  }
 
 private:
   OnsetSegmentation                          mAlgorithm;
   ParameterTrackChanges<index, index, index> mBufferParamsTracker;
-  ParameterTrackChanges<index>               mMaxSizeTracker;
+  ParameterTrackChanges<index, index>        mParamsTracker;
   BufferedProcess                            mBufferedProcess;
-  RealMatrix                                 mTmp;
 };
 
 using RTOnsetSliceClient = ClientWrapper<OnsetSliceClient>;
 
-auto constexpr NRTOnsetSliceParams = makeNRTParams<OnsetSliceClient>(
-    {InputBufferParam("source", "Source Buffer")},
-    {BufferParam("indices", "Indices Buffer")});
+auto constexpr NRTOnsetSliceParams =
+    makeNRTParams<OnsetSliceClient>(InputBufferParam("source", "Source Buffer"),
+                                    BufferParam("indices", "Indices Buffer"));
 
 
 using NRTOnsetSliceClient =

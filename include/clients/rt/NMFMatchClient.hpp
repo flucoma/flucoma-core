@@ -44,7 +44,7 @@ public:
 
   NMFMatchClient(ParamSetViewType& p)
       : mParams(p),
-        mSTFTProcessor(get<kMaxFFTSize>(), 1, 0), mNMF{get<kMaxRank>()}
+        mSTFTProcessor(get<kMaxFFTSize>(), 1, 0)
   {
     audioChannelsIn(1);
     controlChannelsOut(get<kMaxRank>());
@@ -80,8 +80,6 @@ public:
         tmpFilt.resize(rank, fftParams.frameSize());
         tmpMagnitude.resize(1, fftParams.frameSize());
         tmpOut.resize(rank);
-        // mNMF.reset(new algorithm::NMF(rank, get<kIterations>()));
-        mNMF.init(rank, get<kIterations>());
       }
 
       for (index i = 0; i < tmpFilt.rows(); ++i)
@@ -100,13 +98,13 @@ public:
   }
 
 private:
-  ParameterTrackChanges<index, index>                mTrackValues;
-  STFTBufferedProcess<ParamSetViewType, kFFT, false> mSTFTProcessor;
-  algorithm::NMF                                     mNMF;
+  ParameterTrackChanges<index, index> mTrackValues;
+  algorithm::NMF                      mNMF;
+  FluidTensor<double, 2>              tmpFilt;
+  FluidTensor<double, 2>              tmpMagnitude;
+  FluidTensor<double, 1>              tmpOut;
 
-  FluidTensor<double, 2> tmpFilt;
-  FluidTensor<double, 2> tmpMagnitude;
-  FluidTensor<double, 1> tmpOut;
+  STFTBufferedProcess<ParamSetViewType, kFFT, false> mSTFTProcessor;
 
   size_t mNBins{0};
   size_t mRank{0};

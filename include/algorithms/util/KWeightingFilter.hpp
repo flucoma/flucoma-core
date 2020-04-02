@@ -9,8 +9,9 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include <cmath>
+#include "../util/AlgorithmUtils.hpp"
 #include "../../data/FluidIndex.hpp"
+#include <cmath>
 
 namespace fluid {
 namespace algorithm {
@@ -23,13 +24,15 @@ public:
     // from https://github.com/jiixyj/libebur128/blob/master/ebur128/ebur128.c
 
     // Shelving filter
+    using namespace std;
+
     double f0 = 1681.974450955533;
     double G = 3.999843853973347;
     double Q = 0.7071752369554196;
 
-    double K = std::tan(M_PI * f0 / sampleRate);
-    double Vh = std::pow(10.0, G / 20.0);
-    double Vb = std::pow(Vh, 0.4996667741545416);
+    double K = tan(pi * f0 / sampleRate);
+    double Vh = pow(10.0, G / 20.0);
+    double Vb = pow(Vh, 0.4996667741545416);
 
     double shelvB[3] = {0.0, 0.0, 0.0};
     double shelvA[3] = {1.0, 0.0, 0.0};
@@ -44,7 +47,7 @@ public:
     // Hi-pass filter
     f0 = 38.13547087602444;
     Q = 0.5003270373238773;
-    K = tan(M_PI * f0 / sampleRate);
+    K = tan(pi * f0 / sampleRate);
 
     double hiB[3] = {1.0, -2.0, 1.0};
     double hiA[3] = {1.0, 0.0, 0.0};
@@ -91,5 +94,5 @@ private:
   double mA[5], mB[5], mX[5], mY[5];
 };
 
-}; // namespace algorithm
-}; // namespace fluid
+} // namespace algorithm
+} // namespace fluid

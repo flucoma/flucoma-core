@@ -56,7 +56,8 @@ public:
                                               16384, Min(4), PowerOfTwo{}));
 
   PitchClient(ParamSetViewType& p)
-      : mParams(p), mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0)
+      : mParams(p), mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0),
+        cepstrumF0(get<kMaxFFTSize>())
   {
     audioChannelsIn(1);
     controlChannelsOut(2);
@@ -104,7 +105,12 @@ public:
   }
   index latency() { return get<kFFT>().winSize(); }
   index controlRate() { return get<kFFT>().hopSize(); }
-  void  reset() { mSTFTBufferedProcess.reset(); }
+  void  reset()
+  {
+    mSTFTBufferedProcess.reset();
+    cepstrumF0.init(get<kFFT>().frameSize());
+    mMagnitude.resize(get<kFFT>().frameSize());
+  }
 
 private:
   ParameterTrackChanges<index, double>        mParamTracker;
@@ -120,8 +126,8 @@ private:
 using RTPitchClient = ClientWrapper<PitchClient>;
 
 auto constexpr NRTPitchParams =
-    makeNRTParams<RTPitchClient>({InputBufferParam("source", "Source Buffer")},
-                                 {BufferParam("features", "Features Buffer")});
+    makeNRTParams<PitchClient>(InputBufferParam("source", "Source Buffer"),
+                                 BufferParam("features", "Features Buffer"));
 
 using NRTPitchClient = NRTControlAdaptor<PitchClient, decltype(NRTPitchParams),
                                          NRTPitchParams, 1, 1>;

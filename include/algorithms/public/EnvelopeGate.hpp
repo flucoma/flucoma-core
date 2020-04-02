@@ -13,9 +13,9 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/ButterworthHPFilter.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/SlideUDFilter.hpp"
+#include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
-#include <algorithm>
 #include <cmath>
 
 namespace fluid {
@@ -33,75 +33,64 @@ public:
     mOutputStorage = ArrayXd(maxSize);
   }
 
-  void init(double hiPassFreq, index rampUpTime, index rampDownTime,
-            double onThreshold, index mindeximeAboveThreshold,
-            index minEventDuration, index upwardLookupTime, double offThreshold,
-            index mindeximeBelowThreshold, index minSilenceDuration,
-            index downwardLookupTime)
+  void init(double onThreshold, double offThreshold,
+            double hiPassFreq,
+            index minTimeAboveThreshold, index upwardLookupTime,
+            index minTimeBelowThreshold, index downwardLookupTime)
   {
-    mHiPassFreq = hiPassFreq;
-    mRampUpTime = rampUpTime;
-    mRampDownTime = rampDownTime;
-    mOnThreshold = onThreshold;
-    mMindeximeAboveThreshold = mindeximeAboveThreshold;
-    mMinEventDuration = minEventDuration;
+    using namespace std;
+
+    mMinTimeAboveThreshold = minTimeAboveThreshold;
     mUpwardLookupTime = upwardLookupTime;
-    mOffThreshold = offThreshold;
-    mFloor = std::min(mOffThreshold, mOnThreshold) - 1;
-    mMindeximeBelowThreshold = mindeximeBelowThreshold,
-    mMinSilenceDuration = minSilenceDuration;
+    mMinTimeBelowThreshold = minTimeBelowThreshold,
     mDownwardLookupTime = downwardLookupTime;
-    mDownwardLatency =
-        std::max<index>(mindeximeBelowThreshold, mDownwardLookupTime);
-    mLatency = std::max<index>(mMindeximeAboveThreshold + mUpwardLookupTime,
-                               mDownwardLatency);
+    mDownwardLatency = max<index>(minTimeBelowThreshold, mDownwardLookupTime);
+    mLatency = max<index>(mMinTimeAboveThreshold + mUpwardLookupTime,
+                          mDownwardLatency);
     if (mLatency < 0) mLatency = 1;
-    initBuffers();
-    initFilters();
-    initSlide();
+    mHiPassFreq = hiPassFreq;
+    initFilters(mHiPassFreq);
+    double initVal = min(onThreshold, offThreshold) - 1;
+    initBuffers(initVal);
+    mSlide.init(initVal);
+    mInputState = false;
+    mOutputState = false;
+    mOnStateCount = 0;
+    mOffStateCount = 0;
+    mEventCount = 0;
+    mSilenceCount = 0;
     mInitialized = true;
   }
 
-  void updateParams(double hiPassFreq, index rampUpTime, index rampDownTime,
-                    double onThreshold, index minEventDuration,
-                    double offThreshold, index minSilenceDuration)
+  double processSample(const double in, double onThreshold, double offThreshold,
+                       index rampUpTime, index rampDownTime, double hiPassFreq,
+                       index minEventDuration, index minSilenceDuration)
   {
-    if (mHiPassFreq != hiPassFreq)
-    {
-      mHiPassFreq = hiPassFreq;
-      initFilters();
-    }
-    if (mRampUpTime != rampUpTime || mRampDownTime != rampDownTime)
-    {
-      mRampUpTime = rampUpTime;
-      mRampDownTime = rampDownTime;
-      mSlide.updateCoeffs(mRampUpTime, mRampDownTime);
-    }
-    mOnThreshold = onThreshold;
-    mMinEventDuration = minEventDuration;
-    mOffThreshold = offThreshold;
-    mMinSilenceDuration = minSilenceDuration;
-    mFloor = std::min(mOffThreshold, mOnThreshold)  - 1;
-  }
-
-  index getLatency() { return mLatency; }
-  bool  initialized() { return mInitialized; }
-
-  double processSample(const double in)
-  {
+    using namespace std;
     assert(mInitialized);
+
+    mSlide.updateCoeffs(rampUpTime, rampDownTime);
+
     double filtered = in;
+    if (hiPassFreq != mHiPassFreq)
+    {
+      initFilters(hiPassFreq);
+      mHiPassFreq = hiPassFreq;
+    }
     if (mHiPassFreq > 0)
       filtered = mHiPass2.processSample(mHiPass1.processSample(in));
-    double rectified = std::abs(filtered);
-    double dB = 20 * std::log10(rectified);
-    double clipped = std::max(dB, mFloor);
+
+    double rectified = abs(filtered);
+    double dB = 20 * log10(rectified);
+    double floor = min(offThreshold, onThreshold) - 1;
+    double clipped = max(dB, floor);
     double smoothed = mSlide.processSample(clipped);
     bool   forcedState = false;
+
     // case 1: we are waiting for event to finish
     if (mOutputState && mEventCount > 0)
     {
-      if (mEventCount >= mMinEventDuration) { mEventCount = 0; }
+      if (mEventCount >= minEventDuration) { mEventCount = 0; }
       else
       {
         forcedState = true;
@@ -112,7 +101,7 @@ public:
     }
     else if (!mOutputState && mSilenceCount > 0)
     {
-      if (mSilenceCount >= mMinSilenceDuration) { mSilenceCount = 0; }
+      if (mSilenceCount >= minSilenceDuration) { mSilenceCount = 0; }
       else
       {
         forcedState = true;
@@ -124,15 +113,15 @@ public:
     if (!forcedState)
     {
       bool nextState = mInputState;
-      if (!mInputState && smoothed >= mOnThreshold) { nextState = true; }
-      if (mInputState && smoothed <= mOffThreshold) { nextState = false; }
+      if (!mInputState && smoothed >= onThreshold) { nextState = true; }
+      if (mInputState && smoothed <= offThreshold) { nextState = false; }
       updateCounters(nextState);
       // establish and refine
-      if (!mOutputState && mOnStateCount >= mMindeximeAboveThreshold &&
+      if (!mOutputState && mOnStateCount >= mMinTimeAboveThreshold &&
           mFillCount >= mLatency)
       {
         index onsetIndex =
-            refineStart(mLatency - mMindeximeAboveThreshold - mUpwardLookupTime,
+            refineStart(mLatency - mMinTimeAboveThreshold - mUpwardLookupTime,
                         mUpwardLookupTime);
         mOutputBuffer.segment(onsetIndex, mLatency - onsetIndex) = 1;
         mEventCount = mOnStateCount;
@@ -165,25 +154,28 @@ public:
     return mOutputBuffer(0);
   }
 
+  index getLatency() { return mLatency; }
+  bool  initialized() { return mInitialized; }
+
+
 private:
-  void initBuffers()
+  void initBuffers(double initialValue)
   {
-    mInputBuffer = mInputStorage.segment(0, std::max<index>(mLatency, 1))
-                       .setConstant(mFloor);
+    using namespace std;
+    mInputBuffer = mInputStorage.segment(0, max<index>(mLatency, 1))
+                       .setConstant(initialValue);
     mOutputBuffer =
-        mOutputStorage.segment(0, std::max<index>(mLatency, 1)).setZero();
+        mOutputStorage.segment(0, max<index>(mLatency, 1)).setZero();
     mInputState = false;
     mOutputState = false;
-    mFillCount = std::max<index>(mLatency, 1);
+    mFillCount = max<index>(mLatency, 1);
   }
 
-  void initFilters()
+  void initFilters(double cutoff)
   {
-    mHiPass1.init(mHiPassFreq);
-    mHiPass2.init(mHiPassFreq);
+    mHiPass1.init(cutoff);
+    mHiPass2.init(cutoff);
   }
-
-  void initSlide() { mSlide.init(mRampUpTime, mRampDownTime, mFloor); }
 
   index refineStart(index start, index nSamples)
   {
@@ -216,35 +208,33 @@ private:
     }
   }
 
-  index               mLatency;
-  index               mFillCount;
-  double              mHiPassFreq{0.2};
-  index               mRampUpTime{100};
-  index               mRampDownTime{100};
-  double              mOnThreshold{-33};
-  index               mMindeximeAboveThreshold{440};
-  index               mMinEventDuration{440};
-  index               mDownwardLookupTime{10};
-  index               mDownwardLatency;
-  double              mOffThreshold{-42};
-  index               mMindeximeBelowThreshold{10};
-  index               mMinSilenceDuration{10};
-  index               mUpwardLookupTime{24};
-  ArrayXd             mInputBuffer;
-  ArrayXd             mOutputBuffer;
-  ArrayXd             mInputStorage;
-  ArrayXd             mOutputStorage;
-  bool                mInputState{false};
-  bool                mOutputState{false};
+  index  mLatency;
+  index  mFillCount;
+  double mHiPassFreq{0};
+
+  index mMinTimeAboveThreshold{440};
+  index mDownwardLookupTime{10};
+  index mDownwardLatency;
+  index mMinTimeBelowThreshold{10};
+  index mUpwardLookupTime{24};
+
+  ArrayXd mInputBuffer;
+  ArrayXd mOutputBuffer;
+  ArrayXd mInputStorage;
+  ArrayXd mOutputStorage;
+
+  bool mInputState{false};
+  bool mOutputState{false};
+
+  index mOnStateCount{0};
+  index mOffStateCount{0};
+  index mEventCount{0};
+  index mSilenceCount{0};
+  bool  mInitialized{false};
+
   ButterworthHPFilter mHiPass1;
   ButterworthHPFilter mHiPass2;
   SlideUDFilter       mSlide;
-  index               mOnStateCount{0};
-  index               mOffStateCount{0};
-  index               mEventCount{0};
-  index               mSilenceCount{0};
-  bool                mInitialized{false};
-  double              mFloor{-45};
 };
-}; // namespace algorithm
-}; // namespace fluid
+} // namespace algorithm
+} // namespace fluid

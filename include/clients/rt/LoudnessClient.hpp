@@ -88,28 +88,30 @@ public:
 
   index latency() { return get<kWindowSize>(); }
 
-  void reset() { mBufferedProcess.reset(); }
+  void reset()
+  {
+    mBufferedProcess.reset();
+    mAlgorithm.init(get<kWindowSize>(), sampleRate());
+  }
 
   index controlRate() { return get<kHopSize>(); }
 
 private:
   ParameterTrackChanges<index, index, index, double> mBufferParamsTracker;
-
-  algorithm::Loudness mAlgorithm;
-
-  BufferedProcess        mBufferedProcess;
-  FluidTensor<double, 1> mDescriptors;
+  algorithm::Loudness                                mAlgorithm;
+  BufferedProcess                                    mBufferedProcess;
+  FluidTensor<double, 1>                             mDescriptors;
 };
 
 
 using RTLoudnessClient = ClientWrapper<LoudnessClient>;
 
-auto constexpr NRTLoudnessParams = makeNRTParams<RTLoudnessClient>(
-    {InputBufferParam("source", "Source Buffer")},
-    {BufferParam("features", "Features Buffer")});
+auto constexpr NRTLoudnessParams =
+    makeNRTParams<LoudnessClient>(InputBufferParam("source", "Source Buffer"),
+                                    BufferParam("features", "Features Buffer"));
 
 using NRTLoudnessClient =
-    NRTControlAdaptor<RTLoudnessClient, decltype(NRTLoudnessParams),
+    NRTControlAdaptor<LoudnessClient, decltype(NRTLoudnessParams),
                       NRTLoudnessParams, 1, 1>;
 
 using NRTThreadedLoudnessClient = NRTThreadingAdaptor<NRTLoudnessClient>;

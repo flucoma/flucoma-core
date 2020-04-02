@@ -66,36 +66,34 @@ public:
 
     double hiPassFreq = std::min(get<kHiPassFreq>() / sampleRate(), 0.5);
 
-    if (mTrackValues.changed(sampleRate()) || !mAlgorithm.initialized())
-    {
-      mAlgorithm.init(hiPassFreq, get<kFastRampUpTime>(),
-                      get<kSlowRampUpTime>(), get<kFastRampDownTime>(),
-                      get<kSlowRampDownTime>(), get<kOnThreshold>(),
-                      get<kOffThreshold>(), get<kSilenceThreshold>(),
-                      get<kDebounce>());
-    }
-    mAlgorithm.updateParams(
-        hiPassFreq, get<kFastRampUpTime>(), get<kSlowRampUpTime>(),
-        get<kFastRampDownTime>(), get<kSlowRampDownTime>(), get<kOnThreshold>(),
-        get<kOffThreshold>(), get<kSilenceThreshold>(), get<kDebounce>());
+    if (!mAlgorithm.initialized())
+    { mAlgorithm.init(get<kSilenceThreshold>(), hiPassFreq); }
     for (index i = 0; i < input[0].size(); i++)
-    { output[0](i) = static_cast<T>(mAlgorithm.processSample(input[0](i))); }
+    {
+      output[0](i) = static_cast<T>(mAlgorithm.processSample(
+          input[0](i), get<kOnThreshold>(), get<kOffThreshold>(),
+          get<kSilenceThreshold>(), get<kFastRampUpTime>(),
+          get<kSlowRampUpTime>(), get<kFastRampDownTime>(),
+          get<kSlowRampDownTime>(), hiPassFreq, get<kDebounce>()));
+    }
   }
-
   index latency() { return 0; }
 
-  void reset() {}
+  void reset()
+  {
+    double hiPassFreq = std::min(get<kHiPassFreq>() / sampleRate(), 0.5);
+    mAlgorithm.init(get<kSilenceThreshold>(), hiPassFreq);
+  }
 
 private:
-  ParameterTrackChanges<double>   mTrackValues;
   algorithm::EnvelopeSegmentation mAlgorithm;
 };
 
 using RTAmpSliceClient = ClientWrapper<AmpSliceClient>;
 
 auto constexpr NRTAmpSliceParams =
-    makeNRTParams<AmpSliceClient>({InputBufferParam("source", "Source Buffer")},
-                                  {BufferParam("indices", "Indices Buffer")});
+    makeNRTParams<AmpSliceClient>(InputBufferParam("source", "Source Buffer"),
+                                  BufferParam("indices", "Indices Buffer"));
 
 
 using NRTAmpSliceClient =

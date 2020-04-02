@@ -16,7 +16,6 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include <Eigen/Core>
 #include <cassert>
 #include <cmath>
-#include <fstream>
 
 namespace fluid {
 namespace algorithm {
@@ -253,5 +252,5 @@ private:
   Eigen::ArrayXi  mRowCover;
   Eigen::ArrayXi  mColCover;
 };
-}; // namespace algorithm
-}; // namespace fluid
+} // namespace algorithm
+} // namespace fluid

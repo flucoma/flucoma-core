@@ -13,10 +13,10 @@ get_directory_property(hasParent PARENT_DIRECTORY)
 #set module path at top level so wrapper projects can easily include fluid_version script
 if(hasParent)
   set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/script PARENT_SCOPE)
-endif()  
+endif()
 
 if(APPLE) #has to be before first project() call. grrrrrr
-  set(CMAKE_OSX_DEPLOYMENT_TARGET 10.7)  
+  set(CMAKE_OSX_DEPLOYMENT_TARGET 10.8)
 endif()
 
 project (fluid_decomposition LANGUAGES CXX)
@@ -41,7 +41,7 @@ FetchContent_Declare(
   HISSTools
   GIT_REPOSITORY https://github.com/AlexHarker/HISSTools_Library
   GIT_PROGRESS TRUE
-  GIT_TAG 9d9a85f
+  GIT_TAG 6c09283
 )
 
 FetchContent_Declare(
@@ -85,7 +85,19 @@ set_target_properties(HISSTools_FFT PROPERTIES
     CXX_STANDARD 14
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
+    POSITION_INDEPENDENT_CODE ON
 )
+
+# Brute force staic runtime on windwos
+if(MSVC)
+  foreach(flag_var
+      CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+      CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
+    if(${flag_var} MATCHES "/MD")
+      string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+    endif()
+  endforeach()
+endif()
 
 #HISSTools Audiofile Target
 add_library(
@@ -124,8 +136,10 @@ if(CMAKE_COMPILER_IS_GNUCXX)
   target_compile_options(FLUID_DECOMPOSITION INTERFACE -fpermissive)
 endif()
 
+target_compile_definitions(FLUID_DECOMPOSITION INTERFACE EIGEN_MPL2_ONLY=1)
+
 if(APPLE)
-  target_compile_definitions(FLUID_DECOMPOSITION INTERFACE EIGEN_USE_BLAS=1;EIGEN_MPL2_ONLY=1)
+  target_compile_definitions(FLUID_DECOMPOSITION INTERFACE EIGEN_USE_BLAS=1)
   #targeting <= 10.9, need to really emphasise that we want libc++ both to compiler and linker
   target_compile_options(HISSTools_FFT PUBLIC -stdlib=libc++)
   target_compile_options(HISSTools_AudioFile PUBLIC -stdlib=libc++)
@@ -133,16 +147,15 @@ if(APPLE)
   target_link_libraries(FLUID_DECOMPOSITION INTERFACE -stdlib=libc++)
 endif()
 
-#Apply any vector instruction flags 
+#Apply any vector instruction flags
 include("${CMAKE_CURRENT_SOURCE_DIR}/script/flucoma_simdcmd.cmake")
 if(DEFINED FLUID_ARCH)
   target_compile_options(HISSTools_FFT PUBLIC ${FLUID_ARCH})
   target_compile_options(HISSTools_AudioFile PUBLIC ${FLUID_ARCH})
   target_compile_options(FLUID_DECOMPOSITION INTERFACE ${FLUID_ARCH})
 endif()
-#Examples 
-if(APPLE)
-  add_subdirectory(
-   "${CMAKE_CURRENT_SOURCE_DIR}/examples" EXCLUDE_FROM_ALL
-  )
-endif() 
+
+#Examples
+add_subdirectory(
+   "${CMAKE_CURRENT_SOURCE_DIR}/examples"
+)

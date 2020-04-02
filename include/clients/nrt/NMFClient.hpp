@@ -226,8 +226,7 @@ public:
         }
       }
 
-      auto nmf = algorithm::NMF(get<kRank>());
-      nmf.init(get<kRank>(), get<kIterations>(), !fixFilters, !fixEnvelopes);
+      auto nmf = algorithm::NMF();
       nmf.addProgressCallback(
           [&c, &progressCount, progressTotal](const int) -> bool {
             return c.task()
@@ -235,6 +234,7 @@ public:
                        : true;
           });
       nmf.process(magnitude, outputFilters, outputEnvelopes, outputMags,
+                  get<kRank>(), get<kIterations>(), !fixFilters, !fixEnvelopes,
                   seededFilters, seededEnvelopes);
 
       if (c.task() && c.task()->cancelled())
@@ -262,14 +262,14 @@ public:
         {
           auto env = envelopes.samps(i * get<kRank>() + j);
           env = outputEnvelopes.col(j);
-          env.apply([scale](float& x) { x *= scale; });
+          env.apply([scale](float& x) { x *= static_cast<float>(scale); });
         }
       }
 
       if (hasResynth)
       {
         auto mask = algorithm::RatioMask();
-        mask.init(outputMags, 1);
+        mask.init(outputMags);
         auto resynthMags = FluidTensor<double, 2>(nWindows, nBins);
         auto resynthSpectrum =
             FluidTensor<std::complex<double>, 2>(nWindows, nBins);
@@ -287,7 +287,7 @@ public:
           if (c.task() &&
               !c.task()->processUpdate(++progressCount, progressTotal))
             return {Result::Status::kCancelled, ""};
-          mask.process(spectrum, resynthMags, resynthSpectrum);
+          mask.process(spectrum, resynthMags, 1, resynthSpectrum);
           if (c.task() &&
               !c.task()->processUpdate(++progressCount, progressTotal))
             return {Result::Status::kCancelled, ""};

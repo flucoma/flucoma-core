@@ -11,6 +11,7 @@
 #include "../../data/FluidTensor.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <deque>
+#include <future>
 #include <thread>
 #include <vector>
 
@@ -163,7 +164,7 @@ public:
     return invokeDelegate<N>(std::forward<Args>(args)...);
   }
 
-  template <typename T>
+template <typename T>
   Result process(FluidContext& c)
   {
     auto constexpr inputCounter = std::make_index_sequence<Ins>();
@@ -379,6 +380,7 @@ struct StreamingControl
     FluidContext dummyContext;
     for (index i = 0; i < nChans; ++i)
     {
+      client.reset();
       for (index j = 0; j < nHops; ++j)
       {
         index                       t = j * controlRate;
@@ -393,7 +395,7 @@ struct StreamingControl
         for (index k = 0; k < nFeatures; ++k)
           outputs.emplace_back(outputData.row(k + i * nFeatures)(Slice(j, 1)));
 
-        client.reset();
+
         client.process(inputs, outputs, dummyContext);
 
         if (task && !task->processUpdate(j + 1 + (nHops * i),
@@ -485,17 +487,16 @@ using NRTControlAdaptor =
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template <class RTClient, size_t Ns, size_t Ms>
-auto constexpr makeNRTParams(impl::InputBufferSpec(&&in)[Ns],
-                             impl::BufferSpec(&&out)[Ms])
+
+template <class RTClient, typename... Args>
+auto constexpr makeNRTParams(impl::InputBufferSpec&& in, Args&&... outs)
 {
   return impl::joinParameterDescriptors(
       impl::joinParameterDescriptors(
-          impl::spitIns(in, std::make_index_sequence<Ns>()),
-          impl::spitOuts(out, std::make_index_sequence<Ms>())),
+          impl::makeWrapperInputs(in),
+          defineParameters(std::forward<Args>(outs)...)),
       ClientWrapper<RTClient>::getParameterDescriptors());
 }
-
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -574,10 +575,14 @@ public:
       return {Result::Status::kWarning, "Process() called on empty queue"};
 
     mThreadedTask = std::unique_ptr<ThreadedTask>(
-        new ThreadedTask(mClient, mQueue.front(), mSynchronous, result));
+        new ThreadedTask(mClient, mQueue.front(), mSynchronous));
     mQueue.pop_front();
 
-    if (mSynchronous) mThreadedTask = nullptr;
+    if (mSynchronous)
+    {
+      result = mThreadedTask->result();
+      mThreadedTask = nullptr;
+    }
 
     return result;
   }
@@ -608,11 +613,11 @@ public:
       {
         if (!mQueue.empty())
         {
-          Result tempResult;
           mThreadedTask = std::unique_ptr<ThreadedTask>(
-              new ThreadedTask(mClient, mQueue.front(), false, tempResult));
+              new ThreadedTask(mClient, mQueue.front(), false));
           mQueue.pop_front();
           state = kDoneStillProcessing;
+          mThreadedTask->mState = kDoneStillProcessing;
         }
         else
         {
@@ -684,43 +689,46 @@ private:
     };
 
     ThreadedTask(ClientPointer client, ParamSetType& hostParams,
-                 bool synchronous, Result& result)
+                 bool synchronous)
         : mProcessParams(hostParams), mState(kNoProcess),
           mClient(client), mContext{mTask}
     {
 
       assert(mClient.get() != nullptr); // right?
 
+      std::promise<Result> resultPromise;
+      mFutureResult = resultPromise.get_future();
+
       mClient->setParams(mProcessParams);
       if (synchronous)
       {
         mClient->setParams(hostParams);
-        result = process();
+        process(std::move(resultPromise));
       }
       else
       {
-        auto entry = [](ThreadedTask* owner) {
-          owner->mResult = owner->process();
+        auto entry = [](ThreadedTask* owner, std::promise<Result> result) {
+          owner->process(std::move(result));
         };
         mProcessParams.template forEachParamType<BufferT, BufferCopy>();
         mProcessParams.template forEachParamType<InputBufferT, BufferCopy>();
         mState = kProcessing;
-        mThread = std::thread(entry, this);
-        result = Result();
+        mThread = std::thread(entry, this, std::move(resultPromise));
       }
     }
 
-    Result process()
+    Result result() { return mFutureResult.get(); }
+
+    void process(std::promise<Result> result)
     {
       assert(mClient.get() != nullptr); // right?
 
       mState = kProcessing;
       Result r = mClient->template process<float>(mContext);
+      result.set_value(r);
       mState = kDone;
 
       if (mDetached) delete this;
-
-      return r;
     }
 
     void cancel(bool detach)
@@ -738,13 +746,16 @@ private:
 
       if (state == kDone)
       {
-        if (mThread.get_id() != std::thread::id()) mThread.join();
+        if (mThread.get_id() != std::thread::id())
+        {
+          result = mFutureResult.get();
+          mThread.join();
+        }
 
         if (!mTask.cancelled())
         {
-          if (mResult.status() != Result::Status::kError)
+          if (result.status() != Result::Status::kError)
             mProcessParams.template forEachParamType<BufferT, BufferCopyBack>();
-          result = mResult;
         }
         else
           result = {Result::Status::kCancelled, ""};
@@ -756,24 +767,23 @@ private:
       return state;
     }
 
-    ParamSetType mProcessParams;
-    ProcessState mState;
-    std::thread  mThread;
-
-    Result        mResult;
-    ClientPointer mClient;
-    FluidTask     mTask;
-    FluidContext  mContext;
-    bool          mDetached = false;
+    ParamSetType        mProcessParams;
+    ProcessState        mState;
+    std::thread         mThread;
+    std::future<Result> mFutureResult;
+    Result              mResult;
+    ClientPointer       mClient;
+    FluidTask           mTask;
+    FluidContext        mContext;
+    bool                mDetached = false;
   };
 
-  // ParamSetType mHostParams;
-  std::reference_wrapper<ParamSetType> mHostParams;
-  std::deque<ParamSetType>             mQueue;
-  bool                                 mSynchronous = false;
-  bool                                 mQueueEnabled = false;
-  std::unique_ptr<ThreadedTask>        mThreadedTask;
-  ClientPointer                        mClient;
+  ParamSetType                  mHostParams;
+  std::deque<ParamSetType>      mQueue;
+  bool                          mSynchronous = false;
+  bool                          mQueueEnabled = false;
+  std::unique_ptr<ThreadedTask> mThreadedTask;
+  ClientPointer                 mClient;
 };
 
 } // namespace client

@@ -38,8 +38,7 @@ public:
 
 
   NMFFilterClient(ParamSetViewType& p)
-      : mParams{p}, mSTFTProcessor{get<kMaxFFTSize>(), 1, get<kMaxRank>()},
-        mNMF{get<kMaxRank>()}
+      : mParams{p}, mSTFTProcessor{get<kMaxFFTSize>(), 1, get<kMaxRank>()}
   {
     audioChannelsIn(1);
     audioChannelsOut(get<kMaxRank>());
@@ -77,7 +76,6 @@ public:
         tmpOut.resize(rank);
         tmpEstimate.resize(1, fftParams.frameSize());
         tmpSource.resize(1, fftParams.frameSize());
-        mNMF.init(rank, get<kIterations>());
       }
 
       for (index i = 0; i < tmpFilt.rows(); ++i)
@@ -90,12 +88,12 @@ public:
             algorithm::STFT::magnitude(in, tmpMagnitude);
             mNMF.processFrame(tmpMagnitude.row(0), tmpFilt, tmpOut,
                               get<kIterations>(), tmpEstimate.row(0));
-            mMask.init(tmpEstimate, 1);
+            mMask.init(tmpEstimate);
             for (index i = 0; i < rank; ++i)
             {
               algorithm::NMF::estimate(tmpFilt, RealMatrixView(tmpOut), i,
                                        tmpSource);
-              mMask.process(in, RealMatrixView{tmpSource},
+              mMask.process(in, RealMatrixView{tmpSource}, 1,
                             ComplexMatrixView{out.row(i)});
             }
           });
@@ -103,7 +101,7 @@ public:
   }
 
 private:
-  ParameterTrackChanges<index, index>               mTrackValues;
+  ParameterTrackChanges<index, index>                  mTrackValues;
   STFTBufferedProcess<ParamSetViewType, kFFT, true> mSTFTProcessor;
 
   algorithm::NMF       mNMF;

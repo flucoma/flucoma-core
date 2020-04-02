@@ -32,21 +32,22 @@ public:
   }
   index numStats() { return 7; }
 
-  Eigen::Ref<Eigen::ArrayXd> computeStats(Eigen::Ref<Eigen::ArrayXd> input)
+  Eigen::ArrayXd computeStats(Eigen::Ref<Eigen::ArrayXd> input)
   {
     using namespace Eigen;
+    using namespace std;
     index   length = input.size();
     ArrayXd out = ArrayXd::Zero(7);
     double  mean = input.mean();
-    double  std = std::sqrt((input - mean).square().mean());
-    double  skewness = ((input - mean) / (std == 0 ? 1 : std)).cube().mean();
-    double  kurtosis = ((input - mean) / (std == 0 ? 1 : std)).pow(4).mean();
+    double  stdev = sqrt((input - mean).square().mean());
+    double  skewness = ((input - mean) / (stdev == 0 ? 1 : stdev)).cube().mean();
+    double  kurtosis = ((input - mean) / (stdev == 0 ? 1 : stdev)).pow(4).mean();
     ArrayXd sorted = input;
-    std::sort(sorted.data(), sorted.data() + length);
-    double low = sorted(std::lrint(mLow * (length - 1)));
-    double mid = sorted(std::lrint(mMiddle * (length - 1)));
-    double high = sorted(std::lrint(mHigh * (length - 1)));
-    out << mean, std, skewness, kurtosis, low, mid, high;
+    sort(sorted.data(), sorted.data() + length);
+    double low = sorted(lrint(mLow * (length - 1)));
+    double mid = sorted(lrint(mMiddle * (length - 1)));
+    double high = sorted(lrint(mHigh * (length - 1)));
+    out << mean, stdev, skewness, kurtosis, low, mid, high;
     return out;
   }
 
@@ -81,5 +82,5 @@ public:
   double mMiddle{0.5};
   double mHigh{1};
 };
-}; // namespace algorithm
-}; // namespace fluid
+} // namespace algorithm
+} // namespace fluid

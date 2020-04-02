@@ -49,7 +49,8 @@ public:
       LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
 
   MelBandsClient(ParamSetViewType& p)
-      : mParams{p}, mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0)
+      : mParams{p}, mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0),
+        mMelBands(get<kMaxNBands>(), get<kMaxFFTSize>())
   {
     mBands = FluidTensor<double, 1>(get<kNBands>());
     audioChannelsIn(1);
@@ -73,14 +74,15 @@ public:
       mMagnitude.resize(get<kFFT>().frameSize());
       mBands.resize(get<kNBands>());
       mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
-                     get<kFFT>().frameSize(), sampleRate(), false, false,
-                     get<kFFT>().winSize(), get<kNormalize>() == 1);
+                     get<kFFT>().frameSize(), sampleRate(),
+                     get<kFFT>().winSize());
     }
 
     mSTFTBufferedProcess.processInput(
         mParams, input, c, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
-          mMelBands.processFrame(mMagnitude, mBands);
+          mMelBands.processFrame(mMagnitude, mBands, get<kNormalize>() == 1,
+                                 false, false);
         });
     for (index i = 0; i < get<kNBands>(); ++i)
       output[asUnsigned(i)](0) = static_cast<T>(mBands(i));
@@ -88,7 +90,13 @@ public:
 
   index latency() { return get<kFFT>().winSize(); }
 
-  void reset() { mSTFTBufferedProcess.reset(); }
+  void reset()
+  {
+    mSTFTBufferedProcess.reset();
+    mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
+                   get<kFFT>().frameSize(), sampleRate(),
+                   get<kFFT>().winSize());
+  }
 
   index controlRate() { return get<kFFT>().hopSize(); }
 
@@ -97,17 +105,16 @@ private:
                                                      mTracker;
   STFTBufferedProcess<ParamSetViewType, kFFT, false> mSTFTBufferedProcess;
 
-  algorithm::MelBands mMelBands;
-
+  algorithm::MelBands    mMelBands;
   FluidTensor<double, 1> mMagnitude;
   FluidTensor<double, 1> mBands;
 };
 
 using RTMelBandsClient = ClientWrapper<MelBandsClient>;
 
-auto constexpr NRTMelBandsParams = makeNRTParams<RTMelBandsClient>(
-    {InputBufferParam("source", "Source Buffer")},
-    {BufferParam("features", "Output Buffer")});
+auto constexpr NRTMelBandsParams = makeNRTParams<MelBandsClient>(
+    InputBufferParam("source", "Source Buffer"),
+    BufferParam("features", "Output Buffer"));
 
 using NRTMelBandsClient =
     NRTControlAdaptor<MelBandsClient, decltype(NRTMelBandsParams),

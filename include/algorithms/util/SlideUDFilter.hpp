@@ -8,7 +8,6 @@ under the European Union’s Horizon 2020 research and innovation programme
 (grant agreement No 725899).
 */
 #pragma once
-#include <cmath>
 
 namespace fluid {
 namespace algorithm {
@@ -16,14 +15,14 @@ namespace algorithm {
 class SlideUDFilter
 {
 public:
-  void updateCoeffs(double rampUpTime, double rampDownTime){
-      mBUp = 1.0 / rampUpTime;
-      mBDown = 1.0 / rampDownTime;
+  void updateCoeffs(double rampUpTime, double rampDownTime)
+  {
+    mBUp = 1.0 / rampUpTime;
+    mBDown = 1.0 / rampDownTime;
   }
 
-  void init(double rampUpTime, double rampDownTime, double x0Val)
+  void init(double x0Val)
   {
-    updateCoeffs(rampUpTime, rampDownTime);
     y0 = x0Val;
   }
 
@@ -43,5 +42,5 @@ private:
   double mBUp{0.0}, mBDown{0.0};
   double y0{0.0};
 };
-}; // namespace algorithm
-}; // namespace fluid
+} // namespace algorithm
+} // namespace fluid

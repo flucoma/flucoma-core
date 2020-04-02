@@ -99,9 +99,9 @@ private:
 
 using RTSpectralShapeClient = ClientWrapper<SpectralShapeClient>;
 
-auto constexpr NRTSpectralShapeParams = makeNRTParams<RTSpectralShapeClient>(
-    {InputBufferParam("source", "Source Buffer")},
-    {BufferParam("features", "Features Buffer")});
+auto constexpr NRTSpectralShapeParams = makeNRTParams<SpectralShapeClient>(
+    InputBufferParam("source", "Source Buffer"),
+    BufferParam("features", "Features Buffer"));
 
 using NRTSpectralShapeClient =
     NRTControlAdaptor<SpectralShapeClient, decltype(NRTSpectralShapeParams),

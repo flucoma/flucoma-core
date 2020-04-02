@@ -349,6 +349,8 @@ private:
   {
     static std::array<Result, sizeof...(Ts)> results;
 
+    static_cast<void>(reportage);
+
     (void) std::initializer_list<int>{
         (set<Is>(Func<Is, ParamType<Is>>()(std::forward<Args>(args)...),
                  reportage ? &results[Is] : nullptr),
@@ -386,6 +388,7 @@ private:
                   Result* r)
   {
     T res = thisParam;
+    static_cast<void>(r);
     (void) std::initializer_list<int>{
         (std::get<Is>(c).template clamp<Offset, N>(res, mParams,
                                                    mDescriptors.get(), r),
