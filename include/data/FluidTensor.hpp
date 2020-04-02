@@ -87,7 +87,7 @@ public:
   explicit FluidTensor(const FluidTensor<U, M>& x)
       : mContainer(x.size()), mDesc(x.descriptor())
   {
-    static_assert(std::is_convertible<U, T>(),
+    static_assert(std::is_convertible<U, T>::value,
                   "Cannot convert between container value types");
     std::copy(x.begin(), x.end(), mContainer.begin());
   }
@@ -96,7 +96,7 @@ public:
   explicit FluidTensor(const FluidTensorView<U, M>& x)
       : mContainer(x.size()), mDesc(0, x.descriptor().extents)
   {
-    static_assert(std::is_convertible<U, T>(),
+    static_assert(std::is_convertible<U, T>::value,
                   "Cannot convert between container value types");
 
     std::copy(x.begin(), x.end(), mContainer.begin());
@@ -158,7 +158,7 @@ public:
   FluidTensor& operator=(const FluidTensorView<U, M> x)
   {
     static_assert(M <= N, "View has too many dimensions");
-    static_assert(std::is_convertible<U, T>(), "Cannot convert between types");
+    static_assert(std::is_convertible<U, T>::value,  "Cannot convert between types");
     // TODO this will barf if they have different orders:  I don't want that
     assert(sameExtents(mDesc, x.descriptor()));
 
@@ -503,7 +503,7 @@ public:
   template <typename U>
   FluidTensorView& operator=(const FluidTensorView<U, N> x)
   {
-    static_assert(std::is_convertible<U, T>(), "Can't convert between types");
+    static_assert(std::is_convertible<U, T>::value,  "Can't convert between types");
     assert(sameExtents(mDesc, x.descriptor()));
     std::array<index, N> a;
     // Get the element-wise minimum of our extents and x's
@@ -526,7 +526,7 @@ public:
   template <typename U>
   FluidTensorView& operator=(FluidTensor<U, N>& x)
   {
-    static_assert(std::is_convertible<U, T>(), "Can't convert between types");
+    static_assert(std::is_convertible<U, T>::value,  "Can't convert between types");
     assert(sameExtents(*this, x));
     std::copy(x.begin(), x.end(), begin());
     return *this;
@@ -697,7 +697,7 @@ public:
   template <typename U>
   FluidTensorView& operator=(U& x)
   {
-    static_assert(std::is_convertible<U, T>(), "Can't convert");
+    static_assert(std::is_convertible<U, T>::value,  "Can't convert");
     *elem = static_cast<T>(x);
     return *this;
   }
