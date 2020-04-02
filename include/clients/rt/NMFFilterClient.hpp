@@ -113,9 +113,6 @@ private:
   RealVector tmpOut;
   RealMatrix tmpEstimate;
   RealMatrix tmpSource;
-
-  index mNBins{0};
-  index mRank{0};
 };
 
 using RTNMFFilterClient = ClientWrapper<NMFFilterClient>;

@@ -133,8 +133,8 @@ struct StringT : ParamTypeBase
   constexpr StringT(const char* name, const char* displayName)
       : ParamTypeBase(name, displayName)
   {}
-  const char*       defaultValue = "";
-  const std::size_t fixedSize = 1;
+  const char* defaultValue = "";
+  const index fixedSize = 1;
 };
 
 struct FloatArrayT : ParamTypeBase
@@ -420,8 +420,7 @@ private:
   intptr_t mWindowSize;
   intptr_t mHopSize;
   intptr_t mFFTSize;
-  bool     mHopChanged{false};
-
+  
   ParameterTrackChanges<intptr_t> trackWin;
   ParameterTrackChanges<intptr_t> trackHop;
   ParameterTrackChanges<intptr_t> trackFFT;

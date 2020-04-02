@@ -105,9 +105,6 @@ private:
   FluidTensor<double, 1>              tmpOut;
 
   STFTBufferedProcess<ParamSetViewType, kFFT, false> mSTFTProcessor;
-
-  size_t mNBins{0};
-  size_t mRank{0};
 };
 
 using RTNMFMatchClient = ClientWrapper<NMFMatchClient>;
