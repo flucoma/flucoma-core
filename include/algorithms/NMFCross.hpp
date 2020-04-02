@@ -34,7 +34,7 @@ public:
                        ComplexMatrixView out) {
     using namespace Eigen;
     using namespace _impl;
-    double const epsilon = std::numeric_limits<double>::epsilon();
+    //double const epsilon = std::numeric_limits<double>::epsilon();
     MatrixXd H = asEigen<Matrix>(h);
     MatrixXcd W = asEigen<Matrix>(w);
 
@@ -47,7 +47,7 @@ public:
 
   void process(const RealMatrixView X, RealMatrixView H1,
                RealMatrixView W0, size_t r, size_t p) {
-    double const epsilon = std::numeric_limits<double>::epsilon();
+    //double const epsilon = std::numeric_limits<double>::epsilon();
     int nFrames = X.extent(0);
     int nBins = X.extent(1);
     int rank = W0.extent(0);

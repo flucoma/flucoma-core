@@ -33,7 +33,7 @@ public:
   {}
 
   template<typename T>
-  Result process(FluidContext& c)
+  Result process(FluidContext&)
   {
     using namespace algorithm;
 

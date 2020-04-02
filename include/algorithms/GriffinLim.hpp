@@ -17,7 +17,6 @@ public:
     using namespace Eigen;
     using namespace _impl;
     using namespace std::complex_literals;
-    const auto &epsilon = std::numeric_limits<double>::epsilon();
     auto stft = STFT(winSize, fftSize, hopSize);
     auto istft = ISTFT(winSize, fftSize, hopSize);
     ArrayXXcd spectrogram = asEigen<Array>(in);
