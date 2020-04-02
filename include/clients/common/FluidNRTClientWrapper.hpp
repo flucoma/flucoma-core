@@ -164,7 +164,7 @@ public:
     return invokeDelegate<N>(std::forward<Args>(args)...);
   }
 
-template <typename T>
+  template <typename T>
   Result process(FluidContext& c)
   {
     auto constexpr inputCounter = std::make_index_sequence<Ins>();
@@ -486,7 +486,16 @@ using NRTControlAdaptor =
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-
+template <class RTClient, typename... Args>
+auto constexpr makeNRTParams(impl::InputBufferSpec&& in,
+                             impl::InputBufferSpec&& in2, Args&&... outs)
+{
+  return impl::joinParameterDescriptors(
+      impl::joinParameterDescriptors(
+          impl::makeWrapperInputs(in, in2),
+          defineParameters(std::forward<Args>(outs)...)),
+      ClientWrapper<RTClient>::getParameterDescriptors());
+}
 
 template <class RTClient, typename... Args>
 auto constexpr makeNRTParams(impl::InputBufferSpec&& in, Args&&... outs)
