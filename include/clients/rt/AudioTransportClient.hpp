@@ -1,13 +1,13 @@
 #pragma once
 
 #include "../../algorithms/AudioTransport.hpp"
+#include "clients/common/BufferedProcess.hpp"
 #include "clients/common/FluidBaseClient.hpp"
+#include "clients/common/FluidNRTClientWrapper.hpp"
 #include "clients/common/ParameterConstraints.hpp"
 #include "clients/common/ParameterSet.hpp"
 #include "clients/common/ParameterTrackChanges.hpp"
 #include "clients/common/ParameterTypes.hpp"
-#include "clients/common/FluidNRTClientWrapper.hpp"
-#include "clients/common/BufferedProcess.hpp"
 #include <clients/common/AudioClient.hpp>
 #include <tuple>
 
@@ -19,8 +19,6 @@ extern auto constexpr AudioTransportParams = defineParameters();
 class AudioTransportClient : public FluidBaseClient,
                              public AudioIn,
                              public AudioOut {
-
-
 
   enum AudioTransportParamTags {
     kInterpolation,
@@ -40,33 +38,34 @@ public:
                        LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size",
                                               16384, Min(4), PowerOfTwo{}));
   AudioTransportClient(ParamSetViewType &p)
-      : mParams{p}, mSTFTBufferedProcess{get<kMaxFFTSize>(), 2, 1}, mAlgorithm(get<kMaxFFTSize>())
-  {
+      : mParams{p}, mSTFTBufferedProcess{get<kMaxFFTSize>(), 2, 1},
+        mAlgorithm(get<kMaxFFTSize>()) {
     audioChannelsIn(2);
     audioChannelsOut(1);
   }
 
   template <typename T>
   void process(std::vector<FluidTensorView<T, 1>> &input,
-               std::vector<FluidTensorView<T, 1>> &output, FluidContext &c)
-  {
+               std::vector<FluidTensorView<T, 1>> &output, FluidContext &c) {
     if (!input[0].data() || !input[1].data())
       return;
     if (!mAlgorithm.initialized() ||
         mTracking.changed(get<kFFT>().winSize(), get<kFFT>().hopSize(),
-                             get<kFFT>().fftSize(), get<kBandwidth>())) {
+                          get<kFFT>().fftSize(), get<kBandwidth>())) {
       mAlgorithm.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
                       get<kFFT>().hopSize(), get<kBandwidth>());
     }
     mSTFTBufferedProcess.process(
         mParams, input, output, c,
         [this](ComplexMatrixView in, ComplexMatrixView out) {
-      mAlgorithm.processFrame(in.row(0), in.row(1), get<kInterpolation>(), out.row(0));
+          mAlgorithm.processFrame(in.row(0), in.row(1), get<kInterpolation>(),
+                                  out.row(0));
         });
   }
 
   size_t latency() { return get<kFFT>().winSize(); }
-  void   reset() { mSTFTBufferedProcess.reset();  }
+  void reset() { mSTFTBufferedProcess.reset(); }
+
 private:
   STFTBufferedProcess<ParamSetViewType, kFFT> mSTFTBufferedProcess;
   algorithm::AudioTransport mAlgorithm;
@@ -75,9 +74,9 @@ private:
 
 using RTAudioTransportClient = ClientWrapper<AudioTransportClient>;
 auto constexpr NRTAudioTransportParams = makeNRTParams<AudioTransportClient>(
-    {InputBufferParam("source1", "Source Buffer 1"),
-     InputBufferParam("source2", "Source Buffer 2")},
-    {BufferParam("out", "output Buffer")});
+    InputBufferParam("source1", "Source Buffer 1"),
+    InputBufferParam("source2", "Source Buffer 2"),
+    BufferParam("out", "output Buffer"));
 
 using NRTAudioTransport =
     NRTStreamAdaptor<RTAudioTransportClient, decltype(NRTAudioTransportParams),
