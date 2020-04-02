@@ -16,7 +16,7 @@ if(hasParent)
 endif()
 
 if(APPLE) #has to be before first project() call. grrrrrr
-  set(CMAKE_OSX_DEPLOYMENT_TARGET 10.7)
+  set(CMAKE_OSX_DEPLOYMENT_TARGET 10.8)
 endif()
 
 project (fluid_decomposition LANGUAGES CXX)
