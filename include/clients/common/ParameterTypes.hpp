@@ -406,7 +406,6 @@ private:
   intptr_t mWindowSize;
   intptr_t mHopSize;
   intptr_t mFFTSize;
-  bool     mHopChanged{false};
 
   ParameterTrackChanges<intptr_t> trackWin;
   ParameterTrackChanges<intptr_t> trackHop;
