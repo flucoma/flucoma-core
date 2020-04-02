@@ -94,7 +94,7 @@ public:
 
   template <typename U, size_t M>
   explicit FluidTensor(const FluidTensorView<U, M>& x)
-      : mContainer(x.size()), mDesc(0, x.descriptor().extents)
+      : mContainer(asUnsigned(x.size())), mDesc(0, x.descriptor().extents)
   {
     static_assert(std::is_convertible<U, T>::value, 
                   "Cannot convert between container value types");
@@ -126,9 +126,9 @@ public:
   FluidTensor(FluidTensorInitializer<T, N> init)
       : mDesc(0, impl::deriveExtents<N>(init))
   {
-    mContainer.reserve(this->mDesc.size);
+    mContainer.reserve(asUnsigned(this->mDesc.size));
     impl::insertFlat(init, mContainer);
-    assert(mContainer.size() == this->mDesc.size);
+    assert(mContainer.size() == asUnsigned(this->mDesc.size));
   }
 
   template <typename U>
@@ -320,7 +320,7 @@ public:
   {
     if (amount == 0) return;
     mDesc.grow(dim, amount);
-    mContainer.resize(mDesc.size);
+    mContainer.resize(asUnsigned(mDesc.size));
   }
 
   // Specialise for N=1

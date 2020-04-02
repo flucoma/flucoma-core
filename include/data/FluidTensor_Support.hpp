@@ -103,13 +103,13 @@ struct FluidTensorInit<T, 0>; /// things should barf if this happens
 template <std::size_t N, typename I, typename List> /// terminate
 std::enable_if_t<(N == 1)> addExtents(I& first, const List& list)
 {
-  *first++ = list.size(); // deepest nesting
+  *first++ = asSigned(list.size()); // deepest nesting
 }
 
 template <std::size_t N, typename I, typename List> /// recursion
 std::enable_if_t<(N > 1)> addExtents(I& first, const List& list)
 {
-  *first = list.size();
+  *first = asSigned(list.size());
   addExtents<N - 1>(++first, *list.begin());
 }
 
@@ -372,9 +372,11 @@ struct FluidTensorSlice
 
   void grow(index dim, index amount)
   {
-    assert(dim < N);
-    assert(extents[dim] + amount >= 0);
-    extents[dim] += amount;
+    size_t uDim = asUnsigned(dim);
+    
+    assert(uDim < N);
+    assert(extents[uDim] + amount >= 0);
+    extents[uDim] += amount;
     init();
   }
 
