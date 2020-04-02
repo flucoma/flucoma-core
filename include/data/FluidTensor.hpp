@@ -488,14 +488,14 @@ public:
     std::transform(mDesc.extents.begin(), mDesc.extents.end(),
                    x.descriptor().extents.begin(), a.begin(),
                    [](index a, index b) { return std::min(a, b); });
-    size_t count =
+    index count =
         std::accumulate(a.begin(), a.end(), index(1), std::multiplies<index>());
 
     // Have to do this because haven't implemented += for slice iterator
     // (yet), so can't stop at arbitary offset from begin
     auto it = x.begin();
     auto ot = begin();
-    for (int i = 0; i < count; ++i, ++it, ++ot) *ot = *it;
+    for (index i = 0; i < count; ++i, ++it, ++ot) *ot = *it;
     return *this;
   }
 
@@ -503,7 +503,7 @@ public:
   template <typename U>
   FluidTensorView& operator=(const FluidTensorView<U, N> x)
   {
-    static_assert(std::is_convertible<T, U>(), "Can't convert between types");
+    static_assert(std::is_convertible<U, T>(), "Can't convert between types");
     assert(sameExtents(mDesc, x.descriptor()));
     std::array<index, N> a;
     // Get the element-wise minimum of our extents and x's
@@ -526,7 +526,7 @@ public:
   template <typename U>
   FluidTensorView& operator=(FluidTensor<U, N>& x)
   {
-    static_assert(std::is_convertible<T, U>(), "Can't convert between types");
+    static_assert(std::is_convertible<U, T>(), "Can't convert between types");
     assert(sameExtents(*this, x));
     std::copy(x.begin(), x.end(), begin());
     return *this;
@@ -697,7 +697,7 @@ public:
   template <typename U>
   FluidTensorView& operator=(U& x)
   {
-    static_assert(std::is_convertible<T, U>(), "Can't convert");
+    static_assert(std::is_convertible<U, T>(), "Can't convert");
     *elem = static_cast<T>(x);
     return *this;
   }
