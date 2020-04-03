@@ -79,7 +79,7 @@ auto constexpr NRTAudioTransportParams = makeNRTParams<AudioTransportClient>(
     BufferParam("out", "output Buffer"));
 
 using NRTAudioTransport =
-    NRTStreamAdaptor<RTAudioTransportClient, decltype(NRTAudioTransportParams),
+    NRTStreamAdaptor<AudioTransportClient, decltype(NRTAudioTransportParams),
                      NRTAudioTransportParams, 2, 1>;
 
 using NRTThreadedAudioTransportClient = NRTThreadingAdaptor<NRTAudioTransport>;
