@@ -29,7 +29,7 @@ public:
     constexpr ParamType(const char *name, const char *displayName)
       : ParamTypeBase(name, displayName)
   {}
-  const std::size_t fixedSize = 1;
+  const index fixedSize = 1;
   }; 
   
   template <typename IsFixed = Fixed<false>>

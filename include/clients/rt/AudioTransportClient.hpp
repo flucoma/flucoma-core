@@ -75,12 +75,12 @@ private:
 
 using RTAudioTransportClient = ClientWrapper<AudioTransportClient>;
 auto constexpr NRTAudioTransportParams = makeNRTParams<AudioTransportClient>(
-    {InputBufferParam("source1", "Source Buffer 1"),
-     InputBufferParam("source2", "Source Buffer 2")},
-    {BufferParam("out", "output Buffer")});
+    InputBufferParam("source1", "Source Buffer 1"),
+    InputBufferParam("source2", "Source Buffer 2"),
+    BufferParam("out", "output Buffer"));
 
 using NRTAudioTransport =
-    NRTStreamAdaptor<RTAudioTransportClient, decltype(NRTAudioTransportParams),
+    NRTStreamAdaptor<AudioTransportClient, decltype(NRTAudioTransportParams),
                      NRTAudioTransportParams, 2, 1>;
 
 using NRTThreadedAudioTransportClient = NRTThreadingAdaptor<NRTAudioTransport>;
