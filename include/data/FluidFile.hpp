@@ -39,13 +39,6 @@ public:
   }
 
   void openWrite() {
-    std::ifstream tmp(mFileName);
-    if (tmp.good()) {
-      mValid = false;
-      mError = "File exists";
-      tmp.close();
-      return;
-    }
     mFile.open(mFileName, fstream::out);
     if (mFile.fail()) {
       mValid = false;
