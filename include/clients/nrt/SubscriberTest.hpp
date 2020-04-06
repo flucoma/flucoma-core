@@ -2,7 +2,7 @@
 
 #include "ProviderTest.hpp"
 
-#include "data/FluidDataset.hpp"
+#include "data/FluidDataSet.hpp"
 
 #include <clients/common/FluidBaseClient.hpp>
 #include <clients/common/MessageSet.hpp>

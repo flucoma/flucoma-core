@@ -88,12 +88,6 @@ public:
     {
       mParamsTable.emplace(name, mParams);
     }
-    else
-    {
-      //we won't override already set values, but we will complain
-      results[0].addMessage("Shared object called ", name, " already exists; ignoring new arguments");
-      results[0].set(Result::Status::kWarning);
-    }
     
     mParams = mParamsTable[name];
     return results;
