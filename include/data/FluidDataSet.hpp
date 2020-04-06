@@ -61,12 +61,16 @@ public:
 
   bool remove(idType id) {
       auto pos = mIndex.find(id);
-      if (pos == mIndex.end())
+      if (pos == mIndex.end()){
         return false;
+      }
       else {
-        mData.deleteRow(pos->second);
-        mIds.deleteRow(pos->second);
+        auto current = pos->second;
+        mData.deleteRow(current);
+        mIds.deleteRow(current);
         mIndex.erase(id);
+        for( auto& point : mIndex)
+          if(point.second > current) point.second--;
       }
       return true;
   }
@@ -74,8 +78,10 @@ public:
   size_t pointSize() const { return mDim.size; }
   size_t size() const { return mIds.size(); }
   void print() const {
+    if(size()>0){
      std::cout << mData << std::endl;
      std::cout << mIds << std::endl;
+   }
    }
 
   const FluidTensorView<dataType, N + 1> getData() const { return mData; }
