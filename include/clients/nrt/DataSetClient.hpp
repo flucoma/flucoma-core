@@ -21,7 +21,7 @@ namespace fluid {
 namespace client {
 
 class DataSetClient : public FluidBaseClient, OfflineIn, OfflineOut {
-  enum { kName, kNDims };
+  enum { kName };
 
 public:
   using string = std::string;
@@ -30,20 +30,25 @@ public:
 
   template <typename T> Result process(FluidContext &) { return {}; }
 
-  FLUID_DECLARE_PARAMS(StringParam<Fixed<true>>("name", "DataSet"),
-                       LongParam<Fixed<true>>("nDims", "Dimension size", 1,
-                                              Min(1)));
+  FLUID_DECLARE_PARAMS(StringParam<Fixed<true>>("name", "DataSet"));
 
-  DataSetClient(ParamSetViewType &p) : mParams(p), mDataSet(get<kNDims>()) {
-    mDims = get<kNDims>();
+  DataSetClient(ParamSetViewType &p) : mParams(p), mDataSet(0) {
   }
 
   MessageResult<void> addPoint(string id, BufferPtr data) {
     if (!data)
       return mNoBufferError;
     BufferAdaptor::Access buf(data.get());
-    if (buf.numFrames() != mDims)
+    
+    if (mDataSet.size() == 0)
+    {
+        if(mDataSet.pointSize() != buf.numFrames())
+            mDataSet = DataSet(buf.numFrames());         
+        mDims = mDataSet.pointSize();        
+    }   
+    else if (buf.numFrames() != mDims)  
       return mWrongSizeError;
+    
     FluidTensor<double, 1> point(mDims);
     point = buf.samps(0, mDims, 0);
     return mDataSet.add(id, point) ? mOKResult : mDuplicateError;
@@ -90,7 +95,7 @@ public:
   MessageResult<int> cols() { return mDataSet.pointSize(); }
 
   MessageResult<void> clear() {
-    mDataSet = DataSet(get<kNDims>());
+    mDataSet = DataSet(mDims);
     return mOKResult;
   }
 
@@ -119,6 +124,7 @@ public:
    file.get("ids", ids, rows);
    file.get("data", data, rows, cols);
    mDataSet = DataSet(ids, data);
+   mDims = cols; 
    return mOKResult;
  }
 
@@ -148,7 +154,7 @@ private:
   result mOKResult{Result::Status::kOk};
 
   mutable DataSet mDataSet;
-  size_t mDims;
+  index mDims;
 };
 using DataSetClientRef = SharedClientRef<DataSetClient>;
 using NRTThreadedDataSetClient =
