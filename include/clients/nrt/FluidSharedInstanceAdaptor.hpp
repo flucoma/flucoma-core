@@ -21,9 +21,11 @@ class ParamAliasAdaptor<NRTClient, std::tuple<Ts...>>
 {
   using WrappedClient = ClientWrapper<NRTClient>;
   using ParamSetType = typename WrappedClient::ParamSetType;
-  using ListenersArray = std::array<std::vector<std::function<void()>>,sizeof...(Ts)>;
   
-  struct ListeningParams
+  using ListenerEntry = std::pair<std::function<void()>,void*>;
+  using ListenerList  = std::vector<ListenerEntry>;
+  using ListenersArray = std::array<ListenerList,sizeof...(Ts)>;
+  
   {
     ParamSetType params{ClientWrapper<NRTClient>::getParameterDescriptors()};
     ListenersArray listeners;
@@ -119,7 +121,7 @@ public:
     mParams->params.template set<N>(std::forward<typename ParamType<N>::type>(x), reportage);
 
     auto listeners = mParams->listeners[N];
-    for(auto&& l:listeners) l();
+    for(auto&& l:listeners) l.first();
   }
 
   template <std::size_t N>
@@ -135,8 +137,17 @@ public:
   }
 
   template<size_t N, typename F>
-  void addListener(F&& f){
-     mParams->listeners[N].emplace_back(std::forward<F>(f));
+  void addListener(F&& f, void* key){
+     mParams->listeners[N].emplace_back(ListenerEntry{ std::forward<F>(f) ,key});
+  }
+
+  template<size_t N>
+  void removeListener(void* key)
+  {
+     auto& listeners = mParams->listeners[N];
+     std::remove_if(listeners.begin(), listeners.end(),
+      [&key](ListenerEntry& e){ return e.second == key;  }
+     );
   }
 
   private:
