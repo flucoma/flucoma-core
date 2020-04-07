@@ -296,11 +296,13 @@ public:
     return impl::RefTupleFrom<offset>(mParams);
   }
 
-
   template <size_t N, typename F>
-  void addListener(F&&)
+  void addListener(F&&, void*)
   {} // no-op for non-shared parameter set?
 
+  template <size_t N>
+  void removeListener(void*)
+  {} // no-op for non-shared parameter set?
 
 private:
   template <typename T>
