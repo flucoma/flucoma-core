@@ -78,6 +78,21 @@ public:
     return mParams->params.template setParameterValues<Func>(reportage, std::forward<Args>(args)...);
   }
 
+  Result lookup(std::string name)
+  {
+    return mParamsTable.count(name) ? Result{} :
+                                      Result{Result::Status::kWarning, name, " not found" };
+  }
+
+  Result refer(std::string name)
+  {
+    if(mParamsTable.count(name))
+    {
+      mParams = mParamsTable[name].lock()->getShared();
+      return {};
+    } else return{Result::Status::kWarning, name, " not found" };
+  }
+  
   template <template <size_t N, typename T> class Func, typename... Args>
   std::array<Result, sizeof...(Ts)> setFixedParameterValues(bool reportage, Args &&... args)
   {
@@ -96,9 +111,11 @@ public:
     {
       mParamsTable.emplace(name, mParams);
     }
-    
-    mParams = mParamsTable[name];
+
+    refer(name); 
+
     return results;
+    
   }
 
   template <template <size_t N, typename T> class Func, typename... Args>
