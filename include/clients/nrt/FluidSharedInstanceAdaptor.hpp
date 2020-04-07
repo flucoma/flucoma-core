@@ -26,25 +26,31 @@ class ParamAliasAdaptor<NRTClient, std::tuple<Ts...>>
   using ListenerList  = std::vector<ListenerEntry>;
   using ListenersArray = std::array<ListenerList,sizeof...(Ts)>;
   
+  struct ListeningParams: public std::enable_shared_from_this<ListeningParams>
   {
-    ParamSetType params{ClientWrapper<NRTClient>::getParameterDescriptors()};
+    using std::enable_shared_from_this<ListeningParams>::shared_from_this;
+    
+    ParamSetType   params{ClientWrapper<NRTClient>::getParameterDescriptors()};
     ListenersArray listeners;
+    
+    std::shared_ptr<ListeningParams> getShared() { return shared_from_this(); };
   };
 
   using ParamsPointer = std::shared_ptr<ListeningParams>;
-  using LookupTable = std::unordered_map<std::string,ParamsPointer>;
+  using ParamsWeakPointer = std::weak_ptr<ListeningParams>;
+  using LookupTable = std::unordered_map<std::string,ParamsWeakPointer>;
   
   template <size_t N>
   using ParamType = typename WrappedClient::ParamDescType::template ParamType<N>;
 
 public:
 
-  ParamAliasAdaptor(typename NRTClient::ParamDescType&):mParams{new ListeningParams()}
+  ParamAliasAdaptor(typename NRTClient::ParamDescType&):mParams{std::make_shared<ListeningParams>()}
   {}
-  
+
   ~ParamAliasAdaptor()
   {
-    if(mParams && mParams.use_count() == 2) //is this the last remaining user of this Corpus, except the hash table?
+    if(mParams && mParams.use_count() == 1) //is this the last remaining user of this Corpus, except the hash table?
     {
       auto name = mParams->params.template get<0>();
       mParamsTable.erase(name); //then remove it from the universe
@@ -175,12 +181,19 @@ class NRTSharedInstanceAdaptor : public OfflineIn, public OfflineOut
 
 public:
   using WrappedClient = ClientWrapper<NRTClient>;
-  using ClientPointer = typename std::shared_ptr<NRTClient>;
-  using ClientWeakPointer = typename std::weak_ptr<const NRTClient>;
+  
+  struct SharedClient: public NRTClient, public std::enable_shared_from_this<SharedClient>
+  {
+    using std::enable_shared_from_this<SharedClient>::shared_from_this;
+    using NRTClient::NRTClient;
+    std::shared_ptr<SharedClient> shared() { return shared_from_this(); };
+  };
+  using ClientPointer = std::shared_ptr<SharedClient>;
+  using ClientWeakPointer = typename std::weak_ptr<const SharedClient>;
   using ParamDescType = typename WrappedClient::ParamDescType;
   using ParamSetViewType = typename WrappedClient::ParamSetViewType;
   using MessageSetType = typename WrappedClient::MessageSetType;
-  using LookupTable = std::unordered_map<std::string,ClientPointer>;
+  using LookupTable = std::unordered_map<std::string,std::weak_ptr<SharedClient>>;
   using ParamSetType =  ParamAliasAdaptor<NRTClient, typename ParamDescType::ValueTuple>;
 
   using type = ClientPointer;
@@ -201,26 +214,41 @@ public:
     //constructs the value object, giving us shared_ptr<nullptr>
     std::string name = p.template get<0>();
     if(!mClientTable.count(name)) //key not already in table
-       mClientTable.emplace(name, ClientPointer(new NRTClient(p.instance())));
-    mClient = mClientTable[name];
+    {
+       mClient = std::make_shared<SharedClient>(p.instance());
+       mClientTable.emplace(name, mClient);
+    }
+    else
+      mClient = mClientTable[name].lock()->shared();
   }
-
+  
+  NRTSharedInstanceAdaptor(const NRTSharedInstanceAdaptor& x)
+  {
+    *this = x;
+  }
+  
+  NRTSharedInstanceAdaptor& operator=(const NRTSharedInstanceAdaptor& x)
+  {
+    mParams = x.mParams;
+    mClient = x.mClient; 
+    return *this;
+  }
+  
   ~NRTSharedInstanceAdaptor()
   {
-    if(mClient && mClient.use_count() == 2) //is this the last remaining user of this Corpus, except the hash table?
-      mClientTable.erase(mParams.get().instance().template get<0>()); //then remove it from the universe
+    if(mClient && mClient.use_count() == 1) //is this the last remaining user of this Corpus, except the hash table?
+      mClientTable.erase(mParams.template get<0>()); //then remove it from the universe
   }
-
 
   static ClientPointer lookup(std::string name)
   {
-    return mClientTable.count(name) ? (mClientTable)[name] : ClientPointer{};
+    return mClientTable.count(name) ? mClientTable[name].lock()->shared() : ClientPointer{};
   }
 
   template<size_t N, typename T, typename...Args>
   decltype(auto) invoke(T&, Args&&...args)
   {
-    mProcessParams = mParams.get().instance();
+    mProcessParams = mParams.instance();
     mClient->setParams(mProcessParams);
     return WrappedClient::getMessageDescriptors().template invoke<N>(*mClient, std::forward<Args>(args)...);
     //return mClient->template
@@ -229,7 +257,7 @@ public:
   template<typename T>
   Result process(FluidContext& c)
   {
-    mProcessParams = mParams.get().instance();
+    mProcessParams = mParams.instance();
     mClient->setParams(mProcessParams);
     return mClient->template process<T>(c);
   }
@@ -237,7 +265,7 @@ public:
   void setParams(ParamSetType&) {}
 
 private:
-  std::reference_wrapper<ParamSetType> mParams;
+  ParamSetType mParams;
   ClientPointer mClient;
   typename WrappedClient::ParamSetType mProcessParams{NRTClient::getParameterDescriptors()};
   static LookupTable mClientTable;
