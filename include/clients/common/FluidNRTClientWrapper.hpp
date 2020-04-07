@@ -513,6 +513,7 @@ template <typename NRTClient>
 class NRTThreadingAdaptor : public OfflineIn, public OfflineOut
 {
 public:
+  using Client = NRTClient; 
   using ClientPointer = typename std::shared_ptr<NRTClient>;
   using ParamDescType = typename NRTClient::ParamDescType;
   using ParamSetType = typename NRTClient::ParamSetType;
@@ -547,6 +548,29 @@ public:
       : mHostParams{p}, mClient{new NRTClient{mHostParams}}
   {}
 
+  NRTThreadingAdaptor(NRTThreadingAdaptor&& x){ *this = std::move(x); }
+
+  NRTThreadingAdaptor& operator=(NRTThreadingAdaptor&& x)
+  {
+    if(this != &x)
+    {
+      if(mThreadedTask)
+      {
+        mThreadedTask->cancel(true);
+        mThreadedTask.release();
+      }
+
+      mThreadedTask.reset(x.mThreadedTask.get());
+      mQueue = x.mQueue;
+      mSynchronous = x.mSynchronous;
+      mQueueEnabled = x.mQueueEnabled;
+      mHostParams = x.mHostParams;
+      mClient = x.mClient;
+    }
+    
+    return *this;
+  }
+
   ~NRTThreadingAdaptor()
   {
     if (mThreadedTask)
@@ -555,11 +579,6 @@ public:
       mThreadedTask.release();
     }
   }
-
-  // We need this so we can remake the client when the fake-sr changes in PD
-  // (TODO: something better; NRT clients shouldn't assume that the SR is
-  // lifetime constant)
-  void recreateClient() { mClient.reset(new NRTClient{mHostParams}); }
 
   Result enqueue(ParamSetType& p)
   {
