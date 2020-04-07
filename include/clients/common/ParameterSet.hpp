@@ -462,9 +462,18 @@ public:
   }
 
   // Move construct /assign
+  ParameterSet(ParameterSet&& x) noexcept { *this = std::move(x); }
 
-    ParameterSet(ParameterSet&&) noexcept = default;
-    ParameterSet& operator=(ParameterSet&&) noexcept = default;
+  ParameterSet& operator=(ParameterSet&& x) noexcept
+  {
+    if (this != &x)
+    {
+      ViewType::operator=(std::move(x));
+      using std::swap;
+      swap(mParams, x.Params);
+    }
+    return *this;
+  }
 
 private:
   template <size_t... Is>
