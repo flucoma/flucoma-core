@@ -118,9 +118,12 @@ public:
     BufferAdaptor* mMutableAdaptor;
   };
 
-  BufferAdaptor(BufferAdaptor&& rhs) = default;
+  
   BufferAdaptor() = default;
 
+  BufferAdaptor(BufferAdaptor&& rhs) noexcept = default;
+  BufferAdaptor& operator=(BufferAdaptor&& rhs) noexcept = default;
+  
   virtual ~BufferAdaptor()
   {
     //      destroy();
