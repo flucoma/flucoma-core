@@ -11,20 +11,17 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #include "../../data/FluidIndex.hpp"
 #include "../../data/FluidTensor.hpp"
+#include <functional>
 #include <cassert>
 
 namespace fluid {
 
-/*
- FluidSink
-
- An output buffer, with overlap-add
- */
+///An output buffer, with overlap-add
 template <typename T>
 class FluidSink
 {
-  using tensor_type = FluidTensor<T, 2>;
-  using view_type = FluidTensorView<T, 2>;
+  using Matrix = FluidTensor<T, 2>;
+  using View = FluidTensorView<T, 2>;
   using const_view_type = const FluidTensorView<T, 2>;
 
 public:
@@ -39,17 +36,16 @@ public:
       : matrix(channels, size), mSize(size), mChannels(channels)
   {}
 
-  tensor_type& data() { return matrix; }
+  Matrix& data() { return matrix; }
 
-  /**
-   Accumulate data into the buffer, optionally moving
-   the write head on by a custom amount.
+  /// Accumulate data into the buffer, optionally moving
+  /// the write head on by a custom amount.
 
-   This *adds* the content of the frame to whatever is
-   already there
-   **/
-  void push(const_view_type x, index frameTime)
+  /// This *adds* the content of the frame to whatever is
+  /// already there
+  void push(View x, index frameTime)
   {
+    
     assert(x.rows() == mChannels);
 
     index blocksize = x.cols();
@@ -70,31 +66,26 @@ public:
     addIn(x(Slice(0), Slice(size, blocksize - size)), 0, blocksize - size);
   }
 
-  /**
-   Copy data from the buffer, and zero where it was
-   **/
-  void pull(view_type out)
+  ///Copy data from the buffer, and zero where it was
+  template <typename U>
+  void pull(FluidTensorView<U, 2> out)
   {
-
     index blocksize = out.cols();
     if (blocksize > bufferSize()) { return; }
-
-    index offset = mCounter;
-
-    index size =
-        offset + blocksize > bufferSize() ? bufferSize() - offset : blocksize;
-
-    outAndZero(out(Slice(0), Slice(0, size)), offset, size);
-    outAndZero(out(Slice(0), Slice(size, blocksize - size)), 0,
-               blocksize - size);
+    doPull(out, blocksize);
   }
 
-  /*!
-   Reset the buffer, resizing if the host buffer size
-   or user buffer size have changed.
+  template <typename U>
+  void pull(const std::vector<FluidTensorView<U, 1>>& out)
+  {
+    assert(out.size() == mChannels);
+    index blocksize = out[0].size();
+    if (blocksize > bufferSize()) return;
+    doPull(out, blocksize);
+  }
 
-   This should be called from an audio host's DSP setup routine
-   **/
+   /// Reset the buffer, resizing if the host buffer size
+   /// or user buffer size have changed.
   void reset(index channels = 0)
   {
     if (channels) mChannels = channels;
@@ -126,40 +117,58 @@ private:
     }
   }
 
-  void outAndZero(view_type out, index offset, index size)
+  template<typename U>
+  void doPull(U& container, index blocksize)
   {
-    if (size)
-    {
-      view_type buf = matrix(Slice(0), Slice(offset, size));
-      view_type output = buf;
-      out = output;
-      buf.fill(0);
-      mCounter = offset + size;
-    }
+      index offset = mCounter;
+      index size = offset + blocksize > bufferSize()
+                                      ? bufferSize() - offset
+                                      : blocksize;
+      index overspill =  blocksize - size;
+    
+      fillContainer(container, offset, size, overspill);
   }
 
-  template <typename OutputIt>
-  void outAndZero(OutputIt out, OutputIt end, index outOffset, index offset,
-                  index size)
+  template <typename U>
+  void fillContainer(FluidTensorView<U, 2> out, index offset, index size,
+                     index overspill)
+  {
+    outAndZero(out(Slice(0), Slice(0, size)), offset, size, Slice(0));
+    outAndZero(out(Slice(0), Slice(size, overspill)), 0, overspill, Slice(0));
+  }
+
+  template <typename U>
+  void fillContainer(std::vector<FluidTensorView<U, 1>>& out, index offset,
+                     index size, index overspill)
+  {
+    for (index i = 0; i < mChannels; ++i)
+      outAndZero(FluidTensorView<U, 2>(out[0](Slice(0, size))), offset, size, i,
+                 i == mChannels - 1);
+    for (index i = 0; i < mChannels; ++i)
+      outAndZero(FluidTensorView<U, 2>(out[0](Slice(size, overspill))), 0,
+                 overspill, i, i == mChannels - 1);
+  }
+
+  template<typename U, typename Chans>
+  void outAndZero(FluidTensorView<U,2> out, index offset, index size,
+                  Chans chans, bool incrementTime = true)
   {
     if (size)
     {
-      for (index i = 0; (i < mChannels && out != end); ++i, ++out)
-      {
-        auto outSlice = matrix(++i, Slice(offset, size));
-        *out->copy_to(outSlice, outOffset, size);
-      }
-      matrix(Slice(0), Slice(offset, size)).fill(0);
-      mCounter = offset + size;
+      View buf = matrix(chans, Slice(offset, size));
+      View output = buf;
+      out = output;
+      buf.fill(0);
+      if (incrementTime) mCounter = offset + size;
     }
   }
 
   index bufferSize() const { return mSize + mHostBufferSize; }
 
-  tensor_type matrix;
-  index       mSize;
-  index       mChannels;
-  index       mCounter = 0;
-  index       mHostBufferSize = 0;
+  Matrix matrix;
+  index  mSize;
+  index  mChannels;
+  index  mCounter = 0;
+  index  mHostBufferSize = 0;
 };
 } // namespace fluid

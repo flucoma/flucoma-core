@@ -16,17 +16,12 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 
-/*!
- FluidSource
-
- Input buffer, with possibly overlapped reads
- */
+/// Input buffer, with possibly overlapped reads
 template <typename T>
-class FluidSource //: public FluidTensor<T,2>
+class FluidSource
 {
-  using tensor_type = FluidTensor<T, 2>;
-  using view_type = FluidTensorView<T, 2>;
-  using const_view_type = const FluidTensorView<T, 2>;
+  using Matrix = FluidTensor<T, 2>;
+  using View = FluidTensorView<T, 2>;
 
 public:
   FluidSource(const FluidSource&) = delete;
@@ -40,71 +35,32 @@ public:
 
   FluidSource() : FluidSource(0, 1){};
 
-  tensor_type& data() { return matrix; }
+  Matrix& data() { return matrix; }
 
-  /*
-   Push a frame of data into the buffer
-   */
-  void push(const_view_type x)
+  template <typename U>
+  void push(const std::vector<FluidTensorView<U, 1>>& in)
   {
-    assert(x.rows() == mChannels);
+    static_assert(std::is_convertible<U, T>::value,
+                  "Can't convert between types");
 
-    index blocksize = x.cols();
-
-    assert(blocksize <= bufferSize());
-
-    index offset = mCounter;
-
-    index size = ((offset + blocksize) > bufferSize()) ? bufferSize() - offset
-                                                       : blocksize;
-
-    // Copy all channels (cols)
-    copyIn(x(Slice(0), Slice(0, size)), offset, size);
-    copyIn(x(Slice(0), Slice(size, blocksize - size)), 0, blocksize - size);
+    assert(in.size() == asUnsigned(mChannels));
+    index blocksize = in[0].size();
+    doPush(in, blocksize);
   }
 
   template <typename U>
-  void push(FluidTensorView<U, 2> x)
+  void push(FluidTensorView<U, 2> in)
   {
-    static_assert(std::is_convertible<U, double>(),
+    static_assert(std::is_convertible<U, T>::value,
                   "Can't convert between types");
 
-    assert(x.rows() == mChannels);
-
-    index blocksize = x.cols();
-
-    assert(blocksize <= bufferSize());
-
-    index offset = mCounter;
-
-    index size = ((offset + blocksize) > bufferSize()) ? bufferSize() - offset
-                                                       : blocksize;
-
-    // Copy all channels (rows)
-    copyIn(x(Slice(0), Slice(0, size)), offset, size);
-    copyIn(x(Slice(0), Slice(size, blocksize - size)), 0, blocksize - size);
+    assert(in.rows() == mChannels);
+    index blocksize = in.cols();
+    doPush(in, blocksize);
   }
 
-  //  template <typename InputIt>
-  //  void push(InputIt in, InputIt end, index nsamps, index nchans) {
-  //    assert(nchans == mChannels);
-  //    assert(nsamps <= bufferSize());
-  //    index blocksize = nsamps;
-  //
-  //    index offset = mCounter;
-  //
-  //    index size = ((offset + blocksize) > bufferSize()) ? bufferSize() -
-  //    offset
-  //                                                        : blocksize;
-  //
-  //    copyIn(in, end, 0, offset, size);
-  //    copyIn(in, end, size, 0, blocksize - size);
-  //  }
-
-  /*!
-   Pull a frame of data out of the buffer.
-   */
-  void pull(view_type out, index frameTime)
+   /// Pull a frame of data out of the buffer.
+  void pull(View out, index frameTime)
   {
     index blocksize = out.cols();
     index offset = mHostBufferSize - frameTime;
@@ -127,19 +83,10 @@ public:
         matrix(Slice(0), Slice(0, blocksize - size));
   }
 
-  /*
-   Set the buffer size of the enclosing host.
-   Needed to properly handle latency, causality etc
-   */
   void setHostBufferSize(const index size) { mHostBufferSize = size; }
 
-  /*
-   Reset the buffer, resizing if the desired
-   size and / or host buffer size have changed
-
-   This should be called in the DSP setup routine of
-   the audio host
-   */
+  /// Reset the buffer, resizing if the desired
+  /// size and / or host buffer size have changed
   void reset(index channels = 0)
   {
 
@@ -160,51 +107,54 @@ public:
   index hostBufferSize() const noexcept { return mHostBufferSize; }
 
 private:
-  /*
-   Report the size of the whole buffer
-   */
+
   index bufferSize() const { return mSize + mHostBufferSize; }
 
-  //    /*
-  //     Copy a frame into the buffer and move the write head on
-  //     */
-  //    void copy_in(const_view_type input, const index offset, const index
-  //    size)
-  //    {
-  //      if(size)
-  //      {
-  //        matrix(slice(0),slice(offset,size)) = input;
-  //        mCounter = offset + size;
-  //      }
-  //    }
 
   template <typename U>
-  void copyIn(const FluidTensorView<U, 2> input, const index offset,
-              const index size)
+  void doPush(U& in, index blocksize)
+  {
+    assert(blocksize <= bufferSize());
+    index offset = mCounter;
+    index size = ((offset + blocksize) > bufferSize()) ? bufferSize() - offset
+                                                       : blocksize;
+    index overspill = blocksize - size;
+    copyContainer(in, offset, size, overspill);
+  }
+
+  template <typename U>
+  void copyContainer(FluidTensorView<U, 2> x, index offset, index size,
+                     index overspill)
+  {
+    // Copy all channels (rows)
+    copyIn(x(Slice(0), Slice(0, size)), offset, size, Slice(0));
+    copyIn(x(Slice(0), Slice(size, overspill)), 0, overspill, Slice(0));
+  }
+
+  template <typename U>
+  void copyContainer(const std::vector<FluidTensorView<U, 1>>& x, index offset,
+                     index size, index overspill)
+  {
+    for (index i = 0; i < mChannels; ++i)
+      copyIn(FluidTensorView<U, 2>(x[i](Slice(0, size))), offset, size, i,
+             i == mChannels - 1);
+    for (index i = 0; i < mChannels; ++i)
+      copyIn(FluidTensorView<U, 2>(x[i](Slice(size, overspill))), 0, overspill,
+             i, i == mChannels - 1);
+  }
+
+  template <typename U, typename Chans>
+  void copyIn(FluidTensorView<U, 2> input, index offset,
+              index size, Chans chans, bool incrementTime = true)
   {
     if (size)
     {
-      matrix(Slice(0), Slice(offset, size)) = input;
-      mCounter = offset + size;
+      matrix(chans, Slice(offset, size)) = input;
+      if (incrementTime) mCounter = offset + size;
     }
   }
 
-  template <typename InputIt>
-  void copyIn(InputIt in, InputIt end, const index inStart, const index offset,
-              const index size)
-  {
-    if (size)
-    {
-      for (index i = 0; (i < mChannels && in != end); ++i, ++in)
-      {
-        auto inRange = matrix(i, Slice(offset, size));
-        (*in)->copyFrom(inRange.row(0), inStart, size);
-      }
-      mCounter = offset + size;
-    }
-  }
-
-  tensor_type matrix;
+  Matrix      matrix;
   index       mCounter = 0;
   index       mSize;
   index       mChannels;

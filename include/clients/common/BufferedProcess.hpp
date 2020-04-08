@@ -113,6 +113,13 @@ public:
   {
     mSource.push(in);
   }
+  
+  template <typename T>
+  void push(const std::vector<FluidTensorView<T,1>>& in)
+  {
+    mSource.push(in);
+  }
+  
   template <typename T>
   void pull(HostMatrix<T> out)
   {
@@ -146,7 +153,7 @@ public:
 
 
   template <typename T, typename F>
-  void process(Params& p, std::vector<HostVector<T>>& input,
+  void process(Params& p, const std::vector<HostVector<T>>& input,
                std::vector<HostVector<T>>& output, FluidContext& c,
                F&& processFunc)
   {
@@ -192,7 +199,7 @@ public:
   }
 
   template <typename T, typename F>
-  void processInput(Params& p, std::vector<HostVector<T>>& input,
+  void processInput(Params& p, const std::vector<HostVector<T>>& input,
                     FluidContext& c, F&& processFunc)
   {
 
@@ -214,7 +221,7 @@ public:
 
 private:
   template <typename T>
-  FFTParams setup(Params& p, std::vector<HostVector<T>>& input)
+  FFTParams setup(Params& p, const std::vector<HostVector<T>>& input)
   {
     FFTParams fftParams = p.template get<FFTParamsIndex>();
     bool      newParams = mTrackValues.changed(
@@ -230,7 +237,7 @@ private:
       mISTFT.reset(new algorithm::ISTFT(
           fftParams.winSize(), fftParams.fftSize(), fftParams.hopSize()));
 
-    index chansIn = mBufferedProcess.channelsIn();
+    index chansIn  = mBufferedProcess.channelsIn();
     index chansOut = mBufferedProcess.channelsOut();
 
     if (fftParams.frameSize() != mSpectrumIn.cols())
@@ -245,7 +252,7 @@ private:
           chansOut,
           std::max(mBufferedProcess.maxWindowSizeIn(), hostBufferSize));
 
-    mBufferedProcess.push(HostMatrix<T>(input[0]));
+    mBufferedProcess.push(input);
     return fftParams;
   }
 
