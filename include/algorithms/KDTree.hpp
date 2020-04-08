@@ -37,8 +37,6 @@ public:
                                        std::less<knnCandidate>>;
   using iterator = const std::vector<int>::iterator;
 
-  KDTree(int nDims) : mDims(nDims) {}
-
   KDTree(const DataSet &dataset) {
     using namespace std;
     mNPoints = dataset.size();
