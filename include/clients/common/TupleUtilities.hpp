@@ -143,21 +143,6 @@ constexpr size_t zeroAll()
 template <typename... Ts>
 using zeroSequenceFor = std::index_sequence<zeroAll<Ts>()...>;
 
-// template<typename Op,typename Tuple,typename...Args,size_t...Is>
-// void forEachInTuple ( Tuple<Args...> a, std::index_sequence<Is...>)
-//{
-//  (void)
-//  std::initializer_list<int>{(Op()(std::forward<Args>(std::get<Is>(a))),0)...};
-//}
-
-// template<template <typename,size_t>...RetType, typename Op,typename
-// Tuple,typename...Args,size_t...Is> RetType forEachInTuple(Tuple<Args...>& a,
-// std::index_sequence<Is...>)
-//{
-//  (void)
-//  std::initializer_list<int>{(Op()(std::forward<Args>(std::get<Is>(a))),0)...};
-//}
-
 } // namespace impl
 } // namespace client
 } // namespace fluid
