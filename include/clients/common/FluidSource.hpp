@@ -136,10 +136,10 @@ private:
                      index size, index overspill)
   {
     for (index i = 0; i < mChannels; ++i)
-      copyIn(FluidTensorView<U, 2>(x[i](Slice(0, size))), offset, size, i,
+      copyIn(FluidTensorView<U, 2>(x[asUnsigned(i)](Slice(0, size))), offset, size, i,
              i == mChannels - 1);
     for (index i = 0; i < mChannels; ++i)
-      copyIn(FluidTensorView<U, 2>(x[i](Slice(size, overspill))), 0, overspill,
+      copyIn(FluidTensorView<U, 2>(x[asUnsigned(i)](Slice(size, overspill))), 0, overspill,
              i, i == mChannels - 1);
   }
 
