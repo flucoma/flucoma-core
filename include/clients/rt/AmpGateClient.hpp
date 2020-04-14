@@ -39,10 +39,10 @@ enum AmpGateParamIndex {
 };
 
 extern auto constexpr AmpGateParams = defineParameters(
-    LongParam("RampUp", "Ramp Up Length", 10, Min(1)),
-    LongParam("RampDown", "Ramp Down Length", 10, Min(1)),
-    FloatParam("OnThreshold", "On Threshold", -90, Min(-144), Max(144)),
-    FloatParam("OffThreshold", "Off Threshold", -90, Min(-144), Max(144)),
+    LongParam("rampUp", "Ramp Up Length", 10, Min(1)),
+    LongParam("rampDown", "Ramp Down Length", 10, Min(1)),
+    FloatParam("onThreshold", "On Threshold", -90, Min(-144), Max(144)),
+    FloatParam("offThreshold", "Off Threshold", -90, Min(-144), Max(144)),
     LongParam("minSliceLength", "Minimum Length of Slice", 1, Min(1)),
     LongParam("minSilenceLength", "Minimum Length of Silence", 1, Min(1)),
     LongParam("minLengthAbove", "Required Minimum Length Above Threshold", 1,
