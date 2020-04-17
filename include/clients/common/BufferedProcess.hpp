@@ -78,6 +78,27 @@ public:
     }
     mFrameTime = mFrameTime < mHostSize ? mFrameTime : mFrameTime - mHostSize;
   }
+  
+  template <typename F>
+  void processOutput(index windowSizeOut, index hopSize,
+               FluidContext& c, F processFunc)
+  {
+    assert(windowSizeOut <= maxWindowSizeOut() &&
+           "Window out bigger than maximum");
+    for (; mFrameTime < mHostSize; mFrameTime += hopSize)
+    {
+      RealMatrixView windowOut = mFrameOut(Slice(0), Slice(0, windowSizeOut));
+      processFunc(windowOut);
+      mSink.push(windowOut, mFrameTime);
+
+      if (FluidTask* t = c.task())
+        if (!t->processUpdate(
+                static_cast<double>(std::min(mFrameTime + hopSize, mHostSize)),
+                static_cast<double>(mHostSize)))
+          break;
+    }
+    mFrameTime = mFrameTime < mHostSize ? mFrameTime : mFrameTime - mHostSize;
+  }
 
   index hostSize() const noexcept { return mHostSize; }
   void  hostSize(index size) noexcept
@@ -163,9 +184,12 @@ public:
     assert(mBufferedProcess.channelsOut() ==
            asSigned(output.size() + Normalise));
 
-    FFTParams fftParams = setup(p, input);
+    FFTParams fftParams = setup(p, input[0].size());
     index     chansIn = mBufferedProcess.channelsIn();
     index     chansOut = mBufferedProcess.channelsOut() - Normalise;
+    
+    mBufferedProcess.push(input);
+    
     mBufferedProcess.process(
         fftParams.winSize(), fftParams.winSize(), fftParams.hopSize(), c,
         [this, &processFunc, chansIn, chansOut](RealMatrixView in,
@@ -206,7 +230,9 @@ public:
     if (!input[0].data()) return;
     assert(mBufferedProcess.channelsIn() == asSigned(input.size()));
     index     chansIn = mBufferedProcess.channelsIn();
-    FFTParams fftParams = setup(p, input);
+    FFTParams fftParams = setup(p, input[0].size());
+
+    mBufferedProcess.push(input);
 
     mBufferedProcess.processInput(
         fftParams.winSize(), fftParams.hopSize(), c,
@@ -217,16 +243,55 @@ public:
         });
   }
 
+
+  template <typename T, typename F>
+  void processOutput(Params& p, std::vector<HostVector<T>>& output,
+                                            FluidContext& c, F&& processFunc)
+  {
+    assert(mBufferedProcess.channelsOut() ==
+           asSigned(output.size() + Normalise));
+    FFTParams fftParams = setup(p, output[0].size());
+    index     chansOut = mBufferedProcess.channelsOut() - Normalise;
+    
+    mBufferedProcess.processOutput(fftParams.winSize(), fftParams.hopSize(), c,
+        [this, &processFunc, chansOut](RealMatrixView out) {
+          for (index i = 0; i < chansOut; ++i)
+          {
+            processFunc(mSpectrumOut(Slice(0, chansOut), Slice(0)));
+            mISTFT->processFrame(mSpectrumOut.row(i), out.row(i));
+          }
+          
+          if (Normalise)
+          {
+            out.row(chansOut) = mSTFT->window();
+            out.row(chansOut).apply(mISTFT->window(),
+                                    [](double& x, double& y) { x *= y; });
+          }
+        });
+
+    RealMatrixView unnormalisedFrame =
+        mFrameAndWindow(Slice(0), Slice(0, output[0].size()));
+    mBufferedProcess.pull(unnormalisedFrame);
+    for (index i = 0; i < chansOut; ++i)
+    {
+      if (Normalise)
+        unnormalisedFrame.row(i).apply(unnormalisedFrame.row(chansOut),
+                                       [](double& x, double g) {
+                                         if (x != 0) { x /= (g > 0) ? g : 1; }
+                                       });
+      if (output[asUnsigned(i)].data())
+        output[asUnsigned(i)] = unnormalisedFrame.row(i);
+    }
+  }
+  
   void reset() { mBufferedProcess.reset(); }
 
 private:
-  template <typename T>
-  FFTParams setup(Params& p, const std::vector<HostVector<T>>& input)
+  FFTParams setup(Params& p, index hostBufferSize)
   {
     FFTParams fftParams = p.template get<FFTParamsIndex>();
     bool      newParams = mTrackValues.changed(
         fftParams.winSize(), fftParams.hopSize(), fftParams.fftSize());
-    index hostBufferSize = input[0].size();
     if (mTrackHostVS.changed(hostBufferSize))
       mBufferedProcess.hostSize(hostBufferSize);
 
@@ -251,10 +316,12 @@ private:
       mFrameAndWindow.resize(
           chansOut,
           std::max(mBufferedProcess.maxWindowSizeIn(), hostBufferSize));
-
-    mBufferedProcess.push(input);
     return fftParams;
   }
+  
+  
+  
+  
 
   ParameterTrackChanges<index, index, index> mTrackValues;
   ParameterTrackChanges<index>               mTrackHostVS;
