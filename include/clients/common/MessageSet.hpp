@@ -25,7 +25,6 @@ struct Message
   decltype(auto) operator()(Client& c, Args... args) const
   {
     return op(c, std::forward<Args>(args)...);
-    //(c.*op)(std::forward<Args>(args)...);
   }
 
   template <typename ArgType, template <size_t, typename> class Func,

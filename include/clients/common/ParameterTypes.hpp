@@ -222,10 +222,6 @@ struct FloatPairsArrayT : ParamTypeBase
   const FloatPairsArrayType defaultValue{0.0, 1.0, 1.0, 1.0};
 };
 
-// My name's the C++ linker, and I'm a bit of a knob (fixed in C++17)
-// constexpr std::initializer_list<std::pair<double, double>>
-// FloatPairsArrayT::defaultValue;
-
 template <bool>
 struct ConstrainMaxFFTSize;
 
