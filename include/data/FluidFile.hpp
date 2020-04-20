@@ -80,7 +80,7 @@ public:
     }
     return false;
   }
-  void add(string key, int value) { mData[key] = value; }
+  //void add(string key, int value) { mData[key] = value; }
 
   void add(string key, index value) { mData[key] = value; }
 
@@ -110,7 +110,7 @@ public:
     mData[key] = std::vector<string>(value.begin(), value.end());
   }
 
-  void get(string key, int &value) { value = mData[key]; }
+  //void get(string key, int &value) { value = mData[key]; }
 
   void get(string key, size_t &value) { value = mData[key]; }
 
