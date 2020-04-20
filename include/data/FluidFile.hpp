@@ -1,6 +1,7 @@
 #pragma once
 
 #include <data/FluidTensor.hpp>
+#include <data/FluidIndex.hpp>
 #include <fstream>
 #include <nlohmann/json.hpp>
 
@@ -81,6 +82,8 @@ public:
   }
   void add(string key, int value) { mData[key] = value; }
 
+  void add(string key, index value) { mData[key] = value; }
+
   void add(string key, size_t value) { mData[key] = value; }
 
   void add(string key, double value) { mData[key] = value; }
@@ -110,6 +113,8 @@ public:
   void get(string key, int &value) { value = mData[key]; }
 
   void get(string key, size_t &value) { value = mData[key]; }
+
+  void get(string key, index &value) { value = mData[key]; }
 
   void get(string key, double &value) { value = mData[key]; }
 

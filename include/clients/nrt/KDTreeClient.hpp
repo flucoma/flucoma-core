@@ -92,7 +92,7 @@ public:
     auto file = FluidFile(fileName, "r");
     if(!file.valid()){return {Result::Status::kError, file.error()};}
     if(!file.read()){return {Result::Status::kError, ReadError};}
-    if(!file.checkKeys({"tree","data","rows","cols"})){
+    if(!file.checkKeys({"tree", "data", "rows", "cols", "ids"})){
       return {Result::Status::kError, file.error()};
     }
     size_t rows, cols;
@@ -101,17 +101,20 @@ public:
     algorithm::KDTree::FlatData treeData(rows, cols);
     file.get("tree", treeData.tree, rows, 2);
     file.get("data", treeData.data, rows, cols);
+    file.get("ids", treeData.ids, rows);
     mTree.fromFlat(treeData);
-    mTree.print();
     return mOKResult;
   }
 
   MessageResult<void> write(string fileName){
     auto file = FluidFile(fileName, "w");
     if(!file.valid()){return {Result::Status::kError, file.error()};}
-    mTree.print();
     algorithm::KDTree::FlatData treeData = mTree.toFlat();
     file.add("tree", treeData.tree);
+    file.add("cols", treeData.data.cols());
+    file.add("rows", treeData.data.rows());
+    file.add("data", treeData.data);
+    file.add("ids", treeData.ids);
     return file.write()? mOKResult:mWriteError;
   }
 

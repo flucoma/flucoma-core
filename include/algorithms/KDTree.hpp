@@ -29,7 +29,7 @@ public:
     FluidTensor<int, 2> tree;
     FluidTensor<string, 1> ids;
     FluidTensor<double, 2> data;
-    FlatData(int n, int m) : tree(n, 2), data(n, m) {}
+    FlatData(int n, int m) : tree(n, 2), data(n, m), ids(n) {}
   };
 
   using knnCandidate = std::pair<double, NodePtr>;
