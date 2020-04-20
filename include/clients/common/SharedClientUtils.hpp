@@ -10,11 +10,11 @@ namespace client {
 template<typename T>
 class SharedClientRef
 {
-  using WeakPointer = std::weak_ptr<const T>;
+  using WeakPointer = std::weak_ptr<T>;
+  
 public:
-  //Basic interface
-  using SharedType = NRTSharedInstanceAdaptor<T>;
-  using Client = T;
+    using SharedType = NRTSharedInstanceAdaptor<std::decay_t<T>>;
+
   SharedClientRef(){}
   SharedClientRef(const char* name):mName{name}{}
   WeakPointer get() { return {SharedType::lookup(mName)}; }
@@ -42,6 +42,10 @@ public:
 private:
   std::string mName;
 };
+
+template <typename T> 
+using ConstSharedClientRef = SharedClientRef<const T>; 
+
 
 }
 }
