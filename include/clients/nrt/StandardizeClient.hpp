@@ -142,7 +142,7 @@ public:
 private:
   MessageResult<void> mOKResult{Result::Status::kOk};
   MessageResult<void> mWriteError{Result::Status::kError, WriteError};
-  mutable algorithm::Standardization mAlgorithm;
+  algorithm::Standardization mAlgorithm;
   size_t mDims;
 };
 

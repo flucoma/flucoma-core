@@ -107,7 +107,7 @@ public:
   );
 
   const LabelSet getLabelSet() const { return mLabelSet; }
-  void setLabelSet(LabelSet ls) const {mLabelSet = ls; }
+  void setLabelSet(LabelSet ls) {mLabelSet = ls; }
 
 
 private:
@@ -119,7 +119,7 @@ private:
   result mDuplicateError{Result::Status::kError,DuplicateError};
   result mOKResult{Result::Status::kOk};
 
-  mutable LabelSet mLabelSet{1};
+  LabelSet mLabelSet{1};
 };
 using LabelSetClientRef = SharedClientRef<LabelSetClient>;
 using NRTThreadedLabelSetClient =

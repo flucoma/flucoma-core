@@ -51,7 +51,7 @@ public:
     mNPoints++;
   }
 
-  DataSet kNearest(const RealVectorView data, int k = 1) {
+  DataSet kNearest(const RealVectorView data, int k = 1) const{
     assert(data.size() == mDims);
     knnQueue queue;
     auto result = DataSet(1);
@@ -73,7 +73,7 @@ public:
   int nPoints() const { return mNPoints; }
   int nDims() const { return mDims; }
 
-  FlatData toFlat() {
+  FlatData toFlat() const{
     FlatData store(mNPoints, mDims);
     flatten(0, mRoot, store);
     return store;
@@ -131,7 +131,7 @@ private:
     return current;
   }
 
-  double distance(RealVector p1, RealVector p2) {
+  double distance(RealVector p1, RealVector p2) const{
     using namespace Eigen;
     ArrayXd v1 = _impl::asEigen<Array>(p1);
     ArrayXd v2 = _impl::asEigen<Array>(p2);
@@ -157,7 +157,7 @@ private:
   }
 
   void kNearest(NodePtr current, const RealVectorView data, knnQueue &knn,
-                const int k, const int depth) {
+                const int k, const int depth) const{
     if (current == nullptr)
       return;
     const RealVector point{data};
@@ -185,7 +185,7 @@ private:
     }
   }
 
-  int flatten(int nodeId, NodePtr current, FlatData &store) {
+  int flatten(int nodeId, NodePtr current, FlatData &store) const{
     if (current == nullptr) {
       return nodeId;
     }

@@ -62,7 +62,7 @@ public:
 
   void setMin(double min) { mMin = min; }
   void setMax(double max) { mMax = max; }
-  bool initialized() { return mInitialized; }
+  bool initialized() const{ return mInitialized; }
 
   void getDataMin(RealVectorView out){
     using namespace _impl;

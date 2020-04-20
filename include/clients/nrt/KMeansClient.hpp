@@ -205,7 +205,7 @@ public:
 private:
   MessageResult<void> mOKResult{Result::Status::kOk};
   MessageResult<void> mWriteError{Result::Status::kError, WriteError};
-  mutable algorithm::KMeans mModel;
+  algorithm::KMeans mModel;
   size_t mDims;
   size_t mK;
 };

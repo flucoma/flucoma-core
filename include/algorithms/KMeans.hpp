@@ -20,7 +20,7 @@ public:
     mTrained = false;
   }
 
-  bool trained(){
+  bool trained() const{
     return mTrained;
   }
 
@@ -56,7 +56,7 @@ public:
     mTrained = true;
   }
 
-  size_t getClusterSize(int cluster){
+  size_t getClusterSize(int cluster) const{
     size_t count = 0;
     for(int i = 0; i < mAssignments.size(); i++){
       if(mAssignments(i) == cluster) count++;
@@ -64,7 +64,7 @@ public:
     return count;
   }
 
-  int vq(RealVectorView point) {
+  int vq(RealVectorView point) const{
     assert(point.size() == mDims);
     return assignPoint(_impl::asEigen<Eigen::Array>(point));
   }
@@ -77,14 +77,14 @@ public:
     mMeans = _impl::asEigen<Eigen::Array>(means);
   }
 
-  int getDims(){
+  int getDims() const{
     return mDims;
   }
-  int getK(){
+  int getK() const{
     return mK;
   }
 
-  int nAssigned(){
+  int nAssigned() const{
     return mAssignments.size();
   }
 
@@ -92,11 +92,11 @@ public:
     out = _impl::asFluid(mAssignments);
   }
 private:
-  double distance(Eigen::ArrayXd v1, Eigen::ArrayXd v2) {
+  double distance(Eigen::ArrayXd v1, Eigen::ArrayXd v2) const{
     return (v1 - v2).matrix().norm();
   }
 
-  int assignPoint(Eigen::ArrayXd point) {
+  int assignPoint(Eigen::ArrayXd point) const{
     double minDistance = std::numeric_limits<double>::infinity();
     int minK;
     for (int k = 0; k < mK; k++) {
@@ -109,7 +109,7 @@ private:
     return minK;
   }
 
-  Eigen::VectorXi assignClusters(Eigen::ArrayXXd dataPoints) {
+  Eigen::VectorXi assignClusters(Eigen::ArrayXXd dataPoints) const{
     Eigen::VectorXi assignments = Eigen::VectorXi::Zero(dataPoints.rows());
     for (int i = 0; i < dataPoints.rows(); i++) {
       assignments(i) = assignPoint(dataPoints.row(i));
@@ -141,7 +141,7 @@ private:
     }
   }
 
-  bool changed(Eigen::VectorXi newAssignments) {
+  bool changed(Eigen::VectorXi newAssignments) const{
     auto dif = (newAssignments - mAssignments).cwiseAbs().sum();
     return dif > 0;
   }

@@ -41,8 +41,7 @@ public:
     return true;
   }
 
-
-  bool get(idType id, FluidTensorView<dataType, N> point) {
+  bool get(idType id, FluidTensorView<dataType, N> point) const {
     auto pos = mIndex.find(id);
     if (pos == mIndex.end())
       return false;

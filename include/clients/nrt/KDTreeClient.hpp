@@ -86,8 +86,6 @@ public:
     return result;
   }
 
-
-
   MessageResult<void> read(string fileName) {
     auto file = FluidFile(fileName, "r");
     if(!file.valid()){return {Result::Status::kError, file.error()};}
@@ -130,7 +128,7 @@ public:
 private:
   MessageResult<void> mOKResult{Result::Status::kOk};
   MessageResult<void> mWriteError{Result::Status::kError, WriteError};
-  mutable algorithm::KDTree mTree{1};
+  algorithm::KDTree mTree{1};
 };
 
 using NRTThreadedKDTreeClient =

@@ -36,7 +36,7 @@ public:
 
   KNNClient(ParamSetViewType &p) : mParams(p) {}
 
-  MessageResult<std::string> index(DataSetClientRef datasetClient) const {
+  MessageResult<std::string> index(DataSetClientRef datasetClient) {
     auto datasetWeakPtr = datasetClient.get();
     if (auto datasetClientPtr = datasetWeakPtr.lock()) {
       auto dataset = datasetClientPtr->getDataSet();
@@ -90,7 +90,7 @@ public:
                        makeMessage("regressPoint", &KNNClient::regress));
 
 private:
-  mutable algorithm::KDTree mTree{0};
+  algorithm::KDTree mTree{0};
 };
 
 using NRTThreadedKNNClient = NRTThreadingAdaptor<ClientWrapper<KNNClient>>;

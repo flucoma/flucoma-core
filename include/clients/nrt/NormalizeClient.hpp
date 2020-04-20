@@ -54,7 +54,7 @@ public:
   MessageResult<int> cols() { return mDims;}
 
   MessageResult<void> normalize(DataSetClientRef sourceClient,
-                            DataSetClientRef destClient) const {
+                            DataSetClientRef destClient) {
     using namespace std;
     auto srcPtr = sourceClient.get().lock();
     auto destPtr = destClient.get().lock();
@@ -76,7 +76,7 @@ public:
     return {};
   }
 
-  MessageResult<void> normalizePoint(BufferPtr in, BufferPtr out) const {
+  MessageResult<void> normalizePoint(BufferPtr in, BufferPtr out) {
     if (!in || !out)
       return {Result::Status::kError, NoBufferError};
     BufferAdaptor::Access inBuf(in.get());
@@ -143,7 +143,7 @@ public:
 private:
   MessageResult<void> mOKResult{Result::Status::kOk};
   MessageResult<void> mWriteError{Result::Status::kError, WriteError};
-  mutable algorithm::Normalization mAlgorithm;
+  algorithm::Normalization mAlgorithm;
   size_t mDims{0};
 };
 

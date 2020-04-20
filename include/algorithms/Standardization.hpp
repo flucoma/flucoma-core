@@ -32,7 +32,7 @@ public:
     mInitialized = true;
   }
 
-  void processFrame(const RealVectorView in, RealVectorView out) {
+  void processFrame(const RealVectorView in, RealVectorView out) const{
     using namespace Eigen;
     using namespace _impl;
     ArrayXd input = asEigen<Array>(in);
@@ -40,7 +40,7 @@ public:
     out = asFluid(result);
   }
 
-  void process(const RealMatrixView in, RealMatrixView out) {
+  void process(const RealMatrixView in, RealMatrixView out) const{
     using namespace Eigen;
     using namespace _impl;
     ArrayXXd input = asEigen<Array>(in);
@@ -49,7 +49,7 @@ public:
     out = asFluid(result);
   }
 
-  bool initialized() { return mInitialized; }
+  bool initialized() const{ return mInitialized; }
 
   void getMean(RealVectorView out) { out = _impl::asFluid(mMean); }
 
