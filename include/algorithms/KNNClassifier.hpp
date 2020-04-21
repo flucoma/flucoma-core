@@ -15,7 +15,7 @@ class KNNClassifier {
 public:
   using LabelSet = FluidDataSet<std::string, std::string, 1>;
 
-  std::string predict(KDTree tree, RealVectorView point, LabelSet labels, int k){
+  std::string predict(KDTree tree, RealVectorView point, LabelSet labels, int k) const{
     using namespace std;
     unordered_map<string, int> labelsMap;
     auto nearest = tree.kNearest(point, k);

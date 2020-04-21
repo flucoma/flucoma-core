@@ -31,7 +31,7 @@ public:
       : mIterations(nIterations){}
 
   static void synthesize(const RealMatrixView h, const ComplexMatrixView w,
-                       ComplexMatrixView out) {
+                       ComplexMatrixView out){
     using namespace Eigen;
     using namespace _impl;
     //double const epsilon = std::numeric_limits<double>::epsilon();
@@ -46,7 +46,7 @@ public:
   }
 
   void process(const RealMatrixView X, RealMatrixView H1,
-               RealMatrixView W0, size_t r, size_t p) {
+               RealMatrixView W0, size_t r, size_t p) const{
     //double const epsilon = std::numeric_limits<double>::epsilon();
     int nFrames = X.extent(0);
     int nBins = X.extent(1);
@@ -71,7 +71,7 @@ private:
   int mIterations;
   std::vector<ProgressCallback> mCallbacks;
 
-  std::vector<int> topC(Eigen::VectorXd vec, int c){
+  std::vector<int> topC(Eigen::VectorXd vec, int c) const{
     using namespace std;
     vector<double> stdVec(vec.data(), vec.data()+vec.size());
     sort(stdVec.begin(), stdVec.end());
@@ -85,7 +85,7 @@ private:
 
 
 
-  void multiplicativeUpdates(MatrixXd &V, MatrixXd &W, MatrixXd &H, size_t r, size_t p) {
+  void multiplicativeUpdates(MatrixXd &V, MatrixXd &W, MatrixXd &H, size_t r, size_t p) const{
     using namespace std;
     using namespace Eigen;
     double const epsilon = std::numeric_limits<double>::epsilon();

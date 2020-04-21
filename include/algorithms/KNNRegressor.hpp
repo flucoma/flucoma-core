@@ -16,7 +16,7 @@ class KNNRegressor {
 public:
 
   using DataSet = FluidDataSet<std::string, double, 1>;
-  double predict(KDTree tree, DataSet targets, RealVectorView point, int k){
+  double predict(KDTree tree, DataSet targets, RealVectorView point, int k) const{
     using namespace std;
     auto nearest = tree.kNearest(point, k);
     double prediction = 0;

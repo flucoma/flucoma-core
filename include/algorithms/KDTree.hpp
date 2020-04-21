@@ -111,7 +111,7 @@ private:
     return current;
   }
 
-  NodePtr makeNode(const string id, const RealVectorView data) {
+  NodePtr makeNode(const string id, const RealVectorView data) const{
     const RealVector point{data};
     return std::make_shared<Node>(Node{id, point, nullptr, nullptr});
   }
@@ -210,7 +210,7 @@ private:
     return nextNodeId;
   }
 
-  NodePtr unflatten(FlatData &store, int index) {
+  NodePtr unflatten(FlatData &store, int index) const{
     if(index == -1) return nullptr;
     NodePtr current = makeNode(store.ids[index], store.data[index]);
     current->left = unflatten(store, store.tree(index, 0));

@@ -41,7 +41,7 @@ public:
     mInitialized = true;
   }
 
-  void processFrame(const RealVectorView in, RealVectorView out) {
+  void processFrame(const RealVectorView in, RealVectorView out) const{
     using namespace Eigen;
     using namespace _impl;
     ArrayXd input = asEigen<Array>(in);
@@ -50,7 +50,7 @@ public:
     out = asFluid(result);
   }
 
-  void process(const RealMatrixView in, RealMatrixView out) {
+  void process(const RealMatrixView in, RealMatrixView out) const{
     using namespace Eigen;
     using namespace _impl;
     ArrayXXd input = asEigen<Array>(in);
@@ -64,12 +64,12 @@ public:
   void setMax(double max) { mMax = max; }
   bool initialized() const{ return mInitialized; }
 
-  void getDataMin(RealVectorView out){
+  void getDataMin(RealVectorView out) const{
     using namespace _impl;
     out = asFluid(mDataMin);
   }
 
-  void getDataMax(RealVectorView out){
+  void getDataMax(RealVectorView out) const{
     using namespace _impl;
     out = asFluid(mDataMax);
   }

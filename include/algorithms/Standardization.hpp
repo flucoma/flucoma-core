@@ -51,9 +51,9 @@ public:
 
   bool initialized() const{ return mInitialized; }
 
-  void getMean(RealVectorView out) { out = _impl::asFluid(mMean); }
+  void getMean(RealVectorView out) const{ out = _impl::asFluid(mMean); }
 
-  void getStd(RealVectorView out) { out = _impl::asFluid(mStd); }
+  void getStd(RealVectorView out) const{ out = _impl::asFluid(mStd); }
 
   ArrayXd mMean;
   ArrayXd mStd;

@@ -20,9 +20,7 @@ public:
     mTrained = false;
   }
 
-  bool trained() const{
-    return mTrained;
-  }
+  bool trained() const { return mTrained; }
 
   void train(const FluidDataSet<std::string, double, 1> &dataset, int maxIter,
              RealMatrixView initialMeans = RealMatrixView(nullptr, 0, 0, 0)) {
@@ -37,11 +35,11 @@ public:
       mMeans = asEigen<Array>(initialMeans);
       mAssignments = assignClusters(dataPoints);
     } else {
-      mAssignments = ((0.5 + (0.5 * ArrayXf::Random(dataPoints.rows()))) * (mK - 1))
-                         .round()
-                         .cast<int>();
+      mAssignments =
+          ((0.5 + (0.5 * ArrayXf::Random(dataPoints.rows()))) * (mK - 1))
+              .round()
+              .cast<int>();
       mMeans = ArrayXXd::Zero(mK, mDims);
-
     }
 
     while (maxIter-- > 0) {
@@ -56,47 +54,44 @@ public:
     mTrained = true;
   }
 
-  size_t getClusterSize(int cluster) const{
+  size_t getClusterSize(int cluster) const {
     size_t count = 0;
-    for(int i = 0; i < mAssignments.size(); i++){
-      if(mAssignments(i) == cluster) count++;
+    for (int i = 0; i < mAssignments.size(); i++) {
+      if (mAssignments(i) == cluster)
+        count++;
     }
     return count;
   }
 
-  int vq(RealVectorView point) const{
+  int vq(RealVectorView point) const {
     assert(point.size() == mDims);
     return assignPoint(_impl::asEigen<Eigen::Array>(point));
   }
 
-  void getMeans(RealMatrixView out){
-    if(mTrained) out = _impl::asFluid(mMeans);
+  void getMeans(RealMatrixView out) const {
+    if (mTrained)
+      out = _impl::asFluid(mMeans);
   }
 
-  void setMeans(RealMatrixView means){
+  void setMeans(RealMatrixView means) {
     mMeans = _impl::asEigen<Eigen::Array>(means);
   }
 
-  int getDims() const{
-    return mDims;
-  }
-  int getK() const{
-    return mK;
-  }
+  int getDims() const { return mDims; }
+  int getK() const { return mK; }
 
-  int nAssigned() const{
-    return mAssignments.size();
-  }
+  int nAssigned() const { return mAssignments.size(); }
 
-  void getAssignments(FluidTensorView<int, 1> out){
+  void getAssignments(FluidTensorView<int, 1> out) const {
     out = _impl::asFluid(mAssignments);
   }
+
 private:
-  double distance(Eigen::ArrayXd v1, Eigen::ArrayXd v2) const{
+  double distance(Eigen::ArrayXd v1, Eigen::ArrayXd v2) const {
     return (v1 - v2).matrix().norm();
   }
 
-  int assignPoint(Eigen::ArrayXd point) const{
+  int assignPoint(Eigen::ArrayXd point) const {
     double minDistance = std::numeric_limits<double>::infinity();
     int minK;
     for (int k = 0; k < mK; k++) {
@@ -109,7 +104,7 @@ private:
     return minK;
   }
 
-  Eigen::VectorXi assignClusters(Eigen::ArrayXXd dataPoints) const{
+  Eigen::VectorXi assignClusters(Eigen::ArrayXXd dataPoints) const {
     Eigen::VectorXi assignments = Eigen::VectorXi::Zero(dataPoints.rows());
     for (int i = 0; i < dataPoints.rows(); i++) {
       assignments(i) = assignPoint(dataPoints.row(i));
@@ -120,15 +115,15 @@ private:
   void computeMeans(Eigen::ArrayXXd dataPoints) {
     using namespace Eigen;
     for (int k = 0; k < mK; k++) {
-      if(mEmpty[k]) continue;
+      if (mEmpty[k])
+        continue;
       std::vector<int> kAssignment;
       for (int i = 0; i < mAssignments.size(); i++) {
         if (mAssignments(i) == k)
           kAssignment.push_back(i);
       }
-      if (kAssignment.size() == 0)
-      {
-        std::cout<<"Warning: empty cluster"<<std::endl;
+      if (kAssignment.size() == 0) {
+        std::cout << "Warning: empty cluster" << std::endl;
         mEmpty[k] = true;
         return;
       }
@@ -141,7 +136,7 @@ private:
     }
   }
 
-  bool changed(Eigen::VectorXi newAssignments) const{
+  bool changed(Eigen::VectorXi newAssignments) const {
     auto dif = (newAssignments - mAssignments).cwiseAbs().sum();
     return dif > 0;
   }
