@@ -41,11 +41,12 @@ public:
     //mModel.init(mK, mDims);
   }
 
-  MessageResult<FluidTensor<intptr_t, 1>> train(DataSetClientRef datasetClient, int k, int maxIter = 100, BufferPtr init = nullptr) {
+  MessageResult<FluidTensor<intptr_t, 1>> train(DataSetClientRef datasetClient, int k, int maxIter, BufferPtr init = nullptr) {
     auto weakPtr = datasetClient.get();
     FluidTensor<intptr_t, 1> counts(k);
     counts.fill(0);
     if(k <= 1) return {Result::Status::kError,"K should be at least 2"};
+    if(maxIter <=0) maxIter = 100;
     if(auto datasetClientPtr = weakPtr.lock())
     {
       auto dataSet = datasetClientPtr->getDataSet();
