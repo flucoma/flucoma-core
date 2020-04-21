@@ -13,10 +13,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include <Eigen/Core>
 #include <algorithm>
 
-/**
- Utility functions for converting between FluidTensorView and Eigen wrappers
- around raw poiniters
- **/
+
+/// converting between FluidTensorView and Eigen wrappers around raw poiniters
 
 namespace fluid {
 namespace algorithm {
@@ -31,9 +29,8 @@ using Eigen::ColMajor;
 using Eigen::Dynamic;
 using Eigen::RowMajor;
 
-/**
- Convert an Eigen Matrix or Array to a FluidTensorView
- **/
+
+/// Eigen Matrix<T>/Array<T> -> FluidTensorView<T>
 template <typename Derived>
 auto asFluid(PlainObjectBase<Derived>& a)
     -> FluidTensorView<typename PlainObjectBase<Derived>::Scalar,
@@ -44,12 +41,10 @@ auto asFluid(PlainObjectBase<Derived>& a)
 
   if (N == 2)
   {
-    if (a.Options == static_cast<int>(ColMajor))
+    if (a.Options == ColMajor)
     {
       // Respect the colmajorness of an eigen type
-      auto slice = FluidTensorSlice<N>(
-          0, {a.rows(), a.cols()},
-          {1, a.rows()});
+      auto slice = FluidTensorSlice<N>(0, {a.rows(), a.cols()}, {1, a.rows()});
       return {slice, a.data()};
     }
     return {a.data(), 0, a.rows(), a.cols()};
@@ -58,13 +53,37 @@ auto asFluid(PlainObjectBase<Derived>& a)
     return {a.data(), 0, a.rows()};
 }
 
-/**
- Convert an lvalue FluidTensorView to an Eigen Matrix or Array map (you need to
-say which as a template parmeter, e.g. makeWrapper<Matrix>(myView)
-**/
+/// const Eigen::Matrix/Array -> FluidTensorView<const T>
+template <typename Derived>
+auto asFluid(const PlainObjectBase<Derived>& a)
+    -> FluidTensorView<const typename PlainObjectBase<Derived>::Scalar,
+                       (PlainObjectBase<Derived>::IsVectorAtCompileTime ? 1
+                                                                        : 2)>
+{
+  constexpr size_t N = PlainObjectBase<Derived>::IsVectorAtCompileTime ? 1 : 2;
+
+  if (N == 2)
+  {
+    if (a.Options == ColMajor)
+    {
+      // Respect the colmajorness of an eigen type
+      auto slice = FluidTensorSlice<N>(0, {a.rows(), a.cols()}, {1, a.rows()});
+      return {slice, a.data()};
+    }
+    return {a.data(), 0, a.rows(), a.cols()};
+  }
+  else
+    return {a.data(), 0, a.rows()};
+}
+
+
+
+/// lvalue FluidTensor<T> / FluidTensorView<T> -> Matrix/Array<T> (say which as template param)
+/// e.g. asEigen<Matrix>(myView)
+
 template <template <typename, int, int, int, int, int> class EigenType,
-          typename T, size_t N, template <typename, size_t> class F>
-auto asEigen(F<T, N>& a)
+          typename T, size_t N>
+auto asEigen(FluidTensor<T, N>& a)
     -> Map<EigenType<T, Dynamic, Dynamic, RowMajor, Dynamic, Dynamic>,
            Eigen::AlignmentType::Unaligned, Stride<Dynamic, Dynamic>>
 {
@@ -85,14 +104,10 @@ auto asEigen(F<T, N>& a)
   }
 }
 
-/**
- Convert an const lvalue FluidTensorView to a const Eigen Matrix or Array map
- (you need to say which as a template parmeter, e.g.
- makeWrapper<Matrix>(myConstView)
- **/
+/// lvalue const FluidTensor<T> -> const Matrix<T>/ const Array<T>
 template <template <typename, int, int, int, int, int> class EigenType,
-          typename T, size_t N, template <typename, size_t> class F>
-auto asEigen(const F<T, N>& a)
+          typename T, size_t N>
+auto asEigen(const FluidTensor<T, N>& a)
     -> Map<const EigenType<T, Dynamic, Dynamic, RowMajor, Dynamic, Dynamic>,
            Eigen::AlignmentType::Unaligned, Stride<Dynamic, Dynamic>>
 {
@@ -113,13 +128,61 @@ auto asEigen(const F<T, N>& a)
   }
 }
 
-/**
- Convert an rvalue FluidTensorView to a Eigen Matrix or Array map (you need to
- say which as a template parmeter, e.g. makeWrapper<Matrix>(myView.row(0))
- **/
+
+/// lvalue FluidTensorView<T> ->  Matrix / Array
 template <template <typename, int, int, int, int, int> class EigenType,
           typename T, size_t N>
-auto asEigen(FluidTensorView<T, N>&&
+auto asEigen(const FluidTensorView<T, N>& a)
+    -> Map<EigenType<std::decay_t<T>, Dynamic, Dynamic, RowMajor, Dynamic,
+                           Dynamic>,
+           Eigen::AlignmentType::Unaligned, Stride<Dynamic, Dynamic>>
+{
+  static_assert(N < 3,
+                "Can't convert to Eigen types with more than two dimensions");
+
+  if (N == 2)
+  {
+    return {a.data(), static_cast<Eigen::Index>(a.rows()),
+            static_cast<Eigen::Index>(a.cols()),
+            Stride<Dynamic, Dynamic>(a.descriptor().strides[0],
+                                     a.descriptor().strides[1])};
+  }
+  else
+  {
+    return {a.data(), static_cast<Eigen::Index>(a.rows()), 1,
+            Stride<Dynamic, Dynamic>(a.descriptor().strides[0], 1)};
+  }
+}
+
+/// lvalue FluidTensorView<const T> ->  const Matrix / Array
+template <template <typename, int, int, int, int, int> class EigenType,
+          typename T, size_t N>
+auto asEigen(const FluidTensorView<const T, N>& a)
+    -> Map<const EigenType<std::decay_t<T>, Dynamic, Dynamic, RowMajor, Dynamic,
+                           Dynamic>,
+           Eigen::AlignmentType::Unaligned, Stride<Dynamic, Dynamic>>
+{
+  static_assert(N < 3,
+                "Can't convert to Eigen types with more than two dimensions");
+
+  if (N == 2)
+  {
+    return {a.data(), static_cast<Eigen::Index>(a.rows()),
+            static_cast<Eigen::Index>(a.cols()),
+            Stride<Dynamic, Dynamic>(a.descriptor().strides[0],
+                                     a.descriptor().strides[1])};
+  }
+  else
+  {
+    return {a.data(), static_cast<Eigen::Index>(a.rows()), 1,
+            Stride<Dynamic, Dynamic>(a.descriptor().strides[0], 1)};
+  }
+}
+
+/// rvalue FluidTensorView<T> ->  Matrix / Array
+template <template <typename, int, int, int, int, int> class EigenType,
+          typename T, size_t N>
+auto asEigen(const FluidTensorView<T, N>&&
                  a) // restrict this to FluidTensorView because
                     // passing in an rvalue FluidTensor would be silly
     -> Map<EigenType<T, Dynamic, Dynamic, RowMajor, Dynamic, Dynamic>,
@@ -128,14 +191,10 @@ auto asEigen(FluidTensorView<T, N>&&
   return asEigen<EigenType>(a);
 }
 
-/**
- Convert a const rvalue FluidTensorView to a const Eigen Matrix or Array map
- (you need to say which as a template parmeter, e.g.
- makeWrapper<Matrix>(myCOnstView.row(0))
- **/
+/// rvalue FluidTensorView<const T> ->  const Matrix / Array
 template <template <typename, int, int, int, int, int> class EigenType,
           typename T, size_t N>
-auto asEigen(const FluidTensorView<T, N>&&
+auto asEigen(const FluidTensorView<const T, N>&&
                  a) // restrict this to FluidTensorView because passing in an
                     // rvalue FluidTensor would be silly
     -> Map<const EigenType<T, Dynamic, Dynamic, RowMajor, Dynamic, Dynamic>,
@@ -143,6 +202,8 @@ auto asEigen(const FluidTensorView<T, N>&&
 {
   return asEigen<EigenType>(a);
 }
+
+
 } // namespace _impl
 } // namespace algorithm
 } // namespace fluid
