@@ -51,6 +51,7 @@ public:
     algorithm::KNNClassifier classifier;
     if (!data)
       return {Result::Status::kError, NoBufferError};
+    if(k == 0) return {Result::Status::kError, "K shoud be at least 1"};
     if(mTree.nPoints() == 0)return {Result::Status::kError, "No index"};
     if (mTree.nPoints() < k)return {Result::Status::kError, "Not enough data in index"};
     auto labelsetPtr = labelsetClient.get().lock();
@@ -69,6 +70,7 @@ public:
     algorithm::KNNRegressor regressor;
     if (!data)
       return {Result::Status::kError, NoBufferError};
+    if(k == 0) return {Result::Status::kError, "K shoud be at least 1"};
     if(mTree.nPoints() == 0)return {Result::Status::kError, "No index"};
     else if (mTree.nPoints() < k)return {Result::Status::kError, "Not enough data in index"};
     auto tgtPtr = targetDataSetClient.get().lock();
