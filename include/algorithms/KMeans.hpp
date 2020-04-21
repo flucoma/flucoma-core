@@ -39,7 +39,7 @@ public:
       mAssignments =
           ((0.5 + (0.5 * ArrayXf::Random(dataPoints.rows()))) * (mK - 1))
               .round()
-              .cast<index>();
+              .cast<int>();
       mMeans = ArrayXXd::Zero(mK, mDims);
     }
 
