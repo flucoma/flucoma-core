@@ -13,6 +13,7 @@
 #include <data/FluidTensor.hpp>
 #include <data/TensorTypes.hpp>
 #include <data/FluidFile.hpp>
+#include <data/FluidIndex.hpp>
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <string>
@@ -61,7 +62,7 @@ public:
     return mLabelSet.remove(id) ? mOKResult : mNotFoundError;
   }
 
-  MessageResult<int> size() {
+  MessageResult<index> size() {
     return mLabelSet.size();
   }
 

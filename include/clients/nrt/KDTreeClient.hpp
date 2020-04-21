@@ -4,7 +4,7 @@
 #include "DataSetErrorStrings.hpp"
 #include "algorithms/KDTree.hpp"
 #include "data/FluidDataSet.hpp"
-
+#include "data/FluidIndex.hpp"
 #include <clients/common/FluidBaseClient.hpp>
 #include <clients/common/MessageSet.hpp>
 #include <clients/common/OfflineClient.hpp>
@@ -45,7 +45,7 @@ public:
     return {Result::Status::kOk};
   }
 
-  MessageResult<int> cols(){return mTree.nDims();}
+  MessageResult<fluid::index> cols(){return mTree.nDims();}
 
   MessageResult<FluidTensor<std::string, 1>> kNearest(BufferPtr data, int k) const {
     if (!data)

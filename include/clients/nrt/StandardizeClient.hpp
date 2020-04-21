@@ -15,6 +15,7 @@
 #include <data/FluidFile.hpp>
 #include <data/FluidTensor.hpp>
 #include <data/TensorTypes.hpp>
+#include <data/FluidIndex.hpp>
 #include <nlohmann/json.hpp>
 #include <string>
 
@@ -49,7 +50,7 @@ public:
     return {};
   }
 
-  MessageResult<int> cols() { return mDims;}
+  MessageResult<index> cols() { return mDims;}
 
   MessageResult<void> standardize(DataSetClientRef sourceClient,
                             DataSetClientRef destClient) const {

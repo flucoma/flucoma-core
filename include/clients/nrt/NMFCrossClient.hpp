@@ -8,6 +8,7 @@
 #include "clients/common/ParameterTrackChanges.hpp"
 #include "algorithms/NMFCross.hpp"
 #include "algorithms/GriffinLim.hpp"
+#include "data/FluidIndex.hpp"
 
 namespace fluid {
 namespace client {
@@ -91,7 +92,7 @@ public:
     tgtTmp = target.samps(0, tgtFrames, 0);
     stft.process(tgtTmp, tgtSpectrum);
     STFT::magnitude(tgtSpectrum, tgtMag);
-    int rank = W.rows();
+    index rank = W.rows();
     auto outputEnvelopes = FluidTensor<double, 2>(tgtWindows, rank);
     auto result = FluidTensor<std::complex<double>,2>(tgtWindows,nBins);
     auto final = FluidTensor<std::complex<double>,2>(tgtWindows,nBins);

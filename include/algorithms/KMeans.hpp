@@ -83,7 +83,7 @@ public:
 
   index nAssigned() const { return mAssignments.size(); }
 
-  void getAssignments(FluidTensorView<int, 1> out) const {
+  void getAssignments(FluidTensorView<index, 1> out) const {
     out = _impl::asFluid(mAssignments);
   }
 

@@ -16,6 +16,7 @@
 #include <clients/common/FluidNRTClientWrapper.hpp>
 #include <data/FluidTensor.hpp>
 #include <data/TensorTypes.hpp>
+#include <data/FluidIndex.hpp>
 #include <string>
 
 namespace fluid {
@@ -47,7 +48,7 @@ public:
     return {};
   }
 
-  MessageResult<std::string> classify(BufferPtr data, LabelSetClientRef labelsetClient, int k) const {
+  MessageResult<std::string> classify(BufferPtr data, LabelSetClientRef labelsetClient, fluid::index k) const {
     algorithm::KNNClassifier classifier;
     if (!data)
       return {Result::Status::kError, NoBufferError};
@@ -66,7 +67,7 @@ public:
     return result;
   }
 
-  MessageResult<double> regress(BufferPtr data, DataSetClientRef targetDataSetClient, int k) const {
+  MessageResult<double> regress(BufferPtr data, DataSetClientRef targetDataSetClient, fluid::index k) const {
     algorithm::KNNRegressor regressor;
     if (!data)
       return {Result::Status::kError, NoBufferError};

@@ -12,6 +12,7 @@
 #include <clients/common/Result.hpp>
 #include <data/FluidFile.hpp>
 #include <data/FluidTensor.hpp>
+#include <data/FluidIndex.hpp>
 #include <data/TensorTypes.hpp>
 #include <fstream>
 #include <nlohmann/json.hpp>
@@ -85,8 +86,8 @@ public:
     return mDataSet.remove(id) ? mOKResult : mNotFoundError;
   }
 
-  MessageResult<int> size() { return mDataSet.size(); }
-  MessageResult<int> cols() { return mDataSet.pointSize(); }
+  MessageResult<index> size() { return mDataSet.size(); }
+  MessageResult<index> cols() { return mDataSet.pointSize(); }
 
   MessageResult<void> clear() {
     mDataSet = DataSet(0);

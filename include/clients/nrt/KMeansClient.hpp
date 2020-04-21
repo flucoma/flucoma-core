@@ -15,6 +15,7 @@
 #include <clients/common/FluidNRTClientWrapper.hpp>
 #include <data/FluidTensor.hpp>
 #include <data/TensorTypes.hpp>
+#include <data/FluidIndex.hpp>
 #include <string>
 #include <nlohmann/json.hpp>
 #include <data/FluidTensor.hpp>
@@ -41,9 +42,9 @@ public:
     //mModel.init(mK, mDims);
   }
 
-  MessageResult<FluidTensor<intptr_t, 1>> train(DataSetClientRef datasetClient, int k, int maxIter, BufferPtr init = nullptr) {
+  MessageResult<FluidTensor<index, 1>> train(DataSetClientRef datasetClient, index k, index maxIter, BufferPtr init = nullptr) {
     auto weakPtr = datasetClient.get();
-    FluidTensor<intptr_t, 1> counts(k);
+    FluidTensor<index, 1> counts(k);
     counts.fill(0);
     if(k <= 1) return {Result::Status::kError,"K should be at least 2"};
     if(maxIter <=0) maxIter = 100;
@@ -73,7 +74,7 @@ public:
       }
       //(const FluidDataSet<std::string, double, std::string, 1> &dataset, int maxIter,
       //           RealMatrixView initialMeans = RealMatrixView(nullptr, 0, 0, 0))
-      FluidTensor<int, 1> assignments(dataSet.size());
+      FluidTensor<index, 1> assignments(dataSet.size());
       mModel.getAssignments(assignments);
       for(auto a : assignments){
         counts[a]++;
@@ -99,7 +100,7 @@ public:
       if (dataSet.size() == 0) return {Result::Status::kError, EmptyDataSetError};
       if (dataSet.size() != mModel.nAssigned()) return {Result::Status::kError, "Wrong number of points"};
       auto ids = dataSet.getIds();
-      FluidTensor<int, 1> assignments(dataSet.size());
+      FluidTensor<index, 1> assignments(dataSet.size());
       mModel.getAssignments(assignments);
       FluidDataSet<string, string, 1> result(1);
       for(int i = 0; i < ids.size(); i++){
@@ -132,13 +133,13 @@ public:
     return mModel.vq(point);
   }
 
-  MessageResult<FluidTensor<intptr_t, 1>> predict(DataSetClientRef datasetClient, LabelSetClientRef labelClient) const {
+  MessageResult<FluidTensor<index, 1>> predict(DataSetClientRef datasetClient, LabelSetClientRef labelClient) const {
     auto dataPtr = datasetClient.get().lock();
     auto labelPtr = labelClient.get().lock();
     if(!mModel.trained()){
       return {Result::Status::kError, "No data fitted"};
     }
-    FluidTensor<intptr_t, 1> counts(mModel.getK());
+    FluidTensor<index, 1> counts(mModel.getK());
     counts.fill(0);
     if(dataPtr && labelPtr)
     {

@@ -6,7 +6,7 @@
 #include <clients/common/ParameterSet.hpp>
 #include <data/FluidTensor.hpp>
 #include <data/TensorTypes.hpp>
-
+#include <data/FluidIndex.hpp>
 #include <string>
 #include <functional>
 #include <unordered_map>
@@ -21,25 +21,25 @@ class ParamAliasAdaptor<NRTClient, std::tuple<Ts...>>
 {
   using WrappedClient = ClientWrapper<NRTClient>;
   using ParamSetType = typename WrappedClient::ParamSetType;
-  
+
   using ListenerEntry = std::pair<std::function<void()>,void*>;
   using ListenerList  = std::vector<ListenerEntry>;
   using ListenersArray = std::array<ListenerList,sizeof...(Ts)>;
-  
+
   struct ListeningParams: public std::enable_shared_from_this<ListeningParams>
   {
     using std::enable_shared_from_this<ListeningParams>::shared_from_this;
-    
+
     ParamSetType   params{ClientWrapper<NRTClient>::getParameterDescriptors()};
     ListenersArray listeners;
-    
+
     std::shared_ptr<ListeningParams> getShared() { return shared_from_this(); };
   };
 
   using ParamsPointer = std::shared_ptr<ListeningParams>;
   using ParamsWeakPointer = std::weak_ptr<ListeningParams>;
   using LookupTable = std::unordered_map<std::string,ParamsWeakPointer>;
-  
+
   template <size_t N>
   using ParamType = typename WrappedClient::ParamDescType::template ParamType<N>;
 
@@ -92,30 +92,30 @@ public:
       return {};
     } else return{Result::Status::kWarning, name, " not found" };
   }
-  
+
   template <template <size_t N, typename T> class Func, typename... Args>
   std::array<Result, sizeof...(Ts)> setFixedParameterValues(bool reportage, Args &&... args)
   {
     auto results = mParams->params.template setFixedParameterValues<Func>(reportage, std::forward<Args>(args)...);
-    
+
     std::string name = mParams->params.template get<0>();
-    
+
     if(!name.size())
     {
       results[0].addMessage("Shared object given no name – won't be shared!");
       results[0].set(Result::Status::kWarning);
       return results;
     }
-    
+
     if(!mParamsTable.count(name))//key not already in table
     {
       mParamsTable.emplace(name, mParams);
     }
 
-    refer(name); 
+    refer(name);
 
     return results;
-    
+
   }
 
   template <template <size_t N, typename T> class Func, typename... Args>
@@ -198,7 +198,7 @@ class NRTSharedInstanceAdaptor : public OfflineIn, public OfflineOut
 
 public:
   using WrappedClient = ClientWrapper<NRTClient>;
-  
+
   struct SharedClient: public NRTClient, public std::enable_shared_from_this<SharedClient>
   {
     using std::enable_shared_from_this<SharedClient>::shared_from_this;
@@ -218,12 +218,12 @@ public:
   constexpr static ParamDescType getParameterDescriptors() { return NRTClient::getParameterDescriptors(); }
   constexpr static auto getMessageDescriptors() { return WrappedClient::getMessageDescriptors();}
 
-  size_t audioChannelsIn()    const noexcept { return 0; }
-  size_t audioChannelsOut()   const noexcept { return 0; }
-  size_t controlChannelsIn()  const noexcept { return 0; }
-  size_t controlChannelsOut() const noexcept { return 0; }
-  size_t audioBuffersIn()  const noexcept { return ParamDescType:: template NumOf<InputBufferT>();   }
-  size_t audioBuffersOut() const noexcept { return ParamDescType:: template NumOf<BufferT>();  }
+  index audioChannelsIn()    const noexcept { return 0; }
+  index audioChannelsOut()   const noexcept { return 0; }
+  index controlChannelsIn()  const noexcept { return 0; }
+  index controlChannelsOut() const noexcept { return 0; }
+  index audioBuffersIn()  const noexcept { return ParamDescType:: template NumOf<InputBufferT>();   }
+  index audioBuffersOut() const noexcept { return ParamDescType:: template NumOf<BufferT>();  }
 
   NRTSharedInstanceAdaptor(ParamSetType& p): mParams{p}
   {
@@ -238,19 +238,19 @@ public:
     else
       mClient = mClientTable[name].lock()->shared();
   }
-  
+
   NRTSharedInstanceAdaptor(const NRTSharedInstanceAdaptor& x)
   {
     *this = x;
   }
-  
+
   NRTSharedInstanceAdaptor& operator=(const NRTSharedInstanceAdaptor& x)
   {
     mParams = x.mParams;
-    mClient = x.mClient; 
+    mClient = x.mClient;
     return *this;
   }
-  
+
   ~NRTSharedInstanceAdaptor()
   {
     if(mClient && mClient.use_count() == 1) //is this the last remaining user of this Corpus, except the hash table?
