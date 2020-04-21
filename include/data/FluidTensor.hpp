@@ -671,8 +671,7 @@ public:
     return *this;
   }
 
-  const T* data() const { return mRef + mDesc.start; }
-  pointer  data() { return mRef + mDesc.start; }
+  pointer  data() const { return mRef + mDesc.start; }
 
   const FluidTensorSlice<N> descriptor() const { return mDesc; }
   FluidTensorSlice<N>       descriptor() { return mDesc; }
