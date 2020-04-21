@@ -1,6 +1,7 @@
 #pragma once
 
 #include "algorithms/util/FluidEigenMappings.hpp"
+#include "algorithms/util/AlgorithmUtils.hpp"
 #include "algorithms/public/STFT.hpp"
 #include "data/TensorTypes.hpp"
 #include <Eigen/Core>
@@ -12,26 +13,30 @@ namespace algorithm {
 class GriffinLim {
 
 public:
-  void process(ComplexMatrixView in, int nSamples, int nIter,
-               int winSize, int fftSize, int hopSize) {
+  void process(ComplexMatrixView in, index nSamples, index nIter,
+               index winSize, index fftSize, index hopSize) {
     using namespace Eigen;
     using namespace _impl;
     using namespace std::complex_literals;
+    double momentum = 0.9;
     auto stft = STFT(winSize, fftSize, hopSize);
     auto istft = ISTFT(winSize, fftSize, hopSize);
-    ArrayXXcd spectrogram = asEigen<Array>(in);
     ArrayXd tmp = ArrayXd::Zero(nSamples);
-    ArrayXXcd magnitude = spectrogram.abs();
-    ArrayXXcd phase =  ArrayXXcd::Zero(spectrogram.rows(), spectrogram.cols());
-    ArrayXXcd estimate =  ArrayXXcd::Zero(spectrogram.rows(), spectrogram.cols());
-    for (int i = 0; i < nIter; i++) {
+    ArrayXXcd magnitude = asEigen<Array>(in).abs();
+    ArrayXXcd phase = ArrayXXcd::Random(magnitude.rows(), magnitude.cols()) * 2 * 1i * pi;
+    phase = phase.exp();
+    ArrayXXcd estimate =  ArrayXXcd::Zero(magnitude.rows(), magnitude.cols());
+    ArrayXXcd prev = ArrayXXcd::Zero(magnitude.rows(), magnitude.cols());
+    for (index i = 0; i < nIter; i++) {
+      prev = estimate;
+      ArrayXXcd spectrogram = magnitude * phase;
       istft.process(asFluid(spectrogram), asFluid(tmp));
-      stft.process(asFluid(tmp), asFluid(phase));
-      phase = phase.arg();
-      //phase = 1j * phase / (phase.abs() + epsilon);
-      spectrogram = magnitude * 1i * phase.exp();
+      stft.process(asFluid(tmp), asFluid(estimate));
+      phase = estimate - (momentum / (1 + momentum)) * prev;
+      phase = phase / (phase.abs() + epsilon);
     }
-    in = asFluid(spectrogram);
+    estimate = magnitude * phase;
+    in = asFluid(estimate);
   }
 };
 } // namespace algorithm
