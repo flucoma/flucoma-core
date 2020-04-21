@@ -25,9 +25,9 @@ class NMFCross {
 
 public:
   //pass iteration number; returns true if able to continue (i.e. not cancelled)
-  using ProgressCallback = std::function<bool(int)>;
+  using ProgressCallback = std::function<bool(index)>;
 
-  NMFCross(int nIterations)
+  NMFCross(index nIterations)
       : mIterations(nIterations){}
 
   static void synthesize(const RealMatrixView h, const ComplexMatrixView w,
@@ -48,9 +48,9 @@ public:
   void process(const RealMatrixView X, RealMatrixView H1,
                RealMatrixView W0, size_t r, size_t p) const{
     //double const epsilon = std::numeric_limits<double>::epsilon();
-    int nFrames = X.extent(0);
-    int nBins = X.extent(1);
-    int rank = W0.extent(0);
+    index nFrames = X.extent(0);
+    index nBins = X.extent(1);
+    index rank = W0.extent(0);
     nBins = W0.extent(1);
     MatrixXd W = asEigen<Matrix>(W0).transpose();
     MatrixXd H;
@@ -68,18 +68,18 @@ public:
   }
 
 private:
-  int mIterations;
+  index mIterations;
   std::vector<ProgressCallback> mCallbacks;
 
-  std::vector<int> topC(Eigen::VectorXd vec, int c) const{
+  std::vector<index> topC(Eigen::VectorXd vec, index c) const{
     using namespace std;
     vector<double> stdVec(vec.data(), vec.data()+vec.size());
     sort(stdVec.begin(), stdVec.end());
-    vector<int> idx(vec.size());
+    vector<index> idx(vec.size());
     iota(idx.begin(), idx.end(), 0);
     sort(idx.begin(), idx.end(),
        [&vec](size_t i1, size_t i2) {return vec[i1] > vec[i2];});
-    auto result = std::vector<int>(idx.begin(), idx.begin() + c);
+    auto result = std::vector<index>(idx.begin(), idx.begin() + c);
     return result;
   }
 
@@ -97,7 +97,7 @@ private:
     //W.colwise().normalize();
     //H.rowwise().normalize();
 
-    for (auto i = 0; i < mIterations; ++i)
+    for (index i = 0; i < mIterations; ++i)
     {
       if(i % 1 == 0){
         MatrixXd H1 = MatrixXd::Zero(H.rows(), H.cols());
