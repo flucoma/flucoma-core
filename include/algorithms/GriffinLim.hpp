@@ -4,6 +4,7 @@
 #include "algorithms/util/AlgorithmUtils.hpp"
 #include "algorithms/public/STFT.hpp"
 #include "data/TensorTypes.hpp"
+#include "data/FluidIndex.hpp"
 #include <Eigen/Core>
 #include <cmath>
 
