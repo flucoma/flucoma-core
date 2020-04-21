@@ -5,6 +5,7 @@
 #include "data/FluidDataSet.hpp"
 #include "data/FluidTensor.hpp"
 #include "data/TensorTypes.hpp"
+#include "data/FluidIndex.hpp"
 #include <string>
 
 namespace fluid {
@@ -15,20 +16,20 @@ class KNNClassifier {
 public:
   using LabelSet = FluidDataSet<std::string, std::string, 1>;
 
-  std::string predict(KDTree tree, RealVectorView point, LabelSet labels, int k) const{
+  std::string predict(KDTree tree, RealVectorView point, LabelSet labels, index k) const{
     using namespace std;
-    unordered_map<string, int> labelsMap;
+    unordered_map<string, index> labelsMap;
     auto nearest = tree.kNearest(point, k);
     string prediction;
-    int count = 0;
+    index count = 0;
 
-    for(int i = 0; i < k; i++){
+    for(index i = 0; i < k; i++){
       auto id = nearest.getIds()(i);
       FluidTensor<string, 1> labelT(1);
       labels.get(id, labelT);
       string label = labelT(0);
       auto pos = labelsMap.find(label);
-      int kCount = 1;
+      index kCount = 1;
       if (pos == labelsMap.end())labelsMap.insert({label, 1});
       else{
         kCount = pos->second;
