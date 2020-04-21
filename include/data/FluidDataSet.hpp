@@ -2,6 +2,7 @@
 
 #include "data/FluidTensor.hpp"
 #include "data/TensorTypes.hpp"
+#include "data/FluidIndex.hpp"
 #include <string>
 #include <unordered_map>
 

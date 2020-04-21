@@ -4,6 +4,7 @@
 #include "algorithms/util/FluidEigenMappings.hpp"
 #include "data/FluidDataSet.hpp"
 #include "data/FluidTensor.hpp"
+#include "data/FluidIndex.hpp"
 #include "data/TensorTypes.hpp"
 #include <string>
 
