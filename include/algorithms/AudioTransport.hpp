@@ -10,6 +10,7 @@
 #include "algorithms/util/FFT.hpp"
 #include "algorithms/util/FluidEigenMappings.hpp"
 #include "data/TensorTypes.hpp"
+#include "data/FluidIndex.hpp"
 #include <Eigen/Core>
 #include <cmath>
 
@@ -17,9 +18,9 @@ namespace fluid {
 namespace algorithm {
 
 struct SpetralMass {
-  int startBin;
-  int centerBin;
-  int endBin;
+  index startBin;
+  index centerBin;
+  index endBin;
   double mass;
 };
 
@@ -31,21 +32,21 @@ class AudioTransport {
   using ArrayXXd = Eigen::ArrayXXd;
   using ArrayXcd = Eigen::ArrayXcd;
   template <typename T> using Ref = Eigen::Ref<T>;
-  using TransportMatrix = std::vector<std::tuple<size_t, size_t, double>>;
+  using TransportMatrix = std::vector<std::tuple<index, index, double>>;
   template <typename T> using vector = std::vector<T>;
 
 public:
 
-  AudioTransport(int maxFFTSize)
+  AudioTransport(index maxFFTSize)
       : mWindowSize(maxFFTSize), mFFTSize(maxFFTSize),
         mBins(maxFFTSize / 2 + 1), mFFT(maxFFTSize) {}
 
-  void init(int windowSize, int fftSize, int hopSize, int bandwidth) {
+  void init(index windowSize, index fftSize, index hopSize, index bandwidth) {
     mWindowSize = windowSize;
     mBandwidth = bandwidth;
     mWindow = ArrayXd::Zero(mWindowSize);
     mOnes = VectorXd::Ones(mBandwidth);
-    WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](mWindowSize,mWindow); 
+    WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](mWindowSize,mWindow);
     computeWindowTransform(mWindow);
     mWNorm = mWindowTransform.square().sum();
     mFFTSize = fftSize;
@@ -80,18 +81,18 @@ public:
     ArrayXd correlation = getWindowCorrelation(mag);
     correlation = correlation / correlation.maxCoeff();
     ArrayXd invCorrelation = correlation * (-1);
-    vector<int> peaks = findPeaks(correlation, 0);
-    vector<int> valleys = findPeaks(invCorrelation, -1);
+    vector<index> peaks = findPeaks(correlation, 0);
+    vector<index> valleys = findPeaks(invCorrelation, -1);
     if(peaks.size()==0 || valleys.size()==0) return masses;
-    int nextValley = valleys[0] > peaks[0] ? 0 : 1;
+    index nextValley = valleys[0] > peaks[0] ? 0 : 1;
     SpetralMass firstMass{0, peaks[0], valleys[nextValley], 0};
     firstMass.mass =
         magnitude.segment(0, valleys[nextValley]).sum() / totalMass;
     masses.emplace_back(firstMass);
-    for (int i = 1; i < peaks.size() - 1; i++) {
-      int start = valleys[nextValley];
-      int center = peaks[i];
-      int end = valleys[nextValley + 1];
+    for (index i = 1; i < peaks.size() - 1; i++) {
+      index start = valleys[nextValley];
+      index center = peaks[i];
+      index end = valleys[nextValley + 1];
       double mass = magnitude.segment(start, end - start).sum() / totalMass;
       masses.emplace_back(SpetralMass{start, center, end, mass});
       nextValley++;
@@ -112,7 +113,7 @@ public:
   TransportMatrix computeTransportMatrix(std::vector<SpetralMass> m1,
                                          std::vector<SpetralMass> m2) {
     TransportMatrix matrix;
-    int index1 = 0, index2 = 0;
+    index index1 = 0, index2 = 0;
     double mass1 = m1[0].mass;
     double mass2 = m2[0].mass;
     while (true) {
@@ -135,13 +136,13 @@ public:
     return matrix;
   }
 
-  void placeMass(const SpetralMass mass, int bin, double scale,
+  void placeMass(const SpetralMass mass, index bin, double scale,
                  double centerPhase, Ref<ArrayXcd> input, Ref<ArrayXcd> output,
                  double nextPhase, Ref<ArrayXd> amplitudes,
                  Ref<ArrayXd> phases) {
     double phaseShift = centerPhase - std::arg(input(mass.centerBin));
-    for (int i = mass.startBin; i < mass.endBin; i++) {
-      int pos = i + bin - mass.centerBin;
+    for (index i = mass.startBin; i < mass.endBin; i++) {
+      index pos = i + bin - mass.centerBin;
       if (pos < 0 || pos >= output.size())
         continue;
       double phase = phaseShift + std::arg(input(i));
@@ -183,7 +184,7 @@ public:
     for (auto t : matrix) {
       SpetralMass m1 = s1[std::get<0>(t)];
       SpetralMass m2 = s2[std::get<1>(t)];
-      int interpolatedBin = std::round((1 - interpolation) * m1.centerBin +
+      index interpolatedBin = std::round((1 - interpolation) * m1.centerBin +
                                        interpolation * m2.centerBin);
       double interpolationFactor = interpolation;
       if (m1.centerBin != m2.centerBin) {
@@ -225,19 +226,19 @@ public:
   }
 
   void computeWindowTransform(Ref<ArrayXd> window) {
-    int halfBW = mBandwidth / 2;
+    index halfBW = mBandwidth / 2;
     mWindowTransform = ArrayXd::Zero(mBandwidth);
     ArrayXcd transform =
         mFFT.process(Eigen::Map<ArrayXd>(window.data(), mWindowSize));
-    for (int i = 0; i < halfBW; i++) {
+    for (index i = 0; i < halfBW; i++) {
       mWindowTransform(halfBW + i) = mWindowTransform(halfBW - i) =
           abs(transform(i));
     }
   }
 
-  std::vector<int> findPeaks(const Ref<ArrayXd> correlation, double threshold) {
-    std::vector<int> peaks;
-    for (int i = 1; i < correlation.size() - 1; i++) {
+  std::vector<index> findPeaks(const Ref<ArrayXd> correlation, double threshold) {
+    std::vector<index> peaks;
+    for (index i = 1; i < correlation.size() - 1; i++) {
       if (correlation(i) > correlation(i - 1) &&
           correlation(i) > correlation(i + 1) && correlation(i) > threshold) {
         peaks.push_back(i);
@@ -261,14 +262,14 @@ public:
     return instW;
   }
 
-  int mBandwidth{76};
-  int mWindowSize{1024};
-  int mHopSize{512};
+  index mBandwidth{76};
+  index mWindowSize{1024};
+  index mHopSize{512};
   ArrayXd mBinIndices;
   ArrayXd mWindow;
   ArrayXd mWindowTransform;
-  int mFFTSize{1024};
-  int mBins{513};
+  index mFFTSize{1024};
+  index mBins{513};
   FFT mFFT;
   bool mInitialized{false};
   ArrayXd mPhase;
