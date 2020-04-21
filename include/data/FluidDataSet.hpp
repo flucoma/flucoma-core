@@ -7,7 +7,7 @@
 
 namespace fluid {
 
-template <typename idType, typename dataType, size_t N>
+template <typename idType, typename dataType, index  N>
 class FluidDataSet {
 
 public:
@@ -22,7 +22,7 @@ public:
     mData = points;
     mDim = mData.cols();
     mIds = ids;
-    for(int i = 0; i < ids.size();i++){
+    for(index i = 0; i < ids.size();i++){
       mIndex.insert({ids[i],i});
     }
   }
@@ -30,7 +30,7 @@ public:
 
   bool add(idType id, FluidTensorView<dataType, N> point) {
     assert(sameExtents(mDim, point.descriptor()));
-    intptr_t pos = mData.rows();
+    index pos = mData.rows();
     auto result = mIndex.insert({id, pos});
     if (!result.second)
       return false;
@@ -68,14 +68,14 @@ public:
         mData.deleteRow(current);
         mIds.deleteRow(current);
         mIndex.erase(id);
-        for( auto& point : mIndex)
+        for(auto& point : mIndex)
           if(point.second > current) point.second--;
       }
       return true;
   }
 
-  size_t pointSize() const { return mDim.size; }
-  size_t size() const { return mIds.size(); }
+  index pointSize() const { return mDim.size; }
+  index size() const { return mIds.size(); }
   void print() const {
     if(size()>0){
      std::cout << mData << std::endl;
@@ -87,7 +87,7 @@ public:
   const FluidTensorView<idType, 1> getIds() const { return mIds; }
 
 private:
-  mutable std::unordered_map<idType, intptr_t> mIndex;
+  mutable std::unordered_map<idType, index> mIndex;
   mutable FluidTensor<idType, 1> mIds;
   mutable FluidTensor<dataType, N + 1> mData;
   FluidTensorSlice<N> mDim;
