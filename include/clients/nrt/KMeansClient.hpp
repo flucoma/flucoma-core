@@ -103,8 +103,8 @@ public:
       FluidTensor<index, 1> assignments(dataSet.size());
       mModel.getAssignments(assignments);
       FluidDataSet<string, string, 1> result(1);
-      for(int i = 0; i < ids.size(); i++){
-        int clusterId = assignments(i);
+      for(index i = 0; i < ids.size(); i++){
+        index clusterId = assignments(i);
         //counts(clusterId)++;
         FluidTensor<string, 1> point = {std::to_string(clusterId)};
         result.add(ids(i), point);
@@ -118,7 +118,7 @@ public:
     return {};
   }
 
-  MessageResult<int> predictPoint(BufferPtr data) const {
+  MessageResult<index> predictPoint(BufferPtr data) const {
     if (!data)
       return {Result::Status::kError, NoBufferError};
     BufferAdaptor::Access buf(data.get());
@@ -149,9 +149,9 @@ public:
       FluidTensor<double, 1> query(mDims);
       FluidDataSet<string, string, 1> result(1);
 
-      for(int i = 0; i < ids.size(); i++){
+      for(index i = 0; i < ids.size(); i++){
         dataSet.get(ids(i), query);
-        int clusterId = mModel.vq(query);
+        index clusterId = mModel.vq(query);
         counts(clusterId)++;
         FluidTensor<string, 1> point = {std::to_string(clusterId)};
         result.add(ids(i), point);
@@ -192,7 +192,7 @@ public:
     return mOKResult;
   }
 
-  MessageResult<int> cols() { return mDims; }
+  MessageResult<index> cols() { return mDims; }
 
 
   FLUID_DECLARE_MESSAGES(makeMessage("train", &KMeansClient::train),
@@ -208,8 +208,8 @@ private:
   MessageResult<void> mOKResult{Result::Status::kOk};
   MessageResult<void> mWriteError{Result::Status::kError, WriteError};
   algorithm::KMeans mModel;
-  size_t mDims;
-  size_t mK;
+  index mDims;
+  index mK;
 };
 
 using NRTThreadedKMeansClient = NRTThreadingAdaptor<ClientWrapper<KMeansClient>>;

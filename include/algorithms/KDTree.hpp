@@ -27,10 +27,10 @@ public:
   };
 
   struct FlatData {
-    FluidTensor<int, 2> tree;
+    FluidTensor<index, 2> tree;
     FluidTensor<string, 1> ids;
     FluidTensor<double, 2> data;
-    FlatData(index n, index m) : tree(n, 2), data(n, m), ids(n) {}
+    FlatData(index n, index m) : tree(n, 2), ids(n), data(n, m) {}
   };
 
   using knnCandidate = std::pair<double, NodePtr>;
@@ -42,7 +42,7 @@ public:
     using namespace std;
     mNPoints = dataset.size();
     mDims = dataset.pointSize();
-    vector<index> indices(dataset.size());
+    vector<index> indices(asUnsigned(dataset.size()));
     iota(indices.begin(), indices.end(), 0);
     mRoot = buildTree(indices, indices.begin(), indices.end(), dataset, 0);
   }
@@ -56,15 +56,15 @@ public:
     assert(data.size() == mDims);
     knnQueue queue;
     auto result = DataSet(1);
-    std::vector<knnCandidate> sorted(k);
+    std::vector<knnCandidate> sorted(asUnsigned(k));
     kNearest(mRoot, data, queue, k, 0);
     for (index i = k - 1; i >= 0; i--) {
-      sorted[i] = queue.top();
+      sorted[asUnsigned(i)] = queue.top();
       queue.pop();
     }
     for (index i = 0; i < k; i++) {
-      auto dist = FluidTensor<double, 1>{sorted[i].first};
-      auto id = sorted[i].second->id;
+      auto dist = FluidTensor<double, 1>{sorted[asUnsigned(i)].first};
+      auto id = sorted[asUnsigned(i)].second->id;
       result.add(id, dist);
     }
     return result;
@@ -163,7 +163,7 @@ private:
       return;
     const RealVector point{data};
     const double currentDist = distance(current->data, point);
-    if (knn.size() < k)
+    if (knn.size() < asUnsigned(k))
       knn.push(make_pair(currentDist, current));
     else if (currentDist < knn.top().first) {
       knn.pop();
@@ -178,7 +178,7 @@ private:
       secondBranch = current->left;
     }
     kNearest(firstBranch, data, knn, k, depth + 1);
-    if (dimDif < knn.top().first || knn.size() < k) // ball centered at query with diametre
+    if (dimDif < knn.top().first || knn.size() < asUnsigned(k)) // ball centered at query with diametre
                                   // kthDist intersects with current partition
                                   // (or need to get more neighbors)
     {

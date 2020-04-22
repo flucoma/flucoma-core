@@ -80,11 +80,8 @@ public:
     }
     return false;
   }
-  //void add(string key, int value) { mData[key] = value; }
 
   void add(string key, index value) { mData[key] = value; }
-
-  void add(string key, size_t value) { mData[key] = value; }
 
   void add(string key, double value) { mData[key] = value; }
 
@@ -102,7 +99,7 @@ public:
     mData[key] = std::vector<double>(value.begin(), value.end());
   }
 
-  void add(string key, FluidTensorView<int, 2> value) {
+  void add(string key, FluidTensorView<index, 2> value) {
     mData[key] = std::vector<int>(value.begin(), value.end());
   }
 
@@ -110,41 +107,37 @@ public:
     mData[key] = std::vector<string>(value.begin(), value.end());
   }
 
-  //void get(string key, int &value) { value = mData[key]; }
-
-  void get(string key, size_t &value) { value = mData[key]; }
-
   void get(string key, index &value) { value = mData[key]; }
 
   void get(string key, double &value) { value = mData[key]; }
 
   void get(string key, string &value) { value = mData[key]; }
 
-  void get(string key, FluidTensorView<string, 1> value, size_t rows) {
+  void get(string key, FluidTensorView<string, 1> value, index rows) {
     std::vector<string> tmp = mData[key];
     value = FluidTensorView<string, 1>{tmp.data(), 0, rows};
   }
 
-  void get(string key, FluidTensorView<double, 2> value, size_t rows,
-           size_t cols) {
+  void get(string key, FluidTensorView<double, 2> value, index rows,
+           index cols) {
     std::vector<double> tmp = mData[key];
     value = FluidTensorView<double, 2>{tmp.data(), 0, rows, cols};
   }
 
-  void get(string key, FluidTensorView<double, 1> value, size_t rows) {
+  void get(string key, FluidTensorView<double, 1> value, index rows) {
     std::vector<double> tmp = mData[key];
     value = FluidTensorView<double, 1>{tmp.data(), 0, rows};
   }
 
 
-  void get(string key, FluidTensorView<int, 2> value, size_t rows,
-           size_t cols) {
+  void get(string key, FluidTensorView<index, 2> value, index rows,
+           index cols) {
     std::vector<int> tmp = mData[key];
     value = FluidTensorView<int, 2>{tmp.data(), 0, rows, cols};
   }
 
-  void get(string key, FluidTensorView<string, 2> value, size_t rows,
-           size_t cols) {
+  void get(string key, FluidTensorView<string, 2> value, index rows,
+           index cols) {
     std::vector<string> tmp = mData[key];
     value = FluidTensorView<string, 2>{tmp.data(), 0, rows, cols};
   }

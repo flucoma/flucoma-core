@@ -56,8 +56,8 @@ public:
       return {Result::Status::kError, "Output Buffer Supplied But Invalid"};
 
 
-    size_t srcFrames = source.numFrames();
-    size_t tgtFrames = target.numFrames();
+    index srcFrames = source.numFrames();
+    index tgtFrames = target.numFrames();
 
     if (srcFrames <= 0)
       return {Result::Status::kError, "Empty source buffer"};
@@ -66,10 +66,10 @@ public:
       return {Result::Status::kError, "Empty target buffer"};
 
 
-    size_t srcWindows  = std::floor((srcFrames + fftParams.hopSize()) / fftParams.hopSize());
-    size_t nBins     = fftParams.frameSize();
+    index srcWindows  = std::floor((srcFrames + fftParams.hopSize()) / fftParams.hopSize());
+    index nBins     = fftParams.frameSize();
 
-    size_t tgtWindows  = std::floor((tgtFrames + fftParams.hopSize()) / fftParams.hopSize());
+    index tgtWindows  = std::floor((tgtFrames + fftParams.hopSize()) / fftParams.hopSize());
     auto stft = STFT(fftParams.winSize(), fftParams.fftSize(), fftParams.hopSize());
     auto istft = ISTFT(fftParams.winSize(), fftParams.fftSize(), fftParams.hopSize());
     auto srcTmp = FluidTensor<double, 1>(srcFrames);

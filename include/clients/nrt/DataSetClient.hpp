@@ -117,7 +117,7 @@ public:
     if (!file.checkKeys({"data", "ids", "rows", "cols"})) {
       return {Result::Status::kError, file.error()};
     }
-    size_t cols, rows;
+    index cols, rows;
     file.get("cols", cols);
     file.get("rows", rows);
     FluidTensor<string, 1> ids(rows);
@@ -131,7 +131,6 @@ public:
 
   FLUID_DECLARE_MESSAGES(
       makeMessage("addPoint", &DataSetClient::addPoint),
-      /*makeMessage("addPointLabel", &DataSetClient::addPointLabel),*/
       makeMessage("getPoint", &DataSetClient::getPoint),
       makeMessage("updatePoint", &DataSetClient::updatePoint),
       makeMessage("deletePoint", &DataSetClient::deletePoint),

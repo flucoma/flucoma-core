@@ -63,13 +63,13 @@ public:
         });
   }
 
-  size_t latency() { return get<kFFT>().winSize(); }
+  index latency() { return get<kFFT>().winSize(); }
   void reset() { mSTFTBufferedProcess.reset(); }
 
 private:
   STFTBufferedProcess<ParamSetViewType, kFFT> mSTFTBufferedProcess;
   algorithm::AudioTransport mAlgorithm;
-  ParameterTrackChanges<size_t, size_t, size_t, size_t> mTracking;
+  ParameterTrackChanges<index, index, index, index> mTracking;
 };
 
 using RTAudioTransportClient = ClientWrapper<AudioTransportClient>;

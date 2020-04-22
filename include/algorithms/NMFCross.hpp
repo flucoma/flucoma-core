@@ -47,7 +47,7 @@ public:
   }
 
   void process(const RealMatrixView X, RealMatrixView H1,
-               RealMatrixView W0, size_t r, size_t p) const{
+               RealMatrixView W0, index r, index p) const{
     //double const epsilon = std::numeric_limits<double>::epsilon();
     index nFrames = X.extent(0);
     index nBins = X.extent(1);
@@ -86,7 +86,7 @@ private:
 
 
 
-  void multiplicativeUpdates(MatrixXd &V, MatrixXd &W, MatrixXd &H, size_t r, size_t p) const{
+  void multiplicativeUpdates(MatrixXd &V, MatrixXd &W, MatrixXd &H, index r, index p) const{
     using namespace std;
     using namespace Eigen;
     double const epsilon = std::numeric_limits<double>::epsilon();
@@ -102,12 +102,12 @@ private:
     {
       if(i % 1 == 0){
         MatrixXd H1 = MatrixXd::Zero(H.rows(), H.cols());
-        for (size_t j = 0; j < H.rows(); ++j){
+        for (index j = 0; j < H.rows(); ++j){
           VectorXd row = H.row(j);
-          for (size_t k = 0; k < H.cols(); ++k){
+          for (index k = 0; k < H.cols(); ++k){
             MatrixXd::Index maxIndex;
-            size_t start = k <= r? 0 : k - r;
-            size_t length = k + r >= row.size()? row.size() - start - 1: 2 * r;
+            index start = k <= r? 0 : k - r;
+            index length = k + r >= row.size()? row.size() - start - 1: 2 * r;
             VectorXd neighborhood = row.segment(start, length);
             neighborhood.maxCoeff(&maxIndex);
             if(start + maxIndex == k){
@@ -119,7 +119,7 @@ private:
           }
         }
         MatrixXd H2 = MatrixXd::Zero(H.rows(), H.cols());
-        for (size_t k = 0; k < H.cols(); ++k){
+        for (index k = 0; k < H.cols(); ++k){
           auto col = H1.col(k);
           auto top = topC(col, p);
           H2.col(k) = col * (1 - (i + 1) / mIterations);

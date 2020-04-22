@@ -24,7 +24,6 @@ struct SpetralMass {
   double mass;
 };
 
-
 class AudioTransport {
 
   using ArrayXd = Eigen::ArrayXd;
@@ -85,26 +84,26 @@ public:
     vector<index> valleys = findPeaks(invCorrelation, -1);
     if(peaks.size()==0 || valleys.size()==0) return masses;
     index nextValley = valleys[0] > peaks[0] ? 0 : 1;
-    SpetralMass firstMass{0, peaks[0], valleys[nextValley], 0};
+    SpetralMass firstMass{0, peaks[0], valleys[asUnsigned(nextValley)], 0};
     firstMass.mass =
-        magnitude.segment(0, valleys[nextValley]).sum() / totalMass;
+        magnitude.segment(0, valleys[asUnsigned(nextValley)]).sum() / totalMass;
     masses.emplace_back(firstMass);
-    for (index i = 1; i < peaks.size() - 1; i++) {
-      index start = valleys[nextValley];
-      index center = peaks[i];
-      index end = valleys[nextValley + 1];
+    for (index i = 1; asUnsigned(i) < peaks.size() - 1; i++) {
+      index start = valleys[asUnsigned(nextValley)];
+      index center = peaks[asUnsigned(i)];
+      index end = valleys[asUnsigned(nextValley) + 1];
       double mass = magnitude.segment(start, end - start).sum() / totalMass;
       masses.emplace_back(SpetralMass{start, center, end, mass});
       nextValley++;
     }
 
     double lastMass = magnitude
-                          .segment(valleys[nextValley],
-                                   magnitude.size() - 1 - valleys[nextValley])
+                          .segment(valleys[asUnsigned(nextValley)],
+                                   magnitude.size() - 1 - valleys[asUnsigned(nextValley)])
                           .sum();
 
     lastMass /= totalMass;
-    masses.push_back(SpetralMass{valleys.at(nextValley),
+    masses.push_back(SpetralMass{valleys.at(asUnsigned(nextValley)),
                                  peaks.at(peaks.size() - 1), mBins - 1,
                                  lastMass});
     return masses;
@@ -121,16 +120,16 @@ public:
         matrix.emplace_back(index1, index2, mass1);
         mass2 -= mass1;
         index1++;
-        if (index1 >= m1.size())
+        if (index1 >= asSigned(m1.size()))
           break;
-        mass1 = m1[index1].mass;
+        mass1 = m1[asUnsigned(index1)].mass;
       } else {
         matrix.emplace_back(index1, index2, mass2);
         mass1 -= mass2;
         index2++;
-        if (index2 >= m2.size())
+        if (index2 >= asSigned(m2.size()))
           break;
-        mass2 = m2[index2].mass;
+        mass2 = m2[asUnsigned(index2)].mass;
       }
     }
     return matrix;
@@ -182,9 +181,9 @@ public:
 
     TransportMatrix matrix = computeTransportMatrix(s1, s2);
     for (auto t : matrix) {
-      SpetralMass m1 = s1[std::get<0>(t)];
-      SpetralMass m2 = s2[std::get<1>(t)];
-      index interpolatedBin = std::round((1 - interpolation) * m1.centerBin +
+      SpetralMass m1 = s1[asUnsigned(std::get<0>(t))];
+      SpetralMass m2 = s2[asUnsigned(std::get<1>(t))];
+      index interpolatedBin = std::lrint((1 - interpolation) * m1.centerBin +
                                        interpolation * m2.centerBin);
       double interpolationFactor = interpolation;
       if (m1.centerBin != m2.centerBin) {
@@ -217,10 +216,10 @@ public:
     ArrayXd squareMag = frame.square();
     ArrayXd corr(frame.size());
     ArrayXd spectrumNorm(frame.size());
-    correlateReal(corr.data(), frame.data(), frame.size(),
-                  mWindowTransform.data(), mBandwidth, kEdgeWrapCentre);
-    convolveReal(spectrumNorm.data(), squareMag.data(), frame.size(),
-                 mOnes.data(), mBandwidth, kEdgeWrapCentre);
+    correlateReal(corr.data(), frame.data(), asUnsigned(frame.size()),
+                  mWindowTransform.data(), asUnsigned(mBandwidth), kEdgeWrapCentre);
+    convolveReal(spectrumNorm.data(), squareMag.data(), asUnsigned(frame.size()),
+                 mOnes.data(), asUnsigned(mBandwidth), kEdgeWrapCentre);
     corr = corr.square() / (spectrumNorm * mWNorm);
     return corr;
   }

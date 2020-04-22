@@ -87,7 +87,7 @@ public:
    if(!file.checkKeys({"labels","ids","rows"})){
      return {Result::Status::kError, file.error()};
    }
-   size_t  rows;
+   index  rows;
    file.get("rows", rows);
    FluidTensor<string, 1> ids(rows);
    FluidTensor<string, 2> labels(rows, 1);

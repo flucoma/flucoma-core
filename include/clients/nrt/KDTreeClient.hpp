@@ -93,7 +93,7 @@ public:
     if(!file.checkKeys({"tree", "data", "rows", "cols", "ids"})){
       return {Result::Status::kError, file.error()};
     }
-    size_t rows, cols;
+    fluid::index rows, cols;
     file.get("cols", cols);
     file.get("rows", rows);
     algorithm::KDTree::FlatData treeData(rows, cols);

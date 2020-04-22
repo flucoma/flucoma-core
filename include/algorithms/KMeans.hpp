@@ -29,7 +29,7 @@ public:
     using namespace _impl;
     assert(dataset.pointSize() == mDims);
     auto dataPoints = asEigen<Array>(dataset.getData());
-    mEmpty = std::vector<bool>(mK, false);
+    mEmpty = std::vector<bool>(asUnsigned(mK), false);
     if (initialMeans.data() != nullptr) {
       assert(initialMeans.rows() == mK);
       assert(initialMeans.cols() == mDims);
@@ -55,8 +55,8 @@ public:
     mTrained = true;
   }
 
-  size_t getClusterSize(index cluster) const {
-    size_t count = 0;
+  index getClusterSize(index cluster) const {
+    index count = 0;
     for (index i = 0; i < mAssignments.size(); i++) {
       if (mAssignments(i) == cluster)
         count++;
@@ -108,7 +108,7 @@ private:
   Eigen::VectorXi assignClusters(Eigen::ArrayXXd dataPoints) const {
     Eigen::VectorXi assignments = Eigen::VectorXi::Zero(dataPoints.rows());
     for (index i = 0; i < dataPoints.rows(); i++) {
-      assignments(i) = assignPoint(dataPoints.row(i));
+      assignments(i) = static_cast<int>(assignPoint(dataPoints.row(i)));
     }
     return assignments;
   }
@@ -116,7 +116,7 @@ private:
   void computeMeans(Eigen::ArrayXXd dataPoints) {
     using namespace Eigen;
     for (index k = 0; k < mK; k++) {
-      if (mEmpty[k])
+      if (mEmpty[asUnsigned(k)])
         continue;
       std::vector<index> kAssignment;
       for (index i = 0; i < mAssignments.size(); i++) {
@@ -125,12 +125,12 @@ private:
       }
       if (kAssignment.size() == 0) {
         std::cout << "Warning: empty cluster" << std::endl;
-        mEmpty[k] = true;
+        mEmpty[asUnsigned(k)] = true;
         return;
       }
-      ArrayXXd clusterPoints = ArrayXXd::Zero(kAssignment.size(), mDims);
-      for (index i = 0; i < kAssignment.size(); i++) {
-        clusterPoints.row(i) = dataPoints.row(kAssignment[i]);
+      ArrayXXd clusterPoints = ArrayXXd::Zero(asSigned(kAssignment.size()), mDims);
+      for (index i = 0; asUnsigned(i) < kAssignment.size(); i++) {
+        clusterPoints.row(i) = dataPoints.row(kAssignment[asUnsigned(i)]);
       }
       ArrayXd mean = clusterPoints.colwise().mean();
       mMeans.row(k) = mean;

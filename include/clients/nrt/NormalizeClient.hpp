@@ -125,7 +125,7 @@ public:
     }
     RealVector dataMin(mDims);
     RealVector dataMax(mDims);
-    size_t dims;
+    index dims;
     file.get("cols", dims);
     if (dims!=mDims)return {Result::Status::kError, WrongPointSizeError};
     file.get("min", dataMin, dims);
@@ -145,7 +145,7 @@ private:
   MessageResult<void> mOKResult{Result::Status::kOk};
   MessageResult<void> mWriteError{Result::Status::kError, WriteError};
   algorithm::Normalization mAlgorithm;
-  size_t mDims{0};
+  index mDims{0};
 };
 
 using NRTThreadedNormalizeClient =

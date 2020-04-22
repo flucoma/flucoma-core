@@ -123,7 +123,7 @@ public:
     }
     RealVector mean(mDims);
     RealVector std(mDims);
-    size_t dims;
+    index dims;
     file.get("cols", dims);
     if (dims != mDims)
       return {Result::Status::kError, WrongPointSizeError};
@@ -144,7 +144,7 @@ private:
   MessageResult<void> mOKResult{Result::Status::kOk};
   MessageResult<void> mWriteError{Result::Status::kError, WriteError};
   algorithm::Standardization mAlgorithm;
-  size_t mDims;
+  index mDims;
 };
 
 using NRTThreadedStandardizeClient =
