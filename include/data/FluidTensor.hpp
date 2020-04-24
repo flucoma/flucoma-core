@@ -87,7 +87,7 @@ public:
   explicit FluidTensor(const FluidTensor<U, M>& x)
       : mContainer(x.size()), mDesc(x.descriptor())
   {
-    static_assert(std::is_convertible<U, T>::value, 
+    static_assert(std::is_convertible<U, T>::value,
                   "Cannot convert between container value types");
     std::copy(x.begin(), x.end(), mContainer.begin());
   }
@@ -96,7 +96,7 @@ public:
   explicit FluidTensor(const FluidTensorView<U, M>& x)
       : mContainer(asUnsigned(x.size())), mDesc(0, x.descriptor().extents)
   {
-    static_assert(std::is_convertible<U, T>::value, 
+    static_assert(std::is_convertible<U, T>::value,
                   "Cannot convert between container value types");
 
     std::copy(x.begin(), x.end(), mContainer.begin());
@@ -717,7 +717,7 @@ public:
   template <typename U>
   FluidTensorView& operator=(U&& x)
   {
-    static_assert(std::is_convertible<U, T>::value, "Can't convert");
+    static_assert(std::is_convertible<U, T>::value,  "Can't convert");
     *elem = static_cast<T>(x);
     return *this;
   }
