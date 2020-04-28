@@ -19,7 +19,7 @@ if(APPLE) #has to be before first project() call. grrrrrr
   set(CMAKE_OSX_DEPLOYMENT_TARGET 10.8)
 endif()
 
-project (fluid_decomposition LANGUAGES CXX)
+project (flucoma-core LANGUAGES CXX)
 
 include(FetchContent)
 set(HISS_PATH "" CACHE PATH "The path to a HISSTools_Library folder. Will pull from github if not set")

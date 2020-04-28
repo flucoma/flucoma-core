@@ -11,10 +11,10 @@ This library comprises a suite of C++ algorithms used by the Fluid Corpus Manipu
 # Building
 It is unlikely that you will need or want to build this repository directly. Rather, the pattern is to build from one of the repositories for a specific creative coding host, which uses this library as a dependency:
 
-* [Max]()
-* [PureData]()
-* [SuperCollider]()
-* [Command Line]()
+* [Max](https://github.com/flucoma/flucoma-max)
+* [PureData](https://github.com/flucoma/flucoma-pd)
+* [SuperCollider](https://github.com/flucoma/flucoma-sc)
+* [Command Line](https://github.com/flucoma/flucoma-cli)
 
 We also host pre-built binary releases for each supported platform in these repositories (check https://www.flucoma.org/download/ for the latest binary releases).
 
