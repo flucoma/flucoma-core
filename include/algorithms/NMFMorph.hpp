@@ -2,6 +2,7 @@
 
 #include "algorithms/OptimalTransport.hpp"
 #include "algorithms/RTPGHI.hpp"
+#include "algorithms/DistanceFuncs.hpp"
 #include "algorithms/public/STFT.hpp"
 #include "algorithms/util/AlgorithmUtils.hpp"
 #include "algorithms/util/FluidEigenMappings.hpp"
@@ -17,7 +18,6 @@ namespace algorithm {
 class NMFMorph {
 
 public:
-  NMFMorph(index maxFFTSize) {}
 
   void init(RealMatrixView W1, RealMatrixView W2, RealMatrixView H,
             index winSize, index fftSize, index hopSize, bool assign) {
@@ -30,8 +30,7 @@ public:
       ArrayXXd cost = ArrayXXd::Zero(mW1.cols(), tmpW2.cols());
       for (index i = 0; i < mW1.cols(); i++) {
         for (index j = 0; j < tmpW2.cols(); j++) {
-          ArrayXd tmp = mW1.col(i) - tmpW2.col(j);
-          cost(i, j) = std::sqrt(tmp.square().sum());
+          cost(i, j) = DistanceFuncs::map()[DistanceFuncs::Distance::kKL](mW1.col(i),tmpW2.col(j));
         }
       }
       Munkres munk;
@@ -50,7 +49,6 @@ public:
     mHopSize = hopSize;
     mSTFT = STFT(winSize, fftSize, hopSize);
     mISTFT = ISTFT(winSize, fftSize, hopSize);
-    auto V = (mW2 * mH).transpose();
     mRTPGHI.init(fftSize);
 
     index rank = mW1.cols();

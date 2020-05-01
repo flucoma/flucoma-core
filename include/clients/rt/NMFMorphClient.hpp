@@ -44,7 +44,7 @@ public:
                                               16384, Min(4), PowerOfTwo{}));
 
   NMFMorphClient(ParamSetViewType &p)
-      : mParams{p}, mSTFTProcessor{get<kMaxFFTSize>(), 0, 1}, mNMFMorph{get<kMaxFFTSize>()} {
+      : mParams{p}, mSTFTProcessor{get<kMaxFFTSize>(), 0, 1} {
     audioChannelsIn(0);
     audioChannelsOut(1);
   }
