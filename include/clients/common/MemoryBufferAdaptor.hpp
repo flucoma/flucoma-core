@@ -58,7 +58,7 @@ public:
           src.resize(numFrames(), numChans(), mSampleRate);
 
         if (src.valid())
-          for (index i = 0; i < numChans(); ++i) src.samps(i) = samps(i);
+          for (index i = 0; i < numChans(); ++i) src.samps(i)(Slice(0,numFrames())) = samps(i);
       }
       // TODO feedback failure to user somehow: I need a message queue
     }
