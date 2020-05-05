@@ -25,6 +25,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 namespace fluid {
 namespace client {
 
+//Tag type for DataModel clients (like KDTree and friends)
+struct ModelObject{};
 
 enum ProcessState { kNoProcess, kProcessing, kDone, kDoneStillProcessing };
 
@@ -78,7 +80,7 @@ public:
   using isNonRealTime = typename std::is_base_of<Offline, Client>::type;
   using isRealTime =
       std::integral_constant<bool, isAudio<Client> || isControl<Client>>;
-
+  using isModelObject = typename std::is_base_of<ModelObject,Client>::type; 
 
   template <typename T>
   using ParamDescTypeTest = typename T::ParamDescType;
@@ -126,7 +128,21 @@ public:
     return NoMessages;
   }
 
-  ClientWrapper(ParamSetViewType& p) : mClient{p}, mParams{p} {}
+  ClientWrapper(ParamSetViewType& p) : mParams{p} ,mClient{p} {}
+
+  ClientWrapper(ClientWrapper&& x):
+      mParams{std::move(x.mParams)},
+      mClient{std::move(x.mClient)}
+  {
+  }
+
+  ClientWrapper& operator=(ClientWrapper&& x)
+  {
+    using std::swap;
+    swap(mClient,x.mClient);
+    swap(mParams,x.mParams);
+    return *this;
+  }
 
   const Client& client() const { return mClient; }
 
@@ -198,8 +214,9 @@ public:
   }
 
 private:
-  Client                                   mClient;
   std::reference_wrapper<ParamSetViewType> mParams;
+  
+  Client mClient;
 };
 
 

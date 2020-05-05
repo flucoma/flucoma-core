@@ -544,30 +544,23 @@ public:
     return ParamDescType::template NumOf<BufferT>();
   }
 
+  void setParams(ParamSetType& p)
+  {
+    mHostParams = p;
+    mClient->setParams(mHostParams);
+  }
+
   NRTThreadingAdaptor(ParamSetType& p)
       : mHostParams{p}, mClient{new NRTClient{mHostParams}}
   {}
 
-  NRTThreadingAdaptor(NRTThreadingAdaptor&& x){ *this = std::move(x); }
+  NRTThreadingAdaptor(NRTThreadingAdaptor&& x)
+          : mHostParams{std::move(x.mHostParams)}
+  { swap(std::move(x),false); }
 
   NRTThreadingAdaptor& operator=(NRTThreadingAdaptor&& x)
   {
-    if(this != &x)
-    {
-      if(mThreadedTask)
-      {
-        mThreadedTask->cancel(true);
-        mThreadedTask.release();
-      }
-
-      mThreadedTask.reset(x.mThreadedTask.get());
-      mQueue = x.mQueue;
-      mSynchronous = x.mSynchronous;
-      mQueueEnabled = x.mQueueEnabled;
-      mHostParams = x.mHostParams;
-      mClient = x.mClient;
-    }
-    
+    swap(std::move(x),true);
     return *this;
   }
 
@@ -689,6 +682,25 @@ public:
 
 
 private:
+
+  void swap(NRTThreadingAdaptor&& x, bool includeParams )
+  {
+    if(mThreadedTask)
+    {
+      mThreadedTask->cancel(true);
+      mThreadedTask.release();
+    }
+
+    mThreadedTask.reset(x.mThreadedTask.get());
+    using std::swap;
+    swap(mQueue,x.mQueue);
+    swap(mSynchronous,x.mSynchronous);
+    swap(mQueueEnabled,x.mQueueEnabled);
+    if(includeParams) mHostParams = x.mHostParams;
+    swap(mClient,x.mClient);
+    mClient->setParams(mHostParams); //keeps client's params pointer updated
+  }
+
   struct ThreadedTask
   {
     template <size_t N, typename T>

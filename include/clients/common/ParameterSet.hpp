@@ -215,6 +215,19 @@ public:
       : mDescriptors{std::cref(d)}, mKeepConstrained(false), mParams{t}
   {}
 
+  ParameterSetView(ParameterSetView&& x) {
+    *this = std::move(x);
+  }
+  
+  ParameterSetView& operator=(ParameterSetView&& x)
+  {
+    using std::swap;
+    swap(mDescriptors, x.mDescriptors);
+    swap(mKeepConstrained,x.mKeepConstrained);
+    swap(mParams, x.mParams);
+    return *this;
+  }
+
   auto keepConstrained(bool keep)
   {
     std::array<Result, sizeof...(Ts)> results;
@@ -464,7 +477,10 @@ public:
   }
 
   // Move construct /assign
-  ParameterSet(ParameterSet&& x) noexcept { *this = std::move(x); }
+  ParameterSet(ParameterSet&& x)noexcept
+            :ViewType(x.mDescriptors.get(), createRefTuple(IndexList())),
+            mParams{std::move(x.mParams)}
+  {}
 
   ParameterSet& operator=(ParameterSet&& x) noexcept
   {
@@ -472,7 +488,7 @@ public:
     {
       ViewType::operator=(std::move(x));
       using std::swap;
-      swap(mParams, x.Params);
+      swap(mParams, x.mParams);
     }
     return *this;
   }
