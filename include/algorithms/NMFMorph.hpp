@@ -2,7 +2,6 @@
 
 #include "algorithms/OptimalTransport.hpp"
 #include "algorithms/RTPGHI.hpp"
-#include "algorithms/DistanceFuncs.hpp"
 #include "algorithms/public/STFT.hpp"
 #include "algorithms/util/AlgorithmUtils.hpp"
 #include "algorithms/util/FluidEigenMappings.hpp"
@@ -18,20 +17,24 @@ namespace algorithm {
 class NMFMorph {
 
 public:
+  using  MatrixXd = Eigen::MatrixXd;
 
   void init(RealMatrixView W1, RealMatrixView W2, RealMatrixView H,
             index winSize, index fftSize, index hopSize, bool assign) {
     using namespace Eigen;
     using namespace _impl;
+    using namespace std;
     mW1 = asEigen<Matrix>(W1).transpose();
     mH = asEigen<Matrix>(H);
+    MatrixXd tmpW2 = asEigen<Matrix>(W2).transpose();
+    ArrayXXd cost = ArrayXXd::Zero(mW1.cols(), tmpW2.cols());
     if (assign) {
-      MatrixXd tmpW2 = asEigen<Matrix>(W2).transpose();
-      ArrayXXd cost = ArrayXXd::Zero(mW1.cols(), tmpW2.cols());
-      for (index i = 0; i < mW1.cols(); i++) {
-        for (index j = 0; j < tmpW2.cols(); j++) {
-          cost(i, j) = DistanceFuncs::map()[DistanceFuncs::Distance::kKL](mW1.col(i),tmpW2.col(j));
-        }
+        for (index i = 0; i < mW1.cols(); i++) {
+          for (index j = 0; j < tmpW2.cols(); j++) {
+            OptimalTransport tmpOT;
+            tmpOT.init(mW1.col(i), tmpW2.col(j));
+            cost(i, j) = tmpOT.mDistance;
+          }
       }
       Munkres munk;
       munk.init(mW1.cols(), tmpW2.cols());
@@ -47,8 +50,6 @@ public:
     mWindowSize = winSize;
     mFFTSize = fftSize;
     mHopSize = hopSize;
-    mSTFT = STFT(winSize, fftSize, hopSize);
-    mISTFT = ISTFT(winSize, fftSize, hopSize);
     mRTPGHI.init(fftSize);
 
     index rank = mW1.cols();
@@ -82,12 +83,9 @@ private:
   index mWindowSize;
   index mHopSize;
   index mFFTSize;
-  STFT mSTFT{1024, 1024, 512};
-  ISTFT mISTFT{1024, 1024, 512};
   RTPGHI mRTPGHI;
   std::vector<OptimalTransport> mOT;
   int mPos{0};
-  int mIterations;
 };
 } // namespace algorithm
 } // namespace fluid
