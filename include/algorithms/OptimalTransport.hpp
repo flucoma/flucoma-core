@@ -93,13 +93,16 @@ public:
     while (true) {
       if (mass1 < mass2) {
         matrix.emplace_back(index1, index2, mass1);
+        mDistance+=mass1*std::pow(index1 - index2, 2);
         mass2 -= mass1;
+
         index1++;
         if (index1 >= asSigned(m1.size()))
           break;
         mass1 = m1[asUnsigned(index1)].mass;
       } else {
         matrix.emplace_back(index1, index2, mass2);
+        mDistance+=mass2*std::pow(index1 - index2, 2);
         mass1 -= mass2;
         index2++;
         if (index2 >= asSigned(m2.size()))
@@ -156,6 +159,7 @@ public:
   ArrayXd mB;
   std::vector<SpectralMass> mS1;
   std::vector<SpectralMass> mS2;
+  double mDistance{0};
 };
 } // namespace algorithm
 } // namespace fluid
