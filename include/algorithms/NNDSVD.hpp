@@ -10,12 +10,12 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
+#include <Eigen/Core>
+#include <Eigen/SVD>
 #include "algorithms/util/AlgorithmUtils.hpp"
 #include "algorithms/util/FluidEigenMappings.hpp"
 #include "data/FluidIndex.hpp"
 #include "data/TensorTypes.hpp"
-#include <Eigen/Core>
-#include <Eigen/SVD>
 
 namespace fluid {
 namespace algorithm {
@@ -58,14 +58,12 @@ public:
       k = maxRank;
 
     if (method == 0) {
-
       WT.block(0, 0, WT.rows(), k) = U.block(0, 0, U.rows(), k).array().abs();
       HT.block(0, 0, k, HT.cols()) =
           (S.block(0, 0, k, S.cols()) * V).array().abs();
     } else {
       // avoid scaling for NMF with normalized W
       WT.col(0) = U.col(0).array().abs();
-
       HT.row(0) = sqrt(s(0)) * V.row(0).array().abs();
 
       for (index j = 1; j < k; j++) {
