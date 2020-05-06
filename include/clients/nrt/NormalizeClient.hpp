@@ -22,7 +22,7 @@
 namespace fluid {
 namespace client {
 
-class NormalizeClient : public FluidBaseClient, OfflineIn, OfflineOut {
+class NormalizeClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject  {
   enum {kMin, kMax};
 
 public:
