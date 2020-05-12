@@ -2,7 +2,7 @@
 
 #include "DataSetClient.hpp"
 #include "LabelSetClient.hpp"
-#include "DataSetErrorStrings.hpp"
+#include "CommonResults.hpp"
 #include "algorithms/KNNClassifier.hpp"
 #include "algorithms/KNNRegressor.hpp"
 #include "data/FluidDataSet.hpp"
@@ -43,7 +43,7 @@ public:
       auto dataset = datasetClientPtr->getDataSet();
       mTree = algorithm::KDTree{dataset};
     } else {
-      return {Result::Status::kError, "DataSet doesn't exist"};
+      return NoDataSetError;
     }
     return {};
   }
@@ -51,16 +51,15 @@ public:
   MessageResult<std::string> classify(BufferPtr data, LabelSetClientRef labelsetClient, fluid::index k) const {
     algorithm::KNNClassifier classifier;
     if (!data)
-      return {Result::Status::kError, NoBufferError};
-    if(k == 0) return {Result::Status::kError, "K shoud be at least 1"};
-    if(mTree.nPoints() == 0)return {Result::Status::kError, "No index"};
-    if (mTree.nPoints() < k)return {Result::Status::kError, "Not enough data in index"};
+      return NoBufferError;
+    if(k == 0) return SmallKError;
+    if(mTree.nPoints() == 0)return NoDataFittedError;
+    if (mTree.nPoints() < k)return NotEnoughDataError;
     auto labelsetPtr = labelsetClient.get().lock();
-    if(!labelsetPtr)return {Result::Status::kError, "LabelSet doesn't exist"};
+    if(!labelsetPtr) return NoLabelSetError;
     auto labelSet = labelsetPtr->getLabelSet();
     BufferAdaptor::Access buf(data.get());
-    if (buf.numFrames() != mTree.nDims())
-        return {Result::Status::kError, WrongPointSizeError};
+    if (buf.numFrames() != mTree.nDims()) return WrongPointSizeError;
     FluidTensor<double, 1> point(mTree.nDims());
     point = buf.samps(0, mTree.nDims(), 0);
     std::string result = classifier.predict(mTree, point, labelSet, k);
@@ -70,15 +69,15 @@ public:
   MessageResult<double> regress(BufferPtr data, DataSetClientRef targetDataSetClient, fluid::index k) const {
     algorithm::KNNRegressor regressor;
     if (!data)
-      return {Result::Status::kError, NoBufferError};
-    if(k == 0) return {Result::Status::kError, "K shoud be at least 1"};
-    if(mTree.nPoints() == 0)return {Result::Status::kError, "No index"};
-    else if (mTree.nPoints() < k)return {Result::Status::kError, "Not enough data in index"};
+      return NoBufferError;
+    if(k == 0) return SmallKError;
+    if(mTree.nPoints() == 0)return NoDataFittedError;
+    else if (mTree.nPoints() < k)return NotEnoughDataError;
     auto tgtPtr = targetDataSetClient.get().lock();
-    if(!tgtPtr)return {Result::Status::kError, "Target DataSet doesn't exist"};
+    if(!tgtPtr)return NoDataSetError;
     auto target = tgtPtr->getDataSet();
     BufferAdaptor::Access buf(data.get());
-    if (buf.numFrames() != mTree.nDims()) return {Result::Status::kError, WrongPointSizeError};
+    if (buf.numFrames() != mTree.nDims()) return WrongPointSizeError;
     FluidTensor<double, 1> point(mTree.nDims());
     point = buf.samps(0, mTree.nDims(), 0);
     double result = regressor.predict(mTree, target, point, k);
@@ -89,8 +88,8 @@ public:
                          makeMessage("fit", &KNNClient::index),
                          makeMessage("classify", &KNNClient::classify),
                          makeMessage("classifyPoint", &KNNClient::classify),
-                       makeMessage("regress", &KNNClient::regress),
-                       makeMessage("regressPoint", &KNNClient::regress));
+                         makeMessage("regress", &KNNClient::regress),
+                         makeMessage("regressPoint", &KNNClient::regress));
 
 private:
   algorithm::KDTree mTree{0};

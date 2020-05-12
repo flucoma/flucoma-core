@@ -1,5 +1,5 @@
 #pragma once
-#include "DataSetErrorStrings.hpp"
+#include "CommonResults.hpp"
 #include "FluidSharedInstanceAdaptor.hpp"
 #include "clients/common/SharedClientUtils.hpp"
 #include "data/FluidDataSet.hpp"
@@ -37,7 +37,7 @@ public:
 
   MessageResult<void> addPoint(string id, BufferPtr data) {
     if (!data)
-      return mNoBufferError;
+      return NoBufferError;
     BufferAdaptor::Access buf(data.get());
 
     if (mDataSet.size() == 0) {
@@ -45,16 +45,16 @@ public:
         mDataSet = DataSet(buf.numFrames());
       mDims = mDataSet.pointSize();
     } else if (buf.numFrames() != mDims)
-      return mWrongSizeError;
+      return WrongPointSizeError;
 
     FluidTensor<double, 1> point(mDims);
     point = buf.samps(0, mDims, 0);
-    return mDataSet.add(id, point) ? mOKResult : mDuplicateError;
+    return mDataSet.add(id, point) ? OKResult : DuplicateError;
   }
 
   MessageResult<void> getPoint(string id, BufferPtr data) const {
     if (!data)
-      return mNoBufferError;
+      return NoBufferError;
     BufferAdaptor::Access buf(data.get());
     Result resizeResult = buf.resize(mDims, 1, buf.sampleRate());
     if (!resizeResult.ok())
@@ -65,25 +65,25 @@ public:
     //    mDataSet.print();
     if (result) {
       buf.samps(0, mDims, 0) = point;
-      return {Result::Status::kOk};
+      return OKResult;
     } else {
-      return mNotFoundError;
+      return PointNotFoundError;
     }
   }
 
   MessageResult<void> updatePoint(string id, BufferPtr data) {
     if (!data)
-      return mNoBufferError;
+      return NoBufferError;
     BufferAdaptor::Access buf(data.get());
     if (buf.numFrames() < mDims)
-      return mWrongSizeError;
+      return WrongPointSizeError;
     FluidTensor<double, 1> point(mDims);
     point = buf.samps(0, mDims, 0);
-    return mDataSet.update(id, point) ? mOKResult : mNotFoundError;
+    return mDataSet.update(id, point) ? OKResult : PointNotFoundError;
   }
 
   MessageResult<void> deletePoint(string id) {
-    return mDataSet.remove(id) ? mOKResult : mNotFoundError;
+    return mDataSet.remove(id) ? OKResult : PointNotFoundError;
   }
 
   MessageResult<index> size() { return mDataSet.size(); }
@@ -91,7 +91,7 @@ public:
 
   MessageResult<void> clear() {
     mDataSet = DataSet(0);
-    return mOKResult;
+    return OKResult;
   }
 
   MessageResult<void> write(string fileName) {
@@ -103,7 +103,7 @@ public:
     file.add("data", mDataSet.getData());
     file.add("cols", mDataSet.pointSize());
     file.add("rows", mDataSet.size());
-    return file.write() ? mOKResult : mWriteError;
+    return file.write() ? OKResult : WriteError;
   }
 
   MessageResult<void> read(string fileName) {
@@ -112,7 +112,7 @@ public:
       return {Result::Status::kError, file.error()};
     }
     if (!file.read()) {
-      return {Result::Status::kError, ReadError};
+      return ReadError;
     }
     if (!file.checkKeys({"data", "ids", "rows", "cols"})) {
       return {Result::Status::kError, file.error()};
@@ -126,7 +126,7 @@ public:
     file.get("data", data, rows, cols);
     mDataSet = DataSet(ids, data);
     mDims = cols;
-    return mOKResult;
+    return OKResult;
   }
 
   FLUID_DECLARE_MESSAGES(
@@ -148,14 +148,6 @@ public:
   }
 
 private:
-  using result = MessageResult<void>;
-  result mNoBufferError{Result::Status::kError, NoBufferError};
-  result mWriteError{Result::Status::kError, WriteError};
-  result mNotFoundError{Result::Status::kError, PointNotFoundError};
-  result mWrongSizeError{Result::Status::kError, WrongPointSizeError};
-  result mDuplicateError{Result::Status::kError, DuplicateError};
-  result mOKResult{Result::Status::kOk};
-
   DataSet mDataSet;
   index mDims;
 };

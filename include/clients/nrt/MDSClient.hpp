@@ -1,7 +1,7 @@
 #pragma once
 
 #include "DataSetClient.hpp"
-#include "DataSetErrorStrings.hpp"
+#include "CommonResults.hpp"
 #include "algorithms/MDS.hpp"
 #include "data/FluidDataSet.hpp"
 
@@ -42,18 +42,18 @@ public:
       auto src = srcPtr->getDataSet();
       auto dest = destPtr->getDataSet();
       if (k <= 0)
-        return {Result::Status::kError, "k should be at least 1"};
+        return SmallKError;
       if (dist < 0 || dist > 6)
         return {Result::Status::kError, "dist should be  between 0 and 6"};
       if (src.size() == 0)
-        return {Result::Status::kError, EmptyDataSetError};
+        return EmptyDataSetError;
       FluidTensor<string, 1> ids{src.getIds()};
       FluidTensor<double, 2> output(src.size(), k);
       mAlgorithm.process(src.getData(), output, dist, k);
       FluidDataSet<string, double, 1> result(ids, output);
       destPtr->setDataSet(result);
     } else {
-      return {Result::Status::kError, "DataSet doesn't exist"};
+      return NoDataSetError;
     }
     return {};
   }
@@ -61,7 +61,6 @@ public:
   FLUID_DECLARE_MESSAGES(makeMessage("fitTransform", &MDSClient::fitTransform));
 
 private:
-  MessageResult<void> mOKResult{Result::Status::kOk};
   algorithm::MDS mAlgorithm;
 };
 

@@ -9,6 +9,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
+#include "CommonResults.hpp"
 #include "algorithms/NNDSVD.hpp"
 #include "algorithms/public/STFT.hpp"
 #include "data/FluidTensor.hpp"
@@ -119,7 +120,7 @@ public:
       env = outputEnvelopes.col(j);
       env.apply([scale](float &x) { x *= static_cast<float>(scale); });
     }
-    return {Result::Status::kOk, ""};
+    return OKResult;
   }
 };
 
