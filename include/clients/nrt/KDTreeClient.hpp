@@ -1,19 +1,7 @@
 #pragma once
 
-#include "DataSetClient.hpp"
-#include "CommonResults.hpp"
+#include "NRTClient.hpp"
 #include "algorithms/KDTree.hpp"
-#include "data/FluidDataSet.hpp"
-#include "data/FluidIndex.hpp"
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/MessageSet.hpp>
-#include <clients/common/OfflineClient.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <clients/common/ParameterTypes.hpp>
-#include <clients/common/Result.hpp>
-#include <clients/common/FluidNRTClientWrapper.hpp>
-#include <data/FluidTensor.hpp>
-#include <data/TensorTypes.hpp>
 #include <string>
 
 namespace fluid {
@@ -33,32 +21,27 @@ public:
 
   KDTreeClient(ParamSetViewType &p) : mParams(p) {}
 
-  MessageResult<void> index(DataSetClientRef datasetClient) {
-    auto weakPtr = datasetClient.get();
-    if (auto datasetClientPtr = weakPtr.lock()) {
-      auto dataset = datasetClientPtr->getDataSet();
-      if (dataset.size() == 0) return EmptyDataSetError;
-      mTree = algorithm::KDTree(dataset);
-    } else {
-      return NoDataSetError;
-    }
+  MessageResult<void> fit(DataSetClientRef datasetClient) {
+
+    auto datasetClientPtr = datasetClient.get().lock();
+    if(!datasetClientPtr) return NoDataSetError;
+    auto dataset = datasetClientPtr->getDataSet();
+    if (dataset.size() == 0) return EmptyDataSetError;
+
+    mTree = algorithm::KDTree(dataset);
     return OKResult;
   }
 
   MessageResult<fluid::index> cols(){return mTree.nDims();}
 
   MessageResult<FluidTensor<std::string, 1>> kNearest(BufferPtr data, int k) const {
-    if (!data)
-      return NoBufferError;
+
+    if (!data) return NoBufferError;
     BufferAdaptor::Access buf(data.get());
-    if (buf.numFrames() != mTree.nDims())
-      return WrongPointSizeError;
-    if (k > mTree.nPoints()){
-      return SmallDataSetError;
-    }
-    if(k <= 0 ){
-      return SmallKError;
-    }
+    if (buf.numFrames() != mTree.nDims()) return WrongPointSizeError;
+    if (k > mTree.nPoints()) return SmallDataSetError;
+    if(k <= 0 ) return SmallKError;
+
     FluidTensor<double, 1> point(mTree.nDims());
     point = buf.samps(0, mTree.nDims(), 0);
     FluidDataSet<std::string, double,1> nearest = mTree.kNearest(point, k);
@@ -116,8 +99,7 @@ public:
     return file.write()? OKResult:WriteError;
   }
 
-  FLUID_DECLARE_MESSAGES(makeMessage("index", &KDTreeClient::index),
-                         makeMessage("fit", &KDTreeClient::index),
+  FLUID_DECLARE_MESSAGES(makeMessage("fit", &KDTreeClient::fit),
                          makeMessage("kNearest", &KDTreeClient::kNearest),
                          makeMessage("kNearestDist", &KDTreeClient::kNearestDist),
                          makeMessage("cols", &KDTreeClient::cols),

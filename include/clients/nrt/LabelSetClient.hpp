@@ -1,22 +1,6 @@
 #pragma once
-#include "CommonResults.hpp"
-#include "FluidSharedInstanceAdaptor.hpp"
-#include "clients/common/SharedClientUtils.hpp"
-#include "data/FluidDataSet.hpp"
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/MessageSet.hpp>
-#include <clients/common/OfflineClient.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <clients/common/ParameterTypes.hpp>
-#include <clients/common/Result.hpp>
-#include <clients/common/FluidNRTClientWrapper.hpp>
-#include <data/FluidTensor.hpp>
-#include <data/TensorTypes.hpp>
-#include <data/FluidFile.hpp>
-#include <data/FluidIndex.hpp>
-#include <fstream>
-#include <nlohmann/json.hpp>
-#include <string>
+
+#include "NRTClient.hpp"
 
 namespace fluid {
 namespace client {

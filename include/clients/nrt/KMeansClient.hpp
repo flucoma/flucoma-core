@@ -1,22 +1,7 @@
 #pragma once
 
-#include "CommonResults.hpp"
-#include "DataSetClient.hpp"
-#include "LabelSetClient.hpp"
+#include "NRTClient.hpp"
 #include "algorithms/KMeans.hpp"
-#include "data/FluidDataSet.hpp"
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/FluidNRTClientWrapper.hpp>
-#include <clients/common/MessageSet.hpp>
-#include <clients/common/OfflineClient.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <clients/common/ParameterTypes.hpp>
-#include <clients/common/Result.hpp>
-#include <data/FluidFile.hpp>
-#include <data/FluidIndex.hpp>
-#include <data/FluidTensor.hpp>
-#include <data/TensorTypes.hpp>
-#include <nlohmann/json.hpp>
 #include <string>
 
 namespace fluid {
@@ -135,32 +120,28 @@ public:
 
   MessageResult<FluidTensor<index, 1>>
   predict(DataSetClientRef datasetClient, LabelSetClientRef labelClient) const {
+
     auto dataPtr = datasetClient.get().lock();
+    if (!dataPtr) return NoDataSetError;
     auto labelPtr = labelClient.get().lock();
-    if (!mModel.trained()) {
-      return NoDataFittedError;
-    }
+    if (!labelPtr) return NoLabelSetError;
+    auto dataSet = dataPtr->getDataSet();
+    if (dataSet.size() == 0) return EmptyDataSetError;
+    if (!mModel.trained()) return NoDataFittedError;
+
     FluidTensor<index, 1> counts(mModel.getK());
     counts.fill(0);
-    if (dataPtr && labelPtr) {
-      auto dataSet = dataPtr->getDataSet();
-      if (dataSet.size() == 0)
-        return EmptyDataSetError;
-      auto ids = dataSet.getIds();
-      FluidTensor<double, 1> query(mDims);
-      FluidDataSet<string, string, 1> result(1);
-
-      for (index i = 0; i < ids.size(); i++) {
+    auto ids = dataSet.getIds();
+    FluidTensor<double, 1> query(mDims);
+    FluidDataSet<string, string, 1> result(1);
+    for (index i = 0; i < ids.size(); i++) {
         dataSet.get(ids(i), query);
         index clusterId = mModel.vq(query);
         counts(clusterId)++;
         FluidTensor<string, 1> point = {std::to_string(clusterId)};
         result.add(ids(i), point);
-      }
-      labelPtr->setLabelSet(result);
-    } else {
-      return NoDataSetOrLabelSetError;
     }
+    labelPtr->setLabelSet(result);
     return counts;
   }
 
