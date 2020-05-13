@@ -93,7 +93,7 @@ public:
   }
 
   template <typename U, size_t M>
-  explicit FluidTensor(const FluidTensorView<U, M>& x)
+  explicit FluidTensor(FluidTensorView<U, M> x)
       : mContainer(asUnsigned(x.size())), mDesc(0, x.descriptor().extents)
   {
     static_assert(std::is_convertible<U, T>::value,
