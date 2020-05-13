@@ -24,7 +24,7 @@ public:
   enum class Distance {
     kManhattan,
     kEuclidean,
-    kChebyshev,
+    kSqEuclidean,
     kMax,
     kMin,
     kKL,
@@ -42,6 +42,8 @@ public:
          [](ArrayXd x, ArrayXd y) { return (x - y).abs().sum(); }},
         {Distance::kEuclidean,
          [](ArrayXd x, ArrayXd y) { return std::sqrt((x - y).square().sum()); }},
+         {Distance::kSqEuclidean,
+          [](ArrayXd x, ArrayXd y) { return (x - y).square().sum(); }},
         {Distance::kMax,
          [](ArrayXd x, ArrayXd y) { return (x - y).abs().maxCoeff(); }},
         {Distance::kMin,

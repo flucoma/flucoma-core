@@ -1,19 +1,7 @@
 #pragma once
 
-#include "DataSetClient.hpp"
-#include "DataSetErrorStrings.hpp"
+#include "NRTClient.hpp"
 #include "algorithms/KDTree.hpp"
-#include "data/FluidDataSet.hpp"
-#include "data/FluidIndex.hpp"
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/MessageSet.hpp>
-#include <clients/common/OfflineClient.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <clients/common/ParameterTypes.hpp>
-#include <clients/common/Result.hpp>
-#include <clients/common/FluidNRTClientWrapper.hpp>
-#include <data/FluidTensor.hpp>
-#include <data/TensorTypes.hpp>
 #include <string>
 
 namespace fluid {
@@ -33,32 +21,27 @@ public:
 
   KDTreeClient(ParamSetViewType &p) : mParams(p) {}
 
-  MessageResult<void> index(DataSetClientRef datasetClient) {
-    auto weakPtr = datasetClient.get();
-    if (auto datasetClientPtr = weakPtr.lock()) {
-      auto dataset = datasetClientPtr->getDataSet();
-      if (dataset.size() == 0) return {Result::Status::kError, EmptyDataSetError};
-      mTree = algorithm::KDTree(dataset);
-    } else {
-      return {Result::Status::kError, "DataSet doesn't exist"};
-    }
-    return {Result::Status::kOk};
+  MessageResult<void> fit(DataSetClientRef datasetClient) {
+
+    auto datasetClientPtr = datasetClient.get().lock();
+    if(!datasetClientPtr) return NoDataSetError;
+    auto dataset = datasetClientPtr->getDataSet();
+    if (dataset.size() == 0) return EmptyDataSetError;
+
+    mTree = algorithm::KDTree(dataset);
+    return OKResult;
   }
 
   MessageResult<fluid::index> cols(){return mTree.nDims();}
 
   MessageResult<FluidTensor<std::string, 1>> kNearest(BufferPtr data, int k) const {
-    if (!data)
-      return {Result::Status::kError, NoBufferError};
+
+    if (!data) return NoBufferError;
     BufferAdaptor::Access buf(data.get());
-    if (buf.numFrames() != mTree.nDims())
-      return {Result::Status::kError, WrongPointSizeError};
-    if (k > mTree.nPoints()){
-      return {Result::Status::kError, SmallDataSetError};
-    }
-    if(k <= 0 ){
-      return {Result::Status::kError, "k should be at least 1"};
-    }
+    if (buf.numFrames() != mTree.nDims()) return WrongPointSizeError;
+    if (k > mTree.nPoints()) return SmallDataSetError;
+    if(k <= 0 ) return SmallKError;
+
     FluidTensor<double, 1> point(mTree.nDims());
     point = buf.samps(0, mTree.nDims(), 0);
     FluidDataSet<std::string, double,1> nearest = mTree.kNearest(point, k);
@@ -69,15 +52,15 @@ public:
   MessageResult<FluidTensor<double, 1>> kNearestDist(BufferPtr data, int k) const {
     // TODO: refactor with kNearest
     if (!data)
-      return {Result::Status::kError, NoBufferError};
+      return NoBufferError;
     BufferAdaptor::Access buf(data.get());
     if (buf.numFrames() != mTree.nDims())
-      return {Result::Status::kError, WrongPointSizeError};
+      return WrongPointSizeError;
     if (k > mTree.nPoints()){
-      return {Result::Status::kError, SmallDataSetError};
+      return SmallDataSetError;
     }
     if(k <= 0 ){
-      return {Result::Status::kError, "k should be at least 1"};
+      return SmallKError;
     }
     FluidTensor<double, 1> point(mTree.nDims());
     point = buf.samps(0, mTree.nDims(), 0);
@@ -89,7 +72,7 @@ public:
   MessageResult<void> read(string fileName) {
     auto file = FluidFile(fileName, "r");
     if(!file.valid()){return {Result::Status::kError, file.error()};}
-    if(!file.read()){return {Result::Status::kError, ReadError};}
+    if(!file.read()){return ReadError;}
     if(!file.checkKeys({"tree", "data", "rows", "cols", "ids"})){
       return {Result::Status::kError, file.error()};
     }
@@ -101,7 +84,7 @@ public:
     file.get("data", treeData.data, rows, cols);
     file.get("ids", treeData.ids, rows);
     mTree.fromFlat(treeData);
-    return mOKResult;
+    return OKResult;
   }
 
   MessageResult<void> write(string fileName){
@@ -113,11 +96,10 @@ public:
     file.add("rows", treeData.data.rows());
     file.add("data", treeData.data);
     file.add("ids", treeData.ids);
-    return file.write()? mOKResult:mWriteError;
+    return file.write()? OKResult:WriteError;
   }
 
-  FLUID_DECLARE_MESSAGES(makeMessage("index", &KDTreeClient::index),
-                         makeMessage("fit", &KDTreeClient::index),
+  FLUID_DECLARE_MESSAGES(makeMessage("fit", &KDTreeClient::fit),
                          makeMessage("kNearest", &KDTreeClient::kNearest),
                          makeMessage("kNearestDist", &KDTreeClient::kNearestDist),
                          makeMessage("cols", &KDTreeClient::cols),
@@ -126,8 +108,6 @@ public:
   );
 
 private:
-  MessageResult<void> mOKResult{Result::Status::kOk};
-  MessageResult<void> mWriteError{Result::Status::kError, WriteError};
   algorithm::KDTree mTree{1};
 };
 

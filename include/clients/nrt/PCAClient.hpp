@@ -1,23 +1,6 @@
 #pragma once
-
-#include "DataSetClient.hpp"
-#include "DataSetErrorStrings.hpp"
+#include "NRTClient.hpp"
 #include "algorithms/PCA.hpp"
-#include "data/FluidDataSet.hpp"
-
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/FluidNRTClientWrapper.hpp>
-#include <clients/common/MessageSet.hpp>
-#include <clients/common/OfflineClient.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <clients/common/ParameterTypes.hpp>
-#include <clients/common/Result.hpp>
-#include <data/FluidFile.hpp>
-#include <data/FluidIndex.hpp>
-#include <data/FluidTensor.hpp>
-#include <data/TensorTypes.hpp>
-#include <nlohmann/json.hpp>
-#include <string>
 
 namespace fluid {
 namespace client {
@@ -35,30 +18,27 @@ public:
   PCAClient(ParamSetViewType &p) : mParams(p) {}
 
   MessageResult<void> fit(DataSetClientRef datasetClient, index k) {
-    auto weakPtr = datasetClient.get();
-    if (auto datasetClientPtr = weakPtr.lock()) {
-      auto dataset = datasetClientPtr->getDataSet();
-      if (k <= 0)
-        return {Result::Status::kError, "k should be at least 1"};
-      if (dataset.size() == 0)
-        return {Result::Status::kError, EmptyDataSetError};
-      mDims = dataset.pointSize();
-      mK = k;
-      mAlgorithm.init(dataset.getData(), k);
-    } else {
-      return {Result::Status::kError, "DataSet doesn't exist"};
-    }
-    return {};
+    auto datasetClientPtr = datasetClient.get().lock();
+    if(!datasetClientPtr) return NoDataSetError;
+    auto dataSet = datasetClientPtr->getDataSet();
+    if (dataSet.size() == 0) return EmptyDataSetError;
+    if (k <= 0) return SmallKError;
+
+    mDims = dataSet.pointSize();
+    mK = k;
+    mAlgorithm.init(dataSet.getData(), k);
+
+    return OKResult;
   }
 
   MessageResult<index> cols() { return mK; }
   MessageResult<index> rows() { return mDims; }
 
-  MessageResult<void> fitTransform(DataSetClientRef datasetClient, index k,
-                                   DataSetClientRef destClient) {
-            auto result = fit(datasetClient, k);
+  MessageResult<void> fitTransform(DataSetClientRef sourceClient,
+                                   DataSetClientRef destClient, index k) {
+            auto result = fit(sourceClient, k);
             if (!result.ok()) return result;
-            result = transform(datasetClient, destClient);
+            result = transform(sourceClient, destClient);
             return result;
 }
 
@@ -70,32 +50,32 @@ public:
     if (srcPtr && destPtr) {
       auto srcDataSet = srcPtr->getDataSet();
       if (srcDataSet.size() == 0)
-        return {Result::Status::kError, EmptyDataSetError};
+        return EmptyDataSetError;
       FluidTensor<string, 1> ids{srcDataSet.getIds()};
       FluidTensor<double, 2> output(srcDataSet.size(), mK);
       if (!mAlgorithm.initialized())
-        return {Result::Status::kError, "No data fitted"};
+        return NoDataFittedError;
       mAlgorithm.process(srcDataSet.getData(), output);
       FluidDataSet<string, double, 1> result(ids, output);
       destPtr->setDataSet(result);
     } else {
-      return {Result::Status::kError, "DataSet doesn't exist"};
+      return NoDataSetError;
     }
     return {};
   }
 
   MessageResult<void> transformPoint(BufferPtr in, BufferPtr out) const {
     if (!in || !out)
-      return {Result::Status::kError, NoBufferError};
+      return NoBufferError;
     BufferAdaptor::Access inBuf(in.get());
     BufferAdaptor::Access outBuf(out.get());
     if (inBuf.numFrames() != mDims)
-      return {Result::Status::kError, WrongPointSizeError};
+      return WrongPointSizeError;
     if (!mAlgorithm.initialized())
-      return {Result::Status::kError, "No data fitted"};
+      return NoDataFittedError;
     Result resizeResult = outBuf.resize(mK, 1, inBuf.sampleRate());
     if (!resizeResult.ok())
-      return {Result::Status::kError, "Cant allocate buffer"};
+      return BufferAllocError;
     FluidTensor<double, 1> src(mDims);
     FluidTensor<double, 1> dest(mK);
     src = inBuf.samps(0, mDims, 0);
@@ -117,7 +97,7 @@ public:
     file.add("mean", mean);
     file.add("rows", mDims);
     file.add("cols", mK);
-    return file.write() ? mOKResult : mWriteError;
+    return file.write() ? OKResult : WriteError;
   }
 
   MessageResult<void> read(string fileName) {
@@ -126,7 +106,7 @@ public:
       return {Result::Status::kError, file.error()};
     }
     if (!file.read()) {
-      return {Result::Status::kError, ReadError};
+      return ReadError;
     }
     if (!file.checkKeys({"bases", "mean", "cols", "rows"})) {
       return {Result::Status::kError, file.error()};
@@ -138,7 +118,7 @@ public:
     RealVector mean(mDims);
     file.get("mean", mean, mDims);
     mAlgorithm.init(bases, mean);
-    return mOKResult;
+    return OKResult;
   }
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &PCAClient::fit),
@@ -152,8 +132,6 @@ public:
                          makeMessage("write", &PCAClient::write));
 
 private:
-  MessageResult<void> mOKResult{Result::Status::kOk};
-  MessageResult<void> mWriteError{Result::Status::kError, WriteError};
   algorithm::PCA mAlgorithm;
   index mDims;
   index mK;

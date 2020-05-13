@@ -1,4 +1,5 @@
 #pragma once
+#include "CommonResults.hpp"
 #include "clients/common/FluidNRTClientWrapper.hpp"
 #include "clients/common/ParameterTypes.hpp"
 #include "clients/common/ParameterConstraints.hpp"
@@ -109,7 +110,7 @@ public:
     istft.process(result, resultAudio);
     output.samps(0) = resultAudio(Slice(0, tgtFrames));
 
-    return {Result::Status::kOk,""};
+    return OKResult;
 
   }
 };

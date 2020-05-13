@@ -34,7 +34,7 @@ public:
   
   template <typename IsFixed = Fixed<false>>
   static constexpr ParamSpec<ParamType, IsFixed>
-  MakeParam(const char *name, const char *displayName)
+  makeParam(const char *name, const char *displayName)
   {
     return {ParamType(name, displayName), std::make_tuple(), IsFixed{}};
   }
@@ -45,6 +45,9 @@ private:
 
 template <typename T> 
 using ConstSharedClientRef = SharedClientRef<const T>; 
+
+template <typename T>
+using IsSharedClientRef = isSpecialization<std::decay_t<T>, SharedClientRef>; 
 
 
 }

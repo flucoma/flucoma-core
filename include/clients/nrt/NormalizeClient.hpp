@@ -1,23 +1,7 @@
 #pragma once
 
-#include "DataSetClient.hpp"
-#include "DataSetErrorStrings.hpp"
+#include "NRTClient.hpp"
 #include "algorithms/Normalization.hpp"
-#include "data/FluidDataSet.hpp"
-
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/MessageSet.hpp>
-#include <clients/common/OfflineClient.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <clients/common/ParameterTypes.hpp>
-#include <clients/common/Result.hpp>
-#include <clients/common/FluidNRTClientWrapper.hpp>
-#include <data/FluidFile.hpp>
-#include <data/FluidTensor.hpp>
-#include <data/TensorTypes.hpp>
-#include <data/FluidIndex.hpp>
-#include <nlohmann/json.hpp>
-#include <string>
 
 namespace fluid {
 namespace client {
@@ -43,18 +27,18 @@ public:
     if (auto datasetClientPtr = weakPtr.lock()) {
       auto dataset = datasetClientPtr->getDataSet();
       if (dataset.size() == 0)
-        return {Result::Status::kError, EmptyDataSetError};
+        return EmptyDataSetError;
       mDims = dataset.pointSize();
       mAlgorithm.init(get<kMin>(), get<kMax>(), dataset.getData());
     } else {
-      return {Result::Status::kError, "DataSet doesn't exist"};
+      return NoDataSetError;
     }
     return {};
   }
 
   MessageResult<index> cols() { return mDims;}
 
-  MessageResult<void> normalize(DataSetClientRef sourceClient,
+  MessageResult<void> transform(DataSetClientRef sourceClient,
                             DataSetClientRef destClient) {
     using namespace std;
     auto srcPtr = sourceClient.get().lock();
@@ -62,31 +46,31 @@ public:
     if (srcPtr && destPtr) {
       auto srcDataSet = srcPtr->getDataSet();
       if (srcDataSet.size() == 0)
-        return {Result::Status::kError, EmptyDataSetError};
+        return EmptyDataSetError;
       FluidTensor<string, 1> ids{srcDataSet.getIds()};
       FluidTensor<double, 2> data(srcDataSet.size(), srcDataSet.pointSize());
-      if(!mAlgorithm.initialized())return {Result::Status::kError, "No data fitted"};
+      if(!mAlgorithm.initialized()) return NoDataFittedError;
       mAlgorithm.setMin(get<kMin>());
       mAlgorithm.setMax(get<kMax>());
       mAlgorithm.process(srcDataSet.getData(), data);
       FluidDataSet<string, double, 1> result(ids, data);
       destPtr->setDataSet(result);
     } else {
-      return {Result::Status::kError, "DataSet doesn't exist"};
+      return NoDataSetError;
     }
     return {};
   }
 
-  MessageResult<void> normalizePoint(BufferPtr in, BufferPtr out) {
+  MessageResult<void> transformPoint(BufferPtr in, BufferPtr out) {
     if (!in || !out)
-      return {Result::Status::kError, NoBufferError};
+      return NoBufferError;
     BufferAdaptor::Access inBuf(in.get());
     BufferAdaptor::Access outBuf(out.get());
     if (inBuf.numFrames() != mDims)
-      return {Result::Status::kError, WrongPointSizeError};
-    if(!mAlgorithm.initialized())return {Result::Status::kError, "No data fitted"};
+      return WrongPointSizeError;
+    if(!mAlgorithm.initialized())return NoDataFittedError;
     Result resizeResult = outBuf.resize(mDims, 1, inBuf.sampleRate());
-    if(!resizeResult.ok()) return {Result::Status::kError, "Cant allocate buffer"};
+    if(!resizeResult.ok()) return BufferAllocError;
     FluidTensor<double, 1> src(mDims);
     FluidTensor<double, 1> dest(mDims);
     src = inBuf.samps(0, mDims, 0);
@@ -109,7 +93,7 @@ public:
     file.add("min", min);
     file.add("max", max);
     file.add("cols", mDims);
-    return file.write() ? mOKResult : mWriteError;
+    return file.write() ? OKResult : WriteError;
   }
 
   MessageResult<void> read(string fileName) {
@@ -118,7 +102,7 @@ public:
       return {Result::Status::kError, file.error()};
     }
     if (!file.read()) {
-      return {Result::Status::kError, ReadError};
+      return ReadError;
     }
     if (!file.checkKeys({"min", "max", "cols"})) {
       return {Result::Status::kError, file.error()};
@@ -127,23 +111,21 @@ public:
     RealVector dataMax(mDims);
     index dims;
     file.get("cols", dims);
-    if (dims!=mDims)return {Result::Status::kError, WrongPointSizeError};
+    if (dims!=mDims)return WrongPointSizeError;
     file.get("min", dataMin, dims);
     file.get("max", dataMax, dims);
     mAlgorithm.init(get<kMin>(), get<kMax>(), dataMin, dataMax);
-    return mOKResult;
+    return OKResult;
   }
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &NormalizeClient::fit),
                          makeMessage("cols", &NormalizeClient::cols),
-                         makeMessage("normalize", &NormalizeClient::normalize),
-                         makeMessage("normalizePoint", &NormalizeClient::normalizePoint),
+                         makeMessage("transform", &NormalizeClient::transform),
+                         makeMessage("transformPoint", &NormalizeClient::transformPoint),
                          makeMessage("read", &NormalizeClient::read),
                          makeMessage("write", &NormalizeClient::write));
 
 private:
-  MessageResult<void> mOKResult{Result::Status::kOk};
-  MessageResult<void> mWriteError{Result::Status::kError, WriteError};
   algorithm::Normalization mAlgorithm;
   index mDims{0};
 };
