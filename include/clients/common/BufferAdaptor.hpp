@@ -46,6 +46,12 @@ public:
 
     bool exists() const { return mAdaptor ? mAdaptor->exists() : false; }
 
+    FluidTensorView<const float, 2> allFrames() const
+    {
+      assert(mAdaptor);
+      return mAdaptor->allFrames(); 
+    }
+
     FluidTensorView<const float, 1> samps(index channel) const
     {
       assert(mAdaptor);
@@ -87,6 +93,12 @@ public:
     Access& operator=(const Access&) = delete;
     Access(Access&&) noexcept = default;
     Access& operator=(Access&&) noexcept = default;
+    
+    FluidTensorView<float, 2> allFrames()
+    {
+      assert(mMutableAdaptor);
+      return mMutableAdaptor->allFrames();
+    }
 
     FluidTensorView<float, 1> samps(index channel)
     {
@@ -144,6 +156,10 @@ private:
   virtual FluidTensorView<const float, 1> samps(index channel) const = 0;
   virtual FluidTensorView<const float, 1> samps(index offset, index nframes,
                                                 index chanoffset) const = 0;
+  
+  virtual FluidTensorView<float,2>        allFrames() = 0;
+  virtual FluidTensorView<const float,2>  allFrames() const = 0;
+  
   virtual index                           numFrames() const = 0;
   virtual index                           numChans() const = 0;
   virtual double                          sampleRate() const = 0;
