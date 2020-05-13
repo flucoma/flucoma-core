@@ -18,30 +18,27 @@ public:
   PCAClient(ParamSetViewType &p) : mParams(p) {}
 
   MessageResult<void> fit(DataSetClientRef datasetClient, index k) {
-    auto weakPtr = datasetClient.get();
-    if (auto datasetClientPtr = weakPtr.lock()) {
-      auto dataset = datasetClientPtr->getDataSet();
-      if (k <= 0)
-        return SmallKError;
-      if (dataset.size() == 0)
-        return EmptyDataSetError;
-      mDims = dataset.pointSize();
-      mK = k;
-      mAlgorithm.init(dataset.getData(), k);
-    } else {
-      return NoDataSetError;
-    }
+    auto datasetClientPtr = datasetClient.get().lock();
+    if(!datasetClientPtr) return NoDataSetError;
+    auto dataSet = datasetClientPtr->getDataSet();
+    if (dataSet.size() == 0) return EmptyDataSetError;
+    if (k <= 0) return SmallKError;
+
+    mDims = dataSet.pointSize();
+    mK = k;
+    mAlgorithm.init(dataSet.getData(), k);
+
     return OKResult;
   }
 
   MessageResult<index> cols() { return mK; }
   MessageResult<index> rows() { return mDims; }
 
-  MessageResult<void> fitTransform(DataSetClientRef datasetClient, index k,
-                                   DataSetClientRef destClient) {
-            auto result = fit(datasetClient, k);
+  MessageResult<void> fitTransform(DataSetClientRef sourceClient,
+                                   DataSetClientRef destClient, index k) {
+            auto result = fit(sourceClient, k);
             if (!result.ok()) return result;
-            result = transform(datasetClient, destClient);
+            result = transform(sourceClient, destClient);
             return result;
 }
 

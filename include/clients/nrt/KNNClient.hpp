@@ -22,7 +22,7 @@ public:
 
   KNNClient(ParamSetViewType &p) : mParams(p) {}
 
-  MessageResult<std::string> index(DataSetClientRef datasetClient) {
+  MessageResult<std::string> fit(DataSetClientRef datasetClient) {
     auto datasetWeakPtr = datasetClient.get();
     if (auto datasetClientPtr = datasetWeakPtr.lock()) {
       auto dataset = datasetClientPtr->getDataSet();
@@ -69,8 +69,7 @@ public:
     return result;
     }
 
-  FLUID_DECLARE_MESSAGES(makeMessage("index", &KNNClient::index),
-                         makeMessage("fit", &KNNClient::index),
+  FLUID_DECLARE_MESSAGES(makeMessage("fit", &KNNClient::fit),
                          makeMessage("classify", &KNNClient::classify),
                          makeMessage("classifyPoint", &KNNClient::classify),
                          makeMessage("regress", &KNNClient::regress),

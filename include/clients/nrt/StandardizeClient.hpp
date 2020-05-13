@@ -36,7 +36,7 @@ public:
 
   MessageResult<index> cols() { return mDims;}
 
-  MessageResult<void> standardize(DataSetClientRef sourceClient,
+  MessageResult<void> transform(DataSetClientRef sourceClient,
                             DataSetClientRef destClient) const {
     using namespace std;
     auto srcPtr = sourceClient.get().lock();
@@ -58,7 +58,7 @@ public:
     return {};
   }
 
-  MessageResult<void> standardizePoint(BufferPtr in, BufferPtr out) const {
+  MessageResult<void> transformPoint(BufferPtr in, BufferPtr out) const {
     if (!in || !out)
       return NoBufferError;
     BufferAdaptor::Access inBuf(in.get());
@@ -119,8 +119,8 @@ public:
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &StandardizeClient::fit),
                          makeMessage("cols", &StandardizeClient::cols),
-                         makeMessage("standardize", &StandardizeClient::standardize),
-                         makeMessage("standardizePoint", &StandardizeClient::standardizePoint),
+                         makeMessage("transform", &StandardizeClient::transform),
+                         makeMessage("transformPoint", &StandardizeClient::transformPoint),
                          makeMessage("read", &StandardizeClient::read),
                          makeMessage("write", &StandardizeClient::write));
 
