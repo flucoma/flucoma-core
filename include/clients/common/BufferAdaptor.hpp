@@ -166,15 +166,15 @@ Result bufferRangeCheck(const BufferAdaptor* b, index startFrame,
 
   if (!thisInput.valid())
     return {Result::Status::kError, "Input buffer ", b,
-            "invalid (possibly zero-size?)"}; // error
+            " invalid (possibly zero-size?)"}; // error
 
   if (startFrame >= thisInput.numFrames() || startFrame < 0)
-    return {Result::Status::kError, "Input buffer ", b, "invalid start frame ",
+    return {Result::Status::kError, "Input buffer ", b, " invalid start frame ",
             startFrame}; // error
 
   if (startChan >= thisInput.numChans() || startChan < 0)
     return {Result::Status::kError, "Input buffer ", b,
-            "invalid start channel ", startChan}; // error
+            " invalid start channel ", startChan}; // error
 
   nFrames = nFrames < 0 ? thisInput.numFrames() - startFrame : nFrames;
   if (nFrames <= 0 || nFrames > thisInput.numFrames())
