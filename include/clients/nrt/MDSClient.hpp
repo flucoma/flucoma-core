@@ -6,7 +6,7 @@
 namespace fluid {
 namespace client {
 
-class MDSClient : public FluidBaseClient, OfflineIn, OfflineOut {
+class MDSClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject {
 
 public:
   using string = std::string;
