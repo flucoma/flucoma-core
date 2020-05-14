@@ -25,6 +25,10 @@ static const MessageResult<void> SmallKError = {Result::Status::kError,
 
 static const MessageResult<void> EmptyDataSetError = {Result::Status::kError,
                                                       "DataSet is empty"};
+
+static const MessageResult<void> EmptyLabelSetError = {Result::Status::kError,
+                                                       "LabelSet is empty"};
+
 static const MessageResult<void> NoDataSetError = {Result::Status::kError,
                                                    "DataSet does not exist"};
 static const MessageResult<void> NoLabelSetError = {Result::Status::kError,
@@ -39,13 +43,12 @@ static const MessageResult<void> NoDataFittedError = {Result::Status::kError,
 static const MessageResult<void> NotEnoughDataError = {Result::Status::kError,
                                                        "Not enough data"};
 static const MessageResult<void> EmptyLabelError = {Result::Status::kError,
-"Empty label"};
+                                                    "Empty label"};
 static const MessageResult<void> EmptyIdError = {Result::Status::kError,
-"Empty id"};
+                                                 "Empty id"};
 
 static const MessageResult<void> BufferAllocError = {Result::Status::kError,
-"Can't allocate buffer"};
-
+                                                     "Can't allocate buffer"};
 
 static const MessageResult<void> ReadError = {Result::Status::kError,
                                               "Couldn't read file"};

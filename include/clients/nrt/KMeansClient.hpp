@@ -13,7 +13,7 @@ public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
   using IndexVector = FluidTensor<index, 1>;
-  using Labels = FluidDataSet<string, string, 1>;
+  using LabelSet = FluidDataSet<string, string, 1>;
   template <typename T> Result process(FluidContext &) { return {}; }
 
   FLUID_DECLARE_PARAMS();
@@ -154,11 +154,11 @@ private:
     return assignments;
   }
 
-  Labels getLabels(
+  LabelSet getLabels(
     FluidTensorView<string, 1>& ids,
     IndexVector assignments) const
   {
-    Labels result(1);
+    LabelSet result(1);
     for (index i = 0; i < ids.size(); i++) {
       FluidTensor<string, 1> point = {std::to_string(assignments(i))};
       result.add(ids(i), point);
