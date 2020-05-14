@@ -61,6 +61,14 @@ public:
     return {};
   }
 
+  MessageResult<void> fitTransform(DataSetClientRef sourceClient,
+                                   DataSetClientRef destClient) {
+            auto result = fit(sourceClient);
+            if (!result.ok()) return result;
+            result = transform(sourceClient, destClient);
+            return result;
+  }
+
   MessageResult<void> transformPoint(BufferPtr in, BufferPtr out) {
     if (!in || !out)
       return NoBufferError;
@@ -120,6 +128,7 @@ public:
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &NormalizeClient::fit),
                          makeMessage("cols", &NormalizeClient::cols),
+                         makeMessage("fitTransform", &NormalizeClient::fitTransform),
                          makeMessage("transform", &NormalizeClient::transform),
                          makeMessage("transformPoint", &NormalizeClient::transformPoint),
                          makeMessage("read", &NormalizeClient::read),

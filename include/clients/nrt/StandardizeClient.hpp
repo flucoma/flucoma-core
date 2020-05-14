@@ -7,7 +7,6 @@ namespace fluid {
 namespace client {
 
 class StandardizeClient : public FluidBaseClient, OfflineIn, OfflineOut {
-  //enum { };
 
 public:
   using string = std::string;
@@ -78,6 +77,14 @@ public:
     return {};
   }
 
+  MessageResult<void> fitTransform(DataSetClientRef sourceClient,
+                                   DataSetClientRef destClient) {
+            auto result = fit(sourceClient);
+            if (!result.ok()) return result;
+            result = transform(sourceClient, destClient);
+            return result;
+  }
+
 
   MessageResult<void> write(string fileName) {
     auto file = FluidFile(fileName, "w");
@@ -119,6 +126,7 @@ public:
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &StandardizeClient::fit),
                          makeMessage("cols", &StandardizeClient::cols),
+                         makeMessage("fitTransform", &StandardizeClient::fitTransform),
                          makeMessage("transform", &StandardizeClient::transform),
                          makeMessage("transformPoint", &StandardizeClient::transformPoint),
                          makeMessage("read", &StandardizeClient::read),
