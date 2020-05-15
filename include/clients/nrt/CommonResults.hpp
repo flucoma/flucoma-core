@@ -36,11 +36,5 @@ namespace client {
   MessageResult<void> OK(){
     return MessageResult<void>{Result::Status::kOk};
   }
-
-  struct Results {
-  public:
-    using string = std::string;
-    const string NoBufferError1{"No buffer passed"};
-  };
 } // namespace client
 } // namespace fluid
