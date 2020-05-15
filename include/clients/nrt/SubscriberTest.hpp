@@ -30,7 +30,7 @@ public:
   Result process(FluidContext&) { return {}; }
 
   FLUID_DECLARE_PARAMS(
-    ProviderTestClientRef::MakeParam("provider","Provider")
+    ProviderTestClientRef::makeParam("provider","Provider")
   );
 
   SubscriberTestClient(ParamSetViewType &p) : mParams(p){}
