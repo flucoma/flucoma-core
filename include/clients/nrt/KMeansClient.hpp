@@ -52,7 +52,6 @@ public:
       if(!labelsetClientPtr) return Error<IndexVector>(NoLabelSet);
       if (k <= 1) return Error<IndexVector>(SmallK);
       if (maxIter <= 0) maxIter = 100;
-
       mDims = dataSet.pointSize();
       mK = k;
       mModel.init(mK, mDims);
@@ -75,7 +74,12 @@ public:
       if (dataSet.size() == 0) return Error<IndexVector>(EmptyDataSet);
       if (!mModel.trained()) return Error<IndexVector>(NoDataFitted);
       StringVectorView ids = dataSet.getIds();
-      auto assignments = getAssignments(dataSet.size());
+      IndexVector assignments(dataSet.size());
+      RealVector query(mDims);
+      for (index i = 0; i < dataSet.size(); i++) {
+        dataSet.get(ids(i), query);
+        assignments(i) = mModel.vq(query);
+      }
       labelsetClientPtr->setLabelSet(getLabels(ids, assignments));
       return getCounts(assignments);
    }
@@ -139,20 +143,8 @@ private:
   IndexVector getCounts(IndexVector assignments) const{
     IndexVector counts(mK);
     counts.fill(0);
-    for (auto a : assignments) {
-        counts[a]++;
-    }
+    for (auto a : assignments) counts[a]++;
     return counts;
-  }
-
-  IndexVector getAssignments(index N) const
-  {
-    IndexVector assignments(N);
-    RealVector query(mDims);
-    for (index i = 0; i < N; i++) {
-      assignments(i) = mModel.vq(query);
-    }
-    return assignments;
   }
 
   LabelSet getLabels(
