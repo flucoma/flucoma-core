@@ -74,12 +74,12 @@ public:
 
     auto stft = algorithm::STFT(fftParams.winSize(), fftParams.fftSize(),
                                 fftParams.hopSize());
-    auto tmp = FluidTensor<double, 1>(nFrames);
+    auto tmp = RealVector(nFrames);
     tmp = source.samps(0, nFrames, 0);
-    auto spectrum = FluidTensor<std::complex<double>, 2>(nWindows, nBins);
-    auto magnitude = FluidTensor<double, 2>(nWindows, nBins);
-    auto outputFilters = FluidTensor<double, 2>(get<kMaxRank>(), nBins);
-    auto outputEnvelopes = FluidTensor<double, 2>(nWindows, get<kMaxRank>());
+    auto spectrum = ComplexMatrix(nWindows, nBins);
+    auto magnitude = RealMatrix(nWindows, nBins);
+    auto outputFilters = RealMatrix(get<kMaxRank>(), nBins);
+    auto outputEnvelopes = RealMatrix(nWindows, get<kMaxRank>());
 
     stft.process(tmp, spectrum);
     algorithm::STFT::magnitude(spectrum, magnitude);
@@ -113,7 +113,7 @@ public:
       env = outputEnvelopes.col(j);
       env.apply([scale](float &x) { x *= static_cast<float>(scale); });
     }
-    return OKResult;
+    return OK();
   }
 };
 

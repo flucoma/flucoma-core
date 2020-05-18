@@ -12,6 +12,7 @@ class NormalizeClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObje
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
+  using StringVector = FluidTensor<string, 1>;
 
   template <typename T> Result process(FluidContext &) { return {}; }
 
@@ -27,11 +28,11 @@ public:
     if (auto datasetClientPtr = weakPtr.lock()) {
       auto dataset = datasetClientPtr->getDataSet();
       if (dataset.size() == 0)
-        return EmptyDataSetError;
+        return Error(EmptyDataSet);
       mDims = dataset.pointSize();
       mAlgorithm.init(get<kMin>(), get<kMax>(), dataset.getData());
     } else {
-      return NoDataSetError;
+      return Error(NoDataSet);
     }
     return {};
   }
@@ -46,17 +47,17 @@ public:
     if (srcPtr && destPtr) {
       auto srcDataSet = srcPtr->getDataSet();
       if (srcDataSet.size() == 0)
-        return EmptyDataSetError;
-      FluidTensor<string, 1> ids{srcDataSet.getIds()};
-      FluidTensor<double, 2> data(srcDataSet.size(), srcDataSet.pointSize());
-      if(!mAlgorithm.initialized()) return NoDataFittedError;
+        return Error(EmptyDataSet);
+      StringVector ids{srcDataSet.getIds()};
+      RealMatrix data(srcDataSet.size(), srcDataSet.pointSize());
+      if(!mAlgorithm.initialized()) return Error(NoDataFitted);
       mAlgorithm.setMin(get<kMin>());
       mAlgorithm.setMax(get<kMax>());
       mAlgorithm.process(srcDataSet.getData(), data);
       FluidDataSet<string, double, 1> result(ids, data);
       destPtr->setDataSet(result);
     } else {
-      return NoDataSetError;
+      return Error(NoDataSet);
     }
     return {};
   }
@@ -70,17 +71,15 @@ public:
   }
 
   MessageResult<void> transformPoint(BufferPtr in, BufferPtr out) {
-    if (!in || !out)
-      return NoBufferError;
+    if (!in || !out) return Error(NoBuffer);
     BufferAdaptor::Access inBuf(in.get());
     BufferAdaptor::Access outBuf(out.get());
-    if (inBuf.numFrames() != mDims)
-      return WrongPointSizeError;
-    if(!mAlgorithm.initialized())return NoDataFittedError;
+    if (inBuf.numFrames() != mDims) return Error(WrongPointSize);
+    if(!mAlgorithm.initialized()) return Error(NoDataFitted);
     Result resizeResult = outBuf.resize(mDims, 1, inBuf.sampleRate());
-    if(!resizeResult.ok()) return BufferAllocError;
-    FluidTensor<double, 1> src(mDims);
-    FluidTensor<double, 1> dest(mDims);
+    if(!resizeResult.ok()) return Error(BufferAlloc);
+    RealVector src(mDims);
+    RealVector dest(mDims);
     src = inBuf.samps(0, mDims, 0);
     mAlgorithm.setMin(get<kMin>());
     mAlgorithm.setMax(get<kMax>());
@@ -91,9 +90,7 @@ public:
 
   MessageResult<void> write(string fileName) {
     auto file = FluidFile(fileName, "w");
-    if (!file.valid()) {
-      return {Result::Status::kError, file.error()};
-    }
+    if (!file.valid()) return Error(file.error());
     RealVector min(mDims);
     RealVector max(mDims);
     mAlgorithm.getDataMin(min);
@@ -101,29 +98,25 @@ public:
     file.add("min", min);
     file.add("max", max);
     file.add("cols", mDims);
-    return file.write() ? OKResult : WriteError;
+    return file.write() ? OK() : Error(FileWrite);
   }
 
   MessageResult<void> read(string fileName) {
     auto file = FluidFile(fileName, "r");
-    if (!file.valid()) {
-      return {Result::Status::kError, file.error()};
-    }
-    if (!file.read()) {
-      return ReadError;
-    }
+    if (!file.valid()) return Error(file.error());
+    if (!file.read()) return Error(FileRead);
     if (!file.checkKeys({"min", "max", "cols"})) {
-      return {Result::Status::kError, file.error()};
+      return Error(file.error());
     }
     RealVector dataMin(mDims);
     RealVector dataMax(mDims);
     index dims;
     file.get("cols", dims);
-    if (dims!=mDims)return WrongPointSizeError;
+    if (dims!=mDims)return Error(WrongPointSize);
     file.get("min", dataMin, dims);
     file.get("max", dataMax, dims);
     mAlgorithm.init(get<kMin>(), get<kMax>(), dataMin, dataMax);
-    return OKResult;
+    return OK();
   }
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &NormalizeClient::fit),

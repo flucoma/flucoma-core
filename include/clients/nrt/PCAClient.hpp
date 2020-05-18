@@ -10,6 +10,7 @@ class PCAClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject  {
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
+  using StringVector = FluidTensor<string, 1>;
 
   template <typename T> Result process(FluidContext &) { return {}; }
 
@@ -19,16 +20,15 @@ public:
 
   MessageResult<void> fit(DataSetClientRef datasetClient, index k) {
     auto datasetClientPtr = datasetClient.get().lock();
-    if(!datasetClientPtr) return NoDataSetError;
+    if(!datasetClientPtr) return Error(NoDataSet);
     auto dataSet = datasetClientPtr->getDataSet();
-    if (dataSet.size() == 0) return EmptyDataSetError;
-    if (k <= 0) return SmallKError;
+    if (dataSet.size() == 0) return Error(EmptyDataSet);
+    if (k <= 0) return Error(SmallK);
 
     mDims = dataSet.pointSize();
     mK = k;
     mAlgorithm.init(dataSet.getData(), k);
-
-    return OKResult;
+    return OK();
   }
 
   MessageResult<index> cols() { return mK; }
@@ -50,32 +50,32 @@ public:
     if (srcPtr && destPtr) {
       auto srcDataSet = srcPtr->getDataSet();
       if (srcDataSet.size() == 0)
-        return EmptyDataSetError;
-      FluidTensor<string, 1> ids{srcDataSet.getIds()};
-      FluidTensor<double, 2> output(srcDataSet.size(), mK);
+        return Error(EmptyDataSet);
+      StringVector ids{srcDataSet.getIds()};
+      RealMatrix output(srcDataSet.size(), mK);
       if (!mAlgorithm.initialized())
-        return NoDataFittedError;
+        return Error(NoDataFitted);
       mAlgorithm.process(srcDataSet.getData(), output);
       FluidDataSet<string, double, 1> result(ids, output);
       destPtr->setDataSet(result);
     } else {
-      return NoDataSetError;
+      return Error(NoDataSet);
     }
     return {};
   }
 
   MessageResult<void> transformPoint(BufferPtr in, BufferPtr out) const {
     if (!in || !out)
-      return NoBufferError;
+      return Error(NoBuffer);
     BufferAdaptor::Access inBuf(in.get());
     BufferAdaptor::Access outBuf(out.get());
     if (inBuf.numFrames() != mDims)
-      return WrongPointSizeError;
+      return Error(WrongPointSize);
     if (!mAlgorithm.initialized())
-      return NoDataFittedError;
+      return Error(NoDataFitted);
     Result resizeResult = outBuf.resize(mK, 1, inBuf.sampleRate());
     if (!resizeResult.ok())
-      return BufferAllocError;
+      return Error(BufferAlloc);
     FluidTensor<double, 1> src(mDims);
     FluidTensor<double, 1> dest(mK);
     src = inBuf.samps(0, mDims, 0);
@@ -87,7 +87,7 @@ public:
   MessageResult<void> write(string fileName) {
     auto file = FluidFile(fileName, "w");
     if (!file.valid()) {
-      return {Result::Status::kError, file.error()};
+      return Error(file.error());
     }
     RealMatrix bases(mDims, mK);
     mAlgorithm.getBases(bases);
@@ -97,19 +97,19 @@ public:
     file.add("mean", mean);
     file.add("rows", mDims);
     file.add("cols", mK);
-    return file.write() ? OKResult : WriteError;
+    return file.write() ? OK() : Error(FileWrite);
   }
 
   MessageResult<void> read(string fileName) {
     auto file = FluidFile(fileName, "r");
     if (!file.valid()) {
-      return {Result::Status::kError, file.error()};
+      return Error(file.error());
     }
     if (!file.read()) {
-      return ReadError;
+      return Error(FileRead);
     }
     if (!file.checkKeys({"bases", "mean", "cols", "rows"})) {
-      return {Result::Status::kError, file.error()};
+      return Error(file.error());
     }
     file.get("rows", mDims);
     file.get("cols", mK);
@@ -118,7 +118,7 @@ public:
     RealVector mean(mDims);
     file.get("mean", mean, mDims);
     mAlgorithm.init(bases, mean);
-    return OKResult;
+    return OK();
   }
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &PCAClient::fit),
@@ -130,7 +130,6 @@ public:
                          makeMessage("rows", &PCAClient::rows),
                          makeMessage("read", &PCAClient::read),
                          makeMessage("write", &PCAClient::write));
-
 private:
   algorithm::PCA mAlgorithm;
   index mDims;

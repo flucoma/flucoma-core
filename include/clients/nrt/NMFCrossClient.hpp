@@ -110,7 +110,7 @@ public:
     istft.process(result, resultAudio);
     output.samps(0) = resultAudio(Slice(0, tgtFrames));
 
-    return OKResult;
+    return OK();
 
   }
 };

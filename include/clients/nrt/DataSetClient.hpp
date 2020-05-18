@@ -1,22 +1,7 @@
 #pragma once
-#include "CommonResults.hpp"
-#include "FluidSharedInstanceAdaptor.hpp"
-#include "clients/common/SharedClientUtils.hpp"
+#include "NRTClient.hpp"
+#include "../common/SharedClientUtils.hpp"
 #include "data/FluidDataSet.hpp"
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/FluidNRTClientWrapper.hpp>
-#include <clients/common/MessageSet.hpp>
-#include <clients/common/OfflineClient.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <clients/common/ParameterTypes.hpp>
-#include <clients/common/Result.hpp>
-#include <data/FluidFile.hpp>
-#include <data/FluidTensor.hpp>
-#include <data/FluidIndex.hpp>
-#include <data/TensorTypes.hpp>
-#include <fstream>
-#include <nlohmann/json.hpp>
-#include <string>
 
 namespace fluid {
 namespace client {
@@ -28,7 +13,7 @@ public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
   using DataSet = FluidDataSet<string, double, 1>;
-
+  using StringVector = FluidTensor<string, 1>;
   template <typename T> Result process(FluidContext &) { return {}; }
 
   FLUID_DECLARE_PARAMS(StringParam<Fixed<true>>("name", "DataSet"));
@@ -37,53 +22,51 @@ public:
 
   MessageResult<void> addPoint(string id, BufferPtr data) {
     if (!data)
-      return NoBufferError;
+      return Error(NoBuffer);
     BufferAdaptor::Access buf(data.get());
-
     if (mDataSet.size() == 0) {
       if (mDataSet.pointSize() != buf.numFrames())
         mDataSet = DataSet(buf.numFrames());
       mDims = mDataSet.pointSize();
     } else if (buf.numFrames() != mDims)
-      return WrongPointSizeError;
-
-    FluidTensor<double, 1> point(mDims);
+      return Error(WrongPointSize);
+    RealVector point(mDims);
     point = buf.samps(0, mDims, 0);
-    return mDataSet.add(id, point) ? OKResult : DuplicateError;
+    return mDataSet.add(id, point) ? OK() : Error(DuplicateLabel);
   }
 
   MessageResult<void> getPoint(string id, BufferPtr data) const {
     if (!data)
-      return NoBufferError;
+      return Error(NoBuffer);
     BufferAdaptor::Access buf(data.get());
     Result resizeResult = buf.resize(mDims, 1, buf.sampleRate());
     if (!resizeResult.ok())
       return {resizeResult.status(), resizeResult.message()};
-    FluidTensor<double, 1> point(mDims);
+    RealVector point(mDims);
     point = buf.samps(0, mDims, 0);
     bool result = mDataSet.get(id, point);
     //    mDataSet.print();
     if (result) {
       buf.samps(0, mDims, 0) = point;
-      return OKResult;
+      return OK();
     } else {
-      return PointNotFoundError;
+      return Error(PointNotFound);
     }
   }
 
   MessageResult<void> updatePoint(string id, BufferPtr data) {
     if (!data)
-      return NoBufferError;
+      return Error(NoBuffer);
     BufferAdaptor::Access buf(data.get());
     if (buf.numFrames() < mDims)
-      return WrongPointSizeError;
-    FluidTensor<double, 1> point(mDims);
+      return Error(WrongPointSize);
+    RealVector point(mDims);
     point = buf.samps(0, mDims, 0);
-    return mDataSet.update(id, point) ? OKResult : PointNotFoundError;
+    return mDataSet.update(id, point) ? OK() : Error(PointNotFound);
   }
 
   MessageResult<void> deletePoint(string id) {
-    return mDataSet.remove(id) ? OKResult : PointNotFoundError;
+    return mDataSet.remove(id) ?  OK() : Error(PointNotFound);
   }
 
   MessageResult<index> size() { return mDataSet.size(); }
@@ -91,42 +74,39 @@ public:
 
   MessageResult<void> clear() {
     mDataSet = DataSet(0);
-    return OKResult;
+    return {};
   }
 
   MessageResult<void> write(string fileName) {
     auto file = FluidFile(fileName, "w");
     if (!file.valid()) {
-      return {Result::Status::kError, file.error()};
+      return Error(file.error());
     }
     file.add("ids", mDataSet.getIds());
     file.add("data", mDataSet.getData());
     file.add("cols", mDataSet.pointSize());
     file.add("rows", mDataSet.size());
-    return file.write() ? OKResult : WriteError;
+    return file.write() ? OK() : Error(FileWrite);
   }
 
   MessageResult<void> read(string fileName) {
     auto file = FluidFile(fileName, "r");
-    if (!file.valid()) {
-      return {Result::Status::kError, file.error()};
-    }
-    if (!file.read()) {
-      return ReadError;
-    }
+    if (!file.valid()) return Error(file.error());
+    if (!file.read()) return Error(FileRead);
+
     if (!file.checkKeys({"data", "ids", "rows", "cols"})) {
-      return {Result::Status::kError, file.error()};
+      return Error(file.error());
     }
     index cols, rows;
     file.get("cols", cols);
     file.get("rows", rows);
-    FluidTensor<string, 1> ids(rows);
-    FluidTensor<double, 2> data(rows, cols);
+    StringVector ids(rows);
+    RealMatrix data(rows, cols);
     file.get("ids", ids, rows);
     file.get("data", data, rows, cols);
     mDataSet = DataSet(ids, data);
     mDims = cols;
-    return OKResult;
+    return OK();
   }
 
   FLUID_DECLARE_MESSAGES(

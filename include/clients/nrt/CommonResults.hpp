@@ -4,58 +4,37 @@
 
 namespace fluid {
 namespace client {
-static const MessageResult<void> OKResult = {Result::Status::kOk};
-static const MessageResult<void> NoBufferError = {Result::Status::kError,
-                                                  "No buffer passed"};
-static const MessageResult<void> PointNotFoundError = {Result::Status::kError,
-                                                       "Point not found"};
-static const MessageResult<void> WrongPointSizeError = {Result::Status::kError,
-                                                        "Wrong Point Size"};
-static const MessageResult<void> WrongPointNumError = {
-    Result::Status::kError, "Wrong number of points"};
+  static const std::string NoBuffer{"No buffer passed"};
+  static const std::string PointNotFound{"Point not found"};
+  static const std::string WrongPointSize{"Wrong Point Size"};
+  static const std::string WrongPointNumber{"Wrong number of points"};
+  static const std::string WrongNumInitial{"Wrong number of initial points"};
+  static const std::string DuplicateLabel{"Label already in dataset"};
+  static const std::string SmallDataSet{"DataSet is smaller than k"};
+  static const std::string SmallK{"k is too small"};
+  static const std::string EmptyDataSet{"DataSet is empty"};
+  static const std::string EmptyLabelSet{"LabelSet is empty"};
+  static const std::string NoDataSet{"DataSet does not exist"};
+  static const std::string NoLabelSet{"LabelSet does not exist"};
+  static const std::string NoDataFitted{"No data fitted"};
+  static const std::string NotEnoughData{"Not enough data"};
+  static const std::string EmptyLabel{"Empty label"};
+  static const std::string EmptyId{"Empty id"};
+  static const std::string BufferAlloc{"Can't allocate buffer"};
+  static const std::string FileRead{"Couldn't read file"};
+  static const std::string FileWrite{"Couldn't write file"};
+  static const std::string NotImplemented{"Not implemented"};
 
-static const MessageResult<void> WrongInitError = {
-    Result::Status::kError, "Wrong number of initial points"};
-static const MessageResult<void> DuplicateError = {Result::Status::kError,
-                                                   "Label already in dataset"};
-static const MessageResult<void> SmallDataSetError = {
-    Result::Status::kError, "DataSet is smaller than k"};
-static const MessageResult<void> SmallKError = {Result::Status::kError,
-                                                "k is too small"};
+  template <typename T>
+  MessageResult<T> Error(std::string msg){
+    return MessageResult<T>{Result::Status::kError,msg};
+  };
 
-static const MessageResult<void> EmptyDataSetError = {Result::Status::kError,
-                                                      "DataSet is empty"};
-
-static const MessageResult<void> EmptyLabelSetError = {Result::Status::kError,
-                                                       "LabelSet is empty"};
-
-static const MessageResult<void> NoDataSetError = {Result::Status::kError,
-                                                   "DataSet does not exist"};
-static const MessageResult<void> NoLabelSetError = {Result::Status::kError,
-                                                    "LabelSet does not exist"};
-
-static const MessageResult<void> NoDataSetOrLabelSetError = {
-    Result::Status::kError, "Missing DataSet or LabelSet"};
-
-static const MessageResult<void> NoDataFittedError = {Result::Status::kError,
-                                                      "No data fitted"};
-
-static const MessageResult<void> NotEnoughDataError = {Result::Status::kError,
-                                                       "Not enough data"};
-static const MessageResult<void> EmptyLabelError = {Result::Status::kError,
-                                                    "Empty label"};
-static const MessageResult<void> EmptyIdError = {Result::Status::kError,
-                                                 "Empty id"};
-
-static const MessageResult<void> BufferAllocError = {Result::Status::kError,
-                                                     "Can't allocate buffer"};
-
-static const MessageResult<void> ReadError = {Result::Status::kError,
-                                              "Couldn't read file"};
-static const MessageResult<void> WriteError = {Result::Status::kError,
-                                               "Couldn't write file"};
-static const MessageResult<void> NotImplementedError = {Result::Status::kError,
-                                                        "Not implemented"};
-
+  MessageResult<void> Error(std::string msg){
+    return MessageResult<void>{Result::Status::kError,msg};
+  };
+  MessageResult<void> OK(){
+    return MessageResult<void>{Result::Status::kOk};
+  }
 } // namespace client
 } // namespace fluid

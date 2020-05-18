@@ -12,6 +12,7 @@ class StandardizeClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelOb
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
+  using StringVector = FluidTensor<string, 1>;
 
   template <typename T> Result process(FluidContext &) { return {}; }
 
@@ -25,11 +26,11 @@ public:
     if (auto datasetClientPtr = weakPtr.lock()) {
       auto dataset = datasetClientPtr->getDataSet();
       if (dataset.size() == 0)
-        return EmptyDataSetError;
+        return Error(EmptyDataSet);
       mDims = dataset.pointSize();
       mAlgorithm.init(dataset.getData());
     } else {
-      return NoDataSetError;
+      return Error(NoDataSet);
     }
     return {};
   }
@@ -44,38 +45,38 @@ public:
     if (srcPtr && destPtr) {
       auto srcDataSet = srcPtr->getDataSet();
       if (srcDataSet.size() == 0)
-        return EmptyDataSetError;
-      FluidTensor<string, 1> ids{srcDataSet.getIds()};
-      FluidTensor<double, 2> data(srcDataSet.size(), srcDataSet.pointSize());
+        return Error(EmptyDataSet);
+      StringVector ids{srcDataSet.getIds()};
+      RealMatrix data(srcDataSet.size(), srcDataSet.pointSize());
       if (!mAlgorithm.initialized())
-        return NoDataFittedError;
+        return Error(NoDataFitted);
       mAlgorithm.process(srcDataSet.getData(), data);
       FluidDataSet<string, double, 1> result(ids, data);
       destPtr->setDataSet(result);
     } else {
-      return NoDataSetError;
+      return Error(NoDataSet);
     }
     return {};
   }
 
   MessageResult<void> transformPoint(BufferPtr in, BufferPtr out) const {
     if (!in || !out)
-      return NoBufferError;
+      return Error(NoBuffer);
     BufferAdaptor::Access inBuf(in.get());
     BufferAdaptor::Access outBuf(out.get());
     if (inBuf.numFrames() != mDims)
-      return WrongPointSizeError;
+      return Error(WrongPointSize);
     if (!mAlgorithm.initialized())
-      return NoDataFittedError;
+      return Error(NoDataFitted);
     Result resizeResult = outBuf.resize(mDims, 1, inBuf.sampleRate());
     if (!resizeResult.ok())
-      return BufferAllocError;
-    FluidTensor<double, 1> src(mDims);
-    FluidTensor<double, 1> dest(mDims);
+      return Error(BufferAlloc);
+    RealVector src(mDims);
+    RealVector dest(mDims);
     src = inBuf.samps(0, mDims, 0);
     mAlgorithm.processFrame(src, dest);
     outBuf.samps(0) = dest;
-    return {};
+    return OK();
   }
 
   MessageResult<void> fitTransform(DataSetClientRef sourceClient,
@@ -99,30 +100,30 @@ public:
     file.add("mean", mean);
     file.add("std", std);
     file.add("cols", mDims);
-    return file.write() ? OKResult : WriteError;
+    return file.write() ? OK() : Error(FileWrite);
   }
 
   MessageResult<void> read(string fileName) {
     auto file = FluidFile(fileName, "r");
     if (!file.valid()) {
-      return {Result::Status::kError, file.error()};
+      return Error(file.error());
     }
     if (!file.read()) {
-      return ReadError;
+      return Error(FileRead);
     }
     if (!file.checkKeys({"mean", "std", "cols"})) {
-      return {Result::Status::kError, file.error()};
+      return Error(file.error());
     }
     RealVector mean(mDims);
     RealVector std(mDims);
     index dims;
     file.get("cols", dims);
     if (dims != mDims)
-      return WrongPointSizeError;
+      return Error(WrongPointSize);
     file.get("mean", mean, dims);
     file.get("std", std, dims);
     mAlgorithm.init(mean, std);
-    return OKResult;
+    return OK();
   }
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &StandardizeClient::fit),

@@ -7,13 +7,10 @@
 #include <clients/common/OfflineClient.hpp>
 #include <clients/common/ParameterSet.hpp>
 #include <clients/common/ParameterTypes.hpp>
-#include <clients/common/Result.hpp>
 #include <data/FluidFile.hpp>
 #include <data/FluidIndex.hpp>
 #include <data/FluidTensor.hpp>
 #include <data/TensorTypes.hpp>
 #include <data/FluidDataSet.hpp>
 #include "CommonResults.hpp"
-#include "DataSetClient.hpp"
-#include "LabelSetClient.hpp"
 #include <nlohmann/json.hpp>
