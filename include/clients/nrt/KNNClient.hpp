@@ -7,7 +7,7 @@
 namespace fluid {
 namespace client {
 
-class KNNClient : public FluidBaseClient, OfflineIn, OfflineOut {
+class KNNClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject  {
   enum { kNDims, kK };
 
 public:

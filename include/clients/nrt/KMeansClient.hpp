@@ -7,7 +7,7 @@
 namespace fluid {
 namespace client {
 
-class KMeansClient : public FluidBaseClient, OfflineIn, OfflineOut {
+class KMeansClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject  {
 
 public:
   using string = std::string;

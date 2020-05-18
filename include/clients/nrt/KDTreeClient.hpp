@@ -7,8 +7,8 @@
 namespace fluid {
 namespace client {
 
-class KDTreeClient : public FluidBaseClient, OfflineIn, OfflineOut {
-
+class KDTreeClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject 
+{
 
 public:
   using string = std::string;

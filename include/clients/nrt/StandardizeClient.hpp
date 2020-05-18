@@ -6,7 +6,8 @@
 namespace fluid {
 namespace client {
 
-class StandardizeClient : public FluidBaseClient, OfflineIn, OfflineOut {
+class StandardizeClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject  {
+
 
 public:
   using string = std::string;

@@ -6,7 +6,7 @@
 namespace fluid {
 namespace client {
 
-class KNNClassifierClient : public FluidBaseClient, OfflineIn, OfflineOut {
+class KNNClassifierClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject {
   enum { kNDims, kK };
 
 public:

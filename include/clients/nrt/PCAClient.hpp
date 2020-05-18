@@ -5,7 +5,7 @@
 namespace fluid {
 namespace client {
 
-class PCAClient : public FluidBaseClient, OfflineIn, OfflineOut {
+class PCAClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject  {
 
 public:
   using string = std::string;
