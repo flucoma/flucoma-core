@@ -24,6 +24,7 @@ public:
     if (!data)
       return Error(NoBuffer);
     BufferAdaptor::Access buf(data.get());
+    if(!buf.exists()) return Error(InvalidBuffer);
     if (mDataSet.size() == 0) {
       if (mDataSet.pointSize() != buf.numFrames())
         mDataSet = DataSet(buf.numFrames());
@@ -39,6 +40,7 @@ public:
     if (!data)
       return Error(NoBuffer);
     BufferAdaptor::Access buf(data.get());
+    if(!buf.exists()) return Error(InvalidBuffer);
     Result resizeResult = buf.resize(mDims, 1, buf.sampleRate());
     if (!resizeResult.ok())
       return {resizeResult.status(), resizeResult.message()};
@@ -58,6 +60,7 @@ public:
     if (!data)
       return Error(NoBuffer);
     BufferAdaptor::Access buf(data.get());
+    if(!buf.exists()) return Error(InvalidBuffer);
     if (buf.numFrames() < mDims)
       return Error(WrongPointSize);
     RealVector point(mDims);

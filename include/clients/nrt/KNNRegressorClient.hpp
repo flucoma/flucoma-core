@@ -49,6 +49,7 @@ public:
     if(mTree.nPoints() == 0) return Error<double>(NoDataFitted);
     if (mTree.nPoints() < k) return Error<double>(NotEnoughData);
     BufferAdaptor::Access buf(data.get());
+    if(!buf.exists()) return Error<double>(InvalidBuffer);
     if (buf.numFrames() != mTree.nDims()) return Error<double>(WrongPointSize);
     RealVector point(mTree.nDims());
     point = buf.samps(0, mTree.nDims(), 0);

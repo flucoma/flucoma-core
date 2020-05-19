@@ -69,6 +69,8 @@ public:
       return Error(NoBuffer);
     BufferAdaptor::Access inBuf(in.get());
     BufferAdaptor::Access outBuf(out.get());
+    if(!inBuf.exists()) return Error(InvalidBuffer);
+    if(!outBuf.exists()) return Error(InvalidBuffer);
     if (inBuf.numFrames() != mDims)
       return Error(WrongPointSize);
     if (!mAlgorithm.initialized())

@@ -5,6 +5,7 @@
 namespace fluid {
 namespace client {
   static const std::string NoBuffer{"No buffer passed"};
+  static const std::string InvalidBuffer{"Invalid buffer"};
   static const std::string PointNotFound{"Point not found"};
   static const std::string WrongPointSize{"Wrong Point Size"};
   static const std::string WrongPointNumber{"Wrong number of points"};

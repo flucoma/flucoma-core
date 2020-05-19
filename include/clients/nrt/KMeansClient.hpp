@@ -89,6 +89,7 @@ public:
       if (!data) return Error<index>(NoBuffer);
       if (!mModel.trained()) return Error<index>(NoDataFitted);
       BufferAdaptor::Access buf(data.get());
+      if(!buf.exists()) return Error<index>(InvalidBuffer);
       if (buf.numFrames() != mDims) return Error<index>(WrongPointSize);
       RealVector point(mDims);
       point = buf.samps(0, mDims, 0);

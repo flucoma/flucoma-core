@@ -7,7 +7,7 @@
 namespace fluid {
 namespace client {
 
-class KDTreeClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject 
+class KDTreeClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject
 {
 
 public:
@@ -22,7 +22,6 @@ public:
   KDTreeClient(ParamSetViewType &p) : mParams(p) {}
 
   MessageResult<void> fit(DataSetClientRef datasetClient) {
-
     auto datasetClientPtr = datasetClient.get().lock();
     if(!datasetClientPtr) return Error(NoDataSet);
     auto dataset = datasetClientPtr->getDataSet();
@@ -36,6 +35,7 @@ public:
   MessageResult<StringVector> kNearest(BufferPtr data, int k) const {
     if (!data) return Error<StringVector>(NoBuffer);
     BufferAdaptor::Access buf(data.get());
+    if(!buf.exists()) return Error<StringVector>(InvalidBuffer);
     if (buf.numFrames() != mTree.nDims()) return Error<StringVector>(WrongPointSize);
     if (k > mTree.nPoints()) return Error<StringVector>(SmallDataSet);
     if(k <= 0 ) return Error<StringVector>(SmallK);
@@ -52,6 +52,7 @@ public:
     if (!data)
       return Error<RealVector>(NoBuffer);
     BufferAdaptor::Access buf(data.get());
+    if(!buf.exists()) return Error<RealVector>(InvalidBuffer);
     if (buf.numFrames() != mTree.nDims())
       return Error<RealVector>(WrongPointSize);
     if (k > mTree.nPoints()){

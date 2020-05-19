@@ -10,7 +10,6 @@ class DataSetQueryClient : public FluidBaseClient, OfflineIn, OfflineOut {
 
 public:
   using string = std::string;
-  using BufferPtr = std::shared_ptr<BufferAdaptor>;
   using DataSet = FluidDataSet<string, double, 1>;
 
   template <typename T> Result process(FluidContext &) { return {}; }
@@ -63,7 +62,7 @@ public:
     auto src = srcPtr->getDataSet();
     if (src.size() == 0) return Error(EmptyDataSet);
     if(src.pointSize() < mAlgorithm.maxColumn()) return Error(WrongPointSize);
-    FluidDataSet<string, double, 1> result(mAlgorithm.numColumns());
+    DataSet result(mAlgorithm.numColumns());
     mAlgorithm.process(src, result);
     destPtr->setDataSet(result);
     return OK();
