@@ -61,7 +61,7 @@ public:
 
   bool hasAndConditions()
   {
-    return mAndConditions.size() > 0;
+    return (mAndConditions.size() > 0);
   }
 
   index maxColumn()

@@ -32,25 +32,25 @@ public:
 
   MessageResult<void> filter(index column, string comparison, double value) {
     if (column < 0) return Error("invalid index");
-    if(mAlgorithm.hasAndConditions())Error("Filter already set");
+    if(mAlgorithm.hasAndConditions()) return Error("Filter already set");
     bool result = mAlgorithm.addCondition(column, comparison, value ,true);
-    if(!result)return Error("invalid filter");
+    if(!result) return Error("invalid filter");
     else return OK();
   }
 
   MessageResult<void> andFilter(index column, string comparison, double value) {
     if (column < 0) return Error("invalid index");
-    if(!mAlgorithm.hasAndConditions())Error("Add a filter first");
+    if(!mAlgorithm.hasAndConditions()) return  Error("Add a filter first");
     bool result = mAlgorithm.addCondition(column, comparison, value, true);
-    if(!result)return Error("invalid filter");
+    if(!result) return Error("invalid filter");
     else return OK();
   }
 
   MessageResult<void> orFilter(index column, string comparison, double value) {
     if (column < 0) return Error("invalid index");
-    if(!mAlgorithm.hasAndConditions())Error("Add a filter first");
+    if(!mAlgorithm.hasAndConditions()) return Error("Add a filter first");
     bool result = mAlgorithm.addCondition(column, comparison, value, false);
-    if(!result)return Error("invalid filter");
+    if(!result) return Error("invalid filter");
     else return OK();
   }
 
