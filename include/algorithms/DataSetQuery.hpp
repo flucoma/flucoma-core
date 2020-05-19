@@ -86,7 +86,7 @@ public:
     for(index i = 0; i < input.size(); i++){
        bool matchesAllAnd = true;
        auto point = data.row(i);
-       for(index j = 0; j < mAndConditions.size(); j++)
+       for(index j = 0; j < asSigned(mAndConditions.size()); j++)
          if(!mAndConditions[j].test(point)) matchesAllAnd = false;
        if (matchesAllAnd) {
          addRow(ids(i), point, output);
@@ -94,7 +94,7 @@ public:
        }
        else{
          bool matchesAnyOr = false;
-         for(index k = 0; k < mOrConditions.size(); k++)
+         for(index k = 0; k < asSigned(mOrConditions.size()); k++)
          if(mOrConditions[k].test(point)) matchesAnyOr = true;
          if (matchesAnyOr) {
            addRow(ids(i), point, output);
