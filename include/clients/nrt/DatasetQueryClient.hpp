@@ -73,7 +73,6 @@ public:
     return OK();
   }
 
-
   FLUID_DECLARE_MESSAGES(
                         makeMessage("transform", &DataSetQueryClient::transform),
                          makeMessage("addColumn", &DataSetQueryClient::addColumn),

@@ -42,7 +42,7 @@ public:
   }
 
   MessageResult<string> predictPoint(
-    BufferPtr data, fluid::index k) const
+    BufferPtr data, fluid::index k, bool weighted) const
     {
     algorithm::KNNClassifier classifier;
     if (!data) return Error<string>(NoBuffer);
@@ -55,13 +55,13 @@ public:
 
     RealVector point(mTree.nDims());
     point = buf.samps(0, mTree.nDims(), 0);
-    std::string result = classifier.predict(mTree, point, mLabels, k);
+    std::string result = classifier.predict(mTree, point, mLabels, k, weighted);
     return result;
   }
 
   MessageResult<void> predict(
     DataSetClientRef source,
-    LabelSetClientRef dest, fluid::index k) const
+    LabelSetClientRef dest, fluid::index k, bool weighted) const
     {
     auto sourcePtr = source.get().lock();
     if(!sourcePtr) return Error(NoDataSet);
@@ -81,7 +81,7 @@ public:
     for (index i = 0; i < dataSet.size(); i++) {
       RealVectorView point = data.row(i);
       StringVector label = {
-        classifier.predict(mTree, point, mLabels, k)
+        classifier.predict(mTree, point, mLabels, k, weighted)
       };
       result.add(ids(i), label);
     }

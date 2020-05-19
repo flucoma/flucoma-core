@@ -2,6 +2,7 @@
 
 #include "KDTree.hpp"
 #include "algorithms/util/FluidEigenMappings.hpp"
+#include "algorithms/util/AlgorithmUtils.hpp"
 #include "data/FluidDataSet.hpp"
 #include "data/FluidTensor.hpp"
 #include "data/TensorTypes.hpp"
@@ -16,27 +17,50 @@ class KNNClassifier {
 public:
   using LabelSet = FluidDataSet<std::string, std::string, 1>;
 
-  std::string predict(KDTree tree, RealVectorView point, LabelSet labels, index k) const{
+  std::string predict(
+    KDTree tree, RealVectorView point,
+    LabelSet labels, index k, bool weighted) const
+  {
     using namespace std;
-    unordered_map<string, index> labelsMap;
+    unordered_map<string, double> labelsMap;
     auto nearest = tree.kNearest(point, k);
-    string prediction;
-    index count = 0;
+    auto ids = nearest.getIds();
+    auto distances = nearest.getData();
 
-    for(index i = 0; i < k; i++){
-      auto id = nearest.getIds()(i);
-      FluidTensor<string, 1> labelT(1);
-      labels.get(id, labelT);
-      string label = labelT(0);
-      auto pos = labelsMap.find(label);
-      index kCount = 1;
-      if (pos == labelsMap.end())labelsMap.insert({label, 1});
-      else{
-        kCount = pos->second;
+    double uniformWeight = 1.0 / k;
+    std::vector<double> weights;
+    double sum = 0;
+    if(weighted){
+      weights = std::vector<double>(k, 0);
+      bool binaryWeights = false;
+      for(index i = 0; i < k; i++){
+        if (distances(i,0) < epsilon) {
+          binaryWeights = true;
+          weights[i] = 1;
+        }
+        else sum += (1.0 / distances(i,0));
       }
-      if (kCount > count || count == 0){
+      if (!binaryWeights){
+        for(index i = 0; i < k; i++){
+          weights[i] = (1.0 / distances(i,0)) / sum;
+        }
+      }
+    } else {
+      weights = std::vector<double>(k, uniformWeight);
+    }
+    
+    string prediction;
+    FluidTensor<string, 1> tmp(1);
+    double maxWeight = 0;
+    for(index i = 0; i < k; i++){
+      labels.get(ids(i), tmp);
+      string label = tmp(0);
+      auto pos = labelsMap.find(label);
+      if (pos == labelsMap.end())labelsMap[label] = weights[i];
+      else labelsMap[label] += weights[i];
+      if(labelsMap[label] > maxWeight){
+        maxWeight = labelsMap[label] ;
         prediction = label;
-        count = kCount;
       }
     }
     return prediction;
