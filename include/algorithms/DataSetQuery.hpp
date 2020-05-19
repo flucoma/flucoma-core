@@ -34,12 +34,13 @@ public:
         case 4: return point(column) > value;
         case 5: return point(column) >= value;
       }
+      return false;
     }
   };
 
   DataSetQuery()
   {
-    mComparisons = std::set<std::string>{"==", "!=", "<", "<=", ">", ">="};
+    mComparisons = std::vector<std::string>{"==", "!=", "<", "<=", ">", ">="};
   }
 
   void addColumn(index col)
@@ -71,7 +72,7 @@ public:
 
   bool addCondition(index column, string comparison, double value, bool conjunction)
   {
-    auto pos = mComparisons.find(comparison);
+    auto pos = std::find(mComparisons.begin(), mComparisons.end(), comparison);
     if(pos == mComparisons.end()) return false;
     index i = std::distance(mComparisons.begin(), pos);
     if(conjunction) mAndConditions.emplace_back(Condition{column, i, value});
@@ -121,7 +122,7 @@ private:
   }
 
   std::set<index> mColumns;
-  std::set<std::string> mComparisons;
+  std::vector<std::string> mComparisons;
   std::vector<Condition> mAndConditions;
   std::vector<Condition> mOrConditions;
 };
