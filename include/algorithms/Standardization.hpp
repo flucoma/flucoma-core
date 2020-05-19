@@ -20,7 +20,7 @@ public:
     using namespace _impl;
     ArrayXXd input = asEigen<Array>(in);
     mMean = input.colwise().mean();
-    mStd = ((input.rowwise() - mMean.transpose()).square().colwise().mean());
+    mStd = ((input.rowwise() - mMean.transpose()).square().colwise().mean()).sqrt();
     mInitialized = true;
   }
 
