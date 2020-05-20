@@ -23,9 +23,9 @@ public:
     mAlgorithm.addColumn(column);
     return OK();
   }
-  MessageResult<void> addRange(index from, index to) {
-    if (from < 0 || to  < 0 || to < from) return Error("invalid range");
-    mAlgorithm.addRange(from, to);
+  MessageResult<void> addRange(index from, index count) {
+    if (from < 0 || count  <= 0) return Error("invalid range");
+    mAlgorithm.addRange(from, count);
     return OK();
   }
 

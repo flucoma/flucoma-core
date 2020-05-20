@@ -48,9 +48,9 @@ public:
     mColumns.emplace(col);
   }
 
-  void addRange(index from, index to)
+  void addRange(index from, index count)
   {
-    for(index i = from; i < to; i++){
+    for(index i = from; i < from + count; i++){
       mColumns.emplace(i);
     }
   }
