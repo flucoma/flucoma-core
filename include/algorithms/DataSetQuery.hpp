@@ -83,14 +83,16 @@ public:
   void process (const DataSet& input, DataSet& output){
     auto data = input.getData();
     auto ids = input.getIds();
-    index N = mLimit == 0 ? input.size() : std::min<index>(mLimit, input.size());
-    for(index i = 0; i < N; i++){
+    index limit = mLimit == 0? input.size():mLimit;
+    index count =  0;
+    for(index i = 0; i < input.size() && count < limit; i++){
        bool matchesAllAnd = true;
        auto point = data.row(i);
        for(index j = 0; j < asSigned(mAndConditions.size()); j++)
          if(!mAndConditions[j].test(point)) matchesAllAnd = false;
        if (matchesAllAnd) {
          addRow(ids(i), point, output);
+         count++;
          continue;
        }
        else{
@@ -99,6 +101,7 @@ public:
          if(mOrConditions[k].test(point)) matchesAnyOr = true;
          if (matchesAnyOr) {
            addRow(ids(i), point, output);
+           count++;
          }
      }
    }
