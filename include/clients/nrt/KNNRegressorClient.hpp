@@ -41,7 +41,7 @@ public:
   }
 
   MessageResult<double> predictPoint(
-    BufferPtr data, fluid::index k, bool weighted) const
+    BufferPtr data, fluid::index k, bool uniform) const
     {
     algorithm::KNNRegressor regressor;
     if (!data) return Error<double>(NoBuffer);
@@ -53,13 +53,13 @@ public:
     if (buf.numFrames() != mTree.nDims()) return Error<double>(WrongPointSize);
     RealVector point(mTree.nDims());
     point = buf.samps(0, mTree.nDims(), 0);
-    double result = regressor.predict(mTree, mTarget, point, k, weighted);
+    double result = regressor.predict(mTree, mTarget, point, k, !uniform);
     return result;
   }
 
   MessageResult<void> predict(
     DataSetClientRef source,
-    DataSetClientRef dest, fluid::index k, bool weighted) const
+    DataSetClientRef dest, fluid::index k, bool uniform) const
     {
     auto sourcePtr = source.get().lock();
     if(!sourcePtr) return Error(NoDataSet);
@@ -79,7 +79,7 @@ public:
     for (index i = 0; i < dataSet.size(); i++) {
       RealVectorView point = data.row(i);
       RealVector prediction = {
-        regressor.predict(mTree, mTarget, point, k, weighted)
+        regressor.predict(mTree, mTarget, point, k, !uniform)
       };
       result.add(ids(i), prediction);
     }
