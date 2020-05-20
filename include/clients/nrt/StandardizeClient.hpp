@@ -138,7 +138,7 @@ public:
 
 private:
   algorithm::Standardization mAlgorithm;
-  index mDims;
+  index mDims{0};
 };
 
 using NRTThreadedStandardizeClient =

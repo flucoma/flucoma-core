@@ -161,8 +161,8 @@ private:
   }
 
   algorithm::KMeans mModel;
-  index mDims;
-  index mK;
+  index mDims{0};
+  index mK{0};
 };
 
 using NRTThreadedKMeansClient =

@@ -132,7 +132,7 @@ public:
 
 private:
   DataSet mDataSet;
-  index mDims;
+  index mDims{0};
 };
 using DataSetClientRef = SharedClientRef<DataSetClient>;
 using NRTThreadedDataSetClient =
