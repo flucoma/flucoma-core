@@ -128,7 +128,7 @@ public:
         for(index c = 0; c < maxCols / 2; c++){
           result << setw(10) << setprecision(5) << row(c);
         }
-        result << setw(10) << "..";
+        result << setw(10) << "...";
         for(index c = maxCols / 2; c > 0; c--){
           result << setw(10) << setprecision(5) << row(row.size() - c);
         }
