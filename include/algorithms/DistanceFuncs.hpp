@@ -50,7 +50,7 @@ public:
          [](ArrayXd x, ArrayXd y) { return (x - y).abs().minCoeff(); }},
         {Distance::kKL,
          [](ArrayXd x, ArrayXd y) {
-           auto logX = x.log(), logY = y.log();
+           auto logX = x.max(epsilon).log(), logY = y.max(epsilon).log();
            double d1 = (x * (logX - logY)).sum();
            double d2 = (y * (logY - logX)).sum();
            return d1 + d2;
