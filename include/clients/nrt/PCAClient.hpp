@@ -51,10 +51,10 @@ public:
       auto srcDataSet = srcPtr->getDataSet();
       if (srcDataSet.size() == 0)
         return Error(EmptyDataSet);
-      StringVector ids{srcDataSet.getIds()};
-      RealMatrix output(srcDataSet.size(), mK);
       if (!mAlgorithm.initialized())
         return Error(NoDataFitted);
+      StringVector ids{srcDataSet.getIds()};
+      RealMatrix output(srcDataSet.size(), mK);
       mAlgorithm.process(srcDataSet.getData(), output);
       FluidDataSet<string, double, 1> result(ids, output);
       destPtr->setDataSet(result);
@@ -134,8 +134,8 @@ public:
                          makeMessage("write", &PCAClient::write));
 private:
   algorithm::PCA mAlgorithm;
-  index mDims;
-  index mK;
+  index mDims{0};
+  index mK{0};
 };
 
 using NRTThreadedPCAClient = NRTThreadingAdaptor<ClientWrapper<PCAClient>>;
