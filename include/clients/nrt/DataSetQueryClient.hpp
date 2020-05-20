@@ -61,7 +61,7 @@ public:
     if(!srcPtr || !destPtr) return Error(NoDataSet);
     auto src = srcPtr->getDataSet();
     if (src.size() == 0) return Error(EmptyDataSet);
-    if(src.pointSize() < mAlgorithm.maxColumn()) return Error(WrongPointSize);
+    if(src.pointSize() <= mAlgorithm.maxColumn()) return Error(WrongPointSize);
     DataSet result(mAlgorithm.numColumns());
     mAlgorithm.process(src, result);
     destPtr->setDataSet(result);
