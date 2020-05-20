@@ -147,7 +147,7 @@ public:
       index maxRows = 6, maxCols = 6;
       if(mDataSet.size() < maxRows) {
         for(index r = 0; r < mDataSet.size();r++){
-          result << ids(0) <<" "<<printRow(data.row(0), maxCols)<<std::endl;
+          result << ids(r) <<" "<<printRow(data.row(r), maxCols)<<std::endl;
         }
       }
       else{
