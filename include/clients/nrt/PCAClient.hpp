@@ -24,7 +24,7 @@ public:
     auto dataSet = datasetClientPtr->getDataSet();
     if (dataSet.size() == 0) return Error(EmptyDataSet);
     if (k <= 0) return Error(SmallK);
-
+    if (dataSet.pointSize() < k) return Error("k is larger than the current dimensions");
     mDims = dataSet.pointSize();
     mK = k;
     mAlgorithm.init(dataSet.getData(), k);
