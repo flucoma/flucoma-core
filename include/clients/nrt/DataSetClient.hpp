@@ -155,7 +155,7 @@ public:
           result << ids(r) << " " <<
           printRow(data.row(r), maxCols) << std::endl;
         }
-        result << setw(10) << ".." << std::endl;;
+        result << setw(10) << "..." << std::endl;;
         for(index r = maxRows/2; r > 0;r--){
           result << ids(mDataSet.size() - r) << " " <<
           printRow(data.row(mDataSet.size() - r), maxCols) << std::endl;
