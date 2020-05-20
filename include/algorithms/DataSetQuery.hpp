@@ -113,6 +113,7 @@ public:
     mColumns.clear();
     mAndConditions.clear();
     mOrConditions.clear();
+    mLimit = 0;
    }
 
 private:
