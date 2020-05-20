@@ -83,7 +83,8 @@ public:
   void process (const DataSet& input, DataSet& output){
     auto data = input.getData();
     auto ids = input.getIds();
-    for(index i = 0; i < input.size(); i++){
+    index N = mLimit == 0 ? input.size() : std::min<index>(mLimit, input.size());
+    for(index i = 0; i < N; i++){
        bool matchesAllAnd = true;
        auto point = data.row(i);
        for(index j = 0; j < asSigned(mAndConditions.size()); j++)
@@ -105,6 +106,9 @@ public:
 
   void print() const { }
 
+  void limit(index rows) {
+    mLimit = rows;
+  }
   void reset() {
     mColumns.clear();
     mAndConditions.clear();
@@ -121,6 +125,7 @@ private:
     out.add(id, newPoint);
   }
 
+  index mLimit{0};
   std::set<index> mColumns;
   std::vector<std::string> mComparisons;
   std::vector<Condition> mAndConditions;

@@ -73,6 +73,12 @@ public:
     return OK();
   }
 
+  MessageResult<void> limit(index rows) {
+    if (rows <= 0) return Error("invalid value");
+    mAlgorithm.limit(rows);
+    return OK();
+  }
+
   FLUID_DECLARE_MESSAGES(
                         makeMessage("transform", &DataSetQueryClient::transform),
                          makeMessage("addColumn", &DataSetQueryClient::addColumn),
@@ -80,7 +86,8 @@ public:
                          makeMessage("filter", &DataSetQueryClient::filter),
                          makeMessage("and", &DataSetQueryClient::andFilter),
                          makeMessage("or", &DataSetQueryClient::orFilter),
-                         makeMessage("reset", &DataSetQueryClient::reset)
+                         makeMessage("reset", &DataSetQueryClient::reset),
+                         makeMessage("limit", &DataSetQueryClient::limit)
   );
 
 private:
