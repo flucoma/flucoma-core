@@ -2,6 +2,10 @@
 #include "NRTClient.hpp"
 #include "../common/SharedClientUtils.hpp"
 #include "data/FluidDataSet.hpp"
+#include <nlohmann/json.hpp>
+#include <sstream>
+#include <string>
+#include <iostream>
 
 namespace fluid {
 namespace client {
@@ -47,7 +51,6 @@ public:
     RealVector point(mDims);
     point = buf.samps(0, mDims, 0);
     bool result = mDataSet.get(id, point);
-    //    mDataSet.print();
     if (result) {
       buf.samps(0, mDims, 0) = point;
       return OK();
@@ -112,11 +115,29 @@ public:
     return OK();
   }
 
+  MessageResult<string> dump() {
+    using json = nlohmann::json;
+    using namespace std;
+    string result;
+    auto rowArray = json::array();
+    auto ids = mDataSet.getIds();
+    auto data = mDataSet.getData();
+    for(index r = 0; r < mDataSet.size();r++){
+      auto row = data.row(r);
+      auto rowV = vector<double>(row.begin(), row.end());
+      auto rowObj = json::object({{"id",ids(r)},{"data",rowV}});
+      rowArray.push_back(rowObj);
+    }
+    result = rowArray.dump();
+    return result;
+  }
+
   FLUID_DECLARE_MESSAGES(
       makeMessage("addPoint", &DataSetClient::addPoint),
       makeMessage("getPoint", &DataSetClient::getPoint),
       makeMessage("updatePoint", &DataSetClient::updatePoint),
       makeMessage("deletePoint", &DataSetClient::deletePoint),
+      makeMessage("dump", &DataSetClient::dump),
       makeMessage("size", &DataSetClient::size),
       makeMessage("cols", &DataSetClient::cols),
       makeMessage("clear", &DataSetClient::clear),
