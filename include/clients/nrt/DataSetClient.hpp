@@ -177,7 +177,11 @@ public:
       auto rowObj = json::object({{"id",ids(r)},{"data",rowV}});
       rowArray.push_back(rowObj);
     }
-    result = rowArray.dump();
+    json j ;
+    j["rows"] = mDataSet.size();
+    j["cols"] = mDataSet.pointSize();
+    j["data"] = rowArray;
+    result = j.dump();
     return result;
   }
 
