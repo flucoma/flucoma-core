@@ -6,6 +6,7 @@
 #include <sstream>
 #include <string>
 #include <iostream>
+#include <iomanip>
 
 namespace fluid {
 namespace client {
@@ -115,6 +116,54 @@ public:
     return OK();
   }
 
+    string  printRow(RealVectorView row, index maxCols){
+      using namespace std;
+      ostringstream result;
+      if(row.size() < maxCols) {
+        for(index c = 0; c < row.size();c++){
+          result << setw(10) << setprecision(5) << row(c);
+        }
+      }
+      else{
+        for(index c = 0; c < maxCols / 2; c++){
+          result << setw(10) << setprecision(5) << row(c);
+        }
+        result << setw(10) << "..";
+        for(index c = maxCols / 2; c > 0; c--){
+          result << setw(10) << setprecision(5) << row(row.size() - c);
+        }
+      }
+      return result.str();
+    }
+    MessageResult<string> print() {
+      using namespace std;
+      if (mDataSet.size() == 0) return {"Empty dataset"};
+      auto ids = mDataSet.getIds();
+      auto data = mDataSet.getData();
+      ostringstream result;
+      result << std::endl  <<
+        "rows: "<< mDataSet.size() <<
+        " cols: "<< mDataSet.pointSize() << std::endl;
+      index maxRows = 6, maxCols = 6;
+      if(mDataSet.size() < maxRows) {
+        for(index r = 0; r < mDataSet.size();r++){
+          result << ids(0) <<" "<<printRow(data.row(0), maxCols)<<std::endl;
+        }
+      }
+      else{
+        for(index r = 0; r < maxRows/2;r++){
+          result << ids(r) << " " <<
+          printRow(data.row(r), maxCols) << std::endl;
+        }
+        result << setw(10) << ".." << std::endl;;
+        for(index r = maxRows/2; r > 0;r--){
+          result << ids(mDataSet.size() - r) << " " <<
+          printRow(data.row(mDataSet.size() - r), maxCols) << std::endl;
+        }
+      }
+      return result.str();
+    }
+
   MessageResult<string> dump() {
     using json = nlohmann::json;
     using namespace std;
@@ -138,6 +187,7 @@ public:
       makeMessage("updatePoint", &DataSetClient::updatePoint),
       makeMessage("deletePoint", &DataSetClient::deletePoint),
       makeMessage("dump", &DataSetClient::dump),
+      makeMessage("print", &DataSetClient::print),
       makeMessage("size", &DataSetClient::size),
       makeMessage("cols", &DataSetClient::cols),
       makeMessage("clear", &DataSetClient::clear),
