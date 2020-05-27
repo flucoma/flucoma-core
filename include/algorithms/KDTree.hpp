@@ -42,9 +42,11 @@ public:
     using namespace std;
     mNPoints = dataset.size();
     mDims = dataset.pointSize();
-    vector<index> indices(asUnsigned(dataset.size()));
-    iota(indices.begin(), indices.end(), 0);
-    mRoot = buildTree(indices, indices.begin(), indices.end(), dataset, 0);
+    if(mDims > 0 && mNPoints > 0){
+      vector<index> indices(asUnsigned(dataset.size()));
+      iota(indices.begin(), indices.end(), 0);
+      mRoot = buildTree(indices, indices.begin(), indices.end(), dataset, 0);
+    }
   }
 
   void addNode(const string id, const RealVectorView data) {
