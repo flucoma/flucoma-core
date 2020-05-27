@@ -58,6 +58,7 @@ public:
     swap(mImagBuffer, other.mImagBuffer);
     swap(mSplit, other.mSplit);
     swap(mSetup, other.mSetup);
+    other.mSetup = nullptr;
     return *this;
   }
 
