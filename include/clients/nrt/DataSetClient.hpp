@@ -30,6 +30,7 @@ public:
       return Error(NoBuffer);
     BufferAdaptor::Access buf(data.get());
     if(!buf.exists()) return Error(InvalidBuffer);
+    if(buf.numFrames() == 0) return Error(EmptyBuffer);
     if (mDataSet.size() == 0) {
       if (mDataSet.pointSize() != buf.numFrames())
         mDataSet = DataSet(buf.numFrames());
