@@ -117,9 +117,23 @@ public:
   }
 
   MessageResult<string> dump() {
-    using namespace nlohmann;
     nlohmann::json j = mDataSet;
     return j.dump();
+  }
+
+  MessageResult<void> load(std::string s) {
+    using namespace std;
+    using namespace nlohmann;
+    json j = json::parse(s, nullptr, false);
+    if (j.is_discarded())
+    {
+      return Error("Parse error");
+    }
+    else{
+      mDataSet = j.get<DataSet>();
+      mDims = mDataSet.pointSize();
+      return OK();
+    }
   }
 
   FLUID_DECLARE_MESSAGES(makeMessage("addPoint", &DataSetClient::addPoint),
@@ -129,6 +143,7 @@ public:
                          makeMessage("deletePoint",
                                      &DataSetClient::deletePoint),
                          makeMessage("dump", &DataSetClient::dump),
+                         makeMessage("load", &DataSetClient::load),
                          makeMessage("print", &DataSetClient::print),
                          makeMessage("size", &DataSetClient::size),
                          makeMessage("cols", &DataSetClient::cols),

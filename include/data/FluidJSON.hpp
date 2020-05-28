@@ -7,38 +7,39 @@
 
 namespace fluid {
 
+void to_json(nlohmann::json& j, const FluidTensorView<double, 1>& t) {
+  j = std::vector<double>(t.begin(), t.end());
+}
+
+void from_json(const nlohmann::json& j, FluidTensor<double, 1>& t) {
+  std::vector<double> row = j;
+  t = FluidTensorView<double, 1>(row.data(), 0, row.size());
+}
+
 void to_json(nlohmann::json& j, const FluidDataSet<std::string, double, 1>& ds) {
-  using namespace std;
-  using namespace nlohmann;
   try {
-  auto rowArray = json::array();
-  auto ids = ds.getIds();
-  auto data = ds.getData();
-  for(index r = 0; r < ds.size();r++){
-    auto row = data.row(r);
-    auto rowV = vector<double>(row.begin(), row.end());
-    auto rowObj = json::object({{"id",ids(r)},{"data",rowV}});
-    rowArray.push_back(rowObj);
-  }
-  j["rows"] = ds.size();
-  j["cols"] = ds.pointSize();
-  j["data"] = rowArray;
+    auto ids = ds.getIds();
+    auto data = ds.getData();
+    j["rows"] = ds.size();
+    j["cols"] = ds.pointSize();
+    for(index r = 0; r < ds.size();r++){
+      j["data"][ids[r]] = data.row(r);
+    }
   } catch (std::exception& e) {}
 }
 
- void from_json(const nlohmann::json& j, FluidDataSet<std::string, double, 1>& ds){
-   using namespace std;
+void from_json(const nlohmann::json& j, FluidDataSet<std::string, double, 1>& ds){
    using namespace nlohmann;
    try {
-     auto rowArray = j.at("data");
+     auto rows = j.at("data");
      index pointSize = j["cols"];
      ds.resize(pointSize);
-     for(auto&& r:rowArray){
-       vector<double> row = r.at("data");
-       auto ftv = FluidTensorView<double, 1>(row.data(), 0, row.size());
-       ds.add(r.at("id"), ftv);
-     }
-     } catch (std::exception& e) {}
+     FluidTensor<double, 1> tmp(pointSize);
+     for (json::iterator r = rows.begin(); r != rows.end(); ++r) {
+         r.value().get_to(tmp);
+         ds.add(r.key(), tmp);
+      }
+    } catch (std::exception& e) {}
  }
 
 
