@@ -96,16 +96,6 @@ public:
   index pointSize() const { return mDim.size; }
   index size() const { return mIds.size(); }
 
-  bool setPointSize(index newSize) {
-    if (size() == 0) {
-      mDim = newSize;
-      // mData = FluidTensor<dataType, N + 1>{mDim};
-      return true;
-    } else {
-      return false;
-    }
-  }
-
   std::string printRow(RealVectorView row, index maxCols) const {
     using namespace std;
     ostringstream result;
