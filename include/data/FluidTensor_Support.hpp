@@ -227,6 +227,13 @@ private:
       // we have counted through the entire slice.
       if (d != 0)
       {
+        // This is unclever, but when tranposed, brute force reaching the end of iteration
+        if(mPtr - mBase > mDesc.size && mDesc.strides[N-1] != 1 && mIndexes[0] == mDesc.extents[0] - 1)
+        {
+          mPtr = mBase + mDesc.size;
+          d = 0;
+          break;
+        }
         mPtr -= mDesc.strides[asUnsigned(d)] * mDesc.extents[asUnsigned(d)];
         mIndexes[asUnsigned(d)] = 0;
         --d;
