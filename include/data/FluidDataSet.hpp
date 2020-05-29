@@ -94,6 +94,7 @@ public:
   }
 
   index pointSize() const { return mDim.size; }
+  index dims() const { return mDim.size; }
   index size() const { return mIds.size(); }
 
   std::string printRow(RealVectorView row, index maxCols) const {
@@ -118,7 +119,7 @@ public:
   std::string print(index maxRows = 6, index maxCols = 6) const {
     using namespace std;
     if (size() == 0)
-      return "";
+      return "{}";
     ostringstream result;
     // result << endl << "rows: " << size() << " cols: " << pointSize() << endl;
     if (size() < maxRows) {
