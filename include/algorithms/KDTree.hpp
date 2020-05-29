@@ -38,6 +38,9 @@ public:
                                        std::less<knnCandidate>>;
   using iterator = const std::vector<index>::iterator;
 
+  explicit KDTree() = default;
+  ~KDTree() = default;
+
   KDTree(const DataSet &dataset) {
     using namespace std;
     mNPoints = dataset.size();
@@ -73,8 +76,8 @@ public:
   }
 
   void print() const { print(mRoot, 0); }
-  index nPoints() const { return mNPoints; }
-  index nDims() const { return mDims; }
+  index dims() const { return mDims; }
+  index size() const { return mNPoints; }
 
   FlatData toFlat() const{
     FlatData store(mNPoints, mDims);

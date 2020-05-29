@@ -2,25 +2,58 @@
 
 #include <data/FluidTensor.hpp>
 #include <data/FluidIndex.hpp>
+#include <data/TensorTypes.hpp>
+#include <data/FluidDataSet.hpp>
+#include <algorithms/KDTree.hpp>
 #include <fstream>
 #include <nlohmann/json.hpp>
 
 namespace fluid {
 
-void to_json(nlohmann::json& j, const FluidTensorView<double, 1>& t) {
-  j = std::vector<double>(t.begin(), t.end());
+// FluidTensor
+template <typename T>
+void from_json(const nlohmann::json& j, FluidTensor<T, 1>& t) {
+  std::vector<T> row = j;
+  t = FluidTensorView<T, 1>(row.data(), 0, row.size());
 }
 
-void from_json(const nlohmann::json& j, FluidTensor<double, 1>& t) {
-  std::vector<double> row = j;
-  t = FluidTensorView<double, 1>(row.data(), 0, row.size());
+template <typename T>
+void to_json(nlohmann::json& j, const FluidTensorView<T, 1>& t) {
+  j = std::vector<T>(t.begin(), t.end());
 }
 
+template <typename T>
+void to_json(nlohmann::json& j, const FluidTensorView<const T, 1>& t) {
+  j = std::vector<T>(t.begin(), t.end());
+}
+
+template <typename T>
+void from_json(const nlohmann::json& j, FluidTensor<T, 2>& t) {
+  //j = nlohmann::json::array();
+  if(j.size() > 0){
+    auto result = FluidTensor<T, 2>(j.size(), j[0].size());
+    FluidTensor<T, 1> tmp(j[0].size());
+    for(index i = 0; i < j.size(); i++){
+      j[i].get_to(tmp);
+      result.row(i) = tmp;
+    }
+    t = result;
+  }
+}
+
+template <typename T>
+void to_json(nlohmann::json& j, const FluidTensorView<T, 2>& t) {
+  for(index i = 0; i < t.rows(); i++){
+    j.push_back(t.row(i));
+  }
+}
+
+
+// FluidDataSet
 void to_json(nlohmann::json& j, const FluidDataSet<std::string, double, 1>& ds) {
   try {
     auto ids = ds.getIds();
     auto data = ds.getData();
-    j["rows"] = ds.size();
     j["cols"] = ds.pointSize();
     for(index r = 0; r < ds.size();r++){
       j["data"][ids[r]] = data.row(r);
@@ -42,6 +75,31 @@ void from_json(const nlohmann::json& j, FluidDataSet<std::string, double, 1>& ds
     } catch (std::exception& e) {}
  }
 
+
+namespace algorithm {
+  // KDTree
+ void to_json(nlohmann::json& j, const algorithm::KDTree tree) {
+   try {
+     KDTree::FlatData treeData = tree.toFlat();
+     j["tree"] = FluidTensorView<index, 2>(treeData.tree);
+     j["rows"] = treeData.data.rows();
+     j["cols"] = treeData.data.cols();
+     j["data"] = FluidTensorView<double, 2>(treeData.data);
+     j["ids"] = FluidTensorView<std::string, 1>(treeData.ids);
+   } catch (std::exception& e) {}
+ }
+
+ void from_json(const nlohmann::json& j, algorithm::KDTree& tree){
+   index rows = j["rows"];
+   index cols = j["cols"];
+   KDTree::FlatData treeData(rows, cols);
+   j["tree"].get_to(treeData.tree);
+   j["data"].get_to(treeData.data);
+   j["ids"].get_to(treeData.ids);
+   tree.fromFlat(treeData);
+}
+
+}
 
  class JSONFile {
  public:

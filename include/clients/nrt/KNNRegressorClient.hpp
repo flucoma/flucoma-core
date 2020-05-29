@@ -46,13 +46,13 @@ public:
     algorithm::KNNRegressor regressor;
     if (!data) return Error<double>(NoBuffer);
     if(k == 0) return Error<double>(SmallK);
-    if(mTree.nPoints() == 0) return Error<double>(NoDataFitted);
-    if (mTree.nPoints() < k) return Error<double>(NotEnoughData);
+    if(mTree.size() == 0) return Error<double>(NoDataFitted);
+    if (mTree.size() < k) return Error<double>(NotEnoughData);
     BufferAdaptor::Access buf(data.get());
     if(!buf.exists()) return Error<double>(InvalidBuffer);
-    if (buf.numFrames() != mTree.nDims()) return Error<double>(WrongPointSize);
-    RealVector point(mTree.nDims());
-    point = buf.samps(0, mTree.nDims(), 0);
+    if (buf.numFrames() != mTree.dims()) return Error<double>(WrongPointSize);
+    RealVector point(mTree.dims());
+    point = buf.samps(0, mTree.dims(), 0);
     double result = regressor.predict(mTree, mTarget, point, k, !uniform);
     return result;
   }
@@ -67,10 +67,10 @@ public:
     if (dataSet.size() == 0) return Error(EmptyDataSet);
     auto destPtr = dest.get().lock();
     if(!destPtr) return Error(NoDataSet);
-    if (dataSet.pointSize()!=mTree.nDims()) return Error(WrongPointSize);
+    if (dataSet.pointSize()!=mTree.dims()) return Error(WrongPointSize);
     if(k == 0) return Error(SmallK);
-    if(mTree.nPoints() == 0) return Error(NoDataFitted);
-    if (mTree.nPoints() < k) return Error(NotEnoughData);
+    if(mTree.size() == 0) return Error(NoDataFitted);
+    if (mTree.size() < k) return Error(NotEnoughData);
 
     algorithm::KNNRegressor regressor;
     auto ids = dataSet.getIds();

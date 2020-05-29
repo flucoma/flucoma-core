@@ -47,14 +47,14 @@ public:
     algorithm::KNNClassifier classifier;
     if (!data) return Error<string>(NoBuffer);
     if(k == 0) return Error<string>(SmallK);
-    if(mTree.nPoints() == 0) return Error<string>(NoDataFitted);
-    if (mTree.nPoints() < k) return Error<string>(NotEnoughData);
+    if(mTree.size() == 0) return Error<string>(NoDataFitted);
+    if (mTree.size() < k) return Error<string>(NotEnoughData);
     BufferAdaptor::Access buf(data.get());
     if(!buf.exists()) return Error<string>(InvalidBuffer);
-    if (buf.numFrames() != mTree.nDims()) return Error<string>(WrongPointSize);
+    if (buf.numFrames() != mTree.dims()) return Error<string>(WrongPointSize);
 
-    RealVector point(mTree.nDims());
-    point = buf.samps(0, mTree.nDims(), 0);
+    RealVector point(mTree.dims());
+    point = buf.samps(0, mTree.dims(), 0);
     std::string result = classifier.predict(mTree, point, mLabels, k, !uniform);
     return result;
   }
@@ -69,10 +69,10 @@ public:
     if (dataSet.size() == 0) return Error(EmptyDataSet);
     auto destPtr = dest.get().lock();
     if(!destPtr) return Error(NoLabelSet);
-    if (dataSet.pointSize()!=mTree.nDims()) return Error(WrongPointSize);
+    if (dataSet.pointSize()!=mTree.dims()) return Error(WrongPointSize);
     if(k == 0) return Error(SmallK);
-    if(mTree.nPoints() == 0) return Error(NoDataFitted);
-    if (mTree.nPoints() < k) return Error(NotEnoughData);
+    if(mTree.size() == 0) return Error(NoDataFitted);
+    if (mTree.size() < k) return Error(NotEnoughData);
 
     algorithm::KNNClassifier classifier;
     auto ids = dataSet.getIds();
