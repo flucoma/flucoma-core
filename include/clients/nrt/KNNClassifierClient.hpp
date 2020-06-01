@@ -6,6 +6,22 @@
 namespace fluid {
 namespace client {
 
+struct KNNClassifierData{
+  algorithm::KDTree tree{0};
+  FluidDataSet<std::string, std::string, 1> labels{1};
+  index size(){return labels.size();}
+  index dims(){return tree.dims();}
+};
+
+void to_json(nlohmann::json& j, const KNNClassifierData& data) {
+  j["tree"] = data.tree;
+  j["labels"] = data.labels;
+}
+void from_json(const nlohmann::json& j, KNNClassifierData& data) {
+  data.tree = j["tree"].get<algorithm::KDTree>();
+  data.labels = j["labels"].get<FluidDataSet<std::string, std::string, 1>>();
+}
+
 class KNNClassifierClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject {
   enum { kNDims, kK };
 
@@ -20,7 +36,7 @@ public:
 
   FLUID_DECLARE_PARAMS();
 
-  KNNClassifierClient(ParamSetViewType &p) : mParams(p) {}
+  KNNClassifierClient(ParamSetViewType &p) : mParams(p), mDataClient(mData) {}
 
   MessageResult<string> fit(
     DataSetClientRef datasetClient,
@@ -38,6 +54,7 @@ public:
       return Error<string>("Different sizes for source and target");
     mTree = algorithm::KDTree{dataset};
     mLabels = labelSet;
+    mData = {mTree,mLabels};
     return {};
   }
 
@@ -89,17 +106,32 @@ public:
     return OK();
   }
 
+  MessageResult<index> size() { return mDataClient.size(); }
+  MessageResult<index> cols() { return mDataClient.dims(); }
+  MessageResult<void> write(string fn) {return mDataClient.write(fn);}
+  MessageResult<void> read(string fn) {return mDataClient.read(fn);}
+  MessageResult<string> dump() { return mDataClient.dump();}
+  MessageResult<void> load(string  s) { return mDataClient.load(s);}
+
+
   FLUID_DECLARE_MESSAGES(makeMessage("fit",
                          &KNNClassifierClient::fit),
                          makeMessage("predict",
                          &KNNClassifierClient::predict),
                          makeMessage("predictPoint",
-                         &KNNClassifierClient::predictPoint)
-                       );
+                         &KNNClassifierClient::predictPoint),
+                         makeMessage("cols", &KNNClassifierClient::cols),
+                         makeMessage("size", &KNNClassifierClient::size),
+                         makeMessage("load", &KNNClassifierClient::load),
+                         makeMessage("dump", &KNNClassifierClient::dump),
+                         makeMessage("write", &KNNClassifierClient::write),
+                         makeMessage("read", &KNNClassifierClient::read));
 
 private:
   algorithm::KDTree mTree{0};
   LabelSet mLabels{1};
+  KNNClassifierData mData{mTree,mLabels};
+  DataClient<KNNClassifierData> mDataClient;
 };
 
 using NRTThreadedKNNClassifierClient = NRTThreadingAdaptor<ClientWrapper<KNNClassifierClient>>;

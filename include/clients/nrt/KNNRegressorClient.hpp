@@ -6,6 +6,22 @@
 namespace fluid {
 namespace client {
 
+  struct KNNRegressorData{
+    algorithm::KDTree tree{0};
+    FluidDataSet<std::string, double, 1> target{1};
+    index size(){return target.size();}
+    index dims(){return tree.dims();}
+  };
+
+  void to_json(nlohmann::json& j, const KNNRegressorData& data) {
+    j["tree"] = data.tree;
+    j["target"] = data.target;
+  }
+  void from_json(const nlohmann::json& j, KNNRegressorData& data) {
+    data.tree = j["tree"].get<algorithm::KDTree>();
+    data.target = j["target"].get<FluidDataSet<std::string, double, 1>>();
+  }
+
 class KNNRegressorClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject {
   enum { kNDims, kK };
 
@@ -19,7 +35,7 @@ public:
 
   FLUID_DECLARE_PARAMS();
 
-  KNNRegressorClient(ParamSetViewType &p) : mParams(p) {}
+  KNNRegressorClient(ParamSetViewType &p) : mParams(p), mDataClient(mData) {}
 
   MessageResult<string> fit(
     DataSetClientRef datasetClient,
@@ -86,17 +102,38 @@ public:
     destPtr->setDataSet(result);
     return OK();
   }
+  MessageResult<index> size() { return mDataClient.size(); }
+  MessageResult<index> cols() { return mDataClient.dims(); }
+  MessageResult<void> write(string fn) {return mDataClient.write(fn);}
+  MessageResult<void> read(string fn) {return mDataClient.read(fn);}
+  MessageResult<string> dump() { return mDataClient.dump();}
+  MessageResult<void> load(string  s) { return mDataClient.load(s);}
+
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit",
                          &KNNRegressorClient::fit),
                          makeMessage("predict",
                          &KNNRegressorClient::predict),
                          makeMessage("predictPoint",
-                         &KNNRegressorClient::predictPoint)
+                         &KNNRegressorClient::predictPoint),
+                         makeMessage("cols",
+                         &KNNRegressorClient::cols),
+                         makeMessage("size",
+                         &KNNRegressorClient::size),
+                         makeMessage("load",
+                         &KNNRegressorClient::load),
+                         makeMessage("dump",
+                         &KNNRegressorClient::dump),
+                         makeMessage("write",
+                         &KNNRegressorClient::write),
+                         makeMessage("read",
+                         &KNNRegressorClient::read)
                        );
 private:
   algorithm::KDTree mTree{0};
   DataSet mTarget{1};
+  KNNRegressorData mData{mTree,mTarget};
+  DataClient<KNNRegressorData> mDataClient;
 };
 
 using NRTThreadedKNNRegressorClient = NRTThreadingAdaptor<ClientWrapper<KNNRegressorClient>>;
