@@ -131,16 +131,18 @@ public:
   ClientWrapper(ParamSetViewType& p) : mParams{p} ,mClient{p} {}
 
   ClientWrapper(ClientWrapper&& x):
-      mParams{std::move(x.mParams)},
+      mParams{x.mParams},
       mClient{std::move(x.mClient)}
   {
+    mClient.setParams(mParams);
   }
 
   ClientWrapper& operator=(ClientWrapper&& x)
   {
     using std::swap;
     swap(mClient,x.mClient);
-    swap(mParams,x.mParams);
+    mParams = x.mParams;
+    mClient.setParams(mParams);
     return *this;
   }
 

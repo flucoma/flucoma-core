@@ -157,7 +157,7 @@ public:
   {
     mDesc = x.descriptor(); // we get the same size, extent and strides
     mDesc.start = 0;        // but start at 0 now
-    mContainer.resize(mDesc.size);
+    mContainer.resize(asUnsigned(mDesc.size));
     std::copy(x.begin(), x.end(), mContainer.begin());
     return *this;
   }

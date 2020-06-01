@@ -62,7 +62,7 @@ public:
   using ValueType = typename std::tuple_element<0, T>::type::type;
 
   using ValueTuple = std::tuple<ValueType<Ts>...>;
-  using ValueRefTuple = std::tuple<ValueType<Ts>&...>;
+  using ValueRefTuple = std::tuple<std::reference_wrapper<ValueType<Ts>>...>;
   using DescriptorType = std::tuple<Ts...>;
 
   template <size_t N>
@@ -212,19 +212,21 @@ protected:
 
 public:
   constexpr ParameterSetView(const DescriptorSetType& d, ValueRefTuple t)
-      : mDescriptors{std::cref(d)}, mKeepConstrained(false), mParams{t}
+      : mDescriptors{d},
+        mKeepConstrained(false),
+        mParams{t}
   {}
 
-  ParameterSetView(ParameterSetView&& x) {
-    *this = std::move(x);
-  }
+  ParameterSetView(ParameterSetView&& x)
+    : mDescriptors{std::move(x.mDescriptors)},mKeepConstrained{x.mKeepConstrained},  mParams{std::move(x.mParams)}
+  {}
   
   ParameterSetView& operator=(ParameterSetView&& x)
   {
-    using std::swap;
-    swap(mDescriptors, x.mDescriptors);
-    swap(mKeepConstrained,x.mKeepConstrained);
-    swap(mParams, x.mParams);
+
+    mDescriptors =  x.mDescriptors;
+    mKeepConstrained = x.mKeepConstrained;
+    mParams = x.mParams;
     return *this;
   }
 
@@ -292,7 +294,7 @@ public:
     auto&       constraints = constraint<N>();
     auto&       param = std::get<N>(mParams);
     const index offset = std::get<N>(std::make_tuple(Os...));
-    param = mKeepConstrained
+    param.get() = mKeepConstrained
                 ? constrain<offset, N, kAll>(x, constraints, reportage)
                 : x;
   }
@@ -300,7 +302,7 @@ public:
   template <std::size_t N>
   auto& get() const
   {
-    return std::get<N>(mParams);
+    return std::get<N>(mParams).get();
   }
 
   template <size_t offset>
@@ -328,7 +330,7 @@ private:
   template <size_t N, typename VTuple>
   auto& paramValue(VTuple& values)
   {
-    return std::get<N>(values);
+    return std::get<N>(values).get();
   }
 
   template <size_t N>
@@ -429,6 +431,11 @@ private:
   }
 
 protected:
+
+  void refs(ValueTuple& p) {
+    mParams = p;
+  };
+
   std::reference_wrapper<const DescriptorSetType> mDescriptors;
   bool                                            mKeepConstrained;
 
@@ -465,6 +472,7 @@ public:
         mParams{p.mParams}
   {
     this->mKeepConstrained = p.mKeepConstrained;
+    ViewType::refs(mParams);
   }
 
   ParameterSet& operator=(const ParameterSet& p)
@@ -472,24 +480,24 @@ public:
     *(static_cast<ViewType*>(this)) =
         ViewType(p.mDescriptors.get(), createRefTuple(IndexList()));
     mParams = p.mParams;
+    ViewType::refs(mParams);
     this->mKeepConstrained = p.mKeepConstrained;
     return *this;
   }
 
   // Move construct /assign
   ParameterSet(ParameterSet&& x)noexcept
-            :ViewType(x.mDescriptors.get(), createRefTuple(IndexList())),
-            mParams{std::move(x.mParams)}
-  {}
+            :ViewType{x.mDescriptors.get(), createRefTuple(IndexList())},
+             mParams{std::move(x.mParams)}
+  {
+    ViewType::refs(mParams);
+  }
 
   ParameterSet& operator=(ParameterSet&& x) noexcept
   {
-    if (this != &x)
-    {
-      ViewType::operator=(std::move(x));
-      using std::swap;
-      swap(mParams, x.mParams);
-    }
+    ViewType::operator=(std::move(x));
+    mParams =  std::move(x.mParams);
+    ViewType::refs(mParams);
     return *this;
   }
 

@@ -325,7 +325,7 @@ public:
                          Result* r) const
     {
       FFTParams input = v;
-      auto&     inParams = std::get<N>(allParams);
+      auto&     inParams = std::get<N>(allParams).get();
 
       bool winChanged = inParams.trackWin.changed(v.winSize());
       bool fftChanged = inParams.trackFFT.changed(v.fftRaw());

@@ -130,7 +130,7 @@ struct FrameSizeUpperLimitImpl : public Relational
   void clamp(T& v, Tuple& params, Descriptor& d, Result* r) const
   {
     T     oldV = v;
-    index frameSize = std::get<FFTIndex + Offset>(params).frameSize();
+    index frameSize = std::get<FFTIndex + Offset>(params).get().frameSize();
     v = std::min<T>(v, frameSize);
 
     if (r && oldV != v)
@@ -227,7 +227,7 @@ struct FrequencyAmpPairConstraint
   constexpr void clamp(type& v, Tuple& allParams, Descriptor&, Result*) const
   {
     auto& vals = v.value;
-    auto& inParams = std::get<N>(allParams);
+    auto& inParams = std::get<N>(allParams).get();
     // For now I know that array size is 2, just upper and lower vals
     // TODO: make generic for any old monotonic array of freq-amp pairs, should
     // we need it

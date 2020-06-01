@@ -127,9 +127,47 @@ public:
 
   NRTClientWrapper(ParamSetViewType& p)
       : mParams{p}, mRealTimeParams{RTClient::getParameterDescriptors(),
-                                    p.template subset<ParamOffset>()},
+                                    mParams.get().template subset<ParamOffset>()},
         mClient{mRealTimeParams}
   {}
+
+  NRTClientWrapper(const NRTClientWrapper& x)
+    :mParams{x.mParams}, mRealTimeParams{RTClient::getParameterDescriptors(),
+                                    mParams.get().template subset<ParamOffset>()}, mClient{mRealTimeParams}
+  {
+
+  }
+
+
+  NRTClientWrapper(NRTClientWrapper&& x)
+    : mParams{std::move(x.mParams)}, mClient{std::move(x.mClient)}
+  {
+    mRealTimeParams = RTParamSetViewType(RTClient::getParameterDescriptors(),
+                                         mParams.get().template subset<ParamOffset>());
+    mClient.setParams(mRealTimeParams);
+  }
+
+  NRTClientWrapper& operator=(const NRTClientWrapper& x)
+  {
+    mParams = x.mParams;
+    mClient = x.mClient;
+    mRealTimeParams = RTParamSetViewType(RTClient::getParameterDescriptors(),
+                                         mParams.get().template subset<ParamOffset>());
+    mClient.setParams(mRealTimeParams);
+    return *this;
+  }
+
+  NRTClientWrapper& operator=(NRTClientWrapper&& x)
+  {
+    using std::swap;
+    swap(mClient,x.mClient);
+    swap(mParams,x.mParams);
+    mRealTimeParams = RTParamSetViewType(RTClient::getParameterDescriptors(),
+                                         mParams.get().template subset<ParamOffset>());
+    mClient.setParams(mRealTimeParams);
+    return *this; 
+  }
+
 
   template <std::size_t N>
   auto& get() noexcept
@@ -154,7 +192,7 @@ public:
   {
     mParams = p;
     mRealTimeParams = RTParamSetViewType(RTClient::getParameterDescriptors(),
-                                         p.template subset<ParamOffset>());
+                                         mParams.get().template subset<ParamOffset>());
     mClient.setParams(mRealTimeParams);
   }
 
@@ -172,10 +210,10 @@ public:
 
     auto inputBuffers = fetchInputBuffers(inputCounter);
     auto outputBuffers = fetchOutputBuffers(outputCounter);
-
+ 
     std::array<index, Ins> inFrames;
     std::array<index, Ins> inChans;
-
+    
     // check buffers exist
     index count = 0;
     for (auto&& b : inputBuffers)
@@ -555,7 +593,7 @@ public:
   {}
 
   NRTThreadingAdaptor(NRTThreadingAdaptor&& x)
-          : mHostParams{std::move(x.mHostParams)}
+          : mHostParams{x.mHostParams}
   { swap(std::move(x),false); }
 
   NRTThreadingAdaptor& operator=(NRTThreadingAdaptor&& x)
@@ -696,13 +734,14 @@ private:
     swap(mQueue,x.mQueue);
     swap(mSynchronous,x.mSynchronous);
     swap(mQueueEnabled,x.mQueueEnabled);
-    if(includeParams) mHostParams = x.mHostParams;
-    swap(mClient,x.mClient);
-    mClient->setParams(mHostParams); //keeps client's params pointer updated
+    if(includeParams) mHostParams = std::move(x.mHostParams);
+    mClient =  std::move(x.mClient);
+//    mClient->setParams(mHostParams); //keeps client's params pointer updated
   }
 
   struct ThreadedTask
   {
+    
     template <size_t N, typename T>
     struct BufferCopy
     {
@@ -742,7 +781,6 @@ private:
       mClient->setParams(mProcessParams);
       if (synchronous)
       {
-        mClient->setParams(hostParams);
         process(std::move(resultPromise));
       }
       else
@@ -762,9 +800,10 @@ private:
     void process(std::promise<Result> result)
     {
       assert(mClient.get() != nullptr); // right?
-
       mState = kProcessing;
+//      mClient->dbgprm();
       Result r = mClient->template process<float>(mContext);
+//      Result r;
       result.set_value(r);
       mState = kDone;
 
