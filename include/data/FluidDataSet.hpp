@@ -97,7 +97,7 @@ public:
   index dims() const { return mDim.size; }
   index size() const { return mIds.size(); }
 
-  std::string printRow(RealVectorView row, index maxCols) const {
+  std::string printRow(FluidTensorView<dataType, N> row, index maxCols) const {
     using namespace std;
     ostringstream result;
     if (row.size() < maxCols) {

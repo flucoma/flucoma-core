@@ -5,6 +5,7 @@
 #include <data/TensorTypes.hpp>
 #include <data/FluidDataSet.hpp>
 #include <algorithms/KDTree.hpp>
+#include <algorithms/KMeans.hpp>
 #include <fstream>
 #include <nlohmann/json.hpp>
 
@@ -29,7 +30,6 @@ void to_json(nlohmann::json& j, const FluidTensorView<const T, 1>& t) {
 
 template <typename T>
 void from_json(const nlohmann::json& j, FluidTensor<T, 2>& t) {
-  //j = nlohmann::json::array();
   if(j.size() > 0){
     auto result = FluidTensor<T, 2>(j.size(), j[0].size());
     FluidTensor<T, 1> tmp(j[0].size());
@@ -48,9 +48,9 @@ void to_json(nlohmann::json& j, const FluidTensorView<T, 2>& t) {
   }
 }
 
-
 // FluidDataSet
-void to_json(nlohmann::json& j, const FluidDataSet<std::string, double, 1>& ds) {
+template <typename T>
+void to_json(nlohmann::json& j, const FluidDataSet<std::string, T, 1>& ds) {
   try {
     auto ids = ds.getIds();
     auto data = ds.getData();
@@ -61,13 +61,14 @@ void to_json(nlohmann::json& j, const FluidDataSet<std::string, double, 1>& ds) 
   } catch (std::exception& e) {}
 }
 
-void from_json(const nlohmann::json& j, FluidDataSet<std::string, double, 1>& ds){
+template <typename T>
+void from_json(const nlohmann::json& j, FluidDataSet<std::string, T, 1>& ds){
    using namespace nlohmann;
    try {
      auto rows = j.at("data");
      index pointSize = j["cols"];
      ds.resize(pointSize);
-     FluidTensor<double, 1> tmp(pointSize);
+     FluidTensor<T, 1> tmp(pointSize);
      for (json::iterator r = rows.begin(); r != rows.end(); ++r) {
          r.value().get_to(tmp);
          ds.add(r.key(), tmp);
@@ -75,10 +76,9 @@ void from_json(const nlohmann::json& j, FluidDataSet<std::string, double, 1>& ds
     } catch (std::exception& e) {}
  }
 
-
 namespace algorithm {
   // KDTree
- void to_json(nlohmann::json& j, const algorithm::KDTree tree) {
+ void to_json(nlohmann::json& j, const KDTree tree) {
    try {
      KDTree::FlatData treeData = tree.toFlat();
      j["tree"] = FluidTensorView<index, 2>(treeData.tree);
@@ -89,7 +89,7 @@ namespace algorithm {
    } catch (std::exception& e) {}
  }
 
- void from_json(const nlohmann::json& j, algorithm::KDTree& tree){
+ void from_json(const nlohmann::json& j, KDTree& tree){
    index rows = j["rows"];
    index cols = j["cols"];
    KDTree::FlatData treeData(rows, cols);
@@ -97,6 +97,26 @@ namespace algorithm {
    j["data"].get_to(treeData.data);
    j["ids"].get_to(treeData.ids);
    tree.fromFlat(treeData);
+}
+
+// KMeans
+void to_json(nlohmann::json& j, const KMeans kmeans) {
+  try {
+    RealMatrix means(kmeans.getK(), kmeans.dims());
+    kmeans.getMeans(means);
+    j["means"] = RealMatrixView(means);
+    j["rows"] =  means.rows();
+    j["cols"] = means.cols();
+  } catch (std::exception& e) {}
+}
+
+void from_json(const nlohmann::json& j, KMeans& kmeans){
+  index rows = j["rows"];
+  index cols = j["cols"];
+  RealMatrix means(rows, cols);
+  j["means"].get_to(means);
+  kmeans.init(rows, cols);
+  kmeans.setMeans(means);
 }
 
 }

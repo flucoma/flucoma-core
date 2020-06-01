@@ -15,6 +15,7 @@ namespace algorithm {
 class KMeans {
 
 public:
+
   void init(index k, index dims) {
     mK = k;
     mDims = dims;
@@ -78,9 +79,9 @@ public:
     mMeans = _impl::asEigen<Eigen::Array>(means);
   }
 
-  index getDims() const { return mDims; }
+  index dims() const { return mDims; }
+  index size() const { return mAssignments.size();}
   index getK() const { return mK; }
-
   index nAssigned() const { return mAssignments.size(); }
 
   void getAssignments(FluidTensorView<index, 1> out) const {

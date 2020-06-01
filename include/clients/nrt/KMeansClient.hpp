@@ -20,7 +20,7 @@ public:
 
   FLUID_DECLARE_PARAMS();
 
-  KMeansClient(ParamSetViewType &p) : mParams(p) {}
+  KMeansClient(ParamSetViewType &p) : mParams(p), mDataClient(mModel) {}
 
   MessageResult<IndexVector> fit(DataSetClientRef datasetClient, index k, index maxIter)
     {
@@ -30,13 +30,11 @@ public:
     if (dataSet.size() == 0) return Error<IndexVector>(EmptyDataSet);
     if (k <= 1) return Error<IndexVector>(SmallK);
     if (maxIter <= 0) maxIter = 100;
-    mDims = dataSet.pointSize();
-    mK = k;
-    mModel.init(mK, mDims);
+    mModel.init(k, dataSet.dims());
     mModel.train(dataSet, maxIter);
     IndexVector assignments(dataSet.size());
     mModel.getAssignments(assignments);
-    return getCounts(assignments);
+    return getCounts(assignments, k);
   }
 
   MessageResult<IndexVector> fitPredict(
@@ -52,15 +50,14 @@ public:
       if(!labelsetClientPtr) return Error<IndexVector>(NoLabelSet);
       if (k <= 1) return Error<IndexVector>(SmallK);
       if (maxIter <= 0) maxIter = 100;
-      mDims = dataSet.pointSize();
       mK = k;
-      mModel.init(mK, mDims);
+      mModel.init(k, dataSet.pointSize());
       mModel.train(dataSet, maxIter);
       IndexVector assignments(dataSet.size());
       mModel.getAssignments(assignments);
       StringVectorView ids = dataSet.getIds();
       labelsetClientPtr->setLabelSet(getLabels(ids, assignments));
-      return getCounts(assignments);
+      return getCounts(assignments, k);
   }
 
   MessageResult<IndexVector> predict(
@@ -73,15 +70,16 @@ public:
       auto dataSet = dataPtr->getDataSet();
       if (dataSet.size() == 0) return Error<IndexVector>(EmptyDataSet);
       if (!mModel.trained()) return Error<IndexVector>(NoDataFitted);
+      if (dataSet.dims() != mModel.dims()) return Error<IndexVector>(WrongPointSize);
       StringVectorView ids = dataSet.getIds();
       IndexVector assignments(dataSet.size());
-      RealVector query(mDims);
+      RealVector query(mModel.dims());
       for (index i = 0; i < dataSet.size(); i++) {
         dataSet.get(ids(i), query);
         assignments(i) = mModel.vq(query);
       }
       labelsetClientPtr->setLabelSet(getLabels(ids, assignments));
-      return getCounts(assignments);
+      return getCounts(assignments, mModel.getK());
    }
 
     MessageResult<index> predictPoint(BufferPtr data) const
@@ -90,46 +88,18 @@ public:
       if (!mModel.trained()) return Error<index>(NoDataFitted);
       BufferAdaptor::Access buf(data.get());
       if(!buf.exists()) return Error<index>(InvalidBuffer);
-      if (buf.numFrames() != mDims) return Error<index>(WrongPointSize);
-      RealVector point(mDims);
-      point = buf.samps(0, mDims, 0);
+      if (buf.numFrames() != mModel.dims()) return Error<index>(WrongPointSize);
+      RealVector point(mModel.dims());
+      point = buf.samps(0, mModel.dims(), 0);
       return mModel.vq(point);
     }
 
-  MessageResult<void> write(string fileName)
-  {
-    auto file = FluidFile(fileName, "w");
-    if (!file.valid())  return Error(file.error());
-    RealMatrix means(mK, mDims);
-    mModel.getMeans(means);
-    file.add("means", means);
-    file.add("cols", mDims);
-    file.add("rows", mK);
-    return file.write() ? OK() : Error(FileWrite);
-  }
-
-  MessageResult<void> read(string fileName) {
-    auto file = FluidFile(fileName, "r");
-    if (!file.valid()) {
-      return Error(file.error());
-    }
-    if (!file.read()) {
-      return Error(FileRead);
-    }
-    if (!file.checkKeys({"means", "rows", "cols"})) {
-      return Error(file.error());
-    }
-    file.get("cols", mDims);
-    file.get("rows", mK);
-    RealMatrix means(mK, mDims);
-    file.get("means", means, mK, mDims);
-    mModel = algorithm::KMeans();
-    mModel.init(mK, mDims);
-    mModel.setMeans(means);
-    return OK();
-  }
-
-  MessageResult<index> cols() { return mDims; }
+    MessageResult<index> size() { return mDataClient.size(); }
+    MessageResult<index> cols() { return mDataClient.dims(); }
+    MessageResult<void> write(string fn) {return mDataClient.write(fn);}
+    MessageResult<void> read(string fn) {return mDataClient.read(fn);}
+    MessageResult<string> dump() { return mDataClient.dump();}
+    MessageResult<void> load(string  s) { return mDataClient.load(s);}
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &KMeansClient::fit),
                          makeMessage("predict", &KMeansClient::predict),
@@ -137,12 +107,15 @@ public:
                                      &KMeansClient::predictPoint),
                          makeMessage("fitPredict", &KMeansClient::fitPredict),
                          makeMessage("cols", &KMeansClient::cols),
+                         makeMessage("size", &KMeansClient::size),
+                         makeMessage("load", &KMeansClient::load),
+                         makeMessage("dump", &KMeansClient::dump),
                          makeMessage("write", &KMeansClient::write),
                          makeMessage("read", &KMeansClient::read));
 
 private:
-  IndexVector getCounts(IndexVector assignments) const{
-    IndexVector counts(mK);
+  IndexVector getCounts(IndexVector assignments, index k) const{
+    IndexVector counts(k);
     counts.fill(0);
     for (auto a : assignments) counts[a]++;
     return counts;
@@ -161,7 +134,7 @@ private:
   }
 
   algorithm::KMeans mModel;
-  index mDims{0};
+  DataClient<algorithm::KMeans> mDataClient;
   index mK{0};
 };
 
