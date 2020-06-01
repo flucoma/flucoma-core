@@ -55,6 +55,9 @@ public:
 
   void getStd(RealVectorView out) const{ out = _impl::asFluid(mStd); }
 
+  index dims() const { return mMean.size(); }
+  index size() const { return 1;}
+
   ArrayXd mMean;
   ArrayXd mStd;
   bool mInitialized{false};

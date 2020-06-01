@@ -20,7 +20,7 @@ public:
                        FloatParam("max", "Maximum value", 1.0, LowerLimit<kMin>()));
 
   NormalizeClient(ParamSetViewType &p)
-      : mParams(p) {
+      : mParams(p), mDataClient(mAlgorithm) {
   }
 
   MessageResult<void> fit(DataSetClientRef datasetClient) {
@@ -36,9 +36,6 @@ public:
     }
     return {};
   }
-
-  MessageResult<index> cols() { return mDims;}
-
   MessageResult<void> transform(DataSetClientRef sourceClient,
                             DataSetClientRef destClient) {
     using namespace std;
@@ -90,47 +87,27 @@ public:
     return {};
   }
 
-  MessageResult<void> write(string fileName) {
-    auto file = FluidFile(fileName, "w");
-    if (!file.valid()) return Error(file.error());
-    RealVector min(mDims);
-    RealVector max(mDims);
-    mAlgorithm.getDataMin(min);
-    mAlgorithm.getDataMax(max);
-    file.add("min", min);
-    file.add("max", max);
-    file.add("cols", mDims);
-    return file.write() ? OK() : Error(FileWrite);
-  }
-
-  MessageResult<void> read(string fileName) {
-    auto file = FluidFile(fileName, "r");
-    if (!file.valid()) return Error(file.error());
-    if (!file.read()) return Error(FileRead);
-    if (!file.checkKeys({"min", "max", "cols"})) {
-      return Error(file.error());
-    }
-    RealVector dataMin(mDims);
-    RealVector dataMax(mDims);
-    index dims;
-    file.get("cols", dims);
-    if (dims!=mDims)return Error(WrongPointSize);
-    file.get("min", dataMin, dims);
-    file.get("max", dataMax, dims);
-    mAlgorithm.init(get<kMin>(), get<kMax>(), dataMin, dataMax);
-    return OK();
-  }
+  MessageResult<index> size() { return mDataClient.size(); }
+  MessageResult<index> cols() { return mDataClient.dims(); }
+  MessageResult<void> write(string fn) {return mDataClient.write(fn);}
+  MessageResult<void> read(string fn) {return mDataClient.read(fn);}
+  MessageResult<string> dump() { return mDataClient.dump();}
+  MessageResult<void> load(string  s) { return mDataClient.load(s);}
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &NormalizeClient::fit),
-                         makeMessage("cols", &NormalizeClient::cols),
                          makeMessage("fitTransform", &NormalizeClient::fitTransform),
                          makeMessage("transform", &NormalizeClient::transform),
                          makeMessage("transformPoint", &NormalizeClient::transformPoint),
+                         makeMessage("cols", &NormalizeClient::cols),
+                         makeMessage("size", &NormalizeClient::size),
+                         makeMessage("load", &NormalizeClient::load),
+                         makeMessage("dump", &NormalizeClient::dump),
                          makeMessage("read", &NormalizeClient::read),
                          makeMessage("write", &NormalizeClient::write));
 
 private:
   algorithm::Normalization mAlgorithm;
+  DataClient<algorithm::Normalization> mDataClient;
   index mDims{0};
 };
 

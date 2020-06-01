@@ -64,6 +64,9 @@ public:
   void setMax(double max) { mMax = max; }
   bool initialized() const{ return mInitialized; }
 
+  double getMin() const{ return mMin; }
+  double getMax() const{ return mMax; }
+
   void getDataMin(RealVectorView out) const{
     using namespace _impl;
     out = asFluid(mDataMin);
@@ -73,6 +76,9 @@ public:
     using namespace _impl;
     out = asFluid(mDataMax);
   }
+
+  index dims() const { return mDataMin.size(); }
+  index size() const { return 1;}
 
   double mMin{0.0};
   double mMax{1.0};

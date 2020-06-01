@@ -19,7 +19,7 @@ public:
   FLUID_DECLARE_PARAMS();
 
   StandardizeClient(ParamSetViewType &p)
-      : mParams(p) {}
+      : mParams(p), mDataClient(mAlgorithm) {}
 
   MessageResult<void> fit(DataSetClientRef datasetClient) {
     auto weakPtr = datasetClient.get();
@@ -34,8 +34,6 @@ public:
     }
     return {};
   }
-
-  MessageResult<index> cols() { return mDims;}
 
   MessageResult<void> transform(DataSetClientRef sourceClient,
                             DataSetClientRef destClient) const {
@@ -89,55 +87,28 @@ public:
             return result;
   }
 
+  MessageResult<index> size() { return mDataClient.size(); }
+  MessageResult<index> cols() { return mDataClient.dims(); }
+  MessageResult<void> write(string fn) {return mDataClient.write(fn);}
+  MessageResult<void> read(string fn) {return mDataClient.read(fn);}
+  MessageResult<string> dump() { return mDataClient.dump();}
+  MessageResult<void> load(string  s) { return mDataClient.load(s);}
 
-  MessageResult<void> write(string fileName) {
-    auto file = FluidFile(fileName, "w");
-    if (!file.valid()) {
-      return {Result::Status::kError, file.error()};
-    }
-    RealVector mean(mDims);
-    RealVector std(mDims);
-    mAlgorithm.getMean(mean);
-    mAlgorithm.getStd(std);
-    file.add("mean", mean);
-    file.add("std", std);
-    file.add("cols", mDims);
-    return file.write() ? OK() : Error(FileWrite);
-  }
-
-  MessageResult<void> read(string fileName) {
-    auto file = FluidFile(fileName, "r");
-    if (!file.valid()) {
-      return Error(file.error());
-    }
-    if (!file.read()) {
-      return Error(FileRead);
-    }
-    if (!file.checkKeys({"mean", "std", "cols"})) {
-      return Error(file.error());
-    }
-    RealVector mean(mDims);
-    RealVector std(mDims);
-    index dims;
-    file.get("cols", dims);
-    if (dims != mDims)
-      return Error(WrongPointSize);
-    file.get("mean", mean, dims);
-    file.get("std", std, dims);
-    mAlgorithm.init(mean, std);
-    return OK();
-  }
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &StandardizeClient::fit),
-                         makeMessage("cols", &StandardizeClient::cols),
                          makeMessage("fitTransform", &StandardizeClient::fitTransform),
                          makeMessage("transform", &StandardizeClient::transform),
                          makeMessage("transformPoint", &StandardizeClient::transformPoint),
+                         makeMessage("cols", &StandardizeClient::cols),
+                         makeMessage("size", &StandardizeClient::size),
+                         makeMessage("load", &StandardizeClient::load),
+                         makeMessage("dump", &StandardizeClient::dump),
                          makeMessage("read", &StandardizeClient::read),
                          makeMessage("write", &StandardizeClient::write));
 
 private:
   algorithm::Standardization mAlgorithm;
+  DataClient<algorithm::Standardization> mDataClient;
   index mDims{0};
 };
 

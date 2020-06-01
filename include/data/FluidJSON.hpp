@@ -6,6 +6,8 @@
 #include <data/FluidDataSet.hpp>
 #include <algorithms/KDTree.hpp>
 #include <algorithms/KMeans.hpp>
+#include <algorithms/Normalization.hpp>
+#include <algorithms/Standardization.hpp>
 #include <fstream>
 #include <nlohmann/json.hpp>
 
@@ -78,7 +80,7 @@ void from_json(const nlohmann::json& j, FluidDataSet<std::string, T, 1>& ds){
 
 namespace algorithm {
   // KDTree
- void to_json(nlohmann::json& j, const KDTree tree) {
+ void to_json(nlohmann::json& j, const KDTree& tree) {
    try {
      KDTree::FlatData treeData = tree.toFlat();
      j["tree"] = FluidTensorView<index, 2>(treeData.tree);
@@ -100,14 +102,12 @@ namespace algorithm {
 }
 
 // KMeans
-void to_json(nlohmann::json& j, const KMeans kmeans) {
-  try {
+void to_json(nlohmann::json& j, const KMeans& kmeans) {
     RealMatrix means(kmeans.getK(), kmeans.dims());
     kmeans.getMeans(means);
     j["means"] = RealMatrixView(means);
     j["rows"] =  means.rows();
     j["cols"] = means.cols();
-  } catch (std::exception& e) {}
 }
 
 void from_json(const nlohmann::json& j, KMeans& kmeans){
@@ -117,6 +117,51 @@ void from_json(const nlohmann::json& j, KMeans& kmeans){
   j["means"].get_to(means);
   kmeans.init(rows, cols);
   kmeans.setMeans(means);
+}
+
+// Normalize
+void to_json(nlohmann::json& j, const Normalization& normalization) {
+    RealVector dataMin(normalization.dims());
+    RealVector dataMax(normalization.dims());
+    normalization.getDataMin(dataMin);
+    normalization.getDataMax(dataMax);
+    j["data_min"] = RealVectorView(dataMin);
+    j["data_max"] = RealVectorView(dataMax);
+    j["min"] = normalization.getMin();
+    j["max"] = normalization.getMax();
+    j["cols"] = normalization.dims();
+}
+
+void from_json(const nlohmann::json& j, Normalization& normalization){
+    index cols = j["cols"];
+    RealVector dataMin(cols);
+    RealVector dataMax(cols);
+    j["data_min"].get_to(dataMin);
+    j["data_max"].get_to(dataMax);
+    double min = j["min"];
+    double max = j["max"];
+    normalization.init(min, max, dataMin, dataMax);
+}
+
+
+// Standardize
+void to_json(nlohmann::json& j, const Standardization& standardization) {
+    RealVector mean(standardization.dims());
+    RealVector std(standardization.dims());
+    standardization.getMean(mean);
+    standardization.getStd(std);
+    j["mean"] = RealVectorView(mean);
+    j["std"] = RealVectorView(std);
+    j["cols"] = standardization.dims();
+}
+
+void from_json(const nlohmann::json& j, Standardization& standardization){
+  index cols = j["cols"];
+  RealVector mean(cols);
+  RealVector std(cols);
+  j["mean"].get_to(mean);
+  j["std"].get_to(std);
+  standardization.init(mean, std);
 }
 
 }
