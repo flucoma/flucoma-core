@@ -8,6 +8,7 @@
 #include <algorithms/KMeans.hpp>
 #include <algorithms/Normalization.hpp>
 #include <algorithms/Standardization.hpp>
+#include <algorithms/PCA.hpp>
 #include <fstream>
 #include <nlohmann/json.hpp>
 
@@ -162,6 +163,30 @@ void from_json(const nlohmann::json& j, Standardization& standardization){
   j["mean"].get_to(mean);
   j["std"].get_to(std);
   standardization.init(mean, std);
+}
+
+// PCA
+void to_json(nlohmann::json& j, const PCA& pca) {
+    index dims = pca.dims();
+    index k = pca.size();
+    RealMatrix bases(dims, k);
+    RealVector mean(dims);
+    pca.getBases(bases);
+    pca.getMean(mean);
+    j["bases"] = RealMatrixView(bases);
+    j["mean"] = RealVectorView(mean);
+    j["cols"] = k;
+    j["rows"] = dims;
+}
+
+void from_json(const nlohmann::json& j, PCA& pca){
+  index k = j["cols"];
+  index dims = j["rows"];
+  RealMatrix bases(dims, k);
+  RealVector mean(dims);
+  j["mean"].get_to(mean);
+  j["bases"].get_to(bases);
+  pca.init(bases, mean);
 }
 
 }

@@ -54,6 +54,8 @@ public:
   bool initialized() const { return mInitialized; }
   void getBases(RealMatrixView out) const { out = _impl::asFluid(mBases); }
   void getMean(RealVectorView out) const { out = _impl::asFluid(mMean); }
+  index dims() const { return mBases.rows(); }
+  index size() const { return mBases.cols(); }
 
   MatrixXd mBases;
   VectorXd mMean;

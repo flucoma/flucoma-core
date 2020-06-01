@@ -16,7 +16,7 @@ public:
 
   FLUID_DECLARE_PARAMS();
 
-  PCAClient(ParamSetViewType &p) : mParams(p) {}
+  PCAClient(ParamSetViewType &p) : mParams(p), mDataClient(mAlgorithm){}
 
   MessageResult<void> fit(DataSetClientRef datasetClient, index k) {
     auto datasetClientPtr = datasetClient.get().lock();
@@ -25,14 +25,9 @@ public:
     if (dataSet.size() == 0) return Error(EmptyDataSet);
     if (k <= 0) return Error(SmallK);
     if (dataSet.pointSize() < k) return Error("k is larger than the current dimensions");
-    mDims = dataSet.pointSize();
-    mK = k;
     mAlgorithm.init(dataSet.getData(), k);
     return OK();
   }
-
-  MessageResult<index> cols() { return mK; }
-  MessageResult<index> rows() { return mDims; }
 
   MessageResult<void> fitTransform(DataSetClientRef sourceClient,
                                    DataSetClientRef destClient, index k) {
@@ -54,7 +49,7 @@ public:
       if (!mAlgorithm.initialized())
         return Error(NoDataFitted);
       StringVector ids{srcDataSet.getIds()};
-      RealMatrix output(srcDataSet.size(), mK);
+      RealMatrix output(srcDataSet.size(), mAlgorithm.size());
       mAlgorithm.process(srcDataSet.getData(), output);
       FluidDataSet<string, double, 1> result(ids, output);
       destPtr->setDataSet(result);
@@ -71,71 +66,40 @@ public:
     BufferAdaptor::Access outBuf(out.get());
     if(!inBuf.exists()) return Error(InvalidBuffer);
     if(!outBuf.exists()) return Error(InvalidBuffer);
-    if (inBuf.numFrames() != mDims)
+    if (inBuf.numFrames() != mAlgorithm.dims())
       return Error(WrongPointSize);
     if (!mAlgorithm.initialized())
       return Error(NoDataFitted);
-    Result resizeResult = outBuf.resize(mK, 1, inBuf.sampleRate());
+    Result resizeResult = outBuf.resize(mAlgorithm.size(), 1, inBuf.sampleRate());
     if (!resizeResult.ok())
       return Error(BufferAlloc);
-    FluidTensor<double, 1> src(mDims);
-    FluidTensor<double, 1> dest(mK);
-    src = inBuf.samps(0, mDims, 0);
+    FluidTensor<double, 1> src(mAlgorithm.dims());
+    FluidTensor<double, 1> dest(mAlgorithm.size());
+    src = inBuf.samps(0, mAlgorithm.dims(), 0);
     mAlgorithm.processFrame(src, dest);
     outBuf.samps(0) = dest;
     return {};
   }
-
-  MessageResult<void> write(string fileName) {
-    auto file = FluidFile(fileName, "w");
-    if (!file.valid()) {
-      return Error(file.error());
-    }
-    RealMatrix bases(mDims, mK);
-    mAlgorithm.getBases(bases);
-    RealVector mean(mDims);
-    mAlgorithm.getMean(mean);
-    file.add("bases", bases);
-    file.add("mean", mean);
-    file.add("rows", mDims);
-    file.add("cols", mK);
-    return file.write() ? OK() : Error(FileWrite);
-  }
-
-  MessageResult<void> read(string fileName) {
-    auto file = FluidFile(fileName, "r");
-    if (!file.valid()) {
-      return Error(file.error());
-    }
-    if (!file.read()) {
-      return Error(FileRead);
-    }
-    if (!file.checkKeys({"bases", "mean", "cols", "rows"})) {
-      return Error(file.error());
-    }
-    file.get("rows", mDims);
-    file.get("cols", mK);
-    RealMatrix bases(mDims, mK);
-    file.get("bases", bases, mDims, mK);
-    RealVector mean(mDims);
-    file.get("mean", mean, mDims);
-    mAlgorithm.init(bases, mean);
-    return OK();
-  }
+  MessageResult<index> size() { return mDataClient.size(); }
+  MessageResult<index> cols() { return mDataClient.dims(); }
+  MessageResult<void> write(string fn) {return mDataClient.write(fn);}
+  MessageResult<void> read(string fn) {return mDataClient.read(fn);}
+  MessageResult<string> dump() { return mDataClient.dump();}
+  MessageResult<void> load(string  s) { return mDataClient.load(s);}
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &PCAClient::fit),
                          makeMessage("transform", &PCAClient::transform),
                          makeMessage("fitTransform", &PCAClient::fitTransform),
-                         makeMessage("transformPoint",
-                                     &PCAClient::transformPoint),
-                         makeMessage("cols", &PCAClient::cols),
-                         makeMessage("rows", &PCAClient::rows),
-                         makeMessage("read", &PCAClient::read),
-                         makeMessage("write", &PCAClient::write));
+                         makeMessage("transformPoint",&PCAClient::transformPoint),
+                        makeMessage("cols", &PCAClient::cols),
+                        makeMessage("size", &PCAClient::size),
+                        makeMessage("load", &PCAClient::load),
+                        makeMessage("dump", &PCAClient::dump),
+                        makeMessage("read", &PCAClient::read),
+                        makeMessage("write", &PCAClient::write));
 private:
   algorithm::PCA mAlgorithm;
-  index mDims{0};
-  index mK{0};
+  DataClient<algorithm::PCA> mDataClient;
 };
 
 using NRTThreadedPCAClient = NRTThreadingAdaptor<ClientWrapper<PCAClient>>;
