@@ -91,12 +91,12 @@ public:
                          makeMessage("transform", &PCAClient::transform),
                          makeMessage("fitTransform", &PCAClient::fitTransform),
                          makeMessage("transformPoint",&PCAClient::transformPoint),
-                        makeMessage("cols", &PCAClient::cols),
-                        makeMessage("size", &PCAClient::size),
-                        makeMessage("load", &PCAClient::load),
-                        makeMessage("dump", &PCAClient::dump),
-                        makeMessage("read", &PCAClient::read),
-                        makeMessage("write", &PCAClient::write));
+                         makeMessage("cols", &PCAClient::cols),
+                         makeMessage("size", &PCAClient::size),
+                         makeMessage("load", &PCAClient::load),
+                         makeMessage("dump", &PCAClient::dump),
+                         makeMessage("read", &PCAClient::read),
+                         makeMessage("write", &PCAClient::write));
 private:
   algorithm::PCA mAlgorithm;
   DataClient<algorithm::PCA> mDataClient;
