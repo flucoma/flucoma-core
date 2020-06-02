@@ -21,6 +21,8 @@ endif()
 
 project (flucoma-core LANGUAGES CXX)
 
+include("${CMAKE_CURRENT_SOURCE_DIR}/script/flucoma-buildtype.cmake")
+
 include(FetchContent)
 set(HISS_PATH "" CACHE PATH "The path to a HISSTools_Library folder. Will pull from github if not set")
 set(EIGEN_PATH "" CACHE PATH "The path to an Eigen installation (>=3.3.5). Will pull from github if not set")
