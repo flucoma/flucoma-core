@@ -27,7 +27,8 @@ void from_json(const nlohmann::json& j, KNNClassifierData& data) {
   data.labels = j.at("labels").get<FluidDataSet<std::string, std::string, 1>>();
 }
 
-class KNNClassifierClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject {
+class KNNClassifierClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject,
+  public DataClient<KNNClassifierData> {
   enum { kNDims, kK };
 
 public:
@@ -41,7 +42,7 @@ public:
 
   FLUID_DECLARE_PARAMS();
 
-  KNNClassifierClient(ParamSetViewType &p) : mParams(p), mDataClient(mData) {}
+  KNNClassifierClient(ParamSetViewType &p) : DataClient(mData), mParams(p)  {}
 
   MessageResult<string> fit(
     DataSetClientRef datasetClient,
@@ -111,13 +112,6 @@ public:
     return OK();
   }
 
-  MessageResult<index> size() { return mDataClient.size(); }
-  MessageResult<index> cols() { return mDataClient.dims(); }
-  MessageResult<void> write(string fn) {return mDataClient.write(fn);}
-  MessageResult<void> read(string fn) {return mDataClient.read(fn);}
-  MessageResult<string> dump() { return mDataClient.dump();}
-  MessageResult<void> load(string  s) { return mDataClient.load(s);}
-
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit",
                          &KNNClassifierClient::fit),
@@ -125,7 +119,7 @@ public:
                          &KNNClassifierClient::predict),
                          makeMessage("predictPoint",
                          &KNNClassifierClient::predictPoint),
-                         makeMessage("cols", &KNNClassifierClient::cols),
+                         makeMessage("cols", &KNNClassifierClient::dims),
                          makeMessage("size", &KNNClassifierClient::size),
                          makeMessage("load", &KNNClassifierClient::load),
                          makeMessage("dump", &KNNClassifierClient::dump),
@@ -136,7 +130,6 @@ private:
   algorithm::KDTree mTree{0};
   LabelSet mLabels{1};
   KNNClassifierData mData{mTree,mLabels};
-  DataClient<KNNClassifierData> mDataClient;
 };
 
 using NRTThreadedKNNClassifierClient = NRTThreadingAdaptor<ClientWrapper<KNNClassifierClient>>;

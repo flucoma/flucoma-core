@@ -7,7 +7,8 @@
 namespace fluid {
 namespace client {
 
-class KMeansClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject  {
+class KMeansClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject,
+public DataClient<algorithm::KMeans>  {
 
 public:
   using string = std::string;
@@ -20,7 +21,7 @@ public:
 
   FLUID_DECLARE_PARAMS();
 
-  KMeansClient(ParamSetViewType &p) : mParams(p), mDataClient(mModel) {}
+  KMeansClient(ParamSetViewType &p) : DataClient(mModel) , mParams(p) {}
 
   MessageResult<IndexVector> fit(DataSetClientRef datasetClient, index k, index maxIter)
     {
@@ -94,19 +95,12 @@ public:
       return mModel.vq(point);
     }
 
-    MessageResult<index> size() { return mDataClient.size(); }
-    MessageResult<index> cols() { return mDataClient.dims(); }
-    MessageResult<void> write(string fn) {return mDataClient.write(fn);}
-    MessageResult<void> read(string fn) {return mDataClient.read(fn);}
-    MessageResult<string> dump() { return mDataClient.dump();}
-    MessageResult<void> load(string  s) { return mDataClient.load(s);}
-
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &KMeansClient::fit),
                          makeMessage("predict", &KMeansClient::predict),
                          makeMessage("predictPoint",
                                      &KMeansClient::predictPoint),
                          makeMessage("fitPredict", &KMeansClient::fitPredict),
-                         makeMessage("cols", &KMeansClient::cols),
+                         makeMessage("cols", &KMeansClient::dims),
                          makeMessage("size", &KMeansClient::size),
                          makeMessage("load", &KMeansClient::load),
                          makeMessage("dump", &KMeansClient::dump),
@@ -134,7 +128,6 @@ private:
   }
 
   algorithm::KMeans mModel;
-  DataClient<algorithm::KMeans> mDataClient;
   index mK{0};
 };
 

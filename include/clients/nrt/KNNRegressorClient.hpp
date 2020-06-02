@@ -27,7 +27,9 @@ namespace client {
     data.target = j["target"].get<FluidDataSet<std::string, double, 1>>();
   }
 
-class KNNRegressorClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject {
+class KNNRegressorClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject,
+  public DataClient<KNNRegressorData> {
+
   enum { kNDims, kK };
 
 public:
@@ -40,7 +42,7 @@ public:
 
   FLUID_DECLARE_PARAMS();
 
-  KNNRegressorClient(ParamSetViewType &p) : mParams(p), mDataClient(mData) {}
+  KNNRegressorClient(ParamSetViewType &p) : DataClient(mData), mParams(p) {}
 
   MessageResult<string> fit(
     DataSetClientRef datasetClient,
@@ -107,13 +109,6 @@ public:
     destPtr->setDataSet(result);
     return OK();
   }
-  MessageResult<index> size() { return mDataClient.size(); }
-  MessageResult<index> cols() { return mDataClient.dims(); }
-  MessageResult<void> write(string fn) {return mDataClient.write(fn);}
-  MessageResult<void> read(string fn) {return mDataClient.read(fn);}
-  MessageResult<string> dump() { return mDataClient.dump();}
-  MessageResult<void> load(string  s) { return mDataClient.load(s);}
-
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit",
                          &KNNRegressorClient::fit),
@@ -122,7 +117,7 @@ public:
                          makeMessage("predictPoint",
                          &KNNRegressorClient::predictPoint),
                          makeMessage("cols",
-                         &KNNRegressorClient::cols),
+                         &KNNRegressorClient::dims),
                          makeMessage("size",
                          &KNNRegressorClient::size),
                          makeMessage("load",
@@ -138,7 +133,6 @@ private:
   algorithm::KDTree mTree{0};
   DataSet mTarget{1};
   KNNRegressorData mData{mTree,mTarget};
-  DataClient<KNNRegressorData> mDataClient;
 };
 
 using NRTThreadedKNNRegressorClient = NRTThreadingAdaptor<ClientWrapper<KNNRegressorClient>>;

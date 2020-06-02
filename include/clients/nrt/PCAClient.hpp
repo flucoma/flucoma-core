@@ -5,7 +5,8 @@
 namespace fluid {
 namespace client {
 
-class PCAClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject  {
+class PCAClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject,
+  public DataClient<algorithm::PCA>  {
 
 public:
   using string = std::string;
@@ -16,7 +17,7 @@ public:
 
   FLUID_DECLARE_PARAMS();
 
-  PCAClient(ParamSetViewType &p) : mParams(p), mDataClient(mAlgorithm){}
+  PCAClient(ParamSetViewType &p) : DataClient(mAlgorithm), mParams(p){}
 
   MessageResult<void> fit(DataSetClientRef datasetClient, index k) {
     auto datasetClientPtr = datasetClient.get().lock();
@@ -80,18 +81,12 @@ public:
     outBuf.samps(0) = dest;
     return {};
   }
-  MessageResult<index> size() { return mDataClient.size(); }
-  MessageResult<index> cols() { return mDataClient.dims(); }
-  MessageResult<void> write(string fn) {return mDataClient.write(fn);}
-  MessageResult<void> read(string fn) {return mDataClient.read(fn);}
-  MessageResult<string> dump() { return mDataClient.dump();}
-  MessageResult<void> load(string  s) { return mDataClient.load(s);}
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &PCAClient::fit),
                          makeMessage("transform", &PCAClient::transform),
                          makeMessage("fitTransform", &PCAClient::fitTransform),
                          makeMessage("transformPoint",&PCAClient::transformPoint),
-                         makeMessage("cols", &PCAClient::cols),
+                         makeMessage("cols", &PCAClient::dims),
                          makeMessage("size", &PCAClient::size),
                          makeMessage("load", &PCAClient::load),
                          makeMessage("dump", &PCAClient::dump),
@@ -99,7 +94,6 @@ public:
                          makeMessage("write", &PCAClient::write));
 private:
   algorithm::PCA mAlgorithm;
-  DataClient<algorithm::PCA> mDataClient;
 };
 
 using NRTThreadedPCAClient = NRTThreadingAdaptor<ClientWrapper<PCAClient>>;

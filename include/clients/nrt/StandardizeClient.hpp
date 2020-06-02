@@ -6,8 +6,8 @@
 namespace fluid {
 namespace client {
 
-class StandardizeClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject  {
-
+class StandardizeClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject,
+  public DataClient<algorithm::Standardization>  {
 
 public:
   using string = std::string;
@@ -19,7 +19,7 @@ public:
   FLUID_DECLARE_PARAMS();
 
   StandardizeClient(ParamSetViewType &p)
-      : mParams(p), mDataClient(mAlgorithm) {}
+      : DataClient(mAlgorithm), mParams(p)  {}
 
   MessageResult<void> fit(DataSetClientRef datasetClient) {
     auto weakPtr = datasetClient.get();
@@ -87,19 +87,12 @@ public:
             return result;
   }
 
-  MessageResult<index> size() { return mDataClient.size(); }
-  MessageResult<index> cols() { return mDataClient.dims(); }
-  MessageResult<void> write(string fn) {return mDataClient.write(fn);}
-  MessageResult<void> read(string fn) {return mDataClient.read(fn);}
-  MessageResult<string> dump() { return mDataClient.dump();}
-  MessageResult<void> load(string  s) { return mDataClient.load(s);}
-
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &StandardizeClient::fit),
                          makeMessage("fitTransform", &StandardizeClient::fitTransform),
                          makeMessage("transform", &StandardizeClient::transform),
                          makeMessage("transformPoint", &StandardizeClient::transformPoint),
-                         makeMessage("cols", &StandardizeClient::cols),
+                         makeMessage("cols", &StandardizeClient::dims),
                          makeMessage("size", &StandardizeClient::size),
                          makeMessage("load", &StandardizeClient::load),
                          makeMessage("dump", &StandardizeClient::dump),
@@ -108,7 +101,6 @@ public:
 
 private:
   algorithm::Standardization mAlgorithm;
-  DataClient<algorithm::Standardization> mDataClient;
   index mDims{0};
 };
 

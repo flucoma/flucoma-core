@@ -6,7 +6,8 @@
 namespace fluid {
 namespace client {
 
-class NormalizeClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject  {
+class NormalizeClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject,
+  public DataClient<algorithm::Normalization>  {
   enum {kMin, kMax};
 
 public:
@@ -20,7 +21,7 @@ public:
                        FloatParam("max", "Maximum value", 1.0, LowerLimit<kMin>()));
 
   NormalizeClient(ParamSetViewType &p)
-      : mParams(p), mDataClient(mAlgorithm) {
+      : DataClient(mAlgorithm), mParams(p) {
   }
 
   MessageResult<void> fit(DataSetClientRef datasetClient) {
@@ -87,18 +88,11 @@ public:
     return {};
   }
 
-  MessageResult<index> size() { return mDataClient.size(); }
-  MessageResult<index> cols() { return mDataClient.dims(); }
-  MessageResult<void> write(string fn) {return mDataClient.write(fn);}
-  MessageResult<void> read(string fn) {return mDataClient.read(fn);}
-  MessageResult<string> dump() { return mDataClient.dump();}
-  MessageResult<void> load(string  s) { return mDataClient.load(s);}
-
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &NormalizeClient::fit),
                          makeMessage("fitTransform", &NormalizeClient::fitTransform),
                          makeMessage("transform", &NormalizeClient::transform),
                          makeMessage("transformPoint", &NormalizeClient::transformPoint),
-                         makeMessage("cols", &NormalizeClient::cols),
+                         makeMessage("cols", &NormalizeClient::dims),
                          makeMessage("size", &NormalizeClient::size),
                          makeMessage("load", &NormalizeClient::load),
                          makeMessage("dump", &NormalizeClient::dump),
@@ -107,7 +101,6 @@ public:
 
 private:
   algorithm::Normalization mAlgorithm;
-  DataClient<algorithm::Normalization> mDataClient;
   index mDims{0};
 };
 

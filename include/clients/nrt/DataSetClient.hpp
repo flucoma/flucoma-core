@@ -9,7 +9,8 @@
 namespace fluid {
 namespace client {
 
-class DataSetClient : public FluidBaseClient, OfflineIn, OfflineOut {
+class DataSetClient : public FluidBaseClient, OfflineIn, OfflineOut,
+  public DataClient<FluidDataSet<std::string, double, 1>> {
   enum { kName };
 
 public:
@@ -21,7 +22,7 @@ public:
   FLUID_DECLARE_PARAMS(StringParam<Fixed<true>>("name", "DataSet"));
 
   DataSetClient(ParamSetViewType &p)
-      : mParams(p), mDataSet(0), mDataClient(mDataSet) {}
+      : DataClient(mDataSet), mParams(p), mDataSet(0) {}
 
   MessageResult<void> addPoint(string id, BufferPtr data) {
     if (!data)
@@ -82,13 +83,6 @@ public:
   MessageResult<string> print() {return mDataSet.print();}
   const DataSet getDataSet() const { return mDataSet; }
   void setDataSet(DataSet ds) {mDataSet = ds;}
-  
-  MessageResult<index> size() { return mDataClient.size(); }
-  MessageResult<index> cols() { return mDataClient.dims(); }
-  MessageResult<void> write(string fn) {return mDataClient.write(fn);}
-  MessageResult<void> read(string fn) {return mDataClient.read(fn);}
-  MessageResult<string> dump() { return mDataClient.dump();}
-  MessageResult<void> load(string  s) { return mDataClient.load(s);}
 
   FLUID_DECLARE_MESSAGES(makeMessage("addPoint", &DataSetClient::addPoint),
                          makeMessage("getPoint", &DataSetClient::getPoint),
@@ -100,13 +94,12 @@ public:
                          makeMessage("load", &DataSetClient::load),
                          makeMessage("print", &DataSetClient::print),
                          makeMessage("size", &DataSetClient::size),
-                         makeMessage("cols", &DataSetClient::cols),
+                         makeMessage("cols", &DataSetClient::dims),
                          makeMessage("clear", &DataSetClient::clear),
                          makeMessage("write", &DataSetClient::write),
                          makeMessage("read", &DataSetClient::read));
 private:
   DataSet mDataSet;
-  DataClient<DataSet> mDataClient;
 };
 using DataSetClientRef = SharedClientRef<DataSetClient>;
 using NRTThreadedDataSetClient =

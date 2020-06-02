@@ -7,7 +7,8 @@
 namespace fluid {
 namespace client {
 
-class KDTreeClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject
+class KDTreeClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject,
+public DataClient<algorithm::KDTree>
 {
 
 public:
@@ -19,7 +20,7 @@ public:
 
   FLUID_DECLARE_PARAMS();
 
-  KDTreeClient(ParamSetViewType &p) : mParams(p), mDataClient(mTree) {}
+  KDTreeClient(ParamSetViewType &p) : DataClient(mTree), mParams(p) {}
 
   MessageResult<void> fit(DataSetClientRef datasetClient) {
     auto datasetClientPtr = datasetClient.get().lock();
@@ -66,17 +67,10 @@ public:
     return result;
   }
 
-  MessageResult<index> size() { return mDataClient.size(); }
-  MessageResult<index> cols() { return mDataClient.dims(); }
-  MessageResult<void> write(string fn) {return mDataClient.write(fn);}
-  MessageResult<void> read(string fn) {return mDataClient.read(fn);}
-  MessageResult<string> dump() { return mDataClient.dump();}
-  MessageResult<void> load(string  s) { return mDataClient.load(s);}
-
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &KDTreeClient::fit),
                          makeMessage("kNearest", &KDTreeClient::kNearest),
                          makeMessage("kNearestDist", &KDTreeClient::kNearestDist),
-                         makeMessage("cols", &KDTreeClient::cols),
+                         makeMessage("cols", &KDTreeClient::dims),
                          makeMessage("size", &KDTreeClient::size),
                          makeMessage("load", &KDTreeClient::load),
                          makeMessage("dump", &KDTreeClient::dump),
@@ -86,7 +80,6 @@ public:
 
 private:
   algorithm::KDTree mTree{1};
-  DataClient<algorithm::KDTree> mDataClient;
 };
 
 using NRTThreadedKDTreeClient =

@@ -7,7 +7,8 @@
 namespace fluid {
 namespace client {
 
-class LabelSetClient : public FluidBaseClient, OfflineIn, OfflineOut {
+class LabelSetClient : public FluidBaseClient, OfflineIn, OfflineOut,
+public DataClient<FluidDataSet<std::string, std::string, 1>> {
   enum { kName };
 
 public:
@@ -22,7 +23,7 @@ public:
   FLUID_DECLARE_PARAMS(StringParam<Fixed<true>>("name", "DataSet"));
 
   LabelSetClient(ParamSetViewType &p) :
-      mParams(p), mLabelSet(1), mDataClient(mLabelSet) {}
+      DataClient(mLabelSet), mParams(p), mLabelSet(1) {}
 
 
   MessageResult<void> addLabel(string id, string label) {
@@ -57,13 +58,6 @@ public:
 
  MessageResult<string> print() {return mLabelSet.print();}
 
- MessageResult<index> size() { return mDataClient.size(); }
- MessageResult<index> cols() { return mDataClient.dims(); }
- MessageResult<void> write(string fn) {return mDataClient.write(fn);}
- MessageResult<void> read(string fn) {return mDataClient.read(fn);}
- MessageResult<string> dump() { return mDataClient.dump();}
- MessageResult<void> load(string  s) { return mDataClient.load(s);}
-
 
   FLUID_DECLARE_MESSAGES(
       makeMessage("addLabel", &LabelSetClient::addLabel),
@@ -73,7 +67,7 @@ public:
       makeMessage("load", &LabelSetClient::load),
       makeMessage("print", &LabelSetClient::print),
       makeMessage("size", &LabelSetClient::size),
-      makeMessage("cols", &LabelSetClient::cols),
+      makeMessage("cols", &LabelSetClient::dims),
       makeMessage("clear", &LabelSetClient::clear),
       makeMessage("write", &LabelSetClient::write),
       makeMessage("read", &LabelSetClient::read)
@@ -84,7 +78,6 @@ public:
 
 private:
   LabelSet mLabelSet{1};
-  DataClient<LabelSet> mDataClient;
 };
 using LabelSetClientRef = SharedClientRef<LabelSetClient>;
 using NRTThreadedLabelSetClient =
