@@ -14,6 +14,15 @@
 
 namespace fluid {
 
+
+bool check_json(const nlohmann::json& j, std::vector<std::string> keys) {
+  for (auto &k : keys) {
+      if(!j.contains(k)) return false;
+  }
+  return true;
+}
+
+
 // FluidTensor
 template <typename T>
 void from_json(const nlohmann::json& j, FluidTensor<T, 1>& t) {
@@ -63,8 +72,12 @@ void to_json(nlohmann::json& j, const FluidDataSet<std::string, T, 1>& ds) {
 }
 
 template <typename T>
+bool check_json(const nlohmann::json& j, const FluidDataSet<std::string, T, 1>&){
+  return fluid::check_json(j, {"data", "cols"});
+}
+
+template <typename T>
 void from_json(const nlohmann::json& j, FluidDataSet<std::string, T, 1>& ds){
- if(!j.contains("data") || !j.contains("cols")) return;
  auto rows = j.at("data");
  index pointSize = j.at("cols");
  ds.resize(pointSize);
@@ -86,10 +99,11 @@ namespace algorithm {
    j["ids"] = FluidTensorView<std::string, 1>(treeData.ids);
  }
 
+ bool check_json(const nlohmann::json& j, const KDTree&){
+   return fluid::check_json(j, {"rows", "cols", "data", "tree", "ids"});
+ }
+
  void from_json(const nlohmann::json& j, KDTree& tree){
-   if(!j.contains("data") || !j.contains("cols")||
-   !j.contains("tree")|| !j.contains("data")|| !j.contains("ids"))
-   return;
    index rows = j.at("rows");
    index cols = j.at("cols");
    KDTree::FlatData treeData(rows, cols);
@@ -108,8 +122,11 @@ void to_json(nlohmann::json& j, const KMeans& kmeans) {
     j["cols"] = means.cols();
 }
 
+bool check_json(const nlohmann::json& j, const  KMeans&){
+  return fluid::check_json(j, {"rows", "cols", "means"});
+}
+
 void from_json(const nlohmann::json& j, KMeans& kmeans){
-  if(!j.contains("rows") || !j.contains("cols") || !j.contains("means")) return;
   index rows = j.at("rows");
   index cols = j.at("cols");
   RealMatrix means(rows, cols);
@@ -131,9 +148,11 @@ void to_json(nlohmann::json& j, const Normalization& normalization) {
     j["cols"] = normalization.dims();
 }
 
+bool check_json(const nlohmann::json& j, const Normalization&){
+  return fluid::check_json(j, {"cols", "data_min", "data_max", "min", "max"});
+}
+
 void from_json(const nlohmann::json& j, Normalization& normalization){
-   if(!j.contains("cols") || !j.contains("data_min") ||
-   !j.contains("data_max")|| !j.contains("max")|| !j.contains("min")) return;
     index cols = j.at("cols");
     RealVector dataMin(cols);
     RealVector dataMax(cols);
@@ -155,8 +174,12 @@ void to_json(nlohmann::json& j, const Standardization& standardization) {
     j["cols"] = standardization.dims();
 }
 
+
+bool check_json(const nlohmann::json& j, const Standardization&){
+  return fluid::check_json(j, {"rows", "mean", "std"});
+}
+
 void from_json(const nlohmann::json& j, Standardization& standardization){
-  if(!j.contains("rows") || !j.contains("mean") || !j.contains("std")) return;
   index cols = j.at("cols");
   RealVector mean(cols);
   RealVector std(cols);
@@ -179,8 +202,12 @@ void to_json(nlohmann::json& j, const PCA& pca) {
     j["rows"] = dims;
 }
 
+
+bool check_json(const nlohmann::json& j, const PCA&){
+  return fluid::check_json(j, {"rows", "cols", "bases"});
+}
+
 void from_json(const nlohmann::json& j, PCA& pca){
-  if(!j.contains("rows") || !j.contains("cols") || !j.contains("bases")) return;
   index k = j.at("cols");
   index dims = j.at("rows");
   RealMatrix bases(dims, k);

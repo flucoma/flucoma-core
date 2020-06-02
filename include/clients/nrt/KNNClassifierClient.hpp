@@ -17,9 +17,14 @@ void to_json(nlohmann::json& j, const KNNClassifierData& data) {
   j["tree"] = data.tree;
   j["labels"] = data.labels;
 }
+
+bool check_json(const nlohmann::json& j, const KNNClassifierData&){
+  return fluid::check_json(j, {"tree", "labels"});
+}
+
 void from_json(const nlohmann::json& j, KNNClassifierData& data) {
-  data.tree = j["tree"].get<algorithm::KDTree>();
-  data.labels = j["labels"].get<FluidDataSet<std::string, std::string, 1>>();
+  data.tree = j.at("tree").get<algorithm::KDTree>();
+  data.labels = j.at("labels").get<FluidDataSet<std::string, std::string, 1>>();
 }
 
 class KNNClassifierClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject {

@@ -17,6 +17,11 @@ namespace client {
     j["tree"] = data.tree;
     j["target"] = data.target;
   }
+
+  bool check_json(const nlohmann::json& j, const KNNRegressorData&){
+    return fluid::check_json(j, {"tree", "target"});
+  }
+
   void from_json(const nlohmann::json& j, KNNRegressorData& data) {
     data.tree = j["tree"].get<algorithm::KDTree>();
     data.target = j["target"].get<FluidDataSet<std::string, double, 1>>();

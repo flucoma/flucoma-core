@@ -38,6 +38,7 @@ public:
     if (!file.ok()) {
       return Error(file.error());
     } else {
+      if(!check_json(j, mObject)) return Error("Invalid JSON format");
       mObject = j.get<T>();
     }
     return OK();
@@ -56,6 +57,7 @@ public:
     if (j.is_discarded()) {
       return Error("Parse error");
     } else {
+      if(!check_json(j, mObject)) return Error("Invalid JSON format");
       mObject = j.get<T>();
       return OK();
     }
