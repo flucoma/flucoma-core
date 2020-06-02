@@ -37,7 +37,7 @@ void from_json(const nlohmann::json& j, FluidTensor<T, 2>& t) {
     auto result = FluidTensor<T, 2>(j.size(), j[0].size());
     FluidTensor<T, 1> tmp(j[0].size());
     for(index i = 0; i < j.size(); i++){
-      j[i].get_to(tmp);
+      j.at(i).get_to(tmp);
       result.row(i) = tmp;
     }
     t = result;
@@ -54,51 +54,48 @@ void to_json(nlohmann::json& j, const FluidTensorView<T, 2>& t) {
 // FluidDataSet
 template <typename T>
 void to_json(nlohmann::json& j, const FluidDataSet<std::string, T, 1>& ds) {
-  try {
-    auto ids = ds.getIds();
-    auto data = ds.getData();
-    j["cols"] = ds.pointSize();
-    for(index r = 0; r < ds.size();r++){
-      j["data"][ids[r]] = data.row(r);
-    }
-  } catch (std::exception& e) {}
+  auto ids = ds.getIds();
+  auto data = ds.getData();
+  j["cols"] = ds.pointSize();
+  for(index r = 0; r < ds.size();r++){
+    j["data"][ids[r]] = data.row(r);
+  }
 }
 
 template <typename T>
 void from_json(const nlohmann::json& j, FluidDataSet<std::string, T, 1>& ds){
-   using namespace nlohmann;
-   try {
-     auto rows = j.at("data");
-     index pointSize = j["cols"];
-     ds.resize(pointSize);
-     FluidTensor<T, 1> tmp(pointSize);
-     for (json::iterator r = rows.begin(); r != rows.end(); ++r) {
-         r.value().get_to(tmp);
-         ds.add(r.key(), tmp);
-      }
-    } catch (std::exception& e) {}
+ if(!j.contains("data") || !j.contains("cols")) return;
+ auto rows = j.at("data");
+ index pointSize = j.at("cols");
+ ds.resize(pointSize);
+ FluidTensor<T, 1> tmp(pointSize);
+ for (auto r = rows.begin(); r != rows.end(); ++r) {
+     r.value().get_to(tmp);
+     ds.add(r.key(), tmp);
+  }
  }
 
 namespace algorithm {
   // KDTree
  void to_json(nlohmann::json& j, const KDTree& tree) {
-   try {
-     KDTree::FlatData treeData = tree.toFlat();
-     j["tree"] = FluidTensorView<index, 2>(treeData.tree);
-     j["rows"] = treeData.data.rows();
-     j["cols"] = treeData.data.cols();
-     j["data"] = FluidTensorView<double, 2>(treeData.data);
-     j["ids"] = FluidTensorView<std::string, 1>(treeData.ids);
-   } catch (std::exception& e) {}
+   KDTree::FlatData treeData = tree.toFlat();
+   j["tree"] = FluidTensorView<index, 2>(treeData.tree);
+   j["rows"] = treeData.data.rows();
+   j["cols"] = treeData.data.cols();
+   j["data"] = FluidTensorView<double, 2>(treeData.data);
+   j["ids"] = FluidTensorView<std::string, 1>(treeData.ids);
  }
 
  void from_json(const nlohmann::json& j, KDTree& tree){
-   index rows = j["rows"];
-   index cols = j["cols"];
+   if(!j.contains("data") || !j.contains("cols")||
+   !j.contains("tree")|| !j.contains("data")|| !j.contains("ids"))
+   return;
+   index rows = j.at("rows");
+   index cols = j.at("cols");
    KDTree::FlatData treeData(rows, cols);
-   j["tree"].get_to(treeData.tree);
-   j["data"].get_to(treeData.data);
-   j["ids"].get_to(treeData.ids);
+   j.at("tree").get_to(treeData.tree);
+   j.at("data").get_to(treeData.data);
+   j.at("ids").get_to(treeData.ids);
    tree.fromFlat(treeData);
 }
 
@@ -112,10 +109,11 @@ void to_json(nlohmann::json& j, const KMeans& kmeans) {
 }
 
 void from_json(const nlohmann::json& j, KMeans& kmeans){
-  index rows = j["rows"];
-  index cols = j["cols"];
+  if(!j.contains("rows") || !j.contains("cols") || !j.contains("means")) return;
+  index rows = j.at("rows");
+  index cols = j.at("cols");
   RealMatrix means(rows, cols);
-  j["means"].get_to(means);
+  j.at("means").get_to(means);
   kmeans.init(rows, cols);
   kmeans.setMeans(means);
 }
@@ -134,16 +132,17 @@ void to_json(nlohmann::json& j, const Normalization& normalization) {
 }
 
 void from_json(const nlohmann::json& j, Normalization& normalization){
-    index cols = j["cols"];
+   if(!j.contains("cols") || !j.contains("data_min") ||
+   !j.contains("data_max")|| !j.contains("max")|| !j.contains("min")) return;
+    index cols = j.at("cols");
     RealVector dataMin(cols);
     RealVector dataMax(cols);
-    j["data_min"].get_to(dataMin);
-    j["data_max"].get_to(dataMax);
-    double min = j["min"];
-    double max = j["max"];
+    j.at("data_min").get_to(dataMin);
+    j.at("data_max").get_to(dataMax);
+    double min = j.at("min");
+    double max = j.at("max");
     normalization.init(min, max, dataMin, dataMax);
 }
-
 
 // Standardize
 void to_json(nlohmann::json& j, const Standardization& standardization) {
@@ -157,11 +156,12 @@ void to_json(nlohmann::json& j, const Standardization& standardization) {
 }
 
 void from_json(const nlohmann::json& j, Standardization& standardization){
-  index cols = j["cols"];
+  if(!j.contains("rows") || !j.contains("mean") || !j.contains("std")) return;
+  index cols = j.at("cols");
   RealVector mean(cols);
   RealVector std(cols);
-  j["mean"].get_to(mean);
-  j["std"].get_to(std);
+  j.at("mean").get_to(mean);
+  j.at("std").get_to(std);
   standardization.init(mean, std);
 }
 
@@ -180,12 +180,13 @@ void to_json(nlohmann::json& j, const PCA& pca) {
 }
 
 void from_json(const nlohmann::json& j, PCA& pca){
-  index k = j["cols"];
-  index dims = j["rows"];
+  if(!j.contains("rows") || !j.contains("cols") || !j.contains("bases")) return;
+  index k = j.at("cols");
+  index dims = j.at("rows");
   RealMatrix bases(dims, k);
   RealVector mean(dims);
-  j["mean"].get_to(mean);
-  j["bases"].get_to(bases);
+  j.at("mean").get_to(mean);
+  j.at("bases").get_to(bases);
   pca.init(bases, mean);
 }
 
@@ -231,11 +232,7 @@ void from_json(const nlohmann::json& j, PCA& pca){
 
    bool write(json data) {
      if (ok()) {
-       try {
-         mFile << data.dump(2) << std::endl;
-       } catch (std::exception& e) {
-         mError = "Invalid JSON";
-       }
+       mFile << data.dump(2) << std::endl;
        return mFile.good();
      }
      return false;
@@ -244,14 +241,12 @@ void from_json(const nlohmann::json& j, PCA& pca){
    json read() {
      json result;
      if (ok()) {
-       try {
-         mFile >> result;
-       } catch (std::exception& e) {
-         mError = "Error parsing JSON";
-       }
+        result = json::parse(mFile, nullptr, false);
+        if (result.is_discarded()) mError = "Error parsing JSON";
      }
      return result;
    }
+
  private:
    fstream mFile;
    json mData;
