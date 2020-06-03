@@ -256,7 +256,7 @@ public:
 
   bool write(json data) {
     if (ok()) {
-      mFile << data.dump(2) << std::endl;
+      mFile << data.dump() << std::endl;
       return mFile.good();
     }
     return false;

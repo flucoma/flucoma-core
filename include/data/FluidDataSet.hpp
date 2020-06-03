@@ -121,7 +121,7 @@ public:
     if (size() == 0)
       return "{}";
     ostringstream result;
-    // result << endl << "rows: " << size() << " cols: " << pointSize() << endl;
+    result << endl << "rows: " << size() << " cols: " << pointSize() << endl;
     if (size() < maxRows) {
       for (index r = 0; r < size(); r++) {
         result << mIds(r) << " " << printRow(mData.row(r), maxCols)
