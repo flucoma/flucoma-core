@@ -47,7 +47,7 @@ public:
     return *this;
   }
 
-  void copyToOrigin()
+  void copyToOrigin(Result & r)
   {
     if (mWrite && mOrigin)
     {
@@ -55,9 +55,9 @@ public:
       if (src.exists())
       {
         if (numChans() != src.numChans() || numFrames() != src.numFrames())
-          src.resize(numFrames(), numChans(), mSampleRate);
+          r = src.resize(numFrames(), numChans(), mSampleRate);
 
-        if (src.valid())
+        if (r.ok() && src.valid())
           for (index i = 0; i < numChans(); ++i) src.samps(i)(Slice(0,numFrames())) = samps(i);
       }
       // TODO feedback failure to user somehow: I need a message queue

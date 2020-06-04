@@ -754,10 +754,10 @@ private:
     template <size_t N, typename T>
     struct BufferCopyBack
     {
-      void operator()(typename T::type& param)
+      void operator()(typename T::type& param, Result& r)
       {
         if (param)
-          static_cast<MemoryBufferAdaptor*>(param.get())->copyToOrigin();
+          static_cast<MemoryBufferAdaptor*>(param.get())->copyToOrigin(r);
       }
     };
 
@@ -834,7 +834,7 @@ private:
         if (!mTask.cancelled())
         {
           if (result.status() != Result::Status::kError)
-            mProcessParams.template forEachParamType<BufferT, BufferCopyBack>();
+            mProcessParams.template forEachParamType<BufferT, BufferCopyBack>(result);
         }
         else
           result = {Result::Status::kCancelled, ""};
