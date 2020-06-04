@@ -432,14 +432,22 @@ private:
 
 protected:
 
-  void refs(ValueTuple& p) {
-    mParams = p;
-  };
+  void refs(ValueTuple& p)
+  { 
+    refsImpl(p, IndexList()); 
+  }
 
   std::reference_wrapper<const DescriptorSetType> mDescriptors;
   bool                                            mKeepConstrained;
 
 private:
+
+  template<size_t...Is> 
+  void refsImpl(ValueTuple& p, std::index_sequence<Is...>)
+  { 
+      mParams = ValueRefTuple{std::get<Is>(p)...}; 
+  }
+
   ValueRefTuple mParams;
 };
 
