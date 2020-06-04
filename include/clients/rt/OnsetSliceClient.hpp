@@ -85,7 +85,9 @@ public:
                                FluidBaseClient::audioChannelsOut());
     }
     if (mParamsTracker.changed(get<kFFT>().fftSize(), get<kFFT>().winSize()))
-    { mAlgorithm.init(get<kFFT>().winSize(), get<kFFT>().fftSize()); }
+    {
+      mAlgorithm.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),get<kFilterSize>());
+    }
     RealMatrix in(1, hostVecSize);
     in.row(0) = input[0];
     RealMatrix out(1, hostVecSize);
@@ -105,7 +107,7 @@ public:
   void reset()
   {
     mBufferedProcess.reset();
-    mAlgorithm.init(get<kFFT>().winSize(), get<kFFT>().fftSize());
+    mAlgorithm.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),get<kFilterSize>());
   }
 
 private:
