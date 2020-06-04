@@ -131,6 +131,12 @@ target_sources(
   FLUID_DECOMPOSITION INTERFACE ${HEADERS}
 )
 
+if(MSVC)
+  target_compile_definitions(
+    FLUID_DECOMPOSITION INTERFACE NOMINMAX _USE_MATH_DEFINES    
+  )
+endif()
+
 #GCC vomits on using HostVector = HostVector<U> without this flag on
 if(CMAKE_COMPILER_IS_GNUCXX)
   target_compile_options(FLUID_DECOMPOSITION INTERFACE -fpermissive)
