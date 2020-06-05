@@ -33,12 +33,12 @@ public:
 
   OnsetSegmentation(index maxSize) : mFFT(maxSize), mWindowStorage(maxSize) {}
 
-  void init(index windowSize, index fftSize,index filterSize)
+  void init(index windowSize, index fftSize, index filterSize)
   {
     makeWindow(windowSize);
     prevFrame = ArrayXcd::Zero(fftSize / 2 + 1);
     prevPrevFrame = ArrayXcd::Zero(fftSize / 2 + 1);
-    mFilter.init(filterSize); 
+    mFilter.init(filterSize);
     mFFT.resize(fftSize);
     mDebounceCount = 1;
     mPrevFuncVal = 0;
