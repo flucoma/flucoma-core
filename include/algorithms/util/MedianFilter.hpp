@@ -29,6 +29,8 @@ public:
     mMiddle = (mFilterSize - 1) / 2;
     mUnsorted.resize(asUnsigned(mFilterSize), 0);
     mSorted.resize(asUnsigned(mFilterSize), 0);
+    std::fill(mUnsorted.begin(), mUnsorted.end(),0);
+    std::fill(mSorted.begin(), mSorted.end(),0);
     mInitialized = true;
   }
 

@@ -148,9 +148,9 @@ public:
     if (matrix.cols() != bufferSize() || matrix.rows() != channels)
     {
       matrix.resize(mChannels, bufferSize());
-      matrix.fill(0);
-      mCounter = 0;
     }
+      matrix.fill(0);
+      mCounter = 0;    
   }
 
   void setSize(index n) { mSize = n; }
