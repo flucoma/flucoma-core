@@ -7,8 +7,10 @@ Green-Box641.wav
 Nicol-LoopE-M.wav
   - Jean-Sébastien Nicol (drums) recorded by Pierre Alexandre Tremblay at Université de Montréal, 1998
 
+Tremblay-AaS-AcBassGuit-Melo-M.wav
 Tremblay-AaS-AcousticStrums-M.wav
 Tremblay-AaS-SynthTwoVoices-M.wav
+Tremblay-AaS-VoiceQC-B2K.wav
   - sound sources for the piece 'Attempts at Stillness', Pierre Alexandre Tremblay, 2017
 
 Tremblay-ASWINE-ScratchySynth-M.wav
@@ -22,6 +24,9 @@ Tremblay-BaB-SoundfielGolcarWithDog.wav
 
 Tremblay-BeatRemember.wav
   - Lucas Garnier (trumpet) Sylvain Pohu (guitar) produced by Pierre Alexandre Tremblay, 2001
+
+Tremblay-CEL-GlitchyMusicBoxMelo.wav
+  - sound source for the piece 'Ces énigmes lumineuses', Pierre Alexandre Tremblay, 2010
 
 Tremblay-CF-ChurchBells.wav
   - sound sources for the piece 'La cloche fêlée', recorded in Ephraim Scott Memorial Presbyterian Church, Montreal, by Pierre Alexandre Tremblay, 2003

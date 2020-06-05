@@ -150,7 +150,12 @@ public:
   index channelsIn() const noexcept { return mSource.channels(); }
   index channelsOut() const noexcept { return mSink.channels(); }
 
-  void reset() { mFrameTime = 0; }
+  void reset()
+  {
+    mSource.reset();
+    mSink.reset();
+    mFrameTime = 0;
+  }
 
 private:
   index               mFrameTime = 0;

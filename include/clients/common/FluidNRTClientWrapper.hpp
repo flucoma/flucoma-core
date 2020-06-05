@@ -604,6 +604,9 @@ public:
 
   ~NRTThreadingAdaptor()
   {
+    
+    mQueue.clear(); 
+    
     if (mThreadedTask)
     {
       mThreadedTask->cancel(true);
