@@ -19,7 +19,9 @@ namespace client {
   }
 
   bool check_json(const nlohmann::json& j, const KNNRegressorData&){
-    return fluid::check_json(j, {"tree", "target"});
+    return fluid::check_json(j,
+      {"tree", "target"}, {JSONTypes::ARRAY, JSONTypes::ARRAY}
+    );
   }
 
   void from_json(const nlohmann::json& j, KNNRegressorData& data) {

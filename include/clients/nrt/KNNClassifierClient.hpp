@@ -19,7 +19,9 @@ void to_json(nlohmann::json& j, const KNNClassifierData& data) {
 }
 
 bool check_json(const nlohmann::json& j, const KNNClassifierData&){
-  return fluid::check_json(j, {"tree", "labels"});
+  return fluid::check_json(j,
+    {"tree", "labels"}, {JSONTypes::ARRAY, JSONTypes::ARRAY}
+  );
 }
 
 void from_json(const nlohmann::json& j, KNNClassifierData& data) {

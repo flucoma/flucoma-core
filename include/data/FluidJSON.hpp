@@ -14,10 +14,30 @@
 
 namespace fluid {
 
-bool check_json(const nlohmann::json &j, std::vector<std::string> keys) {
-  for (auto &k : keys) {
-    if (!j.contains(k))
-      return false;
+enum class JSONTypes {
+  STRING,
+  NUMBER,
+  OBJECT,
+  ARRAY,
+  BOOLEAN
+};
+
+bool check_json(const nlohmann::json &j,
+  std::vector<std::string> keys, std::vector<JSONTypes> types) {
+    if(keys.size()!=types.size()) return false;
+    for (index i = 0; i < asSigned(keys.size()); i++) {
+      std::string key = keys[asUnsigned(i)];
+      if (!j.contains(key))
+        return false;
+      nlohmann::json value = j[key];
+      switch(types[asUnsigned(i)]){
+        case JSONTypes::STRING:if(!value.is_string()) return false; break;
+        case JSONTypes::NUMBER:if(!value.is_number()) return false; break;
+        case JSONTypes::OBJECT:if(!value.is_object()) return false; break;
+        case JSONTypes::ARRAY:if(!value.is_array()) return false; break;
+        case JSONTypes::BOOLEAN:if(!value.is_boolean()) return false; break;
+      }
+      if(value.is_null()) return false;
   }
   return true;
 }
@@ -45,9 +65,9 @@ void from_json(const nlohmann::json &j, FluidTensor<T, 2> &t) {
   if (j.size() > 0) {
     auto result = FluidTensor<T, 2>(j.size(), j[0].size());
     FluidTensor<T, 1> tmp(j[0].size());
-    for (index i = 0; i < asSigned(j.size()); i++) {
+    for (size_t i = 0; i < j.size(); i++) {
       j.at(i).get_to(tmp);
-      result.row(i) = tmp;
+      result.row(asSigned(i)) = tmp;
     }
     t = result;
   }
@@ -74,7 +94,10 @@ void to_json(nlohmann::json &j, const FluidDataSet<std::string, T, 1> &ds) {
 template <typename T>
 bool check_json(const nlohmann::json &j,
                 const FluidDataSet<std::string, T, 1> &) {
-  return fluid::check_json(j, {"data", "cols"});
+  return fluid::check_json(j,
+    {"data", "cols"},
+    {JSONTypes::OBJECT, JSONTypes::NUMBER}
+  );
 }
 
 template <typename T>
@@ -101,7 +124,12 @@ void to_json(nlohmann::json &j, const KDTree &tree) {
 }
 
 bool check_json(const nlohmann::json &j, const KDTree &) {
-  return fluid::check_json(j, {"rows", "cols", "data", "tree", "ids"});
+  return fluid::check_json(j,
+    {"rows", "cols", "data", "tree", "ids"},
+    {JSONTypes::NUMBER, JSONTypes::NUMBER,
+      JSONTypes::ARRAY, JSONTypes::ARRAY, JSONTypes::ARRAY
+    }
+  );
 }
 
 void from_json(const nlohmann::json &j, KDTree &tree) {
@@ -124,7 +152,10 @@ void to_json(nlohmann::json &j, const KMeans &kmeans) {
 }
 
 bool check_json(const nlohmann::json &j, const KMeans &) {
-  return fluid::check_json(j, {"rows", "cols", "means"});
+  return fluid::check_json(j,
+    {"rows", "cols", "means"},
+    {JSONTypes::NUMBER, JSONTypes::NUMBER,JSONTypes::ARRAY}
+  );
 }
 
 void from_json(const nlohmann::json &j, KMeans &kmeans) {
@@ -134,6 +165,7 @@ void from_json(const nlohmann::json &j, KMeans &kmeans) {
   j.at("means").get_to(means);
   kmeans.init(rows, cols);
   kmeans.setMeans(means);
+
 }
 
 // Normalize
@@ -150,7 +182,12 @@ void to_json(nlohmann::json &j, const Normalization &normalization) {
 }
 
 bool check_json(const nlohmann::json &j, const Normalization &) {
-  return fluid::check_json(j, {"cols", "data_min", "data_max", "min", "max"});
+  return fluid::check_json(j,
+    {"cols", "data_min", "data_max", "min", "max"},
+    {JSONTypes::NUMBER, JSONTypes::ARRAY, JSONTypes::ARRAY,
+      JSONTypes::NUMBER, JSONTypes::NUMBER
+    }
+  );
 }
 
 void from_json(const nlohmann::json &j, Normalization &normalization) {
@@ -176,7 +213,10 @@ void to_json(nlohmann::json &j, const Standardization &standardization) {
 }
 
 bool check_json(const nlohmann::json &j, const Standardization &) {
-  return fluid::check_json(j, {"rows", "mean", "std"});
+  return fluid::check_json(j,
+    {"rows", "mean", "std"},
+    {JSONTypes::NUMBER, JSONTypes::ARRAY, JSONTypes::ARRAY}
+  );
 }
 
 void from_json(const nlohmann::json &j, Standardization &standardization) {
@@ -203,7 +243,10 @@ void to_json(nlohmann::json &j, const PCA &pca) {
 }
 
 bool check_json(const nlohmann::json &j, const PCA &) {
-  return fluid::check_json(j, {"rows", "cols", "bases"});
+  return fluid::check_json(j,
+    {"rows", "cols", "bases"},
+    {JSONTypes::NUMBER, JSONTypes::NUMBER, JSONTypes::ARRAY}
+  );
 }
 
 void from_json(const nlohmann::json &j, PCA &pca) {
