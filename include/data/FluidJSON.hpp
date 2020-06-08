@@ -214,7 +214,7 @@ void to_json(nlohmann::json &j, const Standardization &standardization) {
 
 bool check_json(const nlohmann::json &j, const Standardization &) {
   return fluid::check_json(j,
-    {"rows", "mean", "std"},
+    {"cols", "mean", "std"},
     {JSONTypes::NUMBER, JSONTypes::ARRAY, JSONTypes::ARRAY}
   );
 }
@@ -244,8 +244,9 @@ void to_json(nlohmann::json &j, const PCA &pca) {
 
 bool check_json(const nlohmann::json &j, const PCA &) {
   return fluid::check_json(j,
-    {"rows", "cols", "bases"},
-    {JSONTypes::NUMBER, JSONTypes::NUMBER, JSONTypes::ARRAY}
+    {"rows", "cols", "bases", "mean"},
+    {JSONTypes::NUMBER, JSONTypes::NUMBER,
+      JSONTypes::ARRAY, JSONTypes::ARRAY}
   );
 }
 
