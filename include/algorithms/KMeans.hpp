@@ -77,6 +77,7 @@ public:
 
   void setMeans(RealMatrixView means) {
     mMeans = _impl::asEigen<Eigen::Array>(means);
+    mTrained = true;
   }
 
   index dims() const { return mDims; }
