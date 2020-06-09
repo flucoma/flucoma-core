@@ -20,7 +20,7 @@ void to_json(nlohmann::json& j, const KNNClassifierData& data) {
 
 bool check_json(const nlohmann::json& j, const KNNClassifierData&){
   return fluid::check_json(j,
-    {"tree", "labels"}, {JSONTypes::ARRAY, JSONTypes::ARRAY}
+    {"tree", "labels"}, {JSONTypes::OBJECT, JSONTypes::OBJECT}
   );
 }
 
@@ -62,7 +62,7 @@ public:
       return Error<string>("Different sizes for source and target");
     mTree = algorithm::KDTree{dataset};
     mLabels = labelSet;
-    mData = {mTree,mLabels};
+    mData = {mTree, mLabels};
     return {};
   }
 
@@ -131,7 +131,7 @@ public:
 private:
   algorithm::KDTree mTree{0};
   LabelSet mLabels{1};
-  KNNClassifierData mData{mTree,mLabels};
+  KNNClassifierData mData{mTree, mLabels};
 };
 
 using NRTThreadedKNNClassifierClient = NRTThreadingAdaptor<ClientWrapper<KNNClassifierClient>>;

@@ -20,7 +20,7 @@ namespace client {
 
   bool check_json(const nlohmann::json& j, const KNNRegressorData&){
     return fluid::check_json(j,
-      {"tree", "target"}, {JSONTypes::ARRAY, JSONTypes::ARRAY}
+      {"tree", "target"}, {JSONTypes::OBJECT, JSONTypes::OBJECT}
     );
   }
 
@@ -62,6 +62,7 @@ public:
       return Error<string>("Different sizes for source and target");
     mTree = algorithm::KDTree{dataSet};
     mTarget = target;
+    mData = {mTree, mTarget};
     return {};
   }
 
