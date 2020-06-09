@@ -80,9 +80,9 @@ public:
     mTrained = true;
   }
 
-  index dims() const { return mDims; }
-  index size() const { return mAssignments.size();}
-  index getK() const { return mK; }
+  index dims() const { return mMeans.cols(); }
+  index size() const {return mMeans.rows();}
+  index getK() const { return mMeans.rows();}
   index nAssigned() const { return mAssignments.size(); }
 
   void getAssignments(FluidTensorView<index, 1> out) const {
