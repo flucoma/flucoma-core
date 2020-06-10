@@ -243,7 +243,7 @@ public:
 
   std::array<Result, sizeof...(Ts)> constrainParameterValues()
   {
-    return constrainParameterValuesImpl(IndexList());
+    return constrainParameterValuesImpl(IndexList(),IndexList());
   }
 
   template <template <size_t N, typename T> class Func, typename... Args>
@@ -255,16 +255,16 @@ public:
   }
 
   template <template <size_t N, typename T> class Func, typename... Args>
-  std::array<Result, sizeof...(Ts)> setFixedParameterValues(bool reportage,
+  std::array<Result, FixedIndexList::size()> setFixedParameterValues(bool reportage,
                                                             Args&&... args)
   {
     auto res = setParameterValuesImpl<Func>(FixedIndexList(), reportage,
                                             std::forward<Args>(args)...);
-    return constrainParameterValuesImpl(IndexList());
+    return constrainParameterValuesImpl(std::make_index_sequence<FixedIndexList::size()>(),FixedIndexList());
   }
 
   template <template <size_t N, typename T> class Func, typename... Args>
-  std::array<Result, sizeof...(Ts)> setMutableParameterValues(bool reportage,
+  std::array<Result, MutableIndexList::size()> setMutableParameterValues(bool reportage,
                                                               Args&&... args)
   {
     return setParameterValuesImpl<Func>(MutableIndexList(), reportage,
@@ -415,18 +415,21 @@ private:
     return res;
   }
 
-  template <size_t... Is>
-  auto constrainParameterValuesImpl(std::index_sequence<Is...>)
+  template <size_t...Cs, size_t... Is>
+  auto constrainParameterValuesImpl(std::index_sequence<Is...>,std::index_sequence<Cs...>)
   {
     std::array<Result, sizeof...(Is)> results;
 
+    constexpr auto OffsetsTuple = std::make_tuple(Os...);
+    
+
     (void) std::initializer_list<int>{
-        (paramValue<Is>(mParams) = constrain<Os, Is, kNonRelational>(
-             paramValue<Is>(mParams), constraint<Is>(), &std::get<Is>(results)),
+        (paramValue<Cs>(mParams) = constrain<std::get<Cs>(OffsetsTuple), Cs, kNonRelational>(
+             paramValue<Cs>(mParams), constraint<Cs>(), &std::get<Is>(results)),
          0)...};
     (void) std::initializer_list<int>{
-        (paramValue<Is>(mParams) = constrain<Os, Is, kRelational>(
-             paramValue<Is>(mParams), constraint<Is>(), &std::get<Is>(results)),
+        (paramValue<Cs>(mParams) = constrain<std::get<Cs>(OffsetsTuple), Cs, kRelational>(
+             paramValue<Cs>(mParams), constraint<Cs>(), &std::get<Is>(results)),
          0)...};
 
     return results;
