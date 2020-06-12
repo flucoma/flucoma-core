@@ -609,8 +609,9 @@ public:
     
     if (mThreadedTask)
     {
-      mThreadedTask->cancel(true);
-      mThreadedTask.release();
+      mThreadedTask->cancel(false);
+      mThreadedTask->join();
+//      mThreadedTask.release();
     }
   }
 
@@ -811,6 +812,11 @@ private:
       mState = kDone;
 
       if (mDetached) delete this;
+    }
+
+    void join()
+    {
+      mThread.join();
     }
 
     void cancel(bool detach)
