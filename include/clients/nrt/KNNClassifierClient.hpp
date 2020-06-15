@@ -1,6 +1,8 @@
 #pragma once
 
 #include "NRTClient.hpp"
+#include "DataSetClient.hpp"
+#include "LabelSetClient.hpp"
 #include "algorithms/KNNClassifier.hpp"
 
 namespace fluid {
