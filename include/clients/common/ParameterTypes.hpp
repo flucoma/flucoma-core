@@ -170,7 +170,7 @@ struct FloatPairsArrayT : ParamTypeBase
     constexpr FloatPairsArrayType(
         const std::array<std::pair<FloatUnderlyingType, FloatUnderlyingType>, 2>
             x)
-        : value{x}
+        : value(x)
     {}
 
     FloatPairsArrayType(const FloatPairsArrayType& x) = default;

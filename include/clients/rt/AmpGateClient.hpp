@@ -165,7 +165,7 @@ struct NRTAmpGate
     if (output[0](nFrames + padding - 1) == 1)
     { switchPoints(1, nFrames - 1) = 1; }
 
-    return impl::spikesToTimes(HostMatrixView{switchPoints}, outputBuffers[0],
+    return impl::spikesToTimes(HostMatrixView(switchPoints), outputBuffers[0],
                                1, inputBuffers[0].startFrame, nFrames,
                                src.sampleRate());
   }
