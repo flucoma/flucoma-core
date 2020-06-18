@@ -15,12 +15,14 @@ execute_process(
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   RESULT_VARIABLE result
   OUTPUT_VARIABLE FLUID_VERSION_TAG
+  ERROR_QUIET
   OUTPUT_STRIP_TRAILING_WHITESPACE  
 )
 
 if(result)
-  message(FATAL_ERROR "Failed to get version string from Git")
+  message(VERBOSE "Failed to get version string from Git, falling back to indexed header")
+else()
+  configure_file("${CMAKE_CURRENT_LIST_DIR}/FluidVersion.hpp.in" "${CMAKE_CURRENT_LIST_DIR}/FluidVersion.hpp" @ONLY)
 endif()
 
-configure_file("${CMAKE_CURRENT_LIST_DIR}/FluidVersion.hpp.in" "${CMAKE_CURRENT_LIST_DIR}/FluidVersion.hpp" @ONLY)
 set(FLUID_VERSION_PATH ${CMAKE_CURRENT_LIST_DIR})  
