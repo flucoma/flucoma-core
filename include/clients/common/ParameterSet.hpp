@@ -66,7 +66,8 @@ public:
   using ParamType = typename std::tuple_element<
       0, typename std::tuple_element<N, DescriptorType>::type>::type;
 
-  using IndexList = std::index_sequence_for<Ts...>;
+  // clang < 3.7: index_sequence_for doesn't work here
+  using IndexList = std::make_index_sequence<sizeof...(Ts)>; 
   using FixedIndexList =
       typename impl::FilterTupleIndices<IsFixed, DescriptorType,
                                         IndexList>::type;
@@ -339,7 +340,8 @@ private:
   T constrain(T& thisParam, const std::tuple<Constraints...>& c, Result* r)
   {
     using CT = std::tuple<Constraints...>;
-    using Idx = std::index_sequence_for<Constraints...>;
+    // clang < 3.7: index_sequence_for doesn't work here
+    using Idx = std::make_index_sequence<sizeof...(Constraints)>; 
     switch (C)
     {
       // case kAll: return constrainImpl<Offset, N>(thisParam, c, Idx(), r);
