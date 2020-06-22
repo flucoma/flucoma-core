@@ -20,12 +20,17 @@ namespace client {
 template <typename... Args>
 class ParameterTrackChanges
 {
+  //clang 3.5 can't deal with an alias here (results in size 1 tuple below)
   template <typename T>
-  using makeInt = int;
-
+  struct makeInt{
+    using type = int;
+  }; 
+  
   using type = std::tuple<Args...>;
-  using signums = std::tuple<makeInt<Args>...>;
-  using indices = std::index_sequence_for<Args...>;
+  using signums = std::tuple<typename makeInt<Args>::type...>;
+  
+  //clang < 3.7 : index_sequence_for doesn't work here
+  using indices = std::make_index_sequence<sizeof...(Args)>; 
 
 public:
 

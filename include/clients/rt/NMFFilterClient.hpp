@@ -93,7 +93,7 @@ public:
             {
               algorithm::NMF::estimate(tmpFilt, RealMatrixView(tmpOut), i,
                                        tmpSource);
-              mMask.process(in, RealMatrixView{tmpSource}, 1,
+              mMask.process(in, RealMatrixView(tmpSource), 1,
                             ComplexMatrixView{out.row(i)});
             }
           });
