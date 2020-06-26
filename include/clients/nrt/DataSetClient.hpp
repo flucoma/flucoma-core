@@ -21,10 +21,10 @@ public:
   template <typename T> Result process(FluidContext &) { return {}; }
   FLUID_DECLARE_PARAMS(StringParam<Fixed<true>>("name", "DataSet"));
 
-  DataSetClient(ParamSetViewType &p)
-      : DataClient(mDataSet), mParams(p), mDataSet(0) {}
+  DataSetClient(ParamSetViewType &p): mParams(p) {}
 
   MessageResult<void> addPoint(string id, BufferPtr data) {
+    DataSet& dataset = mAlgorithm;
     if (!data)
       return Error(NoBuffer);
     BufferAdaptor::Access buf(data.get());
@@ -32,14 +32,14 @@ public:
       return Error(InvalidBuffer);
     if (buf.numFrames() == 0)
       return Error(EmptyBuffer);
-    if (mDataSet.size() == 0) {
-      if (mDataSet.dims() != buf.numFrames())
-        mDataSet = DataSet(buf.numFrames());
-    } else if (buf.numFrames() != mDataSet.dims())
+    if (dataset.size() == 0) {
+      if (dataset.dims() != buf.numFrames())
+        dataset = DataSet(buf.numFrames());
+    } else if (buf.numFrames() != dataset.dims())
       return Error(WrongPointSize);
-    RealVector point(mDataSet.dims());
-    point = buf.samps(0, mDataSet.dims(), 0);
-    return mDataSet.add(id, point) ? OK() : Error(DuplicateLabel);
+    RealVector point(dataset.dims());
+    point = buf.samps(0, dataset.dims(), 0);
+    return dataset.add(id, point) ? OK() : Error(DuplicateLabel);
   }
 
   MessageResult<void> getPoint(string id, BufferPtr data) const {
@@ -48,14 +48,14 @@ public:
     BufferAdaptor::Access buf(data.get());
     if (!buf.exists())
       return Error(InvalidBuffer);
-    Result resizeResult = buf.resize(mDataSet.dims(), 1, buf.sampleRate());
+    Result resizeResult = buf.resize(mAlgorithm.dims(), 1, buf.sampleRate());
     if (!resizeResult.ok())
       return {resizeResult.status(), resizeResult.message()};
-    RealVector point(mDataSet.dims());
-    point = buf.samps(0, mDataSet.dims(), 0);
-    bool result = mDataSet.get(id, point);
+    RealVector point(mAlgorithm.dims());
+    point = buf.samps(0, mAlgorithm.dims(), 0);
+    bool result = mAlgorithm.get(id, point);
     if (result) {
-      buf.samps(0, mDataSet.dims(), 0) = point;
+      buf.samps(0, mAlgorithm.dims(), 0) = point;
       return OK();
     } else {
       return Error(PointNotFound);
@@ -68,21 +68,21 @@ public:
     BufferAdaptor::Access buf(data.get());
     if (!buf.exists())
       return Error(InvalidBuffer);
-    if (buf.numFrames() < mDataSet.dims())
+    if (buf.numFrames() < mAlgorithm.dims())
       return Error(WrongPointSize);
-    RealVector point(mDataSet.dims());
-    point = buf.samps(0, mDataSet.dims(), 0);
-    return mDataSet.update(id, point) ? OK() : Error(PointNotFound);
+    RealVector point(mAlgorithm.dims());
+    point = buf.samps(0, mAlgorithm.dims(), 0);
+    return mAlgorithm.update(id, point) ? OK() : Error(PointNotFound);
   }
 
   MessageResult<void> deletePoint(string id) {
-    return mDataSet.remove(id) ? OK() : Error(PointNotFound);
+    return mAlgorithm.remove(id) ? OK() : Error(PointNotFound);
   }
 
-  MessageResult<void> clear() {mDataSet = DataSet(0); return OK();}
-  MessageResult<string> print() {return mDataSet.print();}
-  const DataSet getDataSet() const { return mDataSet; }
-  void setDataSet(DataSet ds) {mDataSet = ds;}
+  MessageResult<void> clear() {mAlgorithm = DataSet(0); return OK();}
+  MessageResult<string> print() {return mAlgorithm.print();}
+  const DataSet getDataSet() const { return mAlgorithm; }
+  void setDataSet(DataSet ds) {mAlgorithm = ds;}
 
   FLUID_DECLARE_MESSAGES(makeMessage("addPoint", &DataSetClient::addPoint),
                          makeMessage("getPoint", &DataSetClient::getPoint),
@@ -98,8 +98,6 @@ public:
                          makeMessage("clear", &DataSetClient::clear),
                          makeMessage("write", &DataSetClient::write),
                          makeMessage("read", &DataSetClient::read));
-private:
-  DataSet mDataSet;
 };
 using DataSetClientRef = SharedClientRef<DataSetClient>;
 using NRTThreadedDataSetClient =

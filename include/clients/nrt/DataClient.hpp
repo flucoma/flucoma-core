@@ -16,19 +16,17 @@ class DataClient{
 public:
   using string = std::string;
 
-  DataClient(T& object):mObject(object){}
-
   MessageResult<index> size() {
-    return mObject.size();
+    return mAlgorithm.size();
   }
 
   MessageResult<index> dims() {
-    return mObject.dims();
+    return mAlgorithm.dims();
   }
 
   MessageResult<void> write(string fileName) {
     auto file = JSONFile(fileName, "w");
-    file.write(mObject);
+    file.write(mAlgorithm);
     return file.ok() ? OK() : Error(file.error());
   }
 
@@ -38,15 +36,15 @@ public:
     if (!file.ok()) {
       return Error(file.error());
     } else {
-      if(!check_json(j, mObject)) return Error("Invalid JSON format");
-      mObject = j.get<T>();
+      if(!check_json(j, mAlgorithm)) return Error("Invalid JSON format");
+      mAlgorithm = j.get<T>();
     }
     return OK();
   }
 
   MessageResult<string> dump() {
     using namespace nlohmann;
-    nlohmann::json j = mObject;
+    nlohmann::json j = mAlgorithm;
     return j.dump();
   }
 
@@ -57,14 +55,14 @@ public:
     if (j.is_discarded()) {
       return Error("Parse error");
     } else {
-      if(!check_json(j, mObject)) return Error("Invalid JSON format");
-      mObject = j.get<T>();
+      if(!check_json(j, mAlgorithm)) return Error("Invalid JSON format");
+      mAlgorithm = j.get<T>();
       return OK();
     }
   }
 
-private:
-  T& mObject;
+protected:
+  T mAlgorithm;
 };
 
 } // namespace client

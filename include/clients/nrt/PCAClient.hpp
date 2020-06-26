@@ -19,7 +19,7 @@ public:
 
   FLUID_DECLARE_PARAMS();
 
-  PCAClient(ParamSetViewType &p) : DataClient(mAlgorithm), mParams(p){}
+  PCAClient(ParamSetViewType &p) : mParams(p){}
 
   MessageResult<void> fit(DataSetClientRef datasetClient, index k) {
     auto datasetClientPtr = datasetClient.get().lock();
@@ -94,8 +94,6 @@ public:
                          makeMessage("dump", &PCAClient::dump),
                          makeMessage("read", &PCAClient::read),
                          makeMessage("write", &PCAClient::write));
-private:
-  algorithm::PCA mAlgorithm;
 };
 
 using NRTThreadedPCAClient = NRTThreadingAdaptor<ClientWrapper<PCAClient>>;

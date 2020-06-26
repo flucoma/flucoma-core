@@ -21,14 +21,14 @@ public:
 
   FLUID_DECLARE_PARAMS();
 
-  KDTreeClient(ParamSetViewType &p) : DataClient(mTree), mParams(p) {}
+  KDTreeClient(ParamSetViewType &p) : mParams(p) {}
 
   MessageResult<void> fit(DataSetClientRef datasetClient) {
     auto datasetClientPtr = datasetClient.get().lock();
     if(!datasetClientPtr) return Error(NoDataSet);
     auto dataset = datasetClientPtr->getDataSet();
     if (dataset.size() == 0) return Error(EmptyDataSet);
-    mTree = algorithm::KDTree(dataset);
+    mAlgorithm = algorithm::KDTree(dataset);
     return OK();
   }
 
@@ -36,13 +36,13 @@ public:
     if (!data) return Error<StringVector>(NoBuffer);
     BufferAdaptor::Access buf(data.get());
     if(!buf.exists()) return Error<StringVector>(InvalidBuffer);
-    if (buf.numFrames() != mTree.dims()) return Error<StringVector>(WrongPointSize);
-    if (k > mTree.size()) return Error<StringVector>(SmallDataSet);
+    if (buf.numFrames() != mAlgorithm.dims()) return Error<StringVector>(WrongPointSize);
+    if (k > mAlgorithm.size()) return Error<StringVector>(SmallDataSet);
     if(k <= 0 ) return Error<StringVector>(SmallK);
 
-    RealVector point(mTree.dims());
-    point = buf.samps(0, mTree.dims(), 0);
-    FluidDataSet<std::string, double,1> nearest = mTree.kNearest(point, k);
+    RealVector point(mAlgorithm.dims());
+    point = buf.samps(0, mAlgorithm.dims(), 0);
+    FluidDataSet<std::string, double,1> nearest = mAlgorithm.kNearest(point, k);
     StringVector result{nearest.getIds()};
     return result;
   }
@@ -53,17 +53,17 @@ public:
       return Error<RealVector>(NoBuffer);
     BufferAdaptor::Access buf(data.get());
     if(!buf.exists()) return Error<RealVector>(InvalidBuffer);
-    if (buf.numFrames() != mTree.dims())
+    if (buf.numFrames() != mAlgorithm.dims())
       return Error<RealVector>(WrongPointSize);
-    if (k > mTree.size()){
+    if (k > mAlgorithm.size()){
       return Error<RealVector>(SmallDataSet);
     }
     if(k <= 0 ){
       return Error<RealVector>(SmallK);
     }
-    RealVector point(mTree.dims());
-    point = buf.samps(0, mTree.dims(), 0);
-    FluidDataSet<std::string, double,1> nearest = mTree.kNearest(point, k);
+    RealVector point(mAlgorithm.dims());
+    point = buf.samps(0, mAlgorithm.dims(), 0);
+    FluidDataSet<std::string, double,1> nearest = mAlgorithm.kNearest(point, k);
     RealVector result{nearest.getData().col(0)};
     return result;
   }
@@ -78,9 +78,6 @@ public:
                          makeMessage("write", &KDTreeClient::write),
                          makeMessage("read", &KDTreeClient::read)
   );
-
-private:
-  algorithm::KDTree mTree{1};
 };
 
 using NRTThreadedKDTreeClient =

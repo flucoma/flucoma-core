@@ -26,7 +26,7 @@ public:
 
   FLUID_DECLARE_PARAMS();
 
-  KMeansClient(ParamSetViewType &p) : DataClient(mModel), mParams(p) {}
+  KMeansClient(ParamSetViewType &p) : mParams(p) {}
 
   MessageResult<IndexVector> fit(DataSetClientRef datasetClient, index k,
                                  index maxIter) {
@@ -40,10 +40,10 @@ public:
       return Error<IndexVector>(SmallK);
     if (maxIter <= 0)
       maxIter = 100;
-    mModel.init(k, dataSet.dims());
-    mModel.train(dataSet, maxIter);
+    mAlgorithm.init(k, dataSet.dims());
+    mAlgorithm.train(dataSet, maxIter);
     IndexVector assignments(dataSet.size());
-    mModel.getAssignments(assignments);
+    mAlgorithm.getAssignments(assignments);
     return getCounts(assignments, k);
   }
 
@@ -64,10 +64,10 @@ public:
     if (maxIter <= 0)
       maxIter = 100;
     mK = k;
-    mModel.init(k, dataSet.pointSize());
-    mModel.train(dataSet, maxIter);
+    mAlgorithm.init(k, dataSet.pointSize());
+    mAlgorithm.train(dataSet, maxIter);
     IndexVector assignments(dataSet.size());
-    mModel.getAssignments(assignments);
+    mAlgorithm.getAssignments(assignments);
     StringVectorView ids = dataSet.getIds();
     labelsetClientPtr->setLabelSet(getLabels(ids, assignments));
     return getCounts(assignments, k);
@@ -84,34 +84,34 @@ public:
     auto dataSet = dataPtr->getDataSet();
     if (dataSet.size() == 0)
       return Error<IndexVector>(EmptyDataSet);
-    if (!mModel.trained())
+    if (!mAlgorithm.trained())
       return Error<IndexVector>(NoDataFitted);
-    if (dataSet.dims() != mModel.dims())
+    if (dataSet.dims() != mAlgorithm.dims())
       return Error<IndexVector>(WrongPointSize);
     StringVectorView ids = dataSet.getIds();
     IndexVector assignments(dataSet.size());
-    RealVector query(mModel.dims());
+    RealVector query(mAlgorithm.dims());
     for (index i = 0; i < dataSet.size(); i++) {
       dataSet.get(ids(i), query);
-      assignments(i) = mModel.vq(query);
+      assignments(i) = mAlgorithm.vq(query);
     }
     labelsetClientPtr->setLabelSet(getLabels(ids, assignments));
-    return getCounts(assignments, mModel.getK());
+    return getCounts(assignments, mAlgorithm.getK());
   }
 
   MessageResult<index> predictPoint(BufferPtr data) const {
     if (!data)
       return Error<index>(NoBuffer);
-    if (!mModel.trained())
+    if (!mAlgorithm.trained())
       return Error<index>(NoDataFitted);
     BufferAdaptor::Access buf(data.get());
     if (!buf.exists())
       return Error<index>(InvalidBuffer);
-    if (buf.numFrames() != mModel.dims())
+    if (buf.numFrames() != mAlgorithm.dims())
       return Error<index>(WrongPointSize);
-    RealVector point(mModel.dims());
-    point = buf.samps(0, mModel.dims(), 0);
-    return mModel.vq(point);
+    RealVector point(mAlgorithm.dims());
+    point = buf.samps(0, mAlgorithm.dims(), 0);
+    return mAlgorithm.vq(point);
   }
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &KMeansClient::fit),
@@ -143,8 +143,7 @@ private:
     }
     return result;
   }
-
-  algorithm::KMeans mModel;
+  
   index mK{0};
 };
 

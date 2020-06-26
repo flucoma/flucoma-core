@@ -22,21 +22,19 @@ public:
 
   FLUID_DECLARE_PARAMS(StringParam<Fixed<true>>("name", "DataSet"));
 
-  LabelSetClient(ParamSetViewType &p) :
-      DataClient(mLabelSet), mParams(p), mLabelSet(1) {}
-
+  LabelSetClient(ParamSetViewType &p) : mParams(p) {}
 
   MessageResult<void> addLabel(string id, string label) {
     if(id.empty()) return Error(EmptyId);
     if(label.empty()) return Error(EmptyLabel);
     StringVector point = {label};
-    return mLabelSet.add(id, point) ? OK() : Error(DuplicateLabel);
+    return mAlgorithm.add(id, point) ? OK() : Error(DuplicateLabel);
   }
 
   MessageResult<string> getLabel(string id) const {
     if(id.empty()) return Error<string>(EmptyId);
     StringVector point(1);
-    mLabelSet.get(id, point);
+    mAlgorithm.get(id, point);
     return  point(0);
   }
 
@@ -44,19 +42,19 @@ public:
     if(id.empty()) return Error(EmptyId);
     if(label.empty()) return Error(EmptyLabel);
     StringVector point = {label};
-    return mLabelSet.update(id, point) ? OK() : Error(PointNotFound);
+    return mAlgorithm.update(id, point) ? OK() : Error(PointNotFound);
   }
 
   MessageResult<void> deleteLabel(string id) {
-    return mLabelSet.remove(id) ? OK() : Error(PointNotFound);
+    return mAlgorithm.remove(id) ? OK() : Error(PointNotFound);
   }
 
   MessageResult<void> clear() {
-    mLabelSet = LabelSet(1);
+    mAlgorithm = LabelSet(1);
     return OK();
   }
 
- MessageResult<string> print() {return mLabelSet.print();}
+ MessageResult<string> print() {return mAlgorithm.print();}
 
 
   FLUID_DECLARE_MESSAGES(
@@ -73,11 +71,9 @@ public:
       makeMessage("read", &LabelSetClient::read)
   );
 
-  const LabelSet getLabelSet() const { return mLabelSet; }
-  void setLabelSet(LabelSet ls) {mLabelSet = ls; }
+  const LabelSet getLabelSet() const { return mAlgorithm; }
+  void setLabelSet(LabelSet ls) {mAlgorithm = ls; }
 
-private:
-  LabelSet mLabelSet{1};
 };
 using LabelSetClientRef = SharedClientRef<LabelSetClient>;
 using NRTThreadedLabelSetClient =

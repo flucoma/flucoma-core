@@ -46,7 +46,7 @@ public:
 
   FLUID_DECLARE_PARAMS();
 
-  KNNClassifierClient(ParamSetViewType &p) : DataClient(mData), mParams(p)  {}
+  KNNClassifierClient(ParamSetViewType &p) : mParams(p)  {}
 
   MessageResult<string> fit(
     DataSetClientRef datasetClient,
@@ -64,7 +64,7 @@ public:
       return Error<string>("Different sizes for source and target");
     mTree = algorithm::KDTree{dataset};
     mLabels = labelSet;
-    mData = {mTree, mLabels};
+    mAlgorithm = {mTree, mLabels};
     return {};
   }
 
@@ -133,7 +133,6 @@ public:
 private:
   algorithm::KDTree mTree{0};
   LabelSet mLabels{1};
-  KNNClassifierData mData{mTree, mLabels};
 };
 
 using NRTThreadedKNNClassifierClient = NRTThreadingAdaptor<ClientWrapper<KNNClassifierClient>>;

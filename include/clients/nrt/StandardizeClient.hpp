@@ -19,8 +19,7 @@ public:
 
   FLUID_DECLARE_PARAMS();
 
-  StandardizeClient(ParamSetViewType &p)
-      : DataClient(mAlgorithm), mParams(p)  {}
+  StandardizeClient(ParamSetViewType &p): mParams(p)  {}
 
   MessageResult<void> fit(DataSetClientRef datasetClient) {
     auto weakPtr = datasetClient.get();
@@ -101,7 +100,6 @@ public:
                          makeMessage("write", &StandardizeClient::write));
 
 private:
-  algorithm::Standardization mAlgorithm;
   index mDims{0};
 };
 

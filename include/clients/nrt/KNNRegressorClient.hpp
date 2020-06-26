@@ -45,7 +45,7 @@ public:
 
   FLUID_DECLARE_PARAMS();
 
-  KNNRegressorClient(ParamSetViewType &p) : DataClient(mData), mParams(p) {}
+  KNNRegressorClient(ParamSetViewType &p) : mParams(p) {}
 
   MessageResult<string> fit(
     DataSetClientRef datasetClient,
@@ -63,7 +63,7 @@ public:
       return Error<string>("Different sizes for source and target");
     mTree = algorithm::KDTree{dataSet};
     mTarget = target;
-    mData = {mTree, mTarget};
+    mAlgorithm = {mTree, mTarget};
     return {};
   }
 
@@ -136,7 +136,6 @@ public:
 private:
   algorithm::KDTree mTree{0};
   DataSet mTarget{1};
-  KNNRegressorData mData{mTree,mTarget};
 };
 
 using NRTThreadedKNNRegressorClient = NRTThreadingAdaptor<ClientWrapper<KNNRegressorClient>>;

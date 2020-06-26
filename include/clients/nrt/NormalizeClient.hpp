@@ -21,9 +21,7 @@ public:
   FLUID_DECLARE_PARAMS(FloatParam("min", "Minimum value", 0.0),
                        FloatParam("max", "Maximum value", 1.0, LowerLimit<kMin>()));
 
-  NormalizeClient(ParamSetViewType &p)
-      : DataClient(mAlgorithm), mParams(p) {
-  }
+  NormalizeClient(ParamSetViewType &p): mParams(p) {}
 
   MessageResult<void> fit(DataSetClientRef datasetClient) {
     auto weakPtr = datasetClient.get();
@@ -101,7 +99,6 @@ public:
                          makeMessage("write", &NormalizeClient::write));
 
 private:
-  algorithm::Normalization mAlgorithm;
   index mDims{0};
 };
 
