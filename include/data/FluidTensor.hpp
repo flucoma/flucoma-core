@@ -79,8 +79,13 @@ public:
   FluidTensor& operator=(FluidTensor&&) noexcept = default;
 
   // Copy
-  FluidTensor(const FluidTensor&) = default;
-  FluidTensor& operator=(const FluidTensor&) = default;
+  FluidTensor(const FluidTensor& x) noexcept { *this = x; }
+  FluidTensor& operator=(const FluidTensor& x) noexcept
+  {
+    mContainer = x.mContainer;
+    mDesc = x.mDesc;
+    return *this;
+  }
 
   /// Conversion constructors
   template <typename U, size_t M>
