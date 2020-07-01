@@ -31,7 +31,7 @@ using BufferUnderlyingType = std::shared_ptr<BufferAdaptor>;
 using InputBufferUnderlyingType = std::shared_ptr<const BufferAdaptor>;
 using StringUnderlyingType = std::string;
 using FloatArrayUnderlyingType = std::vector<FloatUnderlyingType>;
-using LongArrayUnderlyingType = std::vector<LongUnderlyingType>;
+using LongArrayUnderlyingType = FluidTensor<LongUnderlyingType,1>;
 using BufferArrayUnderlyingType = std::vector<BufferUnderlyingType>;
 using MagnitudePairsUnderlyingType = std::vector<std::pair<double, double>>;
 
@@ -152,12 +152,12 @@ struct LongArrayT : ParamTypeBase
 {
 
   using type = LongArrayUnderlyingType;
-  template <std::size_t N>
-  LongArrayT(const char* name, const char* displayName,
-             type::value_type (&/*defaultValues*/)[N])
-      : ParamTypeBase(name, displayName)
+  constexpr LongArrayT(const char* name, const char* displayName,
+            const std::initializer_list<typename type::type> defaultValues)
+      : ParamTypeBase(name, displayName),defaultValue{defaultValues}
   {}
-  const index fixedSize;
+  const index fixedSize{1};
+  const std::initializer_list<typename type::type> defaultValue;
 };
 
 struct BufferArrayT : ParamTypeBase
@@ -491,11 +491,11 @@ FloatArrayParam(const char* name, const char* displayName,
           IsFixed{}};
 }
 
-template <typename IsFixed = Fixed<false>, size_t N, typename... Constraints>
+template <typename IsFixed = Fixed<false>, typename... Constraints>
 constexpr ParamSpec<LongArrayT, IsFixed, Constraints...>
 LongArrayParam(const char* name, const char* displayName,
-               LongArrayT::type::value_type (&defaultValues)[N],
-               const Constraints... c)
+               const std::initializer_list<LongArrayT::type::type> defaultValues,
+               const Constraints... c)  
 {
   return {LongArrayT(name, displayName, defaultValues), std::make_tuple(c...),
           IsFixed{}};
