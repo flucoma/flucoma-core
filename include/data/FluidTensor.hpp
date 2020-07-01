@@ -373,6 +373,9 @@ public:
   {
     return impl::printTensorThing(o, t);
   }
+  
+  bool operator==(const FluidTensor& rhs) { return mContainer == rhs.mContainer; }
+  bool operator!=(const FluidTensor& rhs) { return mContainer != rhs.mContainer; }
 
 private:
   Container           mContainer;
