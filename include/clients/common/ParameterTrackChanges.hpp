@@ -10,6 +10,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
+#include "../../data/FluidMeta.hpp"
 #include <cmath>
 #include <tuple>
 #include <utility>
@@ -32,6 +33,11 @@ class ParameterTrackChanges
   //clang < 3.7 : index_sequence_for doesn't work here
   using indices = std::make_index_sequence<sizeof...(Args)>; 
 
+  template<typename T>
+  using OperatorMinus = decltype(std::declval<T&>() - std::declval<T&>());
+
+  static constexpr bool enableDirection() { return all(isDetected<OperatorMinus,Args>::value...); }
+  
 public:
 
   constexpr ParameterTrackChanges(const Args... args) : mValues{args...} {}
@@ -49,27 +55,44 @@ public:
     return changedImpl(std::forward<Args>(args)..., indices());
   }
 
-  template <size_t N>
-  int direction()
+  template <size_t N, bool canSubtractArgs = enableDirection()>
+  std::enable_if_t<canSubtractArgs,int>
+  direction()
   {
     return std::get<N>(mSignums);
   }
 
 private:
+
   template <size_t... Is>
-  bool changedImpl(Args&&... args, std::index_sequence<Is...>)
+  bool changedImpl(Args&&... args, std::index_sequence<Is...> idx)
   {
     bool allSame = true;
     using std::get;
     (void) std::initializer_list<int>{
         (allSame = allSame && (get<Is>(mValues) == args), 0)...};
-    (void) std::initializer_list<int>{
-        (get<Is>(mSignums) =
-             static_cast<int>(std::copysign(1, args - get<Is>(mValues))),
-         0)...};
+    
+    doDirection(std::forward<Args>(args)..., idx);
+    
     (void) std::initializer_list<int>{(get<Is>(mValues) = args, 0)...};
     return !allSame;
   }
+
+  template <size_t...Is,bool canSubtractArgs = enableDirection()>
+  std::enable_if_t<canSubtractArgs>
+  doDirection(Args&&... args, std::index_sequence<Is...>)
+  {
+      using std::get; 
+      (void) std::initializer_list<int>{
+        (get<Is>(mSignums) =
+             static_cast<int>(std::copysign(1, args - get<Is>(mValues))),
+         0)...};
+  }
+
+  template <size_t...Is,bool canSubtractArgs = enableDirection()>
+  std::enable_if_t<!canSubtractArgs>
+  doDirection(Args&&..., std::index_sequence<Is...>)
+  {}
 
   signums mSignums;
   type    mValues;
