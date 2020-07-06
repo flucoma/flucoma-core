@@ -59,8 +59,7 @@ public:
     if(!targetClientPtr) return Error<string>(NoDataSet);
     auto target = targetClientPtr->getDataSet();
     if (target.size() == 0) return Error<string>(EmptyDataSet);
-    if(dataSet.size() != target.size())
-      return Error<string>("Different sizes for source and target");
+    if(dataSet.size() != target.size())return Error<string>(SizesDontMatch);
     mTree = algorithm::KDTree{dataSet};
     mTarget = target;
     mAlgorithm = {mTree, mTarget};

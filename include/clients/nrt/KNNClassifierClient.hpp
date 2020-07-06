@@ -60,8 +60,7 @@ public:
     if(!labelsetPtr) return Error<string>(NoLabelSet);
     auto labelSet = labelsetPtr->getLabelSet();
     if (labelSet.size() == 0) return Error<string>(EmptyLabelSet);
-    if(dataset.size() != labelSet.size())
-      return Error<string>("Different sizes for source and target");
+    if(dataset.size() != labelSet.size())return Error<string>(SizesDontMatch);
     mTree = algorithm::KDTree{dataset};
     mLabels = labelSet;
     mAlgorithm = {mTree, mLabels};
