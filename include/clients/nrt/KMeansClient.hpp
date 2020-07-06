@@ -11,8 +11,8 @@ namespace fluid {
 namespace client {
 
 class KMeansClient : public FluidBaseClient,
-                     OfflineIn,
-                     OfflineOut,
+                     AudioIn,
+                     ControlOut,
                      ModelObject,
                      public DataClient<algorithm::KMeans> {
 
@@ -179,6 +179,8 @@ private:
   index mK{0};
   FluidInputTrigger mTrigger;
 };
+
+using RTKMeansClient = ClientWrapper<KMeansClient>;
 
 using NRTThreadedKMeansClient =
     NRTThreadingAdaptor<ClientWrapper<KMeansClient>>;
