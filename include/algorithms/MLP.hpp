@@ -37,7 +37,7 @@ public:
     mTrained = false;
   }
 
-  void reset(){
+  void reset() {
     for (auto &&l : mLayers)
       l.init();
     mInitialized = true;
@@ -75,8 +75,8 @@ public:
     ArrayXXd output;
     index nRows = input.rows();
     layer %= mLayers.size();
-    for(index i = 0; i <= layer; i++){
-      auto&& l = mLayers[i];
+    for (index i = 0; i <= layer; i++) {
+      auto &&l = mLayers[i];
       output = ArrayXXd::Zero(input.rows(), l.outputSize());
       l.forward(input, output);
       input = output;
@@ -103,11 +103,13 @@ public:
 
   index size() const { return mLayers.size(); }
   bool trained() const { return mTrained; }
-  void setTrained(bool val) { mTrained = val;}
+  void setTrained(bool val) { mTrained = val; }
   index initialized() const { return mInitialized; }
   index outputSize(index layer = 0) const {
-    if(layer >= mLayers.size()) return 0;
-    else return mLayers[layer].outputSize();
+    if (layer >= mLayers.size())
+      return 0;
+    else
+      return mLayers[layer].outputSize();
   }
 
   index dims() const {
