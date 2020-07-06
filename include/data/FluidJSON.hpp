@@ -4,6 +4,7 @@
 #include <algorithms/KMeans.hpp>
 #include <algorithms/Normalization.hpp>
 #include <algorithms/PCA.hpp>
+#include <algorithms/MLP.hpp>
 #include <algorithms/Standardization.hpp>
 #include <data/FluidDataSet.hpp>
 #include <data/FluidIndex.hpp>
@@ -259,6 +260,20 @@ void from_json(const nlohmann::json &j, PCA &pca) {
   j.at("bases").get_to(bases);
   pca.init(bases, mean);
 }
+
+// MLP
+void to_json(nlohmann::json &j, const MLP &mlp) {
+}
+
+bool check_json(const nlohmann::json &j, const MLP &) {
+  return true;
+}
+
+void from_json(const nlohmann::json &j, MLP &mlp) {
+}
+
+
+
 
 } // namespace algorithm
 
