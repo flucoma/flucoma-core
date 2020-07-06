@@ -4,6 +4,7 @@
 #include "LabelSetClient.hpp"
 #include "NRTClient.hpp"
 #include "algorithms/KMeans.hpp"
+#include "clients/common/FluidInputTrigger.hpp"
 #include <string>
 
 namespace fluid {
@@ -22,11 +23,42 @@ public:
   using StringVector = FluidTensor<string, 1>;
   using StringVectorView = FluidTensorView<string, 1>;
   using LabelSet = FluidDataSet<string, string, 1>;
+
+  enum {kInputBuffer, kOutputBuffer};
+
+  FLUID_DECLARE_PARAMS(
+      BufferParam("inputPointBuffer","Input Point Buffer"),
+      BufferParam("predictionBuffer","Prediction Buffer")
+  );
+
+  KMeansClient(ParamSetViewType &p) : mParams(p)
+  {
+    audioChannelsIn(1);
+    controlChannelsOut(1);
+  }
+
   template <typename T> Result process(FluidContext &) { return {}; }
 
-  FLUID_DECLARE_PARAMS();
+  template <typename T>
+  void process(std::vector<FluidTensorView<T, 1>> &input,
+               std::vector<FluidTensorView<T, 1>> &output, FluidContext &)
+  {
+    auto inputBuffer = get<kInputBuffer>().get();
+    auto outputBuffer = get<kOutputBuffer>().get();
+    if(!inputBuffer || !outputBuffer) return;
+    BufferAdaptor::ReadAccess in(inputBuffer);
+    BufferAdaptor::Access out(outputBuffer);
+    if(!in.exists() ||!in.valid() ||!out.exists()) return;
+    if (!mAlgorithm.trained()) return;
+    if (in.numFrames() != mAlgorithm.dims()) return;
+    RealVector point(mAlgorithm.dims());
+    point = in.samps(0, mAlgorithm.dims(), 0);
+    mTrigger.process(input, output, [&](){
+      out.samps(0)[0] = mAlgorithm.vq(point);
+    });
+  }
 
-  KMeansClient(ParamSetViewType &p) : mParams(p) {}
+  index latency() { return 0; }
 
   MessageResult<IndexVector> fit(DataSetClientRef datasetClient, index k,
                                  index maxIter) {
@@ -143,8 +175,9 @@ private:
     }
     return result;
   }
-  
+
   index mK{0};
+  FluidInputTrigger mTrigger;
 };
 
 using NRTThreadedKMeansClient =
