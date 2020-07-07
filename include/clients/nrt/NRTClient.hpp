@@ -12,4 +12,6 @@
 #include <data/TensorTypes.hpp>
 #include <data/FluidDataSet.hpp>
 #include "CommonResults.hpp"
+#include "ClientInputChecks.hpp"
+#include "clients/common/FluidInputTrigger.hpp"
 #include <nlohmann/json.hpp>
