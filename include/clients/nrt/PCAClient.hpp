@@ -1,44 +1,73 @@
 #pragma once
+#include "DataSetClient.hpp"
 #include "NRTClient.hpp"
 #include "algorithms/PCA.hpp"
-#include "DataSetClient.hpp"
-
 
 namespace fluid {
 namespace client {
 
-class PCAClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject,
-  public DataClient<algorithm::PCA>  {
-
+class PCAClient : public FluidBaseClient,
+                  AudioIn,
+                  ControlOut,
+                  ModelObject,
+                  public DataClient<algorithm::PCA> {
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
   using StringVector = FluidTensor<string, 1>;
 
-  template <typename T> Result process(FluidContext &) { return {}; }
+  enum { kInputBuffer, kOutputBuffer };
 
-  FLUID_DECLARE_PARAMS();
+  FLUID_DECLARE_PARAMS(BufferParam("inputPointBuffer", "Input Point Buffer"),
+                       BufferParam("predictionBuffer", "Prediction Buffer"));
 
-  PCAClient(ParamSetViewType &p) : mParams(p){}
+  PCAClient(ParamSetViewType &p) : mParams(p)
+                       {
+                         audioChannelsIn(1);
+                         controlChannelsOut(1);
+                       }
+
+  template <typename T>
+  void process(std::vector<FluidTensorView<T, 1>> &input,
+               std::vector<FluidTensorView<T, 1>> &output, FluidContext &) {
+    if (!mAlgorithm.initialized())
+      return;
+    InOutBuffersCheck bufCheck(mAlgorithm.dims());
+    if (!bufCheck.checkInputs(
+        get<kInputBuffer>().get(),
+        get<kOutputBuffer>().get())) return;
+    RealVector src(mAlgorithm.dims());
+    RealVector dest(mAlgorithm.size());
+    src = bufCheck.in().samps(0, mAlgorithm.dims(), 0);
+    mTrigger.process(input, output, [&]() {
+      mAlgorithm.processFrame(src, dest);
+      bufCheck.out().samps(0) = dest;
+    });
+  }
 
   MessageResult<void> fit(DataSetClientRef datasetClient, index k) {
     auto datasetClientPtr = datasetClient.get().lock();
-    if(!datasetClientPtr) return Error(NoDataSet);
+    if (!datasetClientPtr)
+      return Error(NoDataSet);
     auto dataSet = datasetClientPtr->getDataSet();
-    if (dataSet.size() == 0) return Error(EmptyDataSet);
-    if (k <= 0) return Error(SmallK);
-    if (dataSet.pointSize() < k) return Error("k is larger than the current dimensions");
+    if (dataSet.size() == 0)
+      return Error(EmptyDataSet);
+    if (k <= 0)
+      return Error(SmallK);
+    if (dataSet.pointSize() < k)
+      return Error("k is larger than the current dimensions");
     mAlgorithm.init(dataSet.getData(), k);
     return OK();
   }
 
   MessageResult<void> fitTransform(DataSetClientRef sourceClient,
                                    DataSetClientRef destClient, index k) {
-            auto result = fit(sourceClient, k);
-            if (!result.ok()) return result;
-            result = transform(sourceClient, destClient);
-            return result;
-}
+    auto result = fit(sourceClient, k);
+    if (!result.ok())
+      return result;
+    result = transform(sourceClient, destClient);
+    return result;
+  }
 
   MessageResult<void> transform(DataSetClientRef sourceClient,
                                 DataSetClientRef destClient) const {
@@ -63,40 +92,37 @@ public:
   }
 
   MessageResult<void> transformPoint(BufferPtr in, BufferPtr out) const {
-    if (!in || !out)
-      return Error(NoBuffer);
-    BufferAdaptor::Access inBuf(in.get());
-    BufferAdaptor::Access outBuf(out.get());
-    if(!inBuf.exists()) return Error(InvalidBuffer);
-    if(!outBuf.exists()) return Error(InvalidBuffer);
-    if (inBuf.numFrames() != mAlgorithm.dims())
-      return Error(WrongPointSize);
-    if (!mAlgorithm.initialized())
-      return Error(NoDataFitted);
-    Result resizeResult = outBuf.resize(mAlgorithm.size(), 1, inBuf.sampleRate());
-    if (!resizeResult.ok())
-      return Error(BufferAlloc);
+    if (!mAlgorithm.initialized()) return Error(NoDataFitted);
+    InOutBuffersCheck bufCheck(mAlgorithm.dims());
+    if (!bufCheck.checkInputs(in.get(), out.get())) return Error(bufCheck.error());
+    Result resizeResult =
+        bufCheck.out().resize(mAlgorithm.size(), 1, bufCheck.in().sampleRate());
+    if (!resizeResult.ok()) return Error(BufferAlloc);
     FluidTensor<double, 1> src(mAlgorithm.dims());
     FluidTensor<double, 1> dest(mAlgorithm.size());
-    src = inBuf.samps(0, mAlgorithm.dims(), 0);
+    src = bufCheck.in().samps(0, mAlgorithm.dims(), 0);
     mAlgorithm.processFrame(src, dest);
-    outBuf.samps(0) = dest;
+    bufCheck.out().samps(0) = dest;
     return {};
   }
+
+  index latency() { return 0; }
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &PCAClient::fit),
                          makeMessage("transform", &PCAClient::transform),
                          makeMessage("fitTransform", &PCAClient::fitTransform),
-                         makeMessage("transformPoint",&PCAClient::transformPoint),
+                         makeMessage("transformPoint",
+                                     &PCAClient::transformPoint),
                          makeMessage("cols", &PCAClient::dims),
                          makeMessage("size", &PCAClient::size),
                          makeMessage("load", &PCAClient::load),
                          makeMessage("dump", &PCAClient::dump),
                          makeMessage("read", &PCAClient::read),
                          makeMessage("write", &PCAClient::write));
+private:
+  FluidInputTrigger mTrigger;
 };
 
-using NRTThreadedPCAClient = NRTThreadingAdaptor<ClientWrapper<PCAClient>>;
-
+using RTPCAClient = ClientWrapper<PCAClient>;
 } // namespace client
 } // namespace fluid
