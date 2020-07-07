@@ -4,7 +4,6 @@
 #include "LabelSetClient.hpp"
 #include "NRTClient.hpp"
 #include "algorithms/KMeans.hpp"
-#include "clients/common/FluidInputTrigger.hpp"
 #include <string>
 
 namespace fluid {
@@ -37,28 +36,22 @@ public:
     controlChannelsOut(1);
   }
 
-  template <typename T> Result process(FluidContext &) { return {}; }
-
   template <typename T>
   void process(std::vector<FluidTensorView<T, 1>> &input,
                std::vector<FluidTensorView<T, 1>> &output, FluidContext &)
   {
-    auto inputBuffer = get<kInputBuffer>().get();
-    auto outputBuffer = get<kOutputBuffer>().get();
-    if(!inputBuffer || !outputBuffer) return;
-    BufferAdaptor::ReadAccess in(inputBuffer);
-    BufferAdaptor::Access out(outputBuffer);
-    if(!in.exists() ||!in.valid() ||!out.exists()) return;
     if (!mAlgorithm.trained()) return;
-    if (in.numFrames() != mAlgorithm.dims()) return;
+    InOutBuffersCheck bufCheck(mAlgorithm.dims());
+    if(!bufCheck.checkInputs(
+      get<kInputBuffer>().get(),
+      get<kOutputBuffer>().get()))
+      return;
     RealVector point(mAlgorithm.dims());
-    point = in.samps(0, mAlgorithm.dims(), 0);
+    point = bufCheck.in().samps(0, mAlgorithm.dims(), 0);
     mTrigger.process(input, output, [&](){
-      out.samps(0)[0] = mAlgorithm.vq(point);
+      bufCheck.out().samps(0)[0] = mAlgorithm.vq(point);
     });
   }
-
-  index latency() { return 0; }
 
   MessageResult<IndexVector> fit(DataSetClientRef datasetClient, index k,
                                  index maxIter) {
@@ -132,19 +125,15 @@ public:
   }
 
   MessageResult<index> predictPoint(BufferPtr data) const {
-    if (!data)
-      return Error<index>(NoBuffer);
-    if (!mAlgorithm.trained())
-      return Error<index>(NoDataFitted);
-    BufferAdaptor::Access buf(data.get());
-    if (!buf.exists())
-      return Error<index>(InvalidBuffer);
-    if (buf.numFrames() != mAlgorithm.dims())
-      return Error<index>(WrongPointSize);
+    if (!mAlgorithm.trained()) return Error<index>(NoDataFitted);
+    InBufferCheck bufCheck(mAlgorithm.dims());
+    if(!bufCheck.checkInputs(data.get())) return Error<index>(bufCheck.error());
     RealVector point(mAlgorithm.dims());
-    point = buf.samps(0, mAlgorithm.dims(), 0);
+    point = bufCheck.in().samps(0, mAlgorithm.dims(), 0);
     return mAlgorithm.vq(point);
   }
+
+  index latency() { return 0; }
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &KMeansClient::fit),
                          makeMessage("predict", &KMeansClient::predict),
@@ -181,9 +170,6 @@ private:
 };
 
 using RTKMeansClient = ClientWrapper<KMeansClient>;
-
-using NRTThreadedKMeansClient =
-    NRTThreadingAdaptor<ClientWrapper<KMeansClient>>;
 
 } // namespace client
 } // namespace fluid
