@@ -1,4 +1,4 @@
-include/clients/nrt/KNNClassifierClient.hpp#pragma once
+#pragma once
 
 #include "NRTClient.hpp"
 #include "DataSetClient.hpp"
