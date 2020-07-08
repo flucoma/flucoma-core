@@ -1,8 +1,9 @@
-#pragma once
+include/clients/nrt/KNNClassifierClient.hpp#pragma once
 
 #include "NRTClient.hpp"
 #include "DataSetClient.hpp"
 #include "LabelSetClient.hpp"
+#include "algorithms/LabelSetEncoder.hpp"
 #include "algorithms/KNNClassifier.hpp"
 
 namespace fluid {
@@ -31,9 +32,11 @@ void from_json(const nlohmann::json& j, KNNClassifierData& data) {
   data.labels = j.at("labels").get<FluidDataSet<std::string, std::string, 1>>();
 }
 
-class KNNClassifierClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject,
-  public DataClient<KNNClassifierData> {
-  enum { kNDims, kK };
+class KNNClassifierClient : public FluidBaseClient,
+                     AudioIn,
+                     ControlOut,
+                     ModelObject,
+                     public DataClient<KNNClassifierData> {
 
 public:
   using string = std::string;
@@ -42,11 +45,42 @@ public:
   using DataSet = FluidDataSet<string, double, 1>;
   using StringVector = FluidTensor<string, 1>;
 
-  template <typename T> Result process(FluidContext &) { return {}; }
+  enum {kNumNeighbors, kInputBuffer, kOutputBuffer};
 
-  FLUID_DECLARE_PARAMS();
+  FLUID_DECLARE_PARAMS(
+    LongParam("numNeighbors","Number of nearest neighbors", 3),
+    BufferParam("inputPointBuffer","Input Point Buffer"),
+    BufferParam("predictionBuffer","Prediction Buffer")
+  );
 
-  KNNClassifierClient(ParamSetViewType &p) : mParams(p)  {}
+  KNNClassifierClient(ParamSetViewType &p) : mParams(p)
+  {
+    audioChannelsIn(1);
+    controlChannelsOut(1);
+  }
+
+
+  template <typename T>
+  void process(std::vector<FluidTensorView<T, 1>> &input,
+               std::vector<FluidTensorView<T, 1>> &output, FluidContext &)
+  {
+    index k = get<kNumNeighbors>();
+    if(k == 0 || mTree.size() == 0 || mTree.size() < k) return;
+    InOutBuffersCheck bufCheck(mTree.dims());
+    if(!bufCheck.checkInputs(
+      get<kInputBuffer>().get(),
+      get<kOutputBuffer>().get()))
+      return;
+    algorithm::KNNClassifier classifier;
+    RealVector point(mTree.dims());
+    point = bufCheck.in().samps(0, mTree.dims(), 0);
+    mTrigger.process(input, output, [&](){
+      std::string result = classifier.predict(mTree, point, mLabels, k, true);
+      bufCheck.out().samps(0)[0] = static_cast<double>(
+        mLabelSetEncoder.encodeIndex(result)
+      );
+    });
+  }
 
   MessageResult<string> fit(
     DataSetClientRef datasetClient,
@@ -64,23 +98,21 @@ public:
     mTree = algorithm::KDTree{dataset};
     mLabels = labelSet;
     mAlgorithm = {mTree, mLabels};
+    mLabelSetEncoder.fit(mLabels);
     return {};
   }
 
   MessageResult<string> predictPoint(
     BufferPtr data, fluid::index k, bool uniform) const
     {
-    algorithm::KNNClassifier classifier;
-    if (!data) return Error<string>(NoBuffer);
     if(k == 0) return Error<string>(SmallK);
     if(mTree.size() == 0) return Error<string>(NoDataFitted);
     if (mTree.size() < k) return Error<string>(NotEnoughData);
-    BufferAdaptor::Access buf(data.get());
-    if(!buf.exists()) return Error<string>(InvalidBuffer);
-    if (buf.numFrames() != mTree.dims()) return Error<string>(WrongPointSize);
-
+    InBufferCheck bufCheck(mTree.dims());
+    if(!bufCheck.checkInputs(data.get())) return Error<string>(bufCheck.error());
+    algorithm::KNNClassifier classifier;
     RealVector point(mTree.dims());
-    point = buf.samps(0, mTree.dims(), 0);
+    point = bufCheck.in().samps(0, mTree.dims(), 0);
     std::string result = classifier.predict(mTree, point, mLabels, k, !uniform);
     return result;
   }
@@ -114,7 +146,7 @@ public:
     destPtr->setLabelSet(result);
     return OK();
   }
-
+  index latency() { return 0; }
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit",
                          &KNNClassifierClient::fit),
@@ -132,9 +164,10 @@ public:
 private:
   algorithm::KDTree mTree{0};
   LabelSet mLabels{1};
+  FluidInputTrigger mTrigger;
+  algorithm::LabelSetEncoder mLabelSetEncoder;
 };
 
-using NRTThreadedKNNClassifierClient = NRTThreadingAdaptor<ClientWrapper<KNNClassifierClient>>;
-
+using RTKNNClassifierClient = ClientWrapper<KNNClassifierClient>;
 } // namespace client
 } // namespace fluid
