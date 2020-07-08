@@ -42,11 +42,10 @@ public:
   using StringVector = FluidTensor<string, 1>;
 
   enum { kNumNeighbors, kInputBuffer, kOutputBuffer };
-  FLUID_DECLARE_PARAMS(
-    LongParam("numNeighbors","Number of nearest neighbors", 3),
-    BufferParam("inputPointBuffer","Input Point Buffer"),
-    BufferParam("predictionBuffer","Prediction Buffer")
-  );
+  FLUID_DECLARE_PARAMS(LongParam("numNeighbors", "Number of nearest neighbors",
+                                 3),
+                       BufferParam("inputPointBuffer", "Input Point Buffer"),
+                       BufferParam("predictionBuffer", "Prediction Buffer"));
 
   KNNRegressorClient(ParamSetViewType &p) : mParams(p) {
     audioChannelsIn(1);
@@ -55,19 +54,18 @@ public:
 
   template <typename T>
   void process(std::vector<FluidTensorView<T, 1>> &input,
-               std::vector<FluidTensorView<T, 1>> &output, FluidContext &)
-  {
+               std::vector<FluidTensorView<T, 1>> &output, FluidContext &) {
     index k = get<kNumNeighbors>();
-    if(k == 0 || mTree.size() == 0 || mTree.size() < k) return;
+    if (k == 0 || mTree.size() == 0 || mTree.size() < k)
+      return;
     InOutBuffersCheck bufCheck(mTree.dims());
-    if(!bufCheck.checkInputs(
-      get<kInputBuffer>().get(),
-      get<kOutputBuffer>().get()))
+    if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
+                              get<kOutputBuffer>().get()))
       return;
     algorithm::KNNRegressor regressor;
     RealVector point(mTree.dims());
     point = bufCheck.in().samps(0, mTree.dims(), 0);
-    mTrigger.process(input, output, [&](){
+    mTrigger.process(input, output, [&]() {
       double result = regressor.predict(mTree, mTarget, point, k, true);
       bufCheck.out().samps(0)[0] = result;
     });
@@ -99,22 +97,16 @@ public:
 
   MessageResult<double> predictPoint(BufferPtr data, fluid::index k,
                                      bool uniform) const {
+    if (k == 0) return Error<double>(SmallK);
+    if (mTree.size() == 0) return Error<double>(NoDataFitted);
+    if (mTree.size() < k) return Error<double>(NotEnoughData);
+    InBufferCheck bufCheck(mTree.dims());
+    if (!bufCheck.checkInputs(data.get()))
+      return Error<double>(bufCheck.error());
+
     algorithm::KNNRegressor regressor;
-    if (!data)
-      return Error<double>(NoBuffer);
-    if (k == 0)
-      return Error<double>(SmallK);
-    if (mTree.size() == 0)
-      return Error<double>(NoDataFitted);
-    if (mTree.size() < k)
-      return Error<double>(NotEnoughData);
-    BufferAdaptor::Access buf(data.get());
-    if (!buf.exists())
-      return Error<double>(InvalidBuffer);
-    if (buf.numFrames() != mTree.dims())
-      return Error<double>(WrongPointSize);
     RealVector point(mTree.dims());
-    point = buf.samps(0, mTree.dims(), 0);
+    point = bufCheck.in().samps(0, mTree.dims(), 0);
     double result = regressor.predict(mTree, mTarget, point, k, !uniform);
     return result;
   }
