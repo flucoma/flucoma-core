@@ -1,14 +1,17 @@
 #pragma once
 
-#include "NRTClient.hpp"
 #include "DataSetClient.hpp"
+#include "NRTClient.hpp"
 #include "algorithms/Standardization.hpp"
 
 namespace fluid {
 namespace client {
 
-class StandardizeClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject,
-  public DataClient<algorithm::Standardization>  {
+class StandardizeClient : public FluidBaseClient,
+                          AudioIn,
+                          ControlOut,
+                          ModelObject,
+                          public DataClient<algorithm::Standardization> {
 
 public:
   using string = std::string;
@@ -16,10 +19,32 @@ public:
   using StringVector = FluidTensor<string, 1>;
 
   template <typename T> Result process(FluidContext &) { return {}; }
+  enum { kInputBuffer, kOutputBuffer };
+  FLUID_DECLARE_PARAMS(BufferParam("inputPointBuffer", "Input Point Buffer"),
+                       BufferParam("predictionBuffer", "Prediction Buffer"));
 
-  FLUID_DECLARE_PARAMS();
+  StandardizeClient(ParamSetViewType &p) : mParams(p) {
+    audioChannelsIn(1);
+    controlChannelsOut(1);
+  }
 
-  StandardizeClient(ParamSetViewType &p): mParams(p)  {}
+  template <typename T>
+  void process(std::vector<FluidTensorView<T, 1>> &input,
+               std::vector<FluidTensorView<T, 1>> &output, FluidContext &) {
+    if (!mAlgorithm.initialized()) return;
+    InOutBuffersCheck bufCheck(mAlgorithm.dims());
+    if (!bufCheck.checkInputs(get<kInputBuffer>().get(), get<kOutputBuffer>().get()))
+      return;
+    RealVector src(mDims);
+    RealVector dest(mDims);
+    src = bufCheck.in().samps(0, mDims, 0);
+    mTrigger.process(input, output, [&]() {
+      mAlgorithm.processFrame(src, dest);
+      bufCheck.out().samps(0) = dest;
+    });
+  }
+
+  index latency() { return 0; }
 
   MessageResult<void> fit(DataSetClientRef datasetClient) {
     auto weakPtr = datasetClient.get();
@@ -36,7 +61,7 @@ public:
   }
 
   MessageResult<void> transform(DataSetClientRef sourceClient,
-                            DataSetClientRef destClient) const {
+                                DataSetClientRef destClient) const {
     using namespace std;
     auto srcPtr = sourceClient.get().lock();
     auto destPtr = destClient.get().lock();
@@ -58,53 +83,47 @@ public:
   }
 
   MessageResult<void> transformPoint(BufferPtr in, BufferPtr out) const {
-    if (!in || !out)
-      return Error(NoBuffer);
-    BufferAdaptor::Access inBuf(in.get());
-    BufferAdaptor::Access outBuf(out.get());
-    if(!inBuf.exists()) return Error(InvalidBuffer);
-    if(!outBuf.exists()) return Error(InvalidBuffer);
-    if (inBuf.numFrames() != mDims)
-      return Error(WrongPointSize);
-    if (!mAlgorithm.initialized())
-      return Error(NoDataFitted);
-    Result resizeResult = outBuf.resize(mDims, 1, inBuf.sampleRate());
+    if (!mAlgorithm.initialized()) return Error(NoDataFitted);
+    InOutBuffersCheck bufCheck(mAlgorithm.dims());
+    if (!bufCheck.checkInputs(in.get(), out.get())) return Error(bufCheck.error());
+    Result resizeResult = bufCheck.out().resize(mDims, 1, bufCheck.in().sampleRate());
     if (!resizeResult.ok())
       return Error(BufferAlloc);
     RealVector src(mDims);
     RealVector dest(mDims);
-    src = inBuf.samps(0, mDims, 0);
+    src = bufCheck.in().samps(0, mDims, 0);
     mAlgorithm.processFrame(src, dest);
-    outBuf.samps(0) = dest;
+    bufCheck.out().samps(0) = dest;
     return OK();
   }
 
   MessageResult<void> fitTransform(DataSetClientRef sourceClient,
                                    DataSetClientRef destClient) {
-            auto result = fit(sourceClient);
-            if (!result.ok()) return result;
-            result = transform(sourceClient, destClient);
-            return result;
+    auto result = fit(sourceClient);
+    if (!result.ok())
+      return result;
+    result = transform(sourceClient, destClient);
+    return result;
   }
 
-
-  FLUID_DECLARE_MESSAGES(makeMessage("fit", &StandardizeClient::fit),
-                         makeMessage("fitTransform", &StandardizeClient::fitTransform),
-                         makeMessage("transform", &StandardizeClient::transform),
-                         makeMessage("transformPoint", &StandardizeClient::transformPoint),
-                         makeMessage("cols", &StandardizeClient::dims),
-                         makeMessage("size", &StandardizeClient::size),
-                         makeMessage("load", &StandardizeClient::load),
-                         makeMessage("dump", &StandardizeClient::dump),
-                         makeMessage("read", &StandardizeClient::read),
-                         makeMessage("write", &StandardizeClient::write));
+  FLUID_DECLARE_MESSAGES(
+      makeMessage("fit", &StandardizeClient::fit),
+      makeMessage("fitTransform", &StandardizeClient::fitTransform),
+      makeMessage("transform", &StandardizeClient::transform),
+      makeMessage("transformPoint", &StandardizeClient::transformPoint),
+      makeMessage("cols", &StandardizeClient::dims),
+      makeMessage("size", &StandardizeClient::size),
+      makeMessage("load", &StandardizeClient::load),
+      makeMessage("dump", &StandardizeClient::dump),
+      makeMessage("read", &StandardizeClient::read),
+      makeMessage("write", &StandardizeClient::write));
 
 private:
   index mDims{0};
+  FluidInputTrigger mTrigger;
 };
 
-using NRTThreadedStandardizeClient =
-    NRTThreadingAdaptor<ClientWrapper<StandardizeClient>>;
+using RTStandardizeClient = ClientWrapper<StandardizeClient>;
 
 } // namespace client
 } // namespace fluid
