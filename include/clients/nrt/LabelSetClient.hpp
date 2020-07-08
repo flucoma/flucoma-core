@@ -25,8 +25,10 @@ public:
   LabelSetClient(ParamSetViewType &p) : mParams(p) {}
 
   MessageResult<void> addLabel(string id, string label) {
+
     if(id.empty()) return Error(EmptyId);
     if(label.empty()) return Error(EmptyLabel);
+    if(mAlgorithm.dims()==0) {mAlgorithm= LabelSet(1);}
     StringVector point = {label};
     return mAlgorithm.add(id, point) ? OK() : Error(DuplicateLabel);
   }
