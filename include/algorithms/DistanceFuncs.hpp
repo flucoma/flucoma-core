@@ -11,6 +11,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include <Eigen/Core>
+#include <algorithms/util/AlgorithmUtils.hpp>
 #include <cassert>
 #include <cmath>
 #include <map>
@@ -41,9 +42,11 @@ public:
         {Distance::kManhattan,
          [](ArrayXd x, ArrayXd y) { return (x - y).abs().sum(); }},
         {Distance::kEuclidean,
-         [](ArrayXd x, ArrayXd y) { return std::sqrt((x - y).square().sum()); }},
-         {Distance::kSqEuclidean,
-          [](ArrayXd x, ArrayXd y) { return (x - y).square().sum(); }},
+         [](ArrayXd x, ArrayXd y) {
+           return std::sqrt((x - y).square().sum());
+         }},
+        {Distance::kSqEuclidean,
+         [](ArrayXd x, ArrayXd y) { return (x - y).square().sum(); }},
         {Distance::kMax,
          [](ArrayXd x, ArrayXd y) { return (x - y).abs().maxCoeff(); }},
         {Distance::kMin,
