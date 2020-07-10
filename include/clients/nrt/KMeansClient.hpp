@@ -23,10 +23,11 @@ public:
   using StringVectorView = FluidTensorView<string, 1>;
   using LabelSet = FluidDataSet<string, string, 1>;
 
-  enum {kNumClusters, kInputBuffer, kOutputBuffer};
+  enum {kNumClusters, kMaxIter, kInputBuffer, kOutputBuffer};
 
   FLUID_DECLARE_PARAMS(
-      LongParam("numClusters","Number of clusters", 4),
+      LongParam("numClusters","Number of clusters", 4, Min(1)),
+      LongParam("maxIter","Max number of iterations", 100, Min(1)),
       BufferParam("inputPointBuffer","Input Point Buffer"),
       BufferParam("predictionBuffer","Prediction Buffer")
   );
@@ -54,15 +55,14 @@ public:
     });
   }
 
-  MessageResult<IndexVector> fit(DataSetClientRef datasetClient, index maxIter) {
+  MessageResult<IndexVector> fit(DataSetClientRef datasetClient) {
     index k = get<kNumClusters>();
+    index maxIter = get<kMaxIter>();
     auto datasetClientPtr = datasetClient.get().lock();
-    if (!datasetClientPtr)
-      return Error<IndexVector>(NoDataSet);
+    if (!datasetClientPtr) return Error<IndexVector>(NoDataSet);
     auto dataSet = datasetClientPtr->getDataSet();
     if (dataSet.size() == 0) return Error<IndexVector>(EmptyDataSet);
     if (k <= 1) return Error<IndexVector>(SmallK);
-    if (maxIter <= 0) maxIter = 100;
     mAlgorithm.init(k, dataSet.dims());
     mAlgorithm.train(dataSet, maxIter);
     IndexVector assignments(dataSet.size());
@@ -71,8 +71,9 @@ public:
   }
 
   MessageResult<IndexVector> fitPredict(DataSetClientRef datasetClient,
-                                        LabelSetClientRef labelsetClient, index maxIter) {
+                                        LabelSetClientRef labelsetClient) {
     index k = get<kNumClusters>();
+    index maxIter = get<kMaxIter>();
     auto datasetClientPtr = datasetClient.get().lock();
     if (!datasetClientPtr)
       return Error<IndexVector>(NoDataSet);
