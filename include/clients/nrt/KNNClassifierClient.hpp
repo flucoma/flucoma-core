@@ -104,8 +104,9 @@ public:
   }
 
   MessageResult<string> predictPoint(
-    BufferPtr data, fluid::index k, bool uniform) const
+    BufferPtr data) const
   {
+    index k = get<kNumNeighbors>();
     bool weight = get<kWeight>() != 0;
     if(k == 0) return Error<string>(SmallK);
     if(mTree.size() == 0) return Error<string>(NoDataFitted);
@@ -121,8 +122,9 @@ public:
 
   MessageResult<void> predict(
     DataSetClientRef source,
-    LabelSetClientRef dest, fluid::index k, bool uniform) const
+    LabelSetClientRef dest) const
   {
+    index k = get<kNumNeighbors>();
     bool weight = get<kWeight>() != 0;
     auto sourcePtr = source.get().lock();
     if(!sourcePtr) return Error(NoDataSet);
