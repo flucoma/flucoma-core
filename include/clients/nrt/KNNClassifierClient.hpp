@@ -45,10 +45,11 @@ public:
   using DataSet = FluidDataSet<string, double, 1>;
   using StringVector = FluidTensor<string, 1>;
 
-  enum {kNumNeighbors, kInputBuffer, kOutputBuffer};
+  enum {kNumNeighbors, kWeight, kInputBuffer, kOutputBuffer};
 
   FLUID_DECLARE_PARAMS(
     LongParam("numNeighbors","Number of nearest neighbors", 3),
+    EnumParam("weight", "Weight neighbors by distance", 1, "No", "Yes"),
     BufferParam("inputPointBuffer","Input Point Buffer"),
     BufferParam("predictionBuffer","Prediction Buffer")
   );
@@ -59,12 +60,12 @@ public:
     controlChannelsOut(1);
   }
 
-
   template <typename T>
   void process(std::vector<FluidTensorView<T, 1>> &input,
                std::vector<FluidTensorView<T, 1>> &output, FluidContext &)
   {
     index k = get<kNumNeighbors>();
+    bool weight = get<kWeight>() != 0;
     if(k == 0 || mTree.size() == 0 || mTree.size() < k) return;
     InOutBuffersCheck bufCheck(mTree.dims());
     if(!bufCheck.checkInputs(
@@ -75,7 +76,7 @@ public:
     RealVector point(mTree.dims());
     point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, mTree.dims(), 0);
     mTrigger.process(input, output, [&](){
-      std::string result = classifier.predict(mTree, point, mLabels, k, true);
+      std::string result = classifier.predict(mTree, point, mLabels, k, weight);
       BufferAdaptor::Access(get<kOutputBuffer>().get()).samps(0)[0] = static_cast<double>(
         mLabelSetEncoder.encodeIndex(result)
       );
@@ -104,7 +105,8 @@ public:
 
   MessageResult<string> predictPoint(
     BufferPtr data, fluid::index k, bool uniform) const
-    {
+  {
+    bool weight = get<kWeight>() != 0;
     if(k == 0) return Error<string>(SmallK);
     if(mTree.size() == 0) return Error<string>(NoDataFitted);
     if (mTree.size() < k) return Error<string>(NotEnoughData);
@@ -113,14 +115,15 @@ public:
     algorithm::KNNClassifier classifier;
     RealVector point(mTree.dims());
     point = BufferAdaptor::ReadAccess(data.get()).samps(0, mTree.dims(), 0);
-    std::string result = classifier.predict(mTree, point, mLabels, k, !uniform);
+    std::string result = classifier.predict(mTree, point, mLabels, k, weight);
     return result;
   }
 
   MessageResult<void> predict(
     DataSetClientRef source,
     LabelSetClientRef dest, fluid::index k, bool uniform) const
-    {
+  {
+    bool weight = get<kWeight>() != 0;
     auto sourcePtr = source.get().lock();
     if(!sourcePtr) return Error(NoDataSet);
     auto dataSet = sourcePtr->getDataSet();
@@ -139,7 +142,7 @@ public:
     for (index i = 0; i < dataSet.size(); i++) {
       RealVectorView point = data.row(i);
       StringVector label = {
-        classifier.predict(mTree, point, mLabels, k, !uniform)
+        classifier.predict(mTree, point, mLabels, k, weight)
       };
       result.add(ids(i), label);
     }
