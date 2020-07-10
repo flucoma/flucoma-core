@@ -41,11 +41,14 @@ public:
   using DataSet = FluidDataSet<string, double, 1>;
   using StringVector = FluidTensor<string, 1>;
 
-  enum { kNumNeighbors, kInputBuffer, kOutputBuffer };
-  FLUID_DECLARE_PARAMS(LongParam("numNeighbors", "Number of nearest neighbors",
-                                 3),
-                       BufferParam("inputPointBuffer", "Input Point Buffer"),
-                       BufferParam("predictionBuffer", "Prediction Buffer"));
+  enum {kNumNeighbors, kWeight, kInputBuffer, kOutputBuffer};
+
+  FLUID_DECLARE_PARAMS(
+    LongParam("numNeighbors","Number of nearest neighbors", 3),
+    EnumParam("weight", "Weight neighbors by distance", 1, "No", "Yes"),
+    BufferParam("inputPointBuffer","Input Point Buffer"),
+    BufferParam("predictionBuffer","Prediction Buffer")
+  );
 
   KNNRegressorClient(ParamSetViewType &p) : mParams(p) {
     audioChannelsIn(1);
@@ -56,6 +59,7 @@ public:
   void process(std::vector<FluidTensorView<T, 1>> &input,
                std::vector<FluidTensorView<T, 1>> &output, FluidContext &) {
     index k = get<kNumNeighbors>();
+    bool weight = get<kWeight>() != 0;
     if (k == 0 || mTree.size() == 0 || mTree.size() < k)
       return;
     InOutBuffersCheck bufCheck(mTree.dims());
@@ -66,7 +70,7 @@ public:
     RealVector point(mTree.dims());
     point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, mTree.dims(), 0);
     mTrigger.process(input, output, [&]() {
-      double result = regressor.predict(mTree, mTarget, point, k, true);
+      double result = regressor.predict(mTree, mTarget, point, k, weight);
         BufferAdaptor::Access(get<kOutputBuffer>().get()).samps(0)[0] = result;
     });
   }
@@ -95,41 +99,35 @@ public:
     return {};
   }
 
-  MessageResult<double> predictPoint(BufferPtr data, fluid::index k,
-                                     bool uniform) const {
+  MessageResult<double> predictPoint(BufferPtr data) const {
+    index k = get<kNumNeighbors>();
+    bool weight = get<kWeight>() != 0;
     if (k == 0) return Error<double>(SmallK);
     if (mTree.size() == 0) return Error<double>(NoDataFitted);
     if (mTree.size() < k) return Error<double>(NotEnoughData);
     InBufferCheck bufCheck(mTree.dims());
     if (!bufCheck.checkInputs(data.get()))
       return Error<double>(bufCheck.error());
-
     algorithm::KNNRegressor regressor;
     RealVector point(mTree.dims());
     point = BufferAdaptor::ReadAccess(data.get()).samps(0, mTree.dims(), 0);
-    double result = regressor.predict(mTree, mTarget, point, k, !uniform);
+    double result = regressor.predict(mTree, mTarget, point, k, weight);
     return result;
   }
 
-  MessageResult<void> predict(DataSetClientRef source, DataSetClientRef dest,
-                              fluid::index k, bool uniform) const {
+  MessageResult<void> predict(DataSetClientRef source, DataSetClientRef dest) const {
+    index k = get<kNumNeighbors>();
+    bool weight = get<kWeight>() != 0;
     auto sourcePtr = source.get().lock();
-    if (!sourcePtr)
-      return Error(NoDataSet);
+    if (!sourcePtr) return Error(NoDataSet);
     auto dataSet = sourcePtr->getDataSet();
-    if (dataSet.size() == 0)
-      return Error(EmptyDataSet);
+    if (dataSet.size() == 0) return Error(EmptyDataSet);
     auto destPtr = dest.get().lock();
-    if (!destPtr)
-      return Error(NoDataSet);
-    if (dataSet.pointSize() != mTree.dims())
-      return Error(WrongPointSize);
-    if (k == 0)
-      return Error(SmallK);
-    if (mTree.size() == 0)
-      return Error(NoDataFitted);
-    if (mTree.size() < k)
-      return Error(NotEnoughData);
+    if (!destPtr) return Error(NoDataSet);
+    if (dataSet.pointSize() != mTree.dims()) return Error(WrongPointSize);
+    if (k == 0) return Error(SmallK);
+    if (mTree.size() == 0) return Error(NoDataFitted);
+    if (mTree.size() < k) return Error(NotEnoughData);
 
     algorithm::KNNRegressor regressor;
     auto ids = dataSet.getIds();
@@ -138,7 +136,8 @@ public:
     for (index i = 0; i < dataSet.size(); i++) {
       RealVectorView point = data.row(i);
       RealVector prediction = {
-          regressor.predict(mTree, mTarget, point, k, !uniform)};
+        regressor.predict(mTree, mTarget, point, k, weight)
+      };
       result.add(ids(i), prediction);
     }
     destPtr->setDataSet(result);
