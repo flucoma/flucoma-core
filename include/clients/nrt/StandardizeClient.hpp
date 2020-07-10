@@ -37,10 +37,10 @@ public:
       return;
     RealVector src(mDims);
     RealVector dest(mDims);
-    src = bufCheck.in().samps(0, mDims, 0);
+    src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, mDims, 0);
     mTrigger.process(input, output, [&]() {
       mAlgorithm.processFrame(src, dest);
-      bufCheck.out().samps(0) = dest;
+      BufferAdaptor::Access(get<kOutputBuffer>().get()).samps(0) = dest;
     });
   }
 
@@ -86,14 +86,15 @@ public:
     if (!mAlgorithm.initialized()) return Error(NoDataFitted);
     InOutBuffersCheck bufCheck(mAlgorithm.dims());
     if (!bufCheck.checkInputs(in.get(), out.get())) return Error(bufCheck.error());
-    Result resizeResult = bufCheck.out().resize(mDims, 1, bufCheck.in().sampleRate());
+    BufferAdaptor::Access outBuf(out.get());
+    Result resizeResult = outBuf.resize(mDims, 1, outBuf.sampleRate());
     if (!resizeResult.ok())
       return Error(BufferAlloc);
     RealVector src(mDims);
     RealVector dest(mDims);
-    src = bufCheck.in().samps(0, mDims, 0);
+    src = BufferAdaptor::ReadAccess(in.get()).samps(0, mDims, 0);
     mAlgorithm.processFrame(src, dest);
-    bufCheck.out().samps(0) = dest;
+    outBuf.samps(0) = dest;
     return OK();
   }
 

@@ -64,10 +64,10 @@ public:
       return;
     algorithm::KNNRegressor regressor;
     RealVector point(mTree.dims());
-    point = bufCheck.in().samps(0, mTree.dims(), 0);
+    point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, mTree.dims(), 0);
     mTrigger.process(input, output, [&]() {
       double result = regressor.predict(mTree, mTarget, point, k, true);
-      bufCheck.out().samps(0)[0] = result;
+        BufferAdaptor::Access(get<kOutputBuffer>().get()).samps(0)[0] = result;
     });
   }
 
@@ -106,7 +106,7 @@ public:
 
     algorithm::KNNRegressor regressor;
     RealVector point(mTree.dims());
-    point = bufCheck.in().samps(0, mTree.dims(), 0);
+    point = BufferAdaptor::ReadAccess(data.get()).samps(0, mTree.dims(), 0);
     double result = regressor.predict(mTree, mTarget, point, k, !uniform);
     return result;
   }

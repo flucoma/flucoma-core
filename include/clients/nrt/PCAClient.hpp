@@ -38,10 +38,10 @@ public:
         get<kOutputBuffer>().get())) return;
     RealVector src(mAlgorithm.dims());
     RealVector dest(mAlgorithm.size());
-    src = bufCheck.in().samps(0, mAlgorithm.dims(), 0);
+    src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, mAlgorithm.dims(), 0);
     mTrigger.process(input, output, [&]() {
       mAlgorithm.processFrame(src, dest);
-      bufCheck.out().samps(0) = dest;
+      BufferAdaptor::Access(get<kOutputBuffer>().get()).samps(0) = dest;
     });
   }
 
@@ -95,14 +95,14 @@ public:
     if (!mAlgorithm.initialized()) return Error(NoDataFitted);
     InOutBuffersCheck bufCheck(mAlgorithm.dims());
     if (!bufCheck.checkInputs(in.get(), out.get())) return Error(bufCheck.error());
-    Result resizeResult =
-        bufCheck.out().resize(mAlgorithm.size(), 1, bufCheck.in().sampleRate());
+    BufferAdaptor::Access outBuf(out.get());
+    Result resizeResult = outBuf.resize(mAlgorithm.size(), 1, outBuf.sampleRate());
     if (!resizeResult.ok()) return Error(BufferAlloc);
     FluidTensor<double, 1> src(mAlgorithm.dims());
     FluidTensor<double, 1> dest(mAlgorithm.size());
-    src = bufCheck.in().samps(0, mAlgorithm.dims(), 0);
+    src = BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
     mAlgorithm.processFrame(src, dest);
-    bufCheck.out().samps(0) = dest;
+    BufferAdaptor::Access(out.get()).samps(0) = dest;
     return {};
   }
 

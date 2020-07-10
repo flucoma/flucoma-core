@@ -18,27 +18,25 @@ protected:
 class InBufferCheck : public ClientInputCheck {
 public:
   InBufferCheck(index size) : mInputSize(size){};
-  bool checkInputs(BufferAdaptor *inputPtr) {
+  bool checkInputs(BufferAdaptor* inputPtr) {
     if (!inputPtr) {
       mErrorMessage = NoBuffer;
       return false;
     }
-    mIn = BufferAdaptor::ReadAccess(inputPtr);
-    if (!mIn.exists() || !mIn.valid()) {
+    BufferAdaptor::ReadAccess buf(inputPtr);
+    if (!buf.exists() || !buf.valid()) {
       mErrorMessage = InvalidBuffer;
       return false;
     }
-    if (mIn.numFrames() != mInputSize) {
+    if (buf.numFrames() != mInputSize) {
       mErrorMessage = WrongPointSize;
       return false;
     }
     return true;
   }
-  BufferAdaptor::ReadAccess &in() { return mIn; }
 
 protected:
   index mInputSize;
-  BufferAdaptor::ReadAccess mIn{nullptr};
 };
 
 class InOutBuffersCheck : public InBufferCheck {
@@ -48,14 +46,10 @@ public:
   bool checkInputs(BufferAdaptor *inputPtr, BufferAdaptor *outputPtr) {
     if(!InBufferCheck::checkInputs(inputPtr)){return false;}
     if (!outputPtr) { mErrorMessage = NoBuffer;return false;}
-    mOut = BufferAdaptor::Access(outputPtr);
-    if (!mOut.exists()) { mErrorMessage = InvalidBuffer; return false;}
+    BufferAdaptor::Access buf(outputPtr);
+    if (!buf.exists()) { mErrorMessage = InvalidBuffer; return false;}
     return true;
   }
-  BufferAdaptor::Access &out() { return mOut; }
-
-private:
-  BufferAdaptor::Access mOut{nullptr};
 };
 
 } // namespace client

@@ -47,9 +47,9 @@ public:
       get<kOutputBuffer>().get()))
       return;
     RealVector point(mAlgorithm.dims());
-    point = bufCheck.in().samps(0, mAlgorithm.dims(), 0);
+    point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, mAlgorithm.dims(), 0);
     mTrigger.process(input, output, [&](){
-      bufCheck.out().samps(0)[0] = mAlgorithm.vq(point);
+       BufferAdaptor::Access(get<kOutputBuffer>().get()).samps(0)[0] = mAlgorithm.vq(point);
     });
   }
 
@@ -123,13 +123,12 @@ public:
     labelsetClientPtr->setLabelSet(getLabels(ids, assignments));
     return getCounts(assignments, mAlgorithm.getK());
   }
-
   MessageResult<index> predictPoint(BufferPtr data) const {
     if (!mAlgorithm.trained()) return Error<index>(NoDataFitted);
     InBufferCheck bufCheck(mAlgorithm.dims());
     if(!bufCheck.checkInputs(data.get())) return Error<index>(bufCheck.error());
     RealVector point(mAlgorithm.dims());
-    point = bufCheck.in().samps(0, mAlgorithm.dims(), 0);
+    point = BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0);
     return mAlgorithm.vq(point);
   }
 

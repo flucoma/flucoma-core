@@ -73,10 +73,10 @@ public:
       return;
     algorithm::KNNClassifier classifier;
     RealVector point(mTree.dims());
-    point = bufCheck.in().samps(0, mTree.dims(), 0);
+    point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, mTree.dims(), 0);
     mTrigger.process(input, output, [&](){
       std::string result = classifier.predict(mTree, point, mLabels, k, true);
-      bufCheck.out().samps(0)[0] = static_cast<double>(
+      BufferAdaptor::Access(get<kOutputBuffer>().get()).samps(0)[0] = static_cast<double>(
         mLabelSetEncoder.encodeIndex(result)
       );
     });
@@ -112,7 +112,7 @@ public:
     if(!bufCheck.checkInputs(data.get())) return Error<string>(bufCheck.error());
     algorithm::KNNClassifier classifier;
     RealVector point(mTree.dims());
-    point = bufCheck.in().samps(0, mTree.dims(), 0);
+    point = BufferAdaptor::ReadAccess(data.get()).samps(0, mTree.dims(), 0);
     std::string result = classifier.predict(mTree, point, mLabels, k, !uniform);
     return result;
   }

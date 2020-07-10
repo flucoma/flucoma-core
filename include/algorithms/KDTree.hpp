@@ -50,6 +50,7 @@ public:
       iota(indices.begin(), indices.end(), 0);
       mRoot = buildTree(indices, indices.begin(), indices.end(), dataset, 0);
     }
+    mInitialized = true;
   }
 
   void addNode(const string id, const RealVectorView data) {
@@ -57,7 +58,7 @@ public:
     mNPoints++;
   }
 
-  DataSet kNearest(const RealVectorView data, index k = 1) const{
+  DataSet kNearest(const RealVectorView data, index k = 1) const {
     assert(data.size() == mDims);
     knnQueue queue;
     auto result = DataSet(1);
@@ -78,6 +79,7 @@ public:
   void print() const { print(mRoot, 0); }
   index dims() const { return mDims; }
   index size() const { return mNPoints; }
+  bool initialized() const { return mInitialized; }
 
   FlatData toFlat() const{
     FlatData store(mNPoints, mDims);
@@ -89,6 +91,7 @@ public:
      mRoot = unflatten(vectors, 0);
      mNPoints = vectors.data.rows();
      mDims =  vectors.data.cols();
+     mInitialized = true;
    }
 
 private:
@@ -227,6 +230,7 @@ private:
   NodePtr mRoot{nullptr};
   index mDims;
   index mNPoints{0};
+  bool mInitialized{false};
 };
 } // namespace algorithm
 } // namespace fluid
