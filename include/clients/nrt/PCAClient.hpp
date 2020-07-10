@@ -16,9 +16,11 @@ public:
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
   using StringVector = FluidTensor<string, 1>;
 
-  enum { kInputBuffer, kOutputBuffer };
+  enum { kNumDimensions, kInputBuffer, kOutputBuffer };
 
-  FLUID_DECLARE_PARAMS(BufferParam("inputPointBuffer", "Input Point Buffer"),
+  FLUID_DECLARE_PARAMS(
+    LongParam("numDimensions", "Target number of dimensions", 2, Min(1)),
+    BufferParam("inputPointBuffer", "Input Point Buffer"),
                        BufferParam("predictionBuffer", "Prediction Buffer"));
 
   PCAClient(ParamSetViewType &p) : mParams(p)
@@ -45,15 +47,13 @@ public:
     });
   }
 
-  MessageResult<void> fit(DataSetClientRef datasetClient, index k) {
+  MessageResult<void> fit(DataSetClientRef datasetClient) {
+    index k = get<kNumDimensions>();
     auto datasetClientPtr = datasetClient.get().lock();
-    if (!datasetClientPtr)
-      return Error(NoDataSet);
+    if (!datasetClientPtr) return Error(NoDataSet);
     auto dataSet = datasetClientPtr->getDataSet();
-    if (dataSet.size() == 0)
-      return Error(EmptyDataSet);
-    if (k <= 0)
-      return Error(SmallK);
+    if (dataSet.size() == 0) return Error(EmptyDataSet);
+    if (k <= 0) return Error(SmallK);
     if (dataSet.pointSize() < k)
       return Error("k is larger than the current dimensions");
     mAlgorithm.init(dataSet.getData(), k);
@@ -61,8 +61,8 @@ public:
   }
 
   MessageResult<void> fitTransform(DataSetClientRef sourceClient,
-                                   DataSetClientRef destClient, index k) {
-    auto result = fit(sourceClient, k);
+                                   DataSetClientRef destClient) {
+    auto result = fit(sourceClient);
     if (!result.ok())
       return result;
     result = transform(sourceClient, destClient);

@@ -16,15 +16,22 @@ public:
 
   template <typename T> Result process(FluidContext &) { return {}; }
 
-  FLUID_DECLARE_PARAMS();
+  enum { kNumDimensions, kDistance};
+
+  FLUID_DECLARE_PARAMS(
+    LongParam("numDimensions", "Target number of dimensions", 2, Min(1)),
+    EnumParam("distanceMetric", "Distance metric", 1 ,
+    "Manhattan", "Euclidean", "Squared Euclidean",
+    "Max distance", "Min distance", "KL divergence")
+  );
 
   MDSClient(ParamSetViewType &p) : mParams(p) {}
 
   MessageResult<void> fitTransform(
       DataSetClientRef sourceClient,
-      DataSetClientRef destClient,
-      index k, index dist) {
-
+      DataSetClientRef destClient) {
+    index k = get<kNumDimensions>();
+    index dist = get<kDistance>();
     auto srcPtr = sourceClient.get().lock();
     auto destPtr = destClient.get().lock();
     if(!srcPtr || !destPtr) return Error(NoDataSet);
