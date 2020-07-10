@@ -21,7 +21,7 @@ public:
   enum { kNumNeighbors, kDataSet, kInputBuffer, kOutputBuffer };
 
   FLUID_DECLARE_PARAMS(LongParam("numNeighbors", "Number of nearest neighbors",
-                                 3),
+                                 1),
                        DataSetClientRef::makeParam("dataSet", "DataSet Name"),
                        BufferParam("inputPointBuffer", "Input Point Buffer"),
                        BufferParam("predictionBuffer", "Prediction Buffer"));
@@ -73,7 +73,8 @@ public:
     return OK();
   }
 
-  MessageResult<StringVector> kNearest(BufferPtr data, int k) const {
+  MessageResult<StringVector> kNearest(BufferPtr data) const {
+    index k = get<kNumNeighbors>();
     if (k > mAlgorithm.size()) return Error<StringVector>(SmallDataSet);
     if (k <= 0) return Error<StringVector>(SmallK);
     if (!mAlgorithm.initialized()) return Error<StringVector>(NoDataFitted);
@@ -88,8 +89,9 @@ public:
     return result;
   }
 
-  MessageResult<RealVector> kNearestDist(BufferPtr data, int k) const {
+  MessageResult<RealVector> kNearestDist(BufferPtr data) const {
     // TODO: refactor with kNearest
+    index k = get<kNumNeighbors>();
     if (k > mAlgorithm.size()) return Error<RealVector>(SmallDataSet);
     if (k <= 0) return Error<RealVector>(SmallK);
     if (!mAlgorithm.initialized()) return Error<RealVector>(NoDataFitted);
