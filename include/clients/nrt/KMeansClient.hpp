@@ -23,9 +23,10 @@ public:
   using StringVectorView = FluidTensorView<string, 1>;
   using LabelSet = FluidDataSet<string, string, 1>;
 
-  enum {kInputBuffer, kOutputBuffer};
+  enum {kNumClusters, kInputBuffer, kOutputBuffer};
 
   FLUID_DECLARE_PARAMS(
+      LongParam("numClusters","Number of clusters", 4),
       BufferParam("inputPointBuffer","Input Point Buffer"),
       BufferParam("predictionBuffer","Prediction Buffer")
   );
@@ -53,18 +54,15 @@ public:
     });
   }
 
-  MessageResult<IndexVector> fit(DataSetClientRef datasetClient, index k,
-                                 index maxIter) {
+  MessageResult<IndexVector> fit(DataSetClientRef datasetClient, index maxIter) {
+    index k = get<kNumClusters>();
     auto datasetClientPtr = datasetClient.get().lock();
     if (!datasetClientPtr)
       return Error<IndexVector>(NoDataSet);
     auto dataSet = datasetClientPtr->getDataSet();
-    if (dataSet.size() == 0)
-      return Error<IndexVector>(EmptyDataSet);
-    if (k <= 1)
-      return Error<IndexVector>(SmallK);
-    if (maxIter <= 0)
-      maxIter = 100;
+    if (dataSet.size() == 0) return Error<IndexVector>(EmptyDataSet);
+    if (k <= 1) return Error<IndexVector>(SmallK);
+    if (maxIter <= 0) maxIter = 100;
     mAlgorithm.init(k, dataSet.dims());
     mAlgorithm.train(dataSet, maxIter);
     IndexVector assignments(dataSet.size());
@@ -73,8 +71,8 @@ public:
   }
 
   MessageResult<IndexVector> fitPredict(DataSetClientRef datasetClient,
-                                        LabelSetClientRef labelsetClient,
-                                        index k, index maxIter) {
+                                        LabelSetClientRef labelsetClient, index maxIter) {
+    index k = get<kNumClusters>();
     auto datasetClientPtr = datasetClient.get().lock();
     if (!datasetClientPtr)
       return Error<IndexVector>(NoDataSet);
@@ -84,11 +82,8 @@ public:
     auto labelsetClientPtr = labelsetClient.get().lock();
     if (!labelsetClientPtr)
       return Error<IndexVector>(NoLabelSet);
-    if (k <= 1)
-      return Error<IndexVector>(SmallK);
-    if (maxIter <= 0)
-      maxIter = 100;
-    mK = k;
+    if (k <= 1) return Error<IndexVector>(SmallK);
+    if (maxIter <= 0) maxIter = 100;
     mAlgorithm.init(k, dataSet.pointSize());
     mAlgorithm.train(dataSet, maxIter);
     IndexVector assignments(dataSet.size());
@@ -164,7 +159,6 @@ private:
     return result;
   }
 
-  index mK{0};
   FluidInputTrigger mTrigger;
 };
 
