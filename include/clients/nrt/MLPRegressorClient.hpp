@@ -32,10 +32,10 @@ public:
       LongArrayParam("hidden","Hidden layer sizes", HiddenLayerDefaults),
       EnumParam("activation", "Activation function", 0, "Identity", "Sigmoid",
                 "ReLU", "Tanh"),
-      LongParam("maxiter", "Max iterations", 100),
-      FloatParam("rate", "Learning rate", 0.00001, Min(0.0), Max(0.9)),
+      LongParam("maxIter", "Maximum Number of Iterations", 100),
+      FloatParam("learnRate", "Learning Rate", 0.00001, Min(0.0), Max(0.9)),
       FloatParam("momentum", "Momentum", 0.9, Min(0.0), Max(0.99)),
-      LongParam("batchsize", "Batch size", 50)
+      LongParam("batchSize", "Batch Size", 50)
     );
 
   MLPRegressorClient(ParamSetViewType &p) : mParams(p) {}
