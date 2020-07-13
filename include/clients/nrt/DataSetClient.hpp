@@ -9,6 +9,7 @@
 namespace fluid {
 namespace client {
 
+
 class DataSetClient : public FluidBaseClient, OfflineIn, OfflineOut,
   public DataClient<FluidDataSet<std::string, double, 1>> {
   enum { kName };
@@ -17,6 +18,7 @@ public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
   using DataSet = FluidDataSet<string, double, 1>;
+
 
   template <typename T> Result process(FluidContext &) { return {}; }
   FLUID_DECLARE_PARAMS(StringParam<Fixed<true>>("name", "DataSet"));
@@ -79,6 +81,24 @@ public:
     return mAlgorithm.remove(id) ? OK() : Error(PointNotFound);
   }
 
+  MessageResult<void> merge(SharedClientRef<DataSetClient> datasetClient, bool overwrite) {
+      auto datasetClientPtr = datasetClient.get().lock();
+      if (!datasetClientPtr) return Error(NoDataSet);
+      auto srcDataSet = datasetClientPtr->getDataSet();
+      if (srcDataSet.size() == 0) return Error(EmptyDataSet);
+      if(srcDataSet.pointSize() != mAlgorithm.pointSize())
+        return Error(WrongPointSize);
+      auto ids = srcDataSet.getIds();
+      RealVector point(srcDataSet.pointSize());
+      for (index i = 0; i < srcDataSet.size(); i++) {
+        srcDataSet.get(ids(i), point);
+        bool added = mAlgorithm.add(ids(i), point);
+        if(!added && overwrite) mAlgorithm.update(ids(i), point);
+      }
+      return OK();
+    }
+
+
   MessageResult<void> clear() {mAlgorithm = DataSet(0); return OK();}
   MessageResult<string> print() {return mAlgorithm.print();}
   const DataSet getDataSet() const { return mAlgorithm; }
@@ -90,6 +110,7 @@ public:
                                      &DataSetClient::updatePoint),
                          makeMessage("deletePoint",
                                      &DataSetClient::deletePoint),
+                         makeMessage("merge", &DataSetClient::merge),
                          makeMessage("dump", &DataSetClient::dump),
                          makeMessage("load", &DataSetClient::load),
                          makeMessage("print", &DataSetClient::print),
@@ -99,6 +120,7 @@ public:
                          makeMessage("write", &DataSetClient::write),
                          makeMessage("read", &DataSetClient::read));
 };
+
 using DataSetClientRef = SharedClientRef<DataSetClient>;
 using NRTThreadedDataSetClient =
     NRTThreadingAdaptor<typename DataSetClientRef::SharedType>;
