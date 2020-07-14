@@ -16,7 +16,7 @@ class MLPRegressorClient : public FluidBaseClient,
                            public DataClient<algorithm::MLP> {
 
 
-  enum { kHidden, kActivation, kIter, kRate, kMomentum, kBatchSize };
+  enum { kHidden, kActivation, kIter, kRate, kMomentum, kBatchSize, kVal };
 
 public:
   using string = std::string;
@@ -33,9 +33,10 @@ public:
       EnumParam("activation", "Activation function", 0, "Identity", "Sigmoid",
                 "ReLU", "Tanh"),
       LongParam("maxIter", "Maximum Number of Iterations", 100),
-      FloatParam("learnRate", "Learning Rate", 0.00001, Min(0.0), Max(0.9)),
+      FloatParam("learnRate", "Learning Rate", 0.01, Min(0.0), Max(0.9)),
       FloatParam("momentum", "Momentum", 0.9, Min(0.0), Max(0.99)),
-      LongParam("batchSize", "Batch Size", 50)
+      LongParam("batchSize", "Batch Size", 50),
+      FloatParam("validation", "Validation amount", 0.2, Min(0), Max(0.9))
     );
 
   MLPRegressorClient(ParamSetViewType &p) : mParams(p) {}
@@ -67,7 +68,7 @@ public:
     auto tgt = targetDataSet.getData();
     algorithm::SGD sgd;
     double error = sgd.train(mAlgorithm, data, tgt, get<kIter>(),
-                             get<kBatchSize>(), get<kRate>(), get<kMomentum>());
+                get<kBatchSize>(), get<kRate>(), get<kMomentum>(), get<kVal>());
     return error;
   }
 

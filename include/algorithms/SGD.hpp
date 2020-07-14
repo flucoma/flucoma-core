@@ -23,7 +23,7 @@ public:
   ~SGD() = default;
 
   double train(MLP& model, const RealMatrixView in, RealMatrixView out,
-    index nIter, index batchSize, double learningRate, double momentum) {
+    index nIter, index batchSize, double learningRate, double momentum, double valFrac) {
     using namespace _impl;
     using namespace std;
     using namespace Eigen;
@@ -39,7 +39,7 @@ public:
             mt19937{random_device{}()});
     input = valPerm * input.matrix();
     output = valPerm * output.matrix();
-    index nVal = nExamples / 4;
+    index nVal = std::lround(nExamples * valFrac);
     index nTrain = nExamples - nVal;
 
     ArrayXXd trainInput = input.block(0, 0, nTrain, inputSize);
@@ -60,9 +60,8 @@ public:
       ArrayXXd outPerm = iterPerm * trainOutput.matrix();
       for (index batchStart = 0; batchStart < inPerm.rows();
            batchStart += batchSize) {
-        index thisBatchSize = (batchStart + batchSize) <= (nTrain - 1)
-                                  ? batchSize
-                                  : (nTrain - 1) - batchStart;
+        index thisBatchSize = (batchStart + batchSize) <= nTrain ?
+              batchSize: nTrain - batchStart;
         ArrayXXd batchIn =
             inPerm.block(batchStart, 0, thisBatchSize, inPerm.cols());
         ArrayXXd batchOut =
@@ -73,12 +72,14 @@ public:
         model.backward(diff);
         model.update(learningRate, momentum);
       }
-      ArrayXXd valPred = ArrayXXd::Zero(nVal, outputSize);
-      model.forward(valInput, valPred, model.size() - 1);
-      double valLoss = model.loss(valPred, valOutput);
-      if(valLoss < prevValLoss) patience = mInitialPatience;
-      else patience--;
-      if(patience <= 0) break;
+      if(nVal > 0){
+        ArrayXXd valPred = ArrayXXd::Zero(nVal, outputSize);
+        model.forward(valInput, valPred, model.size() - 1);
+        double valLoss = model.loss(valPred, valOutput);
+        if(valLoss < prevValLoss) patience = mInitialPatience;
+        else patience--;
+        if(patience <= 0) break;
+      }
     }
     ArrayXXd finalPred = ArrayXXd::Zero(nExamples, outputSize);
     model.forward(input, finalPred, model.size() - 1);
