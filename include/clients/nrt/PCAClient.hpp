@@ -19,7 +19,7 @@ public:
   enum { kNumDimensions, kInputBuffer, kOutputBuffer };
 
   FLUID_DECLARE_PARAMS(
-    LongParam("numDimensions", "Target number of dimensions", 2, Min(1)),
+    LongParam("numDimensions", "Target Number of Dimensions", 2, Min(1)),
     BufferParam("inputPointBuffer", "Input Point Buffer"),
                        BufferParam("predictionBuffer", "Prediction Buffer"));
 

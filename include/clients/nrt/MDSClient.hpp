@@ -19,10 +19,10 @@ public:
   enum { kNumDimensions, kDistance};
 
   FLUID_DECLARE_PARAMS(
-    LongParam("numDimensions", "Target number of dimensions", 2, Min(1)),
-    EnumParam("distanceMetric", "Distance metric", 1 ,
+    LongParam("numDimensions", "Target Number of Dimensions", 2, Min(1)),
+    EnumParam("distanceMetric", "Distance Metric", 1 ,
     "Manhattan", "Euclidean", "Squared Euclidean",
-    "Max distance", "Min distance", "KL divergence")
+    "Max Distance", "Min Distance", "KL Divergence")
   );
 
   MDSClient(ParamSetViewType &p) : mParams(p) {}

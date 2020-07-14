@@ -21,7 +21,7 @@ public:
 
 
   template <typename T> Result process(FluidContext &) { return {}; }
-  FLUID_DECLARE_PARAMS(StringParam<Fixed<true>>("name", "DataSet"));
+  FLUID_DECLARE_PARAMS(StringParam<Fixed<true>>("name", "Name of the DataSet"));
 
   DataSetClient(ParamSetViewType &p): mParams(p) {}
 

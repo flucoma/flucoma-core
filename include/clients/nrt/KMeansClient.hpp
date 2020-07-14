@@ -26,8 +26,8 @@ public:
   enum {kNumClusters, kMaxIter, kInputBuffer, kOutputBuffer};
 
   FLUID_DECLARE_PARAMS(
-      LongParam("numClusters","Number of clusters", 4, Min(1)),
-      LongParam("maxIter","Max number of iterations", 100, Min(1)),
+      LongParam("numClusters","Number of Clusters", 4, Min(1)),
+      LongParam("maxIter","Max number of Iterations", 100, Min(1)),
       BufferParam("inputPointBuffer","Input Point Buffer"),
       BufferParam("predictionBuffer","Prediction Buffer")
   );

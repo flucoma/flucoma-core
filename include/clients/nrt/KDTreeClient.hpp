@@ -20,7 +20,7 @@ public:
 
   enum { kNumNeighbors, kDataSet, kInputBuffer, kOutputBuffer };
 
-  FLUID_DECLARE_PARAMS(LongParam("numNeighbors", "Number of nearest neighbors",
+  FLUID_DECLARE_PARAMS(LongParam("numNeighbours", "Number of Nearest Neighbours",
                                  1),
                        DataSetClientRef::makeParam("dataSet", "DataSet Name"),
                        BufferParam("inputPointBuffer", "Input Point Buffer"),

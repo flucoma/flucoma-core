@@ -48,8 +48,8 @@ public:
   enum {kNumNeighbors, kWeight, kInputBuffer, kOutputBuffer};
 
   FLUID_DECLARE_PARAMS(
-    LongParam("numNeighbors","Number of nearest neighbors", 3, Min(1)),
-    EnumParam("weight", "Weight neighbors by distance", 1, "No", "Yes"),
+    LongParam("numNeighbours","Number of Nearest Neighbours", 3, Min(1)),
+    EnumParam("weight", "Weight Neighbours by Distance", 1, "No", "Yes"),
     BufferParam("inputPointBuffer","Input Point Buffer"),
     BufferParam("predictionBuffer","Prediction Buffer")
   );

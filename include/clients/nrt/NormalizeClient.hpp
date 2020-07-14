@@ -20,8 +20,8 @@ public:
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
   using StringVector = FluidTensor<string, 1>;
 
-  FLUID_DECLARE_PARAMS(FloatParam("min", "Minimum value", 0.0),
-                       FloatParam("max", "Maximum value", 1.0),
+  FLUID_DECLARE_PARAMS(FloatParam("min", "Minimum Value", 0.0),
+                       FloatParam("max", "Maximum Value", 1.0),
                        BufferParam("inputPointBuffer", "Input Point Buffer"),
                        BufferParam("predictionBuffer", "Prediction Buffer"));
 

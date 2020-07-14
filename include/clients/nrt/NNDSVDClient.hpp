@@ -49,7 +49,7 @@ public:
                                  "Maximum Number of Components", 200, Min(1),
                                  LowerLimit<kMinRank>()),
                        FloatParam("coverage", "Coverage", 0.5, Min(0), Max(1)),
-                       EnumParam("method", "Initialization method", 0,
+                       EnumParam("method", "Initialization Method", 0,
                                  "NMF-SVD", "NNDSVDar", "NNDSVDa", "NNDSVD"),
                        FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 

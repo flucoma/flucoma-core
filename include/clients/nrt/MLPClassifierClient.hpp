@@ -31,14 +31,14 @@ public:
   static constexpr std::initializer_list<index> HiddenLayerDefaults = {3, 3};
 
   FLUID_DECLARE_PARAMS(
-      LongArrayParam("hidden", "Hidden layer sizes", HiddenLayerDefaults),
-      EnumParam("activation", "Activation function", 1, "Identity", "Sigmoid",
+      LongArrayParam("hidden", "Hidden Layer Sizes", HiddenLayerDefaults),
+      EnumParam("activation", "Activation Function", 1, "Identity", "Sigmoid",
                 "ReLU", "Tanh"),
       LongParam("maxIter", "Maximum Number of Iterations", 10000),
       FloatParam("learnRate", "Learning Rate", 0.01, Min(0.0), Max(0.9)),
       FloatParam("momentum", "Momentum", 0.5, Min(0.0), Max(0.99)),
       LongParam("batchSize", "Batch Size", 50),
-      FloatParam("validation", "Validation amount", 0.2, Min(0), Max(0.9)));
+      FloatParam("validation", "Validation Amount", 0.2, Min(0), Max(0.9)));
 
   MLPClassifierClient(ParamSetViewType &p) : mParams(p) {}
 
