@@ -63,6 +63,10 @@ public:
     }
     return mLabels(maxIndex);
   }
+  index numLabels(){
+    return mNumLabels;
+  }
+
 
 private:
   index mNumLabels{0};
