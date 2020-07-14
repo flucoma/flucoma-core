@@ -49,13 +49,16 @@ public:
       RealVector point(mAlgorithm.dims());
       point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
         .samps(0, mAlgorithm.dims(), 0);
-      RealVector result(k * pointSize);
+      if(mRTBuffer.size() != k * pointSize){
+        mRTBuffer = RealVector(k * pointSize);
+        mRTBuffer.fill(0);
+      }
       auto nearest = mAlgorithm.kNearest(point, k);
       auto ids = nearest.getIds();
       for (index i = 0; i < k; i++) {
-        dataset.get(ids(i), result(Slice(i, i * pointSize)));
+        dataset.get(ids(i), mRTBuffer(Slice(i * pointSize, pointSize)));
       }
-      BufferAdaptor::Access(get<kOutputBuffer>().get()).samps(0) = result;
+      BufferAdaptor::Access(get<kOutputBuffer>().get()).samps(0) = mRTBuffer;
     });
   }
 
@@ -119,6 +122,7 @@ public:
 
 private:
   FluidInputTrigger mTrigger;
+  RealVector mRTBuffer;
   DataSetClientRef mDataSetClient;
 };
 
