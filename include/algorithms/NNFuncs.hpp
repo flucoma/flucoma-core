@@ -52,6 +52,7 @@ public:
     return _funcs;
   }
 
+  // derivative from output of activation
   static ActivationsMap &derivative() {
     static ActivationsMap _funcs = {
        {Activation::kLinear,
@@ -60,9 +61,7 @@ public:
         }},
         {Activation::kSigmoid,
          [](Eigen::Ref<Eigen::ArrayXXd> in, Eigen::Ref<Eigen::ArrayXXd> out) {
-           ArrayXXd sigmoid = ArrayXXd::Zero(in.rows(), in.cols());
-           activation()[Activation::kSigmoid](in, sigmoid);
-           out = sigmoid * (1 - sigmoid);
+           out = in * (1 - in);
          }},
         {Activation::kReLU,
          [](Eigen::Ref<Eigen::ArrayXXd> in, Eigen::Ref<Eigen::ArrayXXd> out){
@@ -70,9 +69,7 @@ public:
          }},
          {Activation::kTanh,
           [](Eigen::Ref<Eigen::ArrayXXd> in, Eigen::Ref<Eigen::ArrayXXd> out) {
-            ArrayXXd tanh = ArrayXXd::Zero(in.rows(), in.cols());
-            activation()[Activation::kTanh](in, tanh);
-            out = 1 - tanh.square();
+            out = 1 - in.square();
           }}
     };
     return _funcs;
