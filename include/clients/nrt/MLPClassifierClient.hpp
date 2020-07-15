@@ -35,7 +35,7 @@ public:
       EnumParam("activation", "Activation Function", 1, "Identity", "Sigmoid",
                 "ReLU", "Tanh"),
       LongParam("maxIter", "Maximum Number of Iterations", 10000),
-      FloatParam("learnRate", "Learning Rate", 0.01, Min(0.0), Max(0.9)),
+      FloatParam("learnRate", "Learning Rate", 0.01, Min(0.0), Max(1.0)),
       FloatParam("momentum", "Momentum", 0.5, Min(0.0), Max(0.99)),
       LongParam("batchSize", "Batch Size", 50),
       FloatParam("validation", "Validation Amount", 0.2, Min(0), Max(0.9)));
@@ -130,10 +130,17 @@ public:
     return label;
   }
 
+  MessageResult<void> reset() {
+    mAlgorithm.reset();
+    return OK();
+  }
+
+
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &MLPClassifierClient::fit),
                          makeMessage("predict", &MLPClassifierClient::predict),
                          makeMessage("predictPoint",
                                      &MLPClassifierClient::predictPoint),
+                         makeMessage("reset", &MLPClassifierClient::reset),
                          makeMessage("cols", &MLPClassifierClient::dims),
                          makeMessage("size", &MLPClassifierClient::size),
                          makeMessage("load", &MLPClassifierClient::load),
