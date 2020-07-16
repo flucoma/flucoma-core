@@ -6,6 +6,7 @@
 #include <algorithms/PCA.hpp>
 #include <algorithms/MLP.hpp>
 #include <algorithms/Standardization.hpp>
+#include <algorithms/LabelSetEncoder.hpp>
 #include <data/FluidDataSet.hpp>
 #include <data/FluidIndex.hpp>
 #include <data/FluidTensor.hpp>
@@ -261,19 +262,84 @@ void from_json(const nlohmann::json &j, PCA &pca) {
   pca.init(bases, mean);
 }
 
-// MLP
-void to_json(nlohmann::json &j, const MLP &mlp) {
+
+// LabelSetEncoder
+void to_json(nlohmann::json& j, const LabelSetEncoder& lse) {
+  FluidTensor<std::string, 1> labels(lse.numLabels());
+  lse.getLabels(labels);
+  j["labels"] = FluidTensorView<std::string, 1>(labels);
+  j["rows"] = labels.size();
 }
 
+bool check_json(const nlohmann::json &j, const LabelSetEncoder &) {
+  return fluid::check_json(j,
+    {"rows", "labels", "bases", "mean"},
+    {JSONTypes::NUMBER, JSONTypes::ARRAY}
+  );
+}
+
+void from_json(const nlohmann::json &j, LabelSetEncoder &lse) {
+  index rows = j.at("rows");
+  FluidTensor<std::string, 1> labels;
+  j.at("labels").get_to(labels);
+  lse.init(labels);
+}
+
+// MLP
+void to_json(nlohmann::json &j, const MLP &mlp) {
+  using namespace std;
+  for (index i = 0; i < mlp.size(); i++){
+    nlohmann::json layer;
+    index rows = mlp.inputSize(i);
+    index cols = mlp.outputSize(i);
+    RealMatrix W(rows, cols);
+    RealVector b(cols);
+    index a;
+    mlp.getParameters(i, W, b, a);
+    layer["weights"] = RealMatrixView(W);
+    layer["biases"] = RealVectorView(b);
+    layer["activation"] = a;
+    layer["rows"] =  rows;
+    layer["cols"] = cols;
+    j["layers"].push_back(layer);
+  }
+}
+
+//TODO
 bool check_json(const nlohmann::json &j, const MLP &) {
-  return true;
+  return fluid::check_json(j,
+    {"layers"},
+    {JSONTypes::ARRAY}
+  );
 }
 
 void from_json(const nlohmann::json &j, MLP &mlp) {
+  using namespace std;
+  index nLayers = j["layers"].size();
+  if(nLayers <= 0) return;
+  index inputSize = j["layers"][0]["rows"];
+  index outputSize = j["layers"][nLayers - 1]["cols"];
+  index activation = j["layers"][0]["activation"];
+  FluidTensor<index, 1> hiddenSizes(j["layers"].size() - 1);
+  if(nLayers > 1){
+    for (index i = 0; i < nLayers - 1; i++){
+      hiddenSizes(i) =  j["layers"][i]["cols"];
+    }
+  }
+  mlp.init(inputSize,outputSize, hiddenSizes,activation);
+  for (index i = 0; i < nLayers; i++){
+    auto l = j["layers"][i];
+    index rows = l["rows"];
+    index cols = l["cols"];
+    RealMatrix W(rows, cols);
+    l.at("weights").get_to(W);
+    RealVector b(cols);
+    l.at("biases").get_to(b);
+    index a = l.at("activation");
+    mlp.setParameters(i, W, b, a);
+  }
+  mlp.setTrained(true);
 }
-
-
-
 
 } // namespace algorithm
 
