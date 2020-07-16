@@ -11,19 +11,37 @@ class NNLayer {
   using MatrixXd = Eigen::MatrixXd;
   using VectorXd = Eigen::VectorXd;
   using Activation = NNActivations::Activation;
+  using LayerData = std::tuple<RealMatrixView, RealVectorView, index>;
 
 public:
   NNLayer(index inputSize, index outputSize, index actType) {
     using namespace Eigen;
     mWeights = MatrixXd::Ones(inputSize, outputSize);
     mBiases = VectorXd::Zero(outputSize);
+    mActType = actType;
     mActivation = static_cast<Activation>(actType);
+  }
+
+  void init(Eigen::Ref<MatrixXd> weights, Eigen::Ref<VectorXd> biases, index actType) {
+    mWeights = weights;
+    mBiases = biases;
+    mActType = actType;
+    mActivation = static_cast<Activation>(actType);
+    initGrads();
   }
 
   void init() {
     double dev = std::sqrt(6.0 / (mWeights.rows() + mWeights.cols()));
     mWeights = dev * MatrixXd::Random(mWeights.rows(), mWeights.cols()).array();
     mBiases = VectorXd::Zero(mWeights.cols());
+    initGrads();
+  }
+
+  MatrixXd getWeights() const {return mWeights;}
+  VectorXd getBiases() const {return mBiases;}
+  index getActType() const {return mActType;}
+
+  void initGrads(){
     mWeightsGrad = MatrixXd::Zero(mWeights.rows(), mWeights.cols());
     mBiasesGrad = VectorXd::Zero(mWeights.cols());
     mPrevWeightsUpdate = MatrixXd::Zero(mWeights.rows(), mWeights.cols());
@@ -71,6 +89,7 @@ public:
 private:
   MatrixXd mWeights;
   VectorXd mBiases;
+  index mActType;
   Activation mActivation;
 
   MatrixXd mWeightsGrad;

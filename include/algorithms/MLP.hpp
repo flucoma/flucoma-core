@@ -37,6 +37,24 @@ public:
     mTrained = false;
   }
 
+  void getParameters(index layer, RealMatrixView W, RealVectorView b, index& layerType) const {
+    using namespace _impl;
+    W = asFluid(mLayers[layer].getWeights());
+    b = asFluid(mLayers[layer].getBiases());
+    layerType = mLayers[layer].getActType();
+  }
+
+  void setParameters(index layer, RealMatrixView W, RealVectorView b, index layerType) {
+    using namespace Eigen;
+    using namespace std;
+    using namespace _impl;
+    MatrixXd weights = asEigen<Matrix>(W);
+    VectorXd biases = asEigen<Matrix>(b);
+    mLayers[layer].init(
+      weights, biases, layerType
+    );
+  }
+
   void reset() {
     for (auto &&l : mLayers)
       l.init();
@@ -105,11 +123,14 @@ public:
   bool trained() const { return mTrained; }
   void setTrained(bool val) { mTrained = val; }
   index initialized() const { return mInitialized; }
-  index outputSize(index layer = 0) const {
-    if (layer >= mLayers.size())
-      return 0;
-    else
-      return mLayers[layer].outputSize();
+  index outputSize(index layer) const {
+    return (layer >= mLayers.size() || layer < 0)?
+      0:mLayers[layer].outputSize();
+  }
+
+  index inputSize(index layer) const {
+    return (layer >= mLayers.size() || layer < 0)?
+      0:mLayers[layer].inputSize();
   }
 
   index dims() const {

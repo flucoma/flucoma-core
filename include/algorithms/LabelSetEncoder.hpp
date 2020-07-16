@@ -63,10 +63,21 @@ public:
     }
     return mLabels(maxIndex);
   }
-  index numLabels(){
+  index numLabels() const{
     return mNumLabels;
   }
 
+  void init(FluidTensor<string, 1> labels){
+    mLabelsMap.clear();
+    mLabels = labels;
+    for(index i = 0; i < mLabels.size(); i++){
+      mLabelsMap[mLabels(i)] = i;
+    }
+    mNumLabels = mLabels.size();
+  }
+  void getLabels(FluidTensorView<string, 1> out) const{
+    out = mLabels;
+  }
 
 private:
   index mNumLabels{0};

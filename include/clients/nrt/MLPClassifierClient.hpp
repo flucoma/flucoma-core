@@ -11,11 +11,34 @@
 namespace fluid {
 namespace client {
 
+  struct MLPClassifierData{
+    algorithm::MLP mlp;
+    algorithm::LabelSetEncoder encoder;
+    index size(){return mlp.size();}
+    index dims(){return mlp.dims();}
+  };
+
+  void to_json(nlohmann::json& j, const MLPClassifierData& data) {
+    j["mlp"] = data.mlp;
+    j["labels"] = data.encoder;
+  }
+
+  bool check_json(const nlohmann::json& j, const MLPClassifierData&){
+    return fluid::check_json(j,
+      {"mlp", "labels"}, {JSONTypes::OBJECT, JSONTypes::OBJECT}
+    );
+  }
+
+  void from_json(const nlohmann::json& j, MLPClassifierData& data) {
+    data.mlp = j.at("mlp").get<algorithm::MLP>();
+    data.encoder = j.at("labels").get<algorithm::LabelSetEncoder>();
+  }
+
 class MLPClassifierClient : public FluidBaseClient,
                             OfflineIn,
                             OfflineOut,
                             ModelObject,
-                            public DataClient<algorithm::MLP> {
+                            public DataClient<MLPClassifierData> {
   enum { kHidden, kActivation, kIter, kRate, kMomentum, kBatchSize, kVal };
 
 public:
@@ -60,10 +83,10 @@ public:
     if (sourceDataSet.size() != targetDataSet.size())
       return Error<double>(SizesDontMatch);
 
-    mLabelSetEncoder.fit(targetDataSet);
+    mAlgorithm.encoder.fit(targetDataSet);
 
     if (mTracker.changed(get<kHidden>(), get<kActivation>())) {
-      mAlgorithm.init(sourceDataSet.pointSize(), mLabelSetEncoder.numLabels(),
+      mAlgorithm.mlp.init(sourceDataSet.pointSize(), mAlgorithm.encoder.numLabels(),
                       get<kHidden>(), get<kActivation>());
     }
     DataSet result(1);
@@ -71,15 +94,15 @@ public:
     auto data = sourceDataSet.getData();
     auto tgt = targetDataSet.getData();
 
-    RealMatrix oneHot(targetDataSet.size(), mLabelSetEncoder.numLabels());
+    RealMatrix oneHot(targetDataSet.size(), mAlgorithm.encoder.numLabels());
     oneHot.fill(0);
     for(index i = 0; i < targetDataSet.size(); i++){
-      mLabelSetEncoder.encodeOneHot(tgt.row(i)(0), oneHot.row(i));
+      mAlgorithm.encoder.encodeOneHot(tgt.row(i)(0), oneHot.row(i));
     }
 
     algorithm::SGD sgd;
     double error =
-        sgd.train(mAlgorithm, data, oneHot, get<kIter>(), get<kBatchSize>(),
+        sgd.train(mAlgorithm.mlp, data, oneHot, get<kIter>(), get<kBatchSize>(),
                   get<kRate>(), get<kMomentum>(), get<kVal>());
 
     return error;
@@ -94,19 +117,19 @@ public:
     auto srcDataSet = srcPtr->getDataSet();
     if (srcDataSet.size() == 0)
       return Error(EmptyDataSet);
-    if (!mAlgorithm.trained())
+    if (!mAlgorithm.mlp.trained())
       return Error(NoDataFitted);
     if (srcDataSet.dims() != mAlgorithm.dims())
       return Error(WrongPointSize);
 
-    index layer = mAlgorithm.size() - 1;
+    index layer = mAlgorithm.mlp.size() - 1;
     StringVector ids{srcDataSet.getIds()};
-    RealMatrix output(srcDataSet.size(), mLabelSetEncoder.numLabels());
-    mAlgorithm.process(srcDataSet.getData(), output, layer);
+    RealMatrix output(srcDataSet.size(), mAlgorithm.encoder.numLabels());
+    mAlgorithm.mlp.process(srcDataSet.getData(), output, layer);
     LabelSet result(1);
     for (index i = 0; i < srcDataSet.size(); i++) {
       StringVector label = {
-        mLabelSetEncoder.decodeOneHot(output.row(i))
+        mAlgorithm.encoder.decodeOneHot(output.row(i))
       };
       result.add(ids(i), label);
     }
@@ -118,20 +141,20 @@ public:
     if (!in) return Error<string>(NoBuffer);
     BufferAdaptor::Access inBuf(in.get());
     if (!inBuf.exists()) return Error<string>(InvalidBuffer);
-    if (inBuf.numFrames() != mAlgorithm.dims()) return Error<string>(WrongPointSize);
-    if (!mAlgorithm.trained()) return Error<string>(NoDataFitted);
+    if (inBuf.numFrames() != mAlgorithm.mlp.dims()) return Error<string>(WrongPointSize);
+    if (!mAlgorithm.mlp.trained()) return Error<string>(NoDataFitted);
 
-    index layer = mAlgorithm.size() - 1;
-    RealVector src(mAlgorithm.dims());
-    RealVector dest(mAlgorithm.outputSize(layer));
-    src = inBuf.samps(0, mAlgorithm.dims(), 0);
-    mAlgorithm.processFrame(src, dest, layer);
-    auto label = mLabelSetEncoder.decodeOneHot(dest);
+    index layer = mAlgorithm.mlp.size() - 1;
+    RealVector src(mAlgorithm.mlp.dims());
+    RealVector dest(mAlgorithm.mlp.outputSize(layer));
+    src = inBuf.samps(0, mAlgorithm.mlp.dims(), 0);
+    mAlgorithm.mlp.processFrame(src, dest, layer);
+    auto label = mAlgorithm.encoder.decodeOneHot(dest);
     return label;
   }
 
   MessageResult<void> reset() {
-    mAlgorithm.reset();
+    mAlgorithm.mlp.reset();
     return OK();
   }
 
@@ -150,7 +173,6 @@ public:
 
 private:
   ParameterTrackChanges<IndexVector, index> mTracker;
-  algorithm::LabelSetEncoder mLabelSetEncoder;
 };
 
 using NRTThreadedMLPClassifierClient =
