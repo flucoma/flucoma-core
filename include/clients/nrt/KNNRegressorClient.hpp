@@ -60,17 +60,17 @@ public:
                std::vector<FluidTensorView<T, 1>> &output, FluidContext &) {
     index k = get<kNumNeighbors>();
     bool weight = get<kWeight>() != 0;
-    if (k == 0 || mTree.size() == 0 || mTree.size() < k)
+    if (k == 0 || mAlgorithm.tree.size() == 0 || mAlgorithm.tree.size() < k)
       return;
-    InOutBuffersCheck bufCheck(mTree.dims());
+    InOutBuffersCheck bufCheck(mAlgorithm.tree.dims());
     if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
                               get<kOutputBuffer>().get()))
       return;
     algorithm::KNNRegressor regressor;
-    RealVector point(mTree.dims());
-    point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, mTree.dims(), 0);
+    RealVector point(mAlgorithm.tree.dims());
+    point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, mAlgorithm.tree.dims(), 0);
     mTrigger.process(input, output, [&]() {
-      double result = regressor.predict(mTree, mTarget, point, k, weight);
+      double result = regressor.predict(mAlgorithm.tree, mAlgorithm.target, point, k, weight);
         BufferAdaptor::Access(get<kOutputBuffer>().get()).samps(0)[0] = result;
     });
   }
@@ -93,9 +93,9 @@ public:
       return Error<string>(EmptyDataSet);
     if (dataSet.size() != target.size())
       return Error<string>(SizesDontMatch);
-    mTree = algorithm::KDTree{dataSet};
-    mTarget = target;
-    mAlgorithm = {mTree, mTarget};
+    mAlgorithm.tree = algorithm::KDTree{dataSet};
+    mAlgorithm.target = target;
+    mAlgorithm = {mAlgorithm.tree, mAlgorithm.target};
     return {};
   }
 
@@ -103,15 +103,15 @@ public:
     index k = get<kNumNeighbors>();
     bool weight = get<kWeight>() != 0;
     if (k == 0) return Error<double>(SmallK);
-    if (mTree.size() == 0) return Error<double>(NoDataFitted);
-    if (mTree.size() < k) return Error<double>(NotEnoughData);
-    InBufferCheck bufCheck(mTree.dims());
+    if (mAlgorithm.tree.size() == 0) return Error<double>(NoDataFitted);
+    if (mAlgorithm.tree.size() < k) return Error<double>(NotEnoughData);
+    InBufferCheck bufCheck(mAlgorithm.tree.dims());
     if (!bufCheck.checkInputs(data.get()))
       return Error<double>(bufCheck.error());
     algorithm::KNNRegressor regressor;
-    RealVector point(mTree.dims());
-    point = BufferAdaptor::ReadAccess(data.get()).samps(0, mTree.dims(), 0);
-    double result = regressor.predict(mTree, mTarget, point, k, weight);
+    RealVector point(mAlgorithm.tree.dims());
+    point = BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.tree.dims(), 0);
+    double result = regressor.predict(mAlgorithm.tree, mAlgorithm.target, point, k, weight);
     return result;
   }
 
@@ -124,10 +124,10 @@ public:
     if (dataSet.size() == 0) return Error(EmptyDataSet);
     auto destPtr = dest.get().lock();
     if (!destPtr) return Error(NoDataSet);
-    if (dataSet.pointSize() != mTree.dims()) return Error(WrongPointSize);
+    if (dataSet.pointSize() != mAlgorithm.tree.dims()) return Error(WrongPointSize);
     if (k == 0) return Error(SmallK);
-    if (mTree.size() == 0) return Error(NoDataFitted);
-    if (mTree.size() < k) return Error(NotEnoughData);
+    if (mAlgorithm.tree.size() == 0) return Error(NoDataFitted);
+    if (mAlgorithm.tree.size() < k) return Error(NotEnoughData);
 
     algorithm::KNNRegressor regressor;
     auto ids = dataSet.getIds();
@@ -136,7 +136,7 @@ public:
     for (index i = 0; i < dataSet.size(); i++) {
       RealVectorView point = data.row(i);
       RealVector prediction = {
-        regressor.predict(mTree, mTarget, point, k, weight)
+        regressor.predict(mAlgorithm.tree, mAlgorithm.target, point, k, weight)
       };
       result.add(ids(i), prediction);
     }
@@ -156,8 +156,6 @@ public:
                          makeMessage("read", &KNNRegressorClient::read));
 
 private:
-  algorithm::KDTree mTree{0};
-  DataSet mTarget{1};
   FluidInputTrigger mTrigger;
 };
 

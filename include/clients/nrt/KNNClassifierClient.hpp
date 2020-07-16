@@ -66,41 +66,41 @@ public:
   {
     index k = get<kNumNeighbors>();
     bool weight = get<kWeight>() != 0;
-    if(k == 0 || mTree.size() == 0 || mTree.size() < k) return;
-    InOutBuffersCheck bufCheck(mTree.dims());
+    if(k == 0 || mAlgorithm.tree.size() == 0 || mAlgorithm.tree.size() < k) return;
+    InOutBuffersCheck bufCheck(mAlgorithm.tree.dims());
     if(!bufCheck.checkInputs(
       get<kInputBuffer>().get(),
       get<kOutputBuffer>().get()))
       return;
     algorithm::KNNClassifier classifier;
-    RealVector point(mTree.dims());
-    point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, mTree.dims(), 0);
+    RealVector point(mAlgorithm.tree.dims());
+    point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, mAlgorithm.tree.dims(), 0);
     mTrigger.process(input, output, [&](){
-      std::string result = classifier.predict(mTree, point, mLabels, k, weight);
+      std::string result = classifier.predict(mAlgorithm.tree, point, mAlgorithm.labels, k, weight);
       BufferAdaptor::Access(get<kOutputBuffer>().get()).samps(0)[0] = static_cast<double>(
         mLabelSetEncoder.encodeIndex(result)
       );
     });
   }
 
-  MessageResult<string> fit(
+  MessageResult<void> fit(
     DataSetClientRef datasetClient,
     LabelSetClientRef labelsetClient)
     {
     auto datasetClientPtr = datasetClient.get().lock();
-    if(!datasetClientPtr) return Error<string>(NoDataSet);
+    if(!datasetClientPtr) return Error(NoDataSet);
     auto dataset = datasetClientPtr->getDataSet();
-    if (dataset.size() == 0) return Error<string>(EmptyDataSet);
+    if (dataset.size() == 0) return Error(EmptyDataSet);
     auto labelsetPtr = labelsetClient.get().lock();
-    if(!labelsetPtr) return Error<string>(NoLabelSet);
+    if(!labelsetPtr) return Error(NoLabelSet);
     auto labelSet = labelsetPtr->getLabelSet();
-    if (labelSet.size() == 0) return Error<string>(EmptyLabelSet);
-    if(dataset.size() != labelSet.size())return Error<string>(SizesDontMatch);
-    mTree = algorithm::KDTree{dataset};
-    mLabels = labelSet;
-    mAlgorithm = {mTree, mLabels};
-    mLabelSetEncoder.fit(mLabels);
-    return {};
+    if (labelSet.size() == 0) return Error(EmptyLabelSet);
+    if(dataset.size() != labelSet.size()) return Error(SizesDontMatch);
+    mAlgorithm.tree = algorithm::KDTree{dataset};
+    mAlgorithm.labels = labelSet;
+    mAlgorithm = {mAlgorithm.tree, mAlgorithm.labels};
+    mLabelSetEncoder.fit(mAlgorithm.labels);
+    return OK();
   }
 
   MessageResult<string> predictPoint(
@@ -109,14 +109,14 @@ public:
     index k = get<kNumNeighbors>();
     bool weight = get<kWeight>() != 0;
     if(k == 0) return Error<string>(SmallK);
-    if(mTree.size() == 0) return Error<string>(NoDataFitted);
-    if (mTree.size() < k) return Error<string>(NotEnoughData);
-    InBufferCheck bufCheck(mTree.dims());
+    if(mAlgorithm.tree.size() == 0) return Error<string>(NoDataFitted);
+    if (mAlgorithm.tree.size() < k) return Error<string>(NotEnoughData);
+    InBufferCheck bufCheck(mAlgorithm.tree.dims());
     if(!bufCheck.checkInputs(data.get())) return Error<string>(bufCheck.error());
     algorithm::KNNClassifier classifier;
-    RealVector point(mTree.dims());
-    point = BufferAdaptor::ReadAccess(data.get()).samps(0, mTree.dims(), 0);
-    std::string result = classifier.predict(mTree, point, mLabels, k, weight);
+    RealVector point(mAlgorithm.tree.dims());
+    point = BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.tree.dims(), 0);
+    std::string result = classifier.predict(mAlgorithm.tree, point, mAlgorithm.labels, k, weight);
     return result;
   }
 
@@ -132,10 +132,10 @@ public:
     if (dataSet.size() == 0) return Error(EmptyDataSet);
     auto destPtr = dest.get().lock();
     if(!destPtr) return Error(NoLabelSet);
-    if (dataSet.pointSize()!=mTree.dims()) return Error(WrongPointSize);
+    if (dataSet.pointSize() != mAlgorithm.tree.dims()) return Error(WrongPointSize);
     if(k == 0) return Error(SmallK);
-    if(mTree.size() == 0) return Error(NoDataFitted);
-    if (mTree.size() < k) return Error(NotEnoughData);
+    if(mAlgorithm.tree.size() == 0) return Error(NoDataFitted);
+    if (mAlgorithm.tree.size() < k) return Error(NotEnoughData);
 
     algorithm::KNNClassifier classifier;
     auto ids = dataSet.getIds();
@@ -144,7 +144,7 @@ public:
     for (index i = 0; i < dataSet.size(); i++) {
       RealVectorView point = data.row(i);
       StringVector label = {
-        classifier.predict(mTree, point, mLabels, k, weight)
+        classifier.predict(mAlgorithm.tree, point, mAlgorithm.labels, k, weight)
       };
       result.add(ids(i), label);
     }
@@ -167,8 +167,8 @@ public:
                          makeMessage("read", &KNNClassifierClient::read));
 
 private:
-  algorithm::KDTree mTree{0};
-  LabelSet mLabels{1};
+  //algorithm::KDTree mAlgorithm.tree{0};
+  //LabelSet mLabels{1};
   FluidInputTrigger mTrigger;
   algorithm::LabelSetEncoder mLabelSetEncoder;
 };
