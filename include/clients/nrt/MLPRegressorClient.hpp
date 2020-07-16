@@ -128,7 +128,7 @@ public:
     return {};
   }
 
-  MessageResult<void> reset() {
+  MessageResult<void> init() {
     mAlgorithm.reset();
     return OK();
   }
@@ -137,7 +137,7 @@ public:
                          makeMessage("predict", &MLPRegressorClient::predict),
                          makeMessage("predictPoint",
                                      &MLPRegressorClient::predictPoint),
-                         makeMessage("reset", &MLPRegressorClient::reset),
+                         makeMessage("init", &MLPRegressorClient::init),
                          makeMessage("cols", &MLPRegressorClient::dims),
                          makeMessage("size", &MLPRegressorClient::size),
                          makeMessage("load", &MLPRegressorClient::load),

@@ -153,7 +153,7 @@ public:
     return label;
   }
 
-  MessageResult<void> reset() {
+  MessageResult<void> init() {
     mAlgorithm.mlp.reset();
     return OK();
   }
@@ -163,7 +163,7 @@ public:
                          makeMessage("predict", &MLPClassifierClient::predict),
                          makeMessage("predictPoint",
                                      &MLPClassifierClient::predictPoint),
-                         makeMessage("reset", &MLPClassifierClient::reset),
+                         makeMessage("init", &MLPClassifierClient::init),
                          makeMessage("cols", &MLPClassifierClient::dims),
                          makeMessage("size", &MLPClassifierClient::size),
                          makeMessage("load", &MLPClassifierClient::load),
