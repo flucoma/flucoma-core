@@ -128,16 +128,12 @@ public:
     return {};
   }
 
-  MessageResult<void> init() {
-    mAlgorithm.reset();
-    return OK();
-  }
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &MLPRegressorClient::fit),
                          makeMessage("predict", &MLPRegressorClient::predict),
                          makeMessage("predictPoint",
                                      &MLPRegressorClient::predictPoint),
-                         makeMessage("init", &MLPRegressorClient::init),
+                         makeMessage("clear", &MLPRegressorClient::clear),
                          makeMessage("cols", &MLPRegressorClient::dims),
                          makeMessage("size", &MLPRegressorClient::size),
                          makeMessage("load", &MLPRegressorClient::load),

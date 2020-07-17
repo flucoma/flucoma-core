@@ -112,7 +112,7 @@ public:
   void limit(index rows) {
     mLimit = rows;
   }
-  void reset() {
+  void clear() {
     mColumns.clear();
     mAndConditions.clear();
     mOrConditions.clear();

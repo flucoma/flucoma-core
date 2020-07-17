@@ -80,6 +80,15 @@ public:
   index dims() const { return mDataMin.size(); }
   index size() const { return 1;}
 
+  void clear() {
+    mMin = 0;
+    mMax = 1.0;
+    mDataMin.setZero();
+    mDataMax.setZero();
+    mDataRange.setZero();
+    mInitialized = false;
+  }
+
   double mMin{0.0};
   double mMax{1.0};
   ArrayXd mDataMin;

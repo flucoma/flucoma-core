@@ -113,6 +113,7 @@ public:
       makeMessage("transform", &StandardizeClient::transform),
       makeMessage("transformPoint", &StandardizeClient::transformPoint),
       makeMessage("cols", &StandardizeClient::dims),
+      makeMessage("clear", &StandardizeClient::clear),
       makeMessage("size", &StandardizeClient::size),
       makeMessage("load", &StandardizeClient::load),
       makeMessage("dump", &StandardizeClient::dump),

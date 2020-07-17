@@ -69,8 +69,8 @@ public:
     return OK();
   }
 
-  MessageResult<void> reset() {
-    mAlgorithm.reset();
+  MessageResult<void> clear() {
+    mAlgorithm.clear();
     return OK();
   }
 
@@ -87,7 +87,7 @@ public:
                          makeMessage("filter", &DataSetQueryClient::filter),
                          makeMessage("and", &DataSetQueryClient::andFilter),
                          makeMessage("or", &DataSetQueryClient::orFilter),
-                         makeMessage("reset", &DataSetQueryClient::reset),
+                         makeMessage("clear", &DataSetQueryClient::clear),
                          makeMessage("limit", &DataSetQueryClient::limit)
   );
 

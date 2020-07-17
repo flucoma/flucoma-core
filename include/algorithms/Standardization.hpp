@@ -58,6 +58,12 @@ public:
   index dims() const { return mMean.size(); }
   index size() const { return 1;}
 
+  void clear() {
+    mMean.setZero();
+    mStd.setZero();
+    mInitialized = false;
+  }
+
   ArrayXd mMean;
   ArrayXd mStd;
   bool mInitialized{false};

@@ -30,6 +30,7 @@ public:
     mLabels = StringVector(mNumLabels);
     for (auto l : mLabelsMap)
       mLabels(l.second) = l.first;
+    mInitialized = true;
   }
 
   index encodeIndex(string label) const{
@@ -67,6 +68,7 @@ public:
     return mNumLabels;
   }
 
+  //from JSON: expecting unique labels, as opposed to fit
   void init(FluidTensor<string, 1> labels){
     mLabelsMap.clear();
     mLabels = labels;
@@ -74,15 +76,27 @@ public:
       mLabelsMap[mLabels(i)] = i;
     }
     mNumLabels = mLabels.size();
+    mInitialized = true;
   }
+
   void getLabels(FluidTensorView<string, 1> out) const{
     out = mLabels;
+  }
+
+  bool initialized() const{ return mInitialized; }
+
+  void clear(){
+    mLabelsMap.clear();
+    mLabels = FluidTensor<string, 1>();
+    mNumLabels = 0;
+    mInitialized = false;
   }
 
 private:
   index mNumLabels{0};
   std::unordered_map<string, index> mLabelsMap;
   FluidTensor<string, 1> mLabels;
+  bool mInitialized{false};
 };
 } // namespace algorithm
 } // namespace fluid

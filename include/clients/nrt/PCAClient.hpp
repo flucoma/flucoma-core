@@ -115,6 +115,7 @@ public:
                                      &PCAClient::transformPoint),
                          makeMessage("cols", &PCAClient::dims),
                          makeMessage("size", &PCAClient::size),
+                         makeMessage("clear", &PCAClient::clear),
                          makeMessage("load", &PCAClient::load),
                          makeMessage("dump", &PCAClient::dump),
                          makeMessage("read", &PCAClient::read),

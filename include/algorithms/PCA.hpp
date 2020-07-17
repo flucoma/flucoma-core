@@ -56,6 +56,11 @@ public:
   void getMean(RealVectorView out) const { out = _impl::asFluid(mMean); }
   index dims() const { return mBases.rows(); }
   index size() const { return mBases.cols(); }
+  void clear() {
+    mBases.setZero();
+    mMean.setZero();
+    mInitialized = false;
+  }
 
   MatrixXd mBases;
   VectorXd mMean;

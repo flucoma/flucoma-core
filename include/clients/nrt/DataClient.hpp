@@ -24,6 +24,12 @@ public:
     return mAlgorithm.dims();
   }
 
+  MessageResult<void> clear() {
+    mAlgorithm.clear();
+    return OK();
+  }
+
+
   MessageResult<void> write(string fileName) {
     auto file = JSONFile(fileName, "w");
     file.write(mAlgorithm);

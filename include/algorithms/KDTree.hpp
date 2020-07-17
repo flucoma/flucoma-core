@@ -81,6 +81,11 @@ public:
   index size() const { return mNPoints; }
   bool initialized() const { return mInitialized; }
 
+  void clear(){
+    mRoot = nullptr;
+    mInitialized = false;
+  }
+
   FlatData toFlat() const{
     FlatData store(mNPoints, mDims);
     flatten(0, mRoot, store);

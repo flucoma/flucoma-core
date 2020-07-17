@@ -22,6 +22,12 @@ public:
     mTrained = false;
   }
 
+  void clear(){
+    mMeans.setZero();
+    mAssignments.setZero();
+    mTrained = false;
+  }
+
   bool trained() const { return mTrained; }
 
   void train(const FluidDataSet<std::string, double, 1> &dataset, index maxIter,

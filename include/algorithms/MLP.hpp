@@ -55,7 +55,7 @@ public:
     );
   }
 
-  void reset() {
+  void clear() {
     for (auto &&l : mLayers)
       l.init();
     mInitialized = true;

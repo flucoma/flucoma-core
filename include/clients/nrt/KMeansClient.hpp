@@ -136,6 +136,7 @@ public:
                                      &KMeansClient::predictPoint),
                          makeMessage("fitPredict", &KMeansClient::fitPredict),
                          makeMessage("cols", &KMeansClient::dims),
+                         makeMessage("clear", &KMeansClient::clear),
                          makeMessage("size", &KMeansClient::size),
                          makeMessage("load", &KMeansClient::load),
                          makeMessage("dump", &KMeansClient::dump),

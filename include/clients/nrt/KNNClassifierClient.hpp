@@ -14,6 +14,7 @@ struct KNNClassifierData{
   FluidDataSet<std::string, std::string, 1> labels{1};
   index size(){return labels.size();}
   index dims(){return tree.dims();}
+  void clear(){labels = FluidDataSet<std::string, std::string, 1>(1);tree.clear();}
 };
 
 void to_json(nlohmann::json& j, const KNNClassifierData& data) {
@@ -160,6 +161,7 @@ public:
                          makeMessage("predictPoint",
                          &KNNClassifierClient::predictPoint),
                          makeMessage("cols", &KNNClassifierClient::dims),
+                         makeMessage("clear", &KNNClassifierClient::clear),
                          makeMessage("size", &KNNClassifierClient::size),
                          makeMessage("load", &KNNClassifierClient::load),
                          makeMessage("dump", &KNNClassifierClient::dump),
@@ -167,8 +169,6 @@ public:
                          makeMessage("read", &KNNClassifierClient::read));
 
 private:
-  //algorithm::KDTree mAlgorithm.tree{0};
-  //LabelSet mLabels{1};
   FluidInputTrigger mTrigger;
   algorithm::LabelSetEncoder mLabelSetEncoder;
 };

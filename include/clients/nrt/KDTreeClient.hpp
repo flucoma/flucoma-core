@@ -114,6 +114,7 @@ public:
                          makeMessage("kNearestDist",
                                      &KDTreeClient::kNearestDist),
                          makeMessage("cols", &KDTreeClient::dims),
+                         makeMessage("clear", &KDTreeClient::clear),
                          makeMessage("size", &KDTreeClient::size),
                          makeMessage("load", &KDTreeClient::load),
                          makeMessage("dump", &KDTreeClient::dump),

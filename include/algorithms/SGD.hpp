@@ -85,7 +85,7 @@ public:
     model.forward(input, finalPred, model.size() - 1);
     bool isNan = !((finalPred == finalPred)).all();
     if(isNan){
-      model.reset();
+      model.clear();
       return -1;
     }
     error = model.loss(finalPred, output);

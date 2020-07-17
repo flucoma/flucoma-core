@@ -16,6 +16,7 @@ namespace client {
     algorithm::LabelSetEncoder encoder;
     index size(){return mlp.size();}
     index dims(){return mlp.dims();}
+    void clear(){mlp.clear();encoder.clear();}
   };
 
   void to_json(nlohmann::json& j, const MLPClassifierData& data) {
@@ -153,17 +154,12 @@ public:
     return label;
   }
 
-  MessageResult<void> init() {
-    mAlgorithm.mlp.reset();
-    return OK();
-  }
-
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &MLPClassifierClient::fit),
                          makeMessage("predict", &MLPClassifierClient::predict),
                          makeMessage("predictPoint",
                                      &MLPClassifierClient::predictPoint),
-                         makeMessage("init", &MLPClassifierClient::init),
+                         makeMessage("clear", &MLPClassifierClient::clear),
                          makeMessage("cols", &MLPClassifierClient::dims),
                          makeMessage("size", &MLPClassifierClient::size),
                          makeMessage("load", &MLPClassifierClient::load),

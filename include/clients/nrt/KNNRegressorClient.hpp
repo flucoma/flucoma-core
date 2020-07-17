@@ -12,6 +12,7 @@ struct KNNRegressorData {
   FluidDataSet<std::string, double, 1> target{1};
   index size() { return target.size(); }
   index dims() { return tree.dims(); }
+  void clear(){tree.clear();target = FluidDataSet<std::string, double, 1> ();}
 };
 
 void to_json(nlohmann::json &j, const KNNRegressorData &data) {
@@ -149,6 +150,7 @@ public:
                          makeMessage("predictPoint",
                                      &KNNRegressorClient::predictPoint),
                          makeMessage("cols", &KNNRegressorClient::dims),
+                         makeMessage("clear", &KNNRegressorClient::clear),
                          makeMessage("size", &KNNRegressorClient::size),
                          makeMessage("load", &KNNRegressorClient::load),
                          makeMessage("dump", &KNNRegressorClient::dump),
