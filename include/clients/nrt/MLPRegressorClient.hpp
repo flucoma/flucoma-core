@@ -10,13 +10,23 @@ namespace fluid {
 namespace client {
 
 class MLPRegressorClient : public FluidBaseClient,
-                           OfflineIn,
-                           OfflineOut,
+                           AudioIn,
+                           ControlOut,
                            ModelObject,
                            public DataClient<algorithm::MLP> {
 
-
-  enum { kHidden, kActivation, kIter, kRate, kMomentum, kBatchSize, kVal };
+  enum {
+    kHidden,
+    kActivation,
+    kOutputLayer,
+    kIter,
+    kRate,
+    kMomentum,
+    kBatchSize,
+    kVal,
+    kInputBuffer,
+    kOutputBuffer
+  };
 
 public:
   using string = std::string;
@@ -24,22 +34,51 @@ public:
   using IndexVector = FluidTensor<index, 1>;
   using StringVector = FluidTensor<string, 1>;
   using DataSet = FluidDataSet<string, double, 1>;
-  template <typename T> Result process(FluidContext &) { return {}; }
 
-  static constexpr std::initializer_list<index>  HiddenLayerDefaults = {3, 3};
+  static constexpr std::initializer_list<index> HiddenLayerDefaults = {3, 3};
 
   FLUID_DECLARE_PARAMS(
-      LongArrayParam("hidden","Hidden Layer Sizes", HiddenLayerDefaults),
+      LongArrayParam("hidden", "Hidden Layer Sizes", HiddenLayerDefaults),
       EnumParam("activation", "Activation Function", 0, "Identity", "Sigmoid",
                 "ReLU", "Tanh"),
+      LongParam("outputLayer", "Output layer", 0, Min(0)),
       LongParam("maxIter", "Maximum Number of Iterations", 100),
       FloatParam("learnRate", "Learning Rate", 0.01, Min(0.0), Max(1.0)),
       FloatParam("momentum", "Momentum", 0.9, Min(0.0), Max(0.99)),
       LongParam("batchSize", "Batch Size", 50),
-      FloatParam("validation", "Validation Amount", 0.2, Min(0), Max(0.9))
-    );
+      FloatParam("validation", "Validation Amount", 0.2, Min(0), Max(0.9)),
+      BufferParam("inputPointBuffer", "Input Point Buffer"),
+      BufferParam("predictionBuffer", "Prediction Buffer"));
 
-  MLPRegressorClient(ParamSetViewType &p) : mParams(p) {}
+  MLPRegressorClient(ParamSetViewType &p) : mParams(p) {
+    audioChannelsIn(1);
+    controlChannelsOut(1);
+  }
+
+  template <typename T>
+  void process(std::vector<FluidTensorView<T, 1>> &input,
+               std::vector<FluidTensorView<T, 1>> &output, FluidContext &) {
+    if (!mAlgorithm.trained())
+      return;
+    index dims = mAlgorithm.dims();
+    index layer = get<kOutputLayer>();
+    if (layer <= 0 || layer > mAlgorithm.size())
+      layer = mAlgorithm.size();
+    layer -= 1;
+
+    InOutBuffersCheck bufCheck(dims);
+    if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
+                              get<kOutputBuffer>().get()))
+      return;
+    RealVector src(dims);
+    RealVector dest(mAlgorithm.outputSize(layer));
+    src =
+        BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, dims, 0);
+    mTrigger.process(input, output, [&]() {
+      mAlgorithm.processFrame(src, dest, layer);
+      BufferAdaptor::Access(get<kOutputBuffer>().get()).samps(0) = dest;
+    });
+  }
 
   MessageResult<double> fit(DataSetClientRef source, DataSetClientRef target) {
     auto sourceClientPtr = source.get().lock();
@@ -58,22 +97,23 @@ public:
     if (sourceDataSet.size() != targetDataSet.size())
       return Error<double>(SizesDontMatch);
 
-    if (mTracker.changed(get<kHidden>(), get<kActivation>())){
+    if (mTracker.changed(get<kHidden>(), get<kActivation>())) {
       mAlgorithm.init(sourceDataSet.pointSize(), targetDataSet.pointSize(),
-                    get<kHidden>(), get<kActivation>());
+                      get<kHidden>(), get<kActivation>());
     }
     DataSet result(1);
     auto ids = sourceDataSet.getIds();
     auto data = sourceDataSet.getData();
     auto tgt = targetDataSet.getData();
     algorithm::SGD sgd;
-    double error = sgd.train(mAlgorithm, data, tgt, get<kIter>(),
-                get<kBatchSize>(), get<kRate>(), get<kMomentum>(), get<kVal>());
+    double error =
+        sgd.train(mAlgorithm, data, tgt, get<kIter>(), get<kBatchSize>(),
+                  get<kRate>(), get<kMomentum>(), get<kVal>());
     return error;
   }
 
   MessageResult<void> predict(DataSetClientRef srcClient,
-                              DataSetClientRef destClient, index layer) {
+                              DataSetClientRef destClient) {
     auto srcPtr = srcClient.get().lock();
     auto destPtr = destClient.get().lock();
     if (!srcPtr || !destPtr)
@@ -87,7 +127,9 @@ public:
       return Error(WrongPointSize);
 
     // default 0 is final layer, so 1-indexed for the rest
-    if(layer <= 0 || layer > mAlgorithm.size()) layer = mAlgorithm.size();
+    index layer = get<kOutputLayer>();
+    if (layer <= 0 || layer > mAlgorithm.size())
+      layer = mAlgorithm.size();
     layer -= 1;
 
     StringVector ids{srcDataSet.getIds()};
@@ -98,7 +140,7 @@ public:
     return OK();
   }
 
-  MessageResult<void> predictPoint(BufferPtr in, BufferPtr out, index layer) {
+  MessageResult<void> predictPoint(BufferPtr in, BufferPtr out) {
     if (!in || !out)
       return Error(NoBuffer);
     BufferAdaptor::Access inBuf(in.get());
@@ -112,8 +154,10 @@ public:
     if (!mAlgorithm.trained())
       return Error(NoDataFitted);
 
-    if(layer <= 0 || layer > mAlgorithm.size()) layer = mAlgorithm.size();
-      layer -= 1;
+    index layer = get<kOutputLayer>();
+    if (layer <= 0 || layer > mAlgorithm.size())
+      layer = mAlgorithm.size();
+    layer -= 1;
 
     Result resizeResult =
         outBuf.resize(mAlgorithm.outputSize(layer), 1, inBuf.sampleRate());
@@ -127,7 +171,8 @@ public:
     outBuf.samps(0) = dest;
     return {};
   }
-
+  
+  index latency() { return 0; }
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &MLPRegressorClient::fit),
                          makeMessage("predict", &MLPRegressorClient::predict),
@@ -142,11 +187,10 @@ public:
                          makeMessage("read", &MLPRegressorClient::read));
 
 private:
+  FluidInputTrigger mTrigger;
   ParameterTrackChanges<IndexVector, index> mTracker;
 };
 
-using NRTThreadedMLPRegressorClient =
-    NRTThreadingAdaptor<ClientWrapper<MLPRegressorClient>>;
-
+using RTMLPRegressorClient = ClientWrapper<MLPRegressorClient>;
 } // namespace client
 } // namespace fluid

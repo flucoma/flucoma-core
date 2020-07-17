@@ -3,44 +3,56 @@
 #include "DataSetClient.hpp"
 #include "LabelSetClient.hpp"
 #include "NRTClient.hpp"
+#include "algorithms/LabelSetEncoder.hpp"
 #include "algorithms/MLP.hpp"
 #include "algorithms/SGD.hpp"
-#include "algorithms/LabelSetEncoder.hpp"
 #include <string>
 
 namespace fluid {
 namespace client {
 
-  struct MLPClassifierData{
-    algorithm::MLP mlp;
-    algorithm::LabelSetEncoder encoder;
-    index size(){return mlp.size();}
-    index dims(){return mlp.dims();}
-    void clear(){mlp.clear();encoder.clear();}
-  };
-
-  void to_json(nlohmann::json& j, const MLPClassifierData& data) {
-    j["mlp"] = data.mlp;
-    j["labels"] = data.encoder;
+struct MLPClassifierData {
+  algorithm::MLP mlp;
+  algorithm::LabelSetEncoder encoder;
+  index size() { return mlp.size(); }
+  index dims() { return mlp.dims(); }
+  void clear() {
+    mlp.clear();
+    encoder.clear();
   }
+};
 
-  bool check_json(const nlohmann::json& j, const MLPClassifierData&){
-    return fluid::check_json(j,
-      {"mlp", "labels"}, {JSONTypes::OBJECT, JSONTypes::OBJECT}
-    );
-  }
+void to_json(nlohmann::json &j, const MLPClassifierData &data) {
+  j["mlp"] = data.mlp;
+  j["labels"] = data.encoder;
+}
 
-  void from_json(const nlohmann::json& j, MLPClassifierData& data) {
-    data.mlp = j.at("mlp").get<algorithm::MLP>();
-    data.encoder = j.at("labels").get<algorithm::LabelSetEncoder>();
-  }
+bool check_json(const nlohmann::json &j, const MLPClassifierData &) {
+  return fluid::check_json(j, {"mlp", "labels"},
+                           {JSONTypes::OBJECT, JSONTypes::OBJECT});
+}
+
+void from_json(const nlohmann::json &j, MLPClassifierData &data) {
+  data.mlp = j.at("mlp").get<algorithm::MLP>();
+  data.encoder = j.at("labels").get<algorithm::LabelSetEncoder>();
+}
 
 class MLPClassifierClient : public FluidBaseClient,
-                            OfflineIn,
-                            OfflineOut,
+                            AudioIn,
+                            ControlOut,
                             ModelObject,
                             public DataClient<MLPClassifierData> {
-  enum { kHidden, kActivation, kIter, kRate, kMomentum, kBatchSize, kVal };
+  enum {
+    kHidden,
+    kActivation,
+    kIter,
+    kRate,
+    kMomentum,
+    kBatchSize,
+    kVal,
+    kInputBuffer,
+    kOutputBuffer
+  };
 
 public:
   using string = std::string;
@@ -50,7 +62,6 @@ public:
   using DataSet = FluidDataSet<string, double, 1>;
   using LabelSet = FluidDataSet<string, string, 1>;
 
-  template <typename T> Result process(FluidContext &) { return {}; }
 
   static constexpr std::initializer_list<index> HiddenLayerDefaults = {3, 3};
 
@@ -62,10 +73,42 @@ public:
       FloatParam("learnRate", "Learning Rate", 0.01, Min(0.0), Max(1.0)),
       FloatParam("momentum", "Momentum", 0.5, Min(0.0), Max(0.99)),
       LongParam("batchSize", "Batch Size", 50),
-      FloatParam("validation", "Validation Amount", 0.2, Min(0), Max(0.9)));
+      FloatParam("validation", "Validation Amount", 0.2, Min(0), Max(0.9)),
+      BufferParam("inputPointBuffer", "Input Point Buffer"),
+      BufferParam("predictionBuffer", "Prediction Buffer")
+);
 
-  MLPClassifierClient(ParamSetViewType &p) : mParams(p) {}
+  MLPClassifierClient(ParamSetViewType &p) : mParams(p) {
+    audioChannelsIn(1);
+    controlChannelsOut(1);
+  }
 
+  template <typename T>
+  void process(std::vector<FluidTensorView<T, 1>> &input,
+               std::vector<FluidTensorView<T, 1>> &output, FluidContext &) {
+    if (!mAlgorithm.mlp.trained())
+      return;
+    index dims = mAlgorithm.mlp.dims();
+    index layer = mAlgorithm.mlp.size() - 1;
+
+    InOutBuffersCheck bufCheck(dims);
+    if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
+                              get<kOutputBuffer>().get()))
+      return;
+    RealVector src(dims);
+    RealVector dest(mAlgorithm.mlp.outputSize(layer));
+    src =
+        BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, dims, 0);
+    mTrigger.process(input, output, [&]() {
+      mAlgorithm.mlp.processFrame(src, dest, layer);
+      auto label = mAlgorithm.encoder.decodeOneHot(dest);
+      BufferAdaptor::Access(get<kOutputBuffer>().get()).samps(0)[0] = static_cast<double>(
+        mAlgorithm.encoder.encodeIndex(label)
+      );
+    });
+  }
+
+  index latency() { return 0; }
 
   MessageResult<double> fit(DataSetClientRef source, LabelSetClientRef target) {
     auto sourceClientPtr = source.get().lock();
@@ -87,8 +130,9 @@ public:
     mAlgorithm.encoder.fit(targetDataSet);
 
     if (mTracker.changed(get<kHidden>(), get<kActivation>())) {
-      mAlgorithm.mlp.init(sourceDataSet.pointSize(), mAlgorithm.encoder.numLabels(),
-                      get<kHidden>(), get<kActivation>());
+      mAlgorithm.mlp.init(sourceDataSet.pointSize(),
+                          mAlgorithm.encoder.numLabels(), get<kHidden>(),
+                          get<kActivation>());
     }
     DataSet result(1);
     auto ids = sourceDataSet.getIds();
@@ -97,7 +141,7 @@ public:
 
     RealMatrix oneHot(targetDataSet.size(), mAlgorithm.encoder.numLabels());
     oneHot.fill(0);
-    for(index i = 0; i < targetDataSet.size(); i++){
+    for (index i = 0; i < targetDataSet.size(); i++) {
       mAlgorithm.encoder.encodeOneHot(tgt.row(i)(0), oneHot.row(i));
     }
 
@@ -129,9 +173,7 @@ public:
     mAlgorithm.mlp.process(srcDataSet.getData(), output, layer);
     LabelSet result(1);
     for (index i = 0; i < srcDataSet.size(); i++) {
-      StringVector label = {
-        mAlgorithm.encoder.decodeOneHot(output.row(i))
-      };
+      StringVector label = {mAlgorithm.encoder.decodeOneHot(output.row(i))};
       result.add(ids(i), label);
     }
     destPtr->setLabelSet(result);
@@ -139,11 +181,15 @@ public:
   }
 
   MessageResult<string> predictPoint(BufferPtr in) {
-    if (!in) return Error<string>(NoBuffer);
+    if (!in)
+      return Error<string>(NoBuffer);
     BufferAdaptor::Access inBuf(in.get());
-    if (!inBuf.exists()) return Error<string>(InvalidBuffer);
-    if (inBuf.numFrames() != mAlgorithm.mlp.dims()) return Error<string>(WrongPointSize);
-    if (!mAlgorithm.mlp.trained()) return Error<string>(NoDataFitted);
+    if (!inBuf.exists())
+      return Error<string>(InvalidBuffer);
+    if (inBuf.numFrames() != mAlgorithm.mlp.dims())
+      return Error<string>(WrongPointSize);
+    if (!mAlgorithm.mlp.trained())
+      return Error<string>(NoDataFitted);
 
     index layer = mAlgorithm.mlp.size() - 1;
     RealVector src(mAlgorithm.mlp.dims());
@@ -153,7 +199,6 @@ public:
     auto label = mAlgorithm.encoder.decodeOneHot(dest);
     return label;
   }
-
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &MLPClassifierClient::fit),
                          makeMessage("predict", &MLPClassifierClient::predict),
@@ -168,11 +213,11 @@ public:
                          makeMessage("read", &MLPClassifierClient::read));
 
 private:
+  FluidInputTrigger mTrigger;
   ParameterTrackChanges<IndexVector, index> mTracker;
 };
 
-using NRTThreadedMLPClassifierClient =
-    NRTThreadingAdaptor<ClientWrapper<MLPClassifierClient>>;
+using RTMLPClassifierClient = ClientWrapper<MLPClassifierClient>;
 
 } // namespace client
 } // namespace fluid
