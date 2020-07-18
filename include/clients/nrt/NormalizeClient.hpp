@@ -37,6 +37,8 @@ public:
     InOutBuffersCheck bufCheck(mAlgorithm.dims());
     if (!bufCheck.checkInputs(get<kInputBuffer>().get(), get<kOutputBuffer>().get()))
       return;
+    auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
+    if(outBuf.samps(0).size() != mAlgorithm.dims()) return;
     RealVector src(mDims);
     RealVector dest(mDims);
     src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, mDims, 0);
@@ -44,7 +46,7 @@ public:
     mAlgorithm.setMax(get<kMax>());
     mTrigger.process(input, output, [&]() {
       mAlgorithm.processFrame(src, dest);
-      BufferAdaptor::Access(get<kOutputBuffer>().get()).samps(0) = dest;
+      outBuf.samps(0) = dest;
     });
   }
 

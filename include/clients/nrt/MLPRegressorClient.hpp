@@ -41,8 +41,8 @@ public:
       LongArrayParam("hidden", "Hidden Layer Sizes", HiddenLayerDefaults),
       EnumParam("activation", "Activation Function", 0, "Identity", "Sigmoid",
                 "ReLU", "Tanh"),
-      LongParam("outputLayer", "Output layer", 0, Min(0)),
-      LongParam("maxIter", "Maximum Number of Iterations", 100),
+      LongParam("outputLayer", "Output Layer", 0, Min(0)),
+      LongParam("maxIter", "Maximum Number of Iterations", 1000, Min(1)),
       FloatParam("learnRate", "Learning Rate", 0.01, Min(0.0), Max(1.0)),
       FloatParam("momentum", "Momentum", 0.9, Min(0.0), Max(0.99)),
       LongParam("batchSize", "Batch Size", 50),
@@ -70,13 +70,16 @@ public:
     if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
                               get<kOutputBuffer>().get()))
       return;
+    auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
+    if(outBuf.samps(0).size() != mAlgorithm.outputSize(layer)) return;
+
     RealVector src(dims);
     RealVector dest(mAlgorithm.outputSize(layer));
     src =
         BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, dims, 0);
     mTrigger.process(input, output, [&]() {
       mAlgorithm.processFrame(src, dest, layer);
-      BufferAdaptor::Access(get<kOutputBuffer>().get()).samps(0) = dest;
+      outBuf.samps(0) = dest;
     });
   }
 
@@ -171,7 +174,7 @@ public:
     outBuf.samps(0) = dest;
     return {};
   }
-  
+
   index latency() { return 0; }
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &MLPRegressorClient::fit),

@@ -45,6 +45,8 @@ public:
     if (!datasetClientPtr) return;
     auto dataset = datasetClientPtr->getDataSet();
     index pointSize = dataset.pointSize();
+    auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
+    if(outBuf.samps(0).size() !=  (k * pointSize)) return;
     mTrigger.process(input, output, [&]() {
       RealVector point(mAlgorithm.dims());
       point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
@@ -58,7 +60,7 @@ public:
       for (index i = 0; i < k; i++) {
         dataset.get(ids(i), mRTBuffer(Slice(i * pointSize, pointSize)));
       }
-      BufferAdaptor::Access(get<kOutputBuffer>().get()).samps(0) = mRTBuffer;
+      outBuf.samps(0) = mRTBuffer;
     });
   }
 

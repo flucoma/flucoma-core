@@ -38,12 +38,15 @@ public:
     if (!bufCheck.checkInputs(
         get<kInputBuffer>().get(),
         get<kOutputBuffer>().get())) return;
+    auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
+    if(outBuf.samps(0).size() != mAlgorithm.size()) return;
+
     RealVector src(mAlgorithm.dims());
     RealVector dest(mAlgorithm.size());
     src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, mAlgorithm.dims(), 0);
     mTrigger.process(input, output, [&]() {
       mAlgorithm.processFrame(src, dest);
-      BufferAdaptor::Access(get<kOutputBuffer>().get()).samps(0) = dest;
+      outBuf.samps(0) = dest;
     });
   }
 

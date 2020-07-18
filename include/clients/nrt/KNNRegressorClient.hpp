@@ -67,12 +67,15 @@ public:
     if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
                               get<kOutputBuffer>().get()))
       return;
+    auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
+    if(outBuf.samps(0).size() != 1) return;
+
     algorithm::KNNRegressor regressor;
     RealVector point(mAlgorithm.tree.dims());
     point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, mAlgorithm.tree.dims(), 0);
     mTrigger.process(input, output, [&]() {
       double result = regressor.predict(mAlgorithm.tree, mAlgorithm.target, point, k, weight);
-        BufferAdaptor::Access(get<kOutputBuffer>().get()).samps(0)[0] = result;
+      outBuf.samps(0)[0] = result;
     });
   }
 

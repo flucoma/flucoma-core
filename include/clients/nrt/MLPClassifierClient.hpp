@@ -69,7 +69,7 @@ public:
       LongArrayParam("hidden", "Hidden Layer Sizes", HiddenLayerDefaults),
       EnumParam("activation", "Activation Function", 1, "Identity", "Sigmoid",
                 "ReLU", "Tanh"),
-      LongParam("maxIter", "Maximum Number of Iterations", 10000),
+      LongParam("maxIter", "Maximum Number of Iterations", 1000,  Min(1)),
       FloatParam("learnRate", "Learning Rate", 0.01, Min(0.0), Max(1.0)),
       FloatParam("momentum", "Momentum", 0.5, Min(0.0), Max(0.99)),
       LongParam("batchSize", "Batch Size", 50),
@@ -95,6 +95,9 @@ public:
     if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
                               get<kOutputBuffer>().get()))
       return;
+    auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
+    if(outBuf.samps(0).size() != 1) return;
+
     RealVector src(dims);
     RealVector dest(mAlgorithm.mlp.outputSize(layer));
     src =
@@ -102,7 +105,7 @@ public:
     mTrigger.process(input, output, [&]() {
       mAlgorithm.mlp.processFrame(src, dest, layer);
       auto label = mAlgorithm.encoder.decodeOneHot(dest);
-      BufferAdaptor::Access(get<kOutputBuffer>().get()).samps(0)[0] = static_cast<double>(
+       outBuf.samps(0)[0] = static_cast<double>(
         mAlgorithm.encoder.encodeIndex(label)
       );
     });

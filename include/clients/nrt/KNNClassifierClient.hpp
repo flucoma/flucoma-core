@@ -73,14 +73,14 @@ public:
       get<kInputBuffer>().get(),
       get<kOutputBuffer>().get()))
       return;
+    auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
+    if(outBuf.samps(0).size() != 1) return;
     algorithm::KNNClassifier classifier;
     RealVector point(mAlgorithm.tree.dims());
     point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, mAlgorithm.tree.dims(), 0);
     mTrigger.process(input, output, [&](){
       std::string result = classifier.predict(mAlgorithm.tree, point, mAlgorithm.labels, k, weight);
-      BufferAdaptor::Access(get<kOutputBuffer>().get()).samps(0)[0] = static_cast<double>(
-        mLabelSetEncoder.encodeIndex(result)
-      );
+      outBuf.samps(0)[0] = static_cast<double>(mLabelSetEncoder.encodeIndex(result));
     });
   }
 
