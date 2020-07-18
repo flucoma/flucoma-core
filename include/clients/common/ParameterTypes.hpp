@@ -154,7 +154,7 @@ struct LongArrayT : ParamTypeBase
   using type = LongArrayUnderlyingType;
   constexpr LongArrayT(const char* name, const char* displayName,
             const std::initializer_list<typename type::type> defaultValues)
-      : ParamTypeBase(name, displayName),defaultValue{defaultValues}
+      : ParamTypeBase(name, displayName),defaultValue(defaultValues)
   {}
   const index fixedSize{1};
   const std::initializer_list<typename type::type> defaultValue;
