@@ -22,14 +22,18 @@ public:
   ~MLP() = default;
 
   void init(index inputSize, index outputSize,
-            FluidTensor<index, 1> hiddenSizes, index activation) {
+            FluidTensor<index, 1> hiddenSizes, index hiddenAct, index outputAct) {
     mLayers.clear();
     std::vector<index> sizes = {inputSize};
-    for (auto &&s : hiddenSizes)
+    std::vector<index> activations = {};
+    for (auto &&s : hiddenSizes){
       sizes.push_back(s);
+      activations.push_back(hiddenAct);
+    }
     sizes.push_back(outputSize);
+    activations.push_back(outputAct);
     for (index i = 0; i < sizes.size() - 1; i++) {
-      mLayers.push_back(NNLayer(sizes[i], sizes[i + 1], activation));
+      mLayers.push_back(NNLayer(sizes[i], sizes[i + 1], activations[i]));
     }
     for (auto &&l : mLayers)
       l.init();

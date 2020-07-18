@@ -135,7 +135,7 @@ public:
     if (mTracker.changed(get<kHidden>(), get<kActivation>())) {
       mAlgorithm.mlp.init(sourceDataSet.pointSize(),
                           mAlgorithm.encoder.numLabels(), get<kHidden>(),
-                          get<kActivation>());
+                          get<kActivation>(), 1);//sigmoid output
     }
     DataSet result(1);
     auto ids = sourceDataSet.getIds();
@@ -160,8 +160,8 @@ public:
                               LabelSetClientRef destClient) {
     auto srcPtr = srcClient.get().lock();
     auto destPtr = destClient.get().lock();
-    if (!srcPtr || !destPtr)
-      return Error(NoDataSet);
+    if(!srcPtr)return Error(NoDataSet);
+    if(!destPtr)return Error(NoLabelSet);
     auto srcDataSet = srcPtr->getDataSet();
     if (srcDataSet.size() == 0)
       return Error(EmptyDataSet);

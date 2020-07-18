@@ -18,6 +18,7 @@ class MLPRegressorClient : public FluidBaseClient,
   enum {
     kHidden,
     kActivation,
+    kFinalActivation,
     kOutputLayer,
     kIter,
     kRate,
@@ -41,6 +42,8 @@ public:
       LongArrayParam("hidden", "Hidden Layer Sizes", HiddenLayerDefaults),
       EnumParam("activation", "Activation Function", 0, "Identity", "Sigmoid",
                 "ReLU", "Tanh"),
+      EnumParam("finalactivation", "Final Activation Function", 0, "Identity", "Sigmoid",
+                          "ReLU", "Tanh"),
       LongParam("outputLayer", "Output Layer", 0, Min(0)),
       LongParam("maxIter", "Maximum Number of Iterations", 1000, Min(1)),
       FloatParam("learnRate", "Learning Rate", 0.01, Min(0.0), Max(1.0)),
@@ -102,7 +105,7 @@ public:
 
     if (mTracker.changed(get<kHidden>(), get<kActivation>())) {
       mAlgorithm.init(sourceDataSet.pointSize(), targetDataSet.pointSize(),
-                      get<kHidden>(), get<kActivation>());
+                      get<kHidden>(), get<kActivation>(), get<kFinalActivation>());
     }
     DataSet result(1);
     auto ids = sourceDataSet.getIds();

@@ -320,13 +320,14 @@ void from_json(const nlohmann::json &j, MLP &mlp) {
   index inputSize = j["layers"][0]["rows"];
   index outputSize = j["layers"][nLayers - 1]["cols"];
   index activation = j["layers"][0]["activation"];
+  index finalActivation = j["layers"][nLayers - 1]["activation"];
   FluidTensor<index, 1> hiddenSizes(j["layers"].size() - 1);
   if(nLayers > 1){
     for (index i = 0; i < nLayers - 1; i++){
       hiddenSizes(i) =  j["layers"][i]["cols"];
     }
   }
-  mlp.init(inputSize,outputSize, hiddenSizes,activation);
+  mlp.init(inputSize,outputSize, hiddenSizes, activation, finalActivation);
   for (index i = 0; i < nLayers; i++){
     auto l = j["layers"][i];
     index rows = l["rows"];
