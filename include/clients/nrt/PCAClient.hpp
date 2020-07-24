@@ -59,6 +59,8 @@ public:
     if (k <= 0) return Error(SmallK);
     if (dataSet.pointSize() < k)
       return Error("k is larger than the current dimensions");
+    if (k > dataSet.size() - 1) return Error(NotEnoughData);
+
     mAlgorithm.init(dataSet.getData(), k);
     return OK();
   }
