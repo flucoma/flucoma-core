@@ -37,9 +37,9 @@ public:
       return;
     auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
     if(outBuf.samps(0).size() != mAlgorithm.dims()) return;
-    RealVector src(mDims);
-    RealVector dest(mDims);
-    src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, mDims, 0);
+    RealVector src(mAlgorithm.dims());
+    RealVector dest(mAlgorithm.dims());
+    src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, mAlgorithm.dims(), 0);
     mTrigger.process(input, output, [&]() {
       mAlgorithm.processFrame(src, dest);
       BufferAdaptor::Access(get<kOutputBuffer>().get()).samps(0) = dest;
@@ -54,7 +54,6 @@ public:
       auto dataset = datasetClientPtr->getDataSet();
       if (dataset.size() == 0)
         return Error(EmptyDataSet);
-      mDims = dataset.pointSize();
       mAlgorithm.init(dataset.getData());
     } else {
       return Error(NoDataSet);
@@ -89,12 +88,12 @@ public:
     InOutBuffersCheck bufCheck(mAlgorithm.dims());
     if (!bufCheck.checkInputs(in.get(), out.get())) return Error(bufCheck.error());
     BufferAdaptor::Access outBuf(out.get());
-    Result resizeResult = outBuf.resize(mDims, 1, outBuf.sampleRate());
+    Result resizeResult = outBuf.resize(mAlgorithm.dims(), 1, outBuf.sampleRate());
     if (!resizeResult.ok())
       return Error(BufferAlloc);
-    RealVector src(mDims);
-    RealVector dest(mDims);
-    src = BufferAdaptor::ReadAccess(in.get()).samps(0, mDims, 0);
+    RealVector src(mAlgorithm.dims());
+    RealVector dest(mAlgorithm.dims());
+    src = BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
     mAlgorithm.processFrame(src, dest);
     outBuf.samps(0) = dest;
     return OK();
@@ -123,7 +122,6 @@ public:
       makeMessage("write", &StandardizeClient::write));
 
 private:
-  index mDims{0};
   FluidInputTrigger mTrigger;
 };
 
