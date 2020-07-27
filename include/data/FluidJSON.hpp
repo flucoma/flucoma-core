@@ -53,6 +53,13 @@ void from_json(const nlohmann::json &j, FluidTensor<T, 1> &t) {
   t = FluidTensorView<T, 1>(row.data(), 0, row.size());
 }
 
+void from_json(const nlohmann::json &j, FluidTensor<std::string, 1> &t) {
+  if(!j.is_array()) return;
+  for(auto&& el:j)if(!el.is_string()) return;
+  std::vector<std::string> row = j;
+  t = FluidTensorView<std::string, 1>(row.data(), 0, row.size());
+}
+
 template <typename T>
 void to_json(nlohmann::json &j, const FluidTensorView<T, 1> &t) {
   j = std::vector<T>(t.begin(), t.end());
