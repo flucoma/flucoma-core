@@ -48,6 +48,7 @@ bool check_json(const nlohmann::json &j,
 template <typename T>
 void from_json(const nlohmann::json &j, FluidTensor<T, 1> &t) {
   if(!j.is_array()) return;
+  for(auto&& el:j)if(!el.is_number()) return;
   std::vector<T> row = j;
   t = FluidTensorView<T, 1>(row.data(), 0, row.size());
 }
