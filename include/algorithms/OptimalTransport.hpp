@@ -64,8 +64,7 @@ public:
       index end = valleys[asUnsigned(nextValley) + 1];
       if (end > magnitude.size() - 1)
         end = magnitude.size() - 1;
-      if (end < 0)
-        end = 0;
+      if (end < 0 || start > end)continue;
       double mass = magnitude.segment(start, end - start).sum() / totalMass;
       masses.emplace_back(SpectralMass{start, center, end, mass});
       nextValley++;
