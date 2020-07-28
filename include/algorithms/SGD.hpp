@@ -67,14 +67,14 @@ public:
         ArrayXXd batchOut =
             outPerm.block(batchStart, 0, thisBatchSize, outPerm.cols());
         ArrayXXd batchPred = ArrayXXd::Zero(thisBatchSize, outputSize);
-        model.forward(batchIn, batchPred, model.size() - 1);
+        model.forward(batchIn, batchPred);
         ArrayXXd diff = batchPred - batchOut;
         model.backward(diff);
         model.update(learningRate, momentum);
       }
       if(nVal > 0){
         ArrayXXd valPred = ArrayXXd::Zero(nVal, outputSize);
-        model.forward(valInput, valPred, model.size() - 1);
+        model.forward(valInput, valPred);
         double valLoss = model.loss(valPred, valOutput);
         if(valLoss < prevValLoss) patience = mInitialPatience;
         else patience--;
@@ -82,7 +82,7 @@ public:
       }
     }
     ArrayXXd finalPred = ArrayXXd::Zero(nExamples, outputSize);
-    model.forward(input, finalPred, model.size() - 1);
+    model.forward(input, finalPred);
     bool isNan = !((finalPred == finalPred)).all();
     if(isNan){
       model.clear();

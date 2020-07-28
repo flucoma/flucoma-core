@@ -71,33 +71,38 @@ public:
     return (pred - out).square().sum() / out.rows();
   }
 
-  void process(RealMatrixView in, RealMatrixView out, index layerOutput) {
+  void process(RealMatrixView in, RealMatrixView out, index startLayer, index endLayer) {
     using namespace _impl;
     using namespace Eigen;
     ArrayXXd input = asEigen<Eigen::Array>(in);
     ArrayXXd output = ArrayXXd::Zero(out.rows(), out.cols());
-    forward(input, output, layerOutput);
+    forward(input, output, startLayer, endLayer);
     out = asFluid(output);
   }
 
-  void processFrame(RealVectorView in, RealVectorView out, index layerOutput) {
+  void processFrame(RealVectorView in, RealVectorView out, index startLayer, index endLayer) {
     using namespace _impl;
     using namespace Eigen;
     ArrayXd tmpIn = asEigen<Eigen::Array>(in);
     ArrayXXd input(1, tmpIn.size());
     input.row(0) = tmpIn;
     ArrayXXd output = ArrayXXd::Zero(1, out.size());
-    forward(input, output, layerOutput);
+    forward(input, output, startLayer, endLayer);
     ArrayXd tmpOut = output.row(0);
     out = asFluid(tmpOut);
   }
 
-  void forward(Eigen::Ref<ArrayXXd> in, Eigen::Ref<ArrayXXd> out, index layer) {
+  void forward(Eigen::Ref<ArrayXXd> in, Eigen::Ref<ArrayXXd> out) {
+    forward(in, out, 0, mLayers.size() - 1);
+  }
+
+  void forward(Eigen::Ref<ArrayXXd> in, Eigen::Ref<ArrayXXd> out, index startLayer, index endLayer) {
+    if(startLayer >= mLayers.size() || endLayer >= mLayers.size()) return;
+    if(startLayer < 0 || endLayer <= 0) return;
     ArrayXXd input = in;
     ArrayXXd output;
     index nRows = input.rows();
-    layer %= mLayers.size();
-    for (index i = 0; i <= layer; i++) {
+    for (index i = 0; i <= endLayer; i++) {
       auto &&l = mLayers[i];
       output = ArrayXXd::Zero(input.rows(), l.outputSize());
       l.forward(input, output);

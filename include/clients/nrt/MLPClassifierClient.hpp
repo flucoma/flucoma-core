@@ -103,7 +103,7 @@ public:
     src =
         BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, dims, 0);
     mTrigger.process(input, output, [&]() {
-      mAlgorithm.mlp.processFrame(src, dest, layer);
+      mAlgorithm.mlp.processFrame(src, dest, 0, layer);
       auto label = mAlgorithm.encoder.decodeOneHot(dest);
        outBuf.samps(0)[0] = static_cast<double>(
         mAlgorithm.encoder.encodeIndex(label)
@@ -170,10 +170,9 @@ public:
     if (srcDataSet.dims() != mAlgorithm.dims())
       return Error(WrongPointSize);
 
-    index layer = mAlgorithm.mlp.size() - 1;
     StringVector ids{srcDataSet.getIds()};
     RealMatrix output(srcDataSet.size(), mAlgorithm.encoder.numLabels());
-    mAlgorithm.mlp.process(srcDataSet.getData(), output, layer);
+    mAlgorithm.mlp.process(srcDataSet.getData(), output, 0,  mAlgorithm.mlp.size() - 1);
     LabelSet result(1);
     for (index i = 0; i < srcDataSet.size(); i++) {
       StringVector label = {mAlgorithm.encoder.decodeOneHot(output.row(i))};
@@ -198,7 +197,7 @@ public:
     RealVector src(mAlgorithm.mlp.dims());
     RealVector dest(mAlgorithm.mlp.outputSize(layer));
     src = inBuf.samps(0, mAlgorithm.mlp.dims(), 0);
-    mAlgorithm.mlp.processFrame(src, dest, layer);
+    mAlgorithm.mlp.processFrame(src, dest, 0, layer);
     auto label = mAlgorithm.encoder.decodeOneHot(dest);
     return label;
   }

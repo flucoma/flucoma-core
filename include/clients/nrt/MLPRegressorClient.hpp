@@ -19,7 +19,8 @@ class MLPRegressorClient : public FluidBaseClient,
     kHidden,
     kActivation,
     kOutputActivation,
-    kReadLayer,
+    kInputTap,
+    kOutputTap,
     kIter,
     kRate,
     kMomentum,
@@ -44,11 +45,12 @@ public:
                 "ReLU", "Tanh"),
       EnumParam("outputActivation", "Output Activation Function", 0, "Identity", "Sigmoid",
                           "ReLU", "Tanh"),
-      LongParam("readLayer", "Read Layer", -1, Min(-1)),
+      LongParam("inputTap", "Input Tap", 0),
+      LongParam("outputTap", "Output Tap", -1),
       LongParam("maxIter", "Maximum Number of Iterations", 1000, Min(1)),
       FloatParam("learnRate", "Learning Rate", 0.01, Min(0.0), Max(1.0)),
       FloatParam("momentum", "Momentum", 0.9, Min(0.0), Max(0.99)),
-      LongParam("batchSize", "Batch Size", 50),
+      LongParam("batchSize", "Batch Size", 50, Min(1)),
       FloatParam("validation", "Validation Amount", 0.2, Min(0), Max(0.9)),
       BufferParam("inputPointBuffer", "Input Point Buffer"),
       BufferParam("predictionBuffer", "Prediction Buffer"));
@@ -63,25 +65,29 @@ public:
                std::vector<FluidTensorView<T, 1>> &output, FluidContext &) {
     if (!mAlgorithm.trained())
       return;
-    index dims = mAlgorithm.dims();
-    index layer = get<kReadLayer>();
-    if (layer <= 0 || layer > mAlgorithm.size())
-      layer = mAlgorithm.size();
-    layer -= 1;
+    index inputTap = get<kInputTap>();
+    index outputTap = get<kOutputTap>();
+    if(inputTap >= mAlgorithm.size() - 1) return;
+    if(outputTap >= mAlgorithm.size()) return;
+    if(outputTap == 0) return;
+    if(outputTap == -1) outputTap = mAlgorithm.size() - 1;
 
-    InOutBuffersCheck bufCheck(dims);
+    index inputSize = mAlgorithm.inputSize(inputTap);
+    index outputSize = mAlgorithm.outputSize(outputTap);
+
+    InOutBuffersCheck bufCheck(inputSize);
     if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
                               get<kOutputBuffer>().get()))
       return;
     auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-    if(outBuf.samps(0).size() != mAlgorithm.outputSize(layer)) return;
+    if(outBuf.samps(0).size() != mAlgorithm.outputSize(outputTap)) return;
 
-    RealVector src(dims);
-    RealVector dest(mAlgorithm.outputSize(layer));
+    RealVector src(inputSize);
+    RealVector dest(outputSize);
     src =
-        BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, dims, 0);
+        BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, inputSize, 0);
     mTrigger.process(input, output, [&]() {
-      mAlgorithm.processFrame(src, dest, layer);
+      mAlgorithm.processFrame(src, dest, inputTap, outputTap);
       outBuf.samps(0) = dest;
     });
   }
@@ -121,8 +127,18 @@ public:
 
   MessageResult<void> predict(DataSetClientRef srcClient,
                               DataSetClientRef destClient) {
+    index inputTap = get<kInputTap>();
+    index outputTap = get<kOutputTap>();
+    if(inputTap >= mAlgorithm.size() - 1) return Error("Input tap too large");
+    if(outputTap >= mAlgorithm.size()) return Error("Ouput tap too large");
+    if(outputTap == 0) return Error("Ouput tap cannot be 0");
+    if(outputTap == -1) outputTap = mAlgorithm.size() - 1;
+    index inputSize = mAlgorithm.inputSize(inputTap);
+    index outputSize = mAlgorithm.outputSize(outputTap);
+
     auto srcPtr = srcClient.get().lock();
     auto destPtr = destClient.get().lock();
+
     if (!srcPtr || !destPtr)
       return Error(NoDataSet);
     auto srcDataSet = srcPtr->getDataSet();
@@ -133,21 +149,25 @@ public:
     if (srcDataSet.dims() != mAlgorithm.dims())
       return Error(WrongPointSize);
 
-    // default 0 is final layer, so 1-indexed for the rest
-    index layer = get<kReadLayer>();
-    if (layer <= 0 || layer > mAlgorithm.size())
-      layer = mAlgorithm.size();
-    layer -= 1;
-
     StringVector ids{srcDataSet.getIds()};
-    RealMatrix output(srcDataSet.size(), mAlgorithm.outputSize(layer));
-    mAlgorithm.process(srcDataSet.getData(), output, layer);
+    RealMatrix output(srcDataSet.size(), outputSize);
+    mAlgorithm.process(srcDataSet.getData(), output, inputTap, outputTap);
     FluidDataSet<string, double, 1> result(ids, output);
     destPtr->setDataSet(result);
     return OK();
   }
 
   MessageResult<void> predictPoint(BufferPtr in, BufferPtr out) {
+    index inputTap = get<kInputTap>();
+    index outputTap = get<kOutputTap>();
+    if(inputTap >= mAlgorithm.size() - 1) return Error("Input tap too large");
+    if(outputTap >= mAlgorithm.size()) return Error("Ouput tap too large");
+    if(outputTap == 0) return Error("Ouput tap should be > 0 or -1");
+    if(outputTap == -1) outputTap = mAlgorithm.size() - 1;
+
+    index inputSize = mAlgorithm.inputSize(inputTap);
+    index outputSize = mAlgorithm.outputSize(outputTap);
+
     if (!in || !out)
       return Error(NoBuffer);
     BufferAdaptor::Access inBuf(in.get());
@@ -156,25 +176,19 @@ public:
       return Error(InvalidBuffer);
     if (!outBuf.exists())
       return Error(InvalidBuffer);
-    if (inBuf.numFrames() != mAlgorithm.dims())
+    if (inBuf.numFrames() != inputSize)
       return Error(WrongPointSize);
     if (!mAlgorithm.trained())
       return Error(NoDataFitted);
 
-    index layer = get<kReadLayer>();
-    if (layer <= 0 || layer > mAlgorithm.size())
-      layer = mAlgorithm.size();
-    layer -= 1;
-
     Result resizeResult =
-        outBuf.resize(mAlgorithm.outputSize(layer), 1, inBuf.sampleRate());
+        outBuf.resize(outputSize, 1, inBuf.sampleRate());
     if (!resizeResult.ok())
       return Error(BufferAlloc);
-    RealVector src(mAlgorithm.dims());
-    RealVector dest(mAlgorithm.outputSize(layer));
-    src = inBuf.samps(0, mAlgorithm.dims(), 0);
-
-    mAlgorithm.processFrame(src, dest, layer);
+    RealVector src(inputSize);
+    RealVector dest(outputSize);
+    src = inBuf.samps(0,inputSize, 0);
+    mAlgorithm.processFrame(src, dest, inputTap, outputTap);
     outBuf.samps(0) = dest;
     return {};
   }
