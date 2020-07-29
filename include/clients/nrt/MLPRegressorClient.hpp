@@ -41,12 +41,12 @@ public:
 
   FLUID_DECLARE_PARAMS(
       LongArrayParam("hidden", "Hidden Layer Sizes", HiddenLayerDefaults),
-      EnumParam("activation", "Activation Function", 0, "Identity", "Sigmoid",
+      EnumParam("activation", "Activation Function", 2, "Identity", "Sigmoid",
                 "ReLU", "Tanh"),
       EnumParam("outputActivation", "Output Activation Function", 0, "Identity", "Sigmoid",
                           "ReLU", "Tanh"),
-      LongParam("inputTap", "Input Tap", 0),
-      LongParam("outputTap", "Output Tap", -1),
+      LongParam("tapIn", "Input Tap Index", 0),
+      LongParam("tapOut", "Output Tap Index", -1),
       LongParam("maxIter", "Maximum Number of Iterations", 1000, Min(1)),
       FloatParam("learnRate", "Learning Rate", 0.01, Min(0.0), Max(1.0)),
       FloatParam("momentum", "Momentum", 0.9, Min(0.0), Max(0.99)),
