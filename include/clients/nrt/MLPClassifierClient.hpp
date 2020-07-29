@@ -89,7 +89,7 @@ public:
     if (!mAlgorithm.mlp.trained())
       return;
     index dims = mAlgorithm.mlp.dims();
-    index layer = mAlgorithm.mlp.size() - 1;
+    index layer = mAlgorithm.mlp.size();
 
     InOutBuffersCheck bufCheck(dims);
     if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
@@ -172,7 +172,7 @@ public:
 
     StringVector ids{srcDataSet.getIds()};
     RealMatrix output(srcDataSet.size(), mAlgorithm.encoder.numLabels());
-    mAlgorithm.mlp.process(srcDataSet.getData(), output, 0,  mAlgorithm.mlp.size() - 1);
+    mAlgorithm.mlp.process(srcDataSet.getData(), output, 0,  mAlgorithm.mlp.size());
     LabelSet result(1);
     for (index i = 0; i < srcDataSet.size(); i++) {
       StringVector label = {mAlgorithm.encoder.decodeOneHot(output.row(i))};
@@ -193,7 +193,7 @@ public:
     if (!mAlgorithm.mlp.trained())
       return Error<string>(NoDataFitted);
 
-    index layer = mAlgorithm.mlp.size() - 1;
+    index layer = mAlgorithm.mlp.size();
     RealVector src(mAlgorithm.mlp.dims());
     RealVector dest(mAlgorithm.mlp.outputSize(layer));
     src = inBuf.samps(0, mAlgorithm.mlp.dims(), 0);
