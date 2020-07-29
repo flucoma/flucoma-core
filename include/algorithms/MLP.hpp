@@ -93,16 +93,16 @@ public:
   }
 
   void forward(Eigen::Ref<ArrayXXd> in, Eigen::Ref<ArrayXXd> out) {
-    forward(in, out, 0, mLayers.size() - 1);
+    forward(in, out, 0, mLayers.size());
   }
 
   void forward(Eigen::Ref<ArrayXXd> in, Eigen::Ref<ArrayXXd> out, index startLayer, index endLayer) {
-    if(startLayer >= mLayers.size() || endLayer >= mLayers.size()) return;
+    if(startLayer >= mLayers.size() || endLayer > mLayers.size()) return;
     if(startLayer < 0 || endLayer <= 0) return;
     ArrayXXd input = in;
     ArrayXXd output;
     index nRows = input.rows();
-    for (index i = 0; i <= endLayer; i++) {
+    for (index i = 0; i < endLayer; i++) {
       auto &&l = mLayers[i];
       output = ArrayXXd::Zero(input.rows(), l.outputSize());
       l.forward(input, output);
@@ -132,9 +132,12 @@ public:
   bool trained() const { return mTrained; }
   void setTrained(bool val) { mTrained = val; }
   index initialized() const { return mInitialized; }
+
+  // 0 = size of the input, 1 = output size of first hidden
   index outputSize(index layer) const {
-    return (layer >= mLayers.size() || layer < 0)?
-      0:mLayers[layer].outputSize();
+    if(layer == 0) return mLayers[0].inputSize();
+    if(layer < 0 || layer > mLayers.size()) return 0;
+    return mLayers[layer - 1].outputSize();
   }
 
   index inputSize(index layer) const {
