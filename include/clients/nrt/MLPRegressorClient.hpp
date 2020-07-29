@@ -45,8 +45,8 @@ public:
                 "ReLU", "Tanh"),
       EnumParam("outputActivation", "Output Activation Function", 0, "Identity", "Sigmoid",
                           "ReLU", "Tanh"),
-      LongParam("tapIn", "Input Tap Index", 0),
-      LongParam("tapOut", "Output Tap Index", -1),
+      LongParam("tapIn", "Input Tap Index", 0, Min(0)),
+      LongParam("tapOut", "Output Tap Index", -1, Min(-1)),
       LongParam("maxIter", "Maximum Number of Iterations", 1000, Min(1)),
       FloatParam("learnRate", "Learning Rate", 0.01, Min(0.0), Max(1.0)),
       FloatParam("momentum", "Momentum", 0.9, Min(0.0), Max(0.99)),
@@ -70,7 +70,7 @@ public:
     if(inputTap >= mAlgorithm.size() - 1) return;
     if(outputTap >= mAlgorithm.size()) return;
     if(outputTap == 0) return;
-    if(outputTap == -1) outputTap = mAlgorithm.size() - 1;
+    if(outputTap == -1) outputTap = mAlgorithm.size();
 
     index inputSize = mAlgorithm.inputSize(inputTap);
     index outputSize = mAlgorithm.outputSize(outputTap);
@@ -132,7 +132,7 @@ public:
     if(inputTap >= mAlgorithm.size() - 1) return Error("Input tap too large");
     if(outputTap >= mAlgorithm.size()) return Error("Ouput tap too large");
     if(outputTap == 0) return Error("Ouput tap cannot be 0");
-    if(outputTap == -1) outputTap = mAlgorithm.size() - 1;
+    if(outputTap == -1) outputTap = mAlgorithm.size();
     index inputSize = mAlgorithm.inputSize(inputTap);
     index outputSize = mAlgorithm.outputSize(outputTap);
 
@@ -163,7 +163,7 @@ public:
     if(inputTap >= mAlgorithm.size() - 1) return Error("Input tap too large");
     if(outputTap >= mAlgorithm.size()) return Error("Ouput tap too large");
     if(outputTap == 0) return Error("Ouput tap should be > 0 or -1");
-    if(outputTap == -1) outputTap = mAlgorithm.size() - 1;
+    if(outputTap == -1) outputTap = mAlgorithm.size();
 
     index inputSize = mAlgorithm.inputSize(inputTap);
     index outputSize = mAlgorithm.outputSize(outputTap);
