@@ -299,7 +299,7 @@ void to_json(nlohmann::json &j, const MLP &mlp) {
   for (index i = 0; i < mlp.size(); i++){
     nlohmann::json layer;
     index rows = mlp.inputSize(i);
-    index cols = mlp.outputSize(i);
+    index cols = mlp.outputSize(i + 1);
     RealMatrix W(rows, cols);
     RealVector b(cols);
     index a;
