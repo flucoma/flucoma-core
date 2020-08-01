@@ -42,7 +42,8 @@ Result spikesToTimes(FluidTensorView<T, 2> changePoints, BufferAdaptor* output,
   if (numSpikes[0] == 0)
   {
     auto idx = BufferAdaptor::Access(output);
-    idx.resize(1, changePoints.rows(), sampleRate);
+    auto resizeResult = idx.resize(1, changePoints.rows(), sampleRate);
+    if(!resizeResult.ok()) return resizeResult; 
     double result = -1.0;
     for (index i = 0; i < changePoints.rows(); i++) idx.samps(i)[0] = result;
     return {};

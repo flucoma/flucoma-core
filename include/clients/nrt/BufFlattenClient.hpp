@@ -55,7 +55,10 @@ public:
       return {Result::Status::kError,
               "Destination Buffer Not Found or Invalid"};  
                             
-    destination.resize(source.numFrames()*source.numChans(), 1 ,source.sampleRate());
+    auto resizeResult = destination.resize(source.numFrames()*source.numChans(), 1 ,source.sampleRate());
+    
+    if(!resizeResult.ok()) return resizeResult; 
+    
     
     if(get<kAxis>() == 0)
       std::copy(source.allFrames().begin(),

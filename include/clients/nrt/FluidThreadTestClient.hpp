@@ -53,8 +53,9 @@ public:
       auto buf = BufferAdaptor::Access(bufref.get());
       if (buf.exists())
       {
-        if (!buf.resize(1, 1, buf.sampleRate()).ok())
-          return {Result::Status::kError, "Buffer resize failed"};
+        auto resizeResult = buf.resize(1, 1, buf.sampleRate());
+        if(!resizeResult.ok()) return resizeResult;
+        
         buf.samps(0)(0) = static_cast<float>(wait);
         return {Result::Status::kOk, ""};
       }
