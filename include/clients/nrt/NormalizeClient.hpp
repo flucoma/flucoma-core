@@ -13,7 +13,7 @@ class NormalizeClient : public FluidBaseClient,
                         ModelObject,
                         public DataClient<algorithm::Normalization> {
 
-  enum { kMin, kMax, kInputBuffer, kOutputBuffer };
+  enum { kMin, kMax, kInvert, kInputBuffer, kOutputBuffer };
 
 public:
   using string = std::string;
@@ -22,6 +22,7 @@ public:
 
   FLUID_DECLARE_PARAMS(FloatParam("min", "Minimum Value", 0.0),
                        FloatParam("max", "Maximum Value", 1.0),
+                       EnumParam("invert", "Inverse Transform", 0, "False", "True"),
                        BufferParam("inputPointBuffer", "Input Point Buffer"),
                        BufferParam("predictionBuffer", "Prediction Buffer"));
 
@@ -45,7 +46,7 @@ public:
     mAlgorithm.setMin(get<kMin>());
     mAlgorithm.setMax(get<kMax>());
     mTrigger.process(input, output, [&]() {
-      mAlgorithm.processFrame(src, dest);
+      mAlgorithm.processFrame(src, dest, get<kInvert>() == 1);
       outBuf.samps(0) = dest;
     });
   }
@@ -79,7 +80,7 @@ public:
         return Error(NoDataFitted);
       mAlgorithm.setMin(get<kMin>());
       mAlgorithm.setMax(get<kMax>());
-      mAlgorithm.process(srcDataSet.getData(), data);
+      mAlgorithm.process(srcDataSet.getData(), data, get<kInvert>() == 1);
       FluidDataSet<string, double, 1> result(ids, data);
       destPtr->setDataSet(result);
     } else {
@@ -109,7 +110,7 @@ public:
     src = BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
     mAlgorithm.setMin(get<kMin>());
     mAlgorithm.setMax(get<kMax>());
-    mAlgorithm.processFrame(src, dest);
+    mAlgorithm.processFrame(src, dest, get<kInvert>() == 1);
     outBuf.samps(0) = dest;
     return OK();
   }

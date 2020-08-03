@@ -19,10 +19,11 @@ public:
   using StringVector = FluidTensor<string, 1>;
 
   template <typename T> Result process(FluidContext &) { return {}; }
-  enum { kInputBuffer, kOutputBuffer };
-  FLUID_DECLARE_PARAMS(BufferParam("inputPointBuffer", "Input Point Buffer"),
+  enum { kInvert, kInputBuffer, kOutputBuffer };
+  FLUID_DECLARE_PARAMS(
+                       EnumParam("invert", "Inverse Transform", 0, "False", "True"),
+                       BufferParam("inputPointBuffer", "Input Point Buffer"),
                        BufferParam("predictionBuffer", "Prediction Buffer"));
-
   StandardizeClient(ParamSetViewType &p) : mParams(p) {
     audioChannelsIn(1);
     controlChannelsOut(1);
@@ -41,7 +42,7 @@ public:
     RealVector dest(mAlgorithm.dims());
     src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, mAlgorithm.dims(), 0);
     mTrigger.process(input, output, [&]() {
-      mAlgorithm.processFrame(src, dest);
+      mAlgorithm.processFrame(src, dest, get<kInvert>() == 1);
       BufferAdaptor::Access(get<kOutputBuffer>().get()).samps(0) = dest;
     });
   }
@@ -74,7 +75,7 @@ public:
       RealMatrix data(srcDataSet.size(), srcDataSet.pointSize());
       if (!mAlgorithm.initialized())
         return Error(NoDataFitted);
-      mAlgorithm.process(srcDataSet.getData(), data);
+      mAlgorithm.process(srcDataSet.getData(), data, get<kInvert>() == 1);
       FluidDataSet<string, double, 1> result(ids, data);
       destPtr->setDataSet(result);
     } else {
@@ -94,7 +95,7 @@ public:
     RealVector src(mAlgorithm.dims());
     RealVector dest(mAlgorithm.dims());
     src = BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
-    mAlgorithm.processFrame(src, dest);
+    mAlgorithm.processFrame(src, dest, get<kInvert>() == 1);
     outBuf.samps(0) = dest;
     return OK();
   }

@@ -41,22 +41,38 @@ public:
     mInitialized = true;
   }
 
-  void processFrame(const RealVectorView in, RealVectorView out) const{
+  void processFrame(const RealVectorView in, RealVectorView out, bool inverse = false) const{
     using namespace Eigen;
     using namespace _impl;
     ArrayXd input = asEigen<Array>(in);
-    ArrayXd result = (input - mDataMin) / mDataRange;
-    result = mMin + (result * (mMax - mMin));
+    ArrayXd result;
+    if(!inverse) {
+      result = (input - mDataMin) / mDataRange;
+      result = mMin + (result * (mMax - mMin));
+    }
+    else {
+      result = (input - mMin) / (mMax - mMin);
+      result = mDataMin + (result * mDataRange);
+    }
     out = asFluid(result);
   }
 
-  void process(const RealMatrixView in, RealMatrixView out) const{
+  void process(const RealMatrixView in, RealMatrixView out, bool inverse = false) const{
     using namespace Eigen;
     using namespace _impl;
     ArrayXXd input = asEigen<Array>(in);
-    ArrayXXd result = (input.rowwise() - mDataMin.transpose());
-    result = result.rowwise() / mDataRange.transpose();
-    result = mMin + (result * (mMax - mMin));
+    ArrayXXd result;
+    if(!inverse) {
+      result = (input.rowwise() - mDataMin.transpose());
+      result = result.rowwise() / mDataRange.transpose();
+      result = mMin + (result * (mMax - mMin));
+    }
+    else {
+      result = input - mMin;
+      result = result / (mMax - mMin);
+      result = (result.rowwise() * mDataRange.transpose());
+      result = (result.rowwise() + mDataMin.transpose());
+    }
     out = asFluid(result);
   }
 

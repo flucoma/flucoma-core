@@ -32,20 +32,32 @@ public:
     mInitialized = true;
   }
 
-  void processFrame(const RealVectorView in, RealVectorView out) const{
+  void processFrame(const RealVectorView in, RealVectorView out, bool inverse = false) const{
     using namespace Eigen;
     using namespace _impl;
     ArrayXd input = asEigen<Array>(in);
-    ArrayXd result = (input - mMean) / mStd;
+    ArrayXd result;
+    if(!inverse) {
+     result = (input - mMean) / mStd;
+   } else{
+     result = (input * mStd) + mMean;
+   }
     out = asFluid(result);
   }
 
-  void process(const RealMatrixView in, RealMatrixView out) const{
+  void process(const RealMatrixView in, RealMatrixView out, bool inverse = false) const{
     using namespace Eigen;
     using namespace _impl;
     ArrayXXd input = asEigen<Array>(in);
-    ArrayXXd result = (input.rowwise() - mMean.transpose());
-    result = result.rowwise() / mStd.transpose();
+    ArrayXXd result;
+
+    if(!inverse) {
+     result = (input.rowwise() - mMean.transpose());
+     result = result.rowwise() / mStd.transpose();
+    } else {
+     result = (input.rowwise() * mStd.transpose());
+     result = (result.rowwise() + mMean.transpose());
+   }
     out = asFluid(result);
   }
 
