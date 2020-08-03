@@ -94,7 +94,7 @@ public:
   }
 
   template <template <size_t N, typename T> class Func, typename... Args>
-  std::array<Result, sizeof...(Ts)> setFixedParameterValues(bool reportage, Args &&... args)
+  auto setFixedParameterValues(bool reportage, Args &&... args)
   {
     auto results = mParams->params.template setFixedParameterValues<Func>(reportage, std::forward<Args>(args)...);
 
