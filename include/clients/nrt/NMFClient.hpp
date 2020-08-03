@@ -105,16 +105,18 @@ public:
       if (!buf.exists())
         return {Result::Status::kError, "Filter Buffer Supplied But Invalid"};
 
-      if (buf.valid() && (get<kFiltersUpdate>() > 0) &&
-          (buf.numFrames() != nBins ||
-           buf.numChans() != get<kRank>() * nChannels))
+      if ( (get<kFiltersUpdate>() > 0) &&
+            (!buf.valid()              ||
+              buf.numFrames() != nBins ||
+              buf.numChans() != get<kRank>() * nChannels
+          ) )
         return {Result::Status::kError,
                 "Supplied filter buffer for seeding must be [(FFTSize / 2) + "
                 "1] frames long, and have [rank] * [channels] channels"};
       hasFilters = true;
     }
     else if (get<kFiltersUpdate>() > 0)
-      return {Result::Status::kError,
+      return { Result::Status::kError,
               "Filter Mode set to Seed or Fix , but no Filter Buffer supplied"};
 
     bool       hasEnvelopes{false};
@@ -131,9 +133,12 @@ public:
       if (!buf.exists())
         return {Result::Status::kError, "Envelope Buffer Supplied But Invalid"};
 
-      if (buf.valid() && (get<kEnvelopesUpdate>() > 0) &&
-          (buf.numFrames() != (nFrames / fftParams.hopSize()) + 1 ||
-           buf.numChans() != get<kRank>() * nChannels))
+      if ((get<kEnvelopesUpdate>() > 0) &&
+          (
+            !buf.valid() ||
+            buf.numFrames() != (nFrames / fftParams.hopSize()) + 1 ||
+            buf.numChans() != get<kRank>() * nChannels
+          ))
         return {
             Result::Status::kError,
             "Supplied envelope buffer for seeding must be [(num samples / hop "
@@ -145,7 +150,6 @@ public:
       return {
           Result::Status::kError,
           "Envelope Mode set to Seed or Fix , but no Envelope Buffer supplied"};
-
 
     bool hasResynth{false};
 
