@@ -14,6 +14,7 @@ namespace client {
   static const std::string DuplicateLabel{"Label already in dataset"};
   static const std::string SmallDataSet{"DataSet is smaller than k"};
   static const std::string SmallK{"k is too small"};
+  static const std::string LargeK{"k is too large"};
   static const std::string EmptyDataSet{"DataSet is empty"};
   static const std::string EmptyLabelSet{"LabelSet is empty"};
   static const std::string NoDataSet{"DataSet does not exist"};
