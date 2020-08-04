@@ -63,7 +63,7 @@ public:
   }
 
   MessageResult<void> transform(DataSetClientRef sourceClient,
-                                DataSetClientRef destClient) const {
+                                DataSetClientRef destClient, bool forceForwad = false) const {
     using namespace std;
     auto srcPtr = sourceClient.get().lock();
     auto destPtr = destClient.get().lock();
@@ -75,7 +75,8 @@ public:
       RealMatrix data(srcDataSet.size(), srcDataSet.pointSize());
       if (!mAlgorithm.initialized())
         return Error(NoDataFitted);
-      mAlgorithm.process(srcDataSet.getData(), data, get<kInvert>() == 1);
+      mAlgorithm.process(srcDataSet.getData(), data,
+        forceForwad? false : get<kInvert>() == 1);
       FluidDataSet<string, double, 1> result(ids, data);
       destPtr->setDataSet(result);
     } else {
@@ -105,7 +106,7 @@ public:
     auto result = fit(sourceClient);
     if (!result.ok())
       return result;
-    result = transform(sourceClient, destClient);
+    result = transform(sourceClient, destClient, true);
     return result;
   }
 

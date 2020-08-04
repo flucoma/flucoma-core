@@ -66,7 +66,7 @@ public:
     return {};
   }
   MessageResult<void> transform(DataSetClientRef sourceClient,
-                                DataSetClientRef destClient) {
+                                DataSetClientRef destClient, bool forceForward = false) {
     using namespace std;
     auto srcPtr = sourceClient.get().lock();
     auto destPtr = destClient.get().lock();
@@ -80,7 +80,8 @@ public:
         return Error(NoDataFitted);
       mAlgorithm.setMin(get<kMin>());
       mAlgorithm.setMax(get<kMax>());
-      mAlgorithm.process(srcDataSet.getData(), data, get<kInvert>() == 1);
+      mAlgorithm.process(srcDataSet.getData(), data,
+        forceForward? false : get<kInvert>() == 1);
       FluidDataSet<string, double, 1> result(ids, data);
       destPtr->setDataSet(result);
     } else {
@@ -94,7 +95,7 @@ public:
     auto result = fit(sourceClient);
     if (!result.ok())
       return result;
-    result = transform(sourceClient, destClient);
+    result = transform(sourceClient, destClient, true);
     return result;
   }
 
