@@ -67,7 +67,7 @@ public:
 
   FLUID_DECLARE_PARAMS(
       LongArrayParam("hidden", "Hidden Layer Sizes", HiddenLayerDefaults),
-      EnumParam("activation", "Activation Function", 1, "Identity", "Sigmoid",
+      EnumParam("activation", "Activation Function", 2, "Identity", "Sigmoid",
                 "ReLU", "Tanh"),
       LongParam("maxIter", "Maximum Number of Iterations", 1000,  Min(1)),
       FloatParam("learnRate", "Learning Rate", 0.01, Min(0.0), Max(1.0)),
