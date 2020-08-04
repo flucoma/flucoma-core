@@ -63,26 +63,8 @@ public:
   }
 
   MessageResult<void> transform(DataSetClientRef sourceClient,
-                                DataSetClientRef destClient, bool forceForwad = false) const {
-    using namespace std;
-    auto srcPtr = sourceClient.get().lock();
-    auto destPtr = destClient.get().lock();
-    if (srcPtr && destPtr) {
-      auto srcDataSet = srcPtr->getDataSet();
-      if (srcDataSet.size() == 0)
-        return Error(EmptyDataSet);
-      StringVector ids{srcDataSet.getIds()};
-      RealMatrix data(srcDataSet.size(), srcDataSet.pointSize());
-      if (!mAlgorithm.initialized())
-        return Error(NoDataFitted);
-      mAlgorithm.process(srcDataSet.getData(), data,
-        forceForwad? false : get<kInvert>() == 1);
-      FluidDataSet<string, double, 1> result(ids, data);
-      destPtr->setDataSet(result);
-    } else {
-      return Error(NoDataSet);
-    }
-    return {};
+                                DataSetClientRef destClient) const {
+    return _transform(sourceClient, destClient, get<kInvert>() == 1);
   }
 
   MessageResult<void> transformPoint(BufferPtr in, BufferPtr out) const {
@@ -106,7 +88,7 @@ public:
     auto result = fit(sourceClient);
     if (!result.ok())
       return result;
-    result = transform(sourceClient, destClient, true);
+    result = _transform(sourceClient, destClient, false);
     return result;
   }
 
@@ -124,6 +106,28 @@ public:
       makeMessage("write", &StandardizeClient::write));
 
 private:
+  MessageResult<void> _transform(DataSetClientRef sourceClient,
+                                DataSetClientRef destClient, bool invert) const {
+    using namespace std;
+    auto srcPtr = sourceClient.get().lock();
+    auto destPtr = destClient.get().lock();
+    if (srcPtr && destPtr) {
+      auto srcDataSet = srcPtr->getDataSet();
+      if (srcDataSet.size() == 0)
+        return Error(EmptyDataSet);
+      StringVector ids{srcDataSet.getIds()};
+      RealMatrix data(srcDataSet.size(), srcDataSet.pointSize());
+      if (!mAlgorithm.initialized())
+        return Error(NoDataFitted);
+      mAlgorithm.process(srcDataSet.getData(), data, invert);
+      FluidDataSet<string, double, 1> result(ids, data);
+      destPtr->setDataSet(result);
+    } else {
+      return Error(NoDataSet);
+    }
+    return OK();
+  }
+
   FluidInputTrigger mTrigger;
 };
 

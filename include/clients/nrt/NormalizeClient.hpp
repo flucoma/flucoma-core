@@ -66,28 +66,8 @@ public:
     return {};
   }
   MessageResult<void> transform(DataSetClientRef sourceClient,
-                                DataSetClientRef destClient, bool forceForward = false) {
-    using namespace std;
-    auto srcPtr = sourceClient.get().lock();
-    auto destPtr = destClient.get().lock();
-    if (srcPtr && destPtr) {
-      auto srcDataSet = srcPtr->getDataSet();
-      if (srcDataSet.size() == 0)
-        return Error(EmptyDataSet);
-      StringVector ids{srcDataSet.getIds()};
-      RealMatrix data(srcDataSet.size(), srcDataSet.pointSize());
-      if (!mAlgorithm.initialized())
-        return Error(NoDataFitted);
-      mAlgorithm.setMin(get<kMin>());
-      mAlgorithm.setMax(get<kMax>());
-      mAlgorithm.process(srcDataSet.getData(), data,
-        forceForward? false : get<kInvert>() == 1);
-      FluidDataSet<string, double, 1> result(ids, data);
-      destPtr->setDataSet(result);
-    } else {
-      return Error(NoDataSet);
-    }
-    return {};
+                                DataSetClientRef destClient) {
+    return _transform(sourceClient, destClient, get<kInvert>() == 1);
   }
 
   MessageResult<void> fitTransform(DataSetClientRef sourceClient,
@@ -95,7 +75,7 @@ public:
     auto result = fit(sourceClient);
     if (!result.ok())
       return result;
-    result = transform(sourceClient, destClient, true);
+    result = _transform(sourceClient, destClient, false);
     return result;
   }
 
@@ -131,6 +111,29 @@ public:
                          makeMessage("write", &NormalizeClient::write));
 
 private:
+  MessageResult<void> _transform(DataSetClientRef sourceClient,
+                                DataSetClientRef destClient, bool invert) {
+    using namespace std;
+    auto srcPtr = sourceClient.get().lock();
+    auto destPtr = destClient.get().lock();
+    if (srcPtr && destPtr) {
+      auto srcDataSet = srcPtr->getDataSet();
+      if (srcDataSet.size() == 0)
+        return Error(EmptyDataSet);
+      StringVector ids{srcDataSet.getIds()};
+      RealMatrix data(srcDataSet.size(), srcDataSet.pointSize());
+      if (!mAlgorithm.initialized())
+        return Error(NoDataFitted);
+      mAlgorithm.setMin(get<kMin>());
+      mAlgorithm.setMax(get<kMax>());
+      mAlgorithm.process(srcDataSet.getData(), data, invert);
+      FluidDataSet<string, double, 1> result(ids, data);
+      destPtr->setDataSet(result);
+    } else {
+      return Error(NoDataSet);
+    }
+    return OK();
+  }
   FluidInputTrigger mTrigger;
 };
 
