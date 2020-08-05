@@ -377,7 +377,7 @@ private:
 
     (void) std::initializer_list<int>{
         (set<Is>(Func<Is, ParamType<Is>>()(std::forward<Args>(args)...),
-                 reportage == nullptr ? reportage->data() + Is : nullptr),
+                 reportage ? reportage->data() + Is : nullptr),
          0)...};
   }
 
