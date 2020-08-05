@@ -246,6 +246,19 @@ public:
     return constrainParameterValuesImpl(IndexList(),IndexList());
   }
 
+  void constrainParameterValuesRT(std::array<Result, sizeof...(Ts)>* results)
+  {
+    return constrainParameterValuesRTImpl(results,IndexList(),IndexList());
+  }
+
+  template <template <size_t N, typename T> class Func, typename... Args>
+  void setParameterValuesRT(std::array<Result, sizeof...(Ts)>* reportage, Args&&... args)
+  {
+    setParameterValuesRTImpl<Func>(IndexList(), reportage,
+                                        std::forward<Args>(args)...);
+  }
+
+
   template <template <size_t N, typename T> class Func, typename... Args>
   std::array<Result, sizeof...(Ts)> setParameterValues(bool reportage,
                                                        Args&&... args)
@@ -355,6 +368,18 @@ private:
         (Func<Is, ParamType<Is>>()(get<Is>(), std::forward<Args>(args)...),
          0)...};
   }
+  
+  template <template <size_t, typename> class Func, typename... Args,
+            size_t... Is>
+  void setParameterValuesRTImpl(std::index_sequence<Is...>, std::array<Result, sizeof...(Ts)>* reportage,
+                              Args&&... args)
+  {
+
+    (void) std::initializer_list<int>{
+        (set<Is>(Func<Is, ParamType<Is>>()(std::forward<Args>(args)...),
+                 reportage == nullptr ? reportage->data() + Is : nullptr),
+         0)...};
+  }
 
 #ifdef _MSC_VER
 #pragma warning(disable : 4100) // unused params on Args pack contents; don't
@@ -433,6 +458,21 @@ private:
          0)...};
 
     return results;
+  }
+  
+  template <size_t...Cs, size_t... Is>
+  void constrainParameterValuesRTImpl(std::array<Result, sizeof...(Is)>* results, std::index_sequence<Is...>,std::index_sequence<Cs...>)
+  {
+    constexpr auto OffsetsTuple = std::make_tuple(Os...);
+    
+    (void) std::initializer_list<int>{
+        (paramValue<Cs>(mParams) = constrain<std::get<Cs>(OffsetsTuple), Cs, kNonRelational>(
+             paramValue<Cs>(mParams), constraint<Cs>(), results ? results->data() + Is : nullptr),
+         0)...};
+    (void) std::initializer_list<int>{
+        (paramValue<Cs>(mParams) = constrain<std::get<Cs>(OffsetsTuple), Cs, kRelational>(
+             paramValue<Cs>(mParams), constraint<Cs>(), results ? results->data() + Is: nullptr),
+         0)...};
   }
 
 protected:
