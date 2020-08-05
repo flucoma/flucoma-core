@@ -78,6 +78,20 @@ public:
     return mParams->params.template setParameterValues<Func>(reportage, std::forward<Args>(args)...);
   }
 
+
+  void constrainParameterValuesRT(std::array<Result, sizeof...(Ts)>* results)
+  {
+    return mParams->params.template constrainParameterValuesRT(results);
+  }
+
+  template <template <size_t N, typename T> class Func, typename... Args>
+  void setParameterValuesRT(std::array<Result, sizeof...(Ts)>* reportage, Args&&... args)
+  {
+    return mParams->params.template setParameterValuesRT<Func>(reportage,
+                                        std::forward<Args>(args)...);
+  }
+
+
   Result lookup(std::string name)
   {
     return mParamsTable.count(name) ? Result{} :
