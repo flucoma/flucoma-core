@@ -102,7 +102,7 @@ public:
     ArrayXXd input = in;
     ArrayXXd output;
     index nRows = input.rows();
-    for (index i = startLayer; i < endLayer; i++) {
+    for (index i = 0; i < endLayer; i++) {
       auto &&l = mLayers[i];
       output = ArrayXXd::Zero(input.rows(), l.outputSize());
       l.forward(input, output);
