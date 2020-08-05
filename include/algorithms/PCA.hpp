@@ -53,7 +53,7 @@ public:
     MatrixXd result = (input.rowwise() - mMean.transpose()) * mBases.block(0, 0, mBases.rows(), k);
     double variance = 0;
     double total = mValues.sum();
-    for(index i = 0; i < k; i++)variance+=mValues[k];
+    for(index i = 0; i < k; i++) variance += mValues[i];
     out = _impl::asFluid(result);
     return variance / total;
   }
