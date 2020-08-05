@@ -40,14 +40,15 @@ public:
     InOutBuffersCheck bufCheck(mAlgorithm.dims());
     if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
                               get<kOutputBuffer>().get())) return;
-    auto datasetClientPtr = get<kDataSet>().get().lock();
-    if (!datasetClientPtr) datasetClientPtr = mDataSetClient.get().lock();
-    if (!datasetClientPtr) return;
-    auto dataset = datasetClientPtr->getDataSet();
-    index pointSize = dataset.pointSize();
-    auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-    if(outBuf.samps(0).size() !=  (k * pointSize)) return;
     mTrigger.process(input, output, [&]() {
+      auto datasetClientPtr = get<kDataSet>().get().lock();
+      if (!datasetClientPtr) datasetClientPtr = mDataSetClient.get().lock();
+      if (!datasetClientPtr) return;
+      auto dataset = datasetClientPtr->getDataSet();
+      index pointSize = dataset.pointSize();
+      auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
+      if(outBuf.samps(0).size() !=  (k * pointSize)) return;
+
       RealVector point(mAlgorithm.dims());
       point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
         .samps(0, mAlgorithm.dims(), 0);
