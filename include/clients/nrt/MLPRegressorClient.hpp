@@ -129,13 +129,12 @@ public:
                               DataSetClientRef destClient) {
     index inputTap = get<kInputTap>();
     index outputTap = get<kOutputTap>();
-    if(inputTap >= mAlgorithm.size() - 1) return Error("Input tap too large");
-    if(outputTap >= mAlgorithm.size()) return Error("Ouput tap too large");
+    if(inputTap >= mAlgorithm.size()) return Error("Input tap too large");
+    if(outputTap > mAlgorithm.size()) return Error("Ouput tap too large");
     if(outputTap == 0) return Error("Ouput tap cannot be 0");
     if(outputTap == -1) outputTap = mAlgorithm.size();
     index inputSize = mAlgorithm.inputSize(inputTap);
     index outputSize = mAlgorithm.outputSize(outputTap);
-
     auto srcPtr = srcClient.get().lock();
     auto destPtr = destClient.get().lock();
 
@@ -146,7 +145,7 @@ public:
       return Error(EmptyDataSet);
     if (!mAlgorithm.trained())
       return Error(NoDataFitted);
-    if (srcDataSet.dims() != mAlgorithm.dims())
+    if (srcDataSet.dims() != inputSize)
       return Error(WrongPointSize);
 
     StringVector ids{srcDataSet.getIds()};
@@ -160,8 +159,8 @@ public:
   MessageResult<void> predictPoint(BufferPtr in, BufferPtr out) {
     index inputTap = get<kInputTap>();
     index outputTap = get<kOutputTap>();
-    if(inputTap >= mAlgorithm.size() - 1) return Error("Input tap too large");
-    if(outputTap >= mAlgorithm.size()) return Error("Ouput tap too large");
+    if(inputTap >= mAlgorithm.size()) return Error("Input tap too large");
+    if(outputTap > mAlgorithm.size()) return Error("Ouput tap too large");
     if(outputTap == 0) return Error("Ouput tap should be > 0 or -1");
     if(outputTap == -1) outputTap = mAlgorithm.size();
 
@@ -190,7 +189,7 @@ public:
     src = inBuf.samps(0,inputSize, 0);
     mAlgorithm.processFrame(src, dest, inputTap, outputTap);
     outBuf.samps(0) = dest;
-    return {};
+    return OK();
   }
 
   index latency() { return 0; }
