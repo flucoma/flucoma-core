@@ -41,7 +41,7 @@ public:
         get<kInputBuffer>().get(),
         get<kOutputBuffer>().get())) return;
     auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-    if(outBuf.samps(0).size() != mAlgorithm.size()) return;
+    if(outBuf.samps(0).size() != k) return;
     RealVector src(mAlgorithm.dims());
     RealVector dest(k);
     src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, mAlgorithm.dims(), 0);
