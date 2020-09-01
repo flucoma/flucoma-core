@@ -33,7 +33,7 @@ public:
     sizes.push_back(outputSize);
     activations.push_back(outputAct);
     for (index i = 0; i < asSigned(sizes.size() - 1); i++) {
-      mLayers.push_back(NNLayer(sizes[i], sizes[i + 1], activations[i]));
+      mLayers.push_back(NNLayer(sizes[asUnsigned(i)], sizes[asUnsigned(i + 1)], activations[asUnsigned(i)]));
     }
     for (auto &&l : mLayers)
       l.init();
@@ -43,9 +43,9 @@ public:
 
   void getParameters(index layer, RealMatrixView W, RealVectorView b, index& layerType) const {
     using namespace _impl;
-    W = asFluid(mLayers[layer].getWeights());
-    b = asFluid(mLayers[layer].getBiases());
-    layerType = mLayers[layer].getActType();
+    W = asFluid(mLayers[asUnsigned(layer)].getWeights());
+    b = asFluid(mLayers[asUnsigned(layer)].getBiases());
+    layerType = mLayers[asUnsigned(layer)].getActType();
   }
 
   void setParameters(index layer, RealMatrixView W, RealVectorView b, index layerType) {
@@ -54,7 +54,7 @@ public:
     using namespace _impl;
     MatrixXd weights = asEigen<Matrix>(W);
     VectorXd biases = asEigen<Matrix>(b);
-    mLayers[layer].init(
+    mLayers[asUnsigned(layer)].init(
       weights, biases, layerType
     );
   }
@@ -93,7 +93,7 @@ public:
   }
 
   void forward(Eigen::Ref<ArrayXXd> in, Eigen::Ref<ArrayXXd> out) {
-    forward(in, out, 0, mLayers.size());
+    forward(in, out, 0, asSigned(mLayers.size()));
   }
 
   void forward(Eigen::Ref<ArrayXXd> in, Eigen::Ref<ArrayXXd> out, index startLayer, index endLayer) {
@@ -102,7 +102,7 @@ public:
     ArrayXXd input = in;
     ArrayXXd output;
     for (index i = startLayer; i < endLayer; i++) {
-      auto &&l = mLayers[i];
+      auto &&l = mLayers[asUnsigned(i)];
       output = ArrayXXd::Zero(input.rows(), l.outputSize());
       l.forward(input, output);
       input = output;
@@ -115,9 +115,9 @@ public:
     ArrayXXd chain =
         ArrayXXd::Zero(nRows, mLayers[mLayers.size() - 1].inputSize());
     mLayers[mLayers.size() - 1].backward(out, chain);
-    for (index i = mLayers.size() - 2; i >= 0; i--) {
-      ArrayXXd tmp = ArrayXXd::Zero(nRows, mLayers[i].inputSize());
-      mLayers[i].backward(chain, tmp);
+    for (index i = asSigned(mLayers.size() - 2); i >= 0; i--) {
+      ArrayXXd tmp = ArrayXXd::Zero(nRows, mLayers[asUnsigned(i)].inputSize());
+      mLayers[asUnsigned(i)].backward(chain, tmp);
       chain = tmp;
     }
   }
@@ -127,7 +127,7 @@ public:
       l.update(learningRate, momentum);
   }
 
-  index size() const { return mLayers.size(); }
+  index size() const { return asSigned(mLayers.size()); }
   bool trained() const { return mTrained; }
   void setTrained(bool val) { mTrained = val; }
   index initialized() const { return mInitialized; }
@@ -136,12 +136,12 @@ public:
   index outputSize(index layer) const {
     if(layer == 0) return mLayers[0].inputSize();
     if(layer < 0 || layer > asSigned(mLayers.size())) return 0;
-    return mLayers[layer - 1].outputSize();
+    return mLayers[asUnsigned(layer - 1)].outputSize();
   }
 
   index inputSize(index layer) const {
     return (layer >= asSigned(mLayers.size()) || layer < 0)?
-      0:mLayers[layer].inputSize();
+      0:mLayers[asUnsigned(layer)].inputSize();
   }
 
   index dims() const {
