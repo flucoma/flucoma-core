@@ -210,7 +210,7 @@ private:
   FluidInputTrigger mTrigger;
   ParameterTrackChanges<IndexVector, index> mTracker;
 };
-
+constexpr std::initializer_list<index> MLPRegressorClient::HiddenLayerDefaults;
 using RTMLPRegressorClient = ClientWrapper<MLPRegressorClient>;
 } // namespace client
 } // namespace fluid

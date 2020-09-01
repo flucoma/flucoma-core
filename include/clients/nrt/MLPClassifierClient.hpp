@@ -219,6 +219,7 @@ private:
   ParameterTrackChanges<IndexVector, index> mTracker;
 };
 
+constexpr std::initializer_list<index> MLPClassifierClient::HiddenLayerDefaults;
 using RTMLPClassifierClient = ClientWrapper<MLPClassifierClient>;
 
 } // namespace client
