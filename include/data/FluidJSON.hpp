@@ -323,28 +323,28 @@ bool check_json(const nlohmann::json &j, const MLP &) {
 
 void from_json(const nlohmann::json &j, MLP &mlp) {
   using namespace std;
-  index nLayers = j["layers"].size();
+  index nLayers = asSigned(j["layers"].size());
   if(nLayers <= 0) return;
-  index inputSize = j["layers"][0]["rows"];
-  index outputSize = j["layers"][nLayers - 1]["cols"];
-  index activation = j["layers"][0]["activation"];
-  index finalActivation = j["layers"][nLayers - 1]["activation"];
+  index inputSize = asSigned(j["layers"][0]["rows"]);
+  index outputSize = asSigned(j["layers"][asUnsigned(nLayers - 1)]["cols"]);
+  index activation = asSigned(j["layers"][0]["activation"]);
+  index finalActivation = asSigned(j["layers"][asUnsigned(nLayers - 1)]["activation"]);
   FluidTensor<index, 1> hiddenSizes(j["layers"].size() - 1);
   if(nLayers > 1){
     for (index i = 0; i < nLayers - 1; i++){
-      hiddenSizes(i) =  j["layers"][i]["cols"];
+      hiddenSizes(i) =  asSigned(j["layers"][asUnsigned(i)]["cols"]);
     }
   }
   mlp.init(inputSize,outputSize, hiddenSizes, activation, finalActivation);
   for (index i = 0; i < nLayers; i++){
-    auto l = j["layers"][i];
-    index rows = l["rows"];
-    index cols = l["cols"];
+    auto l = j["layers"][asUnsigned(i)];
+    index rows = asSigned(l["rows"]);
+    index cols = asSigned(l["cols"]);
     RealMatrix W(rows, cols);
     l.at("weights").get_to(W);
     RealVector b(cols);
     l.at("biases").get_to(b);
-    index a = l.at("activation");
+    index a = asSigned(l.at("activation"));
     mlp.setParameters(i, W, b, a);
   }
   mlp.setTrained(true);
