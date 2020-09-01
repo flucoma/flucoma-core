@@ -29,27 +29,27 @@ public:
     std::vector<double> weights;
     double sum = 0;
     if(weighted){
-      weights = std::vector<double>(k, 0);
+      weights = std::vector<double>(asUnsigned(k), 0);
       bool binaryWeights = false;
       for(index i = 0; i < k; i++){
         if (distances(i,0) < epsilon) {
           binaryWeights = true;
-          weights[i] = 1;
+          weights[asUnsigned(i)] = 1;
         }
         else sum += (1.0 / distances(i,0));
       }
       if (!binaryWeights){
         for(index i = 0; i < k; i++){
-          weights[i] = (1.0 / distances(i,0)) / sum;
+          weights[asUnsigned(i)] = (1.0 / distances(i,0)) / sum;
         }
       }
     } else {
-      weights = std::vector<double>(k, uniformWeight);
+      weights = std::vector<double>(asUnsigned(k), uniformWeight);
     }
   for(index i = 0; i < k; i++){
       auto point = FluidTensor<double, 1>(1);
       targets.get(ids(i), point);
-      prediction += (weights[i] * point(0));
+      prediction += (weights[asUnsigned(i)] * point(0));
     }
     return prediction;
   }
