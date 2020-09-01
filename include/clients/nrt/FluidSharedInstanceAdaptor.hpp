@@ -81,13 +81,13 @@ public:
 
   void constrainParameterValuesRT(std::array<Result, sizeof...(Ts)>* results)
   {
-    return mParams->params.template constrainParameterValuesRT(results);
+    mParams->params.constrainParameterValuesRT(results);
   }
 
   template <template <size_t N, typename T> class Func, typename... Args>
   void setParameterValuesRT(std::array<Result, sizeof...(Ts)>* reportage, Args&&... args)
   {
-    return mParams->params.template setParameterValuesRT<Func>(reportage,
+    mParams->params.template setParameterValuesRT<Func>(reportage,
                                         std::forward<Args>(args)...);
   }
 
