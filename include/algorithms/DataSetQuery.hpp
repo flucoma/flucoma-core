@@ -57,7 +57,7 @@ public:
 
   index numColumns()
   {
-    return mColumns.size();
+    return asSigned(mColumns.size());
   }
 
   bool hasAndConditions()
@@ -89,7 +89,7 @@ public:
        bool matchesAllAnd = true;
        auto point = data.row(i);
        for(index j = 0; j < asSigned(mAndConditions.size()); j++)
-         if(!mAndConditions[j].test(point)) matchesAllAnd = false;
+         if(!mAndConditions[asUnsigned(j)].test(point)) matchesAllAnd = false;
        if (matchesAllAnd) {
          addRow(ids(i), point, output);
          count++;
@@ -98,7 +98,7 @@ public:
        else{
          bool matchesAnyOr = false;
          for(index k = 0; k < asSigned(mOrConditions.size()); k++)
-         if(mOrConditions[k].test(point)) matchesAnyOr = true;
+         if(mOrConditions[asUnsigned(k)].test(point)) matchesAnyOr = true;
          if (matchesAnyOr) {
            addRow(ids(i), point, output);
            count++;
