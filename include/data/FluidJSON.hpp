@@ -288,7 +288,6 @@ bool check_json(const nlohmann::json &j, const LabelSetEncoder &) {
 }
 
 void from_json(const nlohmann::json &j, LabelSetEncoder &lse) {
-  index rows = j.at("rows");
   FluidTensor<std::string, 1> labels;
   j.at("labels").get_to(labels);
   lse.init(labels);
@@ -413,7 +412,6 @@ private:
   json mData;
   string mFileName;
   string mRW;
-  bool mValid{false};
   string mError;
 };
 
