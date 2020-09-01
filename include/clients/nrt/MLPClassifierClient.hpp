@@ -138,7 +138,6 @@ public:
                           get<kActivation>(), 1);//sigmoid output
     }
     DataSet result(1);
-    auto ids = sourceDataSet.getIds();
     auto data = sourceDataSet.getData();
     auto tgt = targetDataSet.getData();
 

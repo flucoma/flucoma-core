@@ -32,7 +32,7 @@ public:
     }
     sizes.push_back(outputSize);
     activations.push_back(outputAct);
-    for (index i = 0; i < sizes.size() - 1; i++) {
+    for (index i = 0; i < asSigned(sizes.size() - 1); i++) {
       mLayers.push_back(NNLayer(sizes[i], sizes[i + 1], activations[i]));
     }
     for (auto &&l : mLayers)
@@ -97,11 +97,10 @@ public:
   }
 
   void forward(Eigen::Ref<ArrayXXd> in, Eigen::Ref<ArrayXXd> out, index startLayer, index endLayer) {
-    if(startLayer >= mLayers.size() || endLayer > mLayers.size()) return;
+    if(startLayer >= asSigned(mLayers.size()) || endLayer > asSigned(mLayers.size())) return;
     if(startLayer < 0 || endLayer <= 0) return;
     ArrayXXd input = in;
     ArrayXXd output;
-    index nRows = input.rows();
     for (index i = startLayer; i < endLayer; i++) {
       auto &&l = mLayers[i];
       output = ArrayXXd::Zero(input.rows(), l.outputSize());
@@ -136,12 +135,12 @@ public:
   // 0 = size of the input, 1 = output size of first hidden
   index outputSize(index layer) const {
     if(layer == 0) return mLayers[0].inputSize();
-    if(layer < 0 || layer > mLayers.size()) return 0;
+    if(layer < 0 || layer > asSigned(mLayers.size())) return 0;
     return mLayers[layer - 1].outputSize();
   }
 
   index inputSize(index layer) const {
-    return (layer >= mLayers.size() || layer < 0)?
+    return (layer >= asSigned(mLayers.size()) || layer < 0)?
       0:mLayers[layer].inputSize();
   }
 

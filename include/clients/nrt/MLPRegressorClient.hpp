@@ -115,7 +115,6 @@ public:
                       get<kHidden>(), get<kActivation>(), outputAct);
     }
     DataSet result(1);
-    auto ids = sourceDataSet.getIds();
     auto data = sourceDataSet.getData();
     auto tgt = targetDataSet.getData();
     algorithm::SGD sgd;
