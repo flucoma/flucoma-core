@@ -31,24 +31,24 @@ public:
     std::vector<double> weights;
     double sum = 0;
     if(weighted){
-      weights = std::vector<double>(k, 0);
+      weights = std::vector<double>(asUnsigned(k), 0);
       bool binaryWeights = false;
       for(index i = 0; i < k; i++){
         if (distances(i,0) < epsilon) {
           binaryWeights = true;
-          weights[i] = 1;
+          weights[asUnsigned(i)] = 1;
         }
         else sum += (1.0 / distances(i,0));
       }
       if (!binaryWeights){
         for(index i = 0; i < k; i++){
-          weights[i] = (1.0 / distances(i,0)) / sum;
+          weights[asUnsigned(i)] = (1.0 / distances(i,0)) / sum;
         }
       }
     } else {
-      weights = std::vector<double>(k, uniformWeight);
+      weights = std::vector<double>(asUnsigned(k), uniformWeight);
     }
-    
+
     string prediction;
     FluidTensor<string, 1> tmp(1);
     double maxWeight = 0;
@@ -56,8 +56,8 @@ public:
       labels.get(ids(i), tmp);
       string label = tmp(0);
       auto pos = labelsMap.find(label);
-      if (pos == labelsMap.end())labelsMap[label] = weights[i];
-      else labelsMap[label] += weights[i];
+      if (pos == labelsMap.end())labelsMap[label] = weights[asUnsigned(i)];
+      else labelsMap[label] += weights[asUnsigned(i)];
       if(labelsMap[label] > maxWeight){
         maxWeight = labelsMap[label] ;
         prediction = label;
