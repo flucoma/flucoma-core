@@ -513,7 +513,7 @@ class ParameterSet<
   using ValueTuple = typename DescriptorSetType::ValueTuple;
 
 public:
-  constexpr ParameterSet(const DescriptorSetType& d)
+  ParameterSet(const DescriptorSetType& d)
       : ViewType(d, createRefTuple(IndexList())), mParams{
                                                       create(d, IndexList())}
   {}
@@ -556,7 +556,7 @@ public:
 
 private:
   template <size_t... Is>
-  constexpr auto create(const DescriptorSetType& d,
+  auto create(const DescriptorSetType& d,
                         std::index_sequence<Is...>) const
   {
     return std::make_tuple(d.template makeValue<Is>()...);

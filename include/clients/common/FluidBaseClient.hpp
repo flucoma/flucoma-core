@@ -33,6 +33,9 @@ enum ProcessState { kNoProcess, kProcessing, kDone, kDoneStillProcessing };
 class FluidBaseClient
 {
 public:
+
+  static constexpr auto& getParameterDescriptors() { return NoParameters; }
+
   index audioChannelsIn() const noexcept { return mAudioChannelsIn; }
   index audioChannelsOut() const noexcept { return mAudioChannelsOut; }
   index controlChannelsIn() const noexcept { return mControlChannelsIn; }
@@ -99,17 +102,20 @@ public:
   using HasParams = isDetected<ParamDescTypeTest, Client>;
   using HasMessages = isDetected<MessageTypeTest, Client>;
 
-
+  constexpr static ParamDescType descript = Client::getParameterDescriptors();
+  
   template <typename P = HasParams>
   constexpr static auto getParameterDescriptors()
-      -> std::enable_if_t<P::value, ParamDescType>
+      -> std::enable_if_t<P::value, ParamDescType&>
   {
-    return Client::getParameterDescriptors();
+//    return Client::getParameterDescriptors();
+
+     return descript;
   }
 
   template <typename P = HasParams>
   constexpr static auto getParameterDescriptors()
-      -> std::enable_if_t<!P::value, ParamDescType>
+      -> std::enable_if_t<!P::value, ParamDescType&>
   {
     return NoParameters;
   }
@@ -220,6 +226,10 @@ private:
   
   Client mClient;
 };
+
+
+template <typename C>
+constexpr typename ClientWrapper<C>::ParamDescType ClientWrapper<C>::descript;
 
 
 // Used by hosts for detecting client capabilities at compile time

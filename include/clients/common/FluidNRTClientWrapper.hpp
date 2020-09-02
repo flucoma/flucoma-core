@@ -560,7 +560,7 @@ public:
   using isRealTime = std::false_type;
   using isNonRealTime = std::true_type;
 
-  constexpr static ParamDescType getParameterDescriptors()
+  constexpr static ParamDescType& getParameterDescriptors()
   {
     return NRTClient::getParameterDescriptors();
   }
