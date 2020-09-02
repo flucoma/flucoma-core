@@ -229,7 +229,7 @@ public:
 
   using type = ClientPointer;
 
-  constexpr static ParamDescType getParameterDescriptors() { return NRTClient::getParameterDescriptors(); }
+  constexpr static ParamDescType& getParameterDescriptors() { return WrappedClient::getParameterDescriptors(); }
   constexpr static auto getMessageDescriptors() { return WrappedClient::getMessageDescriptors();}
 
   index audioChannelsIn()    const noexcept { return 0; }
