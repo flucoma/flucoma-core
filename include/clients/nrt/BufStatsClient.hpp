@@ -55,8 +55,7 @@ public:
                                   UpperLimit<kHigh>()),
                        FloatParam("high", "High Percentile", 100, Min(0),
                                   Max(100), LowerLimit<kMiddle>()),
-                       FloatParam("outliersCutoff", "Outliers cutoff", -1, Min(-1),
-                                  Max(1)),
+                       FloatParam("outliersCutoff", "Outliers Cutoff", -1, Min(-1)),
                        BufferParam("weights", "Weights Buffer"),
                        FloatParam("weightsThreshold", "Weights Threshold", 0)
                         );
