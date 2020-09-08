@@ -13,8 +13,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/OutlierDetection.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
-#include "Stats.hpp"
-#include "WeightedStats.hpp"
+#include "../util/Stats.hpp"
+#include "../util/WeightedStats.hpp"
 #include <Eigen/Core>
 #include <cassert>
 #include <cmath>
