@@ -13,7 +13,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../common/FluidNRTClientWrapper.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterTypes.hpp"
-#include "../../algorithms/public/Stats.hpp"
+#include "../../algorithms/public/MultiStats.hpp"
 
 namespace fluid {
 namespace client {
@@ -33,7 +33,10 @@ class BufferStatsClient : public FluidBaseClient,
     kNumDerivatives,
     kLow,
     kMiddle,
-    kHigh
+    kHigh,
+    kOutliersCutoff,
+    kWeights,
+    kWeightsThreshold
   };
 
 public:
@@ -51,14 +54,19 @@ public:
                                   Max(100), LowerLimit<kLow>(),
                                   UpperLimit<kHigh>()),
                        FloatParam("high", "High Percentile", 100, Min(0),
-                                  Max(100), LowerLimit<kMiddle>()));
+                                  Max(100), LowerLimit<kMiddle>()),
+                       FloatParam("outliersCutoff", "Outliers cutoff", -1, Min(-1),
+                                  Max(1)),
+                       BufferParam("weights", "Weights Buffer"),
+                       FloatParam("weightsThreshold", "Weights Threshold", 0)
+                        );
 
   BufferStatsClient(ParamSetViewType& p) : mParams(p) {}
 
   template <typename T>
-  Result process(FluidContext& c)
+  Result process(FluidContext&)
   {
-    algorithm::Stats processor;
+    algorithm::MultiStats processor;
 
     if (!get<kSource>().get())
       return {Result::Status::kError, "No input buffer supplied"};
@@ -111,20 +119,28 @@ public:
 
     processor.init(get<kNumDerivatives>(), get<kLow>(), get<kMiddle>(),
                    get<kHigh>());
-    for (int i = 0; i < numChannels; i++)
-    {
-      auto sourceChannel = FluidTensor<double, 1>(numFrames);
-      auto destChannel = FluidTensor<double, 1>(outputSize);
-      for (int j = 0; j < numFrames; j++)
-        sourceChannel(j) =
-            source.samps(get<kOffset>(), numFrames, get<kStartChan>() + i)(j);
-      processor.process(sourceChannel, destChannel);
 
-      if (c.task() && !c.task()->processUpdate(i + 1, numChannels))
-        return {Result::Status::kCancelled, ""};
+    RealVector weights;
+    if (get<kWeights>()){
+      BufferAdaptor::ReadAccess weightsBuf(get<kWeights>().get());
+      if (!weightsBuf.exists())
+        return {Result::Status::kError, "Weights buffer supplied but invalid"};
+      if(weightsBuf.numChans() != 1) return {Result::Status::kError, "Weights buffer invalid channel count"};
+      if(weightsBuf.numFrames() != numFrames)
+        return {Result::Status::kError, "Weights buffer invalid size"};
+      weights = RealVector(numFrames);
+      weights = weightsBuf.samps(0);//copy from weights buffer
+    }
 
-      for (index j = 0; j < outputSize; j++)
-        dest.samps(i)(j) = static_cast<float>(destChannel(j));
+    FluidTensor<double, 2> tmp(numChannels, numFrames);
+    FluidTensor<double, 2> result(numChannels, outputSize);
+    for (int i = 0; i < numChannels; i++){
+      tmp.row(i) = source.samps(get<kOffset>(), numFrames, get<kStartChan>() + i);
+    }
+    processor.process(tmp, result, get<kOutliersCutoff>(), weights, get<kWeightsThreshold>());
+
+    for (int i = 0; i < numChannels; i++){
+      dest.samps(i) = result.row(i);
     }
 
     return {Result::Status::kOk, ""};
