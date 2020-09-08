@@ -13,31 +13,31 @@ This program demonstrates the use of the fluid decomposition toolbox
 to compute a summary of spectral features of an audio file
 */
 
+#include <AudioFile/IAudioFile.h>
 #include <Eigen/Core>
 #include <algorithms/public/DCT.hpp>
 #include <algorithms/public/Loudness.hpp>
 #include <algorithms/public/MelBands.hpp>
 #include <algorithms/public/STFT.hpp>
 #include <algorithms/public/SpectralShape.hpp>
-#include <algorithms/public/Stats.hpp>
+#include <algorithms/public/MultiStats.hpp>
 #include <algorithms/public/YINFFT.hpp>
 #include <data/FluidIndex.hpp>
 #include <data/TensorTypes.hpp>
-#include <AudioFile/IAudioFile.h>
 #include <cstdio>
 #include <iomanip>
 #include <iostream>
 
 fluid::RealVector computeStats(fluid::RealMatrixView   matrix,
-                               fluid::algorithm::Stats stats)
+                               fluid::algorithm::MultiStats stats)
 {
   fluid::index      dim = matrix.cols();
-  fluid::RealVector tmp(7);
+  fluid::RealMatrix tmp(dim, 7);
   fluid::RealVector result(dim * 7);
+  stats.process(matrix.transpose(), tmp);
   for (int j = 0; j < dim; j++)
   {
-    stats.process(matrix.col(j), tmp);
-    result(fluid::Slice(j * 7, 7)) = tmp;
+    result(fluid::Slice(j * 7, 7)) = tmp.row(j);
   }
   return result;
 }
@@ -93,7 +93,7 @@ int main(int argc, char* argv[])
   YINFFT        yin;
   SpectralShape shape{nBins};
   Loudness      loudness{windowSize};
-  Stats         stats;
+  MultiStats    stats;
 
   bands.init(minFreq, maxFreq, nBands, nBins, samplingRate, windowSize);
   dct.init(nBands, nCoefs);
