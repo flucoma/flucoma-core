@@ -73,9 +73,11 @@ public:
     if(weighted) filteredWeights = ArrayXd::Zero(numCleanFrames);
     index k = 0;
     for(index j = 0; j < mask.size(); j++){
-      if(mask(j) > 0) filtered.col(k) = input.col(j);
-      if(weighted) filteredWeights(k) = weights(j);
-      k++;
+      if(mask(j) > 0) {
+        filtered.col(k) = input.col(j);
+        if(weighted) filteredWeights(k) = weights(j);
+        k++;
+      }
     }
     if(weighted) filteredWeights = filteredWeights / filteredWeights.sum();
     ArrayXXd result(numChannels, numStats() * (mNumDerivatives + 1));
