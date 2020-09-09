@@ -38,10 +38,10 @@ public:
     double upperBound = input(perm(q3)) + margin;
     index i = q1;
     while(i > 0 && input(perm(i)) > lowerBound) i--;
-    if(i > 0) mask.segment(0, i) = 0;
+    if(i >= 0) mask.segment(0, i + 1) = 0;
     i = q3;
     while(i < length && input(perm(i)) < upperBound) i++;
-    if(i < input.size()) mask.segment(i, length - i) = 0;
+    if(i < length) mask.segment(i, length - i) = 0;
   }
 
 };
