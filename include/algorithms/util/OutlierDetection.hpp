@@ -36,14 +36,13 @@ public:
     double margin = k * (input(perm(q3)) - input(perm(q1)));
     double lowerBound = input(perm(q1)) - margin;
     double upperBound = input(perm(q3)) + margin;
-    index i = q1;
-    while(i > 0 && input(perm(i)) > lowerBound) i--;
-    if(i >= 0) mask.segment(0, i + 1) = 0;
-    i = q3;
-    while(i < length && input(perm(i)) < upperBound) i++;
-    if(i < length) mask.segment(i, length - i) = 0;
+    for(index i = 0; input(perm(i)) < lowerBound && i <= q1; i++){
+      mask(perm(i)) = 0;
+    }
+    for(index i = length - 1; input(perm(i)) > upperBound && i >= q3; i--){
+      mask(perm(i)) = 0;
+    }
   }
-
 };
 } // namespace algorithm
 } // namespace fluid
