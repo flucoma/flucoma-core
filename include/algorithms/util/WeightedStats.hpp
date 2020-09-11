@@ -31,11 +31,10 @@ public:
     using namespace std;
     index   length = input.size();
     ArrayXd out = ArrayXd::Zero(7);
-    ArrayXd normWeights = weights / weights.sum();
-    double  mean = (normWeights * input).sum();
-    double  stdev = sqrt((normWeights * (input - mean).square()).sum());
-    double skewness = (normWeights*((input - mean) / (stdev == 0 ? 1 : stdev)).cube()).sum();
-    double kurtosis = (normWeights*((input - mean) / (stdev == 0 ? 1 : stdev)).pow(4)).sum();
+    double  mean = (weights * input).sum();
+    double  stdev = sqrt((weights * (input - mean).square()).sum());
+    double skewness = (weights*((input - mean) / (stdev == 0 ? 1 : stdev)).cube()).sum();
+    double kurtosis = (weights*((input - mean) / (stdev == 0 ? 1 : stdev)).pow(4)).sum();
     ArrayXd sorted = input;
     ArrayXi perm = ArrayXi::LinSpaced(length, 0, length - 1);
     std::sort(perm.data(), perm.data() + length,
@@ -47,7 +46,7 @@ public:
     hiVal = input(perm(length - 1));
     for (index i = 0; i < length; i++)
     {
-      acc += normWeights(perm(i));
+      acc += weights(perm(i));
       if (level == 0 && acc >= low)
       {
         lowVal = input(perm(i));

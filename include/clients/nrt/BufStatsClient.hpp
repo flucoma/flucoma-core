@@ -9,6 +9,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
+#include <algorithm>
 #include "../common/FluidBaseClient.hpp"
 #include "../common/FluidNRTClientWrapper.hpp"
 #include "../common/ParameterConstraints.hpp"
@@ -35,8 +36,7 @@ class BufferStatsClient : public FluidBaseClient,
     kMiddle,
     kHigh,
     kOutliersCutoff,
-    kWeights,
-    kWeightsThreshold
+    kWeights
   };
 
 public:
@@ -56,8 +56,7 @@ public:
                        FloatParam("high", "High Percentile", 100, Min(0),
                                   Max(100), LowerLimit<kMiddle>()),
                        FloatParam("outliersCutoff", "Outliers Cutoff", -1, Min(-1)),
-                       BufferParam("weights", "Weights Buffer"),
-                       FloatParam("weightsThreshold", "Weights Threshold", 0)
+                       BufferParam("weights", "Weights Buffer")
                         );
 
   BufferStatsClient(ParamSetViewType& p) : mParams(p) {}
@@ -119,7 +118,9 @@ public:
     processor.init(get<kNumDerivatives>(), get<kLow>(), get<kMiddle>(),
                    get<kHigh>());
 
+    Result processingResult = {Result::Status::kOk, ""};
     RealVector weights;
+
     if (get<kWeights>()){
       BufferAdaptor::ReadAccess weightsBuf(get<kWeights>().get());
       if (!weightsBuf.exists())
@@ -128,21 +129,21 @@ public:
       if(weightsBuf.numFrames() != numFrames)
         return {Result::Status::kError, "Weights buffer invalid size"};
       weights = RealVector(numFrames);
-      weights = weightsBuf.samps(0);//copy from weights buffer
+      weights = weightsBuf.samps(0);//copy from buffer
+      if( *std::min_element(weights.begin(), weights.end()) < 0 ){
+        processingResult = Result(Result::Status::kWarning, "Negative weights clipped to 0");
+      }
     }
-
     FluidTensor<double, 2> tmp(numChannels, numFrames);
     FluidTensor<double, 2> result(numChannels, outputSize);
     for (int i = 0; i < numChannels; i++){
       tmp.row(i) = source.samps(get<kOffset>(), numFrames, get<kStartChan>() + i);
     }
-    processor.process(tmp, result, get<kOutliersCutoff>(), weights, get<kWeightsThreshold>());
-
+    processor.process(tmp, result, get<kOutliersCutoff>(), weights);
     for (int i = 0; i < numChannels; i++){
       dest.samps(i) = result.row(i);
     }
-
-    return {Result::Status::kOk, ""};
+    return processingResult;
   }
 };
 
