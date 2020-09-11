@@ -83,10 +83,10 @@ public:
     return mData;
   }
   
-  FluidTensorView<const float, 2> allFrames() const override
-  {
-    return mData;
-  }
+ FluidTensorView<const float, 2> allFrames() const override
+ { 
+     return {mData.descriptor(), mData.data()};
+ }
 
   // Return a slice of the buffer
   FluidTensorView<float, 1> samps(index channel) override
