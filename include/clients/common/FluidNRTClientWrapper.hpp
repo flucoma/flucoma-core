@@ -779,8 +779,8 @@ private:
 
       assert(mClient.get() != nullptr); // right?
 
-      std::promise<Result> resultPromise;
-      mFutureResult = resultPromise.get_future();
+      std::promise<void> resultPromise;
+      mResultReady = resultPromise.get_future();
 
       mClient->setParams(mProcessParams);
       if (synchronous)
@@ -789,7 +789,7 @@ private:
       }
       else
       {
-        auto entry = [](ThreadedTask* owner, std::promise<Result> result) {
+        auto entry = [](ThreadedTask* owner, std::promise<void> result) {
           owner->process(std::move(result));
         };
         mProcessParams.template forEachParamType<BufferT, BufferCopy>();
@@ -799,16 +799,14 @@ private:
       }
     }
 
-    Result result() { return mFutureResult.get(); }
+    Result result() { return mResult; }
 
-    void process(std::promise<Result> result)
+    void process(std::promise<void> resultReady)
     {
       assert(mClient.get() != nullptr); // right?
       mState = kProcessing;
-//      mClient->dbgprm();
-      Result r = mClient->template process<float>(mContext);
-//      Result r;
-      result.set_value(r);
+      mResult = mClient->template process<float>(mContext);
+      resultReady.set_value();
       mState = kDone;
 
       if (mDetached) delete this;
@@ -836,14 +834,20 @@ private:
       {
         if (mThread.get_id() != std::thread::id())
         {
-          result = mFutureResult.get();
+          mResultReady.wait();
+          result = mResult;
           mThread.join();
         }
 
         if (!mTask.cancelled())
         {
           if (result.status() != Result::Status::kError)
-            mProcessParams.template forEachParamType<BufferT, BufferCopyBack>(result);
+          {
+            Result bufferCopyResult;
+            mProcessParams.template forEachParamType<BufferT, BufferCopyBack>(bufferCopyResult);
+            ///TODO a proper logging system
+            if(!bufferCopyResult.ok()) std::cout << bufferCopyResult.message() << std::endl;
+          }
         }
         else
           result = {Result::Status::kCancelled, ""};
@@ -858,7 +862,7 @@ private:
     ParamSetType        mProcessParams;
     ProcessState        mState;
     std::thread         mThread;
-    std::future<Result> mFutureResult;
+    std::future<void>   mResultReady;
     Result              mResult;
     ClientPointer       mClient;
     FluidTask           mTask;
