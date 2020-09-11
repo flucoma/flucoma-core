@@ -49,7 +49,7 @@ public:
     if (this != &x)
     {
       using std::swap;
-      swap(mMsg, x.mMsg);
+      mMsg = std::move(x.mMsg);
       swap(mStatus, x.mStatus);
     }
     return *this;
@@ -71,8 +71,7 @@ public:
 
   void reset()
   {
-    std::stringstream newMsg;
-    std::swap(mMsg, newMsg);
+    mMsg = std::stringstream(); 
     mStatus = Status::kOk;
   }
 
