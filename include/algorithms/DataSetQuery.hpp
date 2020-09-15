@@ -80,32 +80,33 @@ public:
     return true;
   }
 
-  void process (const DataSet& input, DataSet& output){
-    auto data = input.getData();
-    auto ids = input.getIds();
-    index limit = mLimit == 0? input.size():mLimit;
-    index count =  0;
-    for(index i = 0; i < input.size() && count < limit; i++){
-       bool matchesAllAnd = true;
-       auto point = data.row(i);
-       for(index j = 0; j < asSigned(mAndConditions.size()); j++)
-         if(!mAndConditions[asUnsigned(j)].test(point)) matchesAllAnd = false;
-       if (matchesAllAnd) {
-         addRow(ids(i), point, output);
-         count++;
-         continue;
-       }
-       else{
-         bool matchesAnyOr = false;
-         for(index k = 0; k < asSigned(mOrConditions.size()); k++)
-         if(mOrConditions[asUnsigned(k)].test(point)) matchesAnyOr = true;
-         if (matchesAnyOr) {
-           addRow(ids(i), point, output);
-           count++;
-         }
-     }
-   }
- }
+ void process (const DataSet& input, DataSet& current, DataSet& output){
+   auto data = input.getData();
+   auto ids = input.getIds();
+   mTmpPoint = RealVector (current.pointSize() + mColumns.size());
+   index limit = mLimit == 0? input.size():mLimit;
+   index count =  0;
+   for(index i = 0; i < input.size() && count < limit; i++){
+      bool matchesAllAnd = true;
+      auto point = data.row(i);
+      for(index j = 0; j < asSigned(mAndConditions.size()); j++)
+        if(!mAndConditions[asUnsigned(j)].test(point)) matchesAllAnd = false;
+      if (matchesAllAnd) {
+        addRow(ids(i), point, current, output);
+        count++;
+        continue;
+      }
+      else{
+        bool matchesAnyOr = false;
+        for(index k = 0; k < asSigned(mOrConditions.size()); k++)
+        if(mOrConditions[asUnsigned(k)].test(point)) matchesAnyOr = true;
+        if (matchesAnyOr) {
+          addRow(ids(i), point, current, output);
+          count++;
+        }
+    }
+  }
+}
 
   void print() const { }
 
@@ -121,16 +122,21 @@ public:
 
 private:
 
-  void addRow(string id, RealVectorView point, DataSet& out){
-    RealVector newPoint(mColumns.size());
-    newPoint.fill(0);
-    index i = 0;
-    for(auto c: mColumns) newPoint(i++) = point(c);
-    out.add(id, newPoint);
+  void addRow(string id, RealVectorView point, const DataSet& current, DataSet& out){
+    mTmpPoint.fill(0);
+    index currentSize = current.pointSize();
+    mTmpPoint.fill(0);
+    if(currentSize > 0){
+      RealVectorView currentData = mTmpPoint(Slice(0, currentSize));
+      current.get(id, currentData);
+    }
+    for(auto c: mColumns) mTmpPoint(currentSize++) = point(c);
+    out.add(id, mTmpPoint);
   }
 
   index mLimit{0};
   std::set<index> mColumns;
+  RealVector mTmpPoint;
   std::vector<std::string> mComparisons;
   std::vector<Condition> mAndConditions;
   std::vector<Condition> mOrConditions;

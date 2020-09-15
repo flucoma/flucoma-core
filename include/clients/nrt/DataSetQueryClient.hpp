@@ -55,7 +55,7 @@ public:
   }
 
 
-  MessageResult<void> transform(DataSetClientRef sourceClient, DataSetClientRef destClient) {
+  MessageResult<void> transform(DataSetClientRef sourceClient, DataSetClientRef destClient, index mode = 0) {
     if(mAlgorithm.numColumns() <= 0) return Error("No columns");
     auto srcPtr = sourceClient.get().lock();
     auto destPtr = destClient.get().lock();
@@ -63,8 +63,15 @@ public:
     auto src = srcPtr->getDataSet();
     if (src.size() == 0) return Error(EmptyDataSet);
     if(src.pointSize() <= mAlgorithm.maxColumn()) return Error(WrongPointSize);
-    DataSet result(mAlgorithm.numColumns());
-    mAlgorithm.process(src, result);
+    index resultSize = mAlgorithm.numColumns();
+    DataSet current;
+    if(mode == 1) {
+      current = destPtr->getDataSet();
+      if (current.size() == 0) return Error(EmptyDataSet);
+      resultSize += current.pointSize();
+    }
+    DataSet result(resultSize);
+    mAlgorithm.process(src, current, result);
     destPtr->setDataSet(result);
     return OK();
   }
