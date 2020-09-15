@@ -80,7 +80,7 @@ public:
     return true;
   }
 
- void process (const DataSet& input, DataSet& current, DataSet& output){
+ void process(const DataSet& input, DataSet& current, DataSet& output){
    auto data = input.getData();
    auto ids = input.getIds();
    mTmpPoint = RealVector (current.pointSize() + mColumns.size());
@@ -125,13 +125,15 @@ private:
   void addRow(string id, RealVectorView point, const DataSet& current, DataSet& out){
     mTmpPoint.fill(0);
     index currentSize = current.pointSize();
-    mTmpPoint.fill(0);
+    bool shouldAdd = true;
     if(currentSize > 0){
       RealVectorView currentData = mTmpPoint(Slice(0, currentSize));
-      current.get(id, currentData);
+      shouldAdd = current.get(id, currentData);
     }
-    for(auto c: mColumns) mTmpPoint(currentSize++) = point(c);
-    out.add(id, mTmpPoint);
+    if(shouldAdd){
+      for(auto c: mColumns) mTmpPoint(currentSize++) = point(c);
+      out.add(id, mTmpPoint);
+    }
   }
 
   index mLimit{0};

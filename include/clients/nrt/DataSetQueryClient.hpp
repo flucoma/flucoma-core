@@ -55,7 +55,7 @@ public:
   }
 
 
-  MessageResult<void> transform(DataSetClientRef sourceClient, DataSetClientRef destClient, index mode = 0) {
+  MessageResult<void> transform(DataSetClientRef sourceClient, DataSetClientRef destClient) {
     if(mAlgorithm.numColumns() <= 0) return Error("No columns");
     auto srcPtr = sourceClient.get().lock();
     auto destPtr = destClient.get().lock();
@@ -64,14 +64,26 @@ public:
     if (src.size() == 0) return Error(EmptyDataSet);
     if(src.pointSize() <= mAlgorithm.maxColumn()) return Error(WrongPointSize);
     index resultSize = mAlgorithm.numColumns();
-    DataSet current;
-    if(mode == 1) {
-      current = destPtr->getDataSet();
-      if (current.size() == 0) return Error(EmptyDataSet);
-      resultSize += current.pointSize();
-    }
+    DataSet empty;
     DataSet result(resultSize);
-    mAlgorithm.process(src, current, result);
+    mAlgorithm.process(src, empty, result);
+    destPtr->setDataSet(result);
+    return OK();
+  }
+
+  MessageResult<void> transformJoin(DataSetClientRef source1Client, DataSetClientRef source2Client, DataSetClientRef destClient) {
+    if(mAlgorithm.numColumns() <= 0) return Error("No columns");
+    auto src1Ptr = source1Client.get().lock();
+    auto src2Ptr = source2Client.get().lock();
+    auto destPtr = destClient.get().lock();
+    if(!src1Ptr || !src2Ptr || !destPtr) return Error(NoDataSet);
+    auto src1 = src1Ptr->getDataSet();
+    if (src1.size() == 0) return Error(EmptyDataSet);
+    if(src1.pointSize() <= mAlgorithm.maxColumn()) return Error(WrongPointSize);
+    DataSet src2 = src2Ptr->getDataSet();
+    if (src2.size() == 0) return Error(EmptyDataSet);
+    DataSet result(mAlgorithm.numColumns() + src2.pointSize());
+    mAlgorithm.process(src1, src2, result);
     destPtr->setDataSet(result);
     return OK();
   }
@@ -89,6 +101,7 @@ public:
 
   FLUID_DECLARE_MESSAGES(
                         makeMessage("transform", &DataSetQueryClient::transform),
+                        makeMessage("transformJoin", &DataSetQueryClient::transformJoin),
                          makeMessage("addColumn", &DataSetQueryClient::addColumn),
                          makeMessage("addRange", &DataSetQueryClient::addRange),
                          makeMessage("filter", &DataSetQueryClient::filter),
