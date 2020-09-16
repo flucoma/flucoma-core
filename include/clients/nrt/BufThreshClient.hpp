@@ -27,12 +27,20 @@ class BufThreshClient :    public FluidBaseClient,
 
   enum BufSelectParamIndex {
     kSource,
+    kStartFrame,
+    kNumFrames,
+    kStartChan,
+    kNumChans,
     kDest, 
     kThresh
   };
   public:
   
   FLUID_DECLARE_PARAMS(InputBufferParam("source", "Source Buffer"),
+                       LongParam("startFrame", "Source Offset", 0, Min(0)),
+                       LongParam("numFrames", "Number of Frames", -1),
+                       LongParam("startChan", "Start Channel", 0, Min(0)),
+                       LongParam("numChans", "Number of Channels", -1),
                        BufferParam("destination","Destination Buffer"), 
                        FloatParam("threshold","Threshold",0)); 
   
@@ -60,21 +68,50 @@ class BufThreshClient :    public FluidBaseClient,
     if (!dest.exists())
       return {Result::Status::kError, "Output buffer not found"};
     
+    // retrieve the range requested and check it is valid
+    index startFrame = get<kStartFrame>(); 
+    // index numFrames  = get<kNumFrames>(); 
+    index startChan  = get<kStartChan>();
+    // index numChans   = get<kNumChans>();
+    
+    // Result r = bufferRangeCheck(source, startFrame, numFrames, startChan, numChans);
+    // if(! r.ok())  return r;
+    index numFrames = get<kNumFrames>() == -1
+                          ? (source.numFrames() - get<kStartFrame>())
+                          : get<kNumFrames>();
+    index numChans = get<kNumChans>() == -1
+                            ? (source.numChans() - get<kStartChan>())
+                            : get<kNumChans>();
+
+    if (get<kStartFrame>() + numFrames > source.numFrames())
+      return {Result::Status::kError, "Start frame + num frames (",
+              get<kStartFrame>() + get<kNumFrames>(), ") out of range."};
+
+    if (get<kStartChan>() + numChans > source.numChans())
+      return {Result::Status::kError, "Start channel ", get<kStartChan>(),
+              " out of range."};
+
+    if (numChans <= 0 || numFrames <= 0)
+      return {Result::Status::kError, "Zero length segment requested"};
+    // import the data to be processed in a temp Tensor
+    
+    FluidTensor<float, 2> tmp(numChans,numFrames);
+  
+    for(index i = 0; i < numChans; ++i)
+      tmp.row(i) = source.samps(startFrame, numFrames, (i + startChan));
+    
+    //process  
     double threshold = get<kThresh>(); 
 
-    FluidTensor<float, 2> tmp(source.numFrames(),source.numChans());
-  
-    for(index i = 0; i < source.numChans(); ++i)
-      tmp.col(i) = source.samps(i);
-    
     tmp.apply([&threshold](float& x){
         x = x < threshold ? 0 : x;  
     }); 
-        
-    dest.resize(source.numFrames(),source.numChans(),source.sampleRate());
     
-    for(index i = 0; i < source.numChans(); ++i)
-       dest.samps(i) = tmp.col(i);
+    //write back the processed data, resizing the dest buffer  
+    dest.resize(numFrames,numChans,source.sampleRate());
+    
+    for(index i = 0; i < numChans; ++i)
+       dest.samps(i) = tmp.row(i);
     
     return {};
   }                  
