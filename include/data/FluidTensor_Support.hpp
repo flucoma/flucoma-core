@@ -21,7 +21,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include <functional> // less, multiplies
 #include <numeric>    //accujmuate, innerprodct
 
-
+#include <iostream>
 namespace fluid {
 
 ///*****************************************************************************
@@ -163,24 +163,20 @@ struct SliceIterator
       : mDesc(s), mBase(base)
   {
     std::fill_n(mIndexes.begin(), N, 0);
-    if (end)
-    {
-      mIndexes[0] = s.extents[0];
-
-      // The size in desc gives the size of the
-      // overall container, not the size of the slice
-      // this seems preferable to littering the code with transpose flags
-      index size = 0;
-      if (s.strides[N - 1] == 1) // Not transposed
-        size = s.strides[0] * s.extents[0];
-      else // transposed
-        size = s.strides[N - 1] * s.extents[N - 1];
-      mPtr = base + s.start + size;
-    }
-    else
-      mPtr = base + s.start;
+    
+    mIndexes[0] = s.extents[0];
+    
+    // The size in desc gives the size of the
+    // overall container, not the size of the slice
+    // this seems preferable to littering the code with transpose flags
+    
+    if (!s.transposed) // Not transposed
+      size = s.strides[0] * s.extents[0];
+    else // transposed
+      size = s.strides[N - 1] * s.extents[N - 1];
+    mPtr = end ? base + s.start + size : base + s.start;
   }
-
+  
   const FluidTensorSlice<N>& descriptor() { return mDesc; }
 
   T& operator*() const { return *mPtr; }
@@ -209,15 +205,24 @@ struct SliceIterator
   bool operator!=(const SliceIterator& rhs) { return !(*this == rhs); }
 
 private:
+
+  index counter{0};
+  index size;
+
   /// TODO I would like this to be more beautiful (this is from Origin impl)
   void increment()
   {
+    if(++counter == size)
+    {
+      mPtr = mBase + mDesc.start + size;
+      return;
+    }
+        
     index d = N - 1;
     while (true)
     {
       mPtr += mDesc.strides[asUnsigned(d)];
       ++mIndexes[asUnsigned(d)];
-
       // If have not yet counted to the extent of the current dimension, then
       // we will continue to do so in the next iteration.
       if (mIndexes[asUnsigned(d)] != mDesc.extents[asUnsigned(d)]) break;
@@ -227,13 +232,6 @@ private:
       // we have counted through the entire slice.
       if (d != 0)
       {
-        // This is unclever, but when tranposed, brute force reaching the end of iteration
-        if(mPtr - mBase > mDesc.size && mDesc.strides[N-1] != 1 && mIndexes[0] == mDesc.extents[0] - 1)
-        {
-          mPtr = mBase + mDesc.size;
-          d = 0;
-          break;
-        }
         mPtr -= mDesc.strides[asUnsigned(d)] * mDesc.extents[asUnsigned(d)];
         mIndexes[asUnsigned(d)] = 0;
         --d;
@@ -279,11 +277,11 @@ struct FluidTensorSlice
 
   // Move
   FluidTensorSlice(FluidTensorSlice&& x) noexcept { *this = std::move(x); }
-  FluidTensorSlice& operator=(FluidTensorSlice&& other) noexcept
-  {
-    if (this != &other) swap(*this, other);
-    return *this;
-  }
+  FluidTensorSlice& operator=(FluidTensorSlice&& other) noexcept = default; 
+//  {
+//    if (this != &other) swap(*this, other);
+//    return *this;
+//  }
 
   /// Construct slice from forward iterator
   template <typename R,
@@ -300,7 +298,7 @@ struct FluidTensorSlice
 
   template <std::size_t M, index D>
   FluidTensorSlice(const FluidTensorSlice<M>& s, SizeConstant<D>, index n)
-      : size(s.size / s.extents[D]), start(s.start + n * s.strides[D])
+      : size(s.size / s.extents[D]), start(s.start + n * s.strides[D]),transposed{s.transposed}
   {
     static_assert(D <= N, "");
     static_assert(N < M, "");
@@ -392,6 +390,7 @@ struct FluidTensorSlice
     FluidTensorSlice<N> res(*this);
     std::reverse(res.extents.begin(), res.extents.end());
     std::reverse(res.strides.begin(), res.strides.end());
+    res.transposed = !transposed;
     return res;
   }
 
@@ -403,6 +402,7 @@ struct FluidTensorSlice
     swap(first.strides, second.strides);
     swap(first.size, second.size);
     swap(first.start, second.start);
+    swap(first.transposed,second.transposed); 
   }
 
   // Slices are equal if they describe the same shape
@@ -415,6 +415,7 @@ struct FluidTensorSlice
 
   index                size;      // num of elements
   index                start = 0; // offset
+  bool                 transposed = false;
   std::array<index, N> extents;   // number of elements in each dimension
   std::array<index, N> strides;   // offset between elements in each dim
 
@@ -435,7 +436,7 @@ private:
     for (index i = N - 1; i != 0; --i)
       strides[asUnsigned(i - 1)] =
           strides[asUnsigned(i)] * extents[asUnsigned(i)];
-    size = extents[0] * strides[0];
+     size = std::accumulate(extents.begin(), extents.end(), 1,std::multiplies<>());
   }
 
   /// doSliceDim does the hard work in making an new slice from an existing one
