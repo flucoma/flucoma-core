@@ -55,51 +55,26 @@ class BufScaleClient :    public FluidBaseClient,
   template <typename T>
   Result process(FluidContext&)
   {
+    // retrieve the range requested and check it is valid
+    index startFrame = get<kStartFrame>();
+    index numFrames  = get<kNumFrames>();
+    index startChan  = get<kStartChan>();
+    index numChans   = get<kNumChans>();
     
-    if (!get<kSource>().get())
-      return {Result::Status::kError, "No input buffer supplied"};
-
-    if (!get<kDest>().get())
-      return {Result::Status::kError, "No output buffer supplied"};
+    Result r = bufferRangeCheck(get<kSource>().get(), startFrame, numFrames, startChan, numChans);
+    
+    if(! r.ok())  return r;
 
     BufferAdaptor::ReadAccess source(get<kSource>().get());
     BufferAdaptor::Access     dest(get<kDest>().get());
-
-    if (!source.exists())
-      return {Result::Status::kError, "Input buffer not found"};
-
-    if (!source.valid())
-      return {Result::Status::kError, "Can't access input buffer"};
-
+    
     if (!dest.exists())
       return {Result::Status::kError, "Output buffer not found"};
-    
-      // retrieve the range requested and check it is valid
-      index startFrame = get<kStartFrame>(); 
-      index startChan  = get<kStartChan>();
-      index numFrames = get<kNumFrames>() == -1
-                            ? (source.numFrames() - get<kStartFrame>())
-                            : get<kNumFrames>();
-      index numChans = get<kNumChans>() == -1
-                              ? (source.numChans() - get<kStartChan>())
-                              : get<kNumChans>();
 
-      if (get<kStartFrame>() + numFrames > source.numFrames())
-        return {Result::Status::kError, "Start frame + num frames (",
-                get<kStartFrame>() + get<kNumFrames>(), ") out of range."};
-
-      if (get<kStartChan>() + numChans > source.numChans())
-        return {Result::Status::kError, "Start channel ", get<kStartChan>(),
-                " out of range."};
-
-      if (numChans <= 0 || numFrames <= 0)
-        return {Result::Status::kError, "Zero length segment requested"};
-      // import the data to be processed in a temp Tensor
-      
-      FluidTensor<float, 2> tmp(numChans,numFrames);
-    
-      for(index i = 0; i < numChans; ++i)
-        tmp.row(i) = source.samps(startFrame, numFrames, (i + startChan));
+    FluidTensor<float, 2> tmp(numChans,numFrames);
+  
+    for(index i = 0; i < numChans; ++i)
+      tmp.row(i) = source.samps(startFrame, numFrames, (i + startChan));
         
     //process
     double scale = (get<kOutHigh>()-get<kOutLow>())/(get<kInHigh>()-get<kInLow>()); 
@@ -111,7 +86,8 @@ class BufScaleClient :    public FluidBaseClient,
     }); 
 
     //write back the processed data, resizing the dest buffer          
-    dest.resize(numFrames,numChans,source.sampleRate());
+    r = dest.resize(numFrames,numChans,source.sampleRate());
+    if(!r.ok()) return r;
     
     for(index i = 0; i < numChans; ++i)
        dest.samps(i) = tmp.row(i);
