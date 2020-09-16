@@ -80,12 +80,14 @@ public:
 
   FluidTensorView<float, 2> allFrames() override
   {
-    return mData;
+    return mData.transpose();
   }
   
  FluidTensorView<const float, 2> allFrames() const override
- { 
-     return {mData.descriptor(), mData.data()};
+ {
+     FluidTensorSlice<2> tmp(mData.descriptor());
+     tmp.transpose();
+     return {tmp, mData.data()};
  }
 
   // Return a slice of the buffer
