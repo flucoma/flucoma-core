@@ -71,16 +71,16 @@ class BufScaleClient :    public FluidBaseClient,
     if (!dest.exists())
       return {Result::Status::kError, "Output buffer not found"};
 
-    FluidTensor<float, 2> tmp(numChans,numFrames);
+    FluidTensor<double, 2> tmp(numChans,numFrames);
   
     for(index i = 0; i < numChans; ++i)
       tmp.row(i) = source.samps(startFrame, numFrames, (i + startChan));
         
     //process
-    double scale = (get<kOutHigh>()-get<kOutLow>())/(get<kInHigh>()-get<kInLow>()); 
+    double scale = (get<kOutHigh>()-get<kOutLow>())/(get<kInHigh>()-get<kInLow>());
     double offset = get<kOutLow>() - ( scale * get<kInLow>() ); 
     
-    tmp.apply([&offset,&scale](float& x){
+    tmp.apply([&offset,&scale](double& x){
         x *= scale;
         x += offset; 
     }); 
