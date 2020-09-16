@@ -37,10 +37,10 @@ class BufScaleClient :    public FluidBaseClient,
   
   FLUID_DECLARE_PARAMS(InputBufferParam("source", "Source Buffer"),
                        BufferParam("destination","Destination Buffer"), 
-                       FloatParam("inlo","Input Low Range",0),
-                       FloatParam("inhi","Input High Range",1),
-                       FloatParam("outlo","Output Low Range",0),
-                       FloatParam("outhi","Output High Range",1));  
+                       FloatParam("inputLow","Input Low Range",0),
+                       FloatParam("inputHigh","Input High Range",1),
+                       FloatParam("outputLow","Output Low Range",0),
+                       FloatParam("outputHigh","Output High Range",1));  
   
   BufScaleClient(ParamSetViewType& p) : mParams(p) {}                   
   
