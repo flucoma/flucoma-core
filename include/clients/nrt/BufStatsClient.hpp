@@ -133,6 +133,9 @@ public:
       if( *std::min_element(weights.begin(), weights.end()) < 0 ){
         processingResult = Result(Result::Status::kWarning, "Negative weights clipped to 0");
       }
+      if( *std::max_element(weights.begin(), weights.end())  <=  0 ){
+        return {Result::Status::kError, "Invalid weights"};
+      }
     }
     FluidTensor<double, 2> tmp(numChannels, numFrames);
     FluidTensor<double, 2> result(numChannels, outputSize);

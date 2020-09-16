@@ -66,6 +66,8 @@ public:
       }
     }
     index numCleanFrames = mask.sum();
+    if(numCleanFrames <= 0) return;
+    if(weighted && weights.sum() <= 0) return;
     ArrayXXd filtered = ArrayXXd::Zero(numChannels, numCleanFrames);
     ArrayXd  filteredWeights;
     if (weighted) filteredWeights = ArrayXd::Zero(numCleanFrames);
