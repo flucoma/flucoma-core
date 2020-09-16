@@ -72,7 +72,6 @@ public:
   }
 
   MessageResult<void> transformJoin(DataSetClientRef source1Client, DataSetClientRef source2Client, DataSetClientRef destClient) {
-    if(mAlgorithm.numColumns() <= 0) return Error("No columns");
     auto src1Ptr = source1Client.get().lock();
     auto src2Ptr = source2Client.get().lock();
     auto destPtr = destClient.get().lock();
