@@ -58,17 +58,18 @@ public:
     mNPoints++;
   }
 
-  DataSet kNearest(const RealVectorView data, index k = 1) const {
+  DataSet kNearest(const RealVectorView data, index k = 1, double radius = 0) const {
     assert(data.size() == mDims);
     knnQueue queue;
     auto result = DataSet(1);
-    std::vector<knnCandidate> sorted(asUnsigned(k));
-    kNearest(mRoot, data, queue, k, 0);
-    for (index i = k - 1; i >= 0; i--) {
+    kNearest(mRoot, data, queue, k, radius, 0);
+    index numFound = queue.size();
+    std::vector<knnCandidate> sorted(numFound);
+    for (index i = numFound - 1; i >= 0; i--) {
       sorted[asUnsigned(i)] = queue.top();
       queue.pop();
     }
-    for (index i = 0; i < k; i++) {
+    for (index i = 0; i < numFound; i++) {
       auto dist = FluidTensor<double, 1>{sorted[asUnsigned(i)].first};
       auto id = sorted[asUnsigned(i)].second->id;
       result.add(id, dist);
@@ -171,14 +172,16 @@ private:
   }
 
   void kNearest(NodePtr current, const RealVectorView data, knnQueue &knn,
-                const index k, const index depth) const{
+                const index k, const double radius, const index depth) const{
     if (current == nullptr)
       return;
     const RealVector point{data};
     const double currentDist = distance(current->data, point);
-    if (knn.size() < asUnsigned(k))
+    bool withinRadius = radius > 0? currentDist < radius:true;
+    if (withinRadius && knn.size() < asUnsigned(k)){
       knn.push(make_pair(currentDist, current));
-    else if (currentDist < knn.top().first) {
+    }
+    else if (withinRadius && currentDist < knn.top().first) {
       knn.pop();
       knn.push(make_pair(currentDist, current));
     }
@@ -190,12 +193,12 @@ private:
       firstBranch = current->right;
       secondBranch = current->left;
     }
-    kNearest(firstBranch, data, knn, k, depth + 1);
-    if (dimDif < knn.top().first || knn.size() < asUnsigned(k)) // ball centered at query with diametre
+    kNearest(firstBranch, data, knn, k, radius, depth + 1);
+    if ( knn.size() < asUnsigned(k) || dimDif < knn.top().first) // ball centered at query with diametre
                                   // kthDist intersects with current partition
                                   // (or need to get more neighbors)
     {
-      kNearest(secondBranch, data, knn, k, depth + 1);
+      kNearest(secondBranch, data, knn, k, radius, depth + 1);
     }
   }
 

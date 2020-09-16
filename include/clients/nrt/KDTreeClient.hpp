@@ -18,10 +18,11 @@ public:
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
   using StringVector = FluidTensor<string, 1>;
 
-  enum { kNumNeighbors, kDataSet, kInputBuffer, kOutputBuffer };
+  enum { kNumNeighbors, kRadius, kDataSet, kInputBuffer, kOutputBuffer };
 
   FLUID_DECLARE_PARAMS(LongParam("numNeighbours", "Number of Nearest Neighbours",
                                  1),
+                       FloatParam("radius", "Maximum distance", 0, Min(0)),
                        DataSetClientRef::makeParam("dataSet", "DataSet Name"),
                        BufferParam("inputPointBuffer", "Input Point Buffer"),
                        BufferParam("predictionBuffer", "Prediction Buffer"));
@@ -90,7 +91,7 @@ public:
     RealVector point(mAlgorithm.dims());
     point = BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0);
     FluidDataSet<std::string, double, 1> nearest =
-        mAlgorithm.kNearest(point, k);
+        mAlgorithm.kNearest(point, k, get<kRadius>());
     StringVector result{nearest.getIds()};
     return result;
   }
@@ -107,7 +108,7 @@ public:
     RealVector point(mAlgorithm.dims());
     point = BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0);
     FluidDataSet<std::string, double, 1> nearest =
-        mAlgorithm.kNearest(point, k);
+        mAlgorithm.kNearest(point, k, get<kRadius>());
     RealVector result{nearest.getData().col(0)};
     return result;
   }
