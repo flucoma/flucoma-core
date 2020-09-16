@@ -10,6 +10,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "../common/FluidBaseClient.hpp"
+#include "../common/BufferAdaptor.hpp"
 #include "../common/FluidNRTClientWrapper.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterTypes.hpp"
@@ -27,12 +28,20 @@ class BufThreshClient :    public FluidBaseClient,
 
   enum BufSelectParamIndex {
     kSource,
+    kStartFrame,
+    kNumFrames,
+    kStartChan,
+    kNumChans,
     kDest, 
     kThresh
   };
   public:
   
   FLUID_DECLARE_PARAMS(InputBufferParam("source", "Source Buffer"),
+                       LongParam("startFrame", "Source Offset", 0, Min(0)),
+                       LongParam("numFrames", "Number of Frames", -1),
+                       LongParam("startChan", "Start Channel", 0, Min(0)),
+                       LongParam("numChans", "Number of Channels", -1),
                        BufferParam("destination","Destination Buffer"), 
                        FloatParam("threshold","Threshold",0)); 
   
@@ -41,40 +50,41 @@ class BufThreshClient :    public FluidBaseClient,
   template <typename T>
   Result process(FluidContext&)
   {
+    // retrieve the range requested and check it is valid
+    index startFrame = get<kStartFrame>(); 
+    index numFrames  = get<kNumFrames>();
+    index startChan  = get<kStartChan>();
+    index numChans   = get<kNumChans>();
     
-    if (!get<kSource>().get())
-      return {Result::Status::kError, "No input buffer supplied"};
-
-    if (!get<kDest>().get())
-      return {Result::Status::kError, "No output buffer supplied"};
+    Result r = bufferRangeCheck(get<kSource>().get(), startFrame, numFrames, startChan, numChans);
+    
+    if(! r.ok())  return r;
 
     BufferAdaptor::ReadAccess source(get<kSource>().get());
     BufferAdaptor::Access     dest(get<kDest>().get());
-
-    if (!source.exists())
-      return {Result::Status::kError, "Input buffer not found"};
-
-    if (!source.valid())
-      return {Result::Status::kError, "Can't access input buffer"};
-
+    
     if (!dest.exists())
       return {Result::Status::kError, "Output buffer not found"};
+
+    FluidTensor<float, 2> tmp(numChans,numFrames);
+  
+    for(index i = 0; i < numChans; ++i)
+      tmp.row(i) = source.samps(startFrame, numFrames, (i + startChan));
     
+    //process  
     double threshold = get<kThresh>(); 
 
-    FluidTensor<float, 2> tmp(source.numFrames(),source.numChans());
-  
-    for(index i = 0; i < source.numChans(); ++i)
-      tmp.col(i) = source.samps(i);
-    
     tmp.apply([&threshold](float& x){
         x = x < threshold ? 0 : x;  
     }); 
-        
-    dest.resize(source.numFrames(),source.numChans(),source.sampleRate());
     
-    for(index i = 0; i < source.numChans(); ++i)
-       dest.samps(i) = tmp.col(i);
+    //write back the processed data, resizing the dest buffer  
+    r = dest.resize(numFrames,numChans,source.sampleRate());
+    
+    if(!r.ok()) return r;
+    
+    for(index i = 0; i < numChans; ++i)
+       dest.samps(i) = tmp.row(i);
     
     return {};
   }                  
