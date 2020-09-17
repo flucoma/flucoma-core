@@ -83,7 +83,7 @@ public:
   MessageResult<StringVector> kNearest(BufferPtr data) const {
     index k = get<kNumNeighbors>();
     if (k > mAlgorithm.size()) return Error<StringVector>(SmallDataSet);
-    if (k <= 0) return Error<StringVector>(SmallK);
+    if (k <= 0 && get<kRadius>() <= 0) return Error<StringVector>(SmallK);
     if (!mAlgorithm.initialized()) return Error<StringVector>(NoDataFitted);
     InBufferCheck bufCheck(mAlgorithm.dims());
     if (!bufCheck.checkInputs(data.get()))
@@ -100,7 +100,7 @@ public:
     // TODO: refactor with kNearest
     index k = get<kNumNeighbors>();
     if (k > mAlgorithm.size()) return Error<RealVector>(SmallDataSet);
-    if (k <= 0) return Error<RealVector>(SmallK);
+    if (k <= 0 && get<kRadius>() <= 0) return Error<RealVector>(SmallK);
     if (!mAlgorithm.initialized()) return Error<RealVector>(NoDataFitted);
     InBufferCheck bufCheck(mAlgorithm.dims());
     if (!bufCheck.checkInputs(data.get()))

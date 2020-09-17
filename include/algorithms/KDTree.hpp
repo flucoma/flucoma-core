@@ -178,7 +178,7 @@ private:
     const RealVector point{data};
     const double currentDist = distance(current->data, point);
     bool withinRadius = radius > 0? currentDist < radius:true;
-    if (withinRadius && knn.size() < asUnsigned(k)){
+    if (withinRadius && (knn.size() < asUnsigned(k)|| k == 0)){
       knn.push(make_pair(currentDist, current));
     }
     else if (withinRadius && currentDist < knn.top().first) {
@@ -194,7 +194,7 @@ private:
       secondBranch = current->left;
     }
     kNearest(firstBranch, data, knn, k, radius, depth + 1);
-    if ( knn.size() < asUnsigned(k) || dimDif < knn.top().first) // ball centered at query with diametre
+    if (k == 0 || knn.size() < asUnsigned(k) || dimDif < knn.top().first) // ball centered at query with diametre
                                   // kthDist intersects with current partition
                                   // (or need to get more neighbors)
     {
