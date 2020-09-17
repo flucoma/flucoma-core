@@ -71,10 +71,12 @@ class BufScaleClient :    public FluidBaseClient,
     if (!dest.exists())
       return {Result::Status::kError, "Output buffer not found"};
 
-    FluidTensor<double, 2> tmp(numChans,numFrames);
-  
-    for(index i = 0; i < numChans; ++i)
-      tmp.row(i) = source.samps(startFrame, numFrames, (i + startChan));
+//    FluidTensor<double, 2> tmp(numChans,numFrames);
+//
+//    for(index i = 0; i < numChans; ++i)
+//      tmp.row(i) = source.samps(startFrame, numFrames, (i + startChan));
+
+    FluidTensor<double, 2> tmp(source.allFrames()(Slice(startChan,numChans),Slice(startFrame,numFrames)));
         
     //process
     double scale = (get<kOutHigh>()-get<kOutLow>())/(get<kInHigh>()-get<kInLow>());
@@ -89,8 +91,10 @@ class BufScaleClient :    public FluidBaseClient,
     r = dest.resize(numFrames,numChans,source.sampleRate());
     if(!r.ok()) return r;
     
-    for(index i = 0; i < numChans; ++i)
-       dest.samps(i) = tmp.row(i);
+    dest.allFrames() = tmp; 
+    
+//    for(index i = 0; i < numChans; ++i)
+//       dest.samps(i) = tmp.row(i);
     
     return {};
   }                  
