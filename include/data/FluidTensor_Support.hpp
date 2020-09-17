@@ -351,6 +351,7 @@ struct FluidTensorSlice
     start = s.start + doSlice(s, args...);
     size = std::accumulate(extents.begin(), extents.end(), index(1),
                            std::multiplies<index>());
+    transposed = s.transposed;
   }
 
   /// Operator () is used for mapping indices back onto a flat data structure
