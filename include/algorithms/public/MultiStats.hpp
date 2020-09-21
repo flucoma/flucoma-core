@@ -87,7 +87,7 @@ public:
       double sum = filteredWeights.sum();
       if(sum > 0) filteredWeights = filteredWeights / filteredWeights.sum();
     }
-    ArrayXXd result(numChannels, numStats() * (mNumDerivatives + 1));
+    ArrayXXd result = ArrayXXd::Zero(numChannels, numStats() * (mNumDerivatives + 1));
     for (index i = 0; i < numChannels; i++)
     {
       ArrayXd d1, d2, d1Weights, d2Weights;
@@ -102,7 +102,7 @@ public:
                     .process(channel, mLow, mMiddle, mHigh)
                     .matrix()
                     .transpose();
-      if (mNumDerivatives > 0)
+      if (mNumDerivatives > 0 && numCleanFrames >= 2)
       {
         d1 = diff(channel);
         if (weighted)
@@ -117,7 +117,7 @@ public:
                            .matrix()
                            .transpose();
       }
-      if (mNumDerivatives > 1)
+      if (mNumDerivatives > 1 && numCleanFrames >= 3)
       {
         d2 = diff(d1);
         if (weighted)
