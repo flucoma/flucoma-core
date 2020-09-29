@@ -240,31 +240,34 @@ void from_json(const nlohmann::json &j, Standardization &standardization) {
 
 // PCA
 void to_json(nlohmann::json &j, const PCA &pca) {
-  index dims = pca.dims();
-  RealMatrix bases(dims, dims);
-  RealVector values(dims);
-  RealVector mean(dims);
+  index rows = pca.dims();
+  index cols = pca.size();
+  RealMatrix bases(rows, cols);
+  RealVector values(cols);
+  RealVector mean(rows);
   pca.getBases(bases);
   pca.getValues(values);
   pca.getMean(mean);
   j["bases"] = RealMatrixView(bases);
   j["values"] = RealVectorView(values);
   j["mean"] = RealVectorView(mean);
-  j["rows"] = dims;
+  j["rows"] = rows;
+  j["cols"] = cols;
 }
 
 bool check_json(const nlohmann::json &j, const PCA &) {
   return fluid::check_json(j,
-    {"rows", "bases", "values", "mean"},
-    {JSONTypes::NUMBER, JSONTypes::ARRAY, JSONTypes::ARRAY, JSONTypes::ARRAY}
+    {"rows","cols", "bases", "values", "mean"},
+    {JSONTypes::NUMBER, JSONTypes::NUMBER, JSONTypes::ARRAY, JSONTypes::ARRAY, JSONTypes::ARRAY}
   );
 }
 
 void from_json(const nlohmann::json &j, PCA &pca) {
-  index dims = j.at("rows");
-  RealMatrix bases(dims, dims);
-  RealVector mean(dims);
-  RealVector values(dims);
+  index rows = j.at("rows");
+  index cols = j.at("cols");
+  RealMatrix bases(rows, cols);
+  RealVector mean(cols);
+  RealVector values(cols);
   j.at("mean").get_to(mean);
   j.at("values").get_to(values);
   j.at("bases").get_to(bases);
