@@ -45,19 +45,27 @@ bool check_json(const nlohmann::json &j,
 }
 
 // FluidTensor
+
+namespace impl {
+
+template <typename T, typename Validator>
+void from_json(const nlohmann::json &j, FluidTensor<T, 1>& t, Validator&& validate)
+{
+  using namespace nlohmann;
+  if((t.size() > 1 && !j.is_array()) || (j.size() < asUnsigned(t.size()))) return;
+  for(auto&& el:j)if(!validate(el)) return;
+  std::transform(j.begin(), j.begin() + t.size(), t.begin(), [](const json& x)
+  {return x.get<T>();});
+}
+} //impl
+
 template <typename T>
 void from_json(const nlohmann::json &j, FluidTensor<T, 1> &t) {
-  if(!j.is_array()) return;
-  for(auto&& el:j)if(!el.is_number()) return;
-  std::vector<T> row = j;
-  t = FluidTensorView<T, 1>(row.data(), 0, row.size());
+  impl::from_json(j, t, [](const auto& x){ return x.is_number(); });
 }
 
 void from_json(const nlohmann::json &j, FluidTensor<std::string, 1> &t) {
-  if(!j.is_array()) return;
-  for(auto&& el:j)if(!el.is_string()) return;
-  std::vector<std::string> row = j;
-  t = FluidTensorView<std::string, 1>(row.data(), 0, row.size());
+  impl::from_json(j, t, [](const auto& x){ return x.is_string(); });
 }
 
 template <typename T>
@@ -266,7 +274,7 @@ void from_json(const nlohmann::json &j, PCA &pca) {
   index rows = j.at("rows");
   index cols = j.at("cols");
   RealMatrix bases(rows, cols);
-  RealVector mean(cols);
+  RealVector mean(rows);
   RealVector values(cols);
   j.at("mean").get_to(mean);
   j.at("values").get_to(values);
