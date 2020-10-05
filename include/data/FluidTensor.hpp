@@ -108,10 +108,10 @@ public:
   }
 
   /// Conversion assignment
-  template <typename U, template <typename, size_t> class O, size_t M = N>
-  std::enable_if_t<std::is_same<FluidTensor<U, N>, O<U, M>>() && (N > 1),
-                   FluidTensor&>
-  operator=(const O<U, M>& x)
+//  template <typename U, template <typename, size_t> class O, size_t M = N>
+//  std::enable_if_t<std::is_same<FluidTensor<U, N>, O<U, M>>{}(), FluidTensor&>
+  template<typename U>
+  FluidTensor& operator=(const FluidTensor<U, N>& x)
   {
     mDesc = x.descriptor();
     mContainer.assign(x.begin(), x.end());
@@ -182,7 +182,7 @@ public:
 
   /// implicit cast to view
   /// TODO should be const T, but need to see what breaks
-  operator const FluidTensorView<const T, N>() const { return {mDesc, data()}; }
+  operator FluidTensorView<const T, N>() const { return {mDesc, data()}; }
   operator FluidTensorView<T, N>() { return {mDesc, data()}; }
 
   /// TODO If these aren't used, removed
@@ -218,7 +218,7 @@ public:
 
   ///***************************************************************************
   /// row / col access: returns Views of dim N-1
-  const FluidTensorView<const T, N - 1> row(const index i) const
+  FluidTensorView<const T, N - 1> row(const index i) const
   {
     assert(i < rows());
     FluidTensorSlice<N - 1> row(mDesc, SizeConstant<0>(), i);
@@ -232,7 +232,7 @@ public:
     return {row, mContainer.data()};
   }
 
-  const FluidTensorView<const T, N - 1> col(const index i) const
+  FluidTensorView<const T, N - 1> col(const index i) const
   {
     assert(i < cols());
     FluidTensorSlice<N - 1> col(mDesc, SizeConstant<1>(), i);
@@ -548,6 +548,9 @@ public:
     std::copy(x.begin(), x.end(), begin());
     return *this;
   }
+
+  //implict cast to const
+  operator FluidTensorView<const T, N>() const { return {mDesc, data()}; }
 
   /// Repoint a view (TODO const version?)
   template <typename... Dims,

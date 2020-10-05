@@ -49,7 +49,7 @@ public:
       acc += weights(perm(i));
       if (level == 0 && acc >= low)
       {
-        lowVal = abs(prevAcc - low) < abs(acc - low)?input(perm(i - 1)):input(perm(i));
+        lowVal = abs(prevAcc - low) <= abs(acc - low)?input(perm(i - 1)):input(perm(i));
         level = 1;
       }
       if (level == 1 && acc >= mid)
