@@ -67,6 +67,12 @@ public:
     point = mData.row(pos->second);
     return true;
   }
+  
+  index getIndex(idType id) const {
+      auto pos = mIndex.find(id);
+      if (pos == mIndex.end())return -1;
+      else return pos->second;
+ }
 
   bool update(idType id, FluidTensorView<dataType, N> point) {
     auto pos = mIndex.find(id);

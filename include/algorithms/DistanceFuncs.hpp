@@ -34,6 +34,7 @@ public:
 
   using ArrayXcd = Eigen::ArrayXcd;
   using ArrayXd = Eigen::ArrayXd;
+  using MatrixXd = Eigen::MatrixXd;
   using DistanceFuncsMap =
       std::map<Distance, std::function<double(ArrayXd, ArrayXd)>>;
 
@@ -65,6 +66,33 @@ public:
          }}};
     return _funcs;
   }
+
+
 };
+
+Eigen::MatrixXd DistanceMatrix(Eigen::Ref<Eigen::MatrixXd> X, index distance){
+    auto dist = static_cast<DistanceFuncs::Distance>(distance);
+    Eigen::MatrixXd D = Eigen::MatrixXd::Zero(X.rows(), X.rows());
+    for (index i = 0; i < X.rows(); i++) {
+      for (index j = 0; j < X.rows(); j++) {
+        D(i, j) = DistanceFuncs::map()[dist](X.row(i).array(), X.row(j).array());
+      }
+    }
+    return D;
+}
+
+Eigen::MatrixXd DistanceMatrix(Eigen::Ref<Eigen::MatrixXd> X, Eigen::Ref<Eigen::MatrixXd> Y, index distance){
+    auto dist = static_cast<DistanceFuncs::Distance>(distance);
+    Eigen::MatrixXd D = Eigen::MatrixXd::Zero(X.rows(), Y.rows());
+    for (index i = 0; i < X.rows(); i++) {
+      for (index j = 0; j < Y.rows(); j++) {
+        D(i, j) = DistanceFuncs::map()[dist](X.row(i).array(), Y.row(j).array());
+      }
+    }
+    return D;
+}
+
+
+
 } // namespace algorithm
 } // namespace fluid
