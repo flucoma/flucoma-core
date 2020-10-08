@@ -271,7 +271,7 @@ public:
   std::array<Result, FixedIndexList::size()> setFixedParameterValues(bool reportage,
                                                             Args&&... args)
   {
-    auto res = setParameterValuesImpl<Func>(FixedIndexList(), reportage,
+    setParameterValuesImpl<Func>(FixedIndexList(), reportage,
                                             std::forward<Args>(args)...);
     return constrainParameterValuesImpl(std::make_index_sequence<FixedIndexList::size()>(),FixedIndexList());
   }
