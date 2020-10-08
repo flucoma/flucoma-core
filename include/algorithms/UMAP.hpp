@@ -13,6 +13,7 @@
 #include <cassert>
 #include <cmath>
 #include <fstream>
+#include <random>
 
 namespace fluid {
 namespace algorithm {
@@ -52,8 +53,8 @@ public:
   using MatrixXd = Eigen::MatrixXd;
   using ArrayXXd = Eigen::ArrayXXd;
   using ArrayXd = Eigen::ArrayXd;
-  using ArrayXXi = Eigen::ArrayXXi;
   using VectorXd = Eigen::VectorXd;
+  using Permutation = Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>;
   // using SMatrixXd = Eigen::SparseMatrix<double>;
   using DataSet = FluidDataSet<std::string, double, 1>;
 
@@ -172,9 +173,11 @@ public:
 
   DataSet process(DataSet &in, index k = 15, index dims = 2,
                   double minDist = 0.1, index maxIter = 200,
-                  double learningRate = 0.1) {
+                  double learningRate = 0.1, index batchSize = 50) {
     using namespace Eigen;
     using namespace _impl;
+    using namespace std;
+    index n = in.size();
     makeGraph(in, k);
     ArrayXd sigma = findSigma(k);
     ArrayXXd P = highDimProb(sigma);
@@ -182,11 +185,30 @@ public:
     auto ab = findAB(minDist);
     double a = ab(0), b = ab(1);
     ArrayXXd Y = computeSpectralEmbedding(P, dims);
+    Permutation perm(n);
+    perm.setIdentity();
+    // TODO: refactor with SGD class
     while (maxIter--) {
-      MatrixXd G = gradient(P, Y, a, b);
-      Y = Y - learningRate * G.array();
+      shuffle(perm.indices().data(),
+              perm.indices().data() + perm.indices().size(),
+              mt19937{random_device{}()});
+      ArrayXXd Yperm = perm * Y.matrix();
+      ArrayXXd Pperm = (perm * P.matrix()).eval() * perm.transpose();
+      for (index batchStart = 0; batchStart < Yperm.rows();
+           batchStart += batchSize) {
+        index thisBatchSize =
+            (batchStart + batchSize) <= n ? batchSize : n - batchStart;
+        ArrayXXd Ybatch =
+            Yperm.block(batchStart, 0, thisBatchSize, Yperm.cols());
+        ArrayXXd Pbatch =
+            Pperm.block(batchStart, batchStart, thisBatchSize, thisBatchSize);
+        ArrayXXd batchGrad = gradient(Pbatch, Ybatch, a, b);
+        Yperm.block(batchStart, 0, thisBatchSize, Yperm.cols()) -=
+            learningRate * batchGrad;
+      }
+      Y = perm.inverse() * Yperm.matrix();
     }
-    DataSet out(in.getIds(),_impl::asFluid(Y));
+    DataSet out(in.getIds(), _impl::asFluid(Y));
     return out;
   }
 
