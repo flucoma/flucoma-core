@@ -36,16 +36,16 @@ public:
     }
   }
 
-  FluidDataSet(FluidTensor<idType, 1> ids,
-               FluidTensor<dataType, N + 1> points) {
-    assert(ids.rows() == points.rows());
-    mData = points;
-    mDim = mData.cols();
-    mIds = ids;
-    for (index i = 0; i < ids.size(); i++) {
-      mIndex.insert({ids[i], i});
-    }
-  }
+  FluidDataSet(FluidTensorView<const idType, 1> ids,
+                FluidTensorView<const dataType, N + 1> points):
+                mData(points), mIds(ids)
+  {
+     assert(ids.rows() == points.rows());
+     mDim = mData.cols();
+     for (index i = 0; i < ids.size(); i++) {
+       mIndex.insert({ids[i], i});
+     }
+   }
 
   bool add(idType id, FluidTensorView<dataType, N> point) {
     assert(sameExtents(mDim, point.descriptor()));
@@ -67,7 +67,7 @@ public:
     point = mData.row(pos->second);
     return true;
   }
-  
+
   index getIndex(idType id) const {
       auto pos = mIndex.find(id);
       if (pos == mIndex.end())return -1;

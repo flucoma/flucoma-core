@@ -28,7 +28,8 @@ struct UMAPEmbeddingParamsFunctor {
   typedef Eigen::MatrixXd JacobianType;
 
   UMAPEmbeddingParamsFunctor(double minDist, double spread = 1.0) {
-    mX = Eigen::ArrayXd::LinSpaced(values(), 0, 3 * spread);// TODO: spread parameter?
+    mX = Eigen::ArrayXd::LinSpaced(values(), 0,
+                                   3 * spread); // TODO: spread parameter?
     mY = (mX <= minDist).select(1, ((-mX + minDist) / spread).exp());
   }
 
@@ -56,12 +57,15 @@ public:
   // using SMatrixXd = Eigen::SparseMatrix<double>;
   using DataSet = FluidDataSet<std::string, double, 1>;
 
-  /*
-  double loss(Eigen::Ref<ArrayXXd> P, Eigen::Ref<ArrayXXd> Y, double a, double
-  b){ using namespace Eigen; ArrayXXd D = DistanceMatrix(Y, 2); ArrayXXd Q = 1 /
-  (1 + a * D.pow(b)); Q = Q + epsilon; ArrayXXd CE = - P * Q.log() - (1 - P) *
-  (1e-6 + (1-Q)).log(); return CE.sum();
-  }*/
+  double loss(Eigen::Ref<ArrayXXd> P, Eigen::Ref<ArrayXXd> Y, double a,
+              double b) {
+    using namespace Eigen;
+    ArrayXXd D = DistanceMatrix(Y, 2);
+    ArrayXXd Q = 1 / (1 + a * D.pow(b));
+    Q = Q + epsilon;
+    ArrayXXd CE = -P * Q.log() - (1 - P) * (1e-6 + (1 - Q)).log();
+    return CE.sum();
+  }
 
   // https://towardsdatascience.com/how-to-program-umap-from-scratch-e6eff67f55fe
   ArrayXXd gradient(Eigen::Ref<ArrayXXd> P, Eigen::Ref<ArrayXXd> Y, double a,
@@ -182,14 +186,8 @@ public:
       MatrixXd G = gradient(P, Y, a, b);
       Y = Y - learningRate * G.array();
     }
-    FluidTensor<double, 2> result(in.size(), dims);
-    auto ids = in.getIds();
-    result = _impl::asFluid(Y);
-    FluidDataSet<std::string, double, 1> ds(2);
-    for (index i = 0; i < in.size(); i++) {
-      ds.add(ids(i), result.row(i));
-    }
-    return ds;
+    DataSet out(in.getIds(),_impl::asFluid(Y));
+    return out;
   }
 
 private:
