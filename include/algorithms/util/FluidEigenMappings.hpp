@@ -44,8 +44,8 @@ auto asFluid(PlainObjectBase<Derived>& a)
     if (a.Options == ColMajor)
     {
       // Respect the colmajorness of an eigen type
-      auto slice = FluidTensorSlice<N>(0, {a.rows(), a.cols()}, {1, a.rows()});
-      return {slice, a.data()};
+      auto slice = FluidTensorSlice<N>(0, {a.cols(), a.rows()});
+      return {slice.transpose(), a.data()};
     }
     return {a.data(), 0, a.rows(), a.cols()};
   }
@@ -67,8 +67,8 @@ auto asFluid(const PlainObjectBase<Derived>& a)
     if (a.Options == ColMajor)
     {
       // Respect the colmajorness of an eigen type
-      auto slice = FluidTensorSlice<N>(0, {a.rows(), a.cols()}, {1, a.rows()});
-      return {slice, a.data()};
+      auto slice = FluidTensorSlice<N>(0, {a.cols(), a.rows()});
+      return {slice.transpose(), a.data()};
     }
     return {a.data(), 0, a.rows(), a.cols()};
   }
