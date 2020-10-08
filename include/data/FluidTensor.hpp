@@ -160,9 +160,7 @@ public:
   /// Copy from a view
   FluidTensor& operator=(const FluidTensorView<T, N> x)
   {
-    mDesc = x.descriptor(); // we get the same size, extent and strides
-    mDesc.start = 0;        // but start at 0 now
-    mContainer.resize(asUnsigned(mDesc.size));
+    assert(sameExtents(mDesc, x.descriptor()));
     std::copy(x.begin(), x.end(), mContainer.begin());
     return *this;
   }
@@ -171,11 +169,9 @@ public:
   template <typename U, size_t M>
   FluidTensor& operator=(const FluidTensorView<U, M> x)
   {
-    static_assert(M <= N, "View has too many dimensions");
+    static_assert(M <= N, "View has too many diensions");
     static_assert(std::is_convertible<U, T>::value,  "Cannot convert between types");
-    // TODO this will barf if they have different orders:  I don't want that
     assert(sameExtents(mDesc, x.descriptor()));
-
     std::copy(x.begin(), x.end(), begin());
     return *this;
   }
