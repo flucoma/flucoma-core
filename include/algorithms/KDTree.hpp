@@ -19,6 +19,7 @@ public:
   struct Node;
   using NodePtr = std::shared_ptr<Node>;
   using DataSet = FluidDataSet<string, double, 1>;
+  using ConstRealVectorView = FluidTensorView<const double, 1>; 
 
   struct Node {
     const string id;
@@ -53,12 +54,12 @@ public:
     mInitialized = true;
   }
 
-  void addNode(const string id, const RealVectorView data) {
+  void addNode(string id, ConstRealVectorView data) {
     mRoot = addNode(mRoot, id, data, 0);
     mNPoints++;
   }
 
-  DataSet kNearest(const RealVectorView data, index k = 1, double radius = 0) const {
+  DataSet kNearest(ConstRealVectorView data, index k = 1, double radius = 0) const {
     assert(data.size() == mDims);
     knnQueue queue;
     auto result = DataSet(1);
@@ -102,7 +103,7 @@ public:
 
 private:
   NodePtr buildTree(std::vector<index>& indices, iterator from, iterator to,
-                    const DataSet &dataset, const index depth) {
+                    const DataSet &dataset, index depth) {
     using namespace std;
     if (from == to) return nullptr;
     else if (std::distance(from, to) == 1) {
@@ -126,12 +127,11 @@ private:
     return current;
   }
 
-  NodePtr makeNode(const string id, const RealVectorView data) const{
-    const RealVector point{data};
-    return std::make_shared<Node>(Node{id, point, nullptr, nullptr});
+  NodePtr makeNode(string id, ConstRealVectorView data) const{
+    return std::make_shared<Node>(Node{id, RealVector{data}, nullptr, nullptr});
   }
 
-  NodePtr addNode(NodePtr current, const string id, const RealVectorView data,
+  NodePtr addNode(NodePtr current, string id, ConstRealVectorView data,
                   const index depth) {
     if (current == nullptr) {
       return makeNode(id, data);
@@ -146,10 +146,10 @@ private:
     return current;
   }
 
-  double distance(RealVector p1, RealVector p2) const{
+  double distance(ConstRealVectorView p1, ConstRealVectorView p2) const{
     using namespace Eigen;
-    ArrayXd v1 = _impl::asEigen<Array>(p1);
-    ArrayXd v2 = _impl::asEigen<Array>(p2);
+    auto v1 = _impl::asEigen<Array>(p1);
+    auto v2 = _impl::asEigen<Array>(p2);
     return (v1 - v2).matrix().norm();
   }
 
@@ -171,12 +171,11 @@ private:
     print(current->right, depth + 1);
   }
 
-  void kNearest(NodePtr current, const RealVectorView data, knnQueue &knn,
-                const index k, const double radius, const index depth) const{
+  void kNearest(NodePtr current, ConstRealVectorView data, knnQueue &knn,
+                 index k, double radius,  index depth) const{
     if (current == nullptr)
       return;
-    const RealVector point{data};
-    const double currentDist = distance(current->data, point);
+    const double currentDist = distance(current->data, data);
     bool withinRadius = radius > 0? currentDist < radius:true;
     if (withinRadius && (knn.size() < asUnsigned(k)|| k == 0)){
       knn.push(make_pair(currentDist, current));
