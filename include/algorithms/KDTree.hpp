@@ -101,7 +101,7 @@ public:
    }
 
 private:
-  NodePtr buildTree(std::vector<index> indices, iterator from, iterator to,
+  NodePtr buildTree(std::vector<index>& indices, iterator from, iterator to,
                     const DataSet &dataset, const index depth) {
     using namespace std;
     if (from == to) return nullptr;
