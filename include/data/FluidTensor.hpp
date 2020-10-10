@@ -546,7 +546,7 @@ public:
   }
 
   //implict cast to const
-  operator FluidTensorView<const T, N>() const { return {mDesc, data()}; }
+  operator FluidTensorView<const T, N>() const { return {mDesc, mRef}; }
 
   /// Repoint a view (TODO const version?)
   template <typename... Dims,
