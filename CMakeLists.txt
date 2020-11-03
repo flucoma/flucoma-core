@@ -26,6 +26,7 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/script/flucoma-buildtype.cmake")
 include(FetchContent)
 set(HISS_PATH "" CACHE PATH "The path to a HISSTools_Library folder. Will pull from github if not set")
 set(EIGEN_PATH "" CACHE PATH "The path to an Eigen installation (>=3.3.5). Will pull from github if not set")
+set(SPECTRA_PATH "" CACHE PATH "The path to aa Spectra installation. Will pull from github if not set")
 IF(APPLE)
   find_library(ACCELERATE Accelerate)
   IF (NOT ACCELERATE)
@@ -54,13 +55,26 @@ FetchContent_Declare(
   GIT_TAG "3.3.5"
 )
 
+FetchContent_Declare(
+  Spectra
+  GIT_REPOSITORY https://github.com/yixuan/spectra
+  GIT_PROGRESS TRUE
+  GIT_BRANCH "master"
+  GIT_TAG "v0.9.0"
+)
+
 if(HISS_PATH) #if hiss path is set, this will stop it downloading
   get_filename_component(FETCHCONTENT_SOURCE_DIR_HISSTOOLS ${HISS_PATH} ABSOLUTE)
 endif()
 
-if(EIGEN_PATH) #if hiss path is set, this will stop it downloading
+if(EIGEN_PATH) #if eigen path is set, this will stop it downloading
   get_filename_component(FETCHCONTENT_SOURCE_DIR_EIGEN ${EIGEN_PATH} ABSOLUTE)
 endif()
+
+if(SPECTRA_PATH) #if spectra path is set, this will stop it downloading
+  get_filename_component(FETCHCONTENT_SOURCE_DIR_SPECTRA ${SPECTRA_PATH} ABSOLUTE)
+endif()
+
 
 FetchContent_GetProperties(HISSTools)
 if(NOT hisstools_POPULATED)
@@ -71,6 +85,12 @@ FetchContent_GetProperties(Eigen)
 if(NOT eigen_POPULATED)
   FetchContent_Populate(Eigen)
 endif()
+
+FetchContent_GetProperties(Spectra)
+if(NOT spectra_POPULATED)
+  FetchContent_Populate(Spectra)
+endif()
+
 
 # HISSTools FFT target
 add_library(
@@ -124,6 +144,7 @@ target_include_directories(
 target_include_directories(
   FLUID_DECOMPOSITION SYSTEM INTERFACE #we don't want warnings from Eigen or HissTools
   "${eigen_SOURCE_DIR}"
+  "${spectra_SOURCE_DIR}/include"
   "${hisstools_SOURCE_DIR}"
 )
 target_link_libraries(
@@ -135,7 +156,7 @@ target_sources(
 
 if(MSVC)
   target_compile_definitions(
-    FLUID_DECOMPOSITION INTERFACE NOMINMAX _USE_MATH_DEFINES    
+    FLUID_DECOMPOSITION INTERFACE NOMINMAX _USE_MATH_DEFINES
   )
 endif()
 
@@ -153,6 +174,8 @@ if(APPLE)
   target_compile_options(HISSTools_AudioFile PUBLIC -stdlib=libc++)
   target_compile_options(FLUID_DECOMPOSITION INTERFACE -stdlib=libc++)
   target_link_libraries(FLUID_DECOMPOSITION INTERFACE -stdlib=libc++)
+
+
 endif()
 
 #Apply any vector instruction flags
