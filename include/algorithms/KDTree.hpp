@@ -16,15 +16,19 @@ class KDTree {
 
 public:
   using string = std::string;
-  struct Node;
-  using NodePtr = Node*;
+
   using DataSet = FluidDataSet<string, double, 1>;
-  using ConstRealVectorView = FluidTensorView<const double, 1>; 
+  using ConstRealVectorView = FluidTensorView<const double, 1>;
+  struct Node; using NodePtr = std::shared_ptr<Node>;
+  using knnCandidate = std::pair<double, const Node*>;
+  using knnQueue = std::priority_queue<knnCandidate, std::vector<knnCandidate>,
+                                       std::less<knnCandidate>>;
+  using iterator = const std::vector<index>::iterator;
 
   struct Node {
     const string id;
     const RealVector data;
-    std::shared_ptr<Node> left{nullptr}, right{nullptr};
+    NodePtr left{nullptr}, right{nullptr};
   };
 
   struct FlatData {
@@ -33,11 +37,6 @@ public:
     FluidTensor<double, 2> data;
     FlatData(index n, index m) : tree(n, 2), ids(n), data(n, m) {}
   };
-
-  using knnCandidate = std::pair<double, NodePtr>;
-  using knnQueue = std::priority_queue<knnCandidate, std::vector<knnCandidate>,
-                                       std::less<knnCandidate>>;
-  using iterator = const std::vector<index>::iterator;
 
   explicit KDTree() = default;
   ~KDTree() = default;
@@ -49,13 +48,13 @@ public:
     if(mDims > 0 && mNPoints > 0){
       vector<index> indices(asUnsigned(dataset.size()));
       iota(indices.begin(), indices.end(), 0);
-      mRoot.reset(buildTree(indices, indices.begin(), indices.end(), dataset, 0));
+      mRoot = buildTree(indices, indices.begin(), indices.end(), dataset, 0);
     }
     mInitialized = true;
   }
 
   void addNode(string id, ConstRealVectorView data) {
-    mRoot.reset(addNode(mRoot.get(), id, data, 0));
+    mRoot = addNode(mRoot.get(), id, data, 0);
     mNPoints++;
   }
 
@@ -95,7 +94,7 @@ public:
   }
 
   void fromFlat(FlatData vectors) {
-     mRoot.reset(unflatten(vectors, 0));
+     mRoot = unflatten(vectors, 0);
      mNPoints = vectors.data.rows();
      mDims =  vectors.data.cols();
      mInitialized = true;
@@ -103,7 +102,7 @@ public:
 
 private:
   NodePtr buildTree(std::vector<index>& indices, iterator from, iterator to,
-                    const DataSet &dataset, index depth) {
+                    const DataSet &dataset, index depth) const{
     using namespace std;
     if (from == to) return nullptr;
     else if (std::distance(from, to) == 1) {
@@ -119,29 +118,29 @@ private:
     NodePtr current = makeNode(dataset.getIds().row(*(from + median)),
                                dataset.getData().row(*(from + median)));
     if (median > 0)
-      current->left.reset(buildTree(indices, from, from + median, dataset, depth + 1));
+      current->left = buildTree(indices, from, from + median, dataset, depth + 1);
     if (range - median > 1)
-      current->right.reset(buildTree(indices, from + median + 1, to, dataset, depth + 1));
+      current->right = buildTree(indices, from + median + 1, to, dataset, depth + 1);
     return current;
   }
 
   NodePtr makeNode(string id, ConstRealVectorView data) const{
-    return new Node{id, RealVector{data}, nullptr, nullptr};
+    return std::make_shared<Node>(Node{id, RealVector{data}, nullptr, nullptr});
   }
 
-  NodePtr addNode(NodePtr current, string id, ConstRealVectorView data,
-                  const index depth) {
+  NodePtr addNode(Node* current, string id, ConstRealVectorView data,
+                  const index depth) const{
     if (current == nullptr) {
       return makeNode(id, data);
     }
 
     const index d = depth % mDims;
     if (data(d) < current -> data(d)) {
-      current->left.reset(addNode(current->left.get(), id, data, depth + 1));
+      current->left = addNode(current->left.get(), id, data, depth + 1);
     } else {
-      current->right.reset(addNode(current->right.get(), id, data, depth + 1));
+      current->right = addNode(current->right.get(), id, data, depth + 1);
     }
-    return current;
+    return NodePtr(current);
   }
 
   double distance(ConstRealVectorView p1, ConstRealVectorView p2) const{
@@ -151,7 +150,7 @@ private:
     return (v1 - v2).matrix().norm();
   }
 
-  void print(NodePtr current, index depth) const {
+  void print(Node* current, index depth) const {
     for (index i = 0; i < depth; ++i)
       std::cout << "  ";
     if (current == nullptr) {
@@ -169,10 +168,9 @@ private:
     print(current->right.get(), depth + 1);
   }
 
-  void kNearest(NodePtr current, ConstRealVectorView data, knnQueue &knn,
+  void kNearest(const Node* current, ConstRealVectorView data, knnQueue &knn,
                  index k, double radius,  index depth) const{
-    if (current == nullptr)
-      return;
+    if (current == nullptr) return;
     const double currentDist = distance(current->data, data);
     bool withinRadius = radius > 0? currentDist < radius:true;
     if (withinRadius && (knn.size() < asUnsigned(k)|| k == 0)){
@@ -184,8 +182,8 @@ private:
     }
     const index d = depth % mDims;
     const double dimDif = current->data(d) - data(d);
-    NodePtr firstBranch = current->left.get();
-    NodePtr secondBranch = current->right.get();
+    Node* firstBranch = current->left.get();
+    Node* secondBranch = current->right.get();
     if (dimDif <= 0) {
       firstBranch = current->right.get();
       secondBranch = current->left.get();
@@ -199,7 +197,7 @@ private:
     }
   }
 
-  index flatten(index nodeId, NodePtr current, FlatData &store) const{
+  index flatten(index nodeId, const Node* current, FlatData &store) const{
     if (current == nullptr) {
       return nodeId;
     }
@@ -224,15 +222,15 @@ private:
     return nextNodeId;
   }
 
-  NodePtr unflatten(FlatData &store, index index) const{
+  NodePtr unflatten(const FlatData &store, index index) const{
     if(index == -1) return nullptr;
     NodePtr current = makeNode(store.ids[index], store.data[index]);
-    current->left.reset(unflatten(store, store.tree(index, 0)));
-    current->right.reset(unflatten(store, store.tree(index, 1)));
+    current->left  = unflatten(store, store.tree(index, 0));
+    current->right = unflatten(store, store.tree(index, 1));
     return current;
   }
 
-  std::shared_ptr<Node> mRoot{nullptr};
+  NodePtr mRoot{nullptr};
   index mDims;
   index mNPoints{0};
   bool mInitialized{false};
