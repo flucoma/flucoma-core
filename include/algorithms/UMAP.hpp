@@ -150,7 +150,7 @@ public:
 
   DataSet process(DataSet &in, index k = 15, index dims = 2,
                   double minDist = 0.1, index maxIter = 200,
-                  double learningRate = 1.0, index batchSize = 50, index method = 0) {
+                  double learningRate = 1.0) {
     using namespace Eigen;
     using namespace _impl;
     using namespace std;
