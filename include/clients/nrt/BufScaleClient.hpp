@@ -35,7 +35,8 @@ class BufScaleClient :    public FluidBaseClient,
     kInLow,
     kInHigh,
     kOutLow, 
-    kOutHigh 
+    kOutHigh,
+    kClip
   };
   public:
   
@@ -48,7 +49,8 @@ class BufScaleClient :    public FluidBaseClient,
                        FloatParam("inputLow","Input Low Range",0),
                        FloatParam("inputHigh","Input High Range",1),
                        FloatParam("outputLow","Output Low Range",0),
-                       FloatParam("outputHigh","Output High Range",1));  
+                       FloatParam("outputHigh","Output High Range",1),
+                       EnumParam("clipping","Optional Clipping",0,"Neither", "Minimum", "Maximum", "Both"));
   
   BufScaleClient(ParamSetViewType& p) : mParams(p) {}                   
   
@@ -71,20 +73,22 @@ class BufScaleClient :    public FluidBaseClient,
     if (!dest.exists())
       return {Result::Status::kError, "Output buffer not found"};
 
-//    FluidTensor<double, 2> tmp(numChans,numFrames);
-//
-//    for(index i = 0; i < numChans; ++i)
-//      tmp.row(i) = source.samps(startFrame, numFrames, (i + startChan));
-
     FluidTensor<double, 2> tmp(source.allFrames()(Slice(startChan,numChans),Slice(startFrame,numFrames)));
         
     //process
     double scale = (get<kOutHigh>()-get<kOutLow>())/(get<kInHigh>()-get<kInLow>());
     double offset = get<kOutLow>() - ( scale * get<kInLow>() ); 
     
-    tmp.apply([&offset,&scale](double& x){
-        x *= scale;
-        x += offset; 
+    tmp.apply([&](double& x){
+        //optional cliping
+        if ((get<kClip>() & 1) && (x < get<kInLow>())) {
+            x = get<kOutLow>();
+        } else if ((get<kClip>() & 2) && (x > get<kInHigh>())) {
+            x = get<kOutHigh>();
+        } else {
+            x *= scale;
+            x += offset;
+        }
     }); 
 
     //write back the processed data, resizing the dest buffer          
