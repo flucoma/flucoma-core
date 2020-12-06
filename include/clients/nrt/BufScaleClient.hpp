@@ -36,6 +36,8 @@ class BufScaleClient :    public FluidBaseClient,
     kInHigh,
     kOutLow, 
     kOutHigh,
+    kMap,
+    kCurve,
     kClip
   };
   public:
@@ -50,6 +52,8 @@ class BufScaleClient :    public FluidBaseClient,
                        FloatParam("inputHigh","Input High Range",1),
                        FloatParam("outputLow","Output Low Range",0),
                        FloatParam("outputHigh","Output High Range",1),
+                       EnumParam("map","Type of Mapping",0,"linlin", "lincurve", "curvelin"),
+                       FloatParam("curvature", "Curvature of the Mapping", 0),
                        EnumParam("clipping","Optional Clipping",0,"Neither", "Minimum", "Maximum", "Both"));
   
   BufScaleClient(ParamSetViewType& p) : mParams(p) {}                   
@@ -81,13 +85,25 @@ class BufScaleClient :    public FluidBaseClient,
     
     tmp.apply([&](double& x){
         //optional cliping
-        if ((get<kClip>() & 1) && (x < get<kInLow>())) {
+        if ((get<kClip>() & 1) && (x < get<kInLow>())) { //if the low clipping is on, and X  is below the low input
             x = get<kOutLow>();
-        } else if ((get<kClip>() & 2) && (x > get<kInHigh>())) {
+        } else if ((get<kClip>() & 2) && (x > get<kInHigh>())) { //if the high clipping is on, and X is above the high input
             x = get<kOutHigh>();
-        } else {
+        } else if ((get<kMap>() == 0) || (abs(get<kCurve>()) < 0.001)){ //if Map is linear, or the curve is linear enough (SC optimisation trick)
             x *= scale;
             x += offset;
+        } else if (get<kMap>() == 1) { // if map is linExp (taken from SC's lincurve code but with added parentheses)
+            double grow = exp(get<kCurve>());//this could be an instance constant updated when kCurve is changed to save computing it every time
+            double a = (get<kOutHigh>() - get<kOutLow>()) / (1.0 - grow);
+            double b = get<kOutLow>() + a;//this could be inlined 2 lines below
+            double scaled = (x - get<kInLow>()) / (get<kInHigh>() - get<kInLow>());
+            x = b - (a * pow(grow, scaled));
+        } else { // otherwise it should be expLin (taken from SC's curvelin code but with added parentheses)
+            assert(get<kMap>() == 2); //just checkin'
+            double grow = exp(get<kCurve>()); //again this should be stored somewhere when curve changes
+            double a = (get<kInHigh>() - get<kInLow>()) / (1.0 - grow);
+            double b = get<kInLow>() + a; //this coulb be inldined below
+            x = (log((b - x) / a) * (get<kOutHigh>() - get<kOutLow>()) / get<kCurve>()) + get<kOutLow>();
         }
     }); 
 
