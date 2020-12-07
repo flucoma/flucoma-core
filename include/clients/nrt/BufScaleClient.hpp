@@ -113,9 +113,6 @@ class BufScaleClient :    public FluidBaseClient,
     
     dest.allFrames() = tmp; 
     
-//    for(index i = 0; i < numChans; ++i)
-//       dest.samps(i) = tmp.row(i);
-    
     return {};
   }                  
 }; 
