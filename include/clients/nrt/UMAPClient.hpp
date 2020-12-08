@@ -16,15 +16,14 @@ public:
 
   template <typename T> Result process(FluidContext &) { return {}; }
 
-  enum { kNumDimensions, kNumNeighbors, kMinDistance, kNumIter, kLearningRate, kBatchSize };
+  enum { kNumDimensions, kNumNeighbors, kMinDistance, kNumIter, kLearningRate };
 
   FLUID_DECLARE_PARAMS(
       LongParam("numDimensions", "Target Number of Dimensions", 2, Min(1)),
       LongParam("numNeighbours", "Number of Nearest Neighbours", 15, Min(1)),
       FloatParam("minDist", "Minimum Distance", 0.1, Min(0)),
       LongParam("iterations", "Number of Iterations", 200, Min(1)),
-      FloatParam("learnRate", "Learning Rate", 0.1, Min(0.0), Max(1.0)),
-      LongParam("batchSize", "Batch Size", 50, Min(1))
+      FloatParam("learnRate", "Learning Rate", 0.1, Min(0.0), Max(1.0))
     );
 
   UMAPClient(ParamSetViewType &p) : mParams(p) {}
@@ -40,10 +39,8 @@ public:
     auto dest = destPtr->getDataSet();
     if (src.size() == 0)
       return Error(EmptyDataSet);
-    if(get<kBatchSize>() > src.size())
-      return Error("Batch size is larger than dataset");
-      if(get<kNumNeighbors>() > src.size())
-        return Error("Number of Neighbours is larger than dataset");
+    if(get<kNumNeighbors>() > src.size())
+      return Error("Number of Neighbours is larger than dataset");
 
     StringVector ids{src.getIds()};
     RealMatrix output(src.size(), k);
@@ -51,7 +48,7 @@ public:
 
     result =
         mAlgorithm.process(src, get<kNumNeighbors>(), k, get<kMinDistance>(),
-                           get<kNumIter>(), get<kLearningRate>(), get<kBatchSize>());
+                           get<kNumIter>(), get<kLearningRate>());
     destPtr->setDataSet(result);
     return OK();
   }

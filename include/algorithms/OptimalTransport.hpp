@@ -56,7 +56,7 @@ public:
     firstMass.mass =
         magnitude.segment(0, valleys[asUnsigned(nextValley)]).sum() / totalMass;
     masses.emplace_back(firstMass);
-    for (index i = 1; asUnsigned(i) < peaks.size() - 1; i++) {
+    for (index i = 1; asUnsigned(i) < (peaks.size() - 1); i++) {
       index start = valleys[asUnsigned(nextValley)];
       if (start < 0)
         start = 0;
@@ -69,17 +69,19 @@ public:
       masses.emplace_back(SpectralMass{start, center, end, mass});
       nextValley++;
     }
-    index lastStart = valleys[asUnsigned(nextValley)];
-    index lastSize = magnitude.size() - 1 - lastStart;
-    if (lastSize < 0)
-      lastSize = 0;
-    if (lastSize > magnitude.size() - lastStart - 1)
-      lastSize = magnitude.size() - lastStart - 1;
-    double lastMass = magnitude.segment(lastStart, lastSize).sum();
-    lastMass /= totalMass;
-    masses.push_back(SpectralMass{valleys.at(asUnsigned(nextValley)),
+    if(nextValley < valleys.size() - 1){
+      index lastStart = valleys[asUnsigned(nextValley)];
+      index lastSize = magnitude.size() - 1 - lastStart;
+      if (lastSize < 0)
+        lastSize = 0;
+        if (lastSize > magnitude.size() - lastStart - 1)
+        lastSize = magnitude.size() - lastStart - 1;
+        double lastMass = magnitude.segment(lastStart, lastSize).sum();
+        lastMass /= totalMass;
+        masses.push_back(SpectralMass{valleys.at(asUnsigned(nextValley)),
                                   peaks.at(peaks.size() - 1),
                                   magnitude.size() - 1, lastMass});
+    }
     return masses;
   }
 

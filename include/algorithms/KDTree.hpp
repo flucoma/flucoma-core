@@ -16,9 +16,14 @@ class KDTree {
 
 public:
   using string = std::string;
-  struct Node;
-  using NodePtr = std::shared_ptr<Node>;
+
   using DataSet = FluidDataSet<string, double, 1>;
+  using ConstRealVectorView = FluidTensorView<const double, 1>;
+  struct Node; using NodePtr = std::shared_ptr<Node>;
+  using knnCandidate = std::pair<double, const Node*>;
+  using knnQueue = std::priority_queue<knnCandidate, std::vector<knnCandidate>,
+                                       std::less<knnCandidate>>;
+  using iterator = const std::vector<index>::iterator;
 
   struct Node {
     const string id;
@@ -32,11 +37,6 @@ public:
     FluidTensor<double, 2> data;
     FlatData(index n, index m) : tree(n, 2), ids(n), data(n, m) {}
   };
-
-  using knnCandidate = std::pair<double, NodePtr>;
-  using knnQueue = std::priority_queue<knnCandidate, std::vector<knnCandidate>,
-                                       std::less<knnCandidate>>;
-  using iterator = const std::vector<index>::iterator;
 
   explicit KDTree() = default;
   ~KDTree() = default;
@@ -53,16 +53,16 @@ public:
     mInitialized = true;
   }
 
-  void addNode(const string id, const RealVectorView data) {
-    mRoot = addNode(mRoot, id, data, 0);
+  void addNode(string id, ConstRealVectorView data) {
+    mRoot = addNode(mRoot.get(), id, data, 0);
     mNPoints++;
   }
 
-  DataSet kNearest(const RealVectorView data, index k = 1, double radius = 0) const {
+  DataSet kNearest(ConstRealVectorView data, index k = 1, double radius = 0) const {
     assert(data.size() == mDims);
     knnQueue queue;
     auto result = DataSet(1);
-    kNearest(mRoot, data, queue, k, radius, 0);
+    kNearest(mRoot.get(), data, queue, k, radius, 0);
     index numFound = queue.size();
     std::vector<knnCandidate> sorted(numFound);
     for (index i = numFound - 1; i >= 0; i--) {
@@ -77,7 +77,7 @@ public:
     return result;
   }
 
-  void print() const { print(mRoot, 0); }
+  void print() const { print(mRoot.get(), 0); }
   index dims() const { return mDims; }
   index size() const { return mNPoints; }
   bool initialized() const { return mInitialized; }
@@ -89,7 +89,7 @@ public:
 
   FlatData toFlat() const{
     FlatData store(mNPoints, mDims);
-    flatten(0, mRoot, store);
+    flatten(0, mRoot.get(), store);
     return store;
   }
 
@@ -101,8 +101,8 @@ public:
    }
 
 private:
-  NodePtr buildTree(std::vector<index> indices, iterator from, iterator to,
-                    const DataSet &dataset, const index depth) {
+  NodePtr buildTree(std::vector<index>& indices, iterator from, iterator to,
+                    const DataSet &dataset, index depth) const{
     using namespace std;
     if (from == to) return nullptr;
     else if (std::distance(from, to) == 1) {
@@ -118,42 +118,39 @@ private:
     NodePtr current = makeNode(dataset.getIds().row(*(from + median)),
                                dataset.getData().row(*(from + median)));
     if (median > 0)
-      current->left =
-          buildTree(indices, from, from + median, dataset, depth + 1);
+      current->left = buildTree(indices, from, from + median, dataset, depth + 1);
     if (range - median > 1)
-      current->right =
-          buildTree(indices, from + median + 1, to, dataset, depth + 1);
+      current->right = buildTree(indices, from + median + 1, to, dataset, depth + 1);
     return current;
   }
 
-  NodePtr makeNode(const string id, const RealVectorView data) const{
-    const RealVector point{data};
-    return std::make_shared<Node>(Node{id, point, nullptr, nullptr});
+  NodePtr makeNode(string id, ConstRealVectorView data) const{
+    return std::make_shared<Node>(Node{id, RealVector{data}, nullptr, nullptr});
   }
 
-  NodePtr addNode(NodePtr current, const string id, const RealVectorView data,
-                  const index depth) {
+  NodePtr addNode(Node* current, string id, ConstRealVectorView data,
+                  const index depth) const{
     if (current == nullptr) {
       return makeNode(id, data);
     }
 
     const index d = depth % mDims;
     if (data(d) < current -> data(d)) {
-      current->left = addNode(current->left, id, data, depth + 1);
+      current->left = addNode(current->left.get(), id, data, depth + 1);
     } else {
-      current->right = addNode(current->right, id, data, depth + 1);
+      current->right = addNode(current->right.get(), id, data, depth + 1);
     }
-    return current;
+    return NodePtr(current);
   }
 
-  double distance(RealVector p1, RealVector p2) const{
+  double distance(ConstRealVectorView p1, ConstRealVectorView p2) const{
     using namespace Eigen;
-    ArrayXd v1 = _impl::asEigen<Array>(p1);
-    ArrayXd v2 = _impl::asEigen<Array>(p2);
+    auto v1 = _impl::asEigen<Array>(p1);
+    auto v2 = _impl::asEigen<Array>(p2);
     return (v1 - v2).matrix().norm();
   }
 
-  void print(NodePtr current, index depth) const {
+  void print(Node* current, index depth) const {
     for (index i = 0; i < depth; ++i)
       std::cout << "  ";
     if (current == nullptr) {
@@ -164,34 +161,32 @@ private:
     for (index i = 0; i < depth; ++i)
       std::cout << "  ";
     std::cout << " left" << std::endl;
-    print(current->left, depth + 1);
+    print(current->left.get(), depth + 1);
     for (index i = 0; i < depth; ++i)
       std::cout << "  ";
     std::cout << " right" << std::endl;
-    print(current->right, depth + 1);
+    print(current->right.get(), depth + 1);
   }
 
-  void kNearest(NodePtr current, const RealVectorView data, knnQueue &knn,
-                const index k, const double radius, const index depth) const{
-    if (current == nullptr)
-      return;
-    const RealVector point{data};
-    const double currentDist = distance(current->data, point);
+  void kNearest(const Node* current, ConstRealVectorView data, knnQueue &knn,
+                 index k, double radius,  index depth) const{
+    if (current == nullptr) return;
+    const double currentDist = distance(current->data, data);
     bool withinRadius = radius > 0? currentDist < radius:true;
     if (withinRadius && (knn.size() < asUnsigned(k)|| k == 0)){
-      knn.push(make_pair(currentDist, current));
+      knn.push(std::make_pair(currentDist, current));
     }
     else if (withinRadius && currentDist < knn.top().first) {
       knn.pop();
-      knn.push(make_pair(currentDist, current));
+      knn.push(std::make_pair(currentDist, current));
     }
     const index d = depth % mDims;
     const double dimDif = current->data(d) - data(d);
-    NodePtr firstBranch = current->left;
-    NodePtr secondBranch = current->right;
+    Node* firstBranch = current->left.get();
+    Node* secondBranch = current->right.get();
     if (dimDif <= 0) {
-      firstBranch = current->right;
-      secondBranch = current->left;
+      firstBranch = current->right.get();
+      secondBranch = current->left.get();
     }
     kNearest(firstBranch, data, knn, k, radius, depth + 1);
     if (k == 0 || knn.size() < asUnsigned(k) || dimDif < knn.top().first) // ball centered at query with diametre
@@ -202,7 +197,7 @@ private:
     }
   }
 
-  index flatten(index nodeId, NodePtr current, FlatData &store) const{
+  index flatten(index nodeId, const Node* current, FlatData &store) const{
     if (current == nullptr) {
       return nodeId;
     }
@@ -215,22 +210,22 @@ private:
     }
     else{
       store.tree(nodeId, 0) = nextNodeId;
-      nextNodeId = flatten(nextNodeId, current->left, store);
+      nextNodeId = flatten(nextNodeId, current->left.get(), store);
     }
     if(current->right == nullptr){
         store.tree(nodeId, 1) = -1;
     }
     else {
       store.tree(nodeId, 1) = nextNodeId;
-      nextNodeId = flatten(nextNodeId, current->right, store);
+      nextNodeId = flatten(nextNodeId, current->right.get(), store);
     }
     return nextNodeId;
   }
 
-  NodePtr unflatten(FlatData &store, index index) const{
+  NodePtr unflatten(const FlatData &store, index index) const{
     if(index == -1) return nullptr;
     NodePtr current = makeNode(store.ids[index], store.data[index]);
-    current->left = unflatten(store, store.tree(index, 0));
+    current->left  = unflatten(store, store.tree(index, 0));
     current->right = unflatten(store, store.tree(index, 1));
     return current;
   }
