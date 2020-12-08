@@ -223,7 +223,9 @@ public:
   using ClientWeakPointer = typename std::weak_ptr<const SharedClient>;
   using ParamDescType = typename WrappedClient::ParamDescType;
   using ParamSetViewType = typename WrappedClient::ParamSetViewType;
-  using MessageSetType = typename WrappedClient::MessageSetType;
+  using MessageSetType = typename WrappedClient::MessageSetType;  
+  using isModelObject = typename WrappedClient::isModelObject;
+  
   using LookupTable = std::unordered_map<std::string,std::weak_ptr<SharedClient>>;
   using ParamSetType =  ParamAliasAdaptor<NRTClient, typename ParamDescType::ValueTuple>;
 
