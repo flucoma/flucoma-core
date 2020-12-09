@@ -31,12 +31,13 @@ class STFT
   using ArrayXXcd = Eigen::ArrayXXcd;
 
 public:
-  STFT(index windowSize, index fftSize, index hopSize)
+  STFT(index windowSize, index fftSize, index hopSize, index windowType = 0)
       : mWindowSize(windowSize), mHopSize(hopSize), mFrameSize(fftSize / 2 + 1),
         mFFT(fftSize)
   {
     mWindow = ArrayXd::Zero(mWindowSize);
-    WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](mWindowSize, mWindow);
+    auto windowTypeIndex = static_cast<WindowFuncs::WindowTypes>(windowType);
+    WindowFuncs::map()[windowTypeIndex](mWindowSize, mWindow);
   }
 
   static void magnitude(const FluidTensorView<std::complex<double>, 2>& in,
@@ -81,6 +82,13 @@ public:
     out = _impl::asFluid(spectrum);
   }
 
+  void processFrame(Eigen::Ref<ArrayXd> frame, Eigen::Ref<ArrayXcd> out)
+  {
+    assert(frame.size() == mWindowSize);
+    out = mFFT.process(frame * mWindow);
+  }
+
+
   RealVectorView window()
   {
     return RealVectorView(mWindow.data(), 0, mWindowSize);
@@ -97,15 +105,17 @@ private:
 class ISTFT
 {
   using ArrayXd = Eigen::ArrayXd;
+  using ArrayXcd = Eigen::ArrayXcd;
   using ArrayXXcd = Eigen::ArrayXXcd;
 
 public:
-  ISTFT(index windowSize, index fftSize, index hopSize)
+  ISTFT(index windowSize, index fftSize, index hopSize, index windowType = 0)
       : mWindowSize(windowSize), mHopSize(hopSize), mScale(1 / double(fftSize)),
         mIFFT(fftSize), mBuffer(mWindowSize)
   {
     mWindow = ArrayXd::Zero(mWindowSize);
-    WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](mWindowSize, mWindow);
+    auto windowTypeIndex = static_cast<WindowFuncs::WindowTypes>(windowType);
+    WindowFuncs::map()[windowTypeIndex](mWindowSize, mWindow);
     mWindowSquared = mWindow * mWindow;
   }
 
@@ -138,6 +148,11 @@ public:
                   .segment(0, mWindowSize) *
               mWindow * mScale;
     audio = _impl::asFluid(mBuffer);
+  }
+
+  void processFrame(Eigen::Ref<ArrayXcd> frame, Eigen::Ref<ArrayXd> audio)
+  {
+    audio = mIFFT.process(frame).segment(0, mWindowSize) * mWindow * mScale;
   }
 
   RealVectorView window()
