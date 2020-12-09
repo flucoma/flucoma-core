@@ -36,8 +36,23 @@ public:
     }
   }
 
+
   FluidDataSet(FluidTensorView<const idType, 1> ids,
-                FluidTensorView<const dataType, N + 1> points):
+               FluidTensorView<const dataType, N + 1> points):
+                mData(points), mIds(ids)
+  {
+     assert(ids.rows() == points.rows());
+     mDim = mData.cols();
+     for (index i = 0; i < ids.size(); i++) {
+       mIndex.insert({ids[i], i});
+     }
+   }
+
+  template<typename U,typename T = dataType>
+  FluidDataSet(FluidTensorView<const idType, 1> ids,
+              FluidTensorView<const U, N + 1> points,
+               std::enable_if_t<std::is_convertible<U, T>::value>* = nullptr
+               ):
                 mData(points), mIds(ids)
   {
      assert(ids.rows() == points.rows());
