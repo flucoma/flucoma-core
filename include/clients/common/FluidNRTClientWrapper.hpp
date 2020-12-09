@@ -752,7 +752,7 @@ private:
     swap(mSynchronous,x.mSynchronous);
     swap(mQueueEnabled,x.mQueueEnabled);
     swap(mCallback,x.mCallback);
-    mSynchronousDone = false; 
+    mSynchronousDone = false;
     if(includeParams) mHostParams = std::move(x.mHostParams);
     mClient =  std::move(x.mClient);
   }
@@ -828,7 +828,7 @@ private:
       mResult = mClient->template process<float>(mContext);
       resultReady.set_value();
       mState = kDone;
-      if(mCallback) mCallback(); 
+      if(mCallback && !mDetached) mCallback();
       if (mDetached) delete this;
     }
 
