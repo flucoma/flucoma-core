@@ -8,6 +8,7 @@
 #include "algorithms/public/WindowFuncs.hpp"
 #include "algorithms/util/ConvolutionTools.hpp"
 #include "algorithms/util/FFT.hpp"
+#include "algorithms/public/STFT.hpp"
 #include "algorithms/util/FluidEigenMappings.hpp"
 #include "data/TensorTypes.hpp"
 #include "data/FluidIndex.hpp"
@@ -25,10 +26,8 @@ struct SpetralMass {
 };
 
 class AudioTransport {
-
   using ArrayXd = Eigen::ArrayXd;
-  using VectorXd = Eigen::VectorXd;
-  using ArrayXXd = Eigen::ArrayXXd;
+  using ArrayXi = Eigen::ArrayXi;
   using ArrayXcd = Eigen::ArrayXcd;
   template <typename T> using Ref = Eigen::Ref<T>;
   using TransportMatrix = std::vector<std::tuple<index, index, double>>;
@@ -38,74 +37,87 @@ public:
 
   AudioTransport(index maxFFTSize)
       : mWindowSize(maxFFTSize), mFFTSize(maxFFTSize),
-        mBins(maxFFTSize / 2 + 1), mFFT(maxFFTSize) {}
+        mBins(maxFFTSize / 2 + 1), mFFT(maxFFTSize),
+        mSTFT(maxFFTSize, maxFFTSize, maxFFTSize / 2),
+        mISTFT(maxFFTSize, maxFFTSize, maxFFTSize / 2),
+        mReassignSTFT(maxFFTSize, maxFFTSize, maxFFTSize /2) {}
 
   void init(index windowSize, index fftSize, index hopSize, index bandwidth) {
     mWindowSize = windowSize;
-    mBandwidth = bandwidth;
     mWindow = ArrayXd::Zero(mWindowSize);
-    mOnes = VectorXd::Ones(mBandwidth);
     WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](mWindowSize,mWindow);
-    computeWindowTransform(mWindow);
-    mWNorm = mWindowTransform.square().sum();
+    mWindowSquared = mWindow * mWindow;
     mFFTSize = fftSize;
     mHopSize = hopSize;
     mBins = fftSize / 2 + 1;
-    mFFT.resize(fftSize);
     mPhase = ArrayXd::Zero(mBins);
-    mPrevPhase1 = ArrayXd::Zero(mBins);
-    mPrevPhase2 = ArrayXd::Zero(mBins);
-    mBinIndices = ArrayXd::LinSpaced(mBins, 0, mBins - 1);
+    mChanged = ArrayXi::Zero(mBins);
+    mBinFreqs = ArrayXd::LinSpaced(mBins, 0, mBins - 1) * (2 * pi) / mFFTSize;
+    mPhaseDiff = mBinFreqs * mHopSize;
+    mSTFT = STFT(windowSize, fftSize, hopSize);
+    mISTFT = ISTFT(windowSize, fftSize, hopSize);
+    mReassignSTFT = STFT(windowSize, fftSize, hopSize,
+        static_cast<index>(WindowFuncs::WindowTypes::kHannD));
     mInitialized = true;
   }
 
   bool initialized(){return mInitialized;}
-  void processFrame(const ComplexVectorView in1, const ComplexVectorView in2,
-                    double weight, ComplexVectorView out) {
+
+  void processFrame(RealVectorView in1, RealVectorView in2,
+                    double weight, RealMatrixView out) {
     using namespace _impl;
     using namespace Eigen;
     assert(mInitialized);
-    ArrayXcd frame1 = asEigen<Array>(in1);
-    ArrayXcd frame2 = asEigen<Array>(in2);
-    ArrayXcd result(mBins);
-    result = interpolate(frame1, frame2, weight);
-    out = asFluid(result);
+    ArrayXd frame1 = asEigen<Array>(in1);
+    ArrayXd frame2 = asEigen<Array>(in2);
+    ArrayXcd spectrum1(mBins);
+    ArrayXcd spectrum1Dh(mBins);
+    ArrayXcd spectrum2(mBins);
+    ArrayXcd spectrum2Dh(mBins);
+    ArrayXd output(frame1.size());
+    mSTFT.processFrame(frame1, spectrum1);
+    mReassignSTFT.processFrame(frame1, spectrum1Dh);
+    mSTFT.processFrame(frame2, spectrum2);
+    mReassignSTFT.processFrame(frame2, spectrum2Dh);
+    ArrayXcd result = interpolate(
+        spectrum1, spectrum1Dh,
+        spectrum2, spectrum2Dh, weight
+    );
+    mISTFT.processFrame(result, output);
+    out.row(0) = asFluid(output);
+    out.row(1) = asFluid(mWindowSquared);
   }
 
-  vector<SpetralMass> segmentSpectrum(const Ref<ArrayXd> magnitude) {
-    const auto &epsilon = std::numeric_limits<double>::epsilon();
+  vector<SpetralMass> segmentSpectrum(
+    const Ref<ArrayXd> mag,
+    const Ref<ArrayXd> reasignedFreq) {
+
     vector<SpetralMass> masses;
-    ArrayXd mag = magnitude;
     double totalMass = mag.sum() + epsilon;
-    ArrayXd correlation = getWindowCorrelation(mag);
-    correlation = correlation / correlation.maxCoeff();
-    ArrayXd invCorrelation = correlation * (-1);
-    vector<index> peaks = findPeaks(correlation, 0);
-    vector<index> valleys = findPeaks(invCorrelation, -1);
-    if(peaks.size()==0 || valleys.size()==0) return masses;
-    index nextValley = valleys[0] > peaks[0] ? 0 : 1;
-    SpetralMass firstMass{0, peaks[0], valleys[asUnsigned(nextValley)], 0};
-    firstMass.mass =
-        magnitude.segment(0, valleys[asUnsigned(nextValley)]).sum() / totalMass;
-    masses.emplace_back(firstMass);
-    for (index i = 1; asUnsigned(i) < peaks.size() - 1; i++) {
-      index start = valleys[asUnsigned(nextValley)];
-      index center = peaks[asUnsigned(i)];
-      index end = valleys[asUnsigned(nextValley) + 1];
-      double mass = magnitude.segment(start, end - start).sum() / totalMass;
-      masses.emplace_back(SpetralMass{start, center, end, mass});
-      nextValley++;
+    ArrayXi sign = (reasignedFreq > mBinFreqs).cast<int>();
+    mChanged.setZero();
+    mChanged.segment(1, mBins - 1) =
+        sign.segment(1, mBins - 1) - sign.segment(0, mBins - 1);
+    SpetralMass currentMass{0, 0, 0, 0};
+    for(index i = 1; i < mChanged.size(); i++){
+      if(mChanged(i) == -1){
+        double d1 = reasignedFreq(i - 1) - mBinFreqs(i - 1);
+        double d2 = mBinFreqs(i) - reasignedFreq(i);
+        currentMass.centerBin  =  d1<d2? i - 1:i;
+      }
+      if(mChanged(i) == 1){
+        currentMass.endBin = i;
+        currentMass.mass = mag.segment(
+          currentMass.startBin, i - currentMass.startBin
+        ).sum() / totalMass;
+        masses.emplace_back(currentMass);
+        currentMass = SpetralMass{i, i, i, 0};
+      }
     }
-
-    double lastMass = magnitude
-                          .segment(valleys[asUnsigned(nextValley)],
-                                   magnitude.size() - 1 - valleys[asUnsigned(nextValley)])
-                          .sum();
-
-    lastMass /= totalMass;
-    masses.push_back(SpetralMass{valleys.at(asUnsigned(nextValley)),
-                                 peaks.at(peaks.size() - 1), mBins - 1,
-                                 lastMass});
+    currentMass.endBin = mBins;
+    currentMass.mass = mag.segment(currentMass.startBin,
+                       mBins - currentMass.startBin).sum() / totalMass;
+    masses.emplace_back(currentMass);
     return masses;
   }
 
@@ -154,27 +166,25 @@ public:
     }
   }
 
-  ArrayXcd interpolate(Eigen::Ref<ArrayXcd> in1, Eigen::Ref<ArrayXcd> in2,
+  ArrayXcd interpolate(Ref<ArrayXcd> in1, Ref<ArrayXcd> in1Dh,
+                      Ref<ArrayXcd> in2, Ref<ArrayXcd> in2Dh,
                        double interpolation) {
     ArrayXd mag1 = in1.abs().real();
     ArrayXd mag2 = in2.abs().real();
-    ArrayXcd result = ArrayXcd::Zero(in1.size());
+    ArrayXcd result = ArrayXcd::Zero(mBins);
     double mag1Sum = mag1.sum();
     double mag2Sum = mag2.sum();
-
     if(mag1Sum <= 0 && mag2Sum <= 0){return result;}
     else if(mag1Sum > 0 && mag2Sum <= 0){return in1;}
     else if(mag1Sum <= 0 && mag2Sum > 0){return in2;}
-
     ArrayXd phase1 = in1.arg().real();
     ArrayXd phase2 = in2.arg().real();
-    ArrayXd instFreq1 = instFreq(phase1, mPrevPhase1);
-    ArrayXd instFreq2 = instFreq(phase2, mPrevPhase2);
+    ArrayXd reasignedW1 = mBinFreqs - (in1Dh / in1).imag();
+    ArrayXd reasignedW2 = mBinFreqs - (in2Dh / in2).imag();
     ArrayXd newAmplitudes = ArrayXd::Zero(mBins);
     ArrayXd newPhases = ArrayXd::Zero(mBins);
-
-    std::vector<SpetralMass> s1 = segmentSpectrum(mag1);
-    std::vector<SpetralMass> s2 = segmentSpectrum(mag2);
+    std::vector<SpetralMass> s1 = segmentSpectrum(mag1, reasignedW1);
+    std::vector<SpetralMass> s2 = segmentSpectrum(mag2, reasignedW2);
     if(s1.size() == 0 || s2.size()==0){
       return result;
     }
@@ -191,14 +201,10 @@ public:
                               ((double)m2.centerBin - (double)m1.centerBin);
       }
       double interpolatedFreq =
-          (1 - interpolationFactor) * instFreq1(m1.centerBin) +
-          interpolationFactor * instFreq2(m2.centerBin);
-      double centerPhase = mPhase(interpolatedBin) +
-                           (interpolatedFreq * mWindowSize / 2.) / 2. -
-                           (M_PI * interpolatedBin);
-      double nextPhase = centerPhase +
-                         (interpolatedFreq * mWindowSize / 2.) / 2. +
-                         (M_PI * interpolatedBin);
+              (1 - interpolationFactor) * reasignedW1(m1.centerBin) +
+              interpolationFactor * reasignedW2(m2.centerBin);
+      double nextPhase = mPhase(interpolatedBin) + interpolatedFreq * mHopSize;
+      double centerPhase = nextPhase - mPhaseDiff(interpolatedBin);
       placeMass(m1, interpolatedBin,
                 (1 - interpolation) * std::get<2>(t) / m1.mass, centerPhase,
                 in1, result, nextPhase, newAmplitudes, newPhases);
@@ -206,76 +212,24 @@ public:
                 centerPhase, in2, result, nextPhase, newAmplitudes, newPhases);
     }
     mPhase = newPhases;
-    mPrevPhase1 = phase1;
-    mPrevPhase2 = phase2;
     return result;
   }
 
-  // TODO: refactor along with SineExtraction
-  ArrayXd getWindowCorrelation(const Ref<ArrayXd> frame) {
-    ArrayXd squareMag = frame.square();
-    ArrayXd corr(frame.size());
-    ArrayXd spectrumNorm(frame.size());
-    correlateReal(corr.data(), frame.data(), asUnsigned(frame.size()),
-                  mWindowTransform.data(), asUnsigned(mBandwidth), kEdgeWrapCentre);
-    convolveReal(spectrumNorm.data(), squareMag.data(), asUnsigned(frame.size()),
-                 mOnes.data(), asUnsigned(mBandwidth), kEdgeWrapCentre);
-    corr = corr.square() / (spectrumNorm * mWNorm);
-    return corr;
-  }
-
-  void computeWindowTransform(Ref<ArrayXd> window) {
-    index halfBW = mBandwidth / 2;
-    mWindowTransform = ArrayXd::Zero(mBandwidth);
-    ArrayXcd transform =
-        mFFT.process(Eigen::Map<ArrayXd>(window.data(), mWindowSize));
-    for (index i = 0; i < halfBW; i++) {
-      mWindowTransform(halfBW + i) = mWindowTransform(halfBW - i) =
-          abs(transform(i));
-    }
-  }
-
-  std::vector<index> findPeaks(const Ref<ArrayXd> correlation, double threshold) {
-    std::vector<index> peaks;
-    for (index i = 1; i < correlation.size() - 1; i++) {
-      if (correlation(i) > correlation(i - 1) &&
-          correlation(i) > correlation(i + 1) && correlation(i) > threshold) {
-        peaks.push_back(i);
-      }
-    }
-    return peaks;
-  }
-
-  ArrayXd princArg(Ref<ArrayXd> phase) {
-    ArrayXd result = M_PI + (phase + M_PI);
-    result = result.unaryExpr([](const double x) { return fmod(x, -(2 * M_PI)); });
-    return result;
-  }
-
-  ArrayXd instFreq(Ref<ArrayXd> phase, Ref<ArrayXd> prevPhase) {
-    ArrayXd w = mBinIndices * (2 * M_PI) / mFFTSize;
-    ArrayXd dPhase = w * mHopSize;
-    ArrayXd phaseInc = phase - prevPhase - dPhase;
-    phaseInc = phaseInc - (2 * M_PI) * (phaseInc / (2 * M_PI)).round();
-    ArrayXd instW = w + phaseInc / mHopSize;
-    return instW;
-  }
-
-  index mBandwidth{76};
   index mWindowSize{1024};
   index mHopSize{512};
-  ArrayXd mBinIndices;
+  ArrayXd mBinFreqs;
   ArrayXd mWindow;
-  ArrayXd mWindowTransform;
+  ArrayXd mWindowSquared;
   index mFFTSize{1024};
   index mBins{513};
   FFT mFFT;
   bool mInitialized{false};
   ArrayXd mPhase;
-  ArrayXd mPrevPhase1;
-  ArrayXd mPrevPhase2;
-  VectorXd mOnes;
-  double mWNorm{1.0};
+  ArrayXd mPhaseDiff;
+  ArrayXi mChanged;
+  STFT mSTFT;
+  ISTFT mISTFT;
+  STFT mReassignSTFT;
 };
 } // namespace algorithm
 } // namespace fluid
