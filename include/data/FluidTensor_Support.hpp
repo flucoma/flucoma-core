@@ -166,15 +166,12 @@ struct SliceIterator
     
     mIndexes[0] = s.extents[0];
     
-    // The size in desc gives the size of the
-    // overall container, not the size of the slice
-    // this seems preferable to littering the code with transpose flags
-    
+    // size = s.size;
     if (!s.transposed) // Not transposed
-      size = s.strides[0] * s.extents[0];
+      endoffset = s.strides[0] * s.extents[0];
     else // transposed
-      size = s.strides[N - 1] * s.extents[N - 1];
-    mPtr = end ? base + s.start + size : base + s.start;
+      endoffset = s.strides[N - 1] * s.extents[N - 1];
+    mPtr = end ? base + s.start + endoffset : base + s.start;
   }
   
   const FluidTensorSlice<N>& descriptor() { return mDesc; }
@@ -208,13 +205,14 @@ private:
 
   index counter{0};
   index size;
+  index endoffset;
 
   /// TODO I would like this to be more beautiful (this is from Origin impl)
   void increment()
   {
-    if(++counter == size)
+    if(++counter == mDesc.size)
     {
-      mPtr = mBase + mDesc.start + size;
+      mPtr = mBase + mDesc.start + endoffset;
       return;
     }
         
