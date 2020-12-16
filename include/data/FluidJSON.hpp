@@ -3,6 +3,7 @@
 #include <algorithms/KDTree.hpp>
 #include <algorithms/KMeans.hpp>
 #include <algorithms/Normalization.hpp>
+#include <algorithms/RobustScaling.hpp>
 #include <algorithms/PCA.hpp>
 #include <algorithms/MLP.hpp>
 #include <algorithms/Standardization.hpp>
@@ -217,6 +218,39 @@ void from_json(const nlohmann::json &j, Normalization &normalization) {
   double min = j.at("min");
   double max = j.at("max");
   normalization.init(min, max, dataMin, dataMax);
+}
+
+// RobustScale
+void to_json(nlohmann::json &j, const RobustScaling &robustScaling) {
+  RealVector dataMin(robustScaling.dims());
+  RealVector dataMax(robustScaling.dims());
+  robustScaling.getDataMin(dataMin);
+  robustScaling.getDataMax(dataMax);
+  j["data_min"] = RealVectorView(dataMin);
+  j["data_max"] = RealVectorView(dataMax);
+  j["min"] = robustScaling.getMin();
+  j["max"] = robustScaling.getMax();
+  j["cols"] = robustScaling.dims();
+}
+
+bool check_json(const nlohmann::json &j, const RobustScaling &) {
+  return fluid::check_json(j,
+    {"cols", "data_min", "data_max", "min", "max"},
+    {JSONTypes::NUMBER, JSONTypes::ARRAY, JSONTypes::ARRAY,
+      JSONTypes::NUMBER, JSONTypes::NUMBER
+    }
+  );
+}
+
+void from_json(const nlohmann::json &j, RobustScaling &robustScaling) {
+  index cols = j.at("cols");
+  RealVector dataMin(cols);
+  RealVector dataMax(cols);
+  j.at("data_min").get_to(dataMin);
+  j.at("data_max").get_to(dataMax);
+  double min = j.at("min");
+  double max = j.at("max");
+  robustScaling.init(min, max, dataMin, dataMax);
 }
 
 // Standardize
