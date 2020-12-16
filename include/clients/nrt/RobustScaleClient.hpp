@@ -14,7 +14,7 @@ class RobustScaleClient : public FluidBaseClient,
                         ModelObject,
                         public DataClient<algorithm::RobustScaling> {
 
-  enum { kMin, kMax, kInvert, kInputBuffer, kOutputBuffer };
+  enum { kMin, kMax, kLow, kHigh, kInvert, kInputBuffer, kOutputBuffer };
 
 public:
   using string = std::string;
@@ -23,6 +23,8 @@ public:
 
   FLUID_DECLARE_PARAMS(FloatParam("min", "Minimum Value", 0.0),
                        FloatParam("max", "Maximum Value", 1.0),
+                       FloatParam("low", "Low Percentile", 0, Min(0), Max(100)),
+                       FloatParam("high", "High Percentile", 100, Min(0), Max(100)),
                        EnumParam("invert", "Inverse Transform", 0, "False", "True"),
                        BufferParam("inputPointBuffer", "Input Point Buffer"),
                        BufferParam("predictionBuffer", "Prediction Buffer"));
@@ -46,6 +48,8 @@ public:
     src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, mAlgorithm.dims(), 0);
     mAlgorithm.setMin(get<kMin>());
     mAlgorithm.setMax(get<kMax>());
+    mAlgorithm.setLow(get<kLow>());
+    mAlgorithm.setHigh(get<kHigh>());
     mTrigger.process(input, output, [&]() {
       mAlgorithm.processFrame(src, dest, get<kInvert>() == 1);
       outBuf.samps(0) = dest;
@@ -60,7 +64,7 @@ public:
       auto dataset = datasetClientPtr->getDataSet();
       if (dataset.size() == 0)
         return Error(EmptyDataSet);
-      mAlgorithm.init(get<kMin>(), get<kMax>(), dataset.getData());
+      mAlgorithm.init(get<kMin>(), get<kMax>(), get<kLow>(), get<kHigh>(), dataset.getData());
     } else {
       return Error(NoDataSet);
     }
@@ -92,6 +96,8 @@ public:
     src = BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
     mAlgorithm.setMin(get<kMin>());
     mAlgorithm.setMax(get<kMax>());
+    mAlgorithm.setLow(get<kLow>());
+    mAlgorithm.setHigh(get<kHigh>());
     mAlgorithm.processFrame(src, dest, get<kInvert>() == 1);
     outBuf.samps(0) = dest;
     return OK();
@@ -127,6 +133,8 @@ private:
         return Error(NoDataFitted);
       mAlgorithm.setMin(get<kMin>());
       mAlgorithm.setMax(get<kMax>());
+      mAlgorithm.setLow(get<kLow>());
+      mAlgorithm.setHigh(get<kHigh>());
       mAlgorithm.process(srcDataSet.getData(), data, invert);
       FluidDataSet<string, double, 1> result(ids, data);
       destPtr->setDataSet(result);

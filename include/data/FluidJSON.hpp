@@ -230,14 +230,16 @@ void to_json(nlohmann::json &j, const RobustScaling &robustScaling) {
   j["data_max"] = RealVectorView(dataMax);
   j["min"] = robustScaling.getMin();
   j["max"] = robustScaling.getMax();
+  j["low"] = robustScaling.getLow();
+  j["high"] = robustScaling.getHigh();
   j["cols"] = robustScaling.dims();
 }
 
 bool check_json(const nlohmann::json &j, const RobustScaling &) {
   return fluid::check_json(j,
-    {"cols", "data_min", "data_max", "min", "max"},
+    {"cols", "data_min", "data_max", "min", "max", "low", "high"},
     {JSONTypes::NUMBER, JSONTypes::ARRAY, JSONTypes::ARRAY,
-      JSONTypes::NUMBER, JSONTypes::NUMBER
+      JSONTypes::NUMBER, JSONTypes::NUMBER, JSONTypes::NUMBER, JSONTypes::NUMBER
     }
   );
 }
@@ -250,7 +252,9 @@ void from_json(const nlohmann::json &j, RobustScaling &robustScaling) {
   j.at("data_max").get_to(dataMax);
   double min = j.at("min");
   double max = j.at("max");
-  robustScaling.init(min, max, dataMin, dataMax);
+  double low = j.at("low");
+  double high = j.at("high");
+  robustScaling.init(min, max, low, high, dataMin, dataMax);
 }
 
 // Standardize
