@@ -222,14 +222,12 @@ void from_json(const nlohmann::json &j, Normalization &normalization) {
 
 // RobustScale
 void to_json(nlohmann::json &j, const RobustScaling &robustScaling) {
-  RealVector dataMin(robustScaling.dims());
-  RealVector dataMax(robustScaling.dims());
-  robustScaling.getDataMin(dataMin);
-  robustScaling.getDataMax(dataMax);
-  j["data_min"] = RealVectorView(dataMin);
-  j["data_max"] = RealVectorView(dataMax);
-  j["min"] = robustScaling.getMin();
-  j["max"] = robustScaling.getMax();
+  RealVector median(robustScaling.dims());
+  RealVector range(robustScaling.dims());
+  robustScaling.getMedian(median);
+  robustScaling.getRange(range);
+  j["median"] = RealVectorView(median);
+  j["range"] = RealVectorView(range);
   j["low"] = robustScaling.getLow();
   j["high"] = robustScaling.getHigh();
   j["cols"] = robustScaling.dims();
@@ -237,24 +235,22 @@ void to_json(nlohmann::json &j, const RobustScaling &robustScaling) {
 
 bool check_json(const nlohmann::json &j, const RobustScaling &) {
   return fluid::check_json(j,
-    {"cols", "data_min", "data_max", "min", "max", "low", "high"},
+    {"cols", "median", "range", "low", "high"},
     {JSONTypes::NUMBER, JSONTypes::ARRAY, JSONTypes::ARRAY,
-      JSONTypes::NUMBER, JSONTypes::NUMBER, JSONTypes::NUMBER, JSONTypes::NUMBER
+      JSONTypes::NUMBER, JSONTypes::NUMBER
     }
   );
 }
 
 void from_json(const nlohmann::json &j, RobustScaling &robustScaling) {
   index cols = j.at("cols");
-  RealVector dataMin(cols);
-  RealVector dataMax(cols);
-  j.at("data_min").get_to(dataMin);
-  j.at("data_max").get_to(dataMax);
-  double min = j.at("min");
-  double max = j.at("max");
+  RealVector median(cols);
+  RealVector range(cols);
+  j.at("median").get_to(median);
+  j.at("range").get_to(range);
   double low = j.at("low");
   double high = j.at("high");
-  robustScaling.init(min, max, low, high, dataMin, dataMax);
+  robustScaling.init(low, high, median, range);
 }
 
 // Standardize

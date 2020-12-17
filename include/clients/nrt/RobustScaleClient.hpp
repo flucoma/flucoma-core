@@ -14,16 +14,14 @@ class RobustScaleClient : public FluidBaseClient,
                         ModelObject,
                         public DataClient<algorithm::RobustScaling> {
 
-  enum { kMin, kMax, kLow, kHigh, kInvert, kInputBuffer, kOutputBuffer };
+  enum { kLow, kHigh, kInvert, kInputBuffer, kOutputBuffer };
 
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
   using StringVector = FluidTensor<string, 1>;
 
-  FLUID_DECLARE_PARAMS(FloatParam("min", "Minimum Value", 0.0),
-                       FloatParam("max", "Maximum Value", 1.0),
-                       FloatParam("low", "Low Percentile", 0, Min(0), Max(100)),
+  FLUID_DECLARE_PARAMS(FloatParam("low", "Low Percentile", 0, Min(0), Max(100)),
                        FloatParam("high", "High Percentile", 100, Min(0), Max(100)),
                        EnumParam("invert", "Inverse Transform", 0, "False", "True"),
                        BufferParam("inputPointBuffer", "Input Point Buffer"),
@@ -46,8 +44,6 @@ public:
     RealVector src(mAlgorithm.dims());
     RealVector dest(mAlgorithm.dims());
     src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, mAlgorithm.dims(), 0);
-    mAlgorithm.setMin(get<kMin>());
-    mAlgorithm.setMax(get<kMax>());
     mAlgorithm.setLow(get<kLow>());
     mAlgorithm.setHigh(get<kHigh>());
     mTrigger.process(input, output, [&]() {
@@ -64,7 +60,7 @@ public:
       auto dataset = datasetClientPtr->getDataSet();
       if (dataset.size() == 0)
         return Error(EmptyDataSet);
-      mAlgorithm.init(get<kMin>(), get<kMax>(), get<kLow>(), get<kHigh>(), dataset.getData());
+      mAlgorithm.init(get<kLow>(), get<kHigh>(), dataset.getData());
     } else {
       return Error(NoDataSet);
     }
@@ -94,8 +90,6 @@ public:
     RealVector src(mAlgorithm.dims());
     RealVector dest(mAlgorithm.dims());
     src = BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
-    mAlgorithm.setMin(get<kMin>());
-    mAlgorithm.setMax(get<kMax>());
     mAlgorithm.setLow(get<kLow>());
     mAlgorithm.setHigh(get<kHigh>());
     mAlgorithm.processFrame(src, dest, get<kInvert>() == 1);
@@ -131,8 +125,6 @@ private:
       RealMatrix data(srcDataSet.size(), srcDataSet.pointSize());
       if (!mAlgorithm.initialized())
         return Error(NoDataFitted);
-      mAlgorithm.setMin(get<kMin>());
-      mAlgorithm.setMax(get<kMax>());
       mAlgorithm.setLow(get<kLow>());
       mAlgorithm.setHigh(get<kHigh>());
       mAlgorithm.process(srcDataSet.getData(), data, invert);
