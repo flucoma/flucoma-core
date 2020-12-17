@@ -41,20 +41,53 @@ public:
       return Error(EmptyDataSet);
     if(get<kNumNeighbors>() > src.size())
       return Error("Number of Neighbours is larger than dataset");
-
-    StringVector ids{src.getIds()};
-    RealMatrix output(src.size(), k);
     FluidDataSet<string, double, 1> result;
-
     result =
-        mAlgorithm.process(src, get<kNumNeighbors>(), k, get<kMinDistance>(),
+        mAlgorithm.train(src, get<kNumNeighbors>(), k, get<kMinDistance>(),
                            get<kNumIter>(), get<kLearningRate>());
     destPtr->setDataSet(result);
     return OK();
   }
 
-  FLUID_DECLARE_MESSAGES(makeMessage("fitTransform",
-                                     &UMAPClient::fitTransform));
+  MessageResult<void> fit(DataSetClientRef sourceClient) {
+    index k = get<kNumDimensions>();
+    auto srcPtr = sourceClient.get().lock();
+    if (!srcPtr) return Error(NoDataSet);
+    auto src = srcPtr->getDataSet();
+    if (src.size() == 0)
+      return Error(EmptyDataSet);
+    if(get<kNumNeighbors>() > src.size())
+      return Error("Number of Neighbours is larger than dataset");
+    StringVector ids{src.getIds()};
+    FluidDataSet<string, double, 1> result;
+    result =
+        mAlgorithm.train(src, get<kNumNeighbors>(), k, get<kMinDistance>(),
+                           get<kNumIter>(), get<kLearningRate>());
+    return OK();
+  }
+
+  MessageResult<void> transform(DataSetClientRef sourceClient,
+                                   DataSetClientRef destClient) {
+    auto srcPtr = sourceClient.get().lock();
+    auto destPtr = destClient.get().lock();
+    if (!srcPtr || !destPtr) return Error(NoDataSet);
+    auto src = srcPtr->getDataSet();
+    auto dest = destPtr->getDataSet();
+    if (src.size() == 0) return Error(EmptyDataSet);
+    if(get<kNumNeighbors>() > src.size())
+      return Error("Number of Neighbours is larger than dataset");
+    StringVector ids{src.getIds()};
+    FluidDataSet<string, double, 1> result;
+    result = mAlgorithm.transform(src, get<kNumIter>(), get<kLearningRate>());
+    destPtr->setDataSet(result);
+    return OK();
+  }
+
+  FLUID_DECLARE_MESSAGES(
+    makeMessage("fitTransform",&UMAPClient::fitTransform),
+    makeMessage("fit",&UMAPClient::fit),
+    makeMessage("transform",&UMAPClient::transform)
+  );
 
 private:
   algorithm::UMAP mAlgorithm;
