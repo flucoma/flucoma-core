@@ -21,8 +21,8 @@ public:
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
   using StringVector = FluidTensor<string, 1>;
 
-  FLUID_DECLARE_PARAMS(FloatParam("low", "Low Percentile", 0, Min(0), Max(100)),
-                       FloatParam("high", "High Percentile", 100, Min(0), Max(100)),
+  FLUID_DECLARE_PARAMS(FloatParam("low", "Low Percentile", 25, Min(0), Max(100)),
+                       FloatParam("high", "High Percentile", 75, Min(0), Max(100)),
                        EnumParam("invert", "Inverse Transform", 0, "False", "True"),
                        BufferParam("inputPointBuffer", "Input Point Buffer"),
                        BufferParam("predictionBuffer", "Prediction Buffer"));
