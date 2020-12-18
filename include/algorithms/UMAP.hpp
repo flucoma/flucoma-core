@@ -277,9 +277,6 @@ void getGraphIndices(
           computeHighDimProb(dists, sigma, tmpGraph);
           normalizeRows(tmpGraph);
           ArrayXXd embedding = initTransformEmbedding(tmpGraph, mEmbedding, in.size());
-          std::cout<<mEmbedding<<std::endl;
-          std::cout<<"-----"<<std::endl;
-          std::cout<<embedding<<std::endl;
           ArrayXi rowIndices(tmpGraph.nonZeros());
           ArrayXi colIndices(tmpGraph.nonZeros());
           ArrayXd epochsPerSample(tmpGraph.nonZeros());
@@ -288,8 +285,6 @@ void getGraphIndices(
           epochsPerSample = (epochsPerSample == 0).select(-1, epochsPerSample);
           optimizeLayout(embedding, mEmbedding, rowIndices, colIndices, epochsPerSample,
             false, learningRate, maxIter);
-            std::cout<<"-----"<<std::endl;
-            std::cout<<embedding<<std::endl;
 
           DataSet out(in.getIds(), _impl::asFluid(embedding));
           return out;
