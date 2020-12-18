@@ -44,8 +44,6 @@ public:
     RealVector src(mAlgorithm.dims());
     RealVector dest(mAlgorithm.dims());
     src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, mAlgorithm.dims(), 0);
-    mAlgorithm.setLow(get<kLow>());
-    mAlgorithm.setHigh(get<kHigh>());
     mTrigger.process(input, output, [&]() {
       mAlgorithm.processFrame(src, dest, get<kInvert>() == 1);
       outBuf.samps(0) = dest;
@@ -90,8 +88,6 @@ public:
     RealVector src(mAlgorithm.dims());
     RealVector dest(mAlgorithm.dims());
     src = BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
-    mAlgorithm.setLow(get<kLow>());
-    mAlgorithm.setHigh(get<kHigh>());
     mAlgorithm.processFrame(src, dest, get<kInvert>() == 1);
     outBuf.samps(0) = dest;
     return OK();
@@ -125,8 +121,6 @@ private:
       RealMatrix data(srcDataSet.size(), srcDataSet.pointSize());
       if (!mAlgorithm.initialized())
         return Error(NoDataFitted);
-      mAlgorithm.setLow(get<kLow>());
-      mAlgorithm.setHigh(get<kHigh>());
       mAlgorithm.process(srcDataSet.getData(), data, invert);
       FluidDataSet<string, double, 1> result(ids, data);
       destPtr->setDataSet(result);

@@ -23,8 +23,8 @@ void init(double low, double high, RealMatrixView in) {
     mLow = low;
     mHigh = high;
     ArrayXXd input = asEigen<Array>(in);
-    ArrayXd dataLow(input.cols());
-    ArrayXd dataHigh(input.cols());
+    mDataLow.resize(input.cols());
+    mDataHigh.resize(input.cols());
     mMedian.resize(input.cols());
     mRange.resize(input.cols());
     index length = input.rows();
@@ -32,24 +32,27 @@ void init(double low, double high, RealMatrixView in) {
       ArrayXd sorted = input.col(i);
       std::sort(sorted.data(), sorted.data() + length);
       mMedian(i) = sorted(lrint(0.5 * (length - 1)));
-      dataLow(i) = sorted(lrint((mLow / 100.0) * (length - 1)));
-      dataHigh(i) = sorted(lrint((mHigh / 100.0) * (length - 1)));
+      mDataLow(i) = sorted(lrint((mLow / 100.0) * (length - 1)));
+      mDataHigh(i) = sorted(lrint((mHigh / 100.0) * (length - 1)));
     }
-    mRange = dataHigh - dataLow;
+    mRange = mDataHigh - mDataLow;
     mRange = mRange.max(epsilon);
     mInitialized = true;
   }
 
-void init(double low, double high, RealVectorView median,
+void init(double low, double high, RealVectorView dataLow,
+            RealVectorView dataHigh, RealVectorView median,
             RealVectorView range) {
     using namespace Eigen;
     using namespace _impl;
     const double epsilon = std::numeric_limits<double>::epsilon();
     mLow = low;
     mHigh = high;
+    mDataLow = asEigen<Array>(dataLow);
+    mDataHigh = asEigen<Array>(dataHigh);
     mMedian = asEigen<Array>(median);
     mRange = asEigen<Array>(range);
-    mRange = mRange.max(epsilon);
+    mRange = mRange.max(epsilon);//in case it is imported from the outside world
     mInitialized = true;
   }
 
@@ -88,6 +91,16 @@ void init(double low, double high, RealVectorView median,
   double getLow() const{ return mLow; }
   double getHigh() const{ return mHigh; }
 
+  void getDataLow(RealVectorView out) const{
+    using namespace _impl;
+    out = asFluid(mDataLow);
+  }
+
+  void getDataHigh(RealVectorView out) const{
+    using namespace _impl;
+    out = asFluid(mDataHigh);
+  }
+
   void getMedian(RealVectorView out) const{
     using namespace _impl;
     out = asFluid(mMedian);
@@ -112,6 +125,8 @@ void init(double low, double high, RealVectorView median,
 
   double mLow{0.0};
   double mHigh{1.0};
+  ArrayXd mDataHigh;
+  ArrayXd mDataLow;
   ArrayXd mMedian;
   ArrayXd mRange;
   bool mInitialized{false};
