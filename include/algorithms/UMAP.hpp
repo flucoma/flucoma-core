@@ -125,7 +125,6 @@ public:
     bool discardFirst)
     {
     graph.reserve(in.size() * k);
-    mTree = KDTree(in);
     auto data = in.getData();
     for (index i = 0; i < in.size(); i++) {
       auto nearest = mTree.kNearest(data.row(i), discardFirst? k + 1:k);
