@@ -158,7 +158,7 @@ void getGraphIndices(
     Ref<ArrayXi> colIndices)
 {
       index p = 0;
-      for (int i = 0; i < mKNNGraph.outerSize(); i++){
+      for (int i = 0; i < graph.outerSize(); i++){
         for (SparseMatrixXd::InnerIterator it(graph, i); it; ++it){
           rowIndices(p) = it.row();
           colIndices(p) = it.col();
@@ -268,26 +268,28 @@ void getGraphIndices(
   }
 
   DataSet transform(DataSet &in, index maxIter = 200, double learningRate = 1.0) {
-          SparseMatrixXd tmpGraph(in.size(), mKNNGraph.cols());
+          SparseMatrixXd knnGraph(in.size(), mEmbedding.rows());
           ArrayXXd dists = ArrayXXd::Zero(in.size(), mK);
-          makeGraph(in, mTree, mK, tmpGraph, dists, false);
-          tmpGraph.makeCompressed();
+          makeGraph(in, mTree, mK, knnGraph, dists, false);
+          knnGraph.makeCompressed();
           ArrayXd sigma = findSigma(mK, dists);
-          computeHighDimProb(dists, sigma, tmpGraph);
-          normalizeRows(tmpGraph);
-          ArrayXXd embedding = initTransformEmbedding(tmpGraph, mEmbedding, in.size());
-          ArrayXi rowIndices(tmpGraph.nonZeros());
-          ArrayXi colIndices(tmpGraph.nonZeros());
-          ArrayXd epochsPerSample(tmpGraph.nonZeros());
-          getGraphIndices(tmpGraph, rowIndices, colIndices);
-          computeEpochsPerSample(tmpGraph, epochsPerSample);
+          computeHighDimProb(dists, sigma, knnGraph);
+          normalizeRows(knnGraph);
+          ArrayXXd embedding = initTransformEmbedding(knnGraph, mEmbedding, in.size());
+          ArrayXi rowIndices(knnGraph.nonZeros());
+          ArrayXi colIndices(knnGraph.nonZeros());
+          ArrayXd epochsPerSample(knnGraph.nonZeros());
+          getGraphIndices(knnGraph, rowIndices, colIndices);
+          computeEpochsPerSample(knnGraph, epochsPerSample);
           epochsPerSample = (epochsPerSample == 0).select(-1, epochsPerSample);
           optimizeLayout(embedding, mEmbedding, rowIndices, colIndices, epochsPerSample,
             false, learningRate, maxIter);
-
           DataSet out(in.getIds(), _impl::asFluid(embedding));
           return out;
    }
+
+  index dims() const { return mEmbedding.rows(); }
+  index size() const { return mEmbedding.cols(); }
 
   DataSet train(DataSet &in, index k = 15, index dims = 2,
                   double minDist = 0.1, index maxIter = 200,
@@ -297,23 +299,23 @@ void getGraphIndices(
     using namespace std;
     index n = in.size();
     mTree = KDTree(in);
-    mKNNGraph = SparseMatrixXd(in.size(), in.size());
-    mDists = ArrayXXd::Zero(in.size(), k);
+    SparseMatrixXd knnGraph = SparseMatrixXd(in.size(), in.size());
+    ArrayXXd dists = ArrayXXd::Zero(in.size(), k);
     mK = k;
-    makeGraph(in, mTree, mK, mKNNGraph, mDists, true);
-    ArrayXd sigma = findSigma(k, mDists);
-    computeHighDimProb(mDists, sigma, mKNNGraph);
-    SparseMatrixXd mKNNGraphT = mKNNGraph.transpose();
-    mKNNGraph = (mKNNGraph + mKNNGraphT) - mKNNGraph.cwiseProduct(mKNNGraphT);
+    makeGraph(in, mTree, mK, knnGraph, dists, true);
+    ArrayXd sigma = findSigma(k, dists);
+    computeHighDimProb(dists, sigma, knnGraph);
+    SparseMatrixXd knnGraphT = knnGraph.transpose();
+    knnGraph = (knnGraph + knnGraphT) - knnGraph.cwiseProduct(knnGraphT);
     mAB = findAB(minDist);
-    mEmbedding = mSpectralEmbedding.process(mKNNGraph, dims);
+    mEmbedding = mSpectralEmbedding.process(knnGraph, dims);
     mEmbedding = normalizeEmbedding(mEmbedding);
-    mKNNGraph.makeCompressed();
-    ArrayXi rowIndices(mKNNGraph.nonZeros());
-    ArrayXi colIndices(mKNNGraph.nonZeros());
-    ArrayXd epochsPerSample(mKNNGraph.nonZeros());
-    getGraphIndices(mKNNGraph, rowIndices, colIndices);
-    computeEpochsPerSample(mKNNGraph, epochsPerSample);
+    knnGraph.makeCompressed();
+    ArrayXi rowIndices(knnGraph.nonZeros());
+    ArrayXi colIndices(knnGraph.nonZeros());
+    ArrayXd epochsPerSample(knnGraph.nonZeros());
+    getGraphIndices(knnGraph, rowIndices, colIndices);
+    computeEpochsPerSample(knnGraph, epochsPerSample);
     epochsPerSample = (epochsPerSample == 0).select(-1, epochsPerSample);
     optimizeLayout(mEmbedding, mEmbedding, rowIndices, colIndices, epochsPerSample,
       true, learningRate, maxIter);
@@ -323,8 +325,6 @@ void getGraphIndices(
 
 private:
   SpectralEmbedding mSpectralEmbedding;
-  SparseMatrixXd mKNNGraph;
-  ArrayXXd mDists;
   KDTree mTree;
   index mK;
   VectorXd mAB;
