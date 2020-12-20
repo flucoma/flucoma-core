@@ -11,7 +11,6 @@
 #include <unsupported/Eigen/NumericalDiff>
 #include <Eigen/Core>
 #include <Eigen/Sparse>
-#include <random>
 
 namespace fluid {
 namespace algorithm {
@@ -99,13 +98,11 @@ public:
     const Ref<ArrayXXd>& dists,
     const Ref<ArrayXd>& sigma,
     SparseMatrixXd& graph) {
-      for (int i = 0; i < graph.outerSize(); i++){
-        for (SparseMatrixXd::InnerIterator it(graph, i); it; ++it){
-          it.valueRef() = std::exp(
-            -(it.value() - dists(it.row(), 0)) / sigma(it.row())
-          );
-        }
-      }
+      traverseGraph(graph, [&](auto it){
+        it.valueRef() = std::exp(
+          -(it.value() - dists(it.row(), 0)) / sigma(it.row())
+        );
+      });
   }
 
   VectorXd findAB(double minDist) {
@@ -120,7 +117,7 @@ public:
   }
 
   void makeGraph(
-    const DataSet &in, const KDTree& tree, index k,
+    const DataSet &in, index k,
     SparseMatrixXd& graph, Ref<ArrayXXd> dists,
     bool discardFirst)
     {
@@ -152,20 +149,26 @@ public:
     return 10.0 * result;
   }
 
-void getGraphIndices(
-    const SparseMatrixXd& graph,
+template <typename F>
+void traverseGraph(const SparseMatrixXd& graph, F func){
+  for (index i = 0; i < graph.outerSize(); i++){
+    for (SparseMatrixXd::InnerIterator it(graph, i); it; ++it){
+      func(it);
+    }
+  }
+}
+
+void getGraphIndices(const SparseMatrixXd& graph,
     Ref<ArrayXi> rowIndices,
     Ref<ArrayXi> colIndices)
 {
       index p = 0;
-      for (int i = 0; i < graph.outerSize(); i++){
-        for (SparseMatrixXd::InnerIterator it(graph, i); it; ++it){
-          rowIndices(p) = it.row();
-          colIndices(p) = it.col();
-          p++;
-        }
-      }
-}
+      traverseGraph(graph, [&](auto it){
+        rowIndices(p) = it.row();
+        colIndices(p) = it.col();
+        p++;
+      });
+  }
 
   void computeEpochsPerSample(
     const SparseMatrixXd& graph,
@@ -173,11 +176,9 @@ void getGraphIndices(
   {
     index p = 0;
     double maxVal = graph.coeffs().maxCoeff();
-    for (int i = 0; i < graph.outerSize(); i++){
-      for (SparseMatrixXd::InnerIterator it(graph, i); it; ++it){
-        epochsPerSample(p++) = 1.0 / (it.value() / maxVal);
-      }
-    }
+    traverseGraph(graph, [&](auto it){
+      epochsPerSample(p++) = 1.0 / (it.value() / maxVal);
+    });
   }
 
   void optimizeLayout(Ref<ArrayXXd> embedding, Ref<ArrayXXd> reference,
@@ -242,35 +243,27 @@ void getGraphIndices(
     Ref<ArrayXXd> reference, index N) {
     ArrayXXd embedding = ArrayXXd::Zero(N, reference.cols());
     ArrayXd sums = ArrayXd::Zero(N);
-    for (index i = 0; i < graph.outerSize(); i++){
-        for (SparseMatrixXd::InnerIterator it(graph, i); it; ++it){
-          embedding.row(it.row()) += (reference.row(it.col()) * it.value());
-        }
-      }
-      return embedding;
+    traverseGraph(graph, [&](auto it){
+      embedding.row(it.row()) += (reference.row(it.col()) * it.value());
+    });
+    return embedding;
   }
 
-  void normalizeRows(
-    const SparseMatrixXd& graph)
+  void normalizeRows(const SparseMatrixXd& graph)
   {
-    index p = 0;
     ArrayXd sums = ArrayXd::Zero(graph.innerSize());
-    for (int i = 0; i < graph.outerSize(); i++){
-      for (SparseMatrixXd::InnerIterator it(graph, i); it; ++it){
-        sums(it.row())+= it.value();
-      }
-    }
-    for (int i = 0; i < graph.outerSize(); i++){
-      for (SparseMatrixXd::InnerIterator it(graph, i); it; ++it){
-        it.valueRef() = it.value() / sums(it.row());
-      }
-    }
+    traverseGraph(graph, [&](auto it){
+      sums(it.row())+= it.value();
+    });
+    traverseGraph(graph, [&](auto it){
+      it.valueRef() = it.value() / sums(it.row());
+    });
   }
 
   DataSet transform(DataSet &in, index maxIter = 200, double learningRate = 1.0) {
           SparseMatrixXd knnGraph(in.size(), mEmbedding.rows());
           ArrayXXd dists = ArrayXXd::Zero(in.size(), mK);
-          makeGraph(in, mTree, mK, knnGraph, dists, false);
+          makeGraph(in, mK, knnGraph, dists, false);
           knnGraph.makeCompressed();
           ArrayXd sigma = findSigma(mK, dists);
           computeHighDimProb(dists, sigma, knnGraph);
@@ -297,18 +290,19 @@ void getGraphIndices(
     using namespace Eigen;
     using namespace _impl;
     using namespace std;
+    SpectralEmbedding spectralEmbedding;
     index n = in.size();
     mTree = KDTree(in);
     SparseMatrixXd knnGraph = SparseMatrixXd(in.size(), in.size());
     ArrayXXd dists = ArrayXXd::Zero(in.size(), k);
     mK = k;
-    makeGraph(in, mTree, mK, knnGraph, dists, true);
+    makeGraph(in, mK, knnGraph, dists, true);
     ArrayXd sigma = findSigma(k, dists);
     computeHighDimProb(dists, sigma, knnGraph);
     SparseMatrixXd knnGraphT = knnGraph.transpose();
     knnGraph = (knnGraph + knnGraphT) - knnGraph.cwiseProduct(knnGraphT);
     mAB = findAB(minDist);
-    mEmbedding = mSpectralEmbedding.process(knnGraph, dims);
+    mEmbedding = spectralEmbedding.process(knnGraph, dims);
     mEmbedding = normalizeEmbedding(mEmbedding);
     knnGraph.makeCompressed();
     ArrayXi rowIndices(knnGraph.nonZeros());
@@ -324,7 +318,6 @@ void getGraphIndices(
   }
 
 private:
-  SpectralEmbedding mSpectralEmbedding;
   KDTree mTree;
   index mK;
   VectorXd mAB;
