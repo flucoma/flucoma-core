@@ -79,6 +79,8 @@ public:
     if(get<kNumNeighbors>() > src.size())
       return Error("Number of Neighbours is larger than dataset");
     if(!mAlgorithm.initialized()) return Error(NoDataFitted);
+    if (src.pointSize() != mAlgorithm.inputDims())
+      return Error(WrongPointSize);
     StringVector ids{src.getIds()};
     FluidDataSet<string, double, 1> result;
     result = mAlgorithm.transform(src, get<kNumIter>(), get<kLearningRate>());
