@@ -32,7 +32,6 @@ public:
 
   MessageResult<void> fitTransform(DataSetClientRef sourceClient,
                                    DataSetClientRef destClient) {
-    index k = get<kNumDimensions>();
     auto srcPtr = sourceClient.get().lock();
     auto destPtr = destClient.get().lock();
     if (!srcPtr || !destPtr)
@@ -45,7 +44,7 @@ public:
       return Error("Number of Neighbours is larger than dataset");
     FluidDataSet<string, double, 1> result;
     result =
-        mAlgorithm.train(src, get<kNumNeighbors>(), k, get<kMinDistance>(),
+        mAlgorithm.train(src, get<kNumNeighbors>(), get<kNumDimensions>(), get<kMinDistance>(),
                            get<kNumIter>(), get<kLearningRate>());
     destPtr->setDataSet(result);
     return OK();
@@ -76,9 +75,9 @@ public:
     auto src = srcPtr->getDataSet();
     auto dest = destPtr->getDataSet();
     if (src.size() == 0) return Error(EmptyDataSet);
-    if(get<kNumNeighbors>() > src.size())
-      return Error("Number of Neighbours is larger than dataset");
     if(!mAlgorithm.initialized()) return Error(NoDataFitted);
+    if(get<kNumDimensions>() != mAlgorithm.dims())
+      return Error("Wrong target number of dimensions");
     if (src.pointSize() != mAlgorithm.inputDims())
       return Error(WrongPointSize);
     StringVector ids{src.getIds()};
@@ -88,11 +87,30 @@ public:
     return OK();
   }
 
+  MessageResult<void> transformPoint(BufferPtr in, BufferPtr out) {
+    index inSize = mAlgorithm.inputDims();
+    index outSize = mAlgorithm.dims();
+    if(!mAlgorithm.initialized()) return Error(NoDataFitted);
+    if(get<kNumDimensions>() != outSize)
+      return Error("Wrong target number of dimensions");
+    InOutBuffersCheck bufCheck(inSize);
+    if (!bufCheck.checkInputs(in.get(), out.get())) return Error(bufCheck.error());
+    BufferAdaptor::Access outBuf(out.get());
+    Result resizeResult = outBuf.resize(outSize, 1, outBuf.sampleRate());
+    if (!resizeResult.ok()) return Error(BufferAlloc);
+    FluidTensor<double, 1> src(inSize);
+    FluidTensor<double, 1> dest(outSize);
+    src = BufferAdaptor::ReadAccess(in.get()).samps(0, inSize, 0);
+    mAlgorithm.transformPoint(src, dest);
+    BufferAdaptor::Access(out.get()).samps(0) = dest;
+    return OK();
+  }
 
   FLUID_DECLARE_MESSAGES(
     makeMessage("fitTransform",&UMAPClient::fitTransform),
     makeMessage("fit",&UMAPClient::fit),
     makeMessage("transform",&UMAPClient::transform),
+    makeMessage("transformPoint",&UMAPClient::transformPoint),
     makeMessage("cols", &UMAPClient::dims),
     makeMessage("clear", &UMAPClient::clear),
     makeMessage("size", &UMAPClient::size),

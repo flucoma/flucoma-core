@@ -98,7 +98,7 @@ public:
   index size() const {
     return mInitialized? mEmbedding.rows() : 0;
   }
-  
+
   bool initialized() { return mInitialized; }
 
   DataSet train(DataSet &in, index k = 15, index dims = 2, double minDist = 0.1,
@@ -162,6 +162,31 @@ public:
     DataSet out(in.getIds(), _impl::asFluid(embedding));
     return out;
   }
+
+
+  void transformPoint(RealVectorView in, RealVectorView out) {
+    if (!mInitialized) return;
+    SparseMatrixXd knnGraph(1, mEmbedding.rows());
+    ArrayXXd dists = ArrayXXd::Zero(1, mK);
+    knnGraph.reserve(mK);
+    auto nearest = mTree.kNearest(in, mK);
+    auto nearestIds = nearest.getIds();
+    auto distances = nearest.getData().col(0);
+    for (index j = 0; j < mK; j++) {
+        index neighborIndex = stoi(nearestIds(j));
+        dists(0, j) = distances(j);
+        knnGraph.insert(0, neighborIndex) = distances(j);
+    }
+    knnGraph.makeCompressed();
+    ArrayXd sigma = findSigma(mK, dists);
+    computeHighDimProb(dists, sigma, knnGraph);
+    normalizeRows(knnGraph);
+    ArrayXXd embedding =
+        initTransformEmbedding(knnGraph, mEmbedding, 1);
+    ArrayXd result = embedding.row(0);
+    out =  _impl::asFluid(result);
+  }
+
 
 private:
   template <typename F>
@@ -350,7 +375,6 @@ private:
   ArrayXXd initTransformEmbedding(const SparseMatrixXd &graph,
                                   Ref<ArrayXXd> reference, index N) {
     ArrayXXd embedding = ArrayXXd::Zero(N, reference.cols());
-    ArrayXd sums = ArrayXd::Zero(N);
     traverseGraph(graph, [&](auto it) {
       embedding.row(it.row()) += (reference.row(it.col()) * it.value());
     });
