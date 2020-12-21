@@ -68,23 +68,15 @@ public:
   }
 
   double getA() const {
-    if (!mInitialized)
-      return 0;
-    return mAB(0);
+    return mInitialized? mAB(0) : 0;
   }
 
   double getB() const {
-    if (!mInitialized)
-      return 0;
-    else
-      return mAB(1);
+    return mInitialized? mAB(1) : 0;
   }
 
   index getK() const {
-    if (!mInitialized)
-      return 0;
-    else
-      return mK;
+    return mInitialized? mK : 0;
   }
 
   KDTree getTree() const { return mTree; }
@@ -96,17 +88,17 @@ public:
   }
 
   index dims() const {
-    if (!mInitialized)
-      return 0;
-    else
-      return mEmbedding.cols();
+    return mInitialized? mEmbedding.cols() : 0;
   }
+
+  index inputDims() const {
+    return mInitialized? mTree.dims() : 0;
+  }
+
   index size() const {
-    if (!mInitialized)
-      return 0;
-    else
-      return mEmbedding.rows();
+    return mInitialized? mEmbedding.rows() : 0;
   }
+  
   bool initialized() { return mInitialized; }
 
   DataSet train(DataSet &in, index k = 15, index dims = 2, double minDist = 0.1,
@@ -116,9 +108,10 @@ public:
     using namespace std;
     SpectralEmbedding spectralEmbedding;
     index n = in.size();
-    FluidTensor<string,1> ids{in.getIds()};
-    FluidTensor<string,1> newIds(n);
-    for(index i = 0; i < n; i++) newIds(i) = to_string(i);
+    FluidTensor<string, 1> ids{in.getIds()};
+    FluidTensor<string, 1> newIds(n);
+    for (index i = 0; i < n; i++)
+      newIds(i) = to_string(i);
     mTree = KDTree(DataSet(newIds, in.getData()));
     SparseMatrixXd knnGraph = SparseMatrixXd(in.size(), in.size());
     ArrayXXd dists = ArrayXXd::Zero(in.size(), k);
