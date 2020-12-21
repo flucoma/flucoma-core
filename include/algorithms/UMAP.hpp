@@ -116,7 +116,10 @@ public:
     using namespace std;
     SpectralEmbedding spectralEmbedding;
     index n = in.size();
-    mTree = KDTree(in);
+    FluidTensor<string,1> ids{in.getIds()};
+    FluidTensor<string,1> newIds(n);
+    for(index i = 0; i < n; i++) newIds(i) = to_string(i);
+    mTree = KDTree(DataSet(newIds, in.getData()));
     SparseMatrixXd knnGraph = SparseMatrixXd(in.size(), in.size());
     ArrayXXd dists = ArrayXXd::Zero(in.size(), k);
     mK = k;
@@ -137,7 +140,7 @@ public:
     epochsPerSample = (epochsPerSample == 0).select(-1, epochsPerSample);
     optimizeLayout(mEmbedding, mEmbedding, rowIndices, colIndices,
                    epochsPerSample, true, learningRate, maxIter);
-    DataSet out(in.getIds(), _impl::asFluid(mEmbedding));
+    DataSet out(ids, _impl::asFluid(mEmbedding));
     mInitialized = true;
     return out;
   }
@@ -247,7 +250,7 @@ private:
       auto distances = nearest.getData().col(0);
       for (index j = 0; j < k; j++) {
         index pos = discardFirst ? j + 1 : j;
-        index neighborIndex = in.getIndex(nearestIds(pos));
+        index neighborIndex = stoi(nearestIds(pos));
         dists(i, j) = distances(pos);
         graph.insert(i, neighborIndex) = distances(pos);
       }
