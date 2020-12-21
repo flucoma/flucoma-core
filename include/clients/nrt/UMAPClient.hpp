@@ -8,7 +8,7 @@ namespace fluid {
 namespace client {
 
 class UMAPClient :
-  public FluidBaseClient, OfflineIn, OfflineOut, ModelObject,
+  public FluidBaseClient, AudioIn, ControlOut, ModelObject,
   public DataClient<algorithm::UMAP>  {
 
 public:
@@ -16,19 +16,22 @@ public:
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
   using StringVector = FluidTensor<string, 1>;
 
-  template <typename T> Result process(FluidContext &) { return {}; }
-
-  enum { kNumDimensions, kNumNeighbors, kMinDistance, kNumIter, kLearningRate };
+  enum { kNumDimensions, kNumNeighbors, kMinDistance, kNumIter, kLearningRate,  kInputBuffer, kOutputBuffer };
 
   FLUID_DECLARE_PARAMS(
       LongParam("numDimensions", "Target Number of Dimensions", 2, Min(1)),
       LongParam("numNeighbours", "Number of Nearest Neighbours", 15, Min(1)),
       FloatParam("minDist", "Minimum Distance", 0.1, Min(0)),
       LongParam("iterations", "Number of Iterations", 200, Min(1)),
-      FloatParam("learnRate", "Learning Rate", 0.1, Min(0.0), Max(1.0))
+      FloatParam("learnRate", "Learning Rate", 0.1, Min(0.0), Max(1.0)),
+      BufferParam("inputPointBuffer", "Input Point Buffer"),
+      BufferParam("predictionBuffer", "Prediction Buffer")
     );
 
-  UMAPClient(ParamSetViewType &p) : mParams(p) {}
+  UMAPClient(ParamSetViewType &p) : mParams(p) {
+    audioChannelsIn(1);
+    controlChannelsOut(1);
+  }
 
   MessageResult<void> fitTransform(DataSetClientRef sourceClient,
                                    DataSetClientRef destClient) {
@@ -51,7 +54,6 @@ public:
   }
 
   MessageResult<void> fit(DataSetClientRef sourceClient) {
-    index k = get<kNumDimensions>();
     auto srcPtr = sourceClient.get().lock();
     if (!srcPtr) return Error(NoDataSet);
     auto src = srcPtr->getDataSet();
@@ -61,9 +63,9 @@ public:
       return Error("Number of Neighbours is larger than dataset");
     StringVector ids{src.getIds()};
     FluidDataSet<string, double, 1> result;
-    result =
-        mAlgorithm.train(src, get<kNumNeighbors>(), k, get<kMinDistance>(),
-                           get<kNumIter>(), get<kLearningRate>());
+    result = mAlgorithm.train(
+        src, get<kNumNeighbors>(), get<kNumDimensions>(),
+        get<kMinDistance>(), get<kNumIter>(), get<kLearningRate>());
     return OK();
   }
 
@@ -106,6 +108,30 @@ public:
     return OK();
   }
 
+  template <typename T>
+  void process(std::vector<FluidTensorView<T, 1>> &input,
+               std::vector<FluidTensorView<T, 1>> &output, FluidContext &) {
+    if (!mAlgorithm.initialized()) return;
+    index inSize = mAlgorithm.inputDims();
+    index outSize = mAlgorithm.dims();
+    if(get<kNumDimensions>() != outSize) return;
+    InOutBuffersCheck bufCheck(inSize);
+    if (!bufCheck.checkInputs(
+        get<kInputBuffer>().get(),
+        get<kOutputBuffer>().get())) return;
+    auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
+    if(outBuf.samps(0).size() != outSize) return;
+    RealVector src(inSize);
+    RealVector dest(outSize);
+    src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, inSize, 0);
+    mTrigger.process(input, output, [&]() {
+      mAlgorithm.transformPoint(src, dest);
+      outBuf.samps(0) = dest;
+    });
+  }
+
+  index latency() { return 0; }
+
   FLUID_DECLARE_MESSAGES(
     makeMessage("fitTransform",&UMAPClient::fitTransform),
     makeMessage("fit",&UMAPClient::fit),
@@ -120,9 +146,12 @@ public:
     makeMessage("read", &UMAPClient::read)
   );
 
+private:
+  FluidInputTrigger mTrigger;
+
 };
 
-using NRTThreadedUMAPClient = NRTThreadingAdaptor<ClientWrapper<UMAPClient>>;
+using RTUMAPClient = ClientWrapper<UMAPClient>;
 
 } // namespace client
 } // namespace fluid
