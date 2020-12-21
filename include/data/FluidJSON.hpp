@@ -6,6 +6,7 @@
 #include <algorithms/RobustScaling.hpp>
 #include <algorithms/PCA.hpp>
 #include <algorithms/MLP.hpp>
+#include <algorithms/UMAP.hpp>
 #include <algorithms/Standardization.hpp>
 #include <algorithms/LabelSetEncoder.hpp>
 #include <data/FluidDataSet.hpp>
@@ -184,7 +185,6 @@ void from_json(const nlohmann::json &j, KMeans &kmeans) {
   j.at("means").get_to(means);
   kmeans.init(rows, cols);
   kmeans.setMeans(means);
-
 }
 
 // Normalize
@@ -404,6 +404,39 @@ void from_json(const nlohmann::json &j, MLP &mlp) {
     mlp.setParameters(i, W, b, a);
   }
   mlp.setTrained(true);
+}
+
+// UMAP
+void to_json(nlohmann::json &j, const UMAP &umap) {
+  RealMatrix embedding(umap.size(), umap.dims());
+  umap.getEmbedding(embedding);
+  j["embedding"] = RealMatrixView(embedding);
+  j["rows"] = embedding.rows();
+  j["cols"] = embedding.cols();
+  j["tree"] = umap.getTree();
+  j["a"] = umap.getA();
+  j["b"] = umap.getB();
+  j["k"] = umap.getK();
+}
+
+bool check_json(const nlohmann::json &j, const UMAP &) {
+  return fluid::check_json(j,
+    {"rows", "cols", "embedding", "a", "b", "k"},
+    {JSONTypes::NUMBER, JSONTypes::NUMBER,JSONTypes::ARRAY,
+      JSONTypes::NUMBER, JSONTypes::NUMBER, JSONTypes::NUMBER}
+  );
+}
+
+void from_json(const nlohmann::json &j, UMAP &umap) {
+  index rows = j.at("rows");
+  index cols = j.at("cols");
+  RealMatrix embedding(rows, cols);
+  j.at("embedding").get_to(embedding);
+  KDTree tree = j.at("tree").get<algorithm::KDTree>();
+  double a = j.at("a");
+  double b = j.at("b");
+  index k = j.at("k");
+  umap.init(embedding, tree, k, a, b);
 }
 
 } // namespace algorithm

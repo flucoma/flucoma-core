@@ -7,7 +7,9 @@
 namespace fluid {
 namespace client {
 
-class UMAPClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject {
+class UMAPClient :
+  public FluidBaseClient, OfflineIn, OfflineOut, ModelObject,
+  public DataClient<algorithm::UMAP>  {
 
 public:
   using string = std::string;
@@ -76,6 +78,7 @@ public:
     if (src.size() == 0) return Error(EmptyDataSet);
     if(get<kNumNeighbors>() > src.size())
       return Error("Number of Neighbours is larger than dataset");
+    if(!mAlgorithm.initialized()) return Error(NoDataFitted);
     StringVector ids{src.getIds()};
     FluidDataSet<string, double, 1> result;
     result = mAlgorithm.transform(src, get<kNumIter>(), get<kLearningRate>());
@@ -83,14 +86,20 @@ public:
     return OK();
   }
 
+
   FLUID_DECLARE_MESSAGES(
     makeMessage("fitTransform",&UMAPClient::fitTransform),
     makeMessage("fit",&UMAPClient::fit),
-    makeMessage("transform",&UMAPClient::transform)
+    makeMessage("transform",&UMAPClient::transform),
+    makeMessage("cols", &UMAPClient::dims),
+    makeMessage("clear", &UMAPClient::clear),
+    makeMessage("size", &UMAPClient::size),
+    makeMessage("load", &UMAPClient::load),
+    makeMessage("dump", &UMAPClient::dump),
+    makeMessage("write", &UMAPClient::write),
+    makeMessage("read", &UMAPClient::read)
   );
 
-private:
-  algorithm::UMAP mAlgorithm;
 };
 
 using NRTThreadedUMAPClient = NRTThreadingAdaptor<ClientWrapper<UMAPClient>>;
