@@ -99,7 +99,7 @@ public:
     return mInitialized? mEmbedding.rows() : 0;
   }
 
-  bool initialized() { return mInitialized; }
+  bool initialized() const { return mInitialized; }
 
   DataSet train(DataSet &in, index k = 15, index dims = 2, double minDist = 0.1,
                 index maxIter = 200, double learningRate = 1.0) {

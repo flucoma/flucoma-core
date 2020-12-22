@@ -39,7 +39,7 @@ public:
     mInitialized = true;
   }
 
-  bool initialized() { return mInitialized; }
+  bool initialized() const { return mInitialized; }
 
   vector<SpectralMass> segmentSpectrum(const Ref<ArrayXd> magnitude) {
     const auto &epsilon = std::numeric_limits<double>::epsilon();

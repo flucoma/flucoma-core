@@ -61,7 +61,7 @@ public:
     mInitialized = true;
   }
 
-  bool initialized(){return mInitialized;}
+  bool initialized() const{return mInitialized;}
 
   void processFrame(RealVectorView in1, RealVectorView in2,
                     double weight, RealMatrixView out) {
