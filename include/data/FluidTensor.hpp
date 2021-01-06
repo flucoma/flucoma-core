@@ -541,7 +541,7 @@ public:
   {
     static_assert(std::is_convertible<U, T>::value,  "Can't convert between types");
     assert(sameExtents(*this, x));
-    std::copy(x.begin(), x.end(), begin());
+    std::transform(x.begin(), x.end(), begin(), [](const U& a) {return static_cast<T>(a); });
     return *this;
   }
 
