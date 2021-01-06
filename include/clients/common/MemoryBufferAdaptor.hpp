@@ -132,7 +132,7 @@ private:
 
   std::shared_ptr<BufferAdaptor> mOrigin;
   FluidTensor<float, 2>          mData;
-  double                         mSampleRate;
+  double                         mSampleRate{44100};
   bool                           mValid{true};
   bool                           mExists{true};
   bool                           mWrite{false};

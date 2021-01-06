@@ -167,7 +167,7 @@ public:
         std::transform(
             sourceChunk.begin(), sourceChunk.end(), destinationChunk.begin(),
             destinationChunk.begin(),
-            [gain](const T& src, T& dst) { return dst + src * gain; });
+            [gain](const T& src, T& dst) { return static_cast<T>(dst + src * gain); });
 
         if (c.task() &&
             !c.task()->processUpdate(static_cast<double>(j + 1),

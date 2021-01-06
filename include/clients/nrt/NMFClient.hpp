@@ -203,11 +203,11 @@ public:
 
 
     const double progressTotal =
-        get<kIterations>() + (hasResynth ? 3 * get<kRank>() : 0);
+        static_cast<double>(get<kIterations>() + (hasResynth ? 3 * get<kRank>() : 0));
 
     for (index i = 0; i < nChannels; ++i)
     {
-      if (c.task() && !c.task()->iterationUpdate(i, nChannels))
+      if (c.task() && !c.task()->iterationUpdate(static_cast<double>(i), static_cast<double>(nChannels)))
         return {Result::Status::kCancelled, ""};
       //          tmp = sourceData.col(i);
       tmp = source.samps(get<kOffset>(), nFrames, get<kStartChan>() + i);
@@ -232,9 +232,9 @@ public:
 
       auto nmf = algorithm::NMF();
       nmf.addProgressCallback(
-          [&c, &progressCount, progressTotal](const int) -> bool {
+          [&c, &progressCount, progressTotal](const index) -> bool {
             return c.task()
-                       ? c.task()->processUpdate(++progressCount, progressTotal)
+                       ? c.task()->processUpdate(static_cast<double>(++progressCount), static_cast<double>(progressTotal))
                        : true;
           });
       nmf.process(magnitude, outputFilters, outputEnvelopes, outputMags,

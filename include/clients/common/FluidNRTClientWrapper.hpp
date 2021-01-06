@@ -357,7 +357,7 @@ struct Streaming
       for (index j = 0; j < asSigned(outputBuffers.size()); ++j)
         outputs.emplace_back(outputData[asUnsigned(j)].row(i));
 
-      if (c.task()) c.task()->iterationUpdate(i, nChans);
+      if (c.task()) c.task()->iterationUpdate(static_cast<double>(i), static_cast<double>(nChans));
 
       client.reset();
       client.process(inputs, outputs, c);
@@ -438,7 +438,7 @@ struct StreamingControl
 
         client.process(inputs, outputs, dummyContext);
 
-        if (task && !task->processUpdate(j + 1 + (nHops * i),
+        if (task && !task->processUpdate(static_cast<double>(j + 1 + (nHops * i)),
                                          static_cast<double>(nHops * nChans)))
           break;
       }

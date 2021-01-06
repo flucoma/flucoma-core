@@ -204,7 +204,7 @@ struct SliceIterator
 private:
 
   index counter{0};
-  index size;
+ // index size;
   index endoffset;
 
   /// TODO I would like this to be more beautiful (this is from Origin impl)
@@ -435,7 +435,7 @@ private:
     for (index i = N - 1; i != 0; --i)
       strides[asUnsigned(i - 1)] =
           strides[asUnsigned(i)] * extents[asUnsigned(i)];
-     size = std::accumulate(extents.begin(), extents.end(), 1,std::multiplies<>());
+     size = std::accumulate(extents.begin(), extents.end(), static_cast<index>(1),std::multiplies<index>());
   }
 
   /// doSliceDim does the hard work in making an new slice from an existing one

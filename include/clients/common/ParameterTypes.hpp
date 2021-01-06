@@ -317,10 +317,10 @@ public:
 
   bool operator!=(const FFTParams& x) { return !(*this == x); }
 
-  template <int MaxFFTIndex = -1>
+  template <index MaxFFTIndex = -1>
   struct FFTSettingsConstraint
   {
-    template <int Offset, size_t N, typename Tuple, typename Descriptor>
+    template <index Offset, size_t N, typename Tuple, typename Descriptor>
     constexpr void clamp(FFTParams& v, Tuple& allParams, Descriptor&,
                          Result* r) const
     {
@@ -518,7 +518,7 @@ FloatPairsArrayParam(const char* name, const char* displayName,
           IsFixed{}};
 }
 
-template <intptr_t MaxFFTIndex = -1, typename... Constraints>
+template <index MaxFFTIndex = -1, typename... Constraints>
 constexpr ParamSpec<FFTParamsT, Fixed<false>,
                     FFTParams::FFTSettingsConstraint<MaxFFTIndex>,
                     Constraints...>
