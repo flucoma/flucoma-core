@@ -202,12 +202,12 @@ public:
 
   /// 1D copy from std::vector
   template <typename U = T, size_t D = N, typename = std::enable_if_t<D == 1>()>
-  FluidTensor(std::vector<T>&& input)
+  FluidTensor(Container&& input)
       : mContainer(input), mDesc(0, {asSigned(input.size())})
   {}
 
   template <typename U = T, size_t D = N, typename = std::enable_if_t<D == 1>()>
-  FluidTensor(std::vector<T>& input)
+  FluidTensor(Container& input)
       : mContainer(input), mDesc(0, {asSigned(input.size())})
   {}
 
