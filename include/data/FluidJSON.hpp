@@ -3,8 +3,10 @@
 #include <algorithms/KDTree.hpp>
 #include <algorithms/KMeans.hpp>
 #include <algorithms/Normalization.hpp>
+#include <algorithms/RobustScaling.hpp>
 #include <algorithms/PCA.hpp>
 #include <algorithms/MLP.hpp>
+#include <algorithms/UMAP.hpp>
 #include <algorithms/Standardization.hpp>
 #include <algorithms/LabelSetEncoder.hpp>
 #include <data/FluidDataSet.hpp>
@@ -183,7 +185,6 @@ void from_json(const nlohmann::json &j, KMeans &kmeans) {
   j.at("means").get_to(means);
   kmeans.init(rows, cols);
   kmeans.setMeans(means);
-
 }
 
 // Normalize
@@ -217,6 +218,50 @@ void from_json(const nlohmann::json &j, Normalization &normalization) {
   double min = j.at("min");
   double max = j.at("max");
   normalization.init(min, max, dataMin, dataMax);
+}
+
+// RobustScale
+void to_json(nlohmann::json &j, const RobustScaling &robustScaling) {
+  RealVector median(robustScaling.dims());
+  RealVector range(robustScaling.dims());
+  RealVector dataLow(robustScaling.dims());
+  RealVector dataHigh(robustScaling.dims());
+  robustScaling.getMedian(median);
+  robustScaling.getRange(range);
+  robustScaling.getDataLow(dataLow);
+  robustScaling.getDataHigh(dataHigh);
+  j["data_low"] = RealVectorView(dataLow);
+  j["data_high"] = RealVectorView(dataHigh);
+  j["median"] = RealVectorView(median);
+  j["range"] = RealVectorView(range);
+  j["low"] = robustScaling.getLow();
+  j["high"] = robustScaling.getHigh();
+  j["cols"] = robustScaling.dims();
+}
+
+bool check_json(const nlohmann::json &j, const RobustScaling &) {
+  return fluid::check_json(j,
+    {"cols", "median", "range", "data_low", "data_high","low", "high"},
+    {JSONTypes::NUMBER, JSONTypes::ARRAY, JSONTypes::ARRAY,
+      JSONTypes::ARRAY, JSONTypes::ARRAY,
+      JSONTypes::NUMBER, JSONTypes::NUMBER
+    }
+  );
+}
+
+void from_json(const nlohmann::json &j, RobustScaling &robustScaling) {
+  index cols = j.at("cols");
+  RealVector median(cols);
+  RealVector range(cols);
+  RealVector dataLow(cols);
+  RealVector dataHigh(cols);
+  j.at("median").get_to(median);
+  j.at("range").get_to(range);
+  j.at("data_low").get_to(dataLow);
+  j.at("data_high").get_to(dataHigh);
+  double low = j.at("low");
+  double high = j.at("high");
+  robustScaling.init(low, high, dataLow, dataHigh, median, range);
 }
 
 // Standardize
@@ -359,6 +404,39 @@ void from_json(const nlohmann::json &j, MLP &mlp) {
     mlp.setParameters(i, W, b, a);
   }
   mlp.setTrained(true);
+}
+
+// UMAP
+void to_json(nlohmann::json &j, const UMAP &umap) {
+  RealMatrix embedding(umap.size(), umap.dims());
+  umap.getEmbedding(embedding);
+  j["embedding"] = RealMatrixView(embedding);
+  j["rows"] = embedding.rows();
+  j["cols"] = embedding.cols();
+  j["tree"] = umap.getTree();
+  j["a"] = umap.getA();
+  j["b"] = umap.getB();
+  j["k"] = umap.getK();
+}
+
+bool check_json(const nlohmann::json &j, const UMAP &) {
+  return fluid::check_json(j,
+    {"rows", "cols", "embedding", "a", "b", "k"},
+    {JSONTypes::NUMBER, JSONTypes::NUMBER,JSONTypes::ARRAY,
+      JSONTypes::NUMBER, JSONTypes::NUMBER, JSONTypes::NUMBER}
+  );
+}
+
+void from_json(const nlohmann::json &j, UMAP &umap) {
+  index rows = j.at("rows");
+  index cols = j.at("cols");
+  RealMatrix embedding(rows, cols);
+  j.at("embedding").get_to(embedding);
+  KDTree tree = j.at("tree").get<algorithm::KDTree>();
+  double a = j.at("a");
+  double b = j.at("b");
+  index k = j.at("k");
+  umap.init(embedding, tree, k, a, b);
 }
 
 } // namespace algorithm

@@ -42,7 +42,7 @@ public:
   void process(std::vector<FluidTensorView<T, 1>> &input,
                std::vector<FluidTensorView<T, 1>> &output, FluidContext &)
   {
-    if (!mAlgorithm.trained()) return;
+    if (!mAlgorithm.initialized()) return;
     InOutBuffersCheck bufCheck(mAlgorithm.dims());
     if(!bufCheck.checkInputs(
       get<kInputBuffer>().get(),
@@ -107,7 +107,7 @@ public:
     auto dataSet = dataPtr->getDataSet();
     if (dataSet.size() == 0)
       return Error<IndexVector>(EmptyDataSet);
-    if (!mAlgorithm.trained())
+    if (!mAlgorithm.initialized())
       return Error<IndexVector>(NoDataFitted);
     if (dataSet.dims() != mAlgorithm.dims())
       return Error<IndexVector>(WrongPointSize);
@@ -122,7 +122,7 @@ public:
     return getCounts(assignments, mAlgorithm.getK());
   }
   MessageResult<index> predictPoint(BufferPtr data) const {
-    if (!mAlgorithm.trained()) return Error<index>(NoDataFitted);
+    if (!mAlgorithm.initialized()) return Error<index>(NoDataFitted);
     InBufferCheck bufCheck(mAlgorithm.dims());
     if(!bufCheck.checkInputs(data.get())) return Error<index>(bufCheck.error());
     RealVector point(mAlgorithm.dims());

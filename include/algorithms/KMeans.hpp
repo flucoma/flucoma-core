@@ -28,7 +28,7 @@ public:
     mTrained = false;
   }
 
-  bool trained() const { return mTrained; }
+  bool initialized() const{ return mTrained;}
 
   void train(const FluidDataSet<std::string, double, 1> &dataset, index maxIter,
              RealMatrixView initialMeans = RealMatrixView(nullptr, 0, 0, 0)) {
