@@ -121,8 +121,8 @@ private:
     FluidTensor<double, 2> tmpPhase(1,numBins);
     
     mSTFTBufferedProcess.reset(); 
-    auto magsView = mags.allFrames();
-    auto phaseView = phases.allFrames();
+    auto magsView = haveMag ? mags.allFrames() : FluidTensorView<T,2>{nullptr, 0, 0, 0};
+    auto phaseView = havePhase ? phases.allFrames() : FluidTensorView<T,2>{nullptr, 0, 0, 0};;
     
     auto inputWrapped = std::vector<FluidTensorView<const T,1>>{source.samps(0)};
         
