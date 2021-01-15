@@ -117,6 +117,7 @@ public:
   index pointSize() const { return mDim.size; }
   index dims() const { return mDim.size; }
   index size() const { return mIds.size(); }
+  bool initialized(){return (size() > 0);}
 
   std::string printRow(FluidTensorView<dataType, N> row, index maxCols) const {
     using namespace std;

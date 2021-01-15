@@ -15,6 +15,7 @@ struct KNNClassifierData{
   index size(){return labels.size();}
   index dims(){return tree.dims();}
   void clear(){labels = FluidDataSet<std::string, std::string, 1>(1);tree.clear();}
+  bool initialized() const{return tree.initialized();}
 };
 
 void to_json(nlohmann::json& j, const KNNClassifierData& data) {
