@@ -57,6 +57,7 @@ public:
     for (index i = 0; i < rank; i++) {
       mOT[i].init(mW1.col(i), mW2.col(i));
     }
+    mPos = 0;
   }
 
   void processFrame(ComplexVectorView v, double interpolation) {
