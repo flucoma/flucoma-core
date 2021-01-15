@@ -38,7 +38,6 @@ public:
     using namespace _impl;
     using namespace std;
     using namespace std::complex_literals;
-
     double gamma = 0.25645 * pow(winSize, 2); // assumes Hann window
     ArrayXd mag = asEigen<Array>(in);
     ArrayXd logMag = mag.max(epsilon).log();
@@ -99,8 +98,8 @@ public:
         }
       }
     }
-    ArrayXd finalPhase =
-        phaseEst - ArrayXd::LinSpaced(mBins, 0, 1) * twoPi * hopSize;
+
+    ArrayXd finalPhase = phaseEst - ArrayXd::LinSpaced(mBins, 0, 1) * pi * (winSize -1)/ 2;
     ArrayXcd result = mPrevMag * (1i * finalPhase).exp();
     mPrevPrevLogMag = mPrevLogMag;
     mPrevLogMag = logMag;
