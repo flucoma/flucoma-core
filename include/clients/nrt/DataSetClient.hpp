@@ -103,11 +103,12 @@ public:
   {    
     if (!data)
       return Error(NoBuffer);
-    BufferAdaptor::ReadAccess buf(data.get());
+    BufferAdaptor::Access buf(data.get());
     if (!buf.exists())
       return Error(InvalidBuffer);
     
-    auto bufview = buf.allFrames(); 
+    auto bufview = axis < 1 ? buf.allFrames() : buf.allFrames().transpose();
+    
             
     if(auto ptr=labels.get().lock())
     {      
@@ -120,13 +121,13 @@ public:
       auto constlabels = labeldata.getData().col(0);
       auto& unconstlabels = const_cast<FluidTensorView<string, 1>&>(constlabels);
             
-      mAlgorithm = DataSet(unconstlabels,bufview);
+      mAlgorithm = DataSet(unconstlabels,FluidTensorView<const float, 2>(bufview));
     }
     else
     {
       FluidTensor<string,1> autoLabels(bufview.rows());
       std::generate(autoLabels.begin(), autoLabels.end(),[n = 0]() mutable {return std::to_string(n++);});
-      mAlgorithm = DataSet(autoLabels,bufview);
+      mAlgorithm = DataSet(autoLabels,FluidTensorView<const float, 2>(bufview));
     }
             
     return OK();
@@ -139,14 +140,16 @@ public:
     BufferAdaptor::Access buf(data.get());
     if (!buf.exists())
       return Error(InvalidBuffer);
-    
-    Result r = buf.resize(mAlgorithm.size(), mAlgorithm.dims(),buf.sampleRate());
+        
+    Result r = axis < 1 ?
+            buf.resize(mAlgorithm.dims() ,mAlgorithm.size(), buf.sampleRate()):
+            buf.resize(mAlgorithm.size(), mAlgorithm.dims(), buf.sampleRate());
     
     if(!r.ok())
       return Error(r.message());
     else
     {
-      buf.allFrames() = mAlgorithm.getData();
+      buf.allFrames() = axis < 1 ? mAlgorithm.getData() : FluidTensorView<const double,2>(mAlgorithm.getData()).transpose();
       
       if(auto ptr = labels.get().lock())
       {
