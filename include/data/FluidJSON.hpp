@@ -3,6 +3,7 @@
 #include <algorithms/KDTree.hpp>
 #include <algorithms/KMeans.hpp>
 #include <algorithms/Normalization.hpp>
+#include <algorithms/RobustScaling.hpp>
 #include <algorithms/PCA.hpp>
 #include <algorithms/MLP.hpp>
 #include <algorithms/UMAP.hpp>
@@ -217,6 +218,50 @@ void from_json(const nlohmann::json &j, Normalization &normalization) {
   double min = j.at("min");
   double max = j.at("max");
   normalization.init(min, max, dataMin, dataMax);
+}
+
+// RobustScale
+void to_json(nlohmann::json &j, const RobustScaling &robustScaling) {
+  RealVector median(robustScaling.dims());
+  RealVector range(robustScaling.dims());
+  RealVector dataLow(robustScaling.dims());
+  RealVector dataHigh(robustScaling.dims());
+  robustScaling.getMedian(median);
+  robustScaling.getRange(range);
+  robustScaling.getDataLow(dataLow);
+  robustScaling.getDataHigh(dataHigh);
+  j["data_low"] = RealVectorView(dataLow);
+  j["data_high"] = RealVectorView(dataHigh);
+  j["median"] = RealVectorView(median);
+  j["range"] = RealVectorView(range);
+  j["low"] = robustScaling.getLow();
+  j["high"] = robustScaling.getHigh();
+  j["cols"] = robustScaling.dims();
+}
+
+bool check_json(const nlohmann::json &j, const RobustScaling &) {
+  return fluid::check_json(j,
+    {"cols", "median", "range", "data_low", "data_high","low", "high"},
+    {JSONTypes::NUMBER, JSONTypes::ARRAY, JSONTypes::ARRAY,
+      JSONTypes::ARRAY, JSONTypes::ARRAY,
+      JSONTypes::NUMBER, JSONTypes::NUMBER
+    }
+  );
+}
+
+void from_json(const nlohmann::json &j, RobustScaling &robustScaling) {
+  index cols = j.at("cols");
+  RealVector median(cols);
+  RealVector range(cols);
+  RealVector dataLow(cols);
+  RealVector dataHigh(cols);
+  j.at("median").get_to(median);
+  j.at("range").get_to(range);
+  j.at("data_low").get_to(dataLow);
+  j.at("data_high").get_to(dataHigh);
+  double low = j.at("low");
+  double high = j.at("high");
+  robustScaling.init(low, high, dataLow, dataHigh, median, range);
 }
 
 // Standardize

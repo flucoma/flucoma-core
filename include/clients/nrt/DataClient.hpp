@@ -50,6 +50,7 @@ public:
 
   MessageResult<string> dump() {
     using namespace nlohmann;
+    if (!mAlgorithm.initialized()) return string();
     nlohmann::json j = mAlgorithm;
     return j.dump();
   }

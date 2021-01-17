@@ -20,6 +20,7 @@ struct MLPClassifierData {
     mlp.clear();
     encoder.clear();
   }
+  bool initialized() const {return mlp.initialized();}
 };
 
 void to_json(nlohmann::json &j, const MLPClassifierData &data) {

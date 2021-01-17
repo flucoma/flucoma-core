@@ -13,6 +13,7 @@ struct KNNRegressorData {
   index size() { return target.size(); }
   index dims() { return tree.dims(); }
   void clear(){tree.clear();target = FluidDataSet<std::string, double, 1> ();}
+  bool initialized() const{return tree.initialized();}
 };
 
 void to_json(nlohmann::json &j, const KNNRegressorData &data) {
