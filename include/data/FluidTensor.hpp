@@ -548,7 +548,7 @@ public:
   //implict cast to const
   operator FluidTensorView<const T, N>() const { return {mDesc, mRef}; }
 
-  /// Repoint a view (TODO const version?)
+  
   template <typename... Dims,
             typename = std::enable_if_t<isIndexSequence<Dims...>()>>
   void reset(T* p, index start, Dims... dims)
@@ -663,11 +663,11 @@ public:
     return *this;
   }
 
-  // Passing by value here allows to pass r-values
+
   // this tacilty assumes at the moment that M is
   // a FluidTensor or FluidTensorView. Maybe this should be more explicit
   template <typename M, typename F>
-  FluidTensorView& apply(M m, F f)
+  FluidTensorView& apply(M&& m, F f)
   {
     // TODO: ensure same size? Ot take min?
     assert(m.descriptor().extents == mDesc.extents);
