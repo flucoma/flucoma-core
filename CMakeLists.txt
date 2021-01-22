@@ -16,7 +16,7 @@ if(hasParent)
 endif()
 
 if(APPLE) #has to be before first project() call. grrrrrr
-  set(CMAKE_OSX_DEPLOYMENT_TARGET 10.8)
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "10.8" CACHE STRING "")
 endif()
 
 project (flucoma-core LANGUAGES CXX)
