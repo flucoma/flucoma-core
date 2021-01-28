@@ -15,8 +15,10 @@ if(hasParent)
   set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/script PARENT_SCOPE)
 endif()
 
-if(APPLE) #has to be before first project() call. grrrrrr
+if(APPLE)
   set(CMAKE_OSX_DEPLOYMENT_TARGET "10.8" CACHE STRING "")
+  #A consequence of targetting 10.8. Needs to be set globally from 10.15 onwards in order for the test program to compile successfully during configure 
+  string(APPEND CMAKE_CXX_FLAGS " -stdlib=libc++")
 endif()
 
 project (flucoma-core LANGUAGES CXX)
