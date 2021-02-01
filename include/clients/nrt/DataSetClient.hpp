@@ -4,6 +4,7 @@
 #include "LabelSetClient.hpp"
 #include "NRTClient.hpp"
 #include "data/FluidDataSet.hpp"
+#include "algorithms/DataSetIdSequence.hpp"
 #include <sstream>
 #include <string>
 
@@ -19,6 +20,7 @@ public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
   using DataSet = FluidDataSet<string, double, 1>;
+  using LabelSet = FluidDataSet<string, string, 1>;
 
 
   template <typename T> Result process(FluidContext &) { return {}; }
@@ -99,75 +101,64 @@ public:
       return OK();
     }
 
-  MessageResult<void> fromBuffer(BufferPtr data,SharedClientRef<LabelSetClient> labels, index axis)
-  {    
-    if (!data)
-      return Error(NoBuffer);
-    BufferAdaptor::Access buf(data.get());
-    if (!buf.exists())
-      return Error(InvalidBuffer);
-    
-    auto bufview = axis < 1 ? buf.allFrames() : buf.allFrames().transpose();
-    
-            
-    if(auto ptr=labels.get().lock())
-    {      
-      auto& labeldata = ptr->getLabelSet(); 
-      if(labeldata.size() != bufview.rows())
-      {
-        return Error("Label set size needs to match buffer");
-      }
-      
-      auto constlabels = labeldata.getData().col(0);
-      auto& unconstlabels = const_cast<FluidTensorView<string, 1>&>(constlabels);
-            
-      mAlgorithm = DataSet(unconstlabels,FluidTensorView<const float, 2>(bufview));
-    }
-    else
-    {
-      FluidTensor<string,1> autoLabels(bufview.rows());
-      std::generate(autoLabels.begin(), autoLabels.end(),[n = 0]() mutable {return std::to_string(n++);});
-      mAlgorithm = DataSet(autoLabels,FluidTensorView<const float, 2>(bufview));
-    }
-            
-    return OK();
-  }
-
-  MessageResult<void> toBuffer(BufferPtr data,SharedClientRef<LabelSetClient> labels, index axis)
+  MessageResult<void> fromBuffer(BufferPtr data, SharedClientRef<LabelSetClient> labels, bool transpose)
   {
-    if (!data)
-      return Error(NoBuffer);
+    if (!data) return Error(NoBuffer);
     BufferAdaptor::Access buf(data.get());
-    if (!buf.exists())
-      return Error(InvalidBuffer);
-        
-    Result r = axis < 1 ?
-            buf.resize(mAlgorithm.dims() ,mAlgorithm.size(), buf.sampleRate()):
-            buf.resize(mAlgorithm.size(), mAlgorithm.dims(), buf.sampleRate());
-    
-    if(!r.ok())
-      return Error(r.message());
+    if (!buf.exists()) return Error(InvalidBuffer);
+    auto bufView = transpose ? buf.allFrames() : buf.allFrames().transpose();
+    if(auto labelsPtr = labels.get().lock())
+    {
+      auto& labelSet= labelsPtr->getLabelSet();
+      if(labelSet.size() != bufView.rows())
+      {
+        return Error("Label set size needs to match the buffer size");
+      }
+      mAlgorithm = DataSet(
+        labelSet.getData().col(0),
+        FluidTensorView<const float, 2>(bufView)
+      );
+    }
     else
     {
-      buf.allFrames() = axis < 1 ? mAlgorithm.getData() : FluidTensorView<const double,2>(mAlgorithm.getData()).transpose();
-      
-      if(auto ptr = labels.get().lock())
-      {
-        FluidTensor<string,1> autoIDs(mAlgorithm.size());
-        std::generate(autoIDs.begin(), autoIDs.end(),[n = 0]() mutable {return std::to_string(n++);});
-        
-        auto IDs_2D = FluidTensor<string,2>(mAlgorithm.getIds().size(),1);//TODO: fix up 2D casting constructor (needs transpose) 
-        IDs_2D.col(0) = mAlgorithm.getIds();
-        auto tmplabels = typename LabelSetClient::LabelSet(autoIDs,IDs_2D);
-        ptr->setLabelSet(tmplabels);
-      }
+      algorithm::DataSetIdSequence seq("", 0, 0);
+      FluidTensor<string,1> newIds(bufView.rows());
+      seq.generate(newIds);
+      mAlgorithm = DataSet(newIds, FluidTensorView<const float, 2>(bufView));
     }
     return OK();
   }
 
+  MessageResult<void> toBuffer(BufferPtr data, bool transpose)
+  {
+    if (!data) return Error(NoBuffer);
+    BufferAdaptor::Access buf(data.get());
+    if (!buf.exists()) return Error(InvalidBuffer);
+    index nFrames = transpose? mAlgorithm.dims(): mAlgorithm.size();
+    index nChannels = transpose? mAlgorithm.size(): mAlgorithm.dims();
+    Result resizeResult = buf.resize(nFrames, nChannels, buf.sampleRate());
+    if(!resizeResult.ok()) return Error(resizeResult.message());
+    buf.allFrames() = transpose ?
+          mAlgorithm.getData() :
+          FluidTensorView<const double,2>(mAlgorithm.getData()).transpose();
+    return OK();
+  }
+
+  MessageResult<void> getIds(SharedClientRef<LabelSetClient> dest) {
+    auto destPtr = dest.get().lock();
+    if (!destPtr) return Error(NoDataSet);
+    algorithm::DataSetIdSequence seq("", 0, 0);
+    FluidTensor<string,1> newIds(mAlgorithm.size());
+    FluidTensor<string,2> labels(mAlgorithm.size(),1);
+    labels.col(0) = mAlgorithm.getIds();
+    seq.generate(newIds);
+    destPtr->setLabelSet(LabelSet(newIds, labels));
+    return OK();
+  }
 
   MessageResult<void> clear() {mAlgorithm = DataSet(0); return OK();}
   MessageResult<string> print() {return mAlgorithm.print();}
+
   const DataSet getDataSet() const { return mAlgorithm; }
   void setDataSet(DataSet ds) {mAlgorithm = ds;}
 
@@ -187,7 +178,8 @@ public:
                          makeMessage("write", &DataSetClient::write),
                          makeMessage("read", &DataSetClient::read),
                          makeMessage("fromBuffer", &DataSetClient::fromBuffer),
-                         makeMessage("toBuffer", &DataSetClient::toBuffer));
+                         makeMessage("toBuffer", &DataSetClient::toBuffer),
+                         makeMessage("getIds", &DataSetClient::getIds));
 };
 
 using DataSetClientRef = SharedClientRef<DataSetClient>;

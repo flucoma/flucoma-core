@@ -14,15 +14,37 @@ template <typename idType, typename dataType, index N> class FluidDataSet {
 
 public:
 
+  explicit FluidDataSet() = default;
+  ~FluidDataSet() = default;
+
+  // Construct from list of dimensions for each data point,
+  // e.g. FluidDataSet(2, 3) is a dataset of 2x3 tensors
   template <typename... Dims,
             typename = std::enable_if_t<isIndexSequence<Dims...>()>>
   FluidDataSet(Dims... dims) : mData(0, dims...), mDim(dims...) {
     static_assert(sizeof...(dims) == N, "Number of dimensions doesn't match");
   }
 
-  explicit FluidDataSet() = default;
-  ~FluidDataSet() = default;
+  // Construct from existing tensors of ids and data points
+  FluidDataSet(FluidTensorView<const idType, 1> ids,
+               FluidTensorView<const dataType, N + 1> points):
+                mData(points), mIds(ids)
+  {
+    initFromData();
+   }
 
+  // Construct from existing tensors of ids and data points
+  // (from convertible type for data, typically float -> double)
+  template<typename U,typename T = dataType>
+  FluidDataSet(FluidTensorView<const idType, 1> ids,
+              FluidTensorView<const U, N + 1> points,
+               std::enable_if_t<std::is_convertible<U, T>::value>* = nullptr
+               ):mData(points), mIds(ids)
+  {
+     initFromData();
+   }
+
+  // Resize data point layout (if empty)
   template <typename... Dims,
             typename = std::enable_if_t<isIndexSequence<Dims...>()>>
   bool resize(Dims... dims) {
@@ -35,32 +57,6 @@ public:
       return false;
     }
   }
-
-
-  FluidDataSet(FluidTensorView<const idType, 1> ids,
-               FluidTensorView<const dataType, N + 1> points):
-                mData(points), mIds(ids)
-  {
-     assert(ids.rows() == points.rows());
-     mDim = mData.cols();
-     for (index i = 0; i < ids.size(); i++) {
-       mIndex.insert({ids[i], i});
-     }
-   }
-
-  template<typename U,typename T = dataType>
-  FluidDataSet(FluidTensorView<const idType, 1> ids,
-              FluidTensorView<const U, N + 1> points,
-               std::enable_if_t<std::is_convertible<U, T>::value>* = nullptr
-               ):
-                mData(points), mIds(ids)
-  {
-     assert(ids.rows() == points.rows());
-     mDim = mData.cols();
-     for (index i = 0; i < ids.size(); i++) {
-       mIndex.insert({ids[i], i});
-     }
-   }
 
   bool add(idType id, FluidTensorView<dataType, N> point) {
     assert(sameExtents(mDim, point.descriptor()));
@@ -114,6 +110,8 @@ public:
     return true;
   }
 
+  FluidTensorView<dataType, N + 1> getData() const { return mData; }
+  FluidTensorView<idType, 1> getIds() const { return mIds; }
   index pointSize() const { return mDim.size; }
   index dims() const { return mDim.size; }
   index size() const { return mIds.size(); }
@@ -162,10 +160,17 @@ public:
     }
     return result.str();
   }
-  const FluidTensorView<dataType, N + 1> getData() const { return mData; }
-  const FluidTensorView<idType, 1> getIds() const { return mIds; }
 
 private:
+
+  void initFromData(){
+    assert(mIds.rows() == mData.rows());
+    mDim = mData.cols();
+    for (index i = 0; i < mIds.size(); i++) {
+      mIndex.insert({mIds[i], i});
+    }
+  }
+
   mutable std::unordered_map<idType, index> mIndex;
   mutable FluidTensor<idType, 1> mIds;
   mutable FluidTensor<dataType, N + 1> mData;
