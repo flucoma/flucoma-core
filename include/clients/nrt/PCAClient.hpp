@@ -74,8 +74,8 @@ public:
                                 DataSetClientRef destClient) const {
     using namespace std;
     index k = get<kNumDimensions>();
-    if (k <= 0) return Error<double>(SmallK);
-    if (k > mAlgorithm.dims()) return Error<double>(LargeK);
+    if (k <= 0) return Error<double>(SmallDim);
+    if (k > mAlgorithm.dims()) return Error<double>(LargeDim);
     auto srcPtr = sourceClient.get().lock();
     auto destPtr = destClient.get().lock();
     double result = 0;
@@ -86,7 +86,7 @@ public:
       if (!mAlgorithm.initialized())
         return Error<double>(NoDataFitted);
       if (srcDataSet.pointSize() != mAlgorithm.dims()) return Error<double>(WrongPointSize);
-      if (srcDataSet.pointSize() <= k) return Error<double>(LargeK);
+      if (srcDataSet.pointSize() < k) return Error<double>(LargeDim);
 
       StringVector ids{srcDataSet.getIds()};
       RealMatrix output(srcDataSet.size(), k);
@@ -101,8 +101,8 @@ public:
 
   MessageResult<void> transformPoint(BufferPtr in, BufferPtr out) const {
     index k = get<kNumDimensions>();
-    if (k <= 0) return Error(SmallK);
-    if (k > mAlgorithm.dims()) return Error(LargeK);
+    if (k <= 0) return Error(SmallDim);
+    if (k > mAlgorithm.dims()) return Error(LargeDim);
     if (!mAlgorithm.initialized()) return Error(NoDataFitted);
     InOutBuffersCheck bufCheck(mAlgorithm.dims());
     if (!bufCheck.checkInputs(in.get(), out.get())) return Error(bufCheck.error());

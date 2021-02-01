@@ -48,7 +48,7 @@ public:
   double process(const RealMatrixView in, RealMatrixView out, index k) const {
     using namespace Eigen;
     using namespace _impl;
-    if(k >= mBases.cols()) return 0;
+    if(k > mBases.cols()) return 0;
     MatrixXd input = asEigen<Matrix>(in);
     MatrixXd result = (input.rowwise() - mMean.transpose()) * mBases.block(0, 0, mBases.rows(), k);
     double variance = 0;
