@@ -79,6 +79,7 @@ public:
         if(valLoss < prevValLoss) patience = mInitialPatience;
         else patience--;
         if(patience <= 0) break;
+        prevValLoss = valLoss;
       }
     }
     ArrayXXd finalPred = ArrayXXd::Zero(nExamples, outputSize);
@@ -94,7 +95,7 @@ public:
   }
 
 private:
-  index mInitialPatience{5};
+  index mInitialPatience{10};
 };
 } // namespace algorithm
 } // namespace fluid
