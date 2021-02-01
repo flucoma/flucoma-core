@@ -28,6 +28,7 @@ namespace client {
   static const std::string FileWrite{"Couldn't write file"};
   static const std::string NotImplemented{"Not implemented"};
   static const std::string SizesDontMatch{"Sizes do not match"};
+    static const std::string DimensionsDontMatch{"Dimensions do not match"};
 
   template <typename T>
   MessageResult<T> Error(std::string msg){

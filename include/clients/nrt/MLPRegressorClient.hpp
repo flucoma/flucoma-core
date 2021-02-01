@@ -99,6 +99,8 @@ public:
     auto sourceDataSet = sourceClientPtr->getDataSet();
     if (sourceDataSet.size() == 0)
       return Error<double>(EmptyDataSet);
+    if(mAlgorithm.initialized() && sourceDataSet.dims() != mAlgorithm.dims())
+        return Error<double>(DimensionsDontMatch);
 
     auto targetClientPtr = target.get().lock();
     if (!targetClientPtr)
