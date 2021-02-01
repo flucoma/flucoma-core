@@ -1,6 +1,7 @@
 #pragma once
 
 #include "algorithms/util/FluidEigenMappings.hpp"
+#include <algorithms/util/AlgorithmUtils.hpp>
 #include "data/TensorTypes.hpp"
 
 #include <Eigen/Core>
@@ -38,7 +39,7 @@ public:
     ArrayXd input = asEigen<Array>(in);
     ArrayXd result;
     if(!inverse) {
-     result = (input - mMean) / mStd;
+     result = (input - mMean) / mStd.max(epsilon);
    } else{
      result = (input * mStd) + mMean;
    }
@@ -53,7 +54,7 @@ public:
 
     if(!inverse) {
      result = (input.rowwise() - mMean.transpose());
-     result = result.rowwise() / mStd.transpose();
+     result = result.rowwise() / mStd.transpose().max(epsilon);
     } else {
      result = (input.rowwise() * mStd.transpose());
      result = (result.rowwise() + mMean.transpose());

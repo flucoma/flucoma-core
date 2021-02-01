@@ -1,6 +1,7 @@
 #pragma once
 
 #include "algorithms/util/FluidEigenMappings.hpp"
+#include <algorithms/util/AlgorithmUtils.hpp>
 #include "data/TensorTypes.hpp"
 
 #include <Eigen/Core>
@@ -31,7 +32,6 @@ public:
             RealVectorView dataMax) {
     using namespace Eigen;
     using namespace _impl;
-    const double epsilon = std::numeric_limits<double>::epsilon();
     mMin = min;
     mMax = max;
     mDataMin = asEigen<Array>(dataMin);
@@ -47,11 +47,11 @@ public:
     ArrayXd input = asEigen<Array>(in);
     ArrayXd result;
     if(!inverse) {
-      result = (input - mDataMin) / mDataRange;
+      result = (input - mDataMin) / mDataRange.max(epsilon);
       result = mMin + (result * (mMax - mMin));
     }
     else {
-      result = (input - mMin) / (mMax - mMin);
+      result = (input - mMin) / std::max((mMax - mMin), epsilon);
       result = mDataMin + (result * mDataRange);
     }
     out = asFluid(result);
@@ -64,12 +64,12 @@ public:
     ArrayXXd result;
     if(!inverse) {
       result = (input.rowwise() - mDataMin.transpose());
-      result = result.rowwise() / mDataRange.transpose();
+      result = result.rowwise() / mDataRange.transpose().max(epsilon);
       result = mMin + (result * (mMax - mMin));
     }
     else {
       result = input - mMin;
-      result = result / (mMax - mMin);
+      result = result / std::max((mMax - mMin), epsilon);
       result = (result.rowwise() * mDataRange.transpose());
       result = (result.rowwise() + mDataMin.transpose());
     }
