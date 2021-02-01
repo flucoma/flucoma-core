@@ -344,7 +344,8 @@ bool check_json(const nlohmann::json &j, const LabelSetEncoder &) {
 }
 
 void from_json(const nlohmann::json &j, LabelSetEncoder &lse) {
-  FluidTensor<std::string, 1> labels;
+  index rows = asSigned(j["rows"]);
+  FluidTensor<std::string, 1> labels(rows);
   j.at("labels").get_to(labels);
   lse.init(labels);
 }
