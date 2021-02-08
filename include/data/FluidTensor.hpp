@@ -202,12 +202,12 @@ public:
 
   /// 1D copy from std::vector
   template <typename U = T, size_t D = N, typename = std::enable_if_t<D == 1>()>
-  FluidTensor(std::vector<T>&& input)
+  FluidTensor(Container&& input)
       : mContainer(input), mDesc(0, {asSigned(input.size())})
   {}
 
   template <typename U = T, size_t D = N, typename = std::enable_if_t<D == 1>()>
-  FluidTensor(std::vector<T>& input)
+  FluidTensor(Container& input)
       : mContainer(input), mDesc(0, {asSigned(input.size())})
   {}
 
@@ -541,14 +541,14 @@ public:
   {
     static_assert(std::is_convertible<U, T>::value,  "Can't convert between types");
     assert(sameExtents(*this, x));
-    std::copy(x.begin(), x.end(), begin());
+    std::transform(x.begin(), x.end(), begin(), [](const U& a) {return static_cast<T>(a); });
     return *this;
   }
 
   //implict cast to const
   operator FluidTensorView<const T, N>() const { return {mDesc, mRef}; }
 
-  /// Repoint a view (TODO const version?)
+  
   template <typename... Dims,
             typename = std::enable_if_t<isIndexSequence<Dims...>()>>
   void reset(T* p, index start, Dims... dims)
@@ -663,11 +663,11 @@ public:
     return *this;
   }
 
-  // Passing by value here allows to pass r-values
+
   // this tacilty assumes at the moment that M is
   // a FluidTensor or FluidTensorView. Maybe this should be more explicit
   template <typename M, typename F>
-  FluidTensorView& apply(M m, F f)
+  FluidTensorView& apply(M&& m, F f)
   {
     // TODO: ensure same size? Ot take min?
     assert(m.descriptor().extents == mDesc.extents);

@@ -120,6 +120,8 @@ public:
   static constexpr size_t ParamOffset = (Ins * 5) + decideOuts;
   using WrappedClient = RTClient; //<ParameterSet_Offset<Params,ParamOffset>,T>;
 
+  using isModelObject = typename RTClient::isModelObject;
+
   static auto getMessageDescriptors()
   {
     return RTClient::getMessageDescriptors();
@@ -355,7 +357,7 @@ struct Streaming
       for (index j = 0; j < asSigned(outputBuffers.size()); ++j)
         outputs.emplace_back(outputData[asUnsigned(j)].row(i));
 
-      if (c.task()) c.task()->iterationUpdate(i, nChans);
+      if (c.task()) c.task()->iterationUpdate(static_cast<double>(i), static_cast<double>(nChans));
 
       client.reset();
       client.process(inputs, outputs, c);
@@ -436,7 +438,7 @@ struct StreamingControl
 
         client.process(inputs, outputs, dummyContext);
 
-        if (task && !task->processUpdate(j + 1 + (nHops * i),
+        if (task && !task->processUpdate(static_cast<double>(j + 1 + (nHops * i)),
                                          static_cast<double>(nHops * nChans)))
           break;
       }
@@ -559,6 +561,7 @@ public:
   using MessageSetType = typename NRTClient::MessageSetType;
   using isRealTime = std::false_type;
   using isNonRealTime = std::true_type;
+  using isModelObject = typename NRTClient::isModelObject;
 
   constexpr static ParamDescType& getParameterDescriptors()
   {
@@ -615,12 +618,12 @@ public:
     }
   }
 
-  Result enqueue(ParamSetType& p)
+  Result enqueue(ParamSetType& p, std::function<void()> callback = {})
   {
     if (mThreadedTask && (mSynchronous || !mQueueEnabled))
       return {Result::Status::kError, "already processing"};
 
-    mQueue.push_back(p);
+    mQueue.push_back({p,callback});
 
     return {};
   }
@@ -637,6 +640,8 @@ public:
     if (mQueue.empty())
       return {Result::Status::kWarning, "Process() called on empty queue"};
 
+    if(mSynchronous) mSynchronousDone = false;
+
     mThreadedTask = std::unique_ptr<ThreadedTask>(
         new ThreadedTask(mClient, mQueue.front(), mSynchronous));
     mQueue.pop_front();
@@ -645,6 +650,7 @@ public:
     {
       result = mThreadedTask->result();
       mThreadedTask = nullptr;
+      mSynchronousDone = true;
     }
 
     return result;
@@ -694,6 +700,7 @@ public:
     return kNoProcess;
   }
 
+  bool synchronous() { return mSynchronous; }
   void setSynchronous(bool synchronous) { mSynchronous = synchronous; }
 
   void setQueueEnabled(bool queue) { mQueueEnabled = queue; }
@@ -714,14 +721,20 @@ public:
   {
     return mThreadedTask ? (mThreadedTask->mState == kDone ||
                             mThreadedTask->mState == kDoneStillProcessing)
-                         : false;
+                         : (mSynchronous && mSynchronousDone);
+  }
+  
+  void resetDone()
+  {
+    mSynchronousDone = false;
   }
 
   ProcessState state() const
   {
     return mThreadedTask ? mThreadedTask->mState : kNoProcess;
   }
-
+  
+  void setCallback(std::function<void()> cb) { mCallback = cb; }
 
 private:
 
@@ -738,10 +751,17 @@ private:
     swap(mQueue,x.mQueue);
     swap(mSynchronous,x.mSynchronous);
     swap(mQueueEnabled,x.mQueueEnabled);
+    swap(mCallback,x.mCallback);
+    mSynchronousDone = false;
     if(includeParams) mHostParams = std::move(x.mHostParams);
     mClient =  std::move(x.mClient);
-//    mClient->setParams(mHostParams); //keeps client's params pointer updated
   }
+
+  
+  struct NRTJob{
+     ParamSetType           mParams;
+     std::function<void()>  mCallback;
+  }; 
 
   struct ThreadedTask
   {
@@ -771,10 +791,10 @@ private:
       void operator()(typename T::type& param) { param.reset(); }
     };
 
-    ThreadedTask(ClientPointer client, ParamSetType& hostParams,
+    ThreadedTask(ClientPointer client, NRTJob& job,
                  bool synchronous)
-        : mProcessParams(hostParams), mState(kNoProcess),
-          mClient(client), mContext{mTask}
+        : mProcessParams(job.mParams), mState(kNoProcess),
+          mClient(client), mContext{mTask}, mCallback{job.mCallback}
     {
 
       assert(mClient.get() != nullptr); // right?
@@ -785,7 +805,7 @@ private:
       mClient->setParams(mProcessParams);
       if (synchronous)
       {
-        process(std::move(resultPromise));
+        process(std::move(resultPromise)); 
       }
       else
       {
@@ -808,7 +828,7 @@ private:
       mResult = mClient->template process<float>(mContext);
       resultReady.set_value();
       mState = kDone;
-
+      if(mCallback && !mDetached) mCallback();
       if (mDetached) delete this;
     }
 
@@ -868,14 +888,17 @@ private:
     FluidTask           mTask;
     FluidContext        mContext;
     bool                mDetached = false;
+    std::function<void()> mCallback;
   };
 
   ParamSetType                  mHostParams;
-  std::deque<ParamSetType>      mQueue;
+  std::deque<NRTJob>            mQueue;
   bool                          mSynchronous = false;
   bool                          mQueueEnabled = false;
   std::unique_ptr<ThreadedTask> mThreadedTask;
   ClientPointer                 mClient;
+  std::function<void()>         mCallback;
+  std::atomic<bool>             mSynchronousDone{false};
 };
 
 } // namespace client

@@ -88,7 +88,7 @@ public:
     RealMatrix in(1, hostVecSize);
     in.row(0) = input[0];
     RealMatrix out(1, hostVecSize);
-    int        frameOffset = 0; // in case kHopSize < hostVecSize
+    index        frameOffset = 0; // in case kHopSize < hostVecSize
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.processInput(
         totalWindow, get<kFFT>().hopSize(), c, [&, this](RealMatrixView in) {
@@ -100,7 +100,7 @@ public:
     output[0] = out.row(0);
   }
 
-  long latency() { return get<kFFT>().hopSize() + get<kFrameDelta>(); }
+  index latency() { return static_cast<index>(get<kFFT>().hopSize() + get<kFrameDelta>()); }
   void reset()
   {
     mBufferedProcess.reset();

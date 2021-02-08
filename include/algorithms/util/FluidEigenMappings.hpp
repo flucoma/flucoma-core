@@ -41,7 +41,7 @@ auto asFluid(PlainObjectBase<Derived>& a)
 
   if (N == 2)
   {
-    if (a.Options == ColMajor)
+    if (static_cast<int>(a.Options) == static_cast<int>(ColMajor))
     {
       // Respect the colmajorness of an eigen type
       auto slice = FluidTensorSlice<N>(0, {a.cols(), a.rows()});
