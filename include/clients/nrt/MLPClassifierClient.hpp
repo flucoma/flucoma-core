@@ -123,7 +123,7 @@ public:
       return Error<double>(EmptyDataSet);
     if(mAlgorithm.initialized() && sourceDataSet.dims() != mAlgorithm.dims())
       return Error<double>(DimensionsDontMatch);
-    
+
     auto targetClientPtr = target.get().lock();
     if (!targetClientPtr)
       return Error<double>(NoLabelSet);
@@ -140,6 +140,7 @@ public:
                           mAlgorithm.encoder.numLabels(), get<kHidden>(),
                           get<kActivation>(), 1);//sigmoid output
     }
+    mAlgorithm.mlp.setTrained(false);
     DataSet result(1);
     auto data = sourceDataSet.getData();
     auto tgt = targetDataSet.getData();

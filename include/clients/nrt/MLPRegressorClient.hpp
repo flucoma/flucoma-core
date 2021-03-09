@@ -116,6 +116,8 @@ public:
       mAlgorithm.init(sourceDataSet.pointSize(), targetDataSet.pointSize(),
                       get<kHidden>(), get<kActivation>(), outputAct);
     }
+
+    mAlgorithm.setTrained(false);
     DataSet result(1);
     auto data = sourceDataSet.getData();
     auto tgt = targetDataSet.getData();
@@ -164,7 +166,6 @@ public:
     if(outputTap > mAlgorithm.size()) return Error("Ouput tap too large");
     if(outputTap == 0) return Error("Ouput tap should be > 0 or -1");
     if(outputTap == -1) outputTap = mAlgorithm.size();
-
     index inputSize = mAlgorithm.inputSize(inputTap);
     index outputSize = mAlgorithm.outputSize(outputTap);
 
