@@ -61,11 +61,12 @@ public:
       if (maxBin > minBin)
       {
         yinFlip = yinFlip.segment(minBin, maxBin - minBin);
+
         auto vec = pd.process(yinFlip, 1, yinFlip.minCoeff());
         if (vec.size() > 0)
         {
           pitch = sampleRate / (minBin + vec[0].first);
-          pitchConfidence = 1 + vec[0].second;
+          pitchConfidence = std::max(1. + vec[0].second, 0.);
         }
       }
     }
