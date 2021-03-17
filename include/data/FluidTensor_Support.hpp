@@ -371,7 +371,7 @@ struct FluidTensorSlice
   template <size_t DIM = N> // 2D
   std::enable_if_t<DIM == 2, index> operator()(index i, index j) const
   {
-    return i * strides[0] + j;
+    return i * strides[transposed] + j;
   }
 
   void grow(index dim, index amount)
