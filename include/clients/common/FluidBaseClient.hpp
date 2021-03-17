@@ -163,7 +163,7 @@ public:
   }
 
   template <typename Input, typename Output>
-  void process(Input input, Output output, FluidContext& c)
+  void process(Input& input, Output& output, FluidContext& c)
   {
     mClient.process(input, output, c);
   }
