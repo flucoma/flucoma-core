@@ -106,12 +106,12 @@ public:
     std::vector<index> channels(numChans);
 
     std::generate(indices.begin(), indices.end(),
-                  [offset, framehop, n = offset - framehop]() mutable {
+                  [framehop, n = offset - framehop]() mutable {
                     return n += framehop;
                   });
 
     std::generate(channels.begin(), channels.end(),
-                  [startChan, chanhop, n = startChan - chanhop]() mutable {
+                  [chanhop, n = startChan - chanhop]() mutable {
                     return n += chanhop;
                   });
 
