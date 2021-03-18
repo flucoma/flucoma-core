@@ -101,7 +101,7 @@ public:
       return OK();
     }
 
-  MessageResult<void> fromBuffer(BufferPtr data, SharedClientRef<LabelSetClient> labels, bool transpose)
+  MessageResult<void> fromBuffer(BufferPtr data, bool transpose, SharedClientRef<LabelSetClient> labels)
   {
     if (!data) return Error(NoBuffer);
     BufferAdaptor::Access buf(data.get());
@@ -129,7 +129,7 @@ public:
     return OK();
   }
 
-  MessageResult<void> toBuffer(BufferPtr data, bool transpose)
+  MessageResult<void> toBuffer(BufferPtr data, bool transpose, SharedClientRef<LabelSetClient> labels)
   {
     if (!data) return Error(NoBuffer);
     BufferAdaptor::Access buf(data.get());
@@ -141,6 +141,13 @@ public:
     buf.allFrames() = transpose ?
           mAlgorithm.getData() :
           FluidTensorView<const double,2>(mAlgorithm.getData()).transpose();
+          
+    if(labels.get().lock())
+    {
+      auto fetchIDResult = getIds(labels);
+      if(!fetchIDResult.ok()) return fetchIDResult;
+    }
+          
     return OK();
   }
 
