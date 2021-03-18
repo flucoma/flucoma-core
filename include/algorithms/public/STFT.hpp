@@ -40,18 +40,32 @@ public:
     WindowFuncs::map()[windowTypeIndex](mWindowSize, mWindow);
   }
 
-  static void magnitude(const FluidTensorView<std::complex<double>, 2>& in,
+  static void magnitude(const FluidTensorView<std::complex<double>, 2> in,
                         FluidTensorView<double, 2>                      out)
   {
     ArrayXXd mag = _impl::asEigen<Eigen::Array>(in).abs().real();
     out = _impl::asFluid(mag);
   }
 
-  static void magnitude(const FluidTensorView<std::complex<double>, 1>& in,
+  static void magnitude(const FluidTensorView<std::complex<double>, 1> in,
                         FluidTensorView<double, 1>                      out)
   {
     ArrayXd mag = _impl::asEigen<Eigen::Array>(in).abs().real();
     out = _impl::asFluid(mag);
+  }
+
+  static void phase(const FluidTensorView<std::complex<double>, 2> in,
+                        FluidTensorView<double, 2>                      out)
+  {
+    ArrayXXd phase = _impl::asEigen<Eigen::Array>(in).arg().real();
+    out = _impl::asFluid(phase);
+  }
+  
+  static void phase(const FluidTensorView<std::complex<double>, 1> in,
+                        FluidTensorView<double, 1>                  out)
+  {    
+    phase(FluidTensorView<std::complex<double>,2>(in),
+          FluidTensorView<double,2>(out)); 
   }
 
 
