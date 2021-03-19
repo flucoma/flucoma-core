@@ -51,7 +51,7 @@ public:
                      );
 
   BufferSTFTClient(ParamSetViewType& p) : 
-        mParams(p), mSTFTBufferedProcess{get<kFFT>().winSize(), 1, 1}
+        mParams(p), mSTFTBufferedProcess{65536, 1, 1}
   {}
 
   template <typename T>
@@ -120,7 +120,6 @@ private:
     FluidTensor<double, 2> tmpMags(1,numBins);
     FluidTensor<double, 2> tmpPhase(1,numBins);
     
-    mSTFTBufferedProcess.reset(); 
     auto magsView = haveMag ? mags.allFrames() : FluidTensorView<T,2>{nullptr, 0, 0, 0};
     auto phaseView = havePhase ? phases.allFrames() : FluidTensorView<T,2>{nullptr, 0, 0, 0};;
     
