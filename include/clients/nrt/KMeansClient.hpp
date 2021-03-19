@@ -121,6 +121,52 @@ public:
     labelsetClientPtr->setLabelSet(getLabels(ids, assignments));
     return getCounts(assignments, mAlgorithm.getK());
   }
+
+
+  MessageResult<void> transform(DataSetClientRef srcClient,
+                                DataSetClientRef dstClient) const {
+    auto srcPtr = srcClient.get().lock();
+    if (!srcPtr) return Error<void>(NoDataSet);
+    auto destPtr = dstClient.get().lock();
+    if (!destPtr) return Error<void>(NoDataSet);
+
+    auto srcDataSet = srcPtr->getDataSet();
+    if (srcDataSet.size() == 0)
+      return Error<void>(EmptyDataSet);
+    if (!mAlgorithm.initialized())
+      return Error<void>(NoDataFitted);
+    if (srcDataSet.dims() != mAlgorithm.dims())
+      return Error<void>(WrongPointSize);
+
+    StringVectorView ids = srcDataSet.getIds();
+    RealMatrix output(srcDataSet.size(), mAlgorithm.size());
+    mAlgorithm.getDistances(srcDataSet.getData(), output);
+    FluidDataSet<string, double, 1> result(ids, output);
+    destPtr->setDataSet(result);
+    return OK();
+  }
+
+  MessageResult<IndexVector> fitTransform(DataSetClientRef srcClient,
+                                     DataSetClientRef dstClient) {
+    index k = get<kNumClusters>();
+    index maxIter = get<kMaxIter>();
+    auto srcPtr = srcClient.get().lock();
+    if (!srcPtr) return Error<IndexVector>(NoDataSet);
+    auto destPtr = dstClient.get().lock();
+    if (!destPtr) return Error<IndexVector>(NoDataSet);
+    auto dataSet = srcPtr->getDataSet();
+    if (dataSet.size() == 0)
+      return Error<IndexVector>(EmptyDataSet);
+    if (k <= 1) return Error<IndexVector>(SmallK);
+    if (maxIter <= 0) maxIter = 100;
+    mAlgorithm.init(k, dataSet.pointSize());
+    mAlgorithm.train(dataSet, maxIter);
+    IndexVector assignments(dataSet.size());
+    mAlgorithm.getAssignments(assignments);
+    transform(srcClient, dstClient);
+    return getCounts(assignments, k);
+  }
+
   MessageResult<index> predictPoint(BufferPtr data) const {
     if (!mAlgorithm.initialized()) return Error<index>(NoDataFitted);
     InBufferCheck bufCheck(mAlgorithm.dims());
@@ -130,12 +176,63 @@ public:
     return mAlgorithm.vq(point);
   }
 
+  MessageResult<void> getMeans(DataSetClientRef dstClient) const {
+    auto destPtr = dstClient.get().lock();
+    if (!destPtr) return Error<void>(NoDataSet);
+    if (!mAlgorithm.initialized())
+      return Error<void>(NoDataFitted);
+    RealMatrix output(mAlgorithm.size(), mAlgorithm.dims());
+    mAlgorithm.getMeans(output);
+    StringVector ids(mAlgorithm.size());
+    std::generate(ids.begin(), ids.end(),[n = 0]() mutable {return std::to_string(n++);});
+    FluidDataSet<string, double, 1> result(ids, output);
+    destPtr->setDataSet(result);
+    return OK();
+  }
+
+  MessageResult<void> setMeans(DataSetClientRef srcClient) {
+    auto srcPtr = srcClient.get().lock();
+    if (!srcPtr) return Error(NoDataSet);
+    auto dataSet = srcPtr->getDataSet();
+    if (dataSet.size() == 0)return Error(EmptyDataSet);
+    if (dataSet.size() != get<kNumClusters>())return Error(WrongNumInitial);
+    mAlgorithm.init(dataSet.size(), dataSet.dims());
+    mAlgorithm.setMeans(dataSet.getData());
+    return OK();
+  }
+
+
+MessageResult<void> transformPoint(BufferPtr in, BufferPtr out) const {
+    if (!mAlgorithm.initialized()) return Error(NoDataFitted);
+    InBufferCheck bufCheck(mAlgorithm.dims());
+    if(!bufCheck.checkInputs(in.get())) return Error(bufCheck.error());
+    BufferAdaptor::Access outBuf(out.get());
+    Result resizeResult = outBuf.resize(mAlgorithm.size(), 1, outBuf.sampleRate());
+    if (!resizeResult.ok())
+      return Error(BufferAlloc);
+    RealMatrix src(1, mAlgorithm.dims());
+    RealMatrix dest(1, mAlgorithm.size());
+    RealVector dest1(mAlgorithm.size());
+    src.row(0) = BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
+    mAlgorithm.getDistances(src, dest);
+    outBuf.samps(0) = dest.row(0);
+    return OK();
+  }
+
+
   index latency() { return 0; }
 
   FLUID_DECLARE_MESSAGES(makeMessage("fit", &KMeansClient::fit),
                          makeMessage("predict", &KMeansClient::predict),
+                         makeMessage("transform", &KMeansClient::transform),
                          makeMessage("predictPoint",
                                      &KMeansClient::predictPoint),
+                         makeMessage("transformPoint",
+                                      &KMeansClient::transformPoint),
+                         makeMessage("fitTransform",
+                                      &KMeansClient::fitTransform),
+                         makeMessage("getMeans",&KMeansClient::getMeans),
+                         makeMessage("setMeans",&KMeansClient::setMeans),
                          makeMessage("fitPredict", &KMeansClient::fitPredict),
                          makeMessage("cols", &KMeansClient::dims),
                          makeMessage("clear", &KMeansClient::clear),

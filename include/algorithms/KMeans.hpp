@@ -1,6 +1,7 @@
 #pragma once
 
 #include "algorithms/util/FluidEigenMappings.hpp"
+#include "algorithms/DistanceFuncs.hpp"
 #include "data/FluidDataSet.hpp"
 #include "data/FluidTensor.hpp"
 #include "data/TensorTypes.hpp"
@@ -19,6 +20,7 @@ public:
   void init(index k, index dims) {
     mK = k;
     mDims = dims;
+    mMeans = Eigen::ArrayXXd::Zero(mK, mDims);
     mTrained = false;
   }
 
@@ -30,24 +32,20 @@ public:
 
   bool initialized() const{ return mTrained;}
 
-  void train(const FluidDataSet<std::string, double, 1> &dataset, index maxIter,
-             RealMatrixView initialMeans = RealMatrixView(nullptr, 0, 0, 0)) {
+  void train(const FluidDataSet<std::string, double, 1> &dataset, index maxIter) {
     using namespace Eigen;
     using namespace _impl;
     assert(dataset.pointSize() == mDims);
     auto dataPoints = asEigen<Array>(dataset.getData());
     mEmpty = std::vector<bool>(asUnsigned(mK), false);
-    if (initialMeans.data() != nullptr) {
-      assert(initialMeans.rows() == mK);
-      assert(initialMeans.cols() == mDims);
-      mMeans = asEigen<Array>(initialMeans);
+    if (mTrained) {
       mAssignments = assignClusters(dataPoints);
     } else {
+      mMeans = ArrayXXd::Zero(mK, mDims);
       mAssignments =
           ((0.5 + (0.5 * ArrayXf::Random(dataPoints.rows()))) * (mK - 1))
               .round()
               .cast<int>();
-      mMeans = ArrayXXd::Zero(mK, mDims);
     }
 
     while (maxIter-- > 0) {
@@ -93,6 +91,14 @@ public:
 
   void getAssignments(FluidTensorView<index, 1> out) const {
     out = _impl::asFluid(mAssignments);
+  }
+
+  void getDistances(RealMatrixView data, RealMatrixView out) const{
+    Eigen::ArrayXXd points = _impl::asEigen<Eigen::Array>(data);
+    Eigen::ArrayXXd D = fluid::algorithm::DistanceMatrix(points, 2);
+    Eigen::MatrixXd means = mMeans.matrix();
+    D = fluid::algorithm::DistanceMatrix<Eigen::ArrayXXd>(points, mMeans, 2);
+    out = _impl::asFluid(D);
   }
 
 private:

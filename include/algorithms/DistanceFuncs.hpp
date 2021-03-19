@@ -67,7 +67,6 @@ public:
     return _funcs;
   }
 
-
 };
 
 Eigen::MatrixXd DistanceMatrix(Eigen::Ref<Eigen::MatrixXd> X, index distance){
@@ -81,7 +80,10 @@ Eigen::MatrixXd DistanceMatrix(Eigen::Ref<Eigen::MatrixXd> X, index distance){
     return D;
 }
 
-Eigen::MatrixXd DistanceMatrix(Eigen::Ref<Eigen::MatrixXd> X, Eigen::Ref<Eigen::MatrixXd> Y, index distance){
+template <typename Derived>
+Eigen::MatrixXd DistanceMatrix(
+    const Eigen::PlainObjectBase<Derived>& X,
+    const Eigen::PlainObjectBase<Derived>& Y, index distance){
     auto dist = static_cast<DistanceFuncs::Distance>(distance);
     Eigen::MatrixXd D = Eigen::MatrixXd::Zero(X.rows(), Y.rows());
     for (index i = 0; i < X.rows(); i++) {
@@ -91,7 +93,6 @@ Eigen::MatrixXd DistanceMatrix(Eigen::Ref<Eigen::MatrixXd> X, Eigen::Ref<Eigen::
     }
     return D;
 }
-
 
 
 } // namespace algorithm
