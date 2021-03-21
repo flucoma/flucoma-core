@@ -88,11 +88,12 @@ public:
                          ? source.numChans() - startChan
                          : get<kNumChans>();
 
-    index framehop = get<kFrameHop>();
-    index chanhop = get<kChannelHop>();
+    float framehop = get<kFrameHop>();
+    float chanhop = get<kChannelHop>();
     
-    numFrames = (numFrames + 1) /  framehop;
-    numChans =  (numChans + 1)  / chanhop;
+    numFrames = std::round(numFrames  /  framehop);
+    numChans =  std::round(numChans  / chanhop);
+    
 
     if (numChans <= 0 || numFrames <= 0)
       return {Result::Status::kError, "Zero length segment requested"};
@@ -120,7 +121,7 @@ public:
 
     for (index c = 0; c < numChans; ++c)
       for (index i = 0; i < numFrames; ++i)
-        dest(i, c) = src(indices[i], channels[c]);
+        dest(c, i) = src(channels[c],indices[i]);
 
     return {Result::Status::kOk};
   }

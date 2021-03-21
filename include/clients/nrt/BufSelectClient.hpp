@@ -27,9 +27,7 @@ namespace client {
 
 class BufSelectClient : public FluidBaseClient, OfflineIn, OfflineOut
 {
-
-
-  static constexpr std::initializer_list<index> SelectionDefaults = {-1,1};
+  static constexpr std::initializer_list<index> SelectionDefaults = {-1};
 public:
   enum {
     kSource,
@@ -123,7 +121,7 @@ public:
     
     for(index c = 0; c < numChans; ++c)
       for(index i = 0; i < numFrames; ++i)
-        dest(i,c) =  src(indices[i],channels[c]);
+        dest(c,i) =  src(channels[c],indices[i]);
 
     return {Result::Status::kOk};
   }
