@@ -80,6 +80,21 @@ public:
     return mAlgorithm.update(id, point) ? OK() : Error(PointNotFound);
   }
 
+  MessageResult<void> setPoint(string id, BufferPtr data) {
+    if (!data)
+      return Error(NoBuffer);
+    BufferAdaptor::Access buf(data.get());
+    if (!buf.exists())
+      return Error(InvalidBuffer);
+    if (buf.numFrames() < mAlgorithm.dims())
+      return Error(WrongPointSize);
+    RealVector point(mAlgorithm.dims());
+    point = buf.samps(0, mAlgorithm.dims(), 0);
+    bool result = mAlgorithm.update(id, point);
+    if(!result) result = mAlgorithm.add(id, point);
+    return result?OK():Error("Error setting new point");
+  }
+
   MessageResult<void> deletePoint(string id) {
     return mAlgorithm.remove(id) ? OK() : Error(PointNotFound);
   }
@@ -169,8 +184,9 @@ public:
 
   FLUID_DECLARE_MESSAGES(makeMessage("addPoint", &DataSetClient::addPoint),
                          makeMessage("getPoint", &DataSetClient::getPoint),
+                         makeMessage("setPoint", &DataSetClient::setPoint),
                          makeMessage("updatePoint",
-                                     &DataSetClient::updatePoint),
+                                     &DataSetClient::updatePoint),                          
                          makeMessage("deletePoint",
                                      &DataSetClient::deletePoint),
                          makeMessage("merge", &DataSetClient::merge),
