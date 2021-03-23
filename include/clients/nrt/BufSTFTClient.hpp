@@ -97,10 +97,14 @@ private:
     
     if(havePhase && !phases.exists())
       return  {Result::Status::kError, "Phase buffer not found"};
+        
+    index fftSize = get<kFFT>().fftSize();
+    index winSize = get<kFFT>().winSize();
+    index hopSize = get<kFFT>().hopSize();
     
-    index padding = get<kFFT>().winSize(); 
-    index numHops = (numFrames + padding) / get<kFFT>().hopSize();
-    index numBins = (get<kFFT>().fftSize() / 2) + 1;
+    index padding = winSize + hopSize;
+    index numHops = std::floor((numFrames + padding - winSize) / hopSize);
+    index numBins = (fftSize / 2) + 1;
     
     //I'm thinking that most things can only really deal with 65536 channels (if that) => limitation on multichannel inputs vs FFT size
     if(numChans * numBins >= 65536) return {Result::Status::kError, "Can produce up to 65536 channels. Split your data up and try again"}; 
@@ -117,33 +121,31 @@ private:
       if(!r.ok()) return r; 
     } 
 
-    FluidTensor<double, 2> tmpMags(1,numBins);
-    FluidTensor<double, 2> tmpPhase(1,numBins);
+    FluidTensor<double, 1> tmpSrc (source.samps(0).size());
+    FluidTensor<double, 2> tmpMags(numHops,numBins);
+    FluidTensor<double, 2> tmpPhase(numHops,numBins);
+    FluidTensor<std::complex<double>, 2> tmpComplex(numHops,numBins);
     
     auto magsView = haveMag ? mags.allFrames() : FluidTensorView<T,2>{nullptr, 0, 0, 0};
     auto phaseView = havePhase ? phases.allFrames() : FluidTensorView<T,2>{nullptr, 0, 0, 0};;
     
-    auto inputWrapped = std::vector<FluidTensorView<const T,1>>{source.samps(0)};
+    auto stft = algorithm::STFT(winSize, fftSize, hopSize);
+        
+    tmpSrc = source.samps(0);
+    stft.process(tmpSrc,tmpComplex);
     
-    mSTFTBufferedProcess.reset();
+    if(haveMag)
+    {
+      algorithm::STFT::magnitude(tmpComplex,tmpMags);
+      magsView = tmpMags.transpose();
+    }
     
-    mSTFTBufferedProcess.processInput( mParams, inputWrapped, c,
-      [&tmpMags, &tmpPhase,haveMag,havePhase,&magsView, &phaseView, n=0](ComplexMatrixView in) mutable
-      {
-        if(haveMag)
-        {
-           algorithm::STFT::magnitude(in,tmpMags);
-           auto sli =   magsView(Slice(0),n);
-           sli.col(0) = tmpMags.row(0);
-        }
-        if(havePhase)
-        {
-           algorithm::STFT::phase(in,tmpPhase);
-           phaseView(Slice(0),n).col(0) = tmpPhase.row(0);
-        }
-        n++;
-      }
-    );
+    if(havePhase)
+    {
+      algorithm::STFT::phase(tmpComplex,tmpPhase);
+      phaseView = tmpPhase.transpose();
+    }
+
     return {};
   }
   
@@ -188,26 +190,17 @@ private:
       return resizeResult;
           
     FluidTensor<std::complex<double>,2>  tmpComplex(mags.numFrames() + (winSize/hopSize),mags.numChans());
-    FluidTensor<T,1>     tmpOut(outputSize);
+    FluidTensor<double,1>     tmpOut(outputSize);
     auto magsView = mags.allFrames().transpose();
     auto phaseView = phases.allFrames().transpose();
     
     std::transform(magsView.begin(),magsView.end(),phaseView.begin(),tmpComplex.begin(),
     [](auto& m, auto& p){
       return std::polar(m,p);
-    }); 
-    
-    auto outputWrapped = std::vector<FluidTensorView<T,1>>{tmpOut};
-        
-    mSTFTBufferedProcess.reset();
-    
-    mSTFTBufferedProcess.processOutput(mParams,outputWrapped,c,
-    [&tmpComplex,n=0](ComplexMatrixView out) mutable
-    {
-      out.row(0) = tmpComplex.row(n++);
     });
     
-    resynth.samps(0) = tmpOut(Slice(winSize));
+    istft.process(tmpComplex,tmpOut);
+    resynth.samps(0) = tmpOut(Slice(0,resynth.samps(0).size()));
     return {}; 
   }
     
