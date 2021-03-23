@@ -124,7 +124,9 @@ private:
     auto phaseView = havePhase ? phases.allFrames() : FluidTensorView<T,2>{nullptr, 0, 0, 0};;
     
     auto inputWrapped = std::vector<FluidTensorView<const T,1>>{source.samps(0)};
-        
+    
+    mSTFTBufferedProcess.reset();
+    
     mSTFTBufferedProcess.processInput( mParams, inputWrapped, c,
       [&tmpMags, &tmpPhase,haveMag,havePhase,&magsView, &phaseView, n=0](ComplexMatrixView in) mutable
       {
