@@ -2,7 +2,7 @@
 
 #include "NRTClient.hpp"
 #include "../common/SharedClientUtils.hpp"
-#include "DataSetClient.hpp"
+#include "DataClient.hpp"
 
 namespace fluid {
 namespace client {
