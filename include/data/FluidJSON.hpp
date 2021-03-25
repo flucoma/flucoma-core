@@ -183,7 +183,6 @@ void from_json(const nlohmann::json &j, KMeans &kmeans) {
   index cols = j.at("cols");
   RealMatrix means(rows, cols);
   j.at("means").get_to(means);
-  kmeans.init(rows, cols);
   kmeans.setMeans(means);
 }
 

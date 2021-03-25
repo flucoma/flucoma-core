@@ -17,13 +17,6 @@ class KMeans {
 
 public:
 
-  void init(index k, index dims) {
-    mK = k;
-    mDims = dims;
-    mMeans = Eigen::ArrayXXd::Zero(mK, mDims);
-    mTrained = false;
-  }
-
   void clear(){
     mMeans.setZero();
     mAssignments.setZero();
@@ -32,16 +25,18 @@ public:
 
   bool initialized() const{ return mTrained;}
 
-  void train(const FluidDataSet<std::string, double, 1> &dataset, index maxIter) {
+  void train(const FluidDataSet<std::string, double, 1> &dataset, index k, index maxIter) {
     using namespace Eigen;
     using namespace _impl;
-    assert(dataset.pointSize() == mDims);
+    assert(!mTrained || (dataset.pointSize() == mDims && mK == k));
     auto dataPoints = asEigen<Array>(dataset.getData());
-    mEmpty = std::vector<bool>(asUnsigned(mK), false);
     if (mTrained) {
       mAssignments = assignClusters(dataPoints);
     } else {
+      mK = k;
+      mDims = dataset.pointSize();
       mMeans = ArrayXXd::Zero(mK, mDims);
+      mEmpty = std::vector<bool>(asUnsigned(mK), false);
       mAssignments =
           ((0.5 + (0.5 * ArrayXf::Random(dataPoints.rows()))) * (mK - 1))
               .round()
@@ -81,6 +76,8 @@ public:
 
   void setMeans(RealMatrixView means) {
     mMeans = _impl::asEigen<Eigen::Array>(means);
+    mDims = mMeans.cols();
+    mK = mMeans.rows();
     mTrained = true;
   }
 

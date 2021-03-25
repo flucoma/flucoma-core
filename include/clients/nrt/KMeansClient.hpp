@@ -65,8 +65,7 @@ public:
     auto dataSet = datasetClientPtr->getDataSet();
     if (dataSet.size() == 0) return Error<IndexVector>(EmptyDataSet);
     if (k <= 1) return Error<IndexVector>(SmallK);
-    mAlgorithm.init(k, dataSet.dims());
-    mAlgorithm.train(dataSet, maxIter);
+    mAlgorithm.train(dataSet, k, maxIter);
     IndexVector assignments(dataSet.size());
     mAlgorithm.getAssignments(assignments);
     return getCounts(assignments, k);
@@ -87,8 +86,7 @@ public:
       return Error<IndexVector>(NoLabelSet);
     if (k <= 1) return Error<IndexVector>(SmallK);
     if (maxIter <= 0) maxIter = 100;
-    mAlgorithm.init(k, dataSet.pointSize());
-    mAlgorithm.train(dataSet, maxIter);
+    mAlgorithm.train(dataSet, k, maxIter);
     IndexVector assignments(dataSet.size());
     mAlgorithm.getAssignments(assignments);
     StringVectorView ids = dataSet.getIds();
@@ -159,8 +157,7 @@ public:
       return Error<IndexVector>(EmptyDataSet);
     if (k <= 1) return Error<IndexVector>(SmallK);
     if (maxIter <= 0) maxIter = 100;
-    mAlgorithm.init(k, dataSet.pointSize());
-    mAlgorithm.train(dataSet, maxIter);
+    mAlgorithm.train(dataSet, k, maxIter);
     IndexVector assignments(dataSet.size());
     mAlgorithm.getAssignments(assignments);
     transform(srcClient, dstClient);
@@ -196,7 +193,6 @@ public:
     auto dataSet = srcPtr->getDataSet();
     if (dataSet.size() == 0)return Error(EmptyDataSet);
     if (dataSet.size() != get<kNumClusters>())return Error(WrongNumInitial);
-    mAlgorithm.init(dataSet.size(), dataSet.dims());
     mAlgorithm.setMeans(dataSet.getData());
     return OK();
   }
