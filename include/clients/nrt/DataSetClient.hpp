@@ -91,8 +91,8 @@ public:
     RealVector point(mAlgorithm.dims());
     point = buf.samps(0, mAlgorithm.dims(), 0);
     bool result = mAlgorithm.update(id, point);
-    if(!result) result = mAlgorithm.add(id, point);
-    return result?OK():Error("Error setting new point");
+    if(result) return OK();
+    else return addPoint(id, data);
   }
 
   MessageResult<void> deletePoint(string id) {
@@ -186,7 +186,7 @@ public:
                          makeMessage("getPoint", &DataSetClient::getPoint),
                          makeMessage("setPoint", &DataSetClient::setPoint),
                          makeMessage("updatePoint",
-                                     &DataSetClient::updatePoint),                          
+                                     &DataSetClient::updatePoint),
                          makeMessage("deletePoint",
                                      &DataSetClient::deletePoint),
                          makeMessage("merge", &DataSetClient::merge),
