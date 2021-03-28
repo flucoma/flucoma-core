@@ -260,9 +260,9 @@ public:
     
     mBufferedProcess.processOutput(fftParams.winSize(), fftParams.hopSize(), c,
         [this, &processFunc, chansOut](RealMatrixView out) {
+          processFunc(mSpectrumOut(Slice(0, chansOut), Slice(0)));
           for (index i = 0; i < chansOut; ++i)
-          {
-            processFunc(mSpectrumOut(Slice(0, chansOut), Slice(0)));
+          {            
             mISTFT->processFrame(mSpectrumOut.row(i), out.row(i));
           }
           
