@@ -53,9 +53,7 @@ public:
                                  Min(-1)),
                        FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
-  BufferSTFTClient(ParamSetViewType& p)
-      : mParams(p), mSTFTBufferedProcess{65536, 1, 1}
-  {}
+  BufferSTFTClient(ParamSetViewType& p) : mParams(p) {}
 
   template <typename T>
   Result process(FluidContext& c)
@@ -68,7 +66,7 @@ public:
 
 private:
   template <typename T>
-  Result processFwd(FluidContext& c)
+  Result processFwd(FluidContext&)
   {
     auto s = get<kSource>().get();
     if (!s) return {Result::Status::kError, "No input buffer supplied"};
@@ -88,7 +86,7 @@ private:
 
     index  offset = get<kOffset>();
     index  numFrames = get<kNumFrames>();
-    index  numChans = 1; // get<kNumChans>();
+    index  numChans = 1; 
     Result rangeOK = bufferRangeCheck(get<kSource>().get(), offset, numFrames,
                                       get<kStartChan>(), numChans);
 
@@ -105,14 +103,13 @@ private:
     index fftSize = get<kFFT>().fftSize();
     index winSize = get<kFFT>().winSize();
     index hopSize = get<kFFT>().hopSize();
-    index halfWinSize = winSize >> 1;
 
     index padding = get<kPadding>() < 0 ? winSize >> 1 : get<kPadding>();
     index totalPadding = padding << 1;
 
     index numHops =
         1 + std::floor((numFrames + totalPadding - winSize) / hopSize);
-    index latencyHops = winSize / hopSize;
+    
     index numBins = (fftSize >> 1) + 1;
 
     // I'm thinking that most things can only really deal with 65536 channels
@@ -136,16 +133,15 @@ private:
 
     auto input = source.samps(0)(Slice(offset, numFrames));
 
-    FluidTensor<double, 1> paddedInput(input.size() + totalPadding +
-                                       latencyHops);
-    auto                   paddingSlice = Slice(padding, input.size());
+    FluidTensor<double, 1> paddedInput(input.size() + totalPadding);
+
+    auto paddingSlice = Slice(padding, input.size());
     paddedInput(paddingSlice) = input;
 
-    FluidTensor<double, 2> tmpMags(numHops + latencyHops, numBins);
-    FluidTensor<double, 2> tmpPhase(numHops + latencyHops, numBins);
-    FluidTensor<std::complex<double>, 2> tmpComplex(numHops + latencyHops,
-                                                    numBins);
-
+    FluidTensor<double, 2> tmpMags(numHops, numBins);
+    FluidTensor<double, 2> tmpPhase(numHops, numBins);
+    
+    FluidTensor<std::complex<double>, 2> tmpComplex(numHops, numBins);
 
     auto stft = algorithm::STFT(winSize, fftSize, hopSize);
 
@@ -196,14 +192,14 @@ private:
     index winSize = get<kFFT>().winSize();
     index hopSize = get<kFFT>().hopSize();
 
-    if (mags.numChans() != (fftSize / 2) + 1)
+    if (mags.numChans() != (fftSize >> 1) + 1)
       return {Result::Status::kError,
               "Wrong number of channels for FFT sizee of ",
               fftSize,
               " got ",
               mags.numChans(),
               " expected ",
-              (fftSize / 2) + 1};
+              (fftSize >> 1) + 1};
 
     auto resynth = BufferAdaptor::Access(r);
 
@@ -256,8 +252,6 @@ private:
 
     return {};
   }
-
-  STFTBufferedProcess<ParamSetViewType, kFFT, true> mSTFTBufferedProcess;
 };
 
 using NRTThreadedBufferSTFTClient =
