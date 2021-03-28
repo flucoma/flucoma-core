@@ -78,6 +78,31 @@ constexpr auto joinParameterDescriptors(
       std::tuple_cat(x.descriptors(), y.descriptors())};
 }
 
+template <class ParamDesc>
+struct ParamsSize;
+
+template <class Offsets, class Tuple>
+struct ParamsSize<const ParameterDescriptorSet<Offsets, Tuple>>
+{
+  static constexpr size_t value = std::tuple_size<Tuple>::value;
+};
+
+struct IsFFTParam
+{
+  template <typename T>
+  using apply =
+      std::is_same<FFTParamsT, typename std::tuple_element<0, T>::type>;
+};
+
+template <class RTClient>
+struct HasFFT
+{
+  using Index = typename RTClient::ParamDescType::IndexList;
+  using Types = typename RTClient::ParamDescType::DescriptorType;
+  static constexpr bool value =
+      impl::FilterTupleIndices<IsFFTParam, Types, Index>::type::size() > 0;
+};
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename HostMatrix, typename HostVectorView>
 struct StreamingControl;
@@ -117,8 +142,10 @@ public:
   //  RTClient<impl::ParameterSet_Offset<Params,ParamOffset>,T,U>;
   // None of that for outputs though
 
-  static constexpr size_t ParamOffset = (Ins * 5) + decideOuts;
-  using WrappedClient = RTClient; //<ParameterSet_Offset<Params,ParamOffset>,T>;
+  static constexpr size_t ParamOffset =
+      ParamsSize<ParamDescType>::value - ParamsSize<RTParamDescType>::value;
+
+  using WrappedClient = RTClient; 
 
   using isModelObject = typename RTClient::isModelObject;
 
@@ -266,7 +293,8 @@ public:
     index numChannels = *std::min_element(inChans.begin(), inChans.end());
 
     Result processResult = AdaptorType<HostMatrix, HostVectorView>::process(
-        mClient, inputBuffers, outputBuffers, numFrames, numChannels, c);
+        mClient, inputBuffers, outputBuffers, numFrames, numChannels,
+        userPadding<>(), c);
 
     if (!processResult.ok())
     {
@@ -277,7 +305,28 @@ public:
     return r;
   }
 
+  template <typename C = RTClient>
+  index userPadding(std::enable_if_t<impl::HasFFT<C>::value>* = 0)
+  {
+    index userParamValue = get<ParamOffset - 1>();
+    index winSize;
+    mParams.get().template forEachParamType<FFTParamsT, GetWinSize>(winSize);
+    return userParamValue < 0 ? winSize >> 1 : userParamValue;
+  }
+
+  template <typename C = RTClient>
+  index userPadding(std::enable_if_t<!impl::HasFFT<C>::value>* = 0)
+  {
+    return 0;
+  }
+
 private:
+  template <size_t N, typename T>
+  struct GetWinSize
+  {
+    void operator()(typename T::type& param, index& x) { x = param.winSize(); }
+  };
+
   template <size_t I>
   BufferProcessSpec fetchInputBuffer()
   {
@@ -320,7 +369,7 @@ struct Streaming
   template <typename Client, typename InputList, typename OutputList>
   static Result process(Client& client, InputList& inputBuffers,
                         OutputList& outputBuffers, index nFrames, index nChans,
-                        FluidContext& c)
+                        index userpadding, FluidContext& c)
   {
     // To account for process latency we need to copy the buffers with padding
     std::vector<HostMatrix> outputData;
@@ -329,12 +378,13 @@ struct Streaming
     outputData.reserve(outputBuffers.size());
     inputData.reserve(inputBuffers.size());
 
-    index padding = client.latency();
+    index startpadding = client.latency() + userpadding;
+    index totalpadding = startpadding + userpadding;
 
     std::fill_n(std::back_inserter(outputData), outputBuffers.size(),
-                HostMatrix(nChans, nFrames + padding));
+                HostMatrix(nChans, nFrames + totalpadding));
     std::fill_n(std::back_inserter(inputData), inputBuffers.size(),
-                HostMatrix(nChans, nFrames + padding));
+                HostMatrix(nChans, nFrames + totalpadding));
 
     double sampleRate{0};
 
@@ -346,7 +396,7 @@ struct Streaming
       {
         BufferAdaptor::ReadAccess thisInput(inputBuffers[asUnsigned(j)].buffer);
         if (i == 0 && j == 0) sampleRate = thisInput.sampleRate();
-        inputData[asUnsigned(j)].row(i)(Slice(0, nFrames)) =
+        inputData[asUnsigned(j)].row(i)(Slice(userpadding, nFrames)) =
             thisInput.samps(inputBuffers[asUnsigned(j)].startFrame, nFrames,
                             inputBuffers[asUnsigned(j)].startChan + i);
         inputs.emplace_back(inputData[asUnsigned(j)].row(i));
@@ -370,7 +420,8 @@ struct Streaming
       Result                r = thisOutput.resize(nFrames, nChans, sampleRate);
       if (!r.ok()) return r;
       for (index j = 0; j < nChans; ++j)
-        thisOutput.samps(j) = outputData[asUnsigned(i)].row(j)(Slice(padding));
+        thisOutput.samps(j) =
+            outputData[asUnsigned(i)].row(j)(Slice(startpadding, nFrames));
     }
 
     return {};
@@ -383,7 +434,7 @@ struct StreamingControl
   template <typename Client, typename InputList, typename OutputList>
   static Result process(Client& client, InputList& inputBuffers,
                         OutputList& outputBuffers, index nFrames, index nChans,
-                        FluidContext& c)
+                        index userpadding, FluidContext& c)
   {
     // To account for process latency we need to copy the buffers with padding
     std::vector<HostMatrix> inputData;
@@ -391,9 +442,15 @@ struct StreamingControl
     //      outputData.reserve(nFeatures);
     inputData.reserve(inputBuffers.size());
 
-    index padding = client.latency();
+    index startpadding = client.latency() + userpadding;
+    index totalpadding = startpadding + userpadding;
     index controlRate = client.controlRate();
-    index nHops = (nFrames + padding) / controlRate;
+
+    index totallength = nFrames + totalpadding;
+
+    // Fix me. This assumes that client.latency() is always the window size of
+    // whatever buffered process we're wrapping, which seems well dodgy
+    index nHops = 1 + std::floor((totallength  - client.latency()) / controlRate);
 
     // in contrast to the plain streaming case, we're going to call process()
     // iteratively with a vector size = the control vector size, so we get KR
@@ -401,7 +458,8 @@ struct StreamingControl
     // TODO make this whole mess less baroque and opaque
 
     std::fill_n(std::back_inserter(inputData), inputBuffers.size(),
-                HostMatrix(nChans, nFrames + padding));
+                HostMatrix(nChans, nFrames + totalpadding));
+
     HostMatrix outputData(nChans * nFeatures, nHops);
     double     sampleRate{0};
     // Copy input data
@@ -411,7 +469,7 @@ struct StreamingControl
       {
         BufferAdaptor::ReadAccess thisInput(inputBuffers[asUnsigned(j)].buffer);
         if (i == 0 && j == 0) sampleRate = thisInput.sampleRate();
-        inputData[asUnsigned(j)].row(i)(Slice(0, nFrames)) =
+        inputData[asUnsigned(j)].row(i)(Slice(userpadding, nFrames)) =
             thisInput.samps(inputBuffers[asUnsigned(j)].startFrame, nFrames,
                             inputBuffers[asUnsigned(j)].startChan + i);
       }
@@ -423,7 +481,8 @@ struct StreamingControl
       client.reset();
       for (index j = 0; j < nHops; ++j)
       {
-        index                       t = j * controlRate;
+        index  t = j * controlRate;
+        
         std::vector<HostVectorView> inputs;
         inputs.reserve(inputBuffers.size());
         std::vector<HostVectorView> outputs;
@@ -445,15 +504,23 @@ struct StreamingControl
     }
 
     BufferAdaptor::Access thisOutput(outputBuffers[0]);
-    Result resizeResult = thisOutput.resize(nHops - 1, nChans * nFeatures,
+
+    index keepHops =
+        1 + std::floor((nFrames + 2 * userpadding - client.latency()) /
+                       controlRate);
+
+    Result resizeResult = thisOutput.resize(keepHops, nChans * nFeatures,
                                             sampleRate / controlRate);
+
     if (!resizeResult.ok()) return resizeResult;
+
+    index latencyHops = client.latency() / client.controlRate();
 
     for (index i = 0; i < nFeatures; ++i)
     {
       for (index j = 0; j < nChans; ++j)
         thisOutput.samps(i + j * nFeatures) =
-            outputData.row(i + j * nFeatures)(Slice(1));
+            outputData.row(i + j * nFeatures)(Slice(latencyHops, keepHops));
     }
 
     return {};
@@ -468,23 +535,26 @@ struct Slicing
   template <typename Client, typename InputList, typename OutputList>
   static Result process(Client& client, InputList& inputBuffers,
                         OutputList& outputBuffers, index nFrames, index nChans,
-                        FluidContext& c)
+                        index userpadding, FluidContext& c)
   {
 
     assert(inputBuffers.size() == 1);
     assert(outputBuffers.size() == 1);
-    index      padding = client.latency();
-    HostMatrix monoSource(1, nFrames + padding);
+  
+    index startpadding = client.latency() + userpadding;
+    index totalpadding = startpadding + userpadding;
+    
+    HostMatrix monoSource(1, nFrames + totalpadding);
 
     BufferAdaptor::ReadAccess src(inputBuffers[0].buffer);
     // Make a mono sum;
     for (index i = inputBuffers[0].startChan;
          i < nChans + inputBuffers[0].startChan; ++i)
-      monoSource.row(0)(Slice(0, nFrames))
+      monoSource.row(0)(Slice(userpadding, nFrames))
           .apply(src.samps(inputBuffers[0].startFrame, nFrames, i),
                  [](float& x, float y) { x += y; });
 
-    HostMatrix onsetPoints(1, nFrames + padding);
+    HostMatrix onsetPoints(1, nFrames + totalpadding);
 
     std::vector<HostVectorView> input{monoSource.row(0)};
     std::vector<HostVectorView> output{onsetPoints.row(0)};
@@ -492,17 +562,17 @@ struct Slicing
     client.reset();
     client.process(input, output, c);
 
-    if (padding)
+    if (startpadding)
     {
-      auto paddingAudio = onsetPoints(0, Slice(0, padding));
+      auto paddingAudio = onsetPoints(0, Slice(0, startpadding));
       auto numNegativeTimeOnsets =
           std::count_if(paddingAudio.begin(), paddingAudio.end(),
                         [](float x) { return x > 0; });
 
-      if (numNegativeTimeOnsets > 0) onsetPoints(0, padding) = 1;
+      if (numNegativeTimeOnsets > 0) onsetPoints(0, startpadding) = 1;
     }
 
-    return impl::spikesToTimes(onsetPoints(0, Slice(padding, nFrames)),
+    return impl::spikesToTimes(onsetPoints(0, Slice(startpadding, nFrames)),
                                outputBuffers[0], 1, inputBuffers[0].startFrame,
                                nFrames, src.sampleRate());
   }
@@ -526,26 +596,46 @@ using NRTControlAdaptor =
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-template <class RTClient, typename... Args>
+
+template <class RTClient, class... Outs>
+auto constexpr addFFTPadding(
+    Outs&&... outs, std::enable_if_t<!impl::HasFFT<RTClient>::value>* = 0)
+{
+  return defineParameters(std::forward<Outs>(outs)...);
+}
+
+template <class RTClient, class... Outs>
+auto constexpr addFFTPadding(
+    Outs&&... outs, std::enable_if_t<impl::HasFFT<RTClient>::value>* = 0)
+{
+
+  return defineParameters(
+      std::forward<Outs>(outs)...,
+      LongParam("padSize", "Added padding (samples)", -1, Min(-1)));
+}
+
+
+template <class RTClient, typename... Outs>
 auto constexpr makeNRTParams(impl::InputBufferSpec&& in,
-                             impl::InputBufferSpec&& in2, Args&&... outs)
+                             impl::InputBufferSpec&& in2, Outs&&... outs)
 {
   return impl::joinParameterDescriptors(
       impl::joinParameterDescriptors(
           impl::makeWrapperInputs(in, in2),
-          defineParameters(std::forward<Args>(outs)...)),
+          addFFTPadding<RTClient, Outs...>(std::forward<Outs>(outs)...)),
       ClientWrapper<RTClient>::getParameterDescriptors());
 }
 
-template <class RTClient, typename... Args>
-auto constexpr makeNRTParams(impl::InputBufferSpec&& in, Args&&... outs)
+template <class RTClient, typename... Outs>
+auto constexpr makeNRTParams(impl::InputBufferSpec&& in, Outs&&... outs)
 {
   return impl::joinParameterDescriptors(
       impl::joinParameterDescriptors(
           impl::makeWrapperInputs(in),
-          defineParameters(std::forward<Args>(outs)...)),
+          addFFTPadding<RTClient, Outs...>(std::forward<Outs>(outs)...)),
       ClientWrapper<RTClient>::getParameterDescriptors());
 }
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 

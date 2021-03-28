@@ -121,7 +121,7 @@ struct NRTAmpGate
   template <typename Client, typename InputList, typename OutputList>
   static Result process(Client& client, InputList& inputBuffers,
                         OutputList& outputBuffers, index nFrames, index nChans,
-                        FluidContext& c)
+                        index userpadding, FluidContext& c)
   {
     assert(inputBuffers.size() == 1);
     assert(outputBuffers.size() == 1);
