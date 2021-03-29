@@ -611,7 +611,7 @@ auto constexpr addFFTPadding(
 
   return defineParameters(
       std::forward<Outs>(outs)...,
-      LongParam("padSize", "Added padding (samples)", -1, Min(-1)));
+      LongParam("padSize", "Added Padding", -1, Min(-1)));
 }
 
 

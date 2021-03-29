@@ -46,10 +46,10 @@ public:
                        // LongParam("numChans", "Number of Channels", -1),
                        BufferParam("magnitude", "Magnitude Buffer"),
                        BufferParam("phase", "Phase Buffer"),
-                       BufferParam("resynthesis", "Resynthesis Buffer"),
-                       LongParam("inverse", "Inverse transform", 0, Min(0),
+                       BufferParam("resynth", "Resynthesis Buffer"),
+                       LongParam("inverse", "Inverse Transform", 0, Min(0),
                                  Max(1)),
-                       LongParam("padSize", "Added padding (samples)", -1,
+                       LongParam("padSize", "Added Padding", -1,
                                  Min(-1)),
                        FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
