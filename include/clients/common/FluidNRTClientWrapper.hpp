@@ -94,14 +94,40 @@ struct IsFFTParam
       std::is_same<FFTParamsT, typename std::tuple_element<0, T>::type>;
 };
 
+template <typename T>
+struct IsControlOut
+{
+  constexpr static bool value = std::is_base_of<ControlOut, T>::value;
+};
+
+template <typename T>
+struct IsControlOut<ClientWrapper<T>>
+{
+  constexpr static bool value{std::is_base_of<ControlOut, T>::value};
+};
+
+
 template <class RTClient>
-struct HasFFT
+struct AddPadding
 {
   using Index = typename RTClient::ParamDescType::IndexList;
   using Types = typename RTClient::ParamDescType::DescriptorType;
-  static constexpr bool value =
+  static constexpr bool HasFFT =
       impl::FilterTupleIndices<IsFFTParam, Types, Index>::type::size() > 0;
+  static constexpr bool HasControlOut = IsControlOut<RTClient>::value;
+
+  static constexpr size_t value = std::conditional_t<HasFFT,
+      std::conditional_t<HasControlOut, std::integral_constant<size_t, 2>,
+                         std::integral_constant<size_t, 1>>,
+      std::integral_constant<size_t, 0>>()();
 };
+
+template <typename C>
+using FFTWithControlOut = std::enable_if_t<AddPadding<C>::value == 2>;
+template <typename C>
+using FFTWithAudioOut = std::enable_if_t<AddPadding<C>::value == 1>;
+template <typename C>
+using NonFFT = std::enable_if_t<AddPadding<C>::value == 0>;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename HostMatrix, typename HostVectorView>
@@ -306,16 +332,24 @@ public:
   }
 
   template <typename C = RTClient>
-  index userPadding(std::enable_if_t<impl::HasFFT<C>::value>* = 0)
+  index userPadding(FFTWithControlOut<C>* = 0)
   {
-    index userParamValue = get<ParamOffset - 1>();
-    index winSize;
-    mParams.get().template forEachParamType<FFTParamsT, GetWinSize>(winSize);
-    return userParamValue < 0 ? winSize >> 1 : userParamValue;
+    using FFTLookup = std::reference_wrapper<FFTParams>;
+    index userPaddingParamValue = get<ParamOffset - 1>();
+    auto  fftSettings = mParams.get().template get<FFTLookup>();
+    return FFTParams::padding(fftSettings, userPaddingParamValue);
   }
 
   template <typename C = RTClient>
-  index userPadding(std::enable_if_t<!impl::HasFFT<C>::value>* = 0)
+  index userPadding(FFTWithAudioOut<C>* = 0)
+  {
+    using FFTLookup = std::reference_wrapper<FFTParams>;
+    index winSize = mParams.get().template get<FFTLookup>().winSize();
+    return winSize >> 1;
+  }
+
+  template <typename C = RTClient>
+  index userPadding(NonFFT<C>* = 0)
   {
     return 0;
   }
@@ -599,21 +633,21 @@ using NRTControlAdaptor =
 
 template <class RTClient, class... Outs>
 auto constexpr addFFTPadding(
-    Outs&&... outs, std::enable_if_t<!impl::HasFFT<RTClient>::value>* = 0)
+    Outs&&... outs,
+    std::enable_if_t<impl::AddPadding<RTClient>::value != 2>* = 0)
 {
   return defineParameters(std::forward<Outs>(outs)...);
 }
 
 template <class RTClient, class... Outs>
 auto constexpr addFFTPadding(
-    Outs&&... outs, std::enable_if_t<impl::HasFFT<RTClient>::value>* = 0)
+    Outs&&... outs,
+    std::enable_if_t<impl::AddPadding<RTClient>::value == 2>* = 0)
 {
-
   return defineParameters(
       std::forward<Outs>(outs)...,
-      LongParam("padSize", "Added Padding", -1, Min(-1)));
+      EnumParam("padding", "Added Padding", 1, "None", "Default", "Full"));
 }
-
 
 template <class RTClient, typename... Outs>
 auto constexpr makeNRTParams(impl::InputBufferSpec&& in,

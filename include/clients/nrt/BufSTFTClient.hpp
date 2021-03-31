@@ -49,8 +49,8 @@ public:
                        BufferParam("resynth", "Resynthesis Buffer"),
                        LongParam("inverse", "Inverse Transform", 0, Min(0),
                                  Max(1)),
-                       LongParam("padSize", "Added Padding", -1,
-                                 Min(-1)),
+                       EnumParam("padding", "Added Padding", 1, "None",
+                                 "Default", "Full"),
                        FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
   BufferSTFTClient(ParamSetViewType& p) : mParams(p) {}
@@ -104,7 +104,7 @@ private:
     index winSize = get<kFFT>().winSize();
     index hopSize = get<kFFT>().hopSize();
 
-    index padding = get<kPadding>() < 0 ? winSize >> 1 : get<kPadding>();
+    index padding = FFTParams::padding(get<kFFT>(), get<kPadding>());
     index totalPadding = padding << 1;
 
     index numHops =
@@ -121,13 +121,15 @@ private:
 
     if (m)
     {
-      auto r = mags.resize(numHops, numBins * numChans, 44100);
+      auto r = mags.resize(numHops, numBins * numChans,
+                           source.sampleRate() / hopSize);
       if (!r.ok()) return r;
     }
 
     if (p)
     {
-      auto r = phases.resize(numHops, numBins * numChans, 44100);
+      auto r = phases.resize(numHops, numBins * numChans,
+                             source.sampleRate() / hopSize);
       if (!r.ok()) return r;
     }
 
@@ -204,11 +206,12 @@ private:
     auto resynth = BufferAdaptor::Access(r);
 
     index numFrames = mags.numFrames();
-    index padding = get<kPadding>() < 0 ? winSize >> 1 : get<kPadding>();
-
+    index padding = FFTParams::padding(get<kFFT>(),get<kPadding>());
+    
+    
     index paddedOutputSize = (mags.numFrames() - 1) * hopSize + winSize;
     index finalOutputSize = paddedOutputSize - (padding << 1);
-    auto  resizeResult = resynth.resize(finalOutputSize, 1, 44100);
+    auto  resizeResult = resynth.resize(finalOutputSize, 1, mags.sampleRate() * hopSize);
     if (!resizeResult.ok()) return resizeResult;
 
     FluidTensor<double, 1> tmpOut(paddedOutputSize);

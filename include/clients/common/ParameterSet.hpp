@@ -319,6 +319,12 @@ public:
     return std::get<N>(mParams).get();
   }
 
+  template <typename T>
+  auto& get() const
+  {
+    return std::get<T>(mParams).get();
+  }
+
   template <size_t offset>
   auto subset()
   {
