@@ -369,7 +369,7 @@ struct Streaming
   template <typename Client, typename InputList, typename OutputList>
   static Result process(Client& client, InputList& inputBuffers,
                         OutputList& outputBuffers, index nFrames, index nChans,
-                        index userpadding, FluidContext& c)
+                        index userPadding, FluidContext& c)
   {
     // To account for process latency we need to copy the buffers with padding
     std::vector<HostMatrix> outputData;
@@ -378,13 +378,13 @@ struct Streaming
     outputData.reserve(outputBuffers.size());
     inputData.reserve(inputBuffers.size());
 
-    index startpadding = client.latency() + userpadding;
-    index totalpadding = startpadding + userpadding;
+    index startPadding = client.latency() + userPadding;
+    index totalPadding = startPadding + userPadding;
 
     std::fill_n(std::back_inserter(outputData), outputBuffers.size(),
-                HostMatrix(nChans, nFrames + totalpadding));
+                HostMatrix(nChans, nFrames + totalPadding));
     std::fill_n(std::back_inserter(inputData), inputBuffers.size(),
-                HostMatrix(nChans, nFrames + totalpadding));
+                HostMatrix(nChans, nFrames + totalPadding));
 
     double sampleRate{0};
 
@@ -396,7 +396,7 @@ struct Streaming
       {
         BufferAdaptor::ReadAccess thisInput(inputBuffers[asUnsigned(j)].buffer);
         if (i == 0 && j == 0) sampleRate = thisInput.sampleRate();
-        inputData[asUnsigned(j)].row(i)(Slice(userpadding, nFrames)) =
+        inputData[asUnsigned(j)].row(i)(Slice(userPadding, nFrames)) =
             thisInput.samps(inputBuffers[asUnsigned(j)].startFrame, nFrames,
                             inputBuffers[asUnsigned(j)].startChan + i);
         inputs.emplace_back(inputData[asUnsigned(j)].row(i));
@@ -421,7 +421,7 @@ struct Streaming
       if (!r.ok()) return r;
       for (index j = 0; j < nChans; ++j)
         thisOutput.samps(j) =
-            outputData[asUnsigned(i)].row(j)(Slice(startpadding, nFrames));
+            outputData[asUnsigned(i)].row(j)(Slice(startPadding, nFrames));
     }
 
     return {};
@@ -434,7 +434,7 @@ struct StreamingControl
   template <typename Client, typename InputList, typename OutputList>
   static Result process(Client& client, InputList& inputBuffers,
                         OutputList& outputBuffers, index nFrames, index nChans,
-                        index userpadding, FluidContext& c)
+                        index userPadding, FluidContext& c)
   {
     // To account for process latency we need to copy the buffers with padding
     std::vector<HostMatrix> inputData;
@@ -442,11 +442,11 @@ struct StreamingControl
     //      outputData.reserve(nFeatures);
     inputData.reserve(inputBuffers.size());
 
-    index startpadding = client.latency() + userpadding;
-    index totalpadding = startpadding + userpadding;
+    index startPadding = client.latency() + userPadding;
+    index totalPadding = startPadding + userPadding;
     index controlRate = client.controlRate();
 
-    index totallength = nFrames + totalpadding;
+    index totallength = nFrames + totalPadding;
 
     // Fix me. This assumes that client.latency() is always the window size of
     // whatever buffered process we're wrapping, which seems well dodgy
@@ -458,7 +458,7 @@ struct StreamingControl
     // TODO make this whole mess less baroque and opaque
 
     std::fill_n(std::back_inserter(inputData), inputBuffers.size(),
-                HostMatrix(nChans, nFrames + totalpadding));
+                HostMatrix(nChans, nFrames + totalPadding));
 
     HostMatrix outputData(nChans * nFeatures, nHops);
     double     sampleRate{0};
@@ -469,7 +469,7 @@ struct StreamingControl
       {
         BufferAdaptor::ReadAccess thisInput(inputBuffers[asUnsigned(j)].buffer);
         if (i == 0 && j == 0) sampleRate = thisInput.sampleRate();
-        inputData[asUnsigned(j)].row(i)(Slice(userpadding, nFrames)) =
+        inputData[asUnsigned(j)].row(i)(Slice(userPadding, nFrames)) =
             thisInput.samps(inputBuffers[asUnsigned(j)].startFrame, nFrames,
                             inputBuffers[asUnsigned(j)].startChan + i);
       }
@@ -506,7 +506,7 @@ struct StreamingControl
     BufferAdaptor::Access thisOutput(outputBuffers[0]);
 
     index keepHops =
-        1 + std::floor((nFrames + 2 * userpadding - client.latency()) /
+        1 + std::floor((nFrames + 2 * userPadding - client.latency()) /
                        controlRate);
 
     Result resizeResult = thisOutput.resize(keepHops, nChans * nFeatures,
@@ -535,26 +535,26 @@ struct Slicing
   template <typename Client, typename InputList, typename OutputList>
   static Result process(Client& client, InputList& inputBuffers,
                         OutputList& outputBuffers, index nFrames, index nChans,
-                        index userpadding, FluidContext& c)
+                        index userPadding, FluidContext& c)
   {
 
     assert(inputBuffers.size() == 1);
     assert(outputBuffers.size() == 1);
   
-    index startpadding = client.latency() + userpadding;
-    index totalpadding = startpadding + userpadding;
+    index startPadding = client.latency() + userPadding;
+    index totalPadding = startPadding + userPadding;
     
-    HostMatrix monoSource(1, nFrames + totalpadding);
+    HostMatrix monoSource(1, nFrames + totalPadding);
 
     BufferAdaptor::ReadAccess src(inputBuffers[0].buffer);
     // Make a mono sum;
     for (index i = inputBuffers[0].startChan;
          i < nChans + inputBuffers[0].startChan; ++i)
-      monoSource.row(0)(Slice(userpadding, nFrames))
+      monoSource.row(0)(Slice(userPadding, nFrames))
           .apply(src.samps(inputBuffers[0].startFrame, nFrames, i),
                  [](float& x, float y) { x += y; });
 
-    HostMatrix onsetPoints(1, nFrames + totalpadding);
+    HostMatrix onsetPoints(1, nFrames + totalPadding);
 
     std::vector<HostVectorView> input{monoSource.row(0)};
     std::vector<HostVectorView> output{onsetPoints.row(0)};
@@ -562,17 +562,17 @@ struct Slicing
     client.reset();
     client.process(input, output, c);
 
-    if (startpadding)
+    if (startPadding)
     {
-      auto paddingAudio = onsetPoints(0, Slice(0, startpadding));
+      auto paddingAudio = onsetPoints(0, Slice(0, startPadding));
       auto numNegativeTimeOnsets =
           std::count_if(paddingAudio.begin(), paddingAudio.end(),
                         [](float x) { return x > 0; });
 
-      if (numNegativeTimeOnsets > 0) onsetPoints(0, startpadding) = 1;
+      if (numNegativeTimeOnsets > 0) onsetPoints(0, startPadding) = 1;
     }
 
-    return impl::spikesToTimes(onsetPoints(0, Slice(startpadding, nFrames)),
+    return impl::spikesToTimes(onsetPoints(0, Slice(startPadding, nFrames)),
                                outputBuffers[0], 1, inputBuffers[0].startFrame,
                                nFrames, src.sampleRate());
   }
