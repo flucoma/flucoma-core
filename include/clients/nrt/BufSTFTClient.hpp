@@ -105,7 +105,7 @@ private:
     index hopSize = get<kFFT>().hopSize();
 
     index padding = FFTParams::padding(get<kFFT>(), get<kPadding>());
-    index totalPadding = padding << 1;
+    double totalPadding = padding << 1;
 
     index numHops =
         1 + std::floor((numFrames + totalPadding - winSize) / hopSize);
@@ -210,7 +210,7 @@ private:
     
     
     index paddedOutputSize = (mags.numFrames() - 1) * hopSize + winSize;
-    index finalOutputSize = paddedOutputSize - (padding << 1);
+    index finalOutputSize = paddedOutputSize - padding;
     auto  resizeResult = resynth.resize(finalOutputSize, 1, mags.sampleRate() * hopSize);
     if (!resizeResult.ok()) return resizeResult;
 
