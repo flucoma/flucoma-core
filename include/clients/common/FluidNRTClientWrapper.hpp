@@ -543,22 +543,21 @@ struct StreamingControl
 
     BufferAdaptor::Access thisOutput(outputBuffers[0]);
 
-    index keepHops =
-        1 + std::floor((nFrames + 2 * userPadding - client.latency()) /
-                       controlRate);
+    index latencyHops = client.latency() / client.controlRate();
+    index keepHops = nHops - latencyHops;
 
     Result resizeResult = thisOutput.resize(keepHops, nChans * nFeatures,
                                             sampleRate / controlRate);
 
     if (!resizeResult.ok()) return resizeResult;
 
-    index latencyHops = client.latency() / client.controlRate();
+    
 
     for (index i = 0; i < nFeatures; ++i)
     {
       for (index j = 0; j < nChans; ++j)
         thisOutput.samps(i + j * nFeatures) =
-            outputData.row(i + j * nFeatures)(Slice(latencyHops, keepHops));
+            outputData.row(i + j * nFeatures)(Slice(latencyHops,keepHops));
     }
 
     return {};
