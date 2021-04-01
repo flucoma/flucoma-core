@@ -332,26 +332,26 @@ public:
   }
 
   template <typename C = RTClient>
-  index userPadding(FFTWithControlOut<C>* = 0)
+  std::pair<index,index> userPadding(FFTWithControlOut<C>* = 0)
   {
     using FFTLookup = std::reference_wrapper<FFTParams>;
     index userPaddingParamValue = get<ParamOffset - 1>();
     auto  fftSettings = mParams.get().template get<FFTLookup>();
-    return FFTParams::padding(fftSettings, userPaddingParamValue);
+    return {FFTParams::padding(fftSettings, userPaddingParamValue),userPaddingParamValue};
   }
 
   template <typename C = RTClient>
-  index userPadding(FFTWithAudioOut<C>* = 0)
+  std::pair<index,index> userPadding(FFTWithAudioOut<C>* = 0)
   {
     using FFTLookup = std::reference_wrapper<FFTParams>;
     index winSize = mParams.get().template get<FFTLookup>().winSize();
-    return winSize >> 1;
+    return {winSize >> 1,1};
   }
 
   template <typename C = RTClient>
-  index userPadding(NonFFT<C>* = 0)
+  std::pair<index,index> userPadding(NonFFT<C>* = 0)
   {
-    return 0;
+    return {0,0};
   }
 
 private:
@@ -403,7 +403,7 @@ struct Streaming
   template <typename Client, typename InputList, typename OutputList>
   static Result process(Client& client, InputList& inputBuffers,
                         OutputList& outputBuffers, index nFrames, index nChans,
-                        index userPadding, FluidContext& c)
+                        std::pair<index,index> userPadding, FluidContext& c)
   {
     // To account for process latency we need to copy the buffers with padding
     std::vector<HostMatrix> outputData;
@@ -412,8 +412,8 @@ struct Streaming
     outputData.reserve(outputBuffers.size());
     inputData.reserve(inputBuffers.size());
 
-    index startPadding = client.latency() + userPadding;
-    index totalPadding = startPadding + userPadding;
+    index startPadding = client.latency() + userPadding.first;
+    index totalPadding = startPadding + userPadding.first;
 
     std::fill_n(std::back_inserter(outputData), outputBuffers.size(),
                 HostMatrix(nChans, nFrames + totalPadding));
@@ -430,7 +430,7 @@ struct Streaming
       {
         BufferAdaptor::ReadAccess thisInput(inputBuffers[asUnsigned(j)].buffer);
         if (i == 0 && j == 0) sampleRate = thisInput.sampleRate();
-        inputData[asUnsigned(j)].row(i)(Slice(userPadding, nFrames)) =
+        inputData[asUnsigned(j)].row(i)(Slice(userPadding.first, nFrames)) =
             thisInput.samps(inputBuffers[asUnsigned(j)].startFrame, nFrames,
                             inputBuffers[asUnsigned(j)].startChan + i);
         inputs.emplace_back(inputData[asUnsigned(j)].row(i));
@@ -468,7 +468,7 @@ struct StreamingControl
   template <typename Client, typename InputList, typename OutputList>
   static Result process(Client& client, InputList& inputBuffers,
                         OutputList& outputBuffers, index nFrames, index nChans,
-                        index userPadding, FluidContext& c)
+                        std::pair<index,index> userPadding, FluidContext& c)
   {
     // To account for process latency we need to copy the buffers with padding
     std::vector<HostMatrix> inputData;
@@ -476,15 +476,16 @@ struct StreamingControl
     //      outputData.reserve(nFeatures);
     inputData.reserve(inputBuffers.size());
 
-    index startPadding = client.latency() + userPadding;
+    index startPadding = client.latency() + userPadding.first;
         
-    index totalPadding = startPadding + userPadding;
+    index totalPadding = startPadding + userPadding.first;
     index controlRate = client.controlRate();
 
     index paddedLength = nFrames + totalPadding;
     
-//    for descriptors, round analysis length up to a whole number of hops to ensure that last frame gets a fair showing
-    paddedLength = (std::ceil(double(paddedLength) / controlRate) * controlRate);
+//    for descriptors in full padding mode, round analysis length up to a whole number of hops to ensure that last frame gets a fair showing
+    if(userPadding.second == 2)
+      paddedLength = (std::ceil(double(paddedLength) / controlRate) * controlRate);
 
     // Fix me. This assumes that client.latency() is always the window size of
     // whatever buffered process we're wrapping, which seems well dodgy
@@ -507,7 +508,7 @@ struct StreamingControl
       {
         BufferAdaptor::ReadAccess thisInput(inputBuffers[asUnsigned(j)].buffer);
         if (i == 0 && j == 0) sampleRate = thisInput.sampleRate();
-        inputData[asUnsigned(j)].row(i)(Slice(userPadding, nFrames)) =
+        inputData[asUnsigned(j)].row(i)(Slice(userPadding.first, nFrames)) =
             thisInput.samps(inputBuffers[asUnsigned(j)].startFrame, nFrames,
                             inputBuffers[asUnsigned(j)].startChan + i);
       }
@@ -572,14 +573,14 @@ struct Slicing
   template <typename Client, typename InputList, typename OutputList>
   static Result process(Client& client, InputList& inputBuffers,
                         OutputList& outputBuffers, index nFrames, index nChans,
-                        index userPadding, FluidContext& c)
+                        std::pair<index,index> userPadding, FluidContext& c)
   {
 
     assert(inputBuffers.size() == 1);
     assert(outputBuffers.size() == 1);
   
-    index startPadding = client.latency() + userPadding;
-    index totalPadding = startPadding + userPadding;
+    index startPadding = client.latency() + userPadding.first;
+    index totalPadding = startPadding + userPadding.first;
     
     HostMatrix monoSource(1, nFrames + totalPadding);
 
@@ -587,7 +588,7 @@ struct Slicing
     // Make a mono sum;
     for (index i = inputBuffers[0].startChan;
          i < nChans + inputBuffers[0].startChan; ++i)
-      monoSource.row(0)(Slice(userPadding, nFrames))
+      monoSource.row(0)(Slice(userPadding.first, nFrames))
           .apply(src.samps(inputBuffers[0].startFrame, nFrames, i),
                  [](float& x, float y) { x += y; });
 
