@@ -477,14 +477,18 @@ struct StreamingControl
     inputData.reserve(inputBuffers.size());
 
     index startPadding = client.latency() + userPadding;
+        
     index totalPadding = startPadding + userPadding;
     index controlRate = client.controlRate();
 
-    index totallength = nFrames + totalPadding;
+    index paddedLength = nFrames + totalPadding;
+    
+//    for descriptors, round analysis length up to a whole number of hops to ensure that last frame gets a fair showing
+    paddedLength = (std::ceil(double(paddedLength) / controlRate) * controlRate);
 
     // Fix me. This assumes that client.latency() is always the window size of
     // whatever buffered process we're wrapping, which seems well dodgy
-    index nHops = 1 + std::floor((totallength  - client.latency()) / controlRate);
+    index nHops = 1 + std::floor((paddedLength  - client.latency()) / controlRate);
 
     // in contrast to the plain streaming case, we're going to call process()
     // iteratively with a vector size = the control vector size, so we get KR
