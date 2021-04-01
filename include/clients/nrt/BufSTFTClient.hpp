@@ -107,8 +107,12 @@ private:
     index padding = FFTParams::padding(get<kFFT>(), get<kPadding>());
     double totalPadding = padding << 1;
 
+    index paddedLength = numFrames + totalPadding;
+    if(get<kPadding>() == 2)
+      paddedLength = (std::ceil(double(paddedLength) / hopSize) * hopSize);
+
     index numHops =
-        1 + std::floor((numFrames + totalPadding - winSize) / hopSize);
+        1 + std::floor((paddedLength - winSize) / hopSize);
     
     index numBins = (fftSize >> 1) + 1;
 
@@ -135,7 +139,7 @@ private:
 
     auto input = source.samps(0)(Slice(offset, numFrames));
 
-    FluidTensor<double, 1> paddedInput(input.size() + totalPadding);
+    FluidTensor<double, 1> paddedInput(paddedLength);
 
     auto paddingSlice = Slice(padding, input.size());
     paddedInput(paddingSlice) = input;
