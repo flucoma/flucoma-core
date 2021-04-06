@@ -78,6 +78,7 @@ public:
     mMeans = _impl::asEigen<Eigen::Array>(means);
     mDims = mMeans.cols();
     mK = mMeans.rows();
+    mEmpty = std::vector<bool>(asUnsigned(mK), false);
     mTrained = true;
   }
 
