@@ -110,8 +110,7 @@ public:
       return Error<double>(EmptyDataSet);
     if (sourceDataSet.size() != targetDataSet.size())
       return Error<double>(SizesDontMatch);
-
-    if (mTracker.changed(get<kHidden>(), get<kActivation>())) {
+    if (!mAlgorithm.initialized() || mTracker.changed(get<kHidden>(), get<kActivation>())) {
       index outputAct = get<kOutputActivation>() == -1?get<kActivation>():get<kOutputActivation>();
       mAlgorithm.init(sourceDataSet.pointSize(), targetDataSet.pointSize(),
                       get<kHidden>(), get<kActivation>(), outputAct);

@@ -62,7 +62,7 @@ public:
   void clear() {
     for (auto &&l : mLayers)
       l.init();
-    mInitialized = true;
+    mInitialized = false;
     mTrained = false;
   }
 
