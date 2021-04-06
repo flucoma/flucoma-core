@@ -292,6 +292,16 @@ public:
   }
   intptr_t frameSize() const { return (fftSize() >> 1) + 1; }
 
+  static index padding(const FFTParams& settings, index option)
+  {
+    using Op = index (*)(const FFTParams&);
+    static std::array<Op, 3> options{
+        [](const FFTParams&) -> index { return 0; },
+        [](const FFTParams& x) { return x.winSize() >> 1; },
+        [](const FFTParams& x) { return x.winSize() - x.hopSize(); }};
+    return options[option](settings);
+  };
+
   void setWin(intptr_t win) { mWindowSize = win; }
   void setFFT(intptr_t fft) { mFFTSize = fft; }
   void setHop(intptr_t hop) { mHopSize = hop; }
