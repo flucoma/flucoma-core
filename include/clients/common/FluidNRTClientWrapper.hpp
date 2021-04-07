@@ -602,7 +602,7 @@ struct Slicing
 
     if (startPadding)
     {
-      auto paddingAudio = onsetPoints(0, Slice(0, startPadding));
+      auto paddingAudio = onsetPoints(0, Slice(client.latency(), userPadding.first));
       auto numNegativeTimeOnsets =
           std::count_if(paddingAudio.begin(), paddingAudio.end(),
                         [](float x) { return x > 0; });
