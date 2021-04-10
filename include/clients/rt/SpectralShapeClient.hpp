@@ -22,42 +22,39 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 namespace client {
+namespace spectralshape {
 
 using algorithm::SpectralShape;
+
+enum SpectralShapeParamIndex { kFFT, kMaxFFTSize };
+
+constexpr auto SpectralShapeParams = defineParameters(
+    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
+    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
+                           PowerOfTwo{}));
 
 class SpectralShapeClient : public FluidBaseClient,
                             public AudioIn,
                             public ControlOut
 {
-
-  enum SpectralShapeParamIndex { kFFT, kMaxFFTSize };
-
 public:
-  using ParamDescType = 
-  std::add_const_t<decltype(defineParameters(FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings",
-                                             1024, -1, -1),
-                       LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size",
-                                              16384, Min(4), PowerOfTwo{})))>; 
+  using ParamDescType = decltype(SpectralShapeParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   std::reference_wrapper<ParamSetViewType> mParams;
 
   void setParams(ParamSetViewType& p) { mParams = p; }
 
-  template <size_t N> 
+  template <size_t N>
   auto& get() const
   {
     return mParams.get().template get<N>();
   }
 
-  static constexpr auto getParameterDescriptors()
-  { 
-    return defineParameters(FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings",
-                                             1024, -1, -1),
-                       LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size",
-                                              16384, Min(4), PowerOfTwo{})); 
+  static constexpr auto& getParameterDescriptors()
+  {
+    return SpectralShapeParams;
   }
-
 
   SpectralShapeClient(ParamSetViewType& p)
       : mParams(p),
@@ -117,16 +114,19 @@ private:
   FluidTensor<double, 1> mDescriptors;
   double                 mBinHz;
 };
+} // namespace spectralshape
 
-using RTSpectralShapeClient = ClientWrapper<SpectralShapeClient>;
+using RTSpectralShapeClient = ClientWrapper<spectralshape::SpectralShapeClient>;
 
-auto constexpr NRTSpectralShapeParams = makeNRTParams<SpectralShapeClient>(
-    InputBufferParam("source", "Source Buffer"),
-    BufferParam("features", "Features Buffer"));
+auto constexpr NRTSpectralShapeParams =
+    makeNRTParams<spectralshape::SpectralShapeClient>(
+        InputBufferParam("source", "Source Buffer"),
+        BufferParam("features", "Features Buffer"));
 
 using NRTSpectralShapeClient =
-    NRTControlAdaptor<SpectralShapeClient, decltype(NRTSpectralShapeParams),
-                      NRTSpectralShapeParams, 1, 1>;
+    NRTControlAdaptor<spectralshape::SpectralShapeClient,
+                      decltype(NRTSpectralShapeParams), NRTSpectralShapeParams,
+                      1, 1>;
 
 using NRTThreadedSpectralShapeClient =
     NRTThreadingAdaptor<NRTSpectralShapeClient>;
