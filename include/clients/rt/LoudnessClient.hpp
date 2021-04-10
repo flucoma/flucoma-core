@@ -22,56 +22,43 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 namespace client {
+namespace loudness {
 
+enum LoudnessParamIndex {
+  kKWeighting,
+  kTruePeak,
+  kWindowSize,
+  kHopSize,
+  kMaxWindowSize
+};
+
+constexpr auto LoudnessParams = defineParameters(
+    EnumParam("kWeighting", "Apply K-Weighting", 1, "Off", "On"),
+    EnumParam("truePeak", "Compute True Peak", 1, "Off", "On"),
+    LongParam("windowSize", "Window Size", 1024, UpperLimit<kMaxWindowSize>()),
+    LongParam("hopSize", "Hop Size", 512, Min(1)),
+    LongParam<Fixed<true>>("maxWindowSize", "Max Window Size", 16384, Min(4),
+                           PowerOfTwo{}) // 17640 next power of two
+);
 
 class LoudnessClient : public FluidBaseClient, public AudioIn, public ControlOut
 {
 
-  enum LoudnessParamIndex {
-    kKWeighting,
-    kTruePeak,
-    kWindowSize,
-    kHopSize,
-    kMaxWindowSize
-  };
-
 public:
-  using ParamDescType = 
-  std::add_const_t<decltype(defineParameters(
-      EnumParam("kWeighting", "Apply K-Weighting", 1, "Off", "On"),
-      EnumParam("truePeak", "Compute True Peak", 1, "Off", "On"),
-      LongParam("windowSize", "Window Size", 1024,
-                UpperLimit<kMaxWindowSize>()),
-      LongParam("hopSize", "Hop Size", 512, Min(1)),
-      LongParam<Fixed<true>>("maxWindowSize", "Max Window Size", 16384, Min(4),
-                             PowerOfTwo{}) // 17640 next power of two
-  ))>; 
+  using ParamDescType = decltype(LoudnessParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   std::reference_wrapper<ParamSetViewType> mParams;
 
   void setParams(ParamSetViewType& p) { mParams = p; }
 
-  template <size_t N> 
+  template <size_t N>
   auto& get() const
   {
     return mParams.get().template get<N>();
   }
 
-  static constexpr auto getParameterDescriptors()
-  { 
-    return defineParameters(
-      EnumParam("kWeighting", "Apply K-Weighting", 1, "Off", "On"),
-      EnumParam("truePeak", "Compute True Peak", 1, "Off", "On"),
-      LongParam("windowSize", "Window Size", 1024,
-                UpperLimit<kMaxWindowSize>()),
-      LongParam("hopSize", "Hop Size", 512, Min(1)),
-      LongParam<Fixed<true>>("maxWindowSize", "Max Window Size", 16384, Min(4),
-                             PowerOfTwo{}) // 17640 next power of two
-  ); 
-  }
-                                       // 17640 next power of two
-
+  static constexpr auto& getParameterDescriptors() { return LoudnessParams; }
 
   LoudnessClient(ParamSetViewType& p)
       : mParams(p), mAlgorithm{get<kMaxWindowSize>()}
@@ -128,16 +115,16 @@ private:
   BufferedProcess                                    mBufferedProcess;
   FluidTensor<double, 1>                             mDescriptors;
 };
+} // namespace loudness
 
+using RTLoudnessClient = ClientWrapper<loudness::LoudnessClient>;
 
-using RTLoudnessClient = ClientWrapper<LoudnessClient>;
-
-auto constexpr NRTLoudnessParams =
-    makeNRTParams<LoudnessClient>(InputBufferParam("source", "Source Buffer"),
-                                    BufferParam("features", "Features Buffer"));
+auto constexpr NRTLoudnessParams = makeNRTParams<loudness::LoudnessClient>(
+    InputBufferParam("source", "Source Buffer"),
+    BufferParam("features", "Features Buffer"));
 
 using NRTLoudnessClient =
-    NRTControlAdaptor<LoudnessClient, decltype(NRTLoudnessParams),
+    NRTControlAdaptor<loudness::LoudnessClient, decltype(NRTLoudnessParams),
                       NRTLoudnessParams, 1, 1>;
 
 using NRTThreadedLoudnessClient = NRTThreadingAdaptor<NRTLoudnessClient>;
