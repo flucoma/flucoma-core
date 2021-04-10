@@ -22,11 +22,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 namespace client {
+namespace ampgate{ 
 
-class AmpGateClient : public FluidBaseClient, public AudioIn, public AudioOut
-{
-
-public:
   enum AmpGateParamIndex {
     kRampUpTime,
     kRampDownTime,
@@ -42,23 +39,29 @@ public:
     kMaxSize
   };
 
-  using ParamDescType = 
-  std::add_const_t<decltype(defineParameters(
-      LongParam("rampUp", "Ramp Up Length", 10, Min(1)),
-      LongParam("rampDown", "Ramp Down Length", 10, Min(1)),
-      FloatParam("onThreshold", "On Threshold", -90, Min(-144), Max(144)),
-      FloatParam("offThreshold", "Off Threshold", -90, Min(-144), Max(144)),
-      LongParam("minSliceLength", "Minimum Length of Slice", 1, Min(1)),
-      LongParam("minSilenceLength", "Minimum Length of Silence", 1, Min(1)),
-      LongParam("minLengthAbove", "Required Minimum Length Above Threshold", 1,
-                Min(1)),
-      LongParam("minLengthBelow", "Required Minimum Length Below Threshold", 1,
-                Min(1)),
-      LongParam("lookBack", "Backward Lookup Length", 0, Min(0)),
-      LongParam("lookAhead", "Forward Lookup Length", 0, Min(0)),
-      FloatParam("highPassFreq", "High-Pass Filter Cutoff", 85, Min(0)),
-      LongParam<Fixed<true>>("maxSize", "Maximum Total Latency", 88200,
-                             Min(1))))>; 
+constexpr auto AmpGateParams = defineParameters(
+    LongParam("rampUp", "Ramp Up Length", 10, Min(1)),
+    LongParam("rampDown", "Ramp Down Length", 10, Min(1)),
+    FloatParam("onThreshold", "On Threshold", -90, Min(-144), Max(144)),
+    FloatParam("offThreshold", "Off Threshold", -90, Min(-144), Max(144)),
+    LongParam("minSliceLength", "Minimum Length of Slice", 1, Min(1)),
+    LongParam("minSilenceLength", "Minimum Length of Silence", 1, Min(1)),
+    LongParam("minLengthAbove", "Required Minimum Length Above Threshold", 1,
+              Min(1)),
+    LongParam("minLengthBelow", "Required Minimum Length Below Threshold", 1,
+              Min(1)),
+    LongParam("lookBack", "Backward Lookup Length", 0, Min(0)),
+    LongParam("lookAhead", "Forward Lookup Length", 0, Min(0)),
+    FloatParam("highPassFreq", "High-Pass Filter Cutoff", 85, Min(0)),
+    LongParam<Fixed<true>>("maxSize", "Maximum Total Latency", 88200,
+                           Min(1)));
+
+class AmpGateClient : public FluidBaseClient, public AudioIn, public AudioOut
+{
+public:
+
+
+  using ParamDescType = decltype(AmpGateParams); 
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   std::reference_wrapper<ParamSetViewType> mParams;
@@ -71,26 +74,10 @@ public:
     return mParams.get().template get<N>();
   }
 
-  static constexpr auto getParameterDescriptors()
+  static constexpr auto& getParameterDescriptors()
   { 
-    return defineParameters(
-      LongParam("rampUp", "Ramp Up Length", 10, Min(1)),
-      LongParam("rampDown", "Ramp Down Length", 10, Min(1)),
-      FloatParam("onThreshold", "On Threshold", -90, Min(-144), Max(144)),
-      FloatParam("offThreshold", "Off Threshold", -90, Min(-144), Max(144)),
-      LongParam("minSliceLength", "Minimum Length of Slice", 1, Min(1)),
-      LongParam("minSilenceLength", "Minimum Length of Silence", 1, Min(1)),
-      LongParam("minLengthAbove", "Required Minimum Length Above Threshold", 1,
-                Min(1)),
-      LongParam("minLengthBelow", "Required Minimum Length Below Threshold", 1,
-                Min(1)),
-      LongParam("lookBack", "Backward Lookup Length", 0, Min(0)),
-      LongParam("lookAhead", "Forward Lookup Length", 0, Min(0)),
-      FloatParam("highPassFreq", "High-Pass Filter Cutoff", 85, Min(0)),
-      LongParam<Fixed<true>>("maxSize", "Maximum Total Latency", 88200,
-                             Min(1))); 
+    return AmpGateParams;
   }
-
 
   AmpGateClient(ParamSetViewType& p) : mParams{p}, mAlgorithm{get<kMaxSize>()}
   {
@@ -200,15 +187,16 @@ struct NRTAmpGate
                                src.sampleRate());
   }
 };
+}
 
-using RTAmpGateClient = ClientWrapper<AmpGateClient>;
+using RTAmpGateClient = ClientWrapper<ampgate::AmpGateClient>;
 
 auto constexpr NRTAmpGateParams =
-    makeNRTParams<AmpGateClient>(InputBufferParam("source", "Source Buffer"),
+    makeNRTParams<ampgate::AmpGateClient>(InputBufferParam("source", "Source Buffer"),
                                  BufferParam("indices", "Indices Buffer"));
 
 using NRTAmpGateClient =
-    impl::NRTClientWrapper<NRTAmpGate, AmpGateClient,
+    impl::NRTClientWrapper<ampgate::NRTAmpGate, ampgate::AmpGateClient,
                            decltype(NRTAmpGateParams), NRTAmpGateParams, 1, 1>;
 
 using NRTThreadedAmpGateClient = NRTThreadingAdaptor<NRTAmpGateClient>;
