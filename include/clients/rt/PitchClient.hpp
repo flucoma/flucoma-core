@@ -43,7 +43,8 @@ class PitchClient : public FluidBaseClient, public AudioIn, public ControlOut
   };
 
 public:
-  FLUID_DECLARE_PARAMS(EnumParam("algorithm", "Algorithm", 2, "Cepstrum",
+  using ParamDescType = 
+  std::add_const_t<decltype(defineParameters(EnumParam("algorithm", "Algorithm", 2, "Cepstrum",
                                  "Harmonic Product Spectrum", "YinFFT"),
                        FloatParam("minFreq", "Minimum Frequency", 20, Min(0),
                                   Max(10000), UpperLimit<kMaxFreq>()),
@@ -53,7 +54,34 @@ public:
                        FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings",
                                              1024, -1, -1),
                        LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size",
-                                              16384, Min(4), PowerOfTwo{}));
+                                              16384, Min(4), PowerOfTwo{})))>; 
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N> 
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors()
+  { 
+    return defineParameters(EnumParam("algorithm", "Algorithm", 2, "Cepstrum",
+                                 "Harmonic Product Spectrum", "YinFFT"),
+                       FloatParam("minFreq", "Minimum Frequency", 20, Min(0),
+                                  Max(10000), UpperLimit<kMaxFreq>()),
+                       FloatParam("maxFreq", "Maximum Frequency", 10000, Min(1),
+                                  Max(20000), LowerLimit<kMinFreq>()),
+                       EnumParam("unit", "Unit", 0, "Hz", "MIDI"),
+                       FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings",
+                                             1024, -1, -1),
+                       LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size",
+                                              16384, Min(4), PowerOfTwo{})); 
+  }
+
 
   PitchClient(ParamSetViewType& p)
       : mParams(p), mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0),
