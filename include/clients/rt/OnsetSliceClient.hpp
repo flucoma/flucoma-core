@@ -39,7 +39,8 @@ public:
     kMaxFFTSize
   };
 
-  FLUID_DECLARE_PARAMS(
+  using ParamDescType = 
+  std::add_const_t<decltype(defineParameters(
       EnumParam("metric", "Spectral Change Metric", 0, "Energy",
                 "High Frequency Content", "Spectral Flux",
                 "Modified Kullback-Leibler", "Itakura-Saito", "Cosine",
@@ -51,7 +52,36 @@ public:
       LongParam("frameDelta", "Frame Delta", 0, Min(0)),
       FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
       LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                             PowerOfTwo{}));
+                             PowerOfTwo{})))>; 
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N> 
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors()
+  { 
+    return defineParameters(
+      EnumParam("metric", "Spectral Change Metric", 0, "Energy",
+                "High Frequency Content", "Spectral Flux",
+                "Modified Kullback-Leibler", "Itakura-Saito", "Cosine",
+                "Phase Deviation", "Weighted Phase Deviation", "Complex Domain",
+                "Rectified Complex Domain"),
+      FloatParam("threshold", "Threshold", 0.5, Min(0)),
+      LongParam("minSliceLength", "Minimum Length of Slice", 2, Min(0)),
+      LongParam("filterSize", "Filter Size", 5, Min(1), Odd(), Max(101)),
+      LongParam("frameDelta", "Frame Delta", 0, Min(0)),
+      FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
+      LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
+                             PowerOfTwo{})); 
+  }
+
 
   OnsetSliceClient(ParamSetViewType& p)
       : mParams{p}, mAlgorithm{get<kMaxFFTSize>()}
