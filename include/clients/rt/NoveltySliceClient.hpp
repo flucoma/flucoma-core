@@ -49,7 +49,8 @@ class NoveltySliceClient : public FluidBaseClient,
   };
 
 public:
-  FLUID_DECLARE_PARAMS(
+  using ParamDescType = 
+  std::add_const_t<decltype(defineParameters(
       EnumParam("feature", "Feature", 0, "Spectrum", "MFCC", "Pitch",
                 "Loudness"),
       LongParam("kernelSize", "KernelSize", 3, Min(3), Odd(),
@@ -64,7 +65,39 @@ public:
       LongParam<Fixed<true>>("maxKernelSize", "Maxiumm Kernel Size", 101,
                              Min(3), Odd()),
       LongParam<Fixed<true>>("maxFilterSize", "Maxiumm Filter Size", 100,
-                             Min(1)));
+                             Min(1))))>; 
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N> 
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors()
+  { 
+    return defineParameters(
+      EnumParam("feature", "Feature", 0, "Spectrum", "MFCC", "Pitch",
+                "Loudness"),
+      LongParam("kernelSize", "KernelSize", 3, Min(3), Odd(),
+                UpperLimit<kMaxKernelSize>()),
+      FloatParam("threshold", "Threshold", 0.5, Min(0)),
+      LongParam("filterSize", "Smoothing Filter Size", 1, Min(1),
+                UpperLimit<kMaxFilterSize>()),
+      LongParam("minSliceLength", "Minimum Length of Slice", 2, Min(0)),
+      FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
+      LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
+                             PowerOfTwo{}),
+      LongParam<Fixed<true>>("maxKernelSize", "Maxiumm Kernel Size", 101,
+                             Min(3), Odd()),
+      LongParam<Fixed<true>>("maxFilterSize", "Maxiumm Filter Size", 100,
+                             Min(1))); 
+  }
+
 
 
   NoveltySliceClient(ParamSetViewType& p)
