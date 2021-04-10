@@ -26,10 +26,31 @@ class BaseSTFTClient : public FluidBaseClient, public AudioIn, public AudioOut
   enum STFTParamIndex { kFFT, kMaxFFT };
 
 public:
-  FLUID_DECLARE_PARAMS(FFTParam<kMaxFFT>("fftSettings", "FFT Settings", 1024,
+  using ParamDescType = 
+  std::add_const_t<decltype(defineParameters(FFTParam<kMaxFFT>("fftSettings", "FFT Settings", 1024,
                                          -1, -1),
                        LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size",
-                                              16384, Min(4), PowerOfTwo{}));
+                                              16384, Min(4), PowerOfTwo{})))>; 
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N> 
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors()
+  { 
+    return defineParameters(FFTParam<kMaxFFT>("fftSettings", "FFT Settings", 1024,
+                                         -1, -1),
+                       LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size",
+                                              16384, Min(4), PowerOfTwo{})); 
+  }
+
 
   BaseSTFTClient(ParamSetViewType& p)
       : mParams(p), mSTFTBufferedProcess{get<kMaxFFT>(), 1, 1}
