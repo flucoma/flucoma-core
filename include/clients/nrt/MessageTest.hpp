@@ -73,7 +73,19 @@ public:
   }
 
 
-  FLUID_DECLARE_MESSAGES(
+  using MessageType = std::add_const_t<decltype(defineMessages(
+      makeMessage("testReturnStrings", &MessageTest::doStrings),
+      makeMessage("testReturnNumbers", &MessageTest::doNumbers),
+      makeMessage("testReturnOneString", &MessageTest::doOneString),
+      makeMessage("testReturnOneNumber", &MessageTest::doOneNumber),
+      makeMessage("testAccessBuffer", &MessageTest::doBuffer),
+      makeMessage("testPassString", &MessageTest::doTakeString),
+      makeMessage("testReturnBuffer", &MessageTest::doReturnBuffer),
+      makeMessage("testReturnHetero", &MessageTest::doHetero)))>;
+
+  static MessageType getMessageDescriptors()
+  {
+    return defineMessages(
       makeMessage("testReturnStrings", &MessageTest::doStrings),
       makeMessage("testReturnNumbers", &MessageTest::doNumbers),
       makeMessage("testReturnOneString", &MessageTest::doOneString),
@@ -82,6 +94,8 @@ public:
       makeMessage("testPassString", &MessageTest::doTakeString),
       makeMessage("testReturnBuffer", &MessageTest::doReturnBuffer),
       makeMessage("testReturnHetero", &MessageTest::doHetero));
+  }
+
 };
 
 using NRTThreadingMessageTest = NRTThreadingAdaptor<ClientWrapper<MessageTest>>;
