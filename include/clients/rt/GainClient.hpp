@@ -19,31 +19,29 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 namespace client {
+namespace gain {
+  
+enum GainParamTags { kGain };
+
+constexpr auto GainParams = defineParameters(FloatParam("gain", "Gain", 1.0));
 
 class GainClient : public FluidBaseClient, public AudioIn, public AudioOut
 {
-  enum GainParamTags { kGain };
-
 public:
-  using ParamDescType = 
-  std::add_const_t<decltype(defineParameters(FloatParam("gain", "Gain", 1.0)))>; 
+  using ParamDescType = decltype(GainParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   std::reference_wrapper<ParamSetViewType> mParams;
 
   void setParams(ParamSetViewType& p) { mParams = p; }
 
-  template <size_t N> 
+  template <size_t N>
   auto& get() const
   {
     return mParams.get().template get<N>();
   }
 
-  static constexpr auto getParameterDescriptors()
-  { 
-    return defineParameters(FloatParam("gain", "Gain", 1.0)); 
-  }
-
+  static constexpr auto& getParameterDescriptors() { return GainParams; }
 
   GainClient(ParamSetViewType& p) : mParams(p)
   {
@@ -77,16 +75,18 @@ public:
     }
   }
 }; // class
+} // namespace gain
 
-using RTGainClient = ClientWrapper<GainClient>;
+using RTGainClient = ClientWrapper<gain::GainClient>;
 
-auto constexpr NRTGainParams =
-    makeNRTParams<GainClient>(InputBufferParam("source", "Source Buffer"),
-                              InputBufferParam("gainbuffer", "Gain Buffer"),
-                              BufferParam("out", "output Buffer"));
+auto constexpr NRTGainParams = makeNRTParams<gain::GainClient>(
+    InputBufferParam("source", "Source Buffer"),
+    InputBufferParam("gainbuffer", "Gain Buffer"),
+    BufferParam("out", "output Buffer"));
 
 using NRTGainClient =
-    NRTStreamAdaptor<GainClient, decltype(NRTGainParams), NRTGainParams, 2, 1>;
+    NRTStreamAdaptor<gain::GainClient, decltype(NRTGainParams), NRTGainParams,
+                     2, 1>;
 
 using NRTThreadedGainClient = NRTThreadingAdaptor<NRTGainClient>;
 
