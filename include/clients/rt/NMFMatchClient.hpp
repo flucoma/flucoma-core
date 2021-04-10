@@ -19,57 +19,45 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 namespace client {
+namespace nmfmatch {
+
+enum NMFMatchParamIndex {
+  kFilterbuf,
+  kMaxRank,
+  kIterations,
+  kFFT,
+  kMaxFFTSize
+};
+
+constexpr auto NMFMatchParams = defineParameters(
+    InputBufferParam("bases", "Bases Buffer"),
+    LongParam<Fixed<true>>("maxComponents", "Maximum Number of Components", 20,
+                           Min(1)),
+    LongParam("iterations", "Number of Iterations", 10, Min(1)),
+    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
+    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
+                           PowerOfTwo{}));
 
 class NMFMatchClient : public FluidBaseClient, public AudioIn, public ControlOut
 {
-
 public:
-  enum NMFMatchParamIndex {
-    kFilterbuf,
-    kMaxRank,
-    kIterations,
-    kFFT,
-    kMaxFFTSize
-  };
-
-  using ParamDescType = 
-  std::add_const_t<decltype(defineParameters(
-      InputBufferParam("bases", "Bases Buffer"),
-      LongParam<Fixed<true>>("maxComponents", "Maximum Number of Components",
-                             20, Min(1)),
-      LongParam("iterations", "Number of Iterations", 10, Min(1)),
-      FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-      LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                             PowerOfTwo{})))>; 
+  using ParamDescType = decltype(NMFMatchParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   std::reference_wrapper<ParamSetViewType> mParams;
 
   void setParams(ParamSetViewType& p) { mParams = p; }
 
-  template <size_t N> 
+  template <size_t N>
   auto& get() const
   {
     return mParams.get().template get<N>();
   }
 
-  static constexpr auto getParameterDescriptors()
-  { 
-    return defineParameters(
-      InputBufferParam("bases", "Bases Buffer"),
-      LongParam<Fixed<true>>("maxComponents", "Maximum Number of Components",
-                             20, Min(1)),
-      LongParam("iterations", "Number of Iterations", 10, Min(1)),
-      FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-      LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                             PowerOfTwo{})); 
-  }
-
-
+  static constexpr auto& getParameterDescriptors() { return NMFMatchParams; }
 
   NMFMatchClient(ParamSetViewType& p)
-      : mParams(p),
-        mSTFTProcessor(get<kMaxFFTSize>(), 1, 0)
+      : mParams(p), mSTFTProcessor(get<kMaxFFTSize>(), 1, 0)
   {
     audioChannelsIn(1);
     controlChannelsOut(get<kMaxRank>());
@@ -131,8 +119,9 @@ private:
 
   STFTBufferedProcess<ParamSetViewType, kFFT, false> mSTFTProcessor;
 };
+} // namespace nmfmatch
 
-using RTNMFMatchClient = ClientWrapper<NMFMatchClient>;
+using RTNMFMatchClient = ClientWrapper<nmfmatch::NMFMatchClient>;
 
 } // namespace client
 } // namespace fluid
