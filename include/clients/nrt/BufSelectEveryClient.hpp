@@ -39,7 +39,8 @@ public:
     kChannelHop
   };
 
-  FLUID_DECLARE_PARAMS(InputBufferParam("source", "Source Buffer"),
+  using ParamDescType = 
+  std::add_const_t<decltype(defineParameters(InputBufferParam("source", "Source Buffer"),
                        LongParam("startFrame", "Source Offset", 0, Min(0)),
                        LongParam("numFrames", "Source Number of Frames", -1),
                        LongParam("startChan", "Source Channel Offset", 0,
@@ -47,7 +48,32 @@ public:
                        LongParam("numChans", "Source Number of Channels", -1),
                        BufferParam("destination", "Destination Buffer"),
                        LongParam("framehop", "Frame Hop", 1),
-                       LongParam("channelhop", "Channel Hop", 1));
+                       LongParam("channelhop", "Channel Hop", 1)))>; 
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N> 
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors()
+  { 
+    return defineParameters(InputBufferParam("source", "Source Buffer"),
+                       LongParam("startFrame", "Source Offset", 0, Min(0)),
+                       LongParam("numFrames", "Source Number of Frames", -1),
+                       LongParam("startChan", "Source Channel Offset", 0,
+                                 Min(0)),
+                       LongParam("numChans", "Source Number of Channels", -1),
+                       BufferParam("destination", "Destination Buffer"),
+                       LongParam("framehop", "Frame Hop", 1),
+                       LongParam("channelhop", "Channel Hop", 1)); 
+  }
+
 
   BufSelectEveryClient(ParamSetViewType& p) : mParams{p} {}
 
