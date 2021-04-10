@@ -33,10 +33,31 @@ class SpectralShapeClient : public FluidBaseClient,
   enum SpectralShapeParamIndex { kFFT, kMaxFFTSize };
 
 public:
-  FLUID_DECLARE_PARAMS(FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings",
+  using ParamDescType = 
+  std::add_const_t<decltype(defineParameters(FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings",
                                              1024, -1, -1),
                        LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size",
-                                              16384, Min(4), PowerOfTwo{}));
+                                              16384, Min(4), PowerOfTwo{})))>; 
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N> 
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors()
+  { 
+    return defineParameters(FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings",
+                                             1024, -1, -1),
+                       LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size",
+                                              16384, Min(4), PowerOfTwo{})); 
+  }
+
 
   SpectralShapeClient(ParamSetViewType& p)
       : mParams(p),
