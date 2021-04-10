@@ -40,7 +40,8 @@ class SinesClient : public FluidBaseClient, public AudioIn, public AudioOut
   };
 
 public:
-  FLUID_DECLARE_PARAMS(
+  using ParamDescType = 
+  std::add_const_t<decltype(defineParameters(
       LongParam("bandwidth", "Bandwidth", 76, Min(1),
                 FrameSizeUpperLimit<kFFT>()),
       FloatParam("detectionThreshold", "Peak Detection Threshold", -96,
@@ -60,7 +61,44 @@ public:
       FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1,
                             FrameSizeLowerLimit<kBandwidth>()),
       LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                             PowerOfTwo{}));
+                             PowerOfTwo{})))>; 
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N> 
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors()
+  { 
+    return defineParameters(
+      LongParam("bandwidth", "Bandwidth", 76, Min(1),
+                FrameSizeUpperLimit<kFFT>()),
+      FloatParam("detectionThreshold", "Peak Detection Threshold", -96,
+                 Min(-144), Max(0)),
+      FloatParam("birthLowThreshold", "Track Birth Low Frequency Threshold",
+                 -24, Min(-144), Max(0)),
+      FloatParam("birthHighThreshold", "Track Birth High Frequency Threshold",
+                 -60, Min(-144), Max(0)),
+      LongParam("minTrackLen", "Minimum Track Length", 15, Min(1)),
+      EnumParam("trackingMethod", "Tracking Method", 0, "Greedy", "Hungarian"),
+      FloatParam("trackMagRange", "Tracking Magnitude Range (dB)", 15., Min(1.),
+                 Max(200.)),
+      FloatParam("trackFreqRange", "Tracking Frequency Range (Hz)", 50.,
+                 Min(1.), Max(10000.)),
+      FloatParam("trackProb", "Tracking Matching Probability", 0.5, Min(0.0),
+                 Max(1.0)),
+      FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1,
+                            FrameSizeLowerLimit<kBandwidth>()),
+      LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
+                             PowerOfTwo{})); 
+  }
+
 
   SinesClient(ParamSetViewType& p)
       : mParams(p), mSTFTBufferedProcess{get<kMaxFFTSize>(), 1, 2}
