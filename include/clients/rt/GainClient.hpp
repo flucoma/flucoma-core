@@ -25,7 +25,25 @@ class GainClient : public FluidBaseClient, public AudioIn, public AudioOut
   enum GainParamTags { kGain };
 
 public:
-  FLUID_DECLARE_PARAMS(FloatParam("gain", "Gain", 1.0));
+  using ParamDescType = 
+  std::add_const_t<decltype(defineParameters(FloatParam("gain", "Gain", 1.0)))>; 
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N> 
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors()
+  { 
+    return defineParameters(FloatParam("gain", "Gain", 1.0)); 
+  }
+
 
   GainClient(ParamSetViewType& p) : mParams(p)
   {
