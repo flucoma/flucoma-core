@@ -30,80 +30,58 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 namespace client {
+namespace bufnmf {
 
+enum NMFParamIndex {
+  kSource,
+  kOffset,
+  kNumFrames,
+  kStartChan,
+  kNumChans,
+  kResynth,
+  kFilters,
+  kFiltersUpdate,
+  kEnvelopes,
+  kEnvelopesUpdate,
+  kRank,
+  kIterations,
+  kFFT
+};
+
+constexpr auto BufNMFParams = defineParameters(
+    InputBufferParam("source", "Source Buffer"),
+    LongParam("startFrame", "Source Offset", 0, Min(0)),
+    LongParam("numFrames", "Number of Frames", -1),
+    LongParam("startChan", "Start Channel", 0, Min(0)),
+    LongParam("numChans", "Number Channels", -1),
+    BufferParam("resynth", "Resynthesis Buffer"),
+    BufferParam("bases", "Bases Buffer"),
+    EnumParam("basesMode", "Bases Buffer Update Mode", 0, "None", "Seed",
+              "Fixed"),
+    BufferParam("activations", "Activations Buffer"),
+    EnumParam("actMode", "Activations Buffer Update Mode", 0, "None", "Seed",
+              "Fixed"),
+    LongParam("components", "Number of Components", 1, Min(1)),
+    LongParam("iterations", "Number of Iterations", 100, Min(1)),
+    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class NMFClient : public FluidBaseClient, public OfflineIn, public OfflineOut
 {
-
-  enum NMFParamIndex {
-    kSource,
-    kOffset,
-    kNumFrames,
-    kStartChan,
-    kNumChans,
-    kResynth,
-    kFilters,
-    kFiltersUpdate,
-    kEnvelopes,
-    kEnvelopesUpdate,
-    kRank,
-    kIterations,
-    kFFT
-  };
-
 public:
-  using ParamDescType = 
-  std::add_const_t<decltype(defineParameters(InputBufferParam("source", "Source Buffer"),
-                       LongParam("startFrame", "Source Offset", 0, Min(0)),
-                       LongParam("numFrames", "Number of Frames", -1),
-                       LongParam("startChan", "Start Channel", 0, Min(0)),
-                       LongParam("numChans", "Number Channels", -1),
-                       BufferParam("resynth", "Resynthesis Buffer"),
-                       BufferParam("bases", "Bases Buffer"),
-                       EnumParam("basesMode", "Bases Buffer Update Mode", 0,
-                                 "None", "Seed", "Fixed"),
-                       BufferParam("activations", "Activations Buffer"),
-                       EnumParam("actMode", "Activations Buffer Update Mode", 0,
-                                 "None", "Seed", "Fixed"),
-                       LongParam("components", "Number of Components", 1,
-                                 Min(1)),
-                       LongParam("iterations", "Number of Iterations", 100,
-                                 Min(1)),
-                       FFTParam("fftSettings", "FFT Settings", 1024, -1, -1)))>; 
+  using ParamDescType = decltype(BufNMFParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   std::reference_wrapper<ParamSetViewType> mParams;
 
   void setParams(ParamSetViewType& p) { mParams = p; }
 
-  template <size_t N> 
+  template <size_t N>
   auto& get() const
   {
     return mParams.get().template get<N>();
   }
 
-  static constexpr auto getParameterDescriptors()
-  { 
-    return defineParameters(InputBufferParam("source", "Source Buffer"),
-                       LongParam("startFrame", "Source Offset", 0, Min(0)),
-                       LongParam("numFrames", "Number of Frames", -1),
-                       LongParam("startChan", "Start Channel", 0, Min(0)),
-                       LongParam("numChans", "Number Channels", -1),
-                       BufferParam("resynth", "Resynthesis Buffer"),
-                       BufferParam("bases", "Bases Buffer"),
-                       EnumParam("basesMode", "Bases Buffer Update Mode", 0,
-                                 "None", "Seed", "Fixed"),
-                       BufferParam("activations", "Activations Buffer"),
-                       EnumParam("actMode", "Activations Buffer Update Mode", 0,
-                                 "None", "Seed", "Fixed"),
-                       LongParam("components", "Number of Components", 1,
-                                 Min(1)),
-                       LongParam("iterations", "Number of Iterations", 100,
-                                 Min(1)),
-                       FFTParam("fftSettings", "FFT Settings", 1024, -1, -1)); 
-  }
-
-
+  static constexpr auto& getParameterDescriptors() { return BufNMFParams; }
 
   NMFClient(ParamSetViewType& p) : mParams{p} {}
 
@@ -139,18 +117,16 @@ public:
       if (!buf.exists())
         return {Result::Status::kError, "Filter Buffer Supplied But Invalid"};
 
-      if ( (get<kFiltersUpdate>() > 0) &&
-            (!buf.valid()              ||
-              buf.numFrames() != nBins ||
-              buf.numChans() != get<kRank>() * nChannels
-          ) )
+      if ((get<kFiltersUpdate>() > 0) &&
+          (!buf.valid() || buf.numFrames() != nBins ||
+           buf.numChans() != get<kRank>() * nChannels))
         return {Result::Status::kError,
                 "Supplied filter buffer for seeding must be [(FFTSize / 2) + "
                 "1] frames long, and have [rank] * [channels] channels"};
       hasFilters = true;
     }
     else if (get<kFiltersUpdate>() > 0)
-      return { Result::Status::kError,
+      return {Result::Status::kError,
               "Filter Mode set to Seed or Fix , but no Filter Buffer supplied"};
 
     bool       hasEnvelopes{false};
@@ -168,11 +144,9 @@ public:
         return {Result::Status::kError, "Envelope Buffer Supplied But Invalid"};
 
       if ((get<kEnvelopesUpdate>() > 0) &&
-          (
-            !buf.valid() ||
-            buf.numFrames() != (nFrames / fftParams.hopSize()) + 1 ||
-            buf.numChans() != get<kRank>() * nChannels
-          ))
+          (!buf.valid() ||
+           buf.numFrames() != (nFrames / fftParams.hopSize()) + 1 ||
+           buf.numChans() != get<kRank>() * nChannels))
         return {
             Result::Status::kError,
             "Supplied envelope buffer for seeding must be [(num samples / hop "
@@ -236,12 +210,14 @@ public:
       seededEnvelopes.resize((nFrames / fftParams.hopSize()) + 1, get<kRank>());
 
 
-    const double progressTotal =
-        static_cast<double>(get<kIterations>() + (hasResynth ? 3 * get<kRank>() : 0));
+    const double progressTotal = static_cast<double>(
+        get<kIterations>() + (hasResynth ? 3 * get<kRank>() : 0));
 
     for (index i = 0; i < nChannels; ++i)
     {
-      if (c.task() && !c.task()->iterationUpdate(static_cast<double>(i), static_cast<double>(nChannels)))
+      if (c.task() &&
+          !c.task()->iterationUpdate(static_cast<double>(i),
+                                     static_cast<double>(nChannels)))
         return {Result::Status::kCancelled, ""};
       //          tmp = sourceData.col(i);
       tmp = source.samps(get<kOffset>(), nFrames, get<kStartChan>() + i);
@@ -267,9 +243,10 @@ public:
       auto nmf = algorithm::NMF();
       nmf.addProgressCallback(
           [&c, &progressCount, progressTotal](const index) -> bool {
-            return c.task()
-                       ? c.task()->processUpdate(static_cast<double>(++progressCount), static_cast<double>(progressTotal))
-                       : true;
+            return c.task() ? c.task()->processUpdate(
+                                  static_cast<double>(++progressCount),
+                                  static_cast<double>(progressTotal))
+                            : true;
           });
       nmf.process(magnitude, outputFilters, outputEnvelopes, outputMags,
                   get<kRank>(), get<kIterations>(), !fixFilters, !fixEnvelopes,
@@ -284,7 +261,9 @@ public:
         //        auto finalFilters = m.getW();
         auto filters = BufferAdaptor::Access{get<kFilters>().get()};
         for (index j = 0; j < get<kRank>(); ++j)
-        { filters.samps(i * get<kRank>() + j) = outputFilters.row(j); }
+        {
+          filters.samps(i * get<kRank>() + j) = outputFilters.row(j);
+        }
       }
 
       // Write H? Need to normalise also
@@ -340,8 +319,10 @@ public:
     return {Result::Status::kOk, ""};
   }
 };
+} // namespace bufnmf
 
-using NRTThreadedNMFClient = NRTThreadingAdaptor<ClientWrapper<NMFClient>>;
+using NRTThreadedNMFClient =
+    NRTThreadingAdaptor<ClientWrapper<bufnmf::NMFClient>>;
 
 
 } // namespace client
