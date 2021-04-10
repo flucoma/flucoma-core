@@ -36,11 +36,33 @@ public:
     kChannels
   };
 
-  FLUID_DECLARE_PARAMS(InputBufferParam("source", "Source Buffer"),
+  using ParamDescType = 
+  std::add_const_t<decltype(defineParameters(InputBufferParam("source", "Source Buffer"),
                        BufferParam("destination", "Destination Buffer"),
                        LongArrayParam("indices","Indices",SelectionDefaults),
                        LongArrayParam("channels","Channels",SelectionDefaults)
-                     );
+                     ))>; 
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N> 
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors()
+  { 
+    return defineParameters(InputBufferParam("source", "Source Buffer"),
+                       BufferParam("destination", "Destination Buffer"),
+                       LongArrayParam("indices","Indices",SelectionDefaults),
+                       LongArrayParam("channels","Channels",SelectionDefaults)
+                     ); 
+  }
+
 
   BufSelectClient(ParamSetViewType& p) : mParams{p} {}
 
