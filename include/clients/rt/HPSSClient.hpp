@@ -38,7 +38,8 @@ class HPSSClient : public FluidBaseClient, public AudioIn, public AudioOut
   };
 
 public:
-  FLUID_DECLARE_PARAMS(
+  using ParamDescType = 
+  std::add_const_t<decltype(defineParameters(
       LongParam("harmFilterSize", "Harmonic Filter Size", 17,
                 UpperLimit<kMaxHSize>(), Odd{}, Min(3)),
       LongParam("percFilterSize", "Percussive Filter Size", 31,
@@ -57,7 +58,43 @@ public:
                              Odd{}),
       LongParam<Fixed<true>>("maxPercFilterSize",
                              "Maximum Percussive Filter Size", 101, Min(3),
-                             Odd{}));
+                             Odd{})))>; 
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N> 
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors()
+  { 
+    return defineParameters(
+      LongParam("harmFilterSize", "Harmonic Filter Size", 17,
+                UpperLimit<kMaxHSize>(), Odd{}, Min(3)),
+      LongParam("percFilterSize", "Percussive Filter Size", 31,
+                UpperLimit<kMaxPSize>(), Odd{}, Min(3)),
+      EnumParam("maskingMode", "Masking Mode", 0, "Classic", "Coupled",
+                "Advanced"),
+      FloatPairsArrayParam("harmThresh", "Harmonic Filter Thresholds",
+                           FrequencyAmpPairConstraint{}),
+      FloatPairsArrayParam("percThresh", "Percussive Filter Thresholds",
+                           FrequencyAmpPairConstraint{}),
+      FFTParam<kMaxFFT>("fftSettings", "FFT Settings", 1024, -1, -1),
+      LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
+                             PowerOfTwo{}),
+      LongParam<Fixed<true>>("maxHarmFilterSize",
+                             "Maximum Harmonic Filter Size", 101, Min(3),
+                             Odd{}),
+      LongParam<Fixed<true>>("maxPercFilterSize",
+                             "Maximum Percussive Filter Size", 101, Min(3),
+                             Odd{})); 
+  }
+
 
   HPSSClient(ParamSetViewType& p)
       : mParams{p}, mSTFTBufferedProcess{get<kMaxFFT>(), 1, 3},
