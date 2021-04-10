@@ -38,7 +38,8 @@ class MFCCClient : public FluidBaseClient, public AudioIn, public ControlOut
   };
 
 public:
-  FLUID_DECLARE_PARAMS(
+  using ParamDescType = 
+  std::add_const_t<decltype(defineParameters(
       LongParam("numCoeffs", "Number of Cepstral Coefficients", 13, Min(2),
                 UpperLimit<kNBands, kMaxNCoefs>()),
       LongParam("numBands", "Number of Bands", 40, Min(2),
@@ -48,7 +49,34 @@ public:
       LongParam<Fixed<true>>("maxNumCoeffs", "Maximum Number of Coefficients",
                              40, MaxFrameSizeUpperLimit<kMaxFFTSize>(), Min(2)),
       FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-      LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
+      LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384)))>; 
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N> 
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors()
+  { 
+    return defineParameters(
+      LongParam("numCoeffs", "Number of Cepstral Coefficients", 13, Min(2),
+                UpperLimit<kNBands, kMaxNCoefs>()),
+      LongParam("numBands", "Number of Bands", 40, Min(2),
+                FrameSizeUpperLimit<kFFT>(), LowerLimit<kNCoefs>()),
+      FloatParam("minFreq", "Low Frequency Bound", 20, Min(0)),
+      FloatParam("maxFreq", "High Frequency Bound", 20000, Min(0)),
+      LongParam<Fixed<true>>("maxNumCoeffs", "Maximum Number of Coefficients",
+                             40, MaxFrameSizeUpperLimit<kMaxFFTSize>(), Min(2)),
+      FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
+      LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384)); 
+  }
+
 
   MFCCClient(ParamSetViewType& p)
       : mParams{p}, mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0),
