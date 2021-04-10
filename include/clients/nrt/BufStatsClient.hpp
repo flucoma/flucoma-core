@@ -40,7 +40,8 @@ class BufferStatsClient : public FluidBaseClient,
   };
 
 public:
-  FLUID_DECLARE_PARAMS(InputBufferParam("source", "Source Buffer"),
+  using ParamDescType = 
+  std::add_const_t<decltype(defineParameters(InputBufferParam("source", "Source Buffer"),
                        LongParam("startFrame", "Source Offset", 0, Min(0)),
                        LongParam("numFrames", "Number of Frames", -1),
                        LongParam("startChan", "Start Channel", 0, Min(0)),
@@ -57,7 +58,41 @@ public:
                                   Max(100), LowerLimit<kMiddle>()),
                        FloatParam("outliersCutoff", "Outliers Cutoff", -1, Min(-1)),
                        BufferParam("weights", "Weights Buffer")
-                        );
+                        ))>; 
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N> 
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors()
+  { 
+    return defineParameters(InputBufferParam("source", "Source Buffer"),
+                       LongParam("startFrame", "Source Offset", 0, Min(0)),
+                       LongParam("numFrames", "Number of Frames", -1),
+                       LongParam("startChan", "Start Channel", 0, Min(0)),
+                       LongParam("numChans", "Number of Channels", -1),
+                       BufferParam("stats", "Stats Buffer"),
+                       LongParam("numDerivs", "Number of Derivatives", 0,
+                                 Min(0), Max(2)),
+                       FloatParam("low", "Low Percentile", 0, Min(0), Max(100),
+                                  UpperLimit<kMiddle>()),
+                       FloatParam("middle", "Middle Percentile", 50, Min(0),
+                                  Max(100), LowerLimit<kLow>(),
+                                  UpperLimit<kHigh>()),
+                       FloatParam("high", "High Percentile", 100, Min(0),
+                                  Max(100), LowerLimit<kMiddle>()),
+                       FloatParam("outliersCutoff", "Outliers Cutoff", -1, Min(-1)),
+                       BufferParam("weights", "Weights Buffer")
+                        ); 
+  }
+
 
   BufferStatsClient(ParamSetViewType& p) : mParams(p) {}
 
