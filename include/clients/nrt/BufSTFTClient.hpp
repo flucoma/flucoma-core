@@ -39,7 +39,8 @@ class BufferSTFTClient : public FluidBaseClient,
   };
 
 public:
-  FLUID_DECLARE_PARAMS(InputBufferParam("source", "Source Buffer"),
+  using ParamDescType = 
+  std::add_const_t<decltype(defineParameters(InputBufferParam("source", "Source Buffer"),
                        LongParam("startFrame", "Source Offset", 0, Min(0)),
                        LongParam("numFrames", "Number of Frames", -1),
                        LongParam("startChan", "Start Channel", 0, Min(0)),
@@ -51,7 +52,36 @@ public:
                                  Max(1)),
                        EnumParam("padding", "Added Padding", 1, "None",
                                  "Default", "Full"),
-                       FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
+                       FFTParam("fftSettings", "FFT Settings", 1024, -1, -1)))>; 
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N> 
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors()
+  { 
+    return defineParameters(InputBufferParam("source", "Source Buffer"),
+                       LongParam("startFrame", "Source Offset", 0, Min(0)),
+                       LongParam("numFrames", "Number of Frames", -1),
+                       LongParam("startChan", "Start Channel", 0, Min(0)),
+                       // LongParam("numChans", "Number of Channels", -1),
+                       BufferParam("magnitude", "Magnitude Buffer"),
+                       BufferParam("phase", "Phase Buffer"),
+                       BufferParam("resynth", "Resynthesis Buffer"),
+                       LongParam("inverse", "Inverse Transform", 0, Min(0),
+                                 Max(1)),
+                       EnumParam("padding", "Added Padding", 1, "None",
+                                 "Default", "Full"),
+                       FFTParam("fftSettings", "FFT Settings", 1024, -1, -1)); 
+  }
+
 
   BufferSTFTClient(ParamSetViewType& p) : mParams(p) {}
 
