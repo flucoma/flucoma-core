@@ -32,9 +32,29 @@ public:
     kAxis
   };
 
-  FLUID_DECLARE_PARAMS(InputBufferParam("source", "Source Buffer"),
+  using ParamDescType = 
+  std::add_const_t<decltype(defineParameters(InputBufferParam("source", "Source Buffer"),
                        BufferParam("destination", "Destination Buffer"),
-                       EnumParam("axis","Axis",1, "Frames", "Channels"));
+                       EnumParam("axis","Axis",1, "Frames", "Channels")))>; 
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N> 
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors()
+  { 
+    return defineParameters(InputBufferParam("source", "Source Buffer"),
+                       BufferParam("destination", "Destination Buffer"),
+                       EnumParam("axis","Axis",1, "Frames", "Channels")); 
+  }
+
 
   BufFlattenClient(ParamSetViewType& p) : mParams{p} {}
 
