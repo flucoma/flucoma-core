@@ -37,13 +37,37 @@ class BufThreshClient :    public FluidBaseClient,
   };
   public:
   
-  FLUID_DECLARE_PARAMS(InputBufferParam("source", "Source Buffer"),
+  using ParamDescType = 
+  std::add_const_t<decltype(defineParameters(InputBufferParam("source", "Source Buffer"),
+                       LongParam("startFrame", "Source Offset", 0, Min(0)),
+                       LongParam("numFrames", "Number of Frames", -1),
+                       LongParam("startChan", "Start Channel", 0, Min(0)),
+                       LongParam("numChans", "Number of Channels", -1),
+                       BufferParam("destination","Destination Buffer"), 
+                       FloatParam("threshold","Threshold",0)))>; 
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N> 
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors()
+  { 
+    return defineParameters(InputBufferParam("source", "Source Buffer"),
                        LongParam("startFrame", "Source Offset", 0, Min(0)),
                        LongParam("numFrames", "Number of Frames", -1),
                        LongParam("startChan", "Start Channel", 0, Min(0)),
                        LongParam("numChans", "Number of Channels", -1),
                        BufferParam("destination","Destination Buffer"), 
                        FloatParam("threshold","Threshold",0)); 
+  }
+ 
   
   BufThreshClient(ParamSetViewType& p) : mParams(p) {}                   
   
