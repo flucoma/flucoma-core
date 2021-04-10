@@ -39,7 +39,8 @@ class AmpSliceClient : public FluidBaseClient, public AudioIn, public AudioOut
   };
 
 public:
-  FLUID_DECLARE_PARAMS(
+  using ParamDescType = 
+  std::add_const_t<decltype(defineParameters(
       LongParam("fastRampUp", "Fast Envelope Ramp Up Length", 1, Min(1)),
       LongParam("fastRampDown", "Fast Envelope Ramp Down Length", 1, Min(1)),
       LongParam("slowRampUp", "Slow Envelope Ramp Up Length", 100, Min(1)),
@@ -49,7 +50,34 @@ public:
                  Max(144)),
       FloatParam("floor", "Floor value (dB)", -145, Min(-144), Max(144)),
       LongParam("minSliceLength", "Minimum Length of Slice", 2, Min(0)),
-      FloatParam("highPassFreq", "High-Pass Filter Cutoff", 85, Min(0)));
+      FloatParam("highPassFreq", "High-Pass Filter Cutoff", 85, Min(0))))>; 
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N> 
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors()
+  { 
+    return defineParameters(
+      LongParam("fastRampUp", "Fast Envelope Ramp Up Length", 1, Min(1)),
+      LongParam("fastRampDown", "Fast Envelope Ramp Down Length", 1, Min(1)),
+      LongParam("slowRampUp", "Slow Envelope Ramp Up Length", 100, Min(1)),
+      LongParam("slowRampDown", "Slow Envelope Ramp Down Length", 100, Min(1)),
+      FloatParam("onThreshold", "On Threshold (dB)", 144, Min(-144), Max(144)),
+      FloatParam("offThreshold", "Off Threshold (dB)", -144, Min(-144),
+                 Max(144)),
+      FloatParam("floor", "Floor value (dB)", -145, Min(-144), Max(144)),
+      LongParam("minSliceLength", "Minimum Length of Slice", 2, Min(0)),
+      FloatParam("highPassFreq", "High-Pass Filter Cutoff", 85, Min(0))); 
+  }
+
 
   AmpSliceClient(ParamSetViewType& p) : mParams(p)
   {
