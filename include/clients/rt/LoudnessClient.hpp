@@ -36,7 +36,8 @@ class LoudnessClient : public FluidBaseClient, public AudioIn, public ControlOut
   };
 
 public:
-  FLUID_DECLARE_PARAMS(
+  using ParamDescType = 
+  std::add_const_t<decltype(defineParameters(
       EnumParam("kWeighting", "Apply K-Weighting", 1, "Off", "On"),
       EnumParam("truePeak", "Compute True Peak", 1, "Off", "On"),
       LongParam("windowSize", "Window Size", 1024,
@@ -44,7 +45,32 @@ public:
       LongParam("hopSize", "Hop Size", 512, Min(1)),
       LongParam<Fixed<true>>("maxWindowSize", "Max Window Size", 16384, Min(4),
                              PowerOfTwo{}) // 17640 next power of two
-  );                                       // 17640 next power of two
+  ))>; 
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N> 
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors()
+  { 
+    return defineParameters(
+      EnumParam("kWeighting", "Apply K-Weighting", 1, "Off", "On"),
+      EnumParam("truePeak", "Compute True Peak", 1, "Off", "On"),
+      LongParam("windowSize", "Window Size", 1024,
+                UpperLimit<kMaxWindowSize>()),
+      LongParam("hopSize", "Hop Size", 512, Min(1)),
+      LongParam<Fixed<true>>("maxWindowSize", "Max Window Size", 16384, Min(4),
+                             PowerOfTwo{}) // 17640 next power of two
+  ); 
+  }
+                                       // 17640 next power of two
 
 
   LoudnessClient(ParamSetViewType& p)
