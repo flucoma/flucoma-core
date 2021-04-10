@@ -28,77 +28,58 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 namespace client {
+namespace noveltyslice {
 
+enum NoveltyParamIndex {
+  kFeature,
+  kKernelSize,
+  kThreshold,
+  kFilterSize,
+  kDebounce,
+  kFFT,
+  kMaxFFTSize,
+  kMaxKernelSize,
+  kMaxFilterSize,
+};
+
+constexpr auto NoveltySliceParams = defineParameters(
+    EnumParam("feature", "Feature", 0, "Spectrum", "MFCC", "Pitch", "Loudness"),
+    LongParam("kernelSize", "KernelSize", 3, Min(3), Odd(),
+              UpperLimit<kMaxKernelSize>()),
+    FloatParam("threshold", "Threshold", 0.5, Min(0)),
+    LongParam("filterSize", "Smoothing Filter Size", 1, Min(1),
+              UpperLimit<kMaxFilterSize>()),
+    LongParam("minSliceLength", "Minimum Length of Slice", 2, Min(0)),
+    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
+    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
+                           PowerOfTwo{}),
+    LongParam<Fixed<true>>("maxKernelSize", "Maxiumm Kernel Size", 101, Min(3),
+                           Odd()),
+    LongParam<Fixed<true>>("maxFilterSize", "Maxiumm Filter Size", 100,
+                           Min(1)));
 
 class NoveltySliceClient : public FluidBaseClient,
                            public AudioIn,
                            public AudioOut
 {
-
-
-  enum NoveltyParamIndex {
-    kFeature,
-    kKernelSize,
-    kThreshold,
-    kFilterSize,
-    kDebounce,
-    kFFT,
-    kMaxFFTSize,
-    kMaxKernelSize,
-    kMaxFilterSize,
-  };
-
 public:
-  using ParamDescType = 
-  std::add_const_t<decltype(defineParameters(
-      EnumParam("feature", "Feature", 0, "Spectrum", "MFCC", "Pitch",
-                "Loudness"),
-      LongParam("kernelSize", "KernelSize", 3, Min(3), Odd(),
-                UpperLimit<kMaxKernelSize>()),
-      FloatParam("threshold", "Threshold", 0.5, Min(0)),
-      LongParam("filterSize", "Smoothing Filter Size", 1, Min(1),
-                UpperLimit<kMaxFilterSize>()),
-      LongParam("minSliceLength", "Minimum Length of Slice", 2, Min(0)),
-      FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-      LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                             PowerOfTwo{}),
-      LongParam<Fixed<true>>("maxKernelSize", "Maxiumm Kernel Size", 101,
-                             Min(3), Odd()),
-      LongParam<Fixed<true>>("maxFilterSize", "Maxiumm Filter Size", 100,
-                             Min(1))))>; 
+  using ParamDescType = decltype(NoveltySliceParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   std::reference_wrapper<ParamSetViewType> mParams;
 
   void setParams(ParamSetViewType& p) { mParams = p; }
 
-  template <size_t N> 
+  template <size_t N>
   auto& get() const
   {
     return mParams.get().template get<N>();
   }
 
-  static constexpr auto getParameterDescriptors()
-  { 
-    return defineParameters(
-      EnumParam("feature", "Feature", 0, "Spectrum", "MFCC", "Pitch",
-                "Loudness"),
-      LongParam("kernelSize", "KernelSize", 3, Min(3), Odd(),
-                UpperLimit<kMaxKernelSize>()),
-      FloatParam("threshold", "Threshold", 0.5, Min(0)),
-      LongParam("filterSize", "Smoothing Filter Size", 1, Min(1),
-                UpperLimit<kMaxFilterSize>()),
-      LongParam("minSliceLength", "Minimum Length of Slice", 2, Min(0)),
-      FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-      LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                             PowerOfTwo{}),
-      LongParam<Fixed<true>>("maxKernelSize", "Maxiumm Kernel Size", 101,
-                             Min(3), Odd()),
-      LongParam<Fixed<true>>("maxFilterSize", "Maxiumm Filter Size", 100,
-                             Min(1))); 
+  static constexpr auto& getParameterDescriptors()
+  {
+    return NoveltySliceParams;
   }
-
-
 
   NoveltySliceClient(ParamSetViewType& p)
       : mParams{p}, mNovelty{get<kMaxKernelSize>(), get<kMaxFilterSize>()},
@@ -224,17 +205,17 @@ private:
   algorithm::YINFFT                    mYinFFT;
   algorithm::Loudness                  mLoudness;
 };
+} // namespace noveltyslice
 
-
-using RTNoveltySliceClient = ClientWrapper<NoveltySliceClient>;
+using RTNoveltySliceClient = ClientWrapper<noveltyslice::NoveltySliceClient>;
 
 auto constexpr NRTNoveltySliceParams = makeNRTParams<RTNoveltySliceClient>(
     InputBufferParam("source", "Source Buffer"),
     BufferParam("indices", "Indices Buffer"));
 
-using NRTNoveltySliceClient =
-    NRTSliceAdaptor<NoveltySliceClient, decltype(NRTNoveltySliceParams),
-                    NRTNoveltySliceParams, 1, 1>;
+using NRTNoveltySliceClient = NRTSliceAdaptor<noveltyslice::NoveltySliceClient,
+                                              decltype(NRTNoveltySliceParams),
+                                              NRTNoveltySliceParams, 1, 1>;
 
 using NRTThreadingNoveltySliceClient =
     NRTThreadingAdaptor<NRTNoveltySliceClient>;
