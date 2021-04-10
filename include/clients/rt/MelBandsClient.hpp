@@ -37,7 +37,8 @@ class MelBandsClient : public FluidBaseClient, public AudioIn, public ControlOut
   };
 
 public:
-  FLUID_DECLARE_PARAMS(
+  using ParamDescType = 
+  std::add_const_t<decltype(defineParameters(
       LongParam("numBands", "Number of Bands", 40, Min(2),
                 UpperLimit<kMaxNBands>()),
       FloatParam("minFreq", "Low Frequency Bound", 20, Min(0)),
@@ -46,7 +47,33 @@ public:
                              Min(2), MaxFrameSizeUpperLimit<kMaxFFTSize>()),
       EnumParam("normalize", "Normalize", 1, "No", "Yes"),
       FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-      LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
+      LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384)))>; 
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N> 
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors()
+  { 
+    return defineParameters(
+      LongParam("numBands", "Number of Bands", 40, Min(2),
+                UpperLimit<kMaxNBands>()),
+      FloatParam("minFreq", "Low Frequency Bound", 20, Min(0)),
+      FloatParam("maxFreq", "High Frequency Bound", 20000, Min(0)),
+      LongParam<Fixed<true>>("maxNumBands", "Maximum Number of Bands", 120,
+                             Min(2), MaxFrameSizeUpperLimit<kMaxFFTSize>()),
+      EnumParam("normalize", "Normalize", 1, "No", "Yes"),
+      FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
+      LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384)); 
+  }
+
 
   MelBandsClient(ParamSetViewType& p)
       : mParams{p}, mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0),
