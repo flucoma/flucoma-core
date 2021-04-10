@@ -24,9 +24,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 namespace client {
+namespace transient {
 
-class TransientClient : public FluidBaseClient, public AudioIn, public AudioOut
-{
   enum TransientParamIndex {
     kOrder,
     kBlockSize,
@@ -38,18 +37,21 @@ class TransientClient : public FluidBaseClient, public AudioIn, public AudioOut
     kDebounce
   };
 
+constexpr auto TransientParams = defineParameters(
+    LongParam("order", "Order", 20, Min(10), LowerLimit<kWinSize>(),
+              UpperLimit<kBlockSize>()),
+    LongParam("blockSize", "Block Size", 256, Min(100), LowerLimit<kOrder>()),
+    LongParam("padSize", "Padding", 128, Min(0)),
+    FloatParam("skew", "Skew", 0, Min(-10), Max(10)),
+    FloatParam("threshFwd", "Forward Threshold", 2, Min(0)),
+    FloatParam("threshBack", "Backward Threshold", 1.1, Min(0)),
+    LongParam("windowSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
+    LongParam("clumpLength", "Clumping Window Length", 25, Min(0))); 
+
+class TransientClient : public FluidBaseClient, public AudioIn, public AudioOut
+{
 public:
-  using ParamDescType = 
-  std::add_const_t<decltype(defineParameters(
-      LongParam("order", "Order", 20, Min(10), LowerLimit<kWinSize>(),
-                UpperLimit<kBlockSize>()),
-      LongParam("blockSize", "Block Size", 256, Min(100), LowerLimit<kOrder>()),
-      LongParam("padSize", "Padding", 128, Min(0)),
-      FloatParam("skew", "Skew", 0, Min(-10), Max(10)),
-      FloatParam("threshFwd", "Forward Threshold", 2, Min(0)),
-      FloatParam("threshBack", "Backward Threshold", 1.1, Min(0)),
-      LongParam("windowSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
-      LongParam("clumpLength", "Clumping Window Length", 25, Min(0))))>; 
+  using ParamDescType =  decltype(TransientParams); 
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   std::reference_wrapper<ParamSetViewType> mParams;
@@ -62,20 +64,10 @@ public:
     return mParams.get().template get<N>();
   }
 
-  static constexpr auto getParameterDescriptors()
+  static constexpr auto& getParameterDescriptors()
   { 
-    return defineParameters(
-      LongParam("order", "Order", 20, Min(10), LowerLimit<kWinSize>(),
-                UpperLimit<kBlockSize>()),
-      LongParam("blockSize", "Block Size", 256, Min(100), LowerLimit<kOrder>()),
-      LongParam("padSize", "Padding", 128, Min(0)),
-      FloatParam("skew", "Skew", 0, Min(-10), Max(10)),
-      FloatParam("threshFwd", "Forward Threshold", 2, Min(0)),
-      FloatParam("threshBack", "Backward Threshold", 1.1, Min(0)),
-      LongParam("windowSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
-      LongParam("clumpLength", "Clumping Window Length", 25, Min(0))); 
+    return TransientParams; 
   }
-
 
   TransientClient(ParamSetViewType& p)
       : mParams(p)
@@ -146,16 +138,17 @@ private:
   algorithm::TransientExtraction                    mExtractor;
   BufferedProcess                                   mBufferedProcess;
 };
+}
 
-using RTTransientClient = ClientWrapper<TransientClient>;
+using RTTransientClient = ClientWrapper<transient::TransientClient>;
 
-auto constexpr NRTTransientParams = makeNRTParams<TransientClient>(
+auto constexpr NRTTransientParams = makeNRTParams<transient::TransientClient>(
     InputBufferParam("source", "Source Buffer"),
     BufferParam("transients", "Transients Buffer"),
     BufferParam("residual", "Residual Buffer"));
 
 using NRTTransientsClient =
-    NRTStreamAdaptor<TransientClient, decltype(NRTTransientParams),
+    NRTStreamAdaptor<transient::TransientClient, decltype(NRTTransientParams),
                      NRTTransientParams, 1, 2>;
 
 using NRTThreadedTransientsClient = NRTThreadingAdaptor<NRTTransientsClient>;
