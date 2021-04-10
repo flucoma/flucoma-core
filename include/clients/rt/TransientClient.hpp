@@ -39,7 +39,8 @@ class TransientClient : public FluidBaseClient, public AudioIn, public AudioOut
   };
 
 public:
-  FLUID_DECLARE_PARAMS(
+  using ParamDescType = 
+  std::add_const_t<decltype(defineParameters(
       LongParam("order", "Order", 20, Min(10), LowerLimit<kWinSize>(),
                 UpperLimit<kBlockSize>()),
       LongParam("blockSize", "Block Size", 256, Min(100), LowerLimit<kOrder>()),
@@ -48,7 +49,33 @@ public:
       FloatParam("threshFwd", "Forward Threshold", 2, Min(0)),
       FloatParam("threshBack", "Backward Threshold", 1.1, Min(0)),
       LongParam("windowSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
-      LongParam("clumpLength", "Clumping Window Length", 25, Min(0)));
+      LongParam("clumpLength", "Clumping Window Length", 25, Min(0))))>; 
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N> 
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors()
+  { 
+    return defineParameters(
+      LongParam("order", "Order", 20, Min(10), LowerLimit<kWinSize>(),
+                UpperLimit<kBlockSize>()),
+      LongParam("blockSize", "Block Size", 256, Min(100), LowerLimit<kOrder>()),
+      LongParam("padSize", "Padding", 128, Min(0)),
+      FloatParam("skew", "Skew", 0, Min(-10), Max(10)),
+      FloatParam("threshFwd", "Forward Threshold", 2, Min(0)),
+      FloatParam("threshBack", "Backward Threshold", 1.1, Min(0)),
+      LongParam("windowSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
+      LongParam("clumpLength", "Clumping Window Length", 25, Min(0))); 
+  }
+
 
   TransientClient(ParamSetViewType& p)
       : mParams(p)
