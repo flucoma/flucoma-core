@@ -28,8 +28,27 @@ class ThreadTestClient : public FluidBaseClient,
 public:
   enum ThreadTestIdx { kResult, kWait };
 
-  FLUID_DECLARE_PARAMS(BufferParam("result", "Output Result Buffer"),
-                       FloatParam("time", "Millisecond Wait", 0.0, Min(0.0)));
+  using ParamDescType = 
+  std::add_const_t<decltype(defineParameters(BufferParam("result", "Output Result Buffer"),
+                       FloatParam("time", "Millisecond Wait", 0.0, Min(0.0))))>; 
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N> 
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors()
+  { 
+    return defineParameters(BufferParam("result", "Output Result Buffer"),
+                       FloatParam("time", "Millisecond Wait", 0.0, Min(0.0))); 
+  }
+
 
   ThreadTestClient(ParamSetViewType& p) : mParams{p} {}
 
