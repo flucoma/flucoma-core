@@ -72,18 +72,7 @@ public:
     return std::make_tuple(std::string{"Testing tesing"}, 1, 2);
   }
 
-
-  using MessageType = std::add_const_t<decltype(defineMessages(
-      makeMessage("testReturnStrings", &MessageTest::doStrings),
-      makeMessage("testReturnNumbers", &MessageTest::doNumbers),
-      makeMessage("testReturnOneString", &MessageTest::doOneString),
-      makeMessage("testReturnOneNumber", &MessageTest::doOneNumber),
-      makeMessage("testAccessBuffer", &MessageTest::doBuffer),
-      makeMessage("testPassString", &MessageTest::doTakeString),
-      makeMessage("testReturnBuffer", &MessageTest::doReturnBuffer),
-      makeMessage("testReturnHetero", &MessageTest::doHetero)))>;
-
-  static MessageType getMessageDescriptors()
+  static auto getMessageDescriptors()
   {
     return defineMessages(
       makeMessage("testReturnStrings", &MessageTest::doStrings),
