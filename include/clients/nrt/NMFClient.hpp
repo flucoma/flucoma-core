@@ -52,7 +52,8 @@ class NMFClient : public FluidBaseClient, public OfflineIn, public OfflineOut
   };
 
 public:
-  FLUID_DECLARE_PARAMS(InputBufferParam("source", "Source Buffer"),
+  using ParamDescType = 
+  std::add_const_t<decltype(defineParameters(InputBufferParam("source", "Source Buffer"),
                        LongParam("startFrame", "Source Offset", 0, Min(0)),
                        LongParam("numFrames", "Number of Frames", -1),
                        LongParam("startChan", "Start Channel", 0, Min(0)),
@@ -68,7 +69,40 @@ public:
                                  Min(1)),
                        LongParam("iterations", "Number of Iterations", 100,
                                  Min(1)),
-                       FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
+                       FFTParam("fftSettings", "FFT Settings", 1024, -1, -1)))>; 
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N> 
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors()
+  { 
+    return defineParameters(InputBufferParam("source", "Source Buffer"),
+                       LongParam("startFrame", "Source Offset", 0, Min(0)),
+                       LongParam("numFrames", "Number of Frames", -1),
+                       LongParam("startChan", "Start Channel", 0, Min(0)),
+                       LongParam("numChans", "Number Channels", -1),
+                       BufferParam("resynth", "Resynthesis Buffer"),
+                       BufferParam("bases", "Bases Buffer"),
+                       EnumParam("basesMode", "Bases Buffer Update Mode", 0,
+                                 "None", "Seed", "Fixed"),
+                       BufferParam("activations", "Activations Buffer"),
+                       EnumParam("actMode", "Activations Buffer Update Mode", 0,
+                                 "None", "Seed", "Fixed"),
+                       LongParam("components", "Number of Components", 1,
+                                 Min(1)),
+                       LongParam("iterations", "Number of Iterations", 100,
+                                 Min(1)),
+                       FFTParam("fftSettings", "FFT Settings", 1024, -1, -1)); 
+  }
+
 
 
   NMFClient(ParamSetViewType& p) : mParams{p} {}
