@@ -42,7 +42,8 @@ public:
     kMaxSize
   };
 
-  FLUID_DECLARE_PARAMS(
+  using ParamDescType = 
+  std::add_const_t<decltype(defineParameters(
       LongParam("rampUp", "Ramp Up Length", 10, Min(1)),
       LongParam("rampDown", "Ramp Down Length", 10, Min(1)),
       FloatParam("onThreshold", "On Threshold", -90, Min(-144), Max(144)),
@@ -57,7 +58,39 @@ public:
       LongParam("lookAhead", "Forward Lookup Length", 0, Min(0)),
       FloatParam("highPassFreq", "High-Pass Filter Cutoff", 85, Min(0)),
       LongParam<Fixed<true>>("maxSize", "Maximum Total Latency", 88200,
-                             Min(1)));
+                             Min(1))))>; 
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N> 
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors()
+  { 
+    return defineParameters(
+      LongParam("rampUp", "Ramp Up Length", 10, Min(1)),
+      LongParam("rampDown", "Ramp Down Length", 10, Min(1)),
+      FloatParam("onThreshold", "On Threshold", -90, Min(-144), Max(144)),
+      FloatParam("offThreshold", "Off Threshold", -90, Min(-144), Max(144)),
+      LongParam("minSliceLength", "Minimum Length of Slice", 1, Min(1)),
+      LongParam("minSilenceLength", "Minimum Length of Silence", 1, Min(1)),
+      LongParam("minLengthAbove", "Required Minimum Length Above Threshold", 1,
+                Min(1)),
+      LongParam("minLengthBelow", "Required Minimum Length Below Threshold", 1,
+                Min(1)),
+      LongParam("lookBack", "Backward Lookup Length", 0, Min(0)),
+      LongParam("lookAhead", "Forward Lookup Length", 0, Min(0)),
+      FloatParam("highPassFreq", "High-Pass Filter Cutoff", 85, Min(0)),
+      LongParam<Fixed<true>>("maxSize", "Maximum Total Latency", 88200,
+                             Min(1))); 
+  }
+
 
   AmpGateClient(ParamSetViewType& p) : mParams{p}, mAlgorithm{get<kMaxSize>()}
   {
