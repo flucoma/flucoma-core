@@ -9,89 +9,68 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include <algorithm>
 #include "../common/FluidBaseClient.hpp"
 #include "../common/FluidNRTClientWrapper.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterTypes.hpp"
 #include "../../algorithms/public/MultiStats.hpp"
+#include <algorithm>
 
 namespace fluid {
 namespace client {
+namespace bufstats {
+
+enum BufferStatsParamIndex {
+  kSource,
+  kOffset,
+  kNumFrames,
+  kStartChan,
+  kNumChans,
+  kStats,
+  kNumDerivatives,
+  kLow,
+  kMiddle,
+  kHigh,
+  kOutliersCutoff,
+  kWeights
+};
+
+constexpr auto BufStatsParams = defineParameters(
+    InputBufferParam("source", "Source Buffer"),
+    LongParam("startFrame", "Source Offset", 0, Min(0)),
+    LongParam("numFrames", "Number of Frames", -1),
+    LongParam("startChan", "Start Channel", 0, Min(0)),
+    LongParam("numChans", "Number of Channels", -1),
+    BufferParam("stats", "Stats Buffer"),
+    LongParam("numDerivs", "Number of Derivatives", 0, Min(0), Max(2)),
+    FloatParam("low", "Low Percentile", 0, Min(0), Max(100),
+               UpperLimit<kMiddle>()),
+    FloatParam("middle", "Middle Percentile", 50, Min(0), Max(100),
+               LowerLimit<kLow>(), UpperLimit<kHigh>()),
+    FloatParam("high", "High Percentile", 100, Min(0), Max(100),
+               LowerLimit<kMiddle>()),
+    FloatParam("outliersCutoff", "Outliers Cutoff", -1, Min(-1)),
+    BufferParam("weights", "Weights Buffer"));
 
 class BufferStatsClient : public FluidBaseClient,
                           public OfflineIn,
                           public OfflineOut
 {
-
-  enum BufferStatsParamIndex {
-    kSource,
-    kOffset,
-    kNumFrames,
-    kStartChan,
-    kNumChans,
-    kStats,
-    kNumDerivatives,
-    kLow,
-    kMiddle,
-    kHigh,
-    kOutliersCutoff,
-    kWeights
-  };
-
 public:
-  using ParamDescType = 
-  std::add_const_t<decltype(defineParameters(InputBufferParam("source", "Source Buffer"),
-                       LongParam("startFrame", "Source Offset", 0, Min(0)),
-                       LongParam("numFrames", "Number of Frames", -1),
-                       LongParam("startChan", "Start Channel", 0, Min(0)),
-                       LongParam("numChans", "Number of Channels", -1),
-                       BufferParam("stats", "Stats Buffer"),
-                       LongParam("numDerivs", "Number of Derivatives", 0,
-                                 Min(0), Max(2)),
-                       FloatParam("low", "Low Percentile", 0, Min(0), Max(100),
-                                  UpperLimit<kMiddle>()),
-                       FloatParam("middle", "Middle Percentile", 50, Min(0),
-                                  Max(100), LowerLimit<kLow>(),
-                                  UpperLimit<kHigh>()),
-                       FloatParam("high", "High Percentile", 100, Min(0),
-                                  Max(100), LowerLimit<kMiddle>()),
-                       FloatParam("outliersCutoff", "Outliers Cutoff", -1, Min(-1)),
-                       BufferParam("weights", "Weights Buffer")
-                        ))>; 
+  using ParamDescType = decltype(BufStatsParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   std::reference_wrapper<ParamSetViewType> mParams;
 
   void setParams(ParamSetViewType& p) { mParams = p; }
 
-  template <size_t N> 
+  template <size_t N>
   auto& get() const
   {
     return mParams.get().template get<N>();
   }
 
-  static constexpr auto getParameterDescriptors()
-  { 
-    return defineParameters(InputBufferParam("source", "Source Buffer"),
-                       LongParam("startFrame", "Source Offset", 0, Min(0)),
-                       LongParam("numFrames", "Number of Frames", -1),
-                       LongParam("startChan", "Start Channel", 0, Min(0)),
-                       LongParam("numChans", "Number of Channels", -1),
-                       BufferParam("stats", "Stats Buffer"),
-                       LongParam("numDerivs", "Number of Derivatives", 0,
-                                 Min(0), Max(2)),
-                       FloatParam("low", "Low Percentile", 0, Min(0), Max(100),
-                                  UpperLimit<kMiddle>()),
-                       FloatParam("middle", "Middle Percentile", 50, Min(0),
-                                  Max(100), LowerLimit<kLow>(),
-                                  UpperLimit<kHigh>()),
-                       FloatParam("high", "High Percentile", 100, Min(0),
-                                  Max(100), LowerLimit<kMiddle>()),
-                       FloatParam("outliersCutoff", "Outliers Cutoff", -1, Min(-1)),
-                       BufferParam("weights", "Weights Buffer")
-                        ); 
-  }
+  static constexpr auto& getParameterDescriptors() { return BufStatsParams; }
 
 
   BufferStatsClient(ParamSetViewType& p) : mParams(p) {}
@@ -153,41 +132,47 @@ public:
     processor.init(get<kNumDerivatives>(), get<kLow>(), get<kMiddle>(),
                    get<kHigh>());
 
-    Result processingResult = {Result::Status::kOk, ""};
+    Result     processingResult = {Result::Status::kOk, ""};
     RealVector weights;
 
-    if (get<kWeights>()){
+    if (get<kWeights>())
+    {
       BufferAdaptor::ReadAccess weightsBuf(get<kWeights>().get());
       if (!weightsBuf.exists())
         return {Result::Status::kError, "Weights buffer supplied but invalid"};
-      if(weightsBuf.numChans() != 1) return {Result::Status::kError, "Weights buffer invalid channel count"};
-      if(weightsBuf.numFrames() != numFrames)
+      if (weightsBuf.numChans() != 1)
+        return {Result::Status::kError, "Weights buffer invalid channel count"};
+      if (weightsBuf.numFrames() != numFrames)
         return {Result::Status::kError, "Weights buffer invalid size"};
       weights = RealVector(numFrames);
-      weights = weightsBuf.samps(0);//copy from buffer
-      if( *std::min_element(weights.begin(), weights.end()) < 0 ){
-        processingResult = Result(Result::Status::kWarning, "Negative weights clipped to 0");
+      weights = weightsBuf.samps(0); // copy from buffer
+      if (*std::min_element(weights.begin(), weights.end()) < 0)
+      {
+        processingResult =
+            Result(Result::Status::kWarning, "Negative weights clipped to 0");
       }
-      if( *std::max_element(weights.begin(), weights.end())  <=  0 ){
-        for(index i = 0; i < numChannels; i++) dest.samps(i).fill(0);
+      if (*std::max_element(weights.begin(), weights.end()) <= 0)
+      {
+        for (index i = 0; i < numChannels; i++) dest.samps(i).fill(0);
         return {Result::Status::kWarning, "Invalid weights"};
       }
     }
     FluidTensor<double, 2> tmp(numChannels, numFrames);
     FluidTensor<double, 2> result(numChannels, outputSize);
-    for (int i = 0; i < numChannels; i++){
-      tmp.row(i) = source.samps(get<kOffset>(), numFrames, get<kStartChan>() + i);
+    for (int i = 0; i < numChannels; i++)
+    {
+      tmp.row(i) =
+          source.samps(get<kOffset>(), numFrames, get<kStartChan>() + i);
     }
     processor.process(tmp, result, get<kOutliersCutoff>(), weights);
-    for (int i = 0; i < numChannels; i++){
-      dest.samps(i) = result.row(i);
-    }
+    for (int i = 0; i < numChannels; i++) { dest.samps(i) = result.row(i); }
     return processingResult;
   }
 };
+} // namespace bufstats
 
 using NRTThreadedBufferStatsClient =
-    NRTThreadingAdaptor<ClientWrapper<BufferStatsClient>>;
+    NRTThreadingAdaptor<ClientWrapper<bufstats::BufferStatsClient>>;
 
 } // namespace client
 } // namespace fluid
