@@ -339,6 +339,11 @@ public:
   void removeListener(void*)
   {} // no-op for non-shared parameter set?
 
+  template<size_t N> 
+  auto descriptorAt()
+  {
+     return descriptor<N>(); 
+  }
 private:
   template <typename T>
   struct IsParamType
