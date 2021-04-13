@@ -115,12 +115,23 @@ struct AddPadding
   static constexpr bool HasFFT =
       impl::FilterTupleIndices<IsFFTParam, Types, Index>::type::size() > 0;
   static constexpr bool HasControlOut = IsControlOut<RTClient>::value;
-
-  static constexpr size_t value = std::conditional_t<HasFFT,
-      std::conditional_t<HasControlOut, std::integral_constant<size_t, 2>,
-                         std::integral_constant<size_t, 1>>,
-      std::integral_constant<size_t, 0>>()();
+//  static constexpr size_t value = HasControlOut? 2 : 1;
+  
+  static constexpr size_t value =
+    HasFFT && HasControlOut ? 2 :
+      HasFFT && !HasControlOut ? 1 :
+        !HasFFT && HasControlOut ? 3 : 0;
+          
+  
+//  static constexpr size_t value = std::conditional_t<HasFFT,
+//      std::conditional_t<HasControlOut, std::integral_constant<size_t, 2>,
+//                         std::integral_constant<size_t, 1>>,
+//      std::integral_constant<size_t, 0>>()();
 };
+
+//Special case for Loudness :`-(
+template <typename C>
+using NonFFTWithControlOut = std::enable_if_t<AddPadding<C>::value == 3>;
 
 template <typename C>
 using FFTWithControlOut = std::enable_if_t<AddPadding<C>::value == 2>;
@@ -353,6 +364,33 @@ public:
   {
     return {0,0};
   }
+
+  //FIXME: This has to rely on the specific structure of LoudnessCLient at the moment, which is bad, bad, bad
+  template <typename C = RTClient>
+  std::pair<index,index> userPadding(NonFFTWithControlOut<C>* = 0)
+  {
+//    using FFTLookup = std::reference_wrapper<FFTParams>;
+//    index userPaddingParamValue = get<ParamOffset - 1>();
+//    auto  fftSettings = mParams.get().template get<FFTLookup>();
+//    return {FFTParams::padding(fftSettings, userPaddingParamValue),userPaddingParamValue};
+     index userPaddingParamValue = get<ParamOffset - 1>();
+     constexpr size_t WinOffset = 2;
+     constexpr size_t HopOffset = 3;
+     
+     auto  winSizeDescriptor = mParams.get().template descriptorAt<ParamOffset + WinOffset>();
+     
+     assert(winSizeDescriptor.name == "windowSize");
+     
+     index winSize = get<ParamOffset + WinOffset>();
+     index hopSize = get<ParamOffset + HopOffset>();
+     using Op = index (*)(index, index);
+     static std::array<Op, 3> options{
+        [](index, index) -> index { return 0; },
+        [](index win, index) { return win >> 1; },
+        [](index win, index hop) { return win - hop; }};
+     return {options[userPaddingParamValue](winSize,hopSize), userPaddingParamValue};
+  }
+
 
 private:
   template <size_t N, typename T>
@@ -638,7 +676,7 @@ using NRTControlAdaptor =
 template <class RTClient, class... Outs>
 auto constexpr addFFTPadding(
     Outs&&... outs,
-    std::enable_if_t<impl::AddPadding<RTClient>::value != 2>* = 0)
+    std::enable_if_t<impl::AddPadding<RTClient>::value < 2>* = 0)
 {
   return defineParameters(std::forward<Outs>(outs)...);
 }
@@ -646,7 +684,7 @@ auto constexpr addFFTPadding(
 template <class RTClient, class... Outs>
 auto constexpr addFFTPadding(
     Outs&&... outs,
-    std::enable_if_t<impl::AddPadding<RTClient>::value == 2>* = 0)
+    std::enable_if_t<impl::AddPadding<RTClient>::value >= 2>* = 0)
 {
   return defineParameters(
       std::forward<Outs>(outs)...,
