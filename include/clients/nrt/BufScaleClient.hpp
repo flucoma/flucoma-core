@@ -56,14 +56,6 @@ public:
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   std::reference_wrapper<ParamSetViewType> mParams;
 
-  using clipFnType =  double(*)(double, double, double);
-  const std::array<clipFnType,4> clippingFunctions = {
-    [](double x, double, double) {return x;},
-    [](double x, double low, double) { return std::max(x, low); },
-    [](double x, double, double high) { return std::min(x, high); },
-    [](double x, double low, double high) { return std::min(std::max(x,low),high); }
-  };
-
   void setParams(ParamSetViewType& p) { mParams = p; }
 
   template <size_t N>
@@ -99,6 +91,15 @@ public:
     FluidTensor<double, 2> tmp(source.allFrames()(Slice(startChan,numChans),Slice(startFrame,numFrames)));
 
     //pre-process
+    using clipFnType =  double(*)(double, double, double);
+
+    static const std::array<clipFnType,4> clippingFunctions = {
+      [](double x, double, double) {return x;},
+      [](double x, double low, double) { return std::max(x, low); },
+      [](double x, double, double high) { return std::min(x, high); },
+      [](double x, double low, double high) { return std::min(std::max(x,low),high); }
+    };
+
     auto clipFn = clippingFunctions[get<kClip>()];
     double outLow = get<kOutLow>();
     double outHigh = get<kOutHigh>();
