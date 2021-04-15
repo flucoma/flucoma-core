@@ -8,6 +8,7 @@
 
 namespace fluid {
 namespace client {
+namespace knnclassifier{
 
 struct KNNClassifierData{
   algorithm::KDTree tree{0};
@@ -34,6 +35,14 @@ void from_json(const nlohmann::json& j, KNNClassifierData& data) {
   data.labels = j.at("labels").get<FluidDataSet<std::string, std::string, 1>>();
 }
 
+enum { kNumNeighbors, kWeight, kInputBuffer, kOutputBuffer };
+
+constexpr auto KNNClassifierParams = defineParameters(
+    LongParam("numNeighbours", "Number of Nearest Neighbours", 3, Min(1)),
+    EnumParam("weight", "Weight Neighbours by Distance", 1, "No", "Yes"),
+    BufferParam("inputPointBuffer", "Input Point Buffer"),
+    BufferParam("predictionBuffer", "Prediction Buffer"));
+
 class KNNClassifierClient : public FluidBaseClient,
                      AudioIn,
                      ControlOut,
@@ -47,14 +56,23 @@ public:
   using DataSet = FluidDataSet<string, double, 1>;
   using StringVector = FluidTensor<string, 1>;
 
-  enum {kNumNeighbors, kWeight, kInputBuffer, kOutputBuffer};
+  using ParamDescType = decltype(KNNClassifierParams); 
 
-  FLUID_DECLARE_PARAMS(
-    LongParam("numNeighbours","Number of Nearest Neighbours", 3, Min(1)),
-    EnumParam("weight", "Weight Neighbours by Distance", 1, "No", "Yes"),
-    BufferParam("inputPointBuffer","Input Point Buffer"),
-    BufferParam("predictionBuffer","Prediction Buffer")
-  );
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors()
+  {
+    return KNNClassifierParams;
+  }
 
   KNNClassifierClient(ParamSetViewType &p) : mParams(p)
   {
@@ -155,25 +173,27 @@ public:
   }
   index latency() { return 0; }
 
-  FLUID_DECLARE_MESSAGES(makeMessage("fit",
-                         &KNNClassifierClient::fit),
-                         makeMessage("predict",
-                         &KNNClassifierClient::predict),
-                         makeMessage("predictPoint",
-                         &KNNClassifierClient::predictPoint),
-                         makeMessage("cols", &KNNClassifierClient::dims),
-                         makeMessage("clear", &KNNClassifierClient::clear),
-                         makeMessage("size", &KNNClassifierClient::size),
-                         makeMessage("load", &KNNClassifierClient::load),
-                         makeMessage("dump", &KNNClassifierClient::dump),
-                         makeMessage("write", &KNNClassifierClient::write),
-                         makeMessage("read", &KNNClassifierClient::read));
+  static auto getMessageDescriptors()
+  {
+    return defineMessages(
+        makeMessage("fit", &KNNClassifierClient::fit),
+        makeMessage("predict", &KNNClassifierClient::predict),
+        makeMessage("predictPoint", &KNNClassifierClient::predictPoint),
+        makeMessage("cols", &KNNClassifierClient::dims),
+        makeMessage("clear", &KNNClassifierClient::clear),
+        makeMessage("size", &KNNClassifierClient::size),
+        makeMessage("load", &KNNClassifierClient::load),
+        makeMessage("dump", &KNNClassifierClient::dump),
+        makeMessage("write", &KNNClassifierClient::write),
+        makeMessage("read", &KNNClassifierClient::read));
+  }
 
 private:
   FluidInputTrigger mTrigger;
   algorithm::LabelSetEncoder mLabelSetEncoder;
 };
+}
 
-using RTKNNClassifierClient = ClientWrapper<KNNClassifierClient>;
+using RTKNNClassifierClient = ClientWrapper<knnclassifier::KNNClassifierClient>;
 } // namespace client
 } // namespace fluid

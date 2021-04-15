@@ -6,24 +6,42 @@
 
 namespace fluid {
 namespace client {
+namespace standardize {
+
+enum { kInvert, kInputBuffer, kOutputBuffer };
+
+constexpr auto StandardizeParams = defineParameters(
+    EnumParam("invert", "Inverse Transform", 0, "False", "True"),
+    BufferParam("inputPointBuffer", "Input Point Buffer"),
+    BufferParam("predictionBuffer", "Prediction Buffer"));
 
 class StandardizeClient : public FluidBaseClient,
                           AudioIn,
                           ControlOut,
                           ModelObject,
                           public DataClient<algorithm::Standardization> {
-
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
   using StringVector = FluidTensor<string, 1>;
 
   template <typename T> Result process(FluidContext &) { return {}; }
-  enum { kInvert, kInputBuffer, kOutputBuffer };
-  FLUID_DECLARE_PARAMS(
-                       EnumParam("invert", "Inverse Transform", 0, "False", "True"),
-                       BufferParam("inputPointBuffer", "Input Point Buffer"),
-                       BufferParam("predictionBuffer", "Prediction Buffer"));
+
+  using ParamDescType = decltype(StandardizeParams);
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors() { return StandardizeParams; }
+
   StandardizeClient(ParamSetViewType &p) : mParams(p) {
     audioChannelsIn(1);
     controlChannelsOut(1);
@@ -92,18 +110,21 @@ public:
     return result;
   }
 
-  FLUID_DECLARE_MESSAGES(
-      makeMessage("fit", &StandardizeClient::fit),
-      makeMessage("fitTransform", &StandardizeClient::fitTransform),
-      makeMessage("transform", &StandardizeClient::transform),
-      makeMessage("transformPoint", &StandardizeClient::transformPoint),
-      makeMessage("cols", &StandardizeClient::dims),
-      makeMessage("clear", &StandardizeClient::clear),
-      makeMessage("size", &StandardizeClient::size),
-      makeMessage("load", &StandardizeClient::load),
-      makeMessage("dump", &StandardizeClient::dump),
-      makeMessage("read", &StandardizeClient::read),
-      makeMessage("write", &StandardizeClient::write));
+  static auto getMessageDescriptors()
+  {
+    return defineMessages(
+        makeMessage("fit", &StandardizeClient::fit),
+        makeMessage("fitTransform", &StandardizeClient::fitTransform),
+        makeMessage("transform", &StandardizeClient::transform),
+        makeMessage("transformPoint", &StandardizeClient::transformPoint),
+        makeMessage("cols", &StandardizeClient::dims),
+        makeMessage("clear", &StandardizeClient::clear),
+        makeMessage("size", &StandardizeClient::size),
+        makeMessage("load", &StandardizeClient::load),
+        makeMessage("dump", &StandardizeClient::dump),
+        makeMessage("read", &StandardizeClient::read),
+        makeMessage("write", &StandardizeClient::write));
+  }
 
 private:
   MessageResult<void> _transform(DataSetClientRef sourceClient,
@@ -130,8 +151,9 @@ private:
 
   FluidInputTrigger mTrigger;
 };
+} // namespace standardize
 
-using RTStandardizeClient = ClientWrapper<StandardizeClient>;
+using RTStandardizeClient = ClientWrapper<standardize::StandardizeClient>;
 
 } // namespace client
 } // namespace fluid

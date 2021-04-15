@@ -10,6 +10,7 @@
 
 namespace fluid {
 namespace client {
+namespace mlpclassifier{  
 
 struct MLPClassifierData {
   algorithm::MLP mlp;
@@ -38,23 +39,38 @@ void from_json(const nlohmann::json &j, MLPClassifierData &data) {
   data.encoder = j.at("labels").get<algorithm::LabelSetEncoder>();
 }
 
+enum {
+  kHidden,
+  kActivation,
+  kIter,
+  kRate,
+  kMomentum,
+  kBatchSize,
+  kVal,
+  kInputBuffer,
+  kOutputBuffer
+};
+
+constexpr std::initializer_list<index> HiddenLayerDefaults = {3, 3};
+
+constexpr auto MLPClassifierParams = defineParameters(
+    LongArrayParam("hidden", "Hidden Layer Sizes", HiddenLayerDefaults),
+    EnumParam("activation", "Activation Function", 2, "Identity", "Sigmoid",
+              "ReLU", "Tanh"),
+    LongParam("maxIter", "Maximum Number of Iterations", 1000, Min(1)),
+    FloatParam("learnRate", "Learning Rate", 0.01, Min(0.0), Max(1.0)),
+    FloatParam("momentum", "Momentum", 0.5, Min(0.0), Max(0.99)),
+    LongParam("batchSize", "Batch Size", 50),
+    FloatParam("validation", "Validation Amount", 0.2, Min(0), Max(0.9)),
+    BufferParam("inputPointBuffer", "Input Point Buffer"),
+    BufferParam("predictionBuffer", "Prediction Buffer"));
+
+
 class MLPClassifierClient : public FluidBaseClient,
                             AudioIn,
                             ControlOut,
                             ModelObject,
                             public DataClient<MLPClassifierData> {
-  enum {
-    kHidden,
-    kActivation,
-    kIter,
-    kRate,
-    kMomentum,
-    kBatchSize,
-    kVal,
-    kInputBuffer,
-    kOutputBuffer
-  };
-
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
@@ -63,21 +79,23 @@ public:
   using DataSet = FluidDataSet<string, double, 1>;
   using LabelSet = FluidDataSet<string, string, 1>;
 
+  using ParamDescType = decltype(MLPClassifierParams);
 
-  static constexpr std::initializer_list<index> HiddenLayerDefaults = {3, 3};
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
 
-  FLUID_DECLARE_PARAMS(
-      LongArrayParam("hidden", "Hidden Layer Sizes", HiddenLayerDefaults),
-      EnumParam("activation", "Activation Function", 2, "Identity", "Sigmoid",
-                "ReLU", "Tanh"),
-      LongParam("maxIter", "Maximum Number of Iterations", 1000,  Min(1)),
-      FloatParam("learnRate", "Learning Rate", 0.01, Min(0.0), Max(1.0)),
-      FloatParam("momentum", "Momentum", 0.5, Min(0.0), Max(0.99)),
-      LongParam("batchSize", "Batch Size", 50),
-      FloatParam("validation", "Validation Amount", 0.2, Min(0), Max(0.9)),
-      BufferParam("inputPointBuffer", "Input Point Buffer"),
-      BufferParam("predictionBuffer", "Prediction Buffer")
-);
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors()
+  {
+    return MLPClassifierParams;
+  }
 
   MLPClassifierClient(ParamSetViewType &p) : mParams(p) {
     audioChannelsIn(1);
@@ -205,25 +223,29 @@ public:
     return label;
   }
 
-  FLUID_DECLARE_MESSAGES(makeMessage("fit", &MLPClassifierClient::fit),
-                         makeMessage("predict", &MLPClassifierClient::predict),
-                         makeMessage("predictPoint",
-                                     &MLPClassifierClient::predictPoint),
-                         makeMessage("clear", &MLPClassifierClient::clear),
-                         makeMessage("cols", &MLPClassifierClient::dims),
-                         makeMessage("size", &MLPClassifierClient::size),
-                         makeMessage("load", &MLPClassifierClient::load),
-                         makeMessage("dump", &MLPClassifierClient::dump),
-                         makeMessage("write", &MLPClassifierClient::write),
-                         makeMessage("read", &MLPClassifierClient::read));
-
+  static auto getMessageDescriptors()
+  {
+    return defineMessages(
+        makeMessage("fit", &MLPClassifierClient::fit),
+        makeMessage("predict", &MLPClassifierClient::predict),
+        makeMessage("predictPoint", &MLPClassifierClient::predictPoint),
+        makeMessage("clear", &MLPClassifierClient::clear),
+        makeMessage("cols", &MLPClassifierClient::dims),
+        makeMessage("size", &MLPClassifierClient::size),
+        makeMessage("load", &MLPClassifierClient::load),
+        makeMessage("dump", &MLPClassifierClient::dump),
+        makeMessage("write", &MLPClassifierClient::write),
+        makeMessage("read", &MLPClassifierClient::read));
+  }
+  
 private:
   FluidInputTrigger mTrigger;
   ParameterTrackChanges<IndexVector, index> mTracker;
 };
 
-constexpr std::initializer_list<index> MLPClassifierClient::HiddenLayerDefaults;
-using RTMLPClassifierClient = ClientWrapper<MLPClassifierClient>;
+} // namespace mlpclassifier
+
+using RTMLPClassifierClient = ClientWrapper<mlpclassifier::MLPClassifierClient>;
 
 } // namespace client
 } // namespace fluid

@@ -6,6 +6,7 @@
 
 namespace fluid {
 namespace client {
+namespace knnregressor{
 
 struct KNNRegressorData {
   algorithm::KDTree tree{0};
@@ -31,26 +32,42 @@ void from_json(const nlohmann::json &j, KNNRegressorData &data) {
   data.target = j["target"].get<FluidDataSet<std::string, double, 1>>();
 }
 
+enum { kNumNeighbors, kWeight, kInputBuffer, kOutputBuffer };
+
+constexpr auto KNNRegressorParams = defineParameters(
+    LongParam("numNeighbours", "Number of Nearest Neighbours", 3, Min(1)),
+    EnumParam("weight", "Weight Neighbours by Distance", 1, "No", "Yes"),
+    BufferParam("inputPointBuffer", "Input Point Buffer"),
+    BufferParam("predictionBuffer", "Prediction Buffer"));
+
 class KNNRegressorClient : public FluidBaseClient,
                            AudioIn,
                            ControlOut,
                            ModelObject,
                            public DataClient<KNNRegressorData> {
-
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
   using DataSet = FluidDataSet<string, double, 1>;
   using StringVector = FluidTensor<string, 1>;
 
-  enum {kNumNeighbors, kWeight, kInputBuffer, kOutputBuffer};
+  using ParamDescType = decltype(KNNRegressorParams);
 
-  FLUID_DECLARE_PARAMS(
-    LongParam("numNeighbours","Number of Nearest Neighbours", 3, Min(1)),
-    EnumParam("weight", "Weight Neighbours by Distance", 1, "No", "Yes"),
-    BufferParam("inputPointBuffer","Input Point Buffer"),
-    BufferParam("predictionBuffer","Prediction Buffer")
-  );
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors()
+  {
+    return KNNRegressorParams;
+  }
 
   KNNRegressorClient(ParamSetViewType &p) : mParams(p) {
     audioChannelsIn(1);
@@ -149,23 +166,27 @@ public:
     return OK();
   }
 
-  FLUID_DECLARE_MESSAGES(makeMessage("fit", &KNNRegressorClient::fit),
-                         makeMessage("predict", &KNNRegressorClient::predict),
-                         makeMessage("predictPoint",
-                                     &KNNRegressorClient::predictPoint),
-                         makeMessage("cols", &KNNRegressorClient::dims),
-                         makeMessage("clear", &KNNRegressorClient::clear),
-                         makeMessage("size", &KNNRegressorClient::size),
-                         makeMessage("load", &KNNRegressorClient::load),
-                         makeMessage("dump", &KNNRegressorClient::dump),
-                         makeMessage("write", &KNNRegressorClient::write),
-                         makeMessage("read", &KNNRegressorClient::read));
+  static auto getMessageDescriptors()
+  {
+    return defineMessages(
+        makeMessage("fit", &KNNRegressorClient::fit),
+        makeMessage("predict", &KNNRegressorClient::predict),
+        makeMessage("predictPoint", &KNNRegressorClient::predictPoint),
+        makeMessage("cols", &KNNRegressorClient::dims),
+        makeMessage("clear", &KNNRegressorClient::clear),
+        makeMessage("size", &KNNRegressorClient::size),
+        makeMessage("load", &KNNRegressorClient::load),
+        makeMessage("dump", &KNNRegressorClient::dump),
+        makeMessage("write", &KNNRegressorClient::write),
+        makeMessage("read", &KNNRegressorClient::read));
+  }
 
 private:
   FluidInputTrigger mTrigger;
 };
+} // namespace knnregressor
 
-using RTKNNRegressorClient = ClientWrapper<KNNRegressorClient>;
+using RTKNNRegressorClient = ClientWrapper<knnregressor::KNNRegressorClient>;
 
 } // namespace client
 } // namespace fluid

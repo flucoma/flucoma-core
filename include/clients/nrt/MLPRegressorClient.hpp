@@ -8,28 +8,47 @@
 
 namespace fluid {
 namespace client {
+namespace mlpregressor {
+
+enum {
+  kHidden,
+  kActivation,
+  kOutputActivation,
+  kInputTap,
+  kOutputTap,
+  kIter,
+  kRate,
+  kMomentum,
+  kBatchSize,
+  kVal,
+  kInputBuffer,
+  kOutputBuffer
+};
+
+
+constexpr std::initializer_list<index> HiddenLayerDefaults = {3, 3};
+
+constexpr auto MLPRegressorParams = defineParameters(
+    LongArrayParam("hidden", "Hidden Layer Sizes", HiddenLayerDefaults),
+    EnumParam("activation", "Activation Function", 2, "Identity", "Sigmoid",
+              "ReLU", "Tanh"),
+    EnumParam("outputActivation", "Output Activation Function", 0, "Identity",
+              "Sigmoid", "ReLU", "Tanh"),
+    LongParam("tapIn", "Input Tap Index", 0, Min(0)),
+    LongParam("tapOut", "Output Tap Index", -1, Min(-1)),
+    LongParam("maxIter", "Maximum Number of Iterations", 1000, Min(1)),
+    FloatParam("learnRate", "Learning Rate", 0.01, Min(0.0), Max(1.0)),
+    FloatParam("momentum", "Momentum", 0.9, Min(0.0), Max(0.99)),
+    LongParam("batchSize", "Batch Size", 50, Min(1)),
+    FloatParam("validation", "Validation Amount", 0.2, Min(0), Max(0.9)),
+    BufferParam("inputPointBuffer", "Input Point Buffer"),
+    BufferParam("predictionBuffer", "Prediction Buffer"));
 
 class MLPRegressorClient : public FluidBaseClient,
                            AudioIn,
                            ControlOut,
                            ModelObject,
                            public DataClient<algorithm::MLP> {
-
-  enum {
-    kHidden,
-    kActivation,
-    kOutputActivation,
-    kInputTap,
-    kOutputTap,
-    kIter,
-    kRate,
-    kMomentum,
-    kBatchSize,
-    kVal,
-    kInputBuffer,
-    kOutputBuffer
-  };
-
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
@@ -37,23 +56,23 @@ public:
   using StringVector = FluidTensor<string, 1>;
   using DataSet = FluidDataSet<string, double, 1>;
 
-  static constexpr std::initializer_list<index> HiddenLayerDefaults = {3, 3};
+  using ParamDescType = decltype(MLPRegressorParams);
 
-  FLUID_DECLARE_PARAMS(
-      LongArrayParam("hidden", "Hidden Layer Sizes", HiddenLayerDefaults),
-      EnumParam("activation", "Activation Function", 2, "Identity", "Sigmoid",
-                "ReLU", "Tanh"),
-      EnumParam("outputActivation", "Output Activation Function", 0, "Identity", "Sigmoid",
-                          "ReLU", "Tanh"),
-      LongParam("tapIn", "Input Tap Index", 0, Min(0)),
-      LongParam("tapOut", "Output Tap Index", -1, Min(-1)),
-      LongParam("maxIter", "Maximum Number of Iterations", 1000, Min(1)),
-      FloatParam("learnRate", "Learning Rate", 0.01, Min(0.0), Max(1.0)),
-      FloatParam("momentum", "Momentum", 0.9, Min(0.0), Max(0.99)),
-      LongParam("batchSize", "Batch Size", 50, Min(1)),
-      FloatParam("validation", "Validation Amount", 0.2, Min(0), Max(0.9)),
-      BufferParam("inputPointBuffer", "Input Point Buffer"),
-      BufferParam("predictionBuffer", "Prediction Buffer"));
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors()
+  {
+    return MLPRegressorParams;
+  }
 
   MLPRegressorClient(ParamSetViewType &p) : mParams(p) {
     audioChannelsIn(1);
@@ -195,23 +214,27 @@ public:
 
   index latency() { return 0; }
 
-  FLUID_DECLARE_MESSAGES(makeMessage("fit", &MLPRegressorClient::fit),
-                         makeMessage("predict", &MLPRegressorClient::predict),
-                         makeMessage("predictPoint",
-                                     &MLPRegressorClient::predictPoint),
-                         makeMessage("clear", &MLPRegressorClient::clear),
-                         makeMessage("cols", &MLPRegressorClient::dims),
-                         makeMessage("size", &MLPRegressorClient::size),
-                         makeMessage("load", &MLPRegressorClient::load),
-                         makeMessage("dump", &MLPRegressorClient::dump),
-                         makeMessage("write", &MLPRegressorClient::write),
-                         makeMessage("read", &MLPRegressorClient::read));
+  static auto getMessageDescriptors()
+  {
+    return defineMessages(
+        makeMessage("fit", &MLPRegressorClient::fit),
+        makeMessage("predict", &MLPRegressorClient::predict),
+        makeMessage("predictPoint", &MLPRegressorClient::predictPoint),
+        makeMessage("clear", &MLPRegressorClient::clear),
+        makeMessage("cols", &MLPRegressorClient::dims),
+        makeMessage("size", &MLPRegressorClient::size),
+        makeMessage("load", &MLPRegressorClient::load),
+        makeMessage("dump", &MLPRegressorClient::dump),
+        makeMessage("write", &MLPRegressorClient::write),
+        makeMessage("read", &MLPRegressorClient::read));
+  }
 
 private:
   FluidInputTrigger mTrigger;
   ParameterTrackChanges<IndexVector, index> mTracker;
 };
-constexpr std::initializer_list<index> MLPRegressorClient::HiddenLayerDefaults;
-using RTMLPRegressorClient = ClientWrapper<MLPRegressorClient>;
+}
+
+using RTMLPRegressorClient = ClientWrapper<mlpregressor::MLPRegressorClient>;
 } // namespace client
 } // namespace fluid

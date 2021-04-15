@@ -7,25 +7,41 @@
 
 namespace fluid {
 namespace client {
+namespace robustscale {
+
+enum { kLow, kHigh, kInvert, kInputBuffer, kOutputBuffer };
+
+constexpr auto RobustScaleParams = defineParameters(
+    FloatParam("low", "Low Percentile", 25, Min(0), Max(100)),
+    FloatParam("high", "High Percentile", 75, Min(0), Max(100)),
+    EnumParam("invert", "Inverse Transform", 0, "False", "True"),
+    BufferParam("inputPointBuffer", "Input Point Buffer"),
+    BufferParam("predictionBuffer", "Prediction Buffer"));
 
 class RobustScaleClient : public FluidBaseClient,
                         AudioIn,
                         ControlOut,
                         ModelObject,
                         public DataClient<algorithm::RobustScaling> {
-
-  enum { kLow, kHigh, kInvert, kInputBuffer, kOutputBuffer };
-
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
   using StringVector = FluidTensor<string, 1>;
 
-  FLUID_DECLARE_PARAMS(FloatParam("low", "Low Percentile", 25, Min(0), Max(100)),
-                       FloatParam("high", "High Percentile", 75, Min(0), Max(100)),
-                       EnumParam("invert", "Inverse Transform", 0, "False", "True"),
-                       BufferParam("inputPointBuffer", "Input Point Buffer"),
-                       BufferParam("predictionBuffer", "Prediction Buffer"));
+  using ParamDescType = decltype(RobustScaleParams);
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors() { return RobustScaleParams; }
 
   RobustScaleClient(ParamSetViewType &p) : mParams(p) {
     audioChannelsIn(1);
@@ -93,19 +109,21 @@ public:
     return OK();
   }
 
-  FLUID_DECLARE_MESSAGES(makeMessage("fit", &RobustScaleClient::fit),
-                         makeMessage("fitTransform",
-                                     &RobustScaleClient::fitTransform),
-                         makeMessage("transform", &RobustScaleClient::transform),
-                         makeMessage("transformPoint",
-                                     &RobustScaleClient::transformPoint),
-                         makeMessage("cols", &RobustScaleClient::dims),
-                         makeMessage("clear", &RobustScaleClient::clear),
-                         makeMessage("size", &RobustScaleClient::size),
-                         makeMessage("load", &RobustScaleClient::load),
-                         makeMessage("dump", &RobustScaleClient::dump),
-                         makeMessage("read", &RobustScaleClient::read),
-                         makeMessage("write", &RobustScaleClient::write));
+  static auto getMessageDescriptors()
+  {
+    return defineMessages(
+        makeMessage("fit", &RobustScaleClient::fit),
+        makeMessage("fitTransform", &RobustScaleClient::fitTransform),
+        makeMessage("transform", &RobustScaleClient::transform),
+        makeMessage("transformPoint", &RobustScaleClient::transformPoint),
+        makeMessage("cols", &RobustScaleClient::dims),
+        makeMessage("clear", &RobustScaleClient::clear),
+        makeMessage("size", &RobustScaleClient::size),
+        makeMessage("load", &RobustScaleClient::load),
+        makeMessage("dump", &RobustScaleClient::dump),
+        makeMessage("read", &RobustScaleClient::read),
+        makeMessage("write", &RobustScaleClient::write));
+  }
 
 private:
   MessageResult<void> _transform(DataSetClientRef sourceClient,
@@ -131,8 +149,9 @@ private:
   }
   FluidInputTrigger mTrigger;
 };
+} // namespace robustscale
 
-using RTRobustScaleClient = ClientWrapper<RobustScaleClient>;
+using RTRobustScaleClient = ClientWrapper<robustscale::RobustScaleClient>;
 
 } // namespace client
 } // namespace fluid

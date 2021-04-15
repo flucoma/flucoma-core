@@ -6,25 +6,41 @@
 
 namespace fluid {
 namespace client {
+namespace normalize {
+
+enum { kMin, kMax, kInvert, kInputBuffer, kOutputBuffer };
+
+constexpr auto NormalizeParams = defineParameters(
+    FloatParam("min", "Minimum Value", 0.0),
+    FloatParam("max", "Maximum Value", 1.0),
+    EnumParam("invert", "Inverse Transform", 0, "False", "True"),
+    BufferParam("inputPointBuffer", "Input Point Buffer"),
+    BufferParam("predictionBuffer", "Prediction Buffer"));
 
 class NormalizeClient : public FluidBaseClient,
                         AudioIn,
                         ControlOut,
                         ModelObject,
                         public DataClient<algorithm::Normalization> {
-
-  enum { kMin, kMax, kInvert, kInputBuffer, kOutputBuffer };
-
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
   using StringVector = FluidTensor<string, 1>;
 
-  FLUID_DECLARE_PARAMS(FloatParam("min", "Minimum Value", 0.0),
-                       FloatParam("max", "Maximum Value", 1.0),
-                       EnumParam("invert", "Inverse Transform", 0, "False", "True"),
-                       BufferParam("inputPointBuffer", "Input Point Buffer"),
-                       BufferParam("predictionBuffer", "Prediction Buffer"));
+  using ParamDescType = decltype(NormalizeParams);
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors() { return NormalizeParams; }
 
   NormalizeClient(ParamSetViewType &p) : mParams(p) {
     audioChannelsIn(1);
@@ -96,19 +112,21 @@ public:
     return OK();
   }
 
-  FLUID_DECLARE_MESSAGES(makeMessage("fit", &NormalizeClient::fit),
-                         makeMessage("fitTransform",
-                                     &NormalizeClient::fitTransform),
-                         makeMessage("transform", &NormalizeClient::transform),
-                         makeMessage("transformPoint",
-                                     &NormalizeClient::transformPoint),
-                         makeMessage("cols", &NormalizeClient::dims),
-                         makeMessage("clear", &NormalizeClient::clear),
-                         makeMessage("size", &NormalizeClient::size),
-                         makeMessage("load", &NormalizeClient::load),
-                         makeMessage("dump", &NormalizeClient::dump),
-                         makeMessage("read", &NormalizeClient::read),
-                         makeMessage("write", &NormalizeClient::write));
+  static auto getMessageDescriptors()
+  {
+    return defineMessages(
+        makeMessage("fit", &NormalizeClient::fit),
+        makeMessage("fitTransform", &NormalizeClient::fitTransform),
+        makeMessage("transform", &NormalizeClient::transform),
+        makeMessage("transformPoint", &NormalizeClient::transformPoint),
+        makeMessage("cols", &NormalizeClient::dims),
+        makeMessage("clear", &NormalizeClient::clear),
+        makeMessage("size", &NormalizeClient::size),
+        makeMessage("load", &NormalizeClient::load),
+        makeMessage("dump", &NormalizeClient::dump),
+        makeMessage("read", &NormalizeClient::read),
+        makeMessage("write", &NormalizeClient::write));
+  }
 
 private:
   MessageResult<void> _transform(DataSetClientRef sourceClient,
@@ -136,8 +154,9 @@ private:
   }
   FluidInputTrigger mTrigger;
 };
+}
 
-using RTNormalizeClient = ClientWrapper<NormalizeClient>;
+using RTNormalizeClient = ClientWrapper<normalize::NormalizeClient>;
 
 } // namespace client
 } // namespace fluid

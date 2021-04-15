@@ -18,12 +18,16 @@
 
 namespace fluid {
 namespace client {
+namespace corpus {
 
+  enum { kName };
+
+constexpr auto CorpusParams = defineParameters(
+  StringParam<Fixed<true>>("name", "Corpus name")
+); 
 
 class CorpusClient : public FluidBaseClient,public OfflineIn, public OfflineOut
 {
-  enum { kName };
-
   using string = std::string;
   using Buffer = typename BufferT::type;
   struct Entry
@@ -34,9 +38,23 @@ class CorpusClient : public FluidBaseClient,public OfflineIn, public OfflineOut
   };
 public:
 
-  FLUID_DECLARE_PARAMS(
-    StringParam<Fixed<true>>("name", "Corpus name")
-  );
+  using ParamDescType =  decltype(CorpusParams); 
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N> 
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors()
+  { 
+    return CorpusParams;  
+  }
 
   using CorpusDataSet = FluidDataSet<string, Entry, 1>;
 
@@ -83,16 +101,21 @@ public:
                : MessageResult<void>{Result::Status::kError, "Point not found"};
   }
 
-  FLUID_DECLARE_MESSAGES(
+
+  static auto getMessageDescriptors()
+  {
+    return defineMessages(
     makeMessage("addPoint",    &CorpusClient::addPoint),
     makeMessage("updatePoint", &CorpusClient::updatePoint),
     makeMessage("deletePoint", &CorpusClient::deletePoint)
   );
-
+  }
+  
 private:
   mutable CorpusDataSet mCorpus{1};
   FluidTensor<Entry,1> mTmp;
 };
+}
 
 using CorpusClientRef = SharedClientRef<CorpusClient>;
 using NRTThreadedCorpus = NRTThreadingAdaptor<typename CorpusClientRef::SharedType>;

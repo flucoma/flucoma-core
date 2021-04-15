@@ -6,11 +6,19 @@
 
 namespace fluid {
 namespace client {
+namespace labelset{
 
-class LabelSetClient : public FluidBaseClient, OfflineIn, OfflineOut,
-public DataClient<FluidDataSet<std::string, std::string, 1>> {
-  enum { kName };
+enum { kName };
 
+constexpr auto LabelSetParams =
+    defineParameters(StringParam<Fixed<true>>("name", "Name of the LabelSet"));
+
+class LabelSetClient
+    : public FluidBaseClient,
+      OfflineIn,
+      OfflineOut,
+      public DataClient<FluidDataSet<std::string, std::string, 1>>
+{
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
@@ -20,7 +28,20 @@ public:
 
   template <typename T> Result process(FluidContext &) { return {}; }
 
-  FLUID_DECLARE_PARAMS(StringParam<Fixed<true>>("name", "Name of the LabelSet"));
+  using ParamDescType =  decltype(LabelSetParams);
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors() { return LabelSetParams; }
 
   LabelSetClient(ParamSetViewType &p) : mParams(p) {}
 
@@ -58,26 +79,28 @@ public:
 
  MessageResult<string> print() {return mAlgorithm.print();}
 
-
-  FLUID_DECLARE_MESSAGES(
-      makeMessage("addLabel", &LabelSetClient::addLabel),
-      makeMessage("getLabel", &LabelSetClient::getLabel),
-      makeMessage("deleteLabel", &LabelSetClient::deleteLabel),
-      makeMessage("dump", &LabelSetClient::dump),
-      makeMessage("load", &LabelSetClient::load),
-      makeMessage("print", &LabelSetClient::print),
-      makeMessage("size", &LabelSetClient::size),
-      makeMessage("cols", &LabelSetClient::dims),
-      makeMessage("clear", &LabelSetClient::clear),
-      makeMessage("write", &LabelSetClient::write),
-      makeMessage("read", &LabelSetClient::read)
-  );
+ static auto getMessageDescriptors()
+ {
+   return defineMessages(
+       makeMessage("addLabel", &LabelSetClient::addLabel),
+       makeMessage("getLabel", &LabelSetClient::getLabel),
+       makeMessage("deleteLabel", &LabelSetClient::deleteLabel),
+       makeMessage("dump", &LabelSetClient::dump),
+       makeMessage("load", &LabelSetClient::load),
+       makeMessage("print", &LabelSetClient::print),
+       makeMessage("size", &LabelSetClient::size),
+       makeMessage("cols", &LabelSetClient::dims),
+       makeMessage("clear", &LabelSetClient::clear),
+       makeMessage("write", &LabelSetClient::write),
+       makeMessage("read", &LabelSetClient::read));
+ }
 
   const LabelSet getLabelSet() const { return mAlgorithm; }
   void setLabelSet(LabelSet ls) {mAlgorithm = ls; }
-
 };
-using LabelSetClientRef = SharedClientRef<LabelSetClient>;
+}
+
+using LabelSetClientRef = SharedClientRef<labelset::LabelSetClient>;
 using NRTThreadedLabelSetClient =
     NRTThreadingAdaptor<typename LabelSetClientRef::SharedType>;
 

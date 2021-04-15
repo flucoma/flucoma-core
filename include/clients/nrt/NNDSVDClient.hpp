@@ -22,36 +22,50 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 namespace client {
+namespace nndsvd {
+
+enum NNDSVDParamIndex {
+  kSource,
+  kFilters,
+  kEnvelopes,
+  kMinRank,
+  kMaxRank,
+  kCoverage,
+  kMethod,
+  kFFT
+};
+
+constexpr auto NNDSVDParams =
+    defineParameters(InputBufferParam("source", "Source Buffer"),
+                     BufferParam("bases", "Bases Buffer"),
+                     BufferParam("activations", "Activations Buffer"),
+                     LongParam("minComponents", "Minimum Number of Components",
+                               1, Min(1), UpperLimit<kMaxRank>()),
+                     LongParam("maxComponents", "Maximum Number of Components",
+                               200, Min(1), LowerLimit<kMinRank>()),
+                     FloatParam("coverage", "Coverage", 0.5, Min(0), Max(1)),
+                     EnumParam("method", "Initialization Method", 0, "NMF-SVD",
+                               "NNDSVDar", "NNDSVDa", "NNDSVD"),
+                     FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class NNDSVDClient : public FluidBaseClient,
                     public OfflineIn,
                     public OfflineOut {
-
-  enum NNDSVDParamIndex {
-    kSource,
-    kFilters,
-    kEnvelopes,
-    kMinRank,
-    kMaxRank,
-    kCoverage,
-    kMethod,
-    kFFT
-  };
-
 public:
-  FLUID_DECLARE_PARAMS(InputBufferParam("source", "Source Buffer"),
-                       BufferParam("bases", "Bases Buffer"),
-                       BufferParam("activations", "Activations Buffer"),
-                       LongParam("minComponents",
-                                 "Minimum Number of Components", 1, Min(1),
-                                 UpperLimit<kMaxRank>()),
-                       LongParam("maxComponents",
-                                 "Maximum Number of Components", 200, Min(1),
-                                 LowerLimit<kMinRank>()),
-                       FloatParam("coverage", "Coverage", 0.5, Min(0), Max(1)),
-                       EnumParam("method", "Initialization Method", 0,
-                                 "NMF-SVD", "NNDSVDar", "NNDSVDa", "NNDSVD"),
-                       FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
+  using ParamDescType = decltype(NNDSVDParams);
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors() { return NNDSVDParams; }
 
   NNDSVDClient(ParamSetViewType &p) : mParams{p} {}
 
@@ -116,9 +130,10 @@ public:
     return OK();
   }
 };
+} // namespace nndsvd
 
 using NRTThreadedNNDSVDClient =
-    NRTThreadingAdaptor<ClientWrapper<NNDSVDClient>>;
+    NRTThreadingAdaptor<ClientWrapper<nndsvd::NNDSVDClient>>;
 
 } // namespace client
 } // namespace fluid

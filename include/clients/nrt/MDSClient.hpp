@@ -6,6 +6,15 @@
 
 namespace fluid {
 namespace client {
+namespace mds {
+
+enum { kNumDimensions, kDistance };
+
+constexpr auto MDSParams = defineParameters(
+    LongParam("numDimensions", "Target Number of Dimensions", 2, Min(1)),
+    EnumParam("distanceMetric", "Distance Metric", 1, "Manhattan", "Euclidean",
+              "Squared Euclidean", "Max Distance", "Min Distance",
+              "KL Divergence"));
 
 class MDSClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject {
 
@@ -16,14 +25,20 @@ public:
 
   template <typename T> Result process(FluidContext &) { return {}; }
 
-  enum { kNumDimensions, kDistance};
+  using ParamDescType = decltype(MDSParams);
 
-  FLUID_DECLARE_PARAMS(
-    LongParam("numDimensions", "Target Number of Dimensions", 2, Min(1)),
-    EnumParam("distanceMetric", "Distance Metric", 1 ,
-    "Manhattan", "Euclidean", "Squared Euclidean",
-    "Max Distance", "Min Distance", "KL Divergence")
-  );
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N> 
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors() { return MDSParams; }
 
   MDSClient(ParamSetViewType &p) : mParams(p) {}
 
@@ -49,13 +64,18 @@ public:
     return OK();
   }
 
-  FLUID_DECLARE_MESSAGES(makeMessage("fitTransform", &MDSClient::fitTransform));
+  static auto getMessageDescriptors()
+  {
+    return defineMessages(
+        makeMessage("fitTransform", &MDSClient::fitTransform));
+  }
 
 private:
   algorithm::MDS mAlgorithm;
 };
+} // namespace mds
 
-using NRTThreadedMDSClient = NRTThreadingAdaptor<ClientWrapper<MDSClient>>;
+using NRTThreadedMDSClient = NRTThreadingAdaptor<ClientWrapper<mds::MDSClient>>;
 
 } // namespace client
 } // namespace fluid

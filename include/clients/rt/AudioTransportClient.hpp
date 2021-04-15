@@ -13,30 +13,41 @@
 
 namespace fluid {
 namespace client {
+namespace audiotransport {
 
-extern auto constexpr AudioTransportParams = defineParameters();
+enum AudioTransportParamTags { kInterpolation, kBandwidth, kFFT, kMaxFFTSize };
+
+constexpr auto AudioTransportParams = defineParameters(
+    FloatParam("interpolation", "Interpolation", 0.0, Min(0.0), Max(1.0)),
+    LongParam("bandwidth", "Bandwidth", 255, Min(255),
+              FrameSizeUpperLimit<kFFT>()),
+    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1,
+                          FrameSizeLowerLimit<kBandwidth>()),
+    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
+                           PowerOfTwo{}));
 
 class AudioTransportClient : public FluidBaseClient,
                              public AudioIn,
                              public AudioOut {
-
-  enum AudioTransportParamTags {
-    kInterpolation,
-    kBandwidth,
-    kFFT,
-    kMaxFFTSize
-  };
-
 public:
-  FLUID_DECLARE_PARAMS(FloatParam("interpolation", "Interpolation", 0.0,
-                                  Min(0.0), Max(1.0)),
-                       LongParam("bandwidth", "Bandwidth", 255, Min(255),
-                                 FrameSizeUpperLimit<kFFT>()),
-                       FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings",
-                                             1024, -1, -1,
-                                             FrameSizeLowerLimit<kBandwidth>()),
-                       LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size",
-                                              16384, Min(4), PowerOfTwo{}));
+  using ParamDescType = decltype(AudioTransportParams);
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors()
+  {
+    return AudioTransportParams;
+  }
+
   AudioTransportClient(ParamSetViewType &p)
       : mParams{p}, mSTFTBufferedProcess{get<kMaxFFTSize>(), 2, 1},
         mAlgorithm(get<kMaxFFTSize>()) {
@@ -88,16 +99,20 @@ private:
   algorithm::AudioTransport mAlgorithm;
   ParameterTrackChanges<index, index, index, index> mTracking;
 };
+} // namespace audiotransport
 
-using RTAudioTransportClient = ClientWrapper<AudioTransportClient>;
-auto constexpr NRTAudioTransportParams = makeNRTParams<AudioTransportClient>(
-    InputBufferParam("source1", "Source Buffer 1"),
-    InputBufferParam("source2", "Source Buffer 2"),
-    BufferParam("destination", "Destination Buffer"));
+using RTAudioTransportClient =
+    ClientWrapper<audiotransport::AudioTransportClient>;
 
-using NRTAudioTransport =
-    NRTStreamAdaptor<AudioTransportClient, decltype(NRTAudioTransportParams),
-                     NRTAudioTransportParams, 2, 1>;
+auto constexpr NRTAudioTransportParams =
+    makeNRTParams<audiotransport::AudioTransportClient>(
+        InputBufferParam("source1", "Source Buffer 1"),
+        InputBufferParam("source2", "Source Buffer 2"),
+        BufferParam("destination", "Destination Buffer"));
+
+using NRTAudioTransport = NRTStreamAdaptor<audiotransport::AudioTransportClient,
+                                           decltype(NRTAudioTransportParams),
+                                           NRTAudioTransportParams, 2, 1>;
 
 using NRTThreadedAudioTransportClient = NRTThreadingAdaptor<NRTAudioTransport>;
 

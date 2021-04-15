@@ -19,29 +19,45 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 namespace client {
+namespace nmfmorph {
+
+enum NMFFilterIndex {
+  kSourceBuf,
+  kTargetBuf,
+  kActBuf,
+  kAutoAssign,
+  kInterp,
+  kFFT,
+  kMaxFFTSize
+};
+
+constexpr auto NMFMorphParams = defineParameters(
+    InputBufferParam("source", "Source Bases"),
+    InputBufferParam("target", "Target Bases"),
+    InputBufferParam("activations", "Activations"),
+    EnumParam("autoassign", "Automatic assign", 1, "No", "Yes"),
+    FloatParam("interp", "Interpolation", 0, Min(0.0), Max(1.0)),
+    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
+    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
+                           PowerOfTwo{}));
 
 class NMFMorphClient : public FluidBaseClient, public AudioOut {
 
 public:
-  enum NMFFilterIndex {
-    kSourceBuf,
-    kTargetBuf,
-    kActBuf,
-    kAutoAssign,
-    kInterp,
-    kFFT,
-    kMaxFFTSize
-  };
+  using ParamDescType = decltype(NMFMorphParams);
 
-  FLUID_DECLARE_PARAMS(InputBufferParam("source", "Source Bases"),
-                       InputBufferParam("target", "Target Bases"),
-                       InputBufferParam("activations", "Activations"),
-                       EnumParam("autoassign", "Automatic assign", 1, "No", "Yes"),
-                       FloatParam("interp", "Interpolation", 0, Min(0.0), Max(1.0)),
-                       FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings",
-                                             1024, -1, -1),
-                       LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size",
-                                              16384, Min(4), PowerOfTwo{}));
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors() { return NMFMorphParams; }
 
   NMFMorphClient(ParamSetViewType &p)
       : mParams{p}, mSTFTProcessor{get<kMaxFFTSize>(), 0, 1} {
@@ -104,8 +120,9 @@ private:
   RealMatrix tmpTarget;
   RealMatrix tmpAct;
 };
+} // namespace nmfmorph
 
-using RTNMFMorphClient = ClientWrapper<NMFMorphClient>;
+using RTNMFMorphClient = ClientWrapper<nmfmorph::NMFMorphClient>;
 
 } // namespace client
 } // namespace fluid

@@ -5,6 +5,14 @@
 
 namespace fluid {
 namespace client {
+namespace pca {
+
+enum { kNumDimensions, kInputBuffer, kOutputBuffer };
+
+constexpr auto PCAParams = defineParameters(
+    LongParam("numDimensions", "Target Number of Dimensions", 2, Min(1)),
+    BufferParam("inputPointBuffer", "Input Point Buffer"),
+    BufferParam("predictionBuffer", "Prediction Buffer"));
 
 class PCAClient : public FluidBaseClient,
                   AudioIn,
@@ -16,12 +24,20 @@ public:
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
   using StringVector = FluidTensor<string, 1>;
 
-  enum { kNumDimensions, kInputBuffer, kOutputBuffer };
+  using ParamDescType = decltype(PCAParams);
 
-  FLUID_DECLARE_PARAMS(
-    LongParam("numDimensions", "Target Number of Dimensions", 2, Min(1)),
-    BufferParam("inputPointBuffer", "Input Point Buffer"),
-                       BufferParam("predictionBuffer", "Prediction Buffer"));
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors() { return PCAParams; }
 
   PCAClient(ParamSetViewType &p) : mParams(p)
                        {
@@ -119,22 +135,27 @@ public:
 
   index latency() { return 0; }
 
-  FLUID_DECLARE_MESSAGES(makeMessage("fit", &PCAClient::fit),
-                         makeMessage("transform", &PCAClient::transform),
-                         makeMessage("fitTransform", &PCAClient::fitTransform),
-                         makeMessage("transformPoint",
-                                     &PCAClient::transformPoint),
-                         makeMessage("cols", &PCAClient::dims),
-                         makeMessage("size", &PCAClient::size),
-                         makeMessage("clear", &PCAClient::clear),
-                         makeMessage("load", &PCAClient::load),
-                         makeMessage("dump", &PCAClient::dump),
-                         makeMessage("read", &PCAClient::read),
-                         makeMessage("write", &PCAClient::write));
+  static auto getMessageDescriptors()
+  {
+    return defineMessages(
+        makeMessage("fit", &PCAClient::fit),
+        makeMessage("transform", &PCAClient::transform),
+        makeMessage("fitTransform", &PCAClient::fitTransform),
+        makeMessage("transformPoint", &PCAClient::transformPoint),
+        makeMessage("cols", &PCAClient::dims),
+        makeMessage("size", &PCAClient::size),
+        makeMessage("clear", &PCAClient::clear),
+        makeMessage("load", &PCAClient::load),
+        makeMessage("dump", &PCAClient::dump),
+        makeMessage("read", &PCAClient::read),
+        makeMessage("write", &PCAClient::write));
+  }
+
 private:
   FluidInputTrigger mTrigger;
 };
+} // namespace pca
 
-using RTPCAClient = ClientWrapper<PCAClient>;
+using RTPCAClient = ClientWrapper<pca::PCAClient>;
 } // namespace client
 } // namespace fluid

@@ -8,7 +8,17 @@
 
 namespace fluid {
 namespace client {
-
+namespace kmeans{
+  
+  enum {kNumClusters, kMaxIter, kInputBuffer, kOutputBuffer};
+  
+  constexpr auto KMeansParams = defineParameters(
+      LongParam("numClusters","Number of Clusters", 4, Min(1)),
+      LongParam("maxIter","Max number of Iterations", 100, Min(1)),
+      BufferParam("inputPointBuffer","Input Point Buffer"),
+      BufferParam("predictionBuffer","Prediction Buffer")
+  ); 
+  
 class KMeansClient : public FluidBaseClient,
                      AudioIn,
                      ControlOut,
@@ -22,15 +32,24 @@ public:
   using StringVector = FluidTensor<string, 1>;
   using StringVectorView = FluidTensorView<string, 1>;
   using LabelSet = FluidDataSet<string, string, 1>;
+  
+  using ParamDescType = decltype(KMeansParams); 
 
-  enum {kNumClusters, kMaxIter, kInputBuffer, kOutputBuffer};
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
 
-  FLUID_DECLARE_PARAMS(
-      LongParam("numClusters","Number of Clusters", 4, Min(1)),
-      LongParam("maxIter","Max number of Iterations", 100, Min(1)),
-      BufferParam("inputPointBuffer","Input Point Buffer"),
-      BufferParam("predictionBuffer","Prediction Buffer")
-  );
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N> 
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors()
+  { 
+    return KMeansParams;  
+  }
 
   KMeansClient(ParamSetViewType &p) : mParams(p)
   {
@@ -218,7 +237,9 @@ MessageResult<void> transformPoint(BufferPtr in, BufferPtr out) const {
 
   index latency() { return 0; }
 
-  FLUID_DECLARE_MESSAGES(makeMessage("fit", &KMeansClient::fit),
+  static auto getMessageDescriptors()
+  {
+    return defineMessages(makeMessage("fit", &KMeansClient::fit),
                          makeMessage("predict", &KMeansClient::predict),
                          makeMessage("transform", &KMeansClient::transform),
                          makeMessage("predictPoint",
@@ -237,6 +258,8 @@ MessageResult<void> transformPoint(BufferPtr in, BufferPtr out) const {
                          makeMessage("dump", &KMeansClient::dump),
                          makeMessage("write", &KMeansClient::write),
                          makeMessage("read", &KMeansClient::read));
+  }
+
 
 private:
   IndexVector getCounts(IndexVector assignments, index k) const {
@@ -258,8 +281,9 @@ private:
 
   FluidInputTrigger mTrigger;
 };
+}
 
-using RTKMeansClient = ClientWrapper<KMeansClient>;
+using RTKMeansClient = ClientWrapper<kmeans::KMeansClient>;
 
 } // namespace client
 } // namespace fluid

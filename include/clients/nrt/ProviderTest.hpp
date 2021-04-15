@@ -18,15 +18,19 @@
 
 namespace fluid {
 namespace client {
+namespace providertest {
+
+enum { kName, kDummy };
+
+constexpr auto ProviderTestParams =
+    defineParameters(StringParam<Fixed<true>>("name", "Provider name"),
+                     LongParam("dummy", "Checking Attrui Updates", 0));
 
 class ProviderTestClient : public FluidBaseClient,public OfflineIn, public OfflineOut
 {
-
-  enum { kName, kDummy };
   using string = std::string;
 
 public:
-
   //external messages omitted
 
   struct Entry
@@ -35,10 +39,20 @@ public:
     intptr_t length;
   };
 
-  FLUID_DECLARE_PARAMS(
-    StringParam<Fixed<true>>("name", "Provider name"),
-    LongParam("dummy","Checking Attrui Updates",0)
-  );
+  using ParamDescType = decltype(ProviderTestParams);
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors() { return ProviderTestParams; }
 
   using ProviderDataSet = FluidDataSet<string, Entry, 1>;
 
@@ -82,18 +96,22 @@ public:
                : MessageResult<void>{Result::Status::kError, "Point not found"};
   }
 
-  FLUID_DECLARE_MESSAGES(
-    makeMessage("addPoint",    &ProviderTestClient::addPoint),
-    makeMessage("updatePoint", &ProviderTestClient::updatePoint),
-    makeMessage("deletePoint", &ProviderTestClient::deletePoint)
-  );
+  static auto getMessageDescriptors()
+  {
+    return defineMessages(
+        makeMessage("addPoint", &ProviderTestClient::addPoint),
+        makeMessage("updatePoint", &ProviderTestClient::updatePoint),
+        makeMessage("deletePoint", &ProviderTestClient::deletePoint));
+  }
 
 private:
   mutable ProviderDataSet mData{1};
   FluidTensor<Entry,1> mTmp;
 };
+} // namespace providertest
+
 //this alias is what is used by subscribing clients, and is all that's needed to make a client a provider
-using ProviderTestClientRef = SharedClientRef<ProviderTestClient>;
+using ProviderTestClientRef = SharedClientRef<providertest::ProviderTestClient>;
 using NRTThreadedProviderTest = NRTThreadingAdaptor<typename ProviderTestClientRef::SharedType>;
 
 } // namespace client

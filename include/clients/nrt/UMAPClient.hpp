@@ -6,6 +6,26 @@
 
 namespace fluid {
 namespace client {
+namespace umap {
+
+enum {
+  kNumDimensions,
+  kNumNeighbors,
+  kMinDistance,
+  kNumIter,
+  kLearningRate,
+  kInputBuffer,
+  kOutputBuffer
+};
+
+constexpr auto UMAPParams = defineParameters(
+    LongParam("numDimensions", "Target Number of Dimensions", 2, Min(1)),
+    LongParam("numNeighbours", "Number of Nearest Neighbours", 15, Min(1)),
+    FloatParam("minDist", "Minimum Distance", 0.1, Min(0)),
+    LongParam("iterations", "Number of Iterations", 200, Min(1)),
+    FloatParam("learnRate", "Learning Rate", 0.1, Min(0.0), Max(1.0)),
+    BufferParam("inputPointBuffer", "Input Point Buffer"),
+    BufferParam("predictionBuffer", "Prediction Buffer"));
 
 class UMAPClient :
   public FluidBaseClient, AudioIn, ControlOut, ModelObject,
@@ -16,17 +36,20 @@ public:
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
   using StringVector = FluidTensor<string, 1>;
 
-  enum { kNumDimensions, kNumNeighbors, kMinDistance, kNumIter, kLearningRate,  kInputBuffer, kOutputBuffer };
+  using ParamDescType = decltype(UMAPParams);
 
-  FLUID_DECLARE_PARAMS(
-      LongParam("numDimensions", "Target Number of Dimensions", 2, Min(1)),
-      LongParam("numNeighbours", "Number of Nearest Neighbours", 15, Min(1)),
-      FloatParam("minDist", "Minimum Distance", 0.1, Min(0)),
-      LongParam("iterations", "Number of Iterations", 200, Min(1)),
-      FloatParam("learnRate", "Learning Rate", 0.1, Min(0.0), Max(1.0)),
-      BufferParam("inputPointBuffer", "Input Point Buffer"),
-      BufferParam("predictionBuffer", "Prediction Buffer")
-    );
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors() { return UMAPParams; }
 
   UMAPClient(ParamSetViewType &p) : mParams(p) {
     audioChannelsIn(1);
@@ -132,26 +155,29 @@ public:
 
   index latency() { return 0; }
 
-  FLUID_DECLARE_MESSAGES(
-    makeMessage("fitTransform",&UMAPClient::fitTransform),
-    makeMessage("fit",&UMAPClient::fit),
-    makeMessage("transform",&UMAPClient::transform),
-    makeMessage("transformPoint",&UMAPClient::transformPoint),
-    makeMessage("cols", &UMAPClient::dims),
-    makeMessage("clear", &UMAPClient::clear),
-    makeMessage("size", &UMAPClient::size),
-    makeMessage("load", &UMAPClient::load),
-    makeMessage("dump", &UMAPClient::dump),
-    makeMessage("write", &UMAPClient::write),
-    makeMessage("read", &UMAPClient::read)
-  );
+  static auto getMessageDescriptors()
+  {
+    return defineMessages(
+        makeMessage("fitTransform", &UMAPClient::fitTransform),
+        makeMessage("fit", &UMAPClient::fit),
+        makeMessage("transform", &UMAPClient::transform),
+        makeMessage("transformPoint", &UMAPClient::transformPoint),
+        makeMessage("cols", &UMAPClient::dims),
+        makeMessage("clear", &UMAPClient::clear),
+        makeMessage("size", &UMAPClient::size),
+        makeMessage("load", &UMAPClient::load),
+        makeMessage("dump", &UMAPClient::dump),
+        makeMessage("write", &UMAPClient::write),
+        makeMessage("read", &UMAPClient::read));
+  }
 
 private:
   FluidInputTrigger mTrigger;
 
 };
+} // namespace umap
 
-using RTUMAPClient = ClientWrapper<UMAPClient>;
+using RTUMAPClient = ClientWrapper<umap::UMAPClient>;
 
 } // namespace client
 } // namespace fluid

@@ -13,23 +13,44 @@
 
 namespace fluid {
 namespace client {
+namespace nmfcross {
 
-class NMFCrossClient : public FluidBaseClient, public OfflineIn, public OfflineOut
-{
+enum NMFCrossParamIndex {
+  kSource,
+  kTarget,
+  kOutput,
+  kTimeSparsity,
+  kPolyphony,
+  kIterations,
+  kFFT
+};
 
-  enum NMFCrossParamIndex{kSource, kTarget, kOutput, kTimeSparsity,  kPolyphony, kIterations, kFFT};
-
-public:
-
-  FLUID_DECLARE_PARAMS(
+constexpr auto NMFCrossParams = defineParameters(
     InputBufferParam("source", "Source Buffer"),
     InputBufferParam("target", "Target Buffer"),
     BufferParam("output", "Output Buffer"),
     LongParam("timeSparsity", "Time Sparsity", 10, Min(1), Max(50)),
     LongParam("polyphony", "Polyphony", 7, Min(1), Max(50)),
     LongParam("iterations", "Number of Iterations", 50, Min(1)),
-    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1)
-  );
+    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
+
+class NMFCrossClient : public FluidBaseClient, public OfflineIn, public OfflineOut
+{
+public:
+  using ParamDescType = decltype(NMFCrossParams);
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors() { return NMFCrossParams; }
 
   NMFCrossClient(ParamSetViewType& p) : mParams(p)
   {}
@@ -114,7 +135,9 @@ public:
 
   }
 };
+} // namespace nmfcross
 
-using NRTNMFCrossClient = NRTThreadingAdaptor<ClientWrapper<NMFCrossClient>>;
+using NRTNMFCrossClient =
+    NRTThreadingAdaptor<ClientWrapper<nmfcross::NMFCrossClient>>;
 } // namespace client
 } // namespace fluid
