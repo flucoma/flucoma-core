@@ -15,74 +15,92 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../common/ParameterTypes.hpp"
 
 namespace fluid {
-namespace client{
+namespace client {
+namespace bufscale {
 
-static constexpr std::initializer_list<index> BufSelectionDefaults = {-1};
+enum {
+  kSource,
+  kStartFrame,
+  kNumFrames,
+  kStartChan,
+  kNumChans,
+  kDest,
+  kInLow,
+  kInHigh,
+  kOutLow,
+  kOutHigh,
+  kMap,
+  kCurve,
+  kClip
+};
+
+constexpr auto BufScaleParams =
+    defineParameters(InputBufferParam("source", "Source Buffer"),
+                     LongParam("startFrame", "Source Offset", 0, Min(0)),
+                     LongParam("numFrames", "Number of Frames", -1),
+                     LongParam("startChan", "Start Channel", 0, Min(0)),
+                     LongParam("numChans", "Number of Channels", -1),
+                     BufferParam("destination", "Destination Buffer"),
+                     FloatParam("inputLow", "Input Low Range", 0),
+                     FloatParam("inputHigh", "Input High Range", 1),
+                     FloatParam("outputLow", "Output Low Range", 0),
+                     FloatParam("outputHigh", "Output High Range", 1),
+                     EnumParam("map","Type of Mapping",0,"linlin", "lincurve", "curvelin"),
+                     FloatParam("curvature", "Curvature of the Mapping", 0),
+                     EnumParam("clipping","Optional Clipping",0,"Neither", "Minimum", "Maximum", "Both"));
 
 
-class BufScaleClient :    public FluidBaseClient,
-                          public OfflineIn,
-                          public OfflineOut
+class BufScaleClient : public FluidBaseClient,
+                       public OfflineIn,
+                       public OfflineOut
 {
 
-  enum BufSelectParamIndex {
-    kSource,
-    kStartFrame,
-    kNumFrames,
-    kStartChan,
-    kNumChans,
-    kDest, 
-    kInLow,
-    kInHigh,
-    kOutLow, 
-    kOutHigh,
-    kMap,
-    kCurve,
-    kClip
-  };
-  public:
-  
-  FLUID_DECLARE_PARAMS(InputBufferParam("source", "Source Buffer"),
-                       LongParam("startFrame", "Source Offset", 0, Min(0)),
-                       LongParam("numFrames", "Number of Frames", -1),
-                       LongParam("startChan", "Start Channel", 0, Min(0)),
-                       LongParam("numChans", "Number of Channels", -1),
-                       BufferParam("destination","Destination Buffer"), 
-                       FloatParam("inputLow","Input Low Range",0),
-                       FloatParam("inputHigh","Input High Range",1),
-                       FloatParam("outputLow","Output Low Range",0),
-                       FloatParam("outputHigh","Output High Range",1),
-                       EnumParam("map","Type of Mapping",0,"linlin", "lincurve", "curvelin"),
-                       FloatParam("curvature", "Curvature of the Mapping", 0),
-                       EnumParam("clipping","Optional Clipping",0,"Neither", "Minimum", "Maximum", "Both"));
-  
-  BufScaleClient(ParamSetViewType& p) : mParams(p) {}                   
-  
+
+public:
+  using ParamDescType = decltype(BufScaleParams);
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors() { return BufScaleParams; }
+
+
+  BufScaleClient(ParamSetViewType& p) : mParams(p) {}
+
   template <typename T>
   Result process(FluidContext&)
   {
     // retrieve the range requested and check it is valid
     index startFrame = get<kStartFrame>();
-    index numFrames  = get<kNumFrames>();
-    index startChan  = get<kStartChan>();
-    index numChans   = get<kNumChans>();
-    
-    Result r = bufferRangeCheck(get<kSource>().get(), startFrame, numFrames, startChan, numChans);
-    
-    if(! r.ok())  return r;
+    index numFrames = get<kNumFrames>();
+    index startChan = get<kStartChan>();
+    index numChans = get<kNumChans>();
+
+    Result r = bufferRangeCheck(get<kSource>().get(), startFrame, numFrames,
+                                startChan, numChans);
+
+    if (!r.ok()) return r;
 
     BufferAdaptor::ReadAccess source(get<kSource>().get());
     BufferAdaptor::Access     dest(get<kDest>().get());
-    
+
     if (!dest.exists())
       return {Result::Status::kError, "Output buffer not found"};
 
     FluidTensor<double, 2> tmp(source.allFrames()(Slice(startChan,numChans),Slice(startFrame,numFrames)));
-        
+
     //process
     double scale = (get<kOutHigh>()-get<kOutLow>())/(get<kInHigh>()-get<kInLow>());
-    double offset = get<kOutLow>() - ( scale * get<kInLow>() ); 
-    
+    double offset = get<kOutLow>() - ( scale * get<kInLow>() );
+
     tmp.apply([&](double& x){
         //optional cliping
         if ((get<kClip>() & 1) && (x < get<kInLow>())) { //if the low clipping is on, and X  is below the low input
@@ -105,19 +123,20 @@ class BufScaleClient :    public FluidBaseClient,
             double b = get<kInLow>() + a; //this coulb be inldined below
             x = (log((b - x) / a) * (get<kOutHigh>() - get<kOutLow>()) / get<kCurve>()) + get<kOutLow>();
         }
-    }); 
+    });
 
-    //write back the processed data, resizing the dest buffer          
+    //write back the processed data, resizing the dest buffer
     r = dest.resize(numFrames,numChans,source.sampleRate());
     if(!r.ok()) return r;
-    
-    dest.allFrames() = tmp; 
-    
+
+    dest.allFrames() = tmp;
+
     return {};
-  }                  
-}; 
+  }
+};
+} // namespace bufscale
 
 using NRTThreadedBufferScaleClient =
-    NRTThreadingAdaptor<ClientWrapper<BufScaleClient>>;
-}//client
-}//fluid
+    NRTThreadingAdaptor<ClientWrapper<bufscale::BufScaleClient>>;
+} // namespace client
+} // namespace fluid

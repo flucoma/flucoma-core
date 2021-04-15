@@ -319,6 +319,12 @@ public:
     return std::get<N>(mParams).get();
   }
 
+  template <typename T>
+  auto& get() const
+  {
+    return std::get<T>(mParams).get();
+  }
+
   template <size_t offset>
   auto subset()
   {
@@ -333,6 +339,11 @@ public:
   void removeListener(void*)
   {} // no-op for non-shared parameter set?
 
+  template<size_t N> 
+  auto descriptorAt()
+  {
+     return descriptor<N>(); 
+  }
 private:
   template <typename T>
   struct IsParamType
@@ -580,24 +591,6 @@ constexpr ParamDescTypeFor<Args...> defineParameters(Args&&... args)
 {
   return {std::forward<Args>(args)...};
 }
-
-// Boilerplate macro for clients
-#define FLUID_DECLARE_PARAMS(...)                                              \
-  using ParamDescType =                                                        \
-      std::add_const_t<decltype(defineParameters(__VA_ARGS__))>;               \
-  using ParamSetViewType = ParameterSetView<const ParamDescType>;              \
-  std::reference_wrapper<ParamSetViewType> mParams;                            \
-  void setParams(ParamSetViewType& p) { mParams = p; }                         \
-  template <size_t N>                                                          \
-  auto& get() const                                                            \
-  {                                                                            \
-    return mParams.get().template get<N>();                                    \
-  }                                                                            \
-  static constexpr ParamDescType getParameterDescriptors()                     \
-  {                                                                            \
-    return defineParameters(__VA_ARGS__);                                      \
-  }
-
 
 auto constexpr NoParameters = defineParameters();
 

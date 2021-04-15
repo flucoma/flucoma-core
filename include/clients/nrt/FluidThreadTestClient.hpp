@@ -18,7 +18,13 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 namespace client {
+namespace threadtest {
 
+enum ThreadTestIdx { kResult, kWait };
+
+constexpr auto ThreadTestParams =
+    defineParameters(BufferParam("result", "Output Result Buffer"),
+                     FloatParam("time", "Millisecond Wait", 0.0, Min(0.0)));
 
 class ThreadTestClient : public FluidBaseClient,
                          public OfflineIn,
@@ -26,10 +32,20 @@ class ThreadTestClient : public FluidBaseClient,
 {
 
 public:
-  enum ThreadTestIdx { kResult, kWait };
+  using ParamDescType = decltype(ThreadTestParams);
 
-  FLUID_DECLARE_PARAMS(BufferParam("result", "Output Result Buffer"),
-                       FloatParam("time", "Millisecond Wait", 0.0, Min(0.0)));
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors() { return ThreadTestParams; }
 
   ThreadTestClient(ParamSetViewType& p) : mParams{p} {}
 
@@ -54,8 +70,8 @@ public:
       if (buf.exists())
       {
         auto resizeResult = buf.resize(1, 1, buf.sampleRate());
-        if(!resizeResult.ok()) return resizeResult;
-        
+        if (!resizeResult.ok()) return resizeResult;
+
         buf.samps(0)(0) = static_cast<float>(wait);
         return {Result::Status::kOk, ""};
       }
@@ -65,9 +81,10 @@ public:
     return {Result::Status::kError, "No buffer"};
   }
 };
+} // namespace threadtest
 
 using NRTThreadedThreadTestClient =
-    NRTThreadingAdaptor<ClientWrapper<ThreadTestClient>>;
+    NRTThreadingAdaptor<ClientWrapper<threadtest::ThreadTestClient>>;
 
 } // namespace client
 } // namespace fluid

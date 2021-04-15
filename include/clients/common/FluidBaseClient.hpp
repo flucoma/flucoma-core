@@ -88,8 +88,8 @@ public:
   template <typename T>
   using ParamDescTypeTest = typename T::ParamDescType;
 
-  template <typename T>
-  using MessageTypeTest = typename T::MessageType;
+  template<typename T> 
+  using MessageTypeTest = decltype(T::getMessageDescriptors()); 
 
   using ParamDescType = typename DetectedOr<decltype(NoParameters),
                                             ParamDescTypeTest, Client>::type;

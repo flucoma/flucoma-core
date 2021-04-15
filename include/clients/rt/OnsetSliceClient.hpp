@@ -22,36 +22,51 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 namespace client {
+namespace onsetslice {
 
 using algorithm::OnsetSegmentation;
 
+enum OnsetParamIndex {
+  kFunction,
+  kThreshold,
+  kDebounce,
+  kFilterSize,
+  kFrameDelta,
+  kFFT,
+  kMaxFFTSize
+};
+
+constexpr auto OnsetSliceParams = defineParameters(
+    EnumParam("metric", "Spectral Change Metric", 0, "Energy",
+              "High Frequency Content", "Spectral Flux",
+              "Modified Kullback-Leibler", "Itakura-Saito", "Cosine",
+              "Phase Deviation", "Weighted Phase Deviation", "Complex Domain",
+              "Rectified Complex Domain"),
+    FloatParam("threshold", "Threshold", 0.5, Min(0)),
+    LongParam("minSliceLength", "Minimum Length of Slice", 2, Min(0)),
+    LongParam("filterSize", "Filter Size", 5, Min(1), Odd(), Max(101)),
+    LongParam("frameDelta", "Frame Delta", 0, Min(0)),
+    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
+    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
+                           PowerOfTwo{}));
+
 class OnsetSliceClient : public FluidBaseClient, public AudioIn, public AudioOut
 {
-
 public:
-  enum OnsetParamIndex {
-    kFunction,
-    kThreshold,
-    kDebounce,
-    kFilterSize,
-    kFrameDelta,
-    kFFT,
-    kMaxFFTSize
-  };
+  using ParamDescType = decltype(OnsetSliceParams);
 
-  FLUID_DECLARE_PARAMS(
-      EnumParam("metric", "Spectral Change Metric", 0, "Energy",
-                "High Frequency Content", "Spectral Flux",
-                "Modified Kullback-Leibler", "Itakura-Saito", "Cosine",
-                "Phase Deviation", "Weighted Phase Deviation", "Complex Domain",
-                "Rectified Complex Domain"),
-      FloatParam("threshold", "Threshold", 0.5, Min(0)),
-      LongParam("minSliceLength", "Minimum Length of Slice", 2, Min(0)),
-      LongParam("filterSize", "Filter Size", 5, Min(1), Odd(), Max(101)),
-      LongParam("frameDelta", "Frame Delta", 0, Min(0)),
-      FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-      LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                             PowerOfTwo{}));
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors() { return OnsetSliceParams; }
 
   OnsetSliceClient(ParamSetViewType& p)
       : mParams{p}, mAlgorithm{get<kMaxFFTSize>()}
@@ -88,7 +103,7 @@ public:
     RealMatrix in(1, hostVecSize);
     in.row(0) = input[0];
     RealMatrix out(1, hostVecSize);
-    index        frameOffset = 0; // in case kHopSize < hostVecSize
+    index      frameOffset = 0; // in case kHopSize < hostVecSize
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.processInput(
         totalWindow, get<kFFT>().hopSize(), c, [&, this](RealMatrixView in) {
@@ -100,7 +115,10 @@ public:
     output[0] = out.row(0);
   }
 
-  index latency() { return static_cast<index>(get<kFFT>().hopSize() + get<kFrameDelta>()); }
+  index latency()
+  {
+    return static_cast<index>(get<kFFT>().hopSize() + get<kFrameDelta>());
+  }
   void reset()
   {
     mBufferedProcess.reset();
@@ -114,16 +132,18 @@ private:
   ParameterTrackChanges<index, index>        mParamsTracker;
   BufferedProcess                            mBufferedProcess;
 };
+} // namespace onsetslice
 
-using RTOnsetSliceClient = ClientWrapper<OnsetSliceClient>;
+using RTOnsetSliceClient = ClientWrapper<onsetslice::OnsetSliceClient>;
 
 auto constexpr NRTOnsetSliceParams =
-    makeNRTParams<OnsetSliceClient>(InputBufferParam("source", "Source Buffer"),
-                                    BufferParam("indices", "Indices Buffer"));
+    makeNRTParams<onsetslice::OnsetSliceClient>(
+        InputBufferParam("source", "Source Buffer"),
+        BufferParam("indices", "Indices Buffer"));
 
 
 using NRTOnsetSliceClient =
-    NRTSliceAdaptor<OnsetSliceClient, decltype(NRTOnsetSliceParams),
+    NRTSliceAdaptor<onsetslice::OnsetSliceClient, decltype(NRTOnsetSliceParams),
                     NRTOnsetSliceParams, 1, 1>;
 
 

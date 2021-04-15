@@ -23,32 +23,47 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 namespace client {
+namespace mfcc {
 
+enum MFCCParamIndex {
+  kNCoefs,
+  kNBands,
+  kMinFreq,
+  kMaxFreq,
+  kMaxNCoefs,
+  kFFT,
+  kMaxFFTSize
+};
+
+constexpr auto MFCCParams = defineParameters(
+    LongParam("numCoeffs", "Number of Cepstral Coefficients", 13, Min(2),
+              UpperLimit<kNBands, kMaxNCoefs>()),
+    LongParam("numBands", "Number of Bands", 40, Min(2),
+              FrameSizeUpperLimit<kFFT>(), LowerLimit<kNCoefs>()),
+    FloatParam("minFreq", "Low Frequency Bound", 20, Min(0)),
+    FloatParam("maxFreq", "High Frequency Bound", 20000, Min(0)),
+    LongParam<Fixed<true>>("maxNumCoeffs", "Maximum Number of Coefficients", 40,
+                           MaxFrameSizeUpperLimit<kMaxFFTSize>(), Min(2)),
+    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
+    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
 
 class MFCCClient : public FluidBaseClient, public AudioIn, public ControlOut
 {
-  enum MFCCParamIndex {
-    kNCoefs,
-    kNBands,
-    kMinFreq,
-    kMaxFreq,
-    kMaxNCoefs,
-    kFFT,
-    kMaxFFTSize
-  };
-
 public:
-  FLUID_DECLARE_PARAMS(
-      LongParam("numCoeffs", "Number of Cepstral Coefficients", 13, Min(2),
-                UpperLimit<kNBands, kMaxNCoefs>()),
-      LongParam("numBands", "Number of Bands", 40, Min(2),
-                FrameSizeUpperLimit<kFFT>(), LowerLimit<kNCoefs>()),
-      FloatParam("minFreq", "Low Frequency Bound", 20, Min(0)),
-      FloatParam("maxFreq", "High Frequency Bound", 20000, Min(0)),
-      LongParam<Fixed<true>>("maxNumCoeffs", "Maximum Number of Coefficients",
-                             40, MaxFrameSizeUpperLimit<kMaxFFTSize>(), Min(2)),
-      FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-      LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
+  using ParamDescType = decltype(MFCCParams);
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors() { return MFCCParams; }
 
   MFCCClient(ParamSetViewType& p)
       : mParams{p}, mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0),
@@ -121,15 +136,17 @@ private:
   FluidTensor<double, 1> mBands;
   FluidTensor<double, 1> mCoefficients;
 };
+} // namespace mfcc
 
-using RTMFCCClient = ClientWrapper<MFCCClient>;
+using RTMFCCClient = ClientWrapper<mfcc::MFCCClient>;
 
 auto constexpr NRTMFCCParams =
-    makeNRTParams<MFCCClient>(InputBufferParam("source", "Source Buffer"),
-                                BufferParam("features", "Output Buffer"));
+    makeNRTParams<mfcc::MFCCClient>(InputBufferParam("source", "Source Buffer"),
+                                    BufferParam("features", "Output Buffer"));
 
 using NRTMFCCClient =
-    NRTControlAdaptor<MFCCClient, decltype(NRTMFCCParams), NRTMFCCParams, 1, 1>;
+    NRTControlAdaptor<mfcc::MFCCClient, decltype(NRTMFCCParams), NRTMFCCParams,
+                      1, 1>;
 
 using NRTThreadedMFCCClient = NRTThreadingAdaptor<NRTMFCCClient>;
 
