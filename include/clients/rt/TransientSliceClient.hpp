@@ -22,13 +22,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 namespace client {
+namespace transientslice {
 
-class TransientSliceClient : public FluidBaseClient,
-                             public AudioIn,
-                             public AudioOut
-{
-
-public:
   enum TransientParamIndex {
     kOrder,
     kBlockSize,
@@ -40,8 +35,8 @@ public:
     kDebounce,
     kMinSeg
   };
-
-  FLUID_DECLARE_PARAMS(
+  
+  constexpr auto TransientSliceParams = defineParameters(
       LongParam("order", "Order", 20, Min(10), LowerLimit<kWinSize>(),
                 UpperLimit<kBlockSize>()),
       LongParam("blockSize", "Block Size", 256, Min(100), LowerLimit<kOrder>()),
@@ -52,6 +47,30 @@ public:
       LongParam("windowSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
       LongParam("clumpLength", "Clumping Window Length", 25, Min(0)),
       LongParam("minSliceLength", "Minimum Length of Slice", 1000));
+  
+class TransientSliceClient : public FluidBaseClient,
+                             public AudioIn,
+                             public AudioOut
+{
+public:
+
+  using ParamDescType = decltype(TransientSliceParams); 
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N> 
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors()
+  { 
+    return TransientSliceParams;  
+  }
 
   TransientSliceClient(ParamSetViewType& p)
       : mParams{p}
@@ -130,15 +149,16 @@ private:
   BufferedProcess        mBufferedProcess;
   FluidTensor<double, 1> mTransients;
 };
+}
 
-using RTTransientSliceClient = ClientWrapper<TransientSliceClient>;
+using RTTransientSliceClient = ClientWrapper<transientslice::TransientSliceClient>;
 
-auto constexpr NRTTransientSliceParams = makeNRTParams<TransientSliceClient>(
+auto constexpr NRTTransientSliceParams = makeNRTParams<transientslice::TransientSliceClient>(
     InputBufferParam("source", "Source Buffer"),
     BufferParam("indices", "Indices Buffer"));
 
 using NRTTransientSliceClient =
-    NRTSliceAdaptor<TransientSliceClient, decltype(NRTTransientSliceParams),
+    NRTSliceAdaptor<transientslice::TransientSliceClient, decltype(NRTTransientSliceParams),
                     NRTTransientSliceParams, 1, 1>;
 
 using NRTThreadedTransientSliceClient =

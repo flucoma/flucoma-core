@@ -20,16 +20,33 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 namespace client {
+namespace stftpass {
+
+enum STFTParamIndex { kFFT, kMaxFFT };
+
+constexpr auto STFTPassParams = defineParameters(
+    FFTParam<kMaxFFT>("fftSettings", "FFT Settings", 1024, -1, -1),
+    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
+                           PowerOfTwo{}));
 
 class BaseSTFTClient : public FluidBaseClient, public AudioIn, public AudioOut
 {
-  enum STFTParamIndex { kFFT, kMaxFFT };
-
 public:
-  FLUID_DECLARE_PARAMS(FFTParam<kMaxFFT>("fftSettings", "FFT Settings", 1024,
-                                         -1, -1),
-                       LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size",
-                                              16384, Min(4), PowerOfTwo{}));
+  using ParamDescType = std::add_const_t<decltype(STFTPassParams)>;
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors() { return STFTPassParams; }
+
 
   BaseSTFTClient(ParamSetViewType& p)
       : mParams(p), mSTFTBufferedProcess{get<kMaxFFT>(), 1, 1}
@@ -57,8 +74,9 @@ public:
 private:
   STFTBufferedProcess<ParamSetViewType, kFFT, true> mSTFTBufferedProcess;
 };
+} // namespace stftpass
 
-using RTSTFTPassClient = ClientWrapper<BaseSTFTClient>;
+using RTSTFTPassClient = ClientWrapper<stftpass::BaseSTFTClient>;
 
 } // namespace client
 } // namespace fluid

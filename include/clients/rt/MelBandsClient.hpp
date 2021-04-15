@@ -22,31 +22,47 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 namespace client {
+namespace melbands {
 
+enum MFCCParamIndex {
+  kNBands,
+  kMinFreq,
+  kMaxFreq,
+  kMaxNBands,
+  kNormalize,
+  kFFT,
+  kMaxFFTSize
+};
+
+constexpr auto MelBandsParams = defineParameters(
+    LongParam("numBands", "Number of Bands", 40, Min(2),
+              UpperLimit<kMaxNBands>()),
+    FloatParam("minFreq", "Low Frequency Bound", 20, Min(0)),
+    FloatParam("maxFreq", "High Frequency Bound", 20000, Min(0)),
+    LongParam<Fixed<true>>("maxNumBands", "Maximum Number of Bands", 120,
+                           Min(2), MaxFrameSizeUpperLimit<kMaxFFTSize>()),
+    EnumParam("normalize", "Normalize", 1, "No", "Yes"),
+    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
+    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
 
 class MelBandsClient : public FluidBaseClient, public AudioIn, public ControlOut
 {
-  enum MFCCParamIndex {
-    kNBands,
-    kMinFreq,
-    kMaxFreq,
-    kMaxNBands,
-    kNormalize,
-    kFFT,
-    kMaxFFTSize
-  };
 
 public:
-  FLUID_DECLARE_PARAMS(
-      LongParam("numBands", "Number of Bands", 40, Min(2),
-                UpperLimit<kMaxNBands>()),
-      FloatParam("minFreq", "Low Frequency Bound", 20, Min(0)),
-      FloatParam("maxFreq", "High Frequency Bound", 20000, Min(0)),
-      LongParam<Fixed<true>>("maxNumBands", "Maximum Number of Bands", 120,
-                             Min(2), MaxFrameSizeUpperLimit<kMaxFFTSize>()),
-      EnumParam("normalize", "Normalize", 1, "No", "Yes"),
-      FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-      LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
+  using ParamDescType = decltype(MelBandsParams);
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors() { return MelBandsParams; }
 
   MelBandsClient(ParamSetViewType& p)
       : mParams{p}, mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0),
@@ -109,15 +125,16 @@ private:
   FluidTensor<double, 1> mMagnitude;
   FluidTensor<double, 1> mBands;
 };
+} // namespace melbands
 
-using RTMelBandsClient = ClientWrapper<MelBandsClient>;
+using RTMelBandsClient = ClientWrapper<melbands::MelBandsClient>;
 
-auto constexpr NRTMelBandsParams = makeNRTParams<MelBandsClient>(
+auto constexpr NRTMelBandsParams = makeNRTParams<melbands::MelBandsClient>(
     InputBufferParam("source", "Source Buffer"),
     BufferParam("features", "Output Buffer"));
 
 using NRTMelBandsClient =
-    NRTControlAdaptor<MelBandsClient, decltype(NRTMelBandsParams),
+    NRTControlAdaptor<melbands::MelBandsClient, decltype(NRTMelBandsParams),
                       NRTMelBandsParams, 1, 1>;
 
 using NRTThreadedMelBandsClient = NRTThreadingAdaptor<NRTMelBandsClient>;

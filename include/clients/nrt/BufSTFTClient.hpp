@@ -18,40 +18,52 @@
 
 namespace fluid {
 namespace client {
+namespace bufstft {
+enum BufferSTFTParamIndex {
+  kSource,
+  kOffset,
+  kNumFrames,
+  kStartChan,
+  kMag,
+  kPhase,
+  kResynth,
+  kInvert,
+  kPadding,
+  kFFT
+};
+
+constexpr auto BufSTFTParams = defineParameters(
+    InputBufferParam("source", "Source Buffer"),
+    LongParam("startFrame", "Source Offset", 0, Min(0)),
+    LongParam("numFrames", "Number of Frames", -1),
+    LongParam("startChan", "Start Channel", 0, Min(0)),
+    BufferParam("magnitude", "Magnitude Buffer"),
+    BufferParam("phase", "Phase Buffer"),
+    BufferParam("resynth", "Resynthesis Buffer"),
+    LongParam("inverse", "Inverse Transform", 0, Min(0), Max(1)),
+    EnumParam("padding", "Added Padding", 1, "None", "Default", "Full"),
+    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class BufferSTFTClient : public FluidBaseClient,
                          public OfflineIn,
                          public OfflineOut
 {
-
-  enum BufferSTFTParamIndex {
-    kSource,
-    kOffset,
-    kNumFrames,
-    kStartChan,
-    // kNumChans,
-    kMag,
-    kPhase,
-    kResynth,
-    kInvert,
-    kPadding,
-    kFFT
-  };
-
 public:
-  FLUID_DECLARE_PARAMS(InputBufferParam("source", "Source Buffer"),
-                       LongParam("startFrame", "Source Offset", 0, Min(0)),
-                       LongParam("numFrames", "Number of Frames", -1),
-                       LongParam("startChan", "Start Channel", 0, Min(0)),
-                       // LongParam("numChans", "Number of Channels", -1),
-                       BufferParam("magnitude", "Magnitude Buffer"),
-                       BufferParam("phase", "Phase Buffer"),
-                       BufferParam("resynth", "Resynthesis Buffer"),
-                       LongParam("inverse", "Inverse Transform", 0, Min(0),
-                                 Max(1)),
-                       EnumParam("padding", "Added Padding", 1, "None",
-                                 "Default", "Full"),
-                       FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
+  using ParamDescType = decltype(BufSTFTParams);
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors() { return BufSTFTParams; }
+
 
   BufferSTFTClient(ParamSetViewType& p) : mParams(p) {}
 
@@ -86,7 +98,7 @@ private:
 
     index  offset = get<kOffset>();
     index  numFrames = get<kNumFrames>();
-    index  numChans = 1; 
+    index  numChans = 1;
     Result rangeOK = bufferRangeCheck(get<kSource>().get(), offset, numFrames,
                                       get<kStartChan>(), numChans);
 
@@ -104,16 +116,15 @@ private:
     index winSize = get<kFFT>().winSize();
     index hopSize = get<kFFT>().hopSize();
 
-    index padding = FFTParams::padding(get<kFFT>(), get<kPadding>());
+    index  padding = FFTParams::padding(get<kFFT>(), get<kPadding>());
     double totalPadding = padding << 1;
 
     index paddedLength = numFrames + totalPadding;
-    if(get<kPadding>() == 2)
+    if (get<kPadding>() == 2)
       paddedLength = (std::ceil(double(paddedLength) / hopSize) * hopSize);
 
-    index numHops =
-        1 + std::floor((paddedLength - winSize) / hopSize);
-    
+    index numHops = 1 + std::floor((paddedLength - winSize) / hopSize);
+
     index numBins = (fftSize >> 1) + 1;
 
     // I'm thinking that most things can only really deal with 65536 channels
@@ -146,7 +157,7 @@ private:
 
     FluidTensor<double, 2> tmpMags(numHops, numBins);
     FluidTensor<double, 2> tmpPhase(numHops, numBins);
-    
+
     FluidTensor<std::complex<double>, 2> tmpComplex(numHops, numBins);
 
     auto stft = algorithm::STFT(winSize, fftSize, hopSize);
@@ -210,12 +221,13 @@ private:
     auto resynth = BufferAdaptor::Access(r);
 
     index numFrames = mags.numFrames();
-    index padding = FFTParams::padding(get<kFFT>(),get<kPadding>());
-    
-    
+    index padding = FFTParams::padding(get<kFFT>(), get<kPadding>());
+
+
     index paddedOutputSize = (mags.numFrames() - 1) * hopSize + winSize;
     index finalOutputSize = paddedOutputSize - padding;
-    auto  resizeResult = resynth.resize(finalOutputSize, 1, mags.sampleRate() * hopSize);
+    auto  resizeResult =
+        resynth.resize(finalOutputSize, 1, mags.sampleRate() * hopSize);
     if (!resizeResult.ok()) return resizeResult;
 
     FluidTensor<double, 1> tmpOut(paddedOutputSize);
@@ -260,9 +272,10 @@ private:
     return {};
   }
 };
+} // namespace bufstft
 
 using NRTThreadedBufferSTFTClient =
-    NRTThreadingAdaptor<ClientWrapper<BufferSTFTClient>>;
+    NRTThreadingAdaptor<ClientWrapper<bufstft::BufferSTFTClient>>;
 
 } // namespace client
 } // namespace fluid

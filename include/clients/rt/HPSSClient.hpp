@@ -23,41 +23,58 @@ under the European Union’s Horizon 2020 research and innovation programme
 namespace fluid {
 namespace client {
 
+namespace hpss {
+
+enum HPSSParamIndex {
+  kHSize,
+  kPSize,
+  kMode,
+  kHThresh,
+  kPThresh,
+  kFFT,
+  kMaxFFT,
+  kMaxHSize,
+  kMaxPSize
+};
+
+constexpr auto HPSSParams = defineParameters(
+    LongParam("harmFilterSize", "Harmonic Filter Size", 17,
+              UpperLimit<kMaxHSize>(), Odd{}, Min(3)),
+    LongParam("percFilterSize", "Percussive Filter Size", 31,
+              UpperLimit<kMaxPSize>(), Odd{}, Min(3)),
+    EnumParam("maskingMode", "Masking Mode", 0, "Classic", "Coupled",
+              "Advanced"),
+    FloatPairsArrayParam("harmThresh", "Harmonic Filter Thresholds",
+                         FrequencyAmpPairConstraint{}),
+    FloatPairsArrayParam("percThresh", "Percussive Filter Thresholds",
+                         FrequencyAmpPairConstraint{}),
+    FFTParam<kMaxFFT>("fftSettings", "FFT Settings", 1024, -1, -1),
+    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
+                           PowerOfTwo{}),
+    LongParam<Fixed<true>>("maxHarmFilterSize", "Maximum Harmonic Filter Size",
+                           101, Min(3), Odd{}),
+    LongParam<Fixed<true>>("maxPercFilterSize",
+                           "Maximum Percussive Filter Size", 101, Min(3),
+                           Odd{}));
+
+
 class HPSSClient : public FluidBaseClient, public AudioIn, public AudioOut
 {
-  enum HPSSParamIndex {
-    kHSize,
-    kPSize,
-    kMode,
-    kHThresh,
-    kPThresh,
-    kFFT,
-    kMaxFFT,
-    kMaxHSize,
-    kMaxPSize
-  };
-
 public:
-  FLUID_DECLARE_PARAMS(
-      LongParam("harmFilterSize", "Harmonic Filter Size", 17,
-                UpperLimit<kMaxHSize>(), Odd{}, Min(3)),
-      LongParam("percFilterSize", "Percussive Filter Size", 31,
-                UpperLimit<kMaxPSize>(), Odd{}, Min(3)),
-      EnumParam("maskingMode", "Masking Mode", 0, "Classic", "Coupled",
-                "Advanced"),
-      FloatPairsArrayParam("harmThresh", "Harmonic Filter Thresholds",
-                           FrequencyAmpPairConstraint{}),
-      FloatPairsArrayParam("percThresh", "Percussive Filter Thresholds",
-                           FrequencyAmpPairConstraint{}),
-      FFTParam<kMaxFFT>("fftSettings", "FFT Settings", 1024, -1, -1),
-      LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                             PowerOfTwo{}),
-      LongParam<Fixed<true>>("maxHarmFilterSize",
-                             "Maximum Harmonic Filter Size", 101, Min(3),
-                             Odd{}),
-      LongParam<Fixed<true>>("maxPercFilterSize",
-                             "Maximum Percussive Filter Size", 101, Min(3),
-                             Odd{}));
+  using ParamDescType = decltype(HPSSParams);
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors() { return HPSSParams; }
 
   HPSSClient(ParamSetViewType& p)
       : mParams{p}, mSTFTBufferedProcess{get<kMaxFFT>(), 1, 3},
@@ -90,7 +107,9 @@ public:
     index nBins = get<kFFT>().frameSize();
 
     if (!mHPSS.initialized() || mTrackChanges.changed(nBins, get<kHSize>()))
-    { mHPSS.init(nBins, get<kHSize>()); }
+    {
+      mHPSS.init(nBins, get<kHSize>());
+    }
 
     mSTFTBufferedProcess.process(
         mParams, input, output, c,
@@ -107,20 +126,21 @@ public:
 
 private:
   STFTBufferedProcess<ParamSetViewType, kFFT, true> mSTFTBufferedProcess;
-  ParameterTrackChanges<index, index>                  mTrackChanges;
-  algorithm::HPSS                                      mHPSS;
+  ParameterTrackChanges<index, index>               mTrackChanges;
+  algorithm::HPSS                                   mHPSS;
 };
+} // namespace hpss
+using RTHPSSClient = ClientWrapper<hpss::HPSSClient>;
 
-using RTHPSSClient = ClientWrapper<HPSSClient>;
-
-auto constexpr NRTHPSSParams =
-    makeNRTParams<HPSSClient>(InputBufferParam("source", "Source Buffer"),
-                              BufferParam("harmonic", "Harmonic Buffer"),
-                              BufferParam("percussive", "Percussive Buffer"),
-                              BufferParam("residual", "Residual Buffer"));
+auto constexpr NRTHPSSParams = makeNRTParams<hpss::HPSSClient>(
+    InputBufferParam("source", "Source Buffer"),
+    BufferParam("harmonic", "Harmonic Buffer"),
+    BufferParam("percussive", "Percussive Buffer"),
+    BufferParam("residual", "Residual Buffer"));
 
 using NRTHPSSClient =
-    NRTStreamAdaptor<HPSSClient, decltype(NRTHPSSParams), NRTHPSSParams, 1, 3>;
+    NRTStreamAdaptor<hpss::HPSSClient, decltype(NRTHPSSParams), NRTHPSSParams,
+                     1, 3>;
 
 using NRTThreadedHPSSClient = NRTThreadingAdaptor<NRTHPSSClient>;
 

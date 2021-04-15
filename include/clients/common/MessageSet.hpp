@@ -139,14 +139,6 @@ MessageSet<std::tuple<Args...>> defineMessages(Args&&... args)
   return {std::forward<Args>(args)...};
 }
 
-// Boilerplate macro for clients
-#define FLUID_DECLARE_MESSAGES(...)                                            \
-  using MessageType = std::add_const_t<decltype(defineMessages(__VA_ARGS__))>; \
-  static MessageType getMessageDescriptors()                                   \
-  {                                                                            \
-    return defineMessages(__VA_ARGS__);                                        \
-  }
-
 auto NoMessages = defineMessages();
 
 } // namespace client

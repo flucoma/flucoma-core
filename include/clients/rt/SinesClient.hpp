@@ -22,45 +22,62 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 namespace client {
+namespace sines {
+
+enum SinesParamIndex {
+  kBandwidth,
+  kDetectionThreshold,
+  kBirthLowThreshold,
+  kBirthHighThreshold,
+  kMinTrackLen,
+  kTrackingMethod,
+  kTrackMagRange,
+  kTrackFreqRange,
+  kTrackProb,
+  kFFT,
+  kMaxFFTSize
+};
+
+constexpr auto SineParams = defineParameters(
+    LongParam("bandwidth", "Bandwidth", 76, Min(1),
+              FrameSizeUpperLimit<kFFT>()),
+    FloatParam("detectionThreshold", "Peak Detection Threshold", -96, Min(-144),
+               Max(0)),
+    FloatParam("birthLowThreshold", "Track Birth Low Frequency Threshold", -24,
+               Min(-144), Max(0)),
+    FloatParam("birthHighThreshold", "Track Birth High Frequency Threshold",
+               -60, Min(-144), Max(0)),
+    LongParam("minTrackLen", "Minimum Track Length", 15, Min(1)),
+    EnumParam("trackingMethod", "Tracking Method", 0, "Greedy", "Hungarian"),
+    FloatParam("trackMagRange", "Tracking Magnitude Range (dB)", 15., Min(1.),
+               Max(200.)),
+    FloatParam("trackFreqRange", "Tracking Frequency Range (Hz)", 50., Min(1.),
+               Max(10000.)),
+    FloatParam("trackProb", "Tracking Matching Probability", 0.5, Min(0.0),
+               Max(1.0)),
+    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1,
+                          FrameSizeLowerLimit<kBandwidth>()),
+    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
+                           PowerOfTwo{}));
 
 class SinesClient : public FluidBaseClient, public AudioIn, public AudioOut
 {
-  enum SinesParamIndex {
-    kBandwidth,
-    kDetectionThreshold,
-    kBirthLowThreshold,
-    kBirthHighThreshold,
-    kMinTrackLen,
-    kTrackingMethod,
-    kTrackMagRange,
-    kTrackFreqRange,
-    kTrackProb,
-    kFFT,
-    kMaxFFTSize
-  };
 
 public:
-  FLUID_DECLARE_PARAMS(
-      LongParam("bandwidth", "Bandwidth", 76, Min(1),
-                FrameSizeUpperLimit<kFFT>()),
-      FloatParam("detectionThreshold", "Peak Detection Threshold", -96,
-                 Min(-144), Max(0)),
-      FloatParam("birthLowThreshold", "Track Birth Low Frequency Threshold",
-                 -24, Min(-144), Max(0)),
-      FloatParam("birthHighThreshold", "Track Birth High Frequency Threshold",
-                 -60, Min(-144), Max(0)),
-      LongParam("minTrackLen", "Minimum Track Length", 15, Min(1)),
-      EnumParam("trackingMethod", "Tracking Method", 0, "Greedy", "Hungarian"),
-      FloatParam("trackMagRange", "Tracking Magnitude Range (dB)", 15., Min(1.),
-                 Max(200.)),
-      FloatParam("trackFreqRange", "Tracking Frequency Range (Hz)", 50.,
-                 Min(1.), Max(10000.)),
-      FloatParam("trackProb", "Tracking Matching Probability", 0.5, Min(0.0),
-                 Max(1.0)),
-      FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1,
-                            FrameSizeLowerLimit<kBandwidth>()),
-      LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                             PowerOfTwo{}));
+  using ParamDescType = decltype(SineParams);
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors() { return SineParams; }
 
   SinesClient(ParamSetViewType& p)
       : mParams(p), mSTFTBufferedProcess{get<kMaxFFTSize>(), 1, 2}
@@ -109,19 +126,21 @@ public:
 
 private:
   STFTBufferedProcess<ParamSetViewType, kFFT> mSTFTBufferedProcess;
-  algorithm::SineExtraction mSinesExtractor;
+  algorithm::SineExtraction                   mSinesExtractor;
   ParameterTrackChanges<index, index, double> mTrackValues;
 };
 
-using RTSinesClient = ClientWrapper<SinesClient>;
+} // namespace sines
+using RTSinesClient = ClientWrapper<sines::SinesClient>;
 
-auto constexpr NRTSineParams =
-    makeNRTParams<SinesClient>(InputBufferParam("source", "Source Buffer"),
-                               BufferParam("sines", "Sines Buffer"),
-                               BufferParam("residual", "Residual Buffer"));
+auto constexpr NRTSineParams = makeNRTParams<sines::SinesClient>(
+    InputBufferParam("source", "Source Buffer"),
+    BufferParam("sines", "Sines Buffer"),
+    BufferParam("residual", "Residual Buffer"));
 
 using NRTSinesClient =
-    NRTStreamAdaptor<SinesClient, decltype(NRTSineParams), NRTSineParams, 1, 2>;
+    NRTStreamAdaptor<sines::SinesClient, decltype(NRTSineParams), NRTSineParams,
+                     1, 2>;
 
 using NRTThreadedSinesClient = NRTThreadingAdaptor<NRTSinesClient>;
 

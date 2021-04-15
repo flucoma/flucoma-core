@@ -72,8 +72,9 @@ public:
     return std::make_tuple(std::string{"Testing tesing"}, 1, 2);
   }
 
-
-  FLUID_DECLARE_MESSAGES(
+  static auto getMessageDescriptors()
+  {
+    return defineMessages(
       makeMessage("testReturnStrings", &MessageTest::doStrings),
       makeMessage("testReturnNumbers", &MessageTest::doNumbers),
       makeMessage("testReturnOneString", &MessageTest::doOneString),
@@ -82,6 +83,8 @@ public:
       makeMessage("testPassString", &MessageTest::doTakeString),
       makeMessage("testReturnBuffer", &MessageTest::doReturnBuffer),
       makeMessage("testReturnHetero", &MessageTest::doHetero));
+  }
+
 };
 
 using NRTThreadingMessageTest = NRTThreadingAdaptor<ClientWrapper<MessageTest>>;

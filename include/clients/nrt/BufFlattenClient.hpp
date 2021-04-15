@@ -21,20 +21,34 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 namespace client {
+namespace bufflatten {
+
+enum { kSource, kDest, kAxis };
+
+constexpr auto BufFlattenParams =
+    defineParameters(InputBufferParam("source", "Source Buffer"),
+                     BufferParam("destination", "Destination Buffer"),
+                     EnumParam("axis", "Axis", 1, "Frames", "Channels"));
 
 class BufFlattenClient : public FluidBaseClient, OfflineIn, OfflineOut
 {
 
 public:
-  enum {
-    kSource,
-    kDest,
-    kAxis
-  };
+  using ParamDescType = decltype(BufFlattenParams);
 
-  FLUID_DECLARE_PARAMS(InputBufferParam("source", "Source Buffer"),
-                       BufferParam("destination", "Destination Buffer"),
-                       EnumParam("axis","Axis",1, "Frames", "Channels"));
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors() { return BufFlattenParams; }
+
 
   BufFlattenClient(ParamSetViewType& p) : mParams{p} {}
 
@@ -42,39 +56,46 @@ public:
   Result process(FluidContext&)
   {
 
-    if (!get<kSource>().get()) { return {Result::Status::kError, "No source buffer "}; }
-    if (!get<kDest>().get()) { return  {Result::Status::kError, "No destination buffer"}; }
+    if (!get<kSource>().get())
+    {
+      return {Result::Status::kError, "No source buffer "};
+    }
+    if (!get<kDest>().get())
+    {
+      return {Result::Status::kError, "No destination buffer"};
+    }
 
     BufferAdaptor::ReadAccess source(get<kSource>().get());
-    BufferAdaptor::Access destination(get<kDest>().get()); 
+    BufferAdaptor::Access     destination(get<kDest>().get());
 
     if (!(source.exists() && source.valid()))
       return {Result::Status::kError, "Source Buffer Not Found or Invalid"};
-      
+
     if (!destination.exists())
       return {Result::Status::kError,
-              "Destination Buffer Not Found or Invalid"};  
-                            
-    auto resizeResult = destination.resize(source.numFrames()*source.numChans(), 1 ,source.sampleRate());
-    
-    if(!resizeResult.ok()) return resizeResult; 
-    
-    
-    if(get<kAxis>() == 0)
-      std::copy(source.allFrames().begin(),
-                source.allFrames().end(),
-                destination.allFrames().begin()); 
-    else                                             
+              "Destination Buffer Not Found or Invalid"};
+
+    auto resizeResult = destination.resize(
+        source.numFrames() * source.numChans(), 1, source.sampleRate());
+
+    if (!resizeResult.ok()) return resizeResult;
+
+
+    if (get<kAxis>() == 0)
+      std::copy(source.allFrames().begin(), source.allFrames().end(),
+                destination.allFrames().begin());
+    else
       std::copy(source.allFrames().transpose().begin(),
                 source.allFrames().transpose().end(),
-                destination.allFrames().begin()); 
+                destination.allFrames().begin());
 
     return {Result::Status::kOk};
   }
 };
+} // namespace bufflatten
 
 using NRTThreadedBufFlattenClient =
-    NRTThreadingAdaptor<ClientWrapper<BufFlattenClient>>;
+    NRTThreadingAdaptor<ClientWrapper<bufflatten::BufFlattenClient>>;
 
 } // namespace client
 } // namespace fluid

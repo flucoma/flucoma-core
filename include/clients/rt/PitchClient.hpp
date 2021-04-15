@@ -25,6 +25,28 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 namespace client {
+namespace pitch {
+
+enum PitchParamIndex {
+  kAlgorithm,
+  kMinFreq,
+  kMaxFreq,
+  kUnit,
+  kFFT,
+  kMaxFFTSize
+};
+
+constexpr auto PitchParams = defineParameters(
+    EnumParam("algorithm", "Algorithm", 2, "Cepstrum",
+              "Harmonic Product Spectrum", "YinFFT"),
+    FloatParam("minFreq", "Minimum Frequency", 20, Min(0), Max(10000),
+               UpperLimit<kMaxFreq>()),
+    FloatParam("maxFreq", "Maximum Frequency", 10000, Min(1), Max(20000),
+               LowerLimit<kMinFreq>()),
+    EnumParam("unit", "Unit", 0, "Hz", "MIDI"),
+    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
+    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
+                           PowerOfTwo{}));
 
 class PitchClient : public FluidBaseClient, public AudioIn, public ControlOut
 {
@@ -33,27 +55,21 @@ class PitchClient : public FluidBaseClient, public AudioIn, public ControlOut
   using HPS = algorithm::HPS;
   using YINFFT = algorithm::YINFFT;
 
-  enum PitchParamIndex {
-    kAlgorithm,
-    kMinFreq,
-    kMaxFreq,
-    kUnit,
-    kFFT,
-    kMaxFFTSize
-  };
-
 public:
-  FLUID_DECLARE_PARAMS(EnumParam("algorithm", "Algorithm", 2, "Cepstrum",
-                                 "Harmonic Product Spectrum", "YinFFT"),
-                       FloatParam("minFreq", "Minimum Frequency", 20, Min(0),
-                                  Max(10000), UpperLimit<kMaxFreq>()),
-                       FloatParam("maxFreq", "Maximum Frequency", 10000, Min(1),
-                                  Max(20000), LowerLimit<kMinFreq>()),
-                       EnumParam("unit", "Unit", 0, "Hz", "MIDI"),
-                       FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings",
-                                             1024, -1, -1),
-                       LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size",
-                                              16384, Min(4), PowerOfTwo{}));
+  using ParamDescType = decltype(PitchParams);
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors() { return PitchParams; }
 
   PitchClient(ParamSetViewType& p)
       : mParams(p), mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0),
@@ -122,15 +138,17 @@ private:
   FluidTensor<double, 1> mMagnitude;
   FluidTensor<double, 1> mDescriptors;
 };
+} // namespace pitch
 
-using RTPitchClient = ClientWrapper<PitchClient>;
+using RTPitchClient = ClientWrapper<pitch::PitchClient>;
 
-auto constexpr NRTPitchParams =
-    makeNRTParams<PitchClient>(InputBufferParam("source", "Source Buffer"),
-                                 BufferParam("features", "Features Buffer"));
+auto constexpr NRTPitchParams = makeNRTParams<pitch::PitchClient>(
+    InputBufferParam("source", "Source Buffer"),
+    BufferParam("features", "Features Buffer"));
 
-using NRTPitchClient = NRTControlAdaptor<PitchClient, decltype(NRTPitchParams),
-                                         NRTPitchParams, 1, 1>;
+using NRTPitchClient =
+    NRTControlAdaptor<pitch::PitchClient, decltype(NRTPitchParams),
+                      NRTPitchParams, 1, 1>;
 
 using NRTThreadedPitchClient = NRTThreadingAdaptor<NRTPitchClient>;
 
