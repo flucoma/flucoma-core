@@ -29,8 +29,6 @@ enum {
   kInHigh,
   kOutLow,
   kOutHigh,
-  kMap,
-  kCurve,
   kClip
 };
 
@@ -45,22 +43,26 @@ constexpr auto BufScaleParams =
                      FloatParam("inputHigh", "Input High Range", 1),
                      FloatParam("outputLow", "Output Low Range", 0),
                      FloatParam("outputHigh", "Output High Range", 1),
-                     EnumParam("map","Type of Mapping",0,"linlin", "lincurve", "curvelin"),
-                     FloatParam("curvature", "Curvature of the Mapping", 0),
-                     EnumParam("clipping","Optional Clipping",0,"Neither", "Minimum", "Maximum", "Both"));
-
+                     EnumParam("clipping","Optional Clipping",0,"None", "Minimum", "Maximum", "Both"));
 
 class BufScaleClient : public FluidBaseClient,
                        public OfflineIn,
                        public OfflineOut
 {
 
-
 public:
   using ParamDescType = decltype(BufScaleParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   std::reference_wrapper<ParamSetViewType> mParams;
+
+  using clipFnType =  double(*)(double, double, double);
+  const std::array<clipFnType,4> clippingFunctions = {
+    [](double x, double, double) {return x;},
+    [](double x, double low, double) { return std::max(x, low); },
+    [](double x, double, double high) { return std::min(x, high); },
+    [](double x, double low, double high) { return std::min(std::max(x,low),high); }
+  };
 
   void setParams(ParamSetViewType& p) { mParams = p; }
 
@@ -71,7 +73,6 @@ public:
   }
 
   static constexpr auto& getParameterDescriptors() { return BufScaleParams; }
-
 
   BufScaleClient(ParamSetViewType& p) : mParams(p) {}
 
@@ -97,32 +98,18 @@ public:
 
     FluidTensor<double, 2> tmp(source.allFrames()(Slice(startChan,numChans),Slice(startFrame,numFrames)));
 
-    //process
-    double scale = (get<kOutHigh>()-get<kOutLow>())/(get<kInHigh>()-get<kInLow>());
-    double offset = get<kOutLow>() - ( scale * get<kInLow>() );
+    //pre-process
+    auto clipFn = clippingFunctions[get<kClip>()];
+    double outLow = get<kOutLow>();
+    double outHigh = get<kOutHigh>();
+    double scale = (outHigh-outLow)/(get<kInHigh>()-get<kInLow>());
+    double offset = outLow - ( scale * get<kInLow>() );
 
+    //process
     tmp.apply([&](double& x){
-        //optional cliping
-        if ((get<kClip>() & 1) && (x < get<kInLow>())) { //if the low clipping is on, and X  is below the low input
-            x = get<kOutLow>();
-        } else if ((get<kClip>() & 2) && (x > get<kInHigh>())) { //if the high clipping is on, and X is above the high input
-            x = get<kOutHigh>();
-        } else if ((get<kMap>() == 0) || (abs(get<kCurve>()) < 0.001)){ //if Map is linear, or the curve is linear enough (SC optimisation trick)
-            x *= scale;
-            x += offset;
-        } else if (get<kMap>() == 1) { // if map is linExp (taken from SC's lincurve code but with added parentheses)
-            double grow = exp(get<kCurve>());//this could be an instance constant updated when kCurve is changed to save computing it every time
-            double a = (get<kOutHigh>() - get<kOutLow>()) / (1.0 - grow);
-            double b = get<kOutLow>() + a;//this could be inlined 2 lines below
-            double scaled = (x - get<kInLow>()) / (get<kInHigh>() - get<kInLow>());
-            x = b - (a * pow(grow, scaled));
-        } else { // otherwise it should be expLin (taken from SC's curvelin code but with added parentheses)
-            assert(get<kMap>() == 2); //just checkin'
-            double grow = exp(get<kCurve>()); //again this should be stored somewhere when curve changes
-            double a = (get<kInHigh>() - get<kInLow>()) / (1.0 - grow);
-            double b = get<kInLow>() + a; //this coulb be inldined below
-            x = (log((b - x) / a) * (get<kOutHigh>() - get<kOutLow>()) / get<kCurve>()) + get<kOutLow>();
-        }
+      x *= scale;
+      x += offset;
+      x = clipFn(x, outLow, outHigh);
     });
 
     //write back the processed data, resizing the dest buffer
