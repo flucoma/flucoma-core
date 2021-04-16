@@ -179,9 +179,11 @@ public:
 
   index latency()
   {
-    return get<kFFT>().winSize() +
-           (((get<kFilterSize>() / 2) + ((get<kKernelSize>() + 1) / 2)) *
-            get<kFFT>().hopSize());
+    index filterSize =  get<kFilterSize>();
+    if(filterSize % 2) filterSize++;
+    return get<kFFT>().hopSize() * (
+      1 + ((get<kKernelSize>() + 1) >> 1) + (filterSize >> 1)
+    );
   }
 
   void reset()
