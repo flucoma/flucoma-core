@@ -617,8 +617,8 @@ struct Slicing
     assert(inputBuffers.size() == 1);
     assert(outputBuffers.size() == 1);
   
-    index startPadding = client.latency() + userPadding.first;
-    index totalPadding = startPadding + userPadding.first;
+    index startPadding = client.latency();
+    index totalPadding = startPadding;
     
     HostMatrix monoSource(1, nFrames + totalPadding);
 
@@ -626,7 +626,7 @@ struct Slicing
     // Make a mono sum;
     for (index i = inputBuffers[0].startChan;
          i < nChans + inputBuffers[0].startChan; ++i)
-      monoSource.row(0)(Slice(userPadding.first, nFrames))
+      monoSource.row(0)(Slice(0, nFrames))
           .apply(src.samps(inputBuffers[0].startFrame, nFrames, i),
                  [](float& x, float y) { x += y; });
 
@@ -640,7 +640,7 @@ struct Slicing
 
     if (startPadding)
     {
-      auto paddingAudio = onsetPoints(0, Slice(client.latency(), userPadding.first));
+      auto paddingAudio = onsetPoints(0, Slice(0, startPadding));
       auto numNegativeTimeOnsets =
           std::count_if(paddingAudio.begin(), paddingAudio.end(),
                         [](float x) { return x > 0; });
