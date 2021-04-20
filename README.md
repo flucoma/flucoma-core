@@ -61,4 +61,13 @@ If your needs are different, then these defaults can be overridden by passing th
 
 If your Intel / AMD chip is too old to support AVX, it probably still supports SSE. On macOS and Linux, `sysctl -a | grep cpu.feat` can be used to produce a list of the various features your CPU supports.
 
+# Credits 
+### FluCoMa core development team (in alphabetical order)
+Owen Green 
+Gerard Roma
+Pierre Alexandre Tremblay
+
+### Other contributors:
+Alex Harker, Francesco Cameli
+
 > This project has received funding from the European Research Council (ERC) under the European Union’s Horizon 2020 research and innovation programme (grant agreement No 725899).
