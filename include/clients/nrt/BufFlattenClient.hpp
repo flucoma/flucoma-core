@@ -23,10 +23,14 @@ namespace fluid {
 namespace client {
 namespace bufflatten {
 
-enum { kSource, kDest, kAxis };
+enum { kSource, kOffset, kNumFrames,kStartChan,kNumChans, kDest, kAxis };
 
 constexpr auto BufFlattenParams =
     defineParameters(InputBufferParam("source", "Source Buffer"),
+                     LongParam("startFrame", "Source Offset", 0, Min(0)),
+                     LongParam("numFrames", "Number of Frames", -1),
+                     LongParam("startChan", "Start Channel", 0, Min(0)),
+                     LongParam("numChans", "Number of Channels", -1),
                      BufferParam("destination", "Destination Buffer"),
                      EnumParam("axis", "Axis", 1, "Frames", "Channels"));
 
@@ -65,7 +69,18 @@ public:
       return {Result::Status::kError, "No destination buffer"};
     }
 
-    BufferAdaptor::ReadAccess source(get<kSource>().get());
+    auto srcptr = get<kSource>().get();
+    index startFrame = get<kOffset>(); 
+    index axis = get<kAxis>(); 
+    index numFrames =  get<kNumFrames>(); 
+    index numChans =   get<kNumChans>(); 
+    index startChan = get<kStartChan>();
+
+    Result rangecheck = bufferRangeCheck(srcptr, startFrame, numFrames, startChan, numChans);
+    
+    if(!rangecheck.ok()) return rangecheck;
+
+    BufferAdaptor::ReadAccess source(srcptr);
     BufferAdaptor::Access     destination(get<kDest>().get());
 
     if (!(source.exists() && source.valid()))
@@ -76,18 +91,23 @@ public:
               "Destination Buffer Not Found or Invalid"};
 
     auto resizeResult = destination.resize(
-        source.numFrames() * source.numChans(), 1, source.sampleRate());
+        numFrames * numChans, 1, source.sampleRate());
 
     if (!resizeResult.ok()) return resizeResult;
 
-
+    auto frames = source.allFrames()(Slice(startChan, numChans),Slice(startFrame, numFrames));
+  
+    std::cout << source.allFrames() << '\n';
+  
     if (get<kAxis>() == 0)
-      std::copy(source.allFrames().begin(), source.allFrames().end(),
+      std::copy(frames.begin(), frames.end(),
                 destination.allFrames().begin());
     else
-      std::copy(source.allFrames().transpose().begin(),
-                source.allFrames().transpose().end(),
+      std::copy(frames.transpose().begin(), frames.transpose().end(),
                 destination.allFrames().begin());
+
+    std::cout << frames << '\n';
+    std::cout << destination.allFrames() << '\n';
 
     return {Result::Status::kOk};
   }
