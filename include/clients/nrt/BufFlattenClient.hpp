@@ -96,18 +96,13 @@ public:
     if (!resizeResult.ok()) return resizeResult;
 
     auto frames = source.allFrames()(Slice(startChan, numChans),Slice(startFrame, numFrames));
-  
-    std::cout << source.allFrames() << '\n';
-  
+    
     if (get<kAxis>() == 0)
       std::copy(frames.begin(), frames.end(),
                 destination.allFrames().begin());
     else
       std::copy(frames.transpose().begin(), frames.transpose().end(),
                 destination.allFrames().begin());
-
-    std::cout << frames << '\n';
-    std::cout << destination.allFrames() << '\n';
 
     return {Result::Status::kOk};
   }
