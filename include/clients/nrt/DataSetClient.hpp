@@ -105,16 +105,18 @@ public:
   MessageResult<void> setPoint(string id, BufferPtr data)
   {
     if (!data) return Error(NoBuffer);
-    BufferAdaptor::Access buf(data.get());
-    if (!buf.exists()) return Error(InvalidBuffer);
-    if (buf.numFrames() < mAlgorithm.dims()) return Error(WrongPointSize);
-    RealVector point(mAlgorithm.dims());
-    point = buf.samps(0, mAlgorithm.dims(), 0);
-    bool result = mAlgorithm.update(id, point);
-    if (result)
-      return OK();
-    else
-      return addPoint(id, data);
+
+    { //restrict buffer lock to this scope in case addPoint is called
+      BufferAdaptor::Access buf(data.get());
+      if (!buf.exists()) return Error(InvalidBuffer);
+      if (buf.numFrames() < mAlgorithm.dims()) return Error(WrongPointSize);
+      RealVector point(mAlgorithm.dims());
+      point = buf.samps(0, mAlgorithm.dims(), 0);
+      bool result = mAlgorithm.update(id, point);
+      if (result)
+        return OK();
+    }
+    return addPoint(id, data);
   }
 
   MessageResult<void> deletePoint(string id)
