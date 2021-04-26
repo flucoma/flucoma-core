@@ -15,14 +15,11 @@ namespace fluid {
 namespace client {
 namespace audiotransport {
 
-enum AudioTransportParamTags { kInterpolation, kBandwidth, kFFT, kMaxFFTSize };
+enum AudioTransportParamTags { kInterpolation, kFFT, kMaxFFTSize };
 
 constexpr auto AudioTransportParams = defineParameters(
     FloatParam("interpolation", "Interpolation", 0.0, Min(0.0), Max(1.0)),
-    LongParam("bandwidth", "Bandwidth", 255, Min(255),
-              FrameSizeUpperLimit<kFFT>()),
-    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1,
-                          FrameSizeLowerLimit<kBandwidth>()),
+    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
                            PowerOfTwo{}));
 
@@ -64,9 +61,9 @@ public:
 
     if (!mAlgorithm.initialized() ||
         mTracking.changed(get<kFFT>().winSize(), get<kFFT>().hopSize(),
-                          get<kFFT>().fftSize(), get<kBandwidth>())) {
+                          get<kFFT>().fftSize())) {
       mAlgorithm.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
-                      get<kFFT>().hopSize(), get<kBandwidth>());
+                      get<kFFT>().hopSize());
                       mBufferedProcess.hostSize(hostVecSize);
       mBufferedProcess.maxSize(get<kFFT>().winSize(), get<kFFT>().winSize(), 2, 2);
     }
@@ -97,7 +94,7 @@ private:
   BufferedProcess mBufferedProcess;
   STFTBufferedProcess<ParamSetViewType, kFFT> mSTFTBufferedProcess;
   algorithm::AudioTransport mAlgorithm;
-  ParameterTrackChanges<index, index, index, index> mTracking;
+  ParameterTrackChanges<index, index, index> mTracking;
 };
 } // namespace audiotransport
 
