@@ -203,7 +203,7 @@ public:
     mAlgorithm = DataSet(0);
     return OK();
   }
-  MessageResult<string> print() { return mAlgorithm.print(); }
+  MessageResult<string> print() { return "DataSet "+get<kName>()+": "+mAlgorithm.print(); }
 
   const DataSet getDataSet() const { return mAlgorithm; }
   void          setDataSet(DataSet ds) { mAlgorithm = ds; }
@@ -231,6 +231,7 @@ public:
   }
 
 private:
+  
   LabelSet getIdsLabelSet()
   {
     algorithm::DataSetIdSequence seq("", 0, 0);
