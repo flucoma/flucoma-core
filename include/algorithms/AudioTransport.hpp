@@ -42,7 +42,7 @@ public:
         mISTFT(maxFFTSize, maxFFTSize, maxFFTSize / 2),
         mReassignSTFT(maxFFTSize, maxFFTSize, maxFFTSize /2) {}
 
-  void init(index windowSize, index fftSize, index hopSize, index bandwidth) {
+  void init(index windowSize, index fftSize, index hopSize) {
     mWindowSize = windowSize;
     mWindow = ArrayXd::Zero(mWindowSize);
     WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](mWindowSize,mWindow);
