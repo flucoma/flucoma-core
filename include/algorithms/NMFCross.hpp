@@ -23,7 +23,6 @@ using Eigen::VectorXd;
 
 class NMFCross {
 
-
 public:
   //pass iteration number; returns true if able to continue (i.e. not cancelled)
   using ProgressCallback = std::function<bool(index)>;
@@ -35,20 +34,14 @@ public:
                        ComplexMatrixView out){
     using namespace Eigen;
     using namespace _impl;
-    //double const epsilon = std::numeric_limits<double>::epsilon();
     MatrixXd H = asEigen<Matrix>(h);
     MatrixXcd W = asEigen<Matrix>(w);
-
-    //double norm = epsilon + W.array().abs().real().sum();
-    //W = W /norm;
-
     MatrixXcd V = H * W;
     out = asFluid(V);
   }
 
   void process(const RealMatrixView X, RealMatrixView H1,
-               RealMatrixView W0, index r, index p) const{
-    //double const epsilon = std::numeric_limits<double>::epsilon();
+               RealMatrixView W0, index r, index p, index c) const{
     index nFrames = X.extent(0);
     index nBins = X.extent(1);
     index rank = W0.extent(0);
@@ -58,7 +51,7 @@ public:
     H = MatrixXd::Random(rank, nFrames) * 0.5 +
           MatrixXd::Constant(rank, nFrames, 0.5);
     MatrixXd V = asEigen<Matrix>(X).transpose();
-    multiplicativeUpdates(V, W, H, r, p);
+    multiplicativeUpdates(V, W, H, r, p, c);
     MatrixXd HT = H.transpose();
     H1 = asFluid(HT);
   }
@@ -84,62 +77,80 @@ private:
     return result;
   }
 
+  Eigen::MatrixXd promoteContinuity(MatrixXd &H, index size) const{
+    index halfSize = (size - 1) / 2;
+    MatrixXd kernel = MatrixXd::Identity(size, size);
+    MatrixXd padded = MatrixXd::Zero(H.rows() + size, H.cols() + size);
+    MatrixXd output = MatrixXd::Zero(H.rows(), H.cols());
+    padded.block(halfSize, halfSize, H.rows(), H.cols()) = H;
+    for (index i = 0; i < H.rows(); i++){
+      for (index j = 0; j < H.cols(); j++){
+        output(i,j) = padded.block(i, j, size, size).cwiseProduct(kernel).sum();
+      }
+    }
+    return output;
+  }
+
+  Eigen::MatrixXd enforceTemporalSparseness(MatrixXd &H, index size, index iteration) const {
+    index halfSize = (size - 1) / 2;
+    MatrixXd padded = MatrixXd::Zero(H.rows(), H.cols() + size);
+    MatrixXd output = MatrixXd::Zero(H.rows(), H.cols());
+    padded.block(0, halfSize, H.rows(), H.cols()) = H;
+    for (index i = 0; i < H.rows(); i++){
+      for (index j = 0; j < H.cols(); j++){
+        VectorXd neighborhood =  padded.row(i).segment(j,size);
+        VectorXd::Index maxIndex{0};
+        neighborhood.maxCoeff(&maxIndex);
+        if(int(maxIndex) != halfSize){
+          output(i,j) = H(i,j) * (1 - ((iteration + 1) / mIterations));
+        } else{
+          output(i,j) = H(i,j);
+        }
+      }
+    }
+    return output;
+  }
 
 
-  void multiplicativeUpdates(MatrixXd &V, MatrixXd &W, MatrixXd &H, index r, index p) const{
+  Eigen::MatrixXd restrictPolyphony(MatrixXd& H, ArrayXd& energyInW, index size, index iteration) const{
+    MatrixXd output = MatrixXd::Zero(H.rows(), H.cols());
+    for (index k = 0; k < H.cols(); k++){
+      ArrayXd wCol = H.col(k).array() * energyInW.array();
+      output.col(k) = H.col(k) * (1 - ((iteration + 1) / mIterations));
+      auto top = topC(wCol, size);
+      for (auto t: top) {
+        output(t, k) = H(t, k);
+      }
+    }
+    return output;
+  }
+  void multiplicativeUpdates(MatrixXd &V, MatrixXd &W, MatrixXd &H,
+    index r, index p, index c) const{
     using namespace std;
     using namespace Eigen;
     double const epsilon = std::numeric_limits<double>::epsilon();
     MatrixXd ones = MatrixXd::Ones(V.rows(), V.cols());
-    H = H.array().max(epsilon).matrix();
     W = W.array().max(epsilon).matrix();
-    //double norm = epsilon + W.sum();
-    //W = W /norm;
-    //W.colwise().normalize();
-    //H.rowwise().normalize();
-
-    for (index i = 0; i < mIterations; ++i)
+    //ArrayXd wNorm = W.colwise().sum();
+    //W.array().rowwise() /= wNorm.transpose());
+    ArrayXd energyInW = W.array().square().colwise().sum();
+    for (index i = 0; i < mIterations; i++)
     {
-      if(i % 1 == 0){
-        MatrixXd H1 = MatrixXd::Zero(H.rows(), H.cols());
-        for (index j = 0; j < H.rows(); ++j){
-          VectorXd row = H.row(j);
-          for (index k = 0; k < H.cols(); ++k){
-            MatrixXd::Index maxIndex;
-            index start = k <= r? 0 : k - r;
-            index length = k + r >= row.size()? row.size() - start - 1: 2 * r;
-            VectorXd neighborhood = row.segment(start, length);
-            neighborhood.maxCoeff(&maxIndex);
-            if(start + maxIndex == k){
-              H1(j,k) = H(j,k);
-            }
-            else{
-              H1(j,k) = H(j,k) * (1 - (i + 1) / mIterations);
-            }
-          }
-        }
-        MatrixXd H2 = MatrixXd::Zero(H.rows(), H.cols());
-        for (index k = 0; k < H.cols(); ++k){
-          auto col = H1.col(k);
-          auto top = topC(col, p);
-          H2.col(k) = col * (1 - (i + 1) / mIterations);
-          for (auto t: top) H2(t, k) = H1(t, k);
-        }
-      H = H2;
-    }
+      if((i % 1) == 0){//TODO: original version seems to work better with one in 5 iterations
+        H = enforceTemporalSparseness(H, r, i);
+        H = restrictPolyphony(H, energyInW, p, i);
+        H = promoteContinuity(H, c);
+      }
     ArrayXXd V2 = (W * H).array().max(epsilon);
     ArrayXXd hnum = (W.transpose() * (V.array() / V2).matrix()).array();
     ArrayXXd hden = (W.transpose() * ones).array();
     H = (H.array() * hnum / hden.max(epsilon)).matrix();
-    assert(H.allFinite());
-    MatrixXd R = W * H;
-    R = R.cwiseMax(epsilon);
+    //MatrixXd R = W * H;
+    //R = R.cwiseMax(epsilon);
     //double divergence = (V.cwiseProduct(V.cwiseQuotient(R)) - V + R).sum();
     for(auto& cb:mCallbacks)
       if(!cb(i + 1)) return;
     }
-    //H.colwise().normalize();
-
     V = W * H;
   }
 };
