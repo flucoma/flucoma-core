@@ -57,8 +57,18 @@ public:
   NMFCrossClient(ParamSetViewType& p) : mParams(p)
   {}
 
+  Result checkTask(FluidContext& c, index count, double total){
+    if (c.task() && c.task()->cancelled())
+    return {Result::Status::kCancelled, ""};
+
+    if (c.task() && !c.task()->processUpdate(count, total))
+      return {Result::Status::kCancelled, ""};
+
+    return OK();
+  }
+
   template<typename T>
-  Result process(FluidContext&)
+  Result process(FluidContext& c)
   {
     using namespace algorithm;
 
@@ -104,8 +114,6 @@ public:
     Result resizeResult = output.resize(tgtFrames, 1,sampleRate);
     if(!resizeResult.ok()) return resizeResult;
 
-    //TODO: addProgressCallback
-
     srcTmp = source.samps(0, srcFrames, 0);
     stft.process(srcTmp, srcSpectrum);
     STFT::magnitude(srcSpectrum, W);
@@ -119,13 +127,36 @@ public:
     auto resultAudio = FluidTensor<double, 1>(tgtFrames);
 
     auto nmf = NMFCross(get<kIterations>());
+    index progressCount{0};
+    const double progressTotal = static_cast<double>(get<kIterations>() + 3);
+    Result r;
+
+    nmf.addProgressCallback(
+    [&c, &progressCount, progressTotal](const index) -> bool {
+      return c.task() ? c.task()->processUpdate(
+            static_cast<double>(progressCount++),
+            progressTotal): true;
+    });
+
     nmf.process(tgtMag, outputEnvelopes, W,
       get<kTimeSparsity>(), get<kPolyphony>(), get<kContinuity>());
+
+    r = checkTask(c, progressCount, progressTotal); if(!r.ok()) return r;
+
     NMFCross::synthesize(outputEnvelopes, srcSpectrum, result);
+
+    r = checkTask(c, ++progressCount, progressTotal); if (!r.ok()) return r;
+
     GriffinLim gl;
     gl.process(result, tgtFrames, 50,
                  fftParams.winSize(), fftParams.fftSize(), fftParams.hopSize());
+
+    r = checkTask(c, ++progressCount, progressTotal); if (!r.ok()) return r;
+
     istft.process(result, resultAudio);
+
+    r = checkTask(c, ++progressCount, progressTotal); if (!r.ok()) return r;
+
     output.samps(0) = resultAudio(Slice(0, tgtFrames));
     return OK();
   }
