@@ -1,20 +1,248 @@
-# 1.0.0-RC2
-date:
+# TB2 Beta 01
+April 2021
 
-## New Features:
+## All Hosts
 
+### New Objects
+* BufSTFT: Run a STFT or ISTFT on a buffer 
+* BufSelect and BufSelectEvery: cherry picking from Buffers
 
-## Bug Fixes:
+### Enhancements 
+* Descriptors objects: Now have adjustable padding (none, window / 2, window - hop)
+* DataSet: one step conversion to / from Buffer + access to IDs as LabelSet
+* KMeans: Easy access to means and distances; incremental fitting
+* PCA: allow transformation to same dimensions as input
+* DataSet: new setPoint message for updating extant points, or creating new point if needed
+* Slicers: Improved latency calculations and accuracy of Buffer versions
+* BufFlatten: Now handles Buffer sub-ranges
+* BufScale: Add clipping option 
+* BufNMFCross: Improve sound, add progress update and continuity control
 
+### Fixes   
+* MLP: handle inconsistent dimensions when incremental fitting
+* LabelSet: Fix JSON 
+* MLP: Fix early stopping
+* Standardization + Normalization: Fix divide by zero
+* MLP: Fix concurrency issue when fitting and transforming on different threads 
+* Pitch: Avoid negative confidence values 
+
+## Supercollider 
+
+### Enhancements 
+* FluidDataSetWr: New interface to use DataSet::setPoint (breaking change)
+* KMeans: documentation 
+* BufStats: documentation 
+
+### Fixes 
+* Argument passing in .kr for some objects
+* Build settings on Catalina
+* Parameter passing on initialisation for some objects 
+* Some problems when using internal server 
+* Some inefficiencies with UGens 
+
+## Max 
+
+### Enhancements 
+* KMeans help: new examples
+* Improved indexing of reference documentation, especially on Max 7
+* Explanation of FFT settings' impact in fluid.audiotransport~ help
+
+### Fixes 
+* UMAP helpfile error
+* RobustScale helpfile error
+* Build settings on Catalina
+* Cross-referencing between dimension reduction documentation
+
+=== 
+# TB2 Alpha 08 
+January 20 2021
+
+## Bugs fixed:
+* Compilation for Windows and Linux
+* Realtime memory leak in Supercollider
+* Use of SC .kr classes in SynthDefs
+* NMFMorph window-related modulation artifacts
+
+=== 
+# TB2 Alpha 07 
+December 22 2020
 
 ## Improvements:
 
+* KDTree is much faster
+* AudioTransport is more accurate
 
-## New Example:
+## New:
+* new UMAP dim redux
+* new RobustScaler
 
+# Breaking changes:
+* Max: native support of dictionaries (removing the need for dict.(de)serialise~)
+* Max: behaviour of read and write are like native objects (brings menu if no path provided)
+* SC: a new sync dance
 
-## Known Bugs/Issues:
+# Non-breaking changes:
+* SC: no more name to DataSet and LabelSet
+=== 
+# TB2 Alpha 06
+September 24 2020
 
+# New objects:
+* BufThresh
+* BufScale
+
+# New Features:
+* weights and outliersCutoff to bufstats
+* transformjoin to datasetquery
+* radius limit to kdtree
+
+# New examples:
+* 10-weights in stats
+* 10a-outliers in stats
+* 11-joining and weighing datasets (advanced!)
+
+# Known bugs:
+* large dictionary dumps are still problematic in Max
+* negative confidence in pitch is still there (will be noticed more with the new examples)
+
+=== 
+# TB2 Alpha 05 
+August 6 2020
+
+## New examples:
+
+* Max: working autoencoder as dataredux and interpolation up
+* Max: tutorial on simple regression feature comparison
+* SC: working autoencoder as dataredux (the other part will come soon here)
+
+## Breaking changes:
+
+### MLPregressor
+
+* outputLayer is now tapOut. Its numbering is now different: 0 counting from the input layer, so 1 is the first hidden layer and -1 is the default (the last, like all our interface).
+* it has a new friend, tapIn, which allows you to feed the data for predict and predictpoint in the middle somewhere. 0 is the input, and 1 is the first hidden layer
+
+### Normalize and Standardize
+
+* now have an ‘inverse’ parameters for transform and transformPoint to allow query from the transformed space to the original.
+
+### PCA
+
+Now returns/passes the variance, aka the fidelity of the new representation for a given number of dimensions.
+
+### SC-kr
+
+Most TB1 objects have a blocking mode in KR which allow to keep them on the main buffer thread of the server (faster for small jobs avoiding large memory copying)
+
+## Bugfixes:
+
+* all json load/save/states bugs/oddities reported
+* Max: cluttering when buffer resizing
+* bufnmf parameter check order
+* general buf resize sanity check
+* Max: buf resize of dataset is done just in low priority thread (faking mode 2 otherwise)
+* SC: most dataset objects in KR are much more efficient
+* SC: kr bus assignation
+
+## Known Bugs
+
+Should mostly be edge cases. Feel free to test against your reports and update the issues.
+
+===
+# TB2 Alpha 04 
+July 17 2020
+===
+# TB2 Alpha 03 
+June 20 2020
+
+## Major changes in the SC interface.
+ Most of your code will break but this is for the best. To make it short, read the help files and example code. They rock.
+
+* we can now populate dataset 3 ways:  via Dictionaries, via single buffer triggered from language (Routine, the old way, but faster) and all on the server-side (via Done.kr and triggers). And it is mixed and matched too!
+* added utilities to build corpus change their format
+* all help files have examples
+* the learning examples are updated too
+
+## Max
+* unified dataset builder helpers format
+* helpfiles have had a lot of typos/loading issues now sorted
+* super mega bug in TB1 that nobody found before because it was so edge-case… now sorted :wink:
+
+## All
+* 3 new sounds as an example (feel free to let us know what is missing, and who knows, you might even want to contribute)
+* [breaking change] human-readable JSON
+
+===
+# TB2 Alpha02
+May 21 2020
+
+## A few notes:
+
+    Keep your version of TB1 RC1. The TB2 download has everything, but is from another (much more daring) branch of development. We should have fixed all the bugs but we are not certain it is gig ready!
+
+    The many, many interface break should moan in your CCE window. The most important one is that datasets do not need a fixed size as argument, so most arguments have disappeared from objects. This is a lot more flexible as you will discover.
+
+## New stuff:
+
+    As requested, we have commented the tutorials in Max - the SC people should read them too (they will be translated soon) as it is simple Max yet introduce interesting database concepts with links to scikitlearn documentation.
+
+## Quite Improved:
+
+    Helpfiles - most of them are great, some ok, a few stubs but in those cases the learning examples are there to help
+    so many bugs fixed! Gazillions!
+
+## New possibilities:
+
+    dimensionality reduction algorithms (PCA and MDS (with 7 metrics)
+    making subsets of dataset via datasetquery
+    new buffer manipulation utilities in Max
+    weighted KNN classification / regression
+    dumping datasets (dump is all as json, print is a useful sample as string)
+
+## New behaviours:
+
+    the said weighted KNN classification / regression is now default
+    major interface unification inspired by scikit learn’s syntax to help tap into their learning resources
+
+## SC specific:
+
+    Redesign of language classes and server plugin so that Dataset, Labelset and the various models (KDTree etc) persist for the whole server lifetime, and don’t vanish on cmd+.
+    Dataset and Labelset will now throw an exception if you try and create two instances with the same name. However, all instances are cached, similar to Buffer, and there are now class level ‘at’ functions so you can retrieve an extant instance using its name.
+    Work on a much streamlined approach for populating and querying without so much back and forth between language and server is ongoing, and will be our main focus in the next alpha. Experimental approaches are currently at the promising-but-dangerous stage.
+
+## Known Issues:
+
+    Max: we have not got autocompletion working for the new objects yet, nor documentation. (You will get some JS errors with the help files because of that, no worries)
+
+=== 
+# TB2 Alpha-01:
+
+date: December 5th, 2019
+
+## New Features:
+
+* Breaking change: all dataset interfaces are streamlined, please check the help-files if you have coded something personally. This is likely to change again as we tweak the workflow, so feedback welcome.
+
+## New Examples:
+
+* All plenary example updated
+* All PA’s naive learning patches included
+(still underdocumented)
+* One-liner references in SC, imported as ‘ugly temp ref’ in Max for the interpolation and hybridisation objects (soon to be made clearer and less ugly)
+* SC: simple examples ported
+
+## Known Bugs:
+
+* bufnmfcross sound quality on large files could be less smeary
+* bufnmfcross: selecting boundaries of both input buffers is not implemented yet
+* SC workflow is slow because of many language-server sync (more streamlined workflow coming)
+* audiotransport is still quantised by bin (phase interpolation is not trivial)
+* audiotransport windows are restricted to fft sizes for now
+* MAX: (buf)audiotransport and bufnmfcross should be their own standalone object soon
+* MAX: bufnmfcross: progress bar does not work in blocking 0
+* instacrash with fluid.dataset [getPoint] on an empty dataset
+* Max: a few ref missing
+* Max windows compile on its way soon
 
 ===
 # 1.0.0-RC1
