@@ -28,7 +28,8 @@ enum {
   kInLow,
   kInHigh,
   kOutLow,
-  kOutHigh
+  kOutHigh,
+  kClip
 };
 
 constexpr auto BufScaleParams =
@@ -41,14 +42,13 @@ constexpr auto BufScaleParams =
                      FloatParam("inputLow", "Input Low Range", 0),
                      FloatParam("inputHigh", "Input High Range", 1),
                      FloatParam("outputLow", "Output Low Range", 0),
-                     FloatParam("outputHigh", "Output High Range", 1));
-
+                     FloatParam("outputHigh", "Output High Range", 1),
+                     EnumParam("clipping","Optional Clipping",0,"None", "Minimum", "Maximum", "Both"));
 
 class BufScaleClient : public FluidBaseClient,
                        public OfflineIn,
                        public OfflineOut
 {
-
 
 public:
   using ParamDescType = decltype(BufScaleParams);
@@ -65,7 +65,6 @@ public:
   }
 
   static constexpr auto& getParameterDescriptors() { return BufScaleParams; }
-
 
   BufScaleClient(ParamSetViewType& p) : mParams(p) {}
 
@@ -89,32 +88,36 @@ public:
     if (!dest.exists())
       return {Result::Status::kError, "Output buffer not found"};
 
-    //    FluidTensor<double, 2> tmp(numChans,numFrames);
-    //
-    //    for(index i = 0; i < numChans; ++i)
-    //      tmp.row(i) = source.samps(startFrame, numFrames, (i + startChan));
+    FluidTensor<double, 2> tmp(source.allFrames()(Slice(startChan,numChans),Slice(startFrame,numFrames)));
 
-    FluidTensor<double, 2> tmp(source.allFrames()(
-        Slice(startChan, numChans), Slice(startFrame, numFrames)));
+    //pre-process
+    using clipFnType =  double(*)(double, double, double);
 
-    // process
-    double scale =
-        (get<kOutHigh>() - get<kOutLow>()) / (get<kInHigh>() - get<kInLow>());
-    double offset = get<kOutLow>() - (scale * get<kInLow>());
+    static const std::array<clipFnType,4> clippingFunctions = {
+      [](double x, double, double) {return x;},
+      [](double x, double low, double) { return std::max(x, low); },
+      [](double x, double, double high) { return std::min(x, high); },
+      [](double x, double low, double high) { return std::min(std::max(x,low),high); }
+    };
 
-    tmp.apply([&offset, &scale](double& x) {
+    auto clipFn = clippingFunctions[get<kClip>()];
+    double outLow = get<kOutLow>();
+    double outHigh = get<kOutHigh>();
+    double scale = (outHigh-outLow)/(get<kInHigh>()-get<kInLow>());
+    double offset = outLow - ( scale * get<kInLow>() );
+
+    //process
+    tmp.apply([&](double& x){
       x *= scale;
       x += offset;
+      x = clipFn(x, outLow, outHigh);
     });
 
-    // write back the processed data, resizing the dest buffer
-    r = dest.resize(numFrames, numChans, source.sampleRate());
-    if (!r.ok()) return r;
+    //write back the processed data, resizing the dest buffer
+    r = dest.resize(numFrames,numChans,source.sampleRate());
+    if(!r.ok()) return r;
 
     dest.allFrames() = tmp;
-
-    //    for(index i = 0; i < numChans; ++i)
-    //       dest.samps(i) = tmp.row(i);
 
     return {};
   }
