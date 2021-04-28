@@ -3,8 +3,8 @@
 #include "NRTClient.hpp"
 #include "DataSetClient.hpp"
 #include "LabelSetClient.hpp"
-#include "algorithms/LabelSetEncoder.hpp"
-#include "algorithms/KNNClassifier.hpp"
+#include "algorithms/public/LabelSetEncoder.hpp"
+#include "algorithms/public/KNNClassifier.hpp"
 
 namespace fluid {
 namespace client {
@@ -56,7 +56,7 @@ public:
   using DataSet = FluidDataSet<string, double, 1>;
   using StringVector = FluidTensor<string, 1>;
 
-  using ParamDescType = decltype(KNNClassifierParams); 
+  using ParamDescType = decltype(KNNClassifierParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   std::reference_wrapper<ParamSetViewType> mParams;

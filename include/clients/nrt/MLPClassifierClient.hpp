@@ -3,14 +3,14 @@
 #include "DataSetClient.hpp"
 #include "LabelSetClient.hpp"
 #include "NRTClient.hpp"
-#include "algorithms/LabelSetEncoder.hpp"
-#include "algorithms/MLP.hpp"
-#include "algorithms/SGD.hpp"
+#include "algorithms/public/LabelSetEncoder.hpp"
+#include "algorithms/public/MLP.hpp"
+#include "algorithms/public/SGD.hpp"
 #include <string>
 
 namespace fluid {
 namespace client {
-namespace mlpclassifier{  
+namespace mlpclassifier{
 
 struct MLPClassifierData {
   algorithm::MLP mlp;
@@ -237,7 +237,7 @@ public:
         makeMessage("write", &MLPClassifierClient::write),
         makeMessage("read", &MLPClassifierClient::read));
   }
-  
+
 private:
   FluidInputTrigger mTrigger;
   ParameterTrackChanges<IndexVector, index> mTracker;

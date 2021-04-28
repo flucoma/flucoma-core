@@ -2,7 +2,7 @@
 
 #include "DataSetClient.hpp"
 #include "NRTClient.hpp"
-#include "algorithms/KNNRegressor.hpp"
+#include "algorithms/public/KNNRegressor.hpp"
 
 namespace fluid {
 namespace client {

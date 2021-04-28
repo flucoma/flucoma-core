@@ -2,7 +2,7 @@
 
 #include "DataSetClient.hpp"
 #include "NRTClient.hpp"
-#include "algorithms/Normalization.hpp"
+#include "algorithms/public/Normalization.hpp"
 
 namespace fluid {
 namespace client {

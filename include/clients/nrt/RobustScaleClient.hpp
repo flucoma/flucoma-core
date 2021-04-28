@@ -3,7 +3,7 @@
 
 #include "DataSetClient.hpp"
 #include "NRTClient.hpp"
-#include "algorithms/RobustScaling.hpp"
+#include "algorithms/public/RobustScaling.hpp"
 
 namespace fluid {
 namespace client {

@@ -2,7 +2,7 @@
 
 #include "NRTClient.hpp"
 #include "DataSetClient.hpp"
-#include "algorithms/MDS.hpp"
+#include "algorithms/public/MDS.hpp"
 
 namespace fluid {
 namespace client {
@@ -32,7 +32,7 @@ public:
 
   void setParams(ParamSetViewType& p) { mParams = p; }
 
-  template <size_t N> 
+  template <size_t N>
   auto& get() const
   {
     return mParams.get().template get<N>();

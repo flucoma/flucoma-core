@@ -2,7 +2,7 @@
 
 #include "DataSetClient.hpp"
 #include "NRTClient.hpp"
-#include "algorithms/UMAP.hpp"
+#include "algorithms/public/UMAP.hpp"
 
 namespace fluid {
 namespace client {

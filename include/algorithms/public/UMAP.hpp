@@ -1,7 +1,7 @@
 #pragma once
-#include "KDTree.hpp"
-#include "algorithms/DistanceFuncs.hpp"
-#include "algorithms/SpectralEmbedding.hpp"
+#include "algorithms/public/KDTree.hpp"
+#include "algorithms/util/DistanceFuncs.hpp"
+#include "algorithms/util/SpectralEmbedding.hpp"
 #include "algorithms/util/FluidEigenMappings.hpp"
 #include "data/TensorTypes.hpp"
 #include <Eigen/Core>

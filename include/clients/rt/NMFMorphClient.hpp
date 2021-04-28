@@ -9,7 +9,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include "../../algorithms/NMFMorph.hpp"
+#include "../../algorithms/public/NMFMorph.hpp"
 #include "clients/common/BufferedProcess.hpp"
 #include "clients/common/FluidBaseClient.hpp"
 #include "clients/common/ParameterConstraints.hpp"

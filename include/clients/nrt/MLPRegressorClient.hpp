@@ -2,8 +2,8 @@
 
 #include "DataSetClient.hpp"
 #include "NRTClient.hpp"
-#include "algorithms/MLP.hpp"
-#include "algorithms/SGD.hpp"
+#include "algorithms/public/MLP.hpp"
+#include "algorithms/public/SGD.hpp"
 #include <string>
 
 namespace fluid {

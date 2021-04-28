@@ -1,7 +1,7 @@
 #pragma once
 
-#include "NNFuncs.hpp"
-#include "NNLayer.hpp"
+#include "algorithms/util/NNFuncs.hpp"
+#include "algorithms/util/NNLayer.hpp"
 #include "algorithms/util/FluidEigenMappings.hpp"
 #include "data/FluidDataSet.hpp"
 #include "data/FluidIndex.hpp"

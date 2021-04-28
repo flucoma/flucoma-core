@@ -1,14 +1,14 @@
 #pragma once
 
-#include <algorithms/KDTree.hpp>
-#include <algorithms/KMeans.hpp>
-#include <algorithms/Normalization.hpp>
-#include <algorithms/RobustScaling.hpp>
-#include <algorithms/PCA.hpp>
-#include <algorithms/MLP.hpp>
-#include <algorithms/UMAP.hpp>
-#include <algorithms/Standardization.hpp>
-#include <algorithms/LabelSetEncoder.hpp>
+#include <algorithms/public/KDTree.hpp>
+#include <algorithms/public/KMeans.hpp>
+#include <algorithms/public/Normalization.hpp>
+#include <algorithms/public/RobustScaling.hpp>
+#include <algorithms/public/PCA.hpp>
+#include <algorithms/public/MLP.hpp>
+#include <algorithms/public/UMAP.hpp>
+#include <algorithms/public/Standardization.hpp>
+#include <algorithms/public/LabelSetEncoder.hpp>
 #include <data/FluidDataSet.hpp>
 #include <data/FluidIndex.hpp>
 #include <data/FluidTensor.hpp>

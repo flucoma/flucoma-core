@@ -1,7 +1,7 @@
 #pragma once
 #include "DataSetClient.hpp"
 #include "NRTClient.hpp"
-#include "algorithms/PCA.hpp"
+#include "algorithms/public/PCA.hpp"
 
 namespace fluid {
 namespace client {

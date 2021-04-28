@@ -1,7 +1,7 @@
 #pragma once
 
 #include "algorithms/util/FluidEigenMappings.hpp"
-#include "algorithms/DistanceFuncs.hpp"
+#include "algorithms/util/DistanceFuncs.hpp"
 #include "data/FluidDataSet.hpp"
 #include "data/FluidTensor.hpp"
 #include "data/TensorTypes.hpp"

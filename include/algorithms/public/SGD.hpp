@@ -1,6 +1,6 @@
 #pragma once
 
-#include "MLP.hpp"
+#include "algorithms/public/MLP.hpp"
 #include "algorithms/util/FluidEigenMappings.hpp"
 #include "data/FluidDataSet.hpp"
 #include "data/FluidIndex.hpp"

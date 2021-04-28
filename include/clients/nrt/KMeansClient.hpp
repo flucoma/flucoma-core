@@ -3,22 +3,22 @@
 #include "DataSetClient.hpp"
 #include "LabelSetClient.hpp"
 #include "NRTClient.hpp"
-#include "algorithms/KMeans.hpp"
+#include "algorithms/public/KMeans.hpp"
 #include <string>
 
 namespace fluid {
 namespace client {
 namespace kmeans{
-  
+
   enum {kNumClusters, kMaxIter, kInputBuffer, kOutputBuffer};
-  
+
   constexpr auto KMeansParams = defineParameters(
       LongParam("numClusters","Number of Clusters", 4, Min(1)),
       LongParam("maxIter","Max number of Iterations", 100, Min(1)),
       BufferParam("inputPointBuffer","Input Point Buffer"),
       BufferParam("predictionBuffer","Prediction Buffer")
-  ); 
-  
+  );
+
 class KMeansClient : public FluidBaseClient,
                      AudioIn,
                      ControlOut,
@@ -32,23 +32,23 @@ public:
   using StringVector = FluidTensor<string, 1>;
   using StringVectorView = FluidTensorView<string, 1>;
   using LabelSet = FluidDataSet<string, string, 1>;
-  
-  using ParamDescType = decltype(KMeansParams); 
+
+  using ParamDescType = decltype(KMeansParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   std::reference_wrapper<ParamSetViewType> mParams;
 
   void setParams(ParamSetViewType& p) { mParams = p; }
 
-  template <size_t N> 
+  template <size_t N>
   auto& get() const
   {
     return mParams.get().template get<N>();
   }
 
   static constexpr auto& getParameterDescriptors()
-  { 
-    return KMeansParams;  
+  {
+    return KMeansParams;
   }
 
   KMeansClient(ParamSetViewType &p) : mParams(p)

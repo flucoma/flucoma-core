@@ -1,6 +1,6 @@
 #pragma once
 
-#include "KDTree.hpp"
+#include "algorithms/public/KDTree.hpp"
 #include "algorithms/util/FluidEigenMappings.hpp"
 #include "algorithms/util/AlgorithmUtils.hpp"
 #include "data/FluidDataSet.hpp"

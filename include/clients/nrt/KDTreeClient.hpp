@@ -2,7 +2,7 @@
 
 #include "DataSetClient.hpp"
 #include "NRTClient.hpp"
-#include "algorithms/KDTree.hpp"
+#include "algorithms/public/KDTree.hpp"
 #include <string>
 
 namespace fluid {

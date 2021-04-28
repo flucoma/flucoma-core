@@ -1,7 +1,7 @@
 #pragma once
 #include "DataSetClient.hpp"
 #include "NRTClient.hpp"
-#include "algorithms/DataSetQuery.hpp"
+#include "algorithms/public/DataSetQuery.hpp"
 
 namespace fluid {
 namespace client {
@@ -50,7 +50,7 @@ public:
     mAlgorithm.addColumn(column);
     return OK();
   }
-  
+
   MessageResult<void> addRange(index from, index count)
   {
     if (from < 0 || count <= 0) return Error("invalid range");

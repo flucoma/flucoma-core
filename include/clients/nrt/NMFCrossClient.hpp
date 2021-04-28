@@ -7,8 +7,8 @@
 #include "clients/common/FluidBaseClient.hpp"
 #include "clients/common/ParameterSet.hpp"
 #include "clients/common/ParameterTrackChanges.hpp"
-#include "algorithms/NMFCross.hpp"
-#include "algorithms/GriffinLim.hpp"
+#include "algorithms/public/NMFCross.hpp"
+#include "algorithms/public/GriffinLim.hpp"
 #include "data/FluidIndex.hpp"
 
 namespace fluid {

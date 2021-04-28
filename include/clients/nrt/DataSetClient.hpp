@@ -3,7 +3,7 @@
 #include "LabelSetClient.hpp"
 #include "NRTClient.hpp"
 #include "../common/SharedClientUtils.hpp"
-#include "algorithms/DataSetIdSequence.hpp"
+#include "algorithms/public/DataSetIdSequence.hpp"
 #include "data/FluidDataSet.hpp"
 #include <sstream>
 #include <string>
@@ -231,7 +231,7 @@ public:
   }
 
 private:
-  
+
   LabelSet getIdsLabelSet()
   {
     algorithm::DataSetIdSequence seq("", 0, 0);

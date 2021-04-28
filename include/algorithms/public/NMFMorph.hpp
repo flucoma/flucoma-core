@@ -1,7 +1,7 @@
 #pragma once
 
-#include "algorithms/OptimalTransport.hpp"
-#include "algorithms/RTPGHI.hpp"
+#include "algorithms/util/OptimalTransport.hpp"
+#include "algorithms/util/RTPGHI.hpp"
 #include "algorithms/public/STFT.hpp"
 #include "algorithms/util/AlgorithmUtils.hpp"
 #include "algorithms/util/FluidEigenMappings.hpp"

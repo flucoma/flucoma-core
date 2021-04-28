@@ -1,6 +1,6 @@
 #pragma once
 
-#include "algorithms/DistanceFuncs.hpp"
+#include "algorithms/util/DistanceFuncs.hpp"
 #include "algorithms/util/FluidEigenMappings.hpp"
 #include "data/TensorTypes.hpp"
 

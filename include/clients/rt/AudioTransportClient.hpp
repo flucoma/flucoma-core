@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../algorithms/AudioTransport.hpp"
+#include "../../algorithms/public/AudioTransport.hpp"
 #include "clients/common/BufferedProcess.hpp"
 #include "clients/common/FluidBaseClient.hpp"
 #include "clients/common/FluidNRTClientWrapper.hpp"
