@@ -141,7 +141,7 @@ set_target_properties(HISSTools_AudioFile PROPERTIES
 add_library(FLUID_DECOMPOSITION INTERFACE)
 
 target_include_directories(
-  FLUID_DECOMPOSITION INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include"
+  FLUID_DECOMPOSITION INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty"
 )
 target_include_directories(
   FLUID_DECOMPOSITION SYSTEM INTERFACE #we don't want warnings from Eigen or HissTools
