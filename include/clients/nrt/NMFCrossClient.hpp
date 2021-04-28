@@ -84,8 +84,11 @@ public:
     if(!output.exists())
       return {Result::Status::kError, "Output Buffer Supplied But Invalid"};
 
-    index srcFrames = source.numFrames();
-    index tgtFrames = target.numFrames();
+    index srcFrames   = source.numFrames();
+    index tgtFrames   = target.numFrames();
+    index srcWindows  = std::floor((srcFrames + fftParams.hopSize()) / fftParams.hopSize());
+    index nBins       = fftParams.frameSize();
+    index tgtWindows  = std::floor((tgtFrames + fftParams.hopSize()) / fftParams.hopSize());
 
     if (srcFrames <= 0)
       return {Result::Status::kError, "Empty source buffer"};
@@ -93,15 +96,11 @@ public:
     if (tgtFrames <= 0)
       return {Result::Status::kError, "Empty target buffer"};
 
-    if(tgtFrames < get<kTimeSparsity>())
+    if(get<kTimeSparsity>() > tgtWindows)
       return {Result::Status::kError, "Time Sparsity is larger than target frames"};
-    if(tgtFrames < get<kContinuity>())
+    if(get<kContinuity>() > tgtWindows)
       return {Result::Status::kError, "Continuity is larger than target frames"};
 
-    index srcWindows  = std::floor((srcFrames + fftParams.hopSize()) / fftParams.hopSize());
-    index nBins     = fftParams.frameSize();
-
-    index tgtWindows  = std::floor((tgtFrames + fftParams.hopSize()) / fftParams.hopSize());
     auto stft = STFT(fftParams.winSize(), fftParams.fftSize(), fftParams.hopSize());
     auto istft = ISTFT(fftParams.winSize(), fftParams.fftSize(), fftParams.hopSize());
     auto srcTmp = FluidTensor<double, 1>(srcFrames);
