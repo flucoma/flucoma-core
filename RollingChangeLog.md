@@ -40,6 +40,10 @@ April 2021
 * Some problems when using internal server 
 * Some inefficiencies with UGens 
 
+## Known issues
+* FluidBufThreadDemo can be very slow on Windows (Max and SC)
+* SC: Behaviour of FreeSelfWhenDone with FluidBuf* *kr objects is unpredictable on Linux
+
 ## Max 
 
 ### Enhancements 
@@ -64,6 +68,7 @@ January 20 2021
 * NMFMorph window-related modulation artifacts
 
 === 
+
 # TB2 Alpha 07 
 December 22 2020
 
@@ -83,7 +88,9 @@ December 22 2020
 
 # Non-breaking changes:
 * SC: no more name to DataSet and LabelSet
+
 === 
+
 # TB2 Alpha 06
 September 24 2020
 
@@ -106,6 +113,7 @@ September 24 2020
 * negative confidence in pitch is still there (will be noticed more with the new examples)
 
 === 
+
 # TB2 Alpha 05 
 August 6 2020
 
@@ -149,8 +157,10 @@ Most TB1 objects have a blocking mode in KR which allow to keep them on the main
 Should mostly be edge cases. Feel free to test against your reports and update the issues.
 
 ===
+
 # TB2 Alpha 04 
 July 17 2020
+
 ===
 # TB2 Alpha 03 
 June 20 2020
@@ -173,6 +183,7 @@ June 20 2020
 * [breaking change] human-readable JSON
 
 ===
+
 # TB2 Alpha02
 May 21 2020
 
