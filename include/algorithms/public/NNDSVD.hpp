@@ -10,12 +10,12 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
+#include "../util/AlgorithmUtils.hpp"
+#include "../util/FluidEigenMappings.hpp"
+#include "../../data/FluidIndex.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <Eigen/SVD>
-#include "algorithms/util/AlgorithmUtils.hpp"
-#include "algorithms/util/FluidEigenMappings.hpp"
-#include "data/FluidIndex.hpp"
-#include "data/TensorTypes.hpp"
 
 namespace fluid {
 namespace algorithm {

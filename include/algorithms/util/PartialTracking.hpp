@@ -15,7 +15,7 @@ Capability through Linear Programming". Proceedings of DAFx-2018.
 
 #pragma once
 
-#include "../util/Munkres.hpp"
+#include "Munkres.hpp"
 #include "../../data/FluidIndex.hpp"
 #include <Eigen/Core>
 #include <cmath>

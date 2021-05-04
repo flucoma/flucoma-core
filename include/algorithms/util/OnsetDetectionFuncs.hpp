@@ -10,7 +10,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "../util/AlgorithmUtils.hpp"
+#include "AlgorithmUtils.hpp"
 #include "../../data/FluidIndex.hpp"
 #include <Eigen/Core>
 #include <cassert>

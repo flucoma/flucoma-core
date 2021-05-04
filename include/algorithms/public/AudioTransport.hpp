@@ -1,3 +1,12 @@
+/*
+Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See license.md file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
 //  Based on https://github.com/sportdeath/audio_transport/
 // T.Henderson and J.Solomon, Audio Transport:
 // a generalized portamento via optimal transport.
@@ -5,13 +14,13 @@
 
 #pragma once
 
-#include "algorithms/public/WindowFuncs.hpp"
-#include "algorithms/util/ConvolutionTools.hpp"
-#include "algorithms/util/FFT.hpp"
-#include "algorithms/public/STFT.hpp"
-#include "algorithms/util/FluidEigenMappings.hpp"
-#include "data/TensorTypes.hpp"
-#include "data/FluidIndex.hpp"
+#include "WindowFuncs.hpp"
+#include "STFT.hpp"
+#include "../util/ConvolutionTools.hpp"
+#include "../util/FFT.hpp"
+#include "../util/FluidEigenMappings.hpp"
+#include "../../data/TensorTypes.hpp"
+#include "../../data/FluidIndex.hpp"
 #include <Eigen/Core>
 #include <cmath>
 

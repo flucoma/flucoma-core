@@ -1,14 +1,24 @@
+/*
+Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See license.md file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
+
 // Zdenek Prusa and Peter L. Soendergaard,
 // Real-time spectrogram inversion using phase gradient heap integration
 // Proceedings of DAFX 2016
 
 #pragma once
 
-#include "algorithms/public/STFT.hpp"
-#include "algorithms/util/AlgorithmUtils.hpp"
-#include "algorithms/util/FluidEigenMappings.hpp"
-#include "data/FluidIndex.hpp"
-#include "data/TensorTypes.hpp"
+#include "AlgorithmUtils.hpp"
+#include "FluidEigenMappings.hpp"
+#include "../public/STFT.hpp"
+#include "../../data/FluidIndex.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <cmath>
 

@@ -10,8 +10,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
+#include "AlgorithmUtils.hpp"
 #include <Eigen/Core>
-#include <algorithms/util/AlgorithmUtils.hpp>
 #include <cassert>
 #include <cmath>
 #include <map>

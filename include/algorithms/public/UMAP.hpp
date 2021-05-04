@@ -1,16 +1,26 @@
+/*
+Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See license.md file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
+
 #pragma once
-#include "algorithms/public/KDTree.hpp"
-#include "algorithms/util/DistanceFuncs.hpp"
-#include "algorithms/util/SpectralEmbedding.hpp"
-#include "algorithms/util/FluidEigenMappings.hpp"
-#include "data/TensorTypes.hpp"
+#include "KDTree.hpp"
+#include "../util/DistanceFuncs.hpp"
+#include "../util/SpectralEmbedding.hpp"
+#include "../util/FluidEigenMappings.hpp"
+#include "../../data/TensorTypes.hpp"
+#include <unsupported/Eigen/NonLinearOptimization>
+#include <unsupported/Eigen/NumericalDiff>
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 #include <cassert>
 #include <cmath>
 #include <random>
-#include <unsupported/Eigen/NonLinearOptimization>
-#include <unsupported/Eigen/NumericalDiff>
 
 namespace fluid {
 namespace algorithm {
