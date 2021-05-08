@@ -84,6 +84,8 @@ public:
   {
     audioChannelsIn(1);
     audioChannelsOut(2);
+    setInputLabels({"audio input"});
+    setOutputLabels({"sinusoidal components","residual"});
   }
 
   template <typename T>

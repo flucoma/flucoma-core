@@ -83,6 +83,8 @@ public:
   {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::audioChannelsOut(1);
+    FluidBaseClient::setInputLabels({"audio input"});
+    FluidBaseClient::setOutputLabels({"1 when signal 'on', 0 otherwise"});
   }
 
   template <typename T>

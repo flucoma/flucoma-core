@@ -65,6 +65,9 @@ public:
   {
     audioChannelsIn(1);
     controlChannelsOut(2);
+    setInputLabels({"audio input"});
+    setOutputLabels({"loudness and peak amplitude"});
+
     mDescriptors = FluidTensor<double, 1>(2);
   }
 

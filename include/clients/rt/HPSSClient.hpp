@@ -82,6 +82,8 @@ public:
   {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::audioChannelsOut(3);
+    FluidBaseClient::setInputLabels({"audio input"});
+    FluidBaseClient::setOutputLabels({"harmonic component", "percussive compoennt", "residual (in modes 1 & 2)"});
   }
 
   index latency()

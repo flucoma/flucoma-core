@@ -153,7 +153,7 @@ public:
 
     mAlgorithm.encoder.fit(targetDataSet);
 
-    if (mTracker.changed(get<kHidden>(), get<kActivation>())) {
+    if (!mAlgorithm.mlp.trained() || mTracker.changed(get<kHidden>(), get<kActivation>())) {
       mAlgorithm.mlp.init(sourceDataSet.pointSize(),
                           mAlgorithm.encoder.numLabels(), get<kHidden>(),
                           get<kActivation>(), 1);//sigmoid output

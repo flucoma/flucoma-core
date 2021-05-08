@@ -63,6 +63,7 @@ public:
       : mParams{p}, mSTFTProcessor{get<kMaxFFTSize>(), 0, 1} {
     audioChannelsIn(0);
     audioChannelsOut(1);
+    setOutputLabels({"morphed signal"});
   }
 
   index latency() { return get<kFFT>().winSize(); }

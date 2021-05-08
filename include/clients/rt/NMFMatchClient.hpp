@@ -61,6 +61,8 @@ public:
   {
     audioChannelsIn(1);
     controlChannelsOut(get<kMaxRank>());
+    setInputLabels({"audio input"});
+    setOutputLabels({"activation amount for each component"});
   }
 
   index latency() { return get<kFFT>().winSize(); }
