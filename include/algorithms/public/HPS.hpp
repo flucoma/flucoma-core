@@ -11,8 +11,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "../util/FluidEigenMappings.hpp"
-#include "../../data/TensorTypes.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 
 namespace fluid {
@@ -28,7 +28,7 @@ public:
   {
     using namespace Eigen;
     using namespace std;
-    
+
     ArrayXd::Index maxIndex;
 
     ArrayXd mag = _impl::asEigen<Array>(input);

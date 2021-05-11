@@ -30,8 +30,9 @@ public:
 
   CepstrumF0(index maxSize) : mCepstrumStorage(maxSize) {}
 
-  void init(index size) {
-    //avoid allocation of maxSize^2 at constructor
+  void init(index size)
+  {
+    // avoid allocation of maxSize^2 at constructor
     mDCT = DCT(size, size);
     mDCT.init(size, size);
 
@@ -69,7 +70,7 @@ public:
   }
 
 private:
-  DCT     mDCT{0,0};
+  DCT     mDCT{0, 0};
   ArrayXd mCepstrumStorage;
   ArrayXd mCepstrum;
 };

@@ -20,7 +20,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 namespace fluid {
 namespace algorithm {
 
-class NNDSVD {
+class NNDSVD
+{
 
 public:
   using MatrixXd = Eigen::MatrixXd;
@@ -43,50 +44,55 @@ public:
     MatrixXd V = svd.matrixV().transpose();
     VectorXd s = svd.singularValues();
     MatrixXd S = svd.singularValues().asDiagonal();
-    index k = 0;
+    index    k = 0;
     if (amount == 0)
       k = minRank;
-    else {
+    else
+    {
       double current = 0;
       double total = s.sum();
-      while ((current / total) < amount)
-        current += s[k++];
+      while ((current / total) < amount) current += s[k++];
     }
-    if (k < minRank)
-      k = minRank;
-    if (k > maxRank)
-      k = maxRank;
+    if (k < minRank) k = minRank;
+    if (k > maxRank) k = maxRank;
 
-    if (method == 0) {
+    if (method == 0)
+    {
       WT.block(0, 0, WT.rows(), k) = U.block(0, 0, U.rows(), k).array().abs();
       HT.block(0, 0, k, HT.cols()) =
           (S.block(0, 0, k, S.cols()) * V).array().abs();
-    } else {
+    }
+    else
+    {
       // avoid scaling for NMF with normalized W
       WT.col(0) = U.col(0).array().abs();
       HT.row(0) = sqrt(s(0)) * V.row(0).array().abs();
 
-      for (index j = 1; j < k; j++) {
+      for (index j = 1; j < k; j++)
+      {
         VectorXd x = U.col(j);
         VectorXd y = V.row(j);
         VectorXd xP = x.array().max(0.0);
         VectorXd yP = y.array().max(0.0);
         VectorXd xN = x.array().min(0.0).abs();
         VectorXd yN = y.array().min(0.0).abs();
-        double xPNorm = xP.norm();
-        double yPNorm = yP.norm();
-        double xNNorm = xN.norm();
-        double yNNorm = xN.norm();
-        double mP = xPNorm * yPNorm;
-        double mN = xNNorm * yNNorm;
-        ArrayXd u;
-        ArrayXd v;
-        double sigma;
-        if (mP > mN) {
+        double   xPNorm = xP.norm();
+        double   yPNorm = yP.norm();
+        double   xNNorm = xN.norm();
+        double   yNNorm = xN.norm();
+        double   mP = xPNorm * yPNorm;
+        double   mN = xNNorm * yNNorm;
+        ArrayXd  u;
+        ArrayXd  v;
+        double   sigma;
+        if (mP > mN)
+        {
           u = xP / xPNorm;
           v = yP / yPNorm;
           sigma = mP;
-        } else {
+        }
+        else
+        {
           u = xN / xNNorm;
           v = yN / yNNorm;
           sigma = mN;
@@ -97,14 +103,17 @@ public:
       }
       WT = WT.array().max(epsilon);
       HT = HT.array().max(epsilon);
-      if (method == 1) {
+      if (method == 1)
+      {
         auto Wrand =
             MatrixXd::Random(WT.rows(), WT.cols()).array().abs() / 100.0;
         auto Hrand =
             MatrixXd::Random(HT.rows(), HT.cols()).array().abs() / 100.0;
         WT = (WT.array() < epsilon).select(Wrand, WT);
         HT = (HT.array() < epsilon).select(Hrand, HT);
-      } else if (method == 2) {
+      }
+      else if (method == 2)
+      {
         double mean = XT.mean();
         WT = (WT.array() < epsilon)
                  .select(MatrixXd::Constant(WT.rows(), WT.cols(), mean), WT);

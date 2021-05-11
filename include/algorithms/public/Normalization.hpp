@@ -10,8 +10,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "../util/FluidEigenMappings.hpp"
 #include "../util/AlgorithmUtils.hpp"
+#include "../util/FluidEigenMappings.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <cassert>
@@ -20,12 +20,14 @@ under the European Union’s Horizon 2020 research and innovation programme
 namespace fluid {
 namespace algorithm {
 
-class Normalization {
+class Normalization
+{
 public:
   using ArrayXd = Eigen::ArrayXd;
   using ArrayXXd = Eigen::ArrayXXd;
 
-  void init(double min, double max, RealMatrixView in) {
+  void init(double min, double max, RealMatrixView in)
+  {
     using namespace Eigen;
     using namespace _impl;
     mMin = min;
@@ -38,7 +40,8 @@ public:
   }
 
   void init(double min, double max, RealVectorView dataMin,
-            RealVectorView dataMax) {
+            RealVectorView dataMax)
+  {
     using namespace Eigen;
     using namespace _impl;
     mMin = min;
@@ -50,33 +53,41 @@ public:
     mInitialized = true;
   }
 
-  void processFrame(const RealVectorView in, RealVectorView out, bool inverse = false) const{
+  void processFrame(const RealVectorView in, RealVectorView out,
+                    bool inverse = false) const
+  {
     using namespace Eigen;
     using namespace _impl;
     ArrayXd input = asEigen<Array>(in);
     ArrayXd result;
-    if(!inverse) {
+    if (!inverse)
+    {
       result = (input - mDataMin) / mDataRange.max(epsilon);
       result = mMin + (result * (mMax - mMin));
     }
-    else {
+    else
+    {
       result = (input - mMin) / std::max((mMax - mMin), epsilon);
       result = mDataMin + (result * mDataRange);
     }
     out = asFluid(result);
   }
 
-  void process(const RealMatrixView in, RealMatrixView out, bool inverse = false) const{
+  void process(const RealMatrixView in, RealMatrixView out,
+               bool inverse = false) const
+  {
     using namespace Eigen;
     using namespace _impl;
     ArrayXXd input = asEigen<Array>(in);
     ArrayXXd result;
-    if(!inverse) {
+    if (!inverse)
+    {
       result = (input.rowwise() - mDataMin.transpose());
       result = result.rowwise() / mDataRange.transpose().max(epsilon);
       result = mMin + (result * (mMax - mMin));
     }
-    else {
+    else
+    {
       result = input - mMin;
       result = result / std::max((mMax - mMin), epsilon);
       result = (result.rowwise() * mDataRange.transpose());
@@ -87,25 +98,28 @@ public:
 
   void setMin(double min) { mMin = min; }
   void setMax(double max) { mMax = max; }
-  bool initialized() const{ return mInitialized; }
+  bool initialized() const { return mInitialized; }
 
-  double getMin() const{ return mMin; }
-  double getMax() const{ return mMax; }
+  double getMin() const { return mMin; }
+  double getMax() const { return mMax; }
 
-  void getDataMin(RealVectorView out) const{
+  void getDataMin(RealVectorView out) const
+  {
     using namespace _impl;
     out = asFluid(mDataMin);
   }
 
-  void getDataMax(RealVectorView out) const{
+  void getDataMax(RealVectorView out) const
+  {
     using namespace _impl;
     out = asFluid(mDataMax);
   }
 
   index dims() const { return mDataMin.size(); }
-  index size() const { return 1;}
+  index size() const { return 1; }
 
-  void clear() {
+  void clear()
+  {
     mMin = 0;
     mMax = 1.0;
     mDataMin.setZero();
@@ -114,12 +128,12 @@ public:
     mInitialized = false;
   }
 
-  double mMin{0.0};
-  double mMax{1.0};
+  double  mMin{0.0};
+  double  mMax{1.0};
   ArrayXd mDataMin;
   ArrayXd mDataMax;
   ArrayXd mDataRange;
-  bool mInitialized{false};
+  bool    mInitialized{false};
 };
 }; // namespace algorithm
 }; // namespace fluid

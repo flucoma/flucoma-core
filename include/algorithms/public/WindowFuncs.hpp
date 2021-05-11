@@ -10,8 +10,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "../../data/FluidIndex.hpp"
 #include "../util/AlgorithmUtils.hpp"
+#include "../../data/FluidIndex.hpp"
 #include <Eigen/Core>
 #include <cassert>
 #include <cmath>
@@ -23,7 +23,13 @@ namespace algorithm {
 class WindowFuncs
 {
 public:
-  enum class WindowTypes { kHann, kHannD, kHamming, kBlackmanHarris, kGaussian };
+  enum class WindowTypes {
+    kHann,
+    kHannD,
+    kHamming,
+    kBlackmanHarris,
+    kGaussian
+  };
   using WindowFuncsMap =
       std::map<WindowTypes,
                std::function<void(index, Eigen::Ref<Eigen::ArrayXd>)>>;
@@ -37,12 +43,12 @@ public:
            for (index i = 0; i < size; i++)
            { out(i) = 0.5 - 0.5 * cos((pi * 2 * i) / size); }
          }},
-         {WindowTypes::kHannD,
-          [](index size, Eigen::Ref<Eigen::ArrayXd> out) {
-            double norm = pi / size;
-            for (index i = 0; i < size; i++)
-            { out(i) = norm * sin((2 * pi * i) / size); }
-          }},
+        {WindowTypes::kHannD,
+         [](index size, Eigen::Ref<Eigen::ArrayXd> out) {
+           double norm = pi / size;
+           for (index i = 0; i < size; i++)
+           { out(i) = norm * sin((2 * pi * i) / size); }
+         }},
         {WindowTypes::kHamming,
          [](index size, Eigen::Ref<Eigen::ArrayXd> out) {
            for (index i = 0; i < size; i++)

@@ -56,7 +56,7 @@ public:
     mCurrentFrame = 0;
     mTracks = vector<SineTrack>();
     mPrevPeaks = vector<SinePeak>();
-    mPrevTracks =  vector<index>();
+    mPrevTracks = vector<index>();
     mZetaA = 0;
     mZetaF = 0;
     mDelta = 0;

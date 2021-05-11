@@ -30,9 +30,7 @@ class ARModel
   using VectorXd = Eigen::VectorXd;
 
 public:
-  ARModel(index order)
-      : mParameters(VectorXd::Zero(order))
-  {}
+  ARModel(index order) : mParameters(VectorXd::Zero(order)) {}
 
   const double* getParameters() const { return mParameters.data(); }
   double        variance() const { return mVariance; }
@@ -156,7 +154,8 @@ private:
     }
   }
 
-  void robustEstimate(const double* input, index size, index nIterations, double robustFactor)
+  void robustEstimate(const double* input, index size, index nIterations,
+                      double robustFactor)
   {
     std::vector<double> estimates(asUnsigned(size + mParameters.size()));
 
@@ -168,11 +167,13 @@ private:
       estimates[asUnsigned(i)] = input[i - mParameters.size()];
 
     // Variance
-    robustVariance(estimates.data() + mParameters.size(), input, size, robustFactor);
+    robustVariance(estimates.data() + mParameters.size(), input, size,
+                   robustFactor);
 
     // Iterate
     for (index iterations = nIterations; iterations--;)
-      robustIteration(estimates.data() + mParameters.size(), input, size, robustFactor);
+      robustIteration(estimates.data() + mParameters.size(), input, size,
+                      robustFactor);
   }
 
   double robustResidual(double input, double prediction, double cs)

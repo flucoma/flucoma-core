@@ -27,7 +27,8 @@ public:
   using ArrayXd = Eigen::ArrayXd;
   using MatrixXd = Eigen::MatrixXd;
 
-  DCT(index maxInputSize, index maxOutputSize){
+  DCT(index maxInputSize, index maxOutputSize)
+  {
     mTableStorage = MatrixXd::Zero(maxOutputSize, maxInputSize);
   }
 

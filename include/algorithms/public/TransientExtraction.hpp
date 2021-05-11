@@ -31,9 +31,7 @@ class TransientExtraction
   using VectorXd = Eigen::VectorXd;
 
 public:
-
-  void init(index order, index blockSize,
-            index padSize)
+  void init(index order, index blockSize, index padSize)
   {
     mModel = ARModel(order);
     prepareStream(blockSize, padSize);
@@ -122,12 +120,11 @@ private:
     using namespace std;
     inSize = std::min(inSize, inputSize());
     copy(mInput.data() + hopSize(),
-              mInput.data() + modelOrder() + padSize() + blockSize(),
-              mInput.data());
+         mInput.data() + modelOrder() + padSize() + blockSize(), mInput.data());
     copy(input, input + inSize,
-              mInput.data() + modelOrder() + padSize() + modelOrder());
+         mInput.data() + modelOrder() + padSize() + modelOrder());
     fill(mInput.data() + modelOrder() + padSize() + modelOrder() + inSize,
-              mInput.data() + modelOrder() + analysisSize(), 0.0);
+         mInput.data() + modelOrder() + analysisSize(), 0.0);
   }
 
   void analyze()
@@ -327,7 +324,6 @@ private:
       {
         if (mDetect[asUnsigned(i)] != 0) io[asUnsigned(i)] = u(uCount++);
       }
-
     }
   }
 

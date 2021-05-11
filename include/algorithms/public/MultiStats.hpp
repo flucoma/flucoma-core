@@ -62,13 +62,11 @@ public:
     if (cutoff >= 0)
     {
       for (index i = 0; i < numChannels; i++)
-      {
-        OutlierDetection().process(input.row(i), mask, cutoff);
-      }
+      { OutlierDetection().process(input.row(i), mask, cutoff); }
     }
     index numCleanFrames = mask.sum();
-    if(numCleanFrames <= 0) return;
-    if(weighted && weights.sum() <= 0) return;
+    if (numCleanFrames <= 0) return;
+    if (weighted && weights.sum() <= 0) return;
     ArrayXXd filtered = ArrayXXd::Zero(numChannels, numCleanFrames);
     ArrayXd  filteredWeights;
     if (weighted) filteredWeights = ArrayXd::Zero(numCleanFrames);
@@ -86,9 +84,10 @@ public:
     if (weighted && filteredWeights.size() > 0)
     {
       double sum = filteredWeights.sum();
-      if(sum > 0) filteredWeights = filteredWeights / filteredWeights.sum();
+      if (sum > 0) filteredWeights = filteredWeights / filteredWeights.sum();
     }
-    ArrayXXd result = ArrayXXd::Zero(numChannels, numStats() * (mNumDerivatives + 1));
+    ArrayXXd result =
+        ArrayXXd::Zero(numChannels, numStats() * (mNumDerivatives + 1));
     for (index i = 0; i < numChannels; i++)
     {
       ArrayXd d1, d2, d1Weights, d2Weights;

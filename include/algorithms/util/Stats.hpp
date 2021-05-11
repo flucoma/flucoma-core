@@ -21,15 +21,16 @@ class Stats
 {
 public:
   using ArrayXd = Eigen::ArrayXd;
-  ArrayXd process(Eigen::Ref<ArrayXd> input, double low, double mid, double high)
+  ArrayXd process(Eigen::Ref<ArrayXd> input, double low, double mid,
+                  double high)
   {
     using namespace std;
     index   length = input.size();
     ArrayXd out = ArrayXd::Zero(7);
     double  mean = input.mean();
     double  stdev = sqrt((input - mean).square().mean());
-    double  skewness = ((input - mean) / (stdev == 0 ? 1 : stdev)).cube().mean();
-    double  kurtosis = ((input - mean) / (stdev == 0 ? 1 : stdev)).pow(4).mean();
+    double skewness = ((input - mean) / (stdev == 0 ? 1 : stdev)).cube().mean();
+    double kurtosis = ((input - mean) / (stdev == 0 ? 1 : stdev)).pow(4).mean();
     ArrayXd sorted = input;
     sort(sorted.data(), sorted.data() + length);
     double lowVal = sorted(lrint(low * (length - 1)));

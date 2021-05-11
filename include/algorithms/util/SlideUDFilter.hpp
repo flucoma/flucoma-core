@@ -22,10 +22,7 @@ public:
     mBDown = 1.0 / rampDownTime;
   }
 
-  void init(double x0Val)
-  {
-    y0 = x0Val;
-  }
+  void init(double x0Val) { y0 = x0Val; }
 
   double processSample(double x)
   {

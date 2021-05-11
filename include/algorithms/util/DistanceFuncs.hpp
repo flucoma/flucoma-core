@@ -19,7 +19,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 namespace fluid {
 namespace algorithm {
 
-class DistanceFuncs {
+class DistanceFuncs
+{
 
 public:
   enum class Distance {
@@ -38,7 +39,8 @@ public:
   using DistanceFuncsMap =
       std::map<Distance, std::function<double(ArrayXd, ArrayXd)>>;
 
-  static DistanceFuncsMap &map() {
+  static DistanceFuncsMap& map()
+  {
     static DistanceFuncsMap _funcs = {
         {Distance::kManhattan,
          [](ArrayXd x, ArrayXd y) { return (x - y).abs().sum(); }},
@@ -54,7 +56,7 @@ public:
          [](ArrayXd x, ArrayXd y) { return (x - y).abs().minCoeff(); }},
         {Distance::kKL,
          [](ArrayXd x, ArrayXd y) {
-           auto logX = x.max(epsilon).log(), logY = y.max(epsilon).log();
+           auto   logX = x.max(epsilon).log(), logY = y.max(epsilon).log();
            double d1 = (x * (logX - logY)).sum();
            double d2 = (y * (logY - logX)).sum();
            return d1 + d2;
@@ -66,32 +68,37 @@ public:
          }}};
     return _funcs;
   }
-
 };
 
-Eigen::MatrixXd DistanceMatrix(Eigen::Ref<Eigen::MatrixXd> X, index distance){
-    auto dist = static_cast<DistanceFuncs::Distance>(distance);
-    Eigen::MatrixXd D = Eigen::MatrixXd::Zero(X.rows(), X.rows());
-    for (index i = 0; i < X.rows(); i++) {
-      for (index j = 0; j < X.rows(); j++) {
-        D(i, j) = DistanceFuncs::map()[dist](X.row(i).array(), X.row(j).array());
-      }
+Eigen::MatrixXd DistanceMatrix(Eigen::Ref<Eigen::MatrixXd> X, index distance)
+{
+  auto            dist = static_cast<DistanceFuncs::Distance>(distance);
+  Eigen::MatrixXd D = Eigen::MatrixXd::Zero(X.rows(), X.rows());
+  for (index i = 0; i < X.rows(); i++)
+  {
+    for (index j = 0; j < X.rows(); j++)
+    {
+      D(i, j) = DistanceFuncs::map()[dist](X.row(i).array(), X.row(j).array());
     }
-    return D;
+  }
+  return D;
 }
 
 template <typename Derived>
-Eigen::MatrixXd DistanceMatrix(
-    const Eigen::PlainObjectBase<Derived>& X,
-    const Eigen::PlainObjectBase<Derived>& Y, index distance){
-    auto dist = static_cast<DistanceFuncs::Distance>(distance);
-    Eigen::MatrixXd D = Eigen::MatrixXd::Zero(X.rows(), Y.rows());
-    for (index i = 0; i < X.rows(); i++) {
-      for (index j = 0; j < Y.rows(); j++) {
-        D(i, j) = DistanceFuncs::map()[dist](X.row(i).array(), Y.row(j).array());
-      }
+Eigen::MatrixXd DistanceMatrix(const Eigen::PlainObjectBase<Derived>& X,
+                               const Eigen::PlainObjectBase<Derived>& Y,
+                               index                                  distance)
+{
+  auto            dist = static_cast<DistanceFuncs::Distance>(distance);
+  Eigen::MatrixXd D = Eigen::MatrixXd::Zero(X.rows(), Y.rows());
+  for (index i = 0; i < X.rows(); i++)
+  {
+    for (index j = 0; j < Y.rows(); j++)
+    {
+      D(i, j) = DistanceFuncs::map()[dist](X.row(i).array(), Y.row(j).array());
     }
-    return D;
+  }
+  return D;
 }
 
 

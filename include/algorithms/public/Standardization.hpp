@@ -10,8 +10,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "../util/FluidEigenMappings.hpp"
 #include "../util/AlgorithmUtils.hpp"
+#include "../util/FluidEigenMappings.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <cassert>
@@ -20,21 +20,25 @@ under the European Union’s Horizon 2020 research and innovation programme
 namespace fluid {
 namespace algorithm {
 
-class Standardization {
+class Standardization
+{
 public:
   using ArrayXd = Eigen::ArrayXd;
   using ArrayXXd = Eigen::ArrayXXd;
 
-  void init(RealMatrixView in) {
+  void init(RealMatrixView in)
+  {
     using namespace Eigen;
     using namespace _impl;
     ArrayXXd input = asEigen<Array>(in);
     mMean = input.colwise().mean();
-    mStd = ((input.rowwise() - mMean.transpose()).square().colwise().mean()).sqrt();
+    mStd = ((input.rowwise() - mMean.transpose()).square().colwise().mean())
+               .sqrt();
     mInitialized = true;
   }
 
-  void init(const RealVectorView mean, const RealVectorView std) {
+  void init(const RealVectorView mean, const RealVectorView std)
+  {
     using namespace Eigen;
     using namespace _impl;
     mMean = asEigen<Array>(mean);
@@ -42,45 +46,53 @@ public:
     mInitialized = true;
   }
 
-  void processFrame(const RealVectorView in, RealVectorView out, bool inverse = false) const{
+  void processFrame(const RealVectorView in, RealVectorView out,
+                    bool inverse = false) const
+  {
     using namespace Eigen;
     using namespace _impl;
     ArrayXd input = asEigen<Array>(in);
     ArrayXd result;
-    if(!inverse) {
-     result = (input - mMean) / mStd.max(epsilon);
-   } else{
-     result = (input * mStd) + mMean;
-   }
+    if (!inverse) { result = (input - mMean) / mStd.max(epsilon); }
+    else
+    {
+      result = (input * mStd) + mMean;
+    }
     out = asFluid(result);
   }
 
-  void process(const RealMatrixView in, RealMatrixView out, bool inverse = false) const{
+  void process(const RealMatrixView in, RealMatrixView out,
+               bool inverse = false) const
+  {
     using namespace Eigen;
     using namespace _impl;
     ArrayXXd input = asEigen<Array>(in);
     ArrayXXd result;
 
-    if(!inverse) {
-     result = (input.rowwise() - mMean.transpose());
-     result = result.rowwise() / mStd.transpose().max(epsilon);
-    } else {
-     result = (input.rowwise() * mStd.transpose());
-     result = (result.rowwise() + mMean.transpose());
-   }
+    if (!inverse)
+    {
+      result = (input.rowwise() - mMean.transpose());
+      result = result.rowwise() / mStd.transpose().max(epsilon);
+    }
+    else
+    {
+      result = (input.rowwise() * mStd.transpose());
+      result = (result.rowwise() + mMean.transpose());
+    }
     out = asFluid(result);
   }
 
-  bool initialized() const{ return mInitialized; }
+  bool initialized() const { return mInitialized; }
 
-  void getMean(RealVectorView out) const{ out = _impl::asFluid(mMean); }
+  void getMean(RealVectorView out) const { out = _impl::asFluid(mMean); }
 
-  void getStd(RealVectorView out) const{ out = _impl::asFluid(mStd); }
+  void getStd(RealVectorView out) const { out = _impl::asFluid(mStd); }
 
   index dims() const { return mMean.size(); }
-  index size() const { return 1;}
+  index size() const { return 1; }
 
-  void clear() {
+  void clear()
+  {
     mMean.setZero();
     mStd.setZero();
     mInitialized = false;
@@ -88,7 +100,7 @@ public:
 
   ArrayXd mMean;
   ArrayXd mStd;
-  bool mInitialized{false};
+  bool    mInitialized{false};
 };
 }; // namespace algorithm
 }; // namespace fluid
