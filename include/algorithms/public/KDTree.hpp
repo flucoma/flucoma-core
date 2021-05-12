@@ -82,8 +82,8 @@ public:
     knnQueue queue;
     auto     result = DataSet(1);
     kNearest(mRoot.get(), data, queue, k, radius, 0);
-    index                     numFound = queue.size();
-    std::vector<knnCandidate> sorted(numFound);
+    index                     numFound = asSigned(queue.size());
+    std::vector<knnCandidate> sorted(asUnsigned(numFound));
     for (index i = numFound - 1; i >= 0; i--)
     {
       sorted[asUnsigned(i)] = queue.top();
