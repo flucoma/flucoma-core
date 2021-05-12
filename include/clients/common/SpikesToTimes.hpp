@@ -31,9 +31,11 @@ Result spikesToTimes(FluidTensorView<T, 2> changePoints, BufferAdaptor* output,
   std::vector<index> numSpikes(asUnsigned(changePoints.rows()));
 
   for (index i = 0; i < changePoints.rows(); ++i)
-    numSpikes[asUnsigned(i)] = std::accumulate(changePoints.row(i).begin(),
-                                               changePoints.row(i).end(), static_cast<index>(0),
-        [](const index& a, const T& b) { return a + static_cast<index>(b); });
+    numSpikes[asUnsigned(i)] =
+        std::accumulate(changePoints.row(i).begin(), changePoints.row(i).end(),
+                        static_cast<index>(0), [](const index& a, const T& b) {
+                          return a + static_cast<index>(b);
+                        });
 
   // if the number of spikes doesn't match, that's a badness, and warrants an
   // abort
@@ -44,7 +46,7 @@ Result spikesToTimes(FluidTensorView<T, 2> changePoints, BufferAdaptor* output,
   {
     auto idx = BufferAdaptor::Access(output);
     auto resizeResult = idx.resize(1, changePoints.rows(), sampleRate);
-    if(!resizeResult.ok()) return resizeResult; 
+    if (!resizeResult.ok()) return resizeResult;
     double result = -1.0;
     for (index i = 0; i < changePoints.rows(); i++) idx.samps(i)[0] = result;
     return {};

@@ -10,15 +10,15 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "CommonResults.hpp"
-#include "algorithms/public/NNDSVD.hpp"
-#include "algorithms/public/STFT.hpp"
-#include "data/FluidTensor.hpp"
-#include "clients/common/FluidBaseClient.hpp"
-#include "clients/common/FluidNRTClientWrapper.hpp"
-#include "clients/common/OfflineClient.hpp"
-#include "clients/common/ParameterConstraints.hpp"
-#include "clients/common/ParameterSet.hpp"
-#include "clients/common/ParameterTypes.hpp"
+#include "../common/FluidBaseClient.hpp"
+#include "../common/FluidNRTClientWrapper.hpp"
+#include "../common/OfflineClient.hpp"
+#include "../common/ParameterConstraints.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../common/ParameterTypes.hpp"
+#include "../../algorithms/public/NNDSVD.hpp"
+#include "../../algorithms/public/STFT.hpp"
+#include "../../data/FluidTensor.hpp"
 
 namespace fluid {
 namespace client {
@@ -48,9 +48,8 @@ constexpr auto NNDSVDParams =
                                "NNDSVDar", "NNDSVDa", "NNDSVD"),
                      FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
-class NNDSVDClient : public FluidBaseClient,
-                    public OfflineIn,
-                    public OfflineOut {
+class NNDSVDClient : public FluidBaseClient, public OfflineIn, public OfflineOut
+{
 public:
   using ParamDescType = decltype(NNDSVDParams);
 
@@ -67,24 +66,25 @@ public:
 
   static constexpr auto getParameterDescriptors() { return NNDSVDParams; }
 
-  NNDSVDClient(ParamSetViewType &p) : mParams{p} {}
+  NNDSVDClient(ParamSetViewType& p) : mParams{p} {}
 
-  template <typename T> Result process(FluidContext&) {
+  template <typename T>
+  Result process(FluidContext&)
+  {
     auto source = BufferAdaptor::ReadAccess(get<kSource>().get());
 
     if (!source.exists())
       return {Result::Status::kError, "Source Buffer Supplied But Invalid"};
 
     double sampleRate = source.sampleRate();
-    index nFrames = source.numFrames();
-    auto fftParams = get<kFFT>();
-    index nWindows = static_cast<index>(
+    index  nFrames = source.numFrames();
+    auto   fftParams = get<kFFT>();
+    index  nWindows = static_cast<index>(
         std::floor((nFrames + fftParams.hopSize()) / fftParams.hopSize()));
     index nBins = fftParams.frameSize();
 
-    if (source.numChans() > 1) {
-      return {Result::Status::kError, "Only one channel supported"};
-    }
+    if (source.numChans() > 1)
+    { return {Result::Status::kError, "Only one channel supported"}; }
 
     auto stft = algorithm::STFT(fftParams.winSize(), fftParams.fftSize(),
                                 fftParams.hopSize());
@@ -104,28 +104,26 @@ public:
                                 get<kMinRank>(), get<kMaxRank>(),
                                 get<kCoverage>(), get<kMethod>());
 
-    auto filters = BufferAdaptor::Access{get<kFilters>().get()};
+    auto   filters = BufferAdaptor::Access{get<kFilters>().get()};
     Result resizeResult =
         filters.resize(nBins, rank, sampleRate / fftParams.fftSize());
-    if (!resizeResult.ok())
-      return resizeResult;
+    if (!resizeResult.ok()) return resizeResult;
 
-    for (index j = 0; j < rank; ++j) {
-      filters.samps(j) = outputFilters.row(j);
-    }
+    for (index j = 0; j < rank; ++j)
+    { filters.samps(j) = outputFilters.row(j); }
 
     auto envelopes = BufferAdaptor::Access{get<kEnvelopes>().get()};
     resizeResult = envelopes.resize((nFrames / fftParams.hopSize()) + 1, rank,
                                     sampleRate / fftParams.hopSize());
-    if (!resizeResult.ok())
-      return resizeResult;
+    if (!resizeResult.ok()) return resizeResult;
     auto maxH =
         *std::max_element(outputEnvelopes.begin(), outputEnvelopes.end());
     auto scale = 1. / (maxH);
-    for (index j = 0; j < rank; j++) {
+    for (index j = 0; j < rank; j++)
+    {
       auto env = envelopes.samps(j);
       env = outputEnvelopes.col(j);
-      env.apply([scale](float &x) { x *= static_cast<float>(scale); });
+      env.apply([scale](float& x) { x *= static_cast<float>(scale); });
     }
     return OK();
   }

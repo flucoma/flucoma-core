@@ -25,15 +25,15 @@ under the European Union’s Horizon 2020 research and innovation programme
 namespace fluid {
 namespace client {
 
-//Tag type for DataModel clients (like KDTree and friends)
-struct ModelObject{};
+// Tag type for DataModel clients (like KDTree and friends)
+struct ModelObject
+{};
 
 enum ProcessState { kNoProcess, kProcessing, kDone, kDoneStillProcessing };
 
 class FluidBaseClient
 {
 public:
-
   static constexpr auto& getParameterDescriptors() { return NoParameters; }
 
   index audioChannelsIn() const noexcept { return mAudioChannelsIn; }
@@ -83,13 +83,13 @@ public:
   using isNonRealTime = typename std::is_base_of<Offline, Client>::type;
   using isRealTime =
       std::integral_constant<bool, isAudio<Client> || isControl<Client>>;
-  using isModelObject = typename std::is_base_of<ModelObject,Client>::type; 
+  using isModelObject = typename std::is_base_of<ModelObject, Client>::type;
 
   template <typename T>
   using ParamDescTypeTest = typename T::ParamDescType;
 
-  template<typename T> 
-  using MessageTypeTest = decltype(T::getMessageDescriptors()); 
+  template <typename T>
+  using MessageTypeTest = decltype(T::getMessageDescriptors());
 
   using ParamDescType = typename DetectedOr<decltype(NoParameters),
                                             ParamDescTypeTest, Client>::type;
@@ -103,14 +103,14 @@ public:
   using HasMessages = isDetected<MessageTypeTest, Client>;
 
   constexpr static ParamDescType descript = Client::getParameterDescriptors();
-  
+
   template <typename P = HasParams>
   constexpr static auto getParameterDescriptors()
       -> std::enable_if_t<P::value, ParamDescType&>
   {
-//    return Client::getParameterDescriptors();
+    //    return Client::getParameterDescriptors();
 
-     return descript;
+    return descript;
   }
 
   template <typename P = HasParams>
@@ -134,11 +134,10 @@ public:
     return NoMessages;
   }
 
-  ClientWrapper(ParamSetViewType& p) : mParams{p} ,mClient{p} {}
+  ClientWrapper(ParamSetViewType& p) : mParams{p}, mClient{p} {}
 
-  ClientWrapper(ClientWrapper&& x):
-      mParams{x.mParams},
-      mClient{std::move(x.mClient)}
+  ClientWrapper(ClientWrapper&& x)
+      : mParams{x.mParams}, mClient{std::move(x.mClient)}
   {
     mClient.setParams(mParams);
   }
@@ -146,7 +145,7 @@ public:
   ClientWrapper& operator=(ClientWrapper&& x)
   {
     using std::swap;
-    swap(mClient,x.mClient);
+    swap(mClient, x.mClient);
     mParams = x.mParams;
     mClient.setParams(mParams);
     return *this;
@@ -223,7 +222,7 @@ public:
 
 private:
   std::reference_wrapper<ParamSetViewType> mParams;
-  
+
   Client mClient;
 };
 

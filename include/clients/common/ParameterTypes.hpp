@@ -31,7 +31,7 @@ using BufferUnderlyingType = std::shared_ptr<BufferAdaptor>;
 using InputBufferUnderlyingType = std::shared_ptr<const BufferAdaptor>;
 using StringUnderlyingType = std::string;
 using FloatArrayUnderlyingType = std::vector<FloatUnderlyingType>;
-using LongArrayUnderlyingType = FluidTensor<LongUnderlyingType,1>;
+using LongArrayUnderlyingType = FluidTensor<LongUnderlyingType, 1>;
 using BufferArrayUnderlyingType = std::vector<BufferUnderlyingType>;
 using MagnitudePairsUnderlyingType = std::vector<std::pair<double, double>>;
 
@@ -152,11 +152,12 @@ struct LongArrayT : ParamTypeBase
 {
 
   using type = LongArrayUnderlyingType;
-  constexpr LongArrayT(const char* name, const char* displayName,
-            const std::initializer_list<typename type::type> defaultValues)
-      : ParamTypeBase(name, displayName),defaultValue(defaultValues)
+  constexpr LongArrayT(
+      const char* name, const char* displayName,
+      const std::initializer_list<typename type::type> defaultValues)
+      : ParamTypeBase(name, displayName), defaultValue(defaultValues)
   {}
-  const index fixedSize{1};
+  const index                                      fixedSize{1};
   const std::initializer_list<typename type::type> defaultValue;
 };
 
@@ -252,12 +253,12 @@ public:
       : mWindowSize{win}, mHopSize{hop}, mFFTSize{fft}, trackWin{win},
         trackHop{hop}, trackFFT{fft}
   {}
-  
 
-  constexpr FFTParams(const FFTParams& p) noexcept = default; 
-  constexpr FFTParams( FFTParams&& p) noexcept = default;
 
-  // Assignment shouldn't reset the trackers 
+  constexpr FFTParams(const FFTParams& p) noexcept = default;
+  constexpr FFTParams(FFTParams&& p) noexcept = default;
+
+  // Assignment shouldn't reset the trackers
   constexpr FFTParams& operator=(FFTParams&& p) noexcept
   {
     mWindowSize = p.mWindowSize;
@@ -426,7 +427,7 @@ private:
   intptr_t mWindowSize{0};
   intptr_t mHopSize{0};
   intptr_t mFFTSize{0};
- 
+
   ParameterTrackChanges<intptr_t> trackWin;
   ParameterTrackChanges<intptr_t> trackHop;
   ParameterTrackChanges<intptr_t> trackFFT;
@@ -502,10 +503,10 @@ FloatArrayParam(const char* name, const char* displayName,
 }
 
 template <typename IsFixed = Fixed<false>, typename... Constraints>
-constexpr ParamSpec<LongArrayT, IsFixed, Constraints...>
-LongArrayParam(const char* name, const char* displayName,
-               const std::initializer_list<LongArrayT::type::type> defaultValues,
-               const Constraints... c)  
+constexpr ParamSpec<LongArrayT, IsFixed, Constraints...> LongArrayParam(
+    const char* name, const char* displayName,
+    const std::initializer_list<LongArrayT::type::type> defaultValues,
+    const Constraints... c)
 {
   return {LongArrayT(name, displayName, defaultValues), std::make_tuple(c...),
           IsFixed{}};

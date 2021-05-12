@@ -1,3 +1,12 @@
+/*
+Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See license.md file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
 #pragma once
 
 #include "../common/BufferAdaptor.hpp"
@@ -115,21 +124,21 @@ struct AddPadding
   static constexpr bool HasFFT =
       impl::FilterTupleIndices<IsFFTParam, Types, Index>::type::size() > 0;
   static constexpr bool HasControlOut = IsControlOut<RTClient>::value;
-//  static constexpr size_t value = HasControlOut? 2 : 1;
-  
+  //  static constexpr size_t value = HasControlOut? 2 : 1;
+
   static constexpr size_t value =
-    HasFFT && HasControlOut ? 2 :
-      HasFFT && !HasControlOut ? 1 :
-        !HasFFT && HasControlOut ? 3 : 0;
-          
-  
-//  static constexpr size_t value = std::conditional_t<HasFFT,
-//      std::conditional_t<HasControlOut, std::integral_constant<size_t, 2>,
-//                         std::integral_constant<size_t, 1>>,
-//      std::integral_constant<size_t, 0>>()();
+      HasFFT && HasControlOut
+          ? 2
+          : HasFFT && !HasControlOut ? 1 : !HasFFT && HasControlOut ? 3 : 0;
+
+
+  //  static constexpr size_t value = std::conditional_t<HasFFT,
+  //      std::conditional_t<HasControlOut, std::integral_constant<size_t, 2>,
+  //                         std::integral_constant<size_t, 1>>,
+  //      std::integral_constant<size_t, 0>>()();
 };
 
-//Special case for Loudness :`-(
+// Special case for Loudness :`-(
 template <typename C>
 using NonFFTWithControlOut = std::enable_if_t<AddPadding<C>::value == 3>;
 
@@ -182,7 +191,7 @@ public:
   static constexpr size_t ParamOffset =
       ParamsSize<ParamDescType>::value - ParamsSize<RTParamDescType>::value;
 
-  using WrappedClient = RTClient; 
+  using WrappedClient = RTClient;
 
   using isModelObject = typename RTClient::isModelObject;
 
@@ -192,24 +201,26 @@ public:
   }
 
   NRTClientWrapper(ParamSetViewType& p)
-      : mParams{p}, mRealTimeParams{RTClient::getParameterDescriptors(),
-                                    mParams.get().template subset<ParamOffset>()},
+      : mParams{p},
+        mRealTimeParams{RTClient::getParameterDescriptors(),
+                        mParams.get().template subset<ParamOffset>()},
         mClient{mRealTimeParams}
   {}
 
   NRTClientWrapper(const NRTClientWrapper& x)
-    :mParams{x.mParams}, mRealTimeParams{RTClient::getParameterDescriptors(),
-                                    mParams.get().template subset<ParamOffset>()}, mClient{mRealTimeParams}
-  {
-
-  }
+      : mParams{x.mParams},
+        mRealTimeParams{RTClient::getParameterDescriptors(),
+                        mParams.get().template subset<ParamOffset>()},
+        mClient{mRealTimeParams}
+  {}
 
 
   NRTClientWrapper(NRTClientWrapper&& x)
-    : mParams{std::move(x.mParams)}, mClient{std::move(x.mClient)}
+      : mParams{std::move(x.mParams)}, mClient{std::move(x.mClient)}
   {
-    mRealTimeParams = RTParamSetViewType(RTClient::getParameterDescriptors(),
-                                         mParams.get().template subset<ParamOffset>());
+    mRealTimeParams =
+        RTParamSetViewType(RTClient::getParameterDescriptors(),
+                           mParams.get().template subset<ParamOffset>());
     mClient.setParams(mRealTimeParams);
   }
 
@@ -217,8 +228,9 @@ public:
   {
     mParams = x.mParams;
     mClient = x.mClient;
-    mRealTimeParams = RTParamSetViewType(RTClient::getParameterDescriptors(),
-                                         mParams.get().template subset<ParamOffset>());
+    mRealTimeParams =
+        RTParamSetViewType(RTClient::getParameterDescriptors(),
+                           mParams.get().template subset<ParamOffset>());
     mClient.setParams(mRealTimeParams);
     return *this;
   }
@@ -226,12 +238,13 @@ public:
   NRTClientWrapper& operator=(NRTClientWrapper&& x)
   {
     using std::swap;
-    swap(mClient,x.mClient);
-    swap(mParams,x.mParams);
-    mRealTimeParams = RTParamSetViewType(RTClient::getParameterDescriptors(),
-                                         mParams.get().template subset<ParamOffset>());
+    swap(mClient, x.mClient);
+    swap(mParams, x.mParams);
+    mRealTimeParams =
+        RTParamSetViewType(RTClient::getParameterDescriptors(),
+                           mParams.get().template subset<ParamOffset>());
     mClient.setParams(mRealTimeParams);
-    return *this; 
+    return *this;
   }
 
 
@@ -257,8 +270,9 @@ public:
   void setParams(ParamSetViewType& p)
   {
     mParams = p;
-    mRealTimeParams = RTParamSetViewType(RTClient::getParameterDescriptors(),
-                                         mParams.get().template subset<ParamOffset>());
+    mRealTimeParams =
+        RTParamSetViewType(RTClient::getParameterDescriptors(),
+                           mParams.get().template subset<ParamOffset>());
     mClient.setParams(mRealTimeParams);
   }
 
@@ -276,10 +290,10 @@ public:
 
     auto inputBuffers = fetchInputBuffers(inputCounter);
     auto outputBuffers = fetchOutputBuffers(outputCounter);
- 
+
     std::array<index, Ins> inFrames;
     std::array<index, Ins> inChans;
-    
+
     // check buffers exist
     index count = 0;
     for (auto&& b : inputBuffers)
@@ -343,52 +357,57 @@ public:
   }
 
   template <typename C = RTClient>
-  std::pair<index,index> userPadding(FFTWithControlOut<C>* = 0)
+  std::pair<index, index> userPadding(FFTWithControlOut<C>* = 0)
   {
     using FFTLookup = std::reference_wrapper<FFTParams>;
     index userPaddingParamValue = get<ParamOffset - 1>();
     auto  fftSettings = mParams.get().template get<FFTLookup>();
-    return {FFTParams::padding(fftSettings, userPaddingParamValue),userPaddingParamValue};
+    return {FFTParams::padding(fftSettings, userPaddingParamValue),
+            userPaddingParamValue};
   }
 
   template <typename C = RTClient>
-  std::pair<index,index> userPadding(FFTWithAudioOut<C>* = 0)
+  std::pair<index, index> userPadding(FFTWithAudioOut<C>* = 0)
   {
     using FFTLookup = std::reference_wrapper<FFTParams>;
     index winSize = mParams.get().template get<FFTLookup>().winSize();
-    return {winSize >> 1,1};
+    return {winSize >> 1, 1};
   }
 
   template <typename C = RTClient>
-  std::pair<index,index> userPadding(NonFFT<C>* = 0)
+  std::pair<index, index> userPadding(NonFFT<C>* = 0)
   {
-    return {0,0};
+    return {0, 0};
   }
 
-  //FIXME: This has to rely on the specific structure of LoudnessCLient at the moment, which is bad, bad, bad
+  // FIXME: This has to rely on the specific structure of LoudnessCLient at the
+  // moment, which is bad, bad, bad
   template <typename C = RTClient>
-  std::pair<index,index> userPadding(NonFFTWithControlOut<C>* = 0)
+  std::pair<index, index> userPadding(NonFFTWithControlOut<C>* = 0)
   {
-//    using FFTLookup = std::reference_wrapper<FFTParams>;
-//    index userPaddingParamValue = get<ParamOffset - 1>();
-//    auto  fftSettings = mParams.get().template get<FFTLookup>();
-//    return {FFTParams::padding(fftSettings, userPaddingParamValue),userPaddingParamValue};
-     index userPaddingParamValue = get<ParamOffset - 1>();
-     constexpr size_t WinOffset = 2;
-     constexpr size_t HopOffset = 3;
-     
-     auto  winSizeDescriptor = mParams.get().template descriptorAt<ParamOffset + WinOffset>();
-     
-     assert(winSizeDescriptor.name == "windowSize");
-     
-     index winSize = get<ParamOffset + WinOffset>();
-     index hopSize = get<ParamOffset + HopOffset>();
-     using Op = index (*)(index, index);
-     static std::array<Op, 3> options{
+    //    using FFTLookup = std::reference_wrapper<FFTParams>;
+    //    index userPaddingParamValue = get<ParamOffset - 1>();
+    //    auto  fftSettings = mParams.get().template get<FFTLookup>();
+    //    return {FFTParams::padding(fftSettings,
+    //    userPaddingParamValue),userPaddingParamValue};
+    index            userPaddingParamValue = get<ParamOffset - 1>();
+    constexpr size_t WinOffset = 2;
+    constexpr size_t HopOffset = 3;
+
+    auto winSizeDescriptor =
+        mParams.get().template descriptorAt<ParamOffset + WinOffset>();
+
+    assert(winSizeDescriptor.name == "windowSize");
+
+    index winSize = get<ParamOffset + WinOffset>();
+    index hopSize = get<ParamOffset + HopOffset>();
+    using Op = index (*)(index, index);
+    static std::array<Op, 3> options{
         [](index, index) -> index { return 0; },
         [](index win, index) { return win >> 1; },
         [](index win, index hop) { return win - hop; }};
-     return {options[userPaddingParamValue](winSize,hopSize), userPaddingParamValue};
+    return {options[userPaddingParamValue](winSize, hopSize),
+            userPaddingParamValue};
   }
 
 
@@ -441,7 +460,7 @@ struct Streaming
   template <typename Client, typename InputList, typename OutputList>
   static Result process(Client& client, InputList& inputBuffers,
                         OutputList& outputBuffers, index nFrames, index nChans,
-                        std::pair<index,index> userPadding, FluidContext& c)
+                        std::pair<index, index> userPadding, FluidContext& c)
   {
     // To account for process latency we need to copy the buffers with padding
     std::vector<HostMatrix> outputData;
@@ -479,7 +498,9 @@ struct Streaming
       for (index j = 0; j < asSigned(outputBuffers.size()); ++j)
         outputs.emplace_back(outputData[asUnsigned(j)].row(i));
 
-      if (c.task()) c.task()->iterationUpdate(static_cast<double>(i), static_cast<double>(nChans));
+      if (c.task())
+        c.task()->iterationUpdate(static_cast<double>(i),
+                                  static_cast<double>(nChans));
 
       client.reset();
       client.process(inputs, outputs, c);
@@ -506,7 +527,7 @@ struct StreamingControl
   template <typename Client, typename InputList, typename OutputList>
   static Result process(Client& client, InputList& inputBuffers,
                         OutputList& outputBuffers, index nFrames, index nChans,
-                        std::pair<index,index> userPadding, FluidContext& c)
+                        std::pair<index, index> userPadding, FluidContext& c)
   {
     // To account for process latency we need to copy the buffers with padding
     std::vector<HostMatrix> inputData;
@@ -515,19 +536,22 @@ struct StreamingControl
     inputData.reserve(inputBuffers.size());
 
     index startPadding = client.latency() + userPadding.first;
-        
+
     index totalPadding = startPadding + userPadding.first;
     index controlRate = client.controlRate();
 
     index paddedLength = nFrames + totalPadding;
-    
-//    for descriptors in full padding mode, round analysis length up to a whole number of hops to ensure that last frame gets a fair showing
-    if(userPadding.second == 2)
-      paddedLength = (std::ceil(double(paddedLength) / controlRate) * controlRate);
+
+    //    for descriptors in full padding mode, round analysis length up to a
+    //    whole number of hops to ensure that last frame gets a fair showing
+    if (userPadding.second == 2)
+      paddedLength =
+          (std::ceil(double(paddedLength) / controlRate) * controlRate);
 
     // Fix me. This assumes that client.latency() is always the window size of
     // whatever buffered process we're wrapping, which seems well dodgy
-    index nHops = 1 + std::floor((paddedLength  - client.latency()) / controlRate);
+    index nHops =
+        1 + std::floor((paddedLength - client.latency()) / controlRate);
 
     // in contrast to the plain streaming case, we're going to call process()
     // iteratively with a vector size = the control vector size, so we get KR
@@ -558,8 +582,8 @@ struct StreamingControl
       client.reset();
       for (index j = 0; j < nHops; ++j)
       {
-        index  t = j * controlRate;
-        
+        index t = j * controlRate;
+
         std::vector<HostVectorView> inputs;
         inputs.reserve(inputBuffers.size());
         std::vector<HostVectorView> outputs;
@@ -574,8 +598,9 @@ struct StreamingControl
 
         client.process(inputs, outputs, dummyContext);
 
-        if (task && !task->processUpdate(static_cast<double>(j + 1 + (nHops * i)),
-                                         static_cast<double>(nHops * nChans)))
+        if (task &&
+            !task->processUpdate(static_cast<double>(j + 1 + (nHops * i)),
+                                 static_cast<double>(nHops * nChans)))
           break;
       }
     }
@@ -590,13 +615,12 @@ struct StreamingControl
 
     if (!resizeResult.ok()) return resizeResult;
 
-    
 
     for (index i = 0; i < nFeatures; ++i)
     {
       for (index j = 0; j < nChans; ++j)
         thisOutput.samps(i + j * nFeatures) =
-            outputData.row(i + j * nFeatures)(Slice(latencyHops,keepHops));
+            outputData.row(i + j * nFeatures)(Slice(latencyHops, keepHops));
     }
 
     return {};
@@ -611,15 +635,15 @@ struct Slicing
   template <typename Client, typename InputList, typename OutputList>
   static Result process(Client& client, InputList& inputBuffers,
                         OutputList& outputBuffers, index nFrames, index nChans,
-                        std::pair<index,index> userPadding, FluidContext& c)
+                        std::pair<index, index> userPadding, FluidContext& c)
   {
 
     assert(inputBuffers.size() == 1);
     assert(outputBuffers.size() == 1);
-  
+
     index startPadding = client.latency();
     index totalPadding = startPadding;
-    
+
     HostMatrix monoSource(1, nFrames + totalPadding);
 
     BufferAdaptor::ReadAccess src(inputBuffers[0].buffer);
@@ -674,9 +698,9 @@ using NRTControlAdaptor =
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template <class RTClient, class... Outs>
-auto constexpr addFFTPadding(
-    Outs&&... outs,
-    std::enable_if_t<impl::AddPadding<RTClient>::value < 2>* = 0)
+auto constexpr addFFTPadding(Outs&&... outs,
+                             std::enable_if_t <
+                                 impl::AddPadding<RTClient>::value<2>* = 0)
 {
   return defineParameters(std::forward<Outs>(outs)...);
 }
@@ -719,7 +743,7 @@ template <typename NRTClient>
 class NRTThreadingAdaptor : public OfflineIn, public OfflineOut
 {
 public:
-  using Client = NRTClient; 
+  using Client = NRTClient;
   using ClientPointer = typename std::shared_ptr<NRTClient>;
   using ParamDescType = typename NRTClient::ParamDescType;
   using ParamSetType = typename NRTClient::ParamSetType;
@@ -761,26 +785,27 @@ public:
       : mHostParams{p}, mClient{new NRTClient{mHostParams}}
   {}
 
-  NRTThreadingAdaptor(NRTThreadingAdaptor&& x)
-          : mHostParams{x.mHostParams}
-  { swap(std::move(x),false); }
+  NRTThreadingAdaptor(NRTThreadingAdaptor&& x) : mHostParams{x.mHostParams}
+  {
+    swap(std::move(x), false);
+  }
 
   NRTThreadingAdaptor& operator=(NRTThreadingAdaptor&& x)
   {
-    swap(std::move(x),true);
+    swap(std::move(x), true);
     return *this;
   }
 
   ~NRTThreadingAdaptor()
   {
-    
-    mQueue.clear(); 
-    
+
+    mQueue.clear();
+
     if (mThreadedTask)
     {
       mThreadedTask->cancel(false);
       mThreadedTask->join();
-//      mThreadedTask.release();
+      //      mThreadedTask.release();
     }
   }
 
@@ -789,7 +814,7 @@ public:
     if (mThreadedTask && (mSynchronous || !mQueueEnabled))
       return {Result::Status::kError, "already processing"};
 
-    mQueue.push_back({p,callback});
+    mQueue.push_back({p, callback});
 
     return {};
   }
@@ -806,7 +831,7 @@ public:
     if (mQueue.empty())
       return {Result::Status::kWarning, "Process() called on empty queue"};
 
-    if(mSynchronous) mSynchronousDone = false;
+    if (mSynchronous) mSynchronousDone = false;
 
     mThreadedTask = std::unique_ptr<ThreadedTask>(
         new ThreadedTask(mClient, mQueue.front(), mSynchronous));
@@ -889,24 +914,20 @@ public:
                             mThreadedTask->mState == kDoneStillProcessing)
                          : (mSynchronous && mSynchronousDone);
   }
-  
-  void resetDone()
-  {
-    mSynchronousDone = false;
-  }
+
+  void resetDone() { mSynchronousDone = false; }
 
   ProcessState state() const
   {
     return mThreadedTask ? mThreadedTask->mState : kNoProcess;
   }
-  
+
   void setCallback(std::function<void()> cb) { mCallback = cb; }
 
 private:
-
-  void swap(NRTThreadingAdaptor&& x, bool includeParams )
+  void swap(NRTThreadingAdaptor&& x, bool includeParams)
   {
-    if(mThreadedTask)
+    if (mThreadedTask)
     {
       mThreadedTask->cancel(true);
       mThreadedTask.release();
@@ -914,24 +935,25 @@ private:
 
     mThreadedTask.reset(x.mThreadedTask.get());
     using std::swap;
-    swap(mQueue,x.mQueue);
-    swap(mSynchronous,x.mSynchronous);
-    swap(mQueueEnabled,x.mQueueEnabled);
-    swap(mCallback,x.mCallback);
+    swap(mQueue, x.mQueue);
+    swap(mSynchronous, x.mSynchronous);
+    swap(mQueueEnabled, x.mQueueEnabled);
+    swap(mCallback, x.mCallback);
     mSynchronousDone = false;
-    if(includeParams) mHostParams = std::move(x.mHostParams);
-    mClient =  std::move(x.mClient);
+    if (includeParams) mHostParams = std::move(x.mHostParams);
+    mClient = std::move(x.mClient);
   }
 
-  
-  struct NRTJob{
-     ParamSetType           mParams;
-     std::function<void()>  mCallback;
-  }; 
+
+  struct NRTJob
+  {
+    ParamSetType          mParams;
+    std::function<void()> mCallback;
+  };
 
   struct ThreadedTask
   {
-    
+
     template <size_t N, typename T>
     struct BufferCopy
     {
@@ -957,8 +979,7 @@ private:
       void operator()(typename T::type& param) { param.reset(); }
     };
 
-    ThreadedTask(ClientPointer client, NRTJob& job,
-                 bool synchronous)
+    ThreadedTask(ClientPointer client, NRTJob& job, bool synchronous)
         : mProcessParams(job.mParams), mState(kNoProcess),
           mClient(client), mContext{mTask}, mCallback{job.mCallback}
     {
@@ -969,10 +990,7 @@ private:
       mResultReady = resultPromise.get_future();
 
       mClient->setParams(mProcessParams);
-      if (synchronous)
-      {
-        process(std::move(resultPromise)); 
-      }
+      if (synchronous) { process(std::move(resultPromise)); }
       else
       {
         auto entry = [](ThreadedTask* owner, std::promise<void> result) {
@@ -994,14 +1012,11 @@ private:
       mResult = mClient->template process<float>(mContext);
       resultReady.set_value();
       mState = kDone;
-      if(mCallback && !mDetached) mCallback();
+      if (mCallback && !mDetached) mCallback();
       if (mDetached) delete this;
     }
 
-    void join()
-    {
-      mThread.join();
-    }
+    void join() { mThread.join(); }
 
     void cancel(bool detach)
     {
@@ -1030,9 +1045,11 @@ private:
           if (result.status() != Result::Status::kError)
           {
             Result bufferCopyResult;
-            mProcessParams.template forEachParamType<BufferT, BufferCopyBack>(bufferCopyResult);
-            ///TODO a proper logging system
-            if(!bufferCopyResult.ok()) std::cout << bufferCopyResult.message() << std::endl;
+            mProcessParams.template forEachParamType<BufferT, BufferCopyBack>(
+                bufferCopyResult);
+            /// TODO a proper logging system
+            if (!bufferCopyResult.ok())
+              std::cout << bufferCopyResult.message() << std::endl;
           }
         }
         else
@@ -1045,15 +1062,15 @@ private:
       return state;
     }
 
-    ParamSetType        mProcessParams;
-    ProcessState        mState;
-    std::thread         mThread;
-    std::future<void>   mResultReady;
-    Result              mResult;
-    ClientPointer       mClient;
-    FluidTask           mTask;
-    FluidContext        mContext;
-    bool                mDetached = false;
+    ParamSetType          mProcessParams;
+    ProcessState          mState;
+    std::thread           mThread;
+    std::future<void>     mResultReady;
+    Result                mResult;
+    ClientPointer         mClient;
+    FluidTask             mTask;
+    FluidContext          mContext;
+    bool                  mDetached = false;
     std::function<void()> mCallback;
   };
 

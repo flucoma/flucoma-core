@@ -59,7 +59,7 @@ public:
     doPush(in, blocksize);
   }
 
-   /// Pull a frame of data out of the buffer.
+  /// Pull a frame of data out of the buffer.
   void pull(View out, index frameTime)
   {
     index blocksize = out.cols();
@@ -93,11 +93,9 @@ public:
     if (channels) mChannels = channels;
 
     if (matrix.cols() != bufferSize() || matrix.rows() != channels)
-    {
-      matrix.resize(mChannels, bufferSize());
-    }
-      matrix.fill(0);
-      mCounter = 0;    
+    { matrix.resize(mChannels, bufferSize()); }
+    matrix.fill(0);
+    mCounter = 0;
   }
 
   void setSize(index n) { mSize = n; }
@@ -107,7 +105,6 @@ public:
   index hostBufferSize() const noexcept { return mHostBufferSize; }
 
 private:
-
   index bufferSize() const { return mSize + mHostBufferSize; }
 
 
@@ -136,16 +133,16 @@ private:
                      index size, index overspill)
   {
     for (index i = 0; i < mChannels; ++i)
-      copyIn(FluidTensorView<U, 2>(x[asUnsigned(i)](Slice(0, size))), offset, size, i,
-             i == mChannels - 1);
+      copyIn(FluidTensorView<U, 2>(x[asUnsigned(i)](Slice(0, size))), offset,
+             size, i, i == mChannels - 1);
     for (index i = 0; i < mChannels; ++i)
-      copyIn(FluidTensorView<U, 2>(x[asUnsigned(i)](Slice(size, overspill))), 0, overspill,
-             i, i == mChannels - 1);
+      copyIn(FluidTensorView<U, 2>(x[asUnsigned(i)](Slice(size, overspill))), 0,
+             overspill, i, i == mChannels - 1);
   }
 
   template <typename U, typename Chans>
-  void copyIn(FluidTensorView<U, 2> input, index offset,
-              index size, Chans chans, bool incrementTime = true)
+  void copyIn(FluidTensorView<U, 2> input, index offset, index size,
+              Chans chans, bool incrementTime = true)
   {
     if (size)
     {
@@ -154,10 +151,10 @@ private:
     }
   }
 
-  Matrix      matrix;
-  index       mCounter = 0;
-  index       mSize;
-  index       mChannels;
-  index       mHostBufferSize = 0;
+  Matrix matrix;
+  index  mCounter = 0;
+  index  mSize;
+  index  mChannels;
+  index  mHostBufferSize = 0;
 };
 } // namespace fluid

@@ -104,10 +104,10 @@ public:
 
   size_t size() const noexcept { return sizeof...(Ts); }
 
-  template <template <size_t N, typename T> class Func, typename...Args>
-  void iterate(Args&&...args) const
+  template <template <size_t N, typename T> class Func, typename... Args>
+  void iterate(Args&&... args) const
   {
-    iterateImpl<Func>(IndexList(),std::forward<Args>(args)...);
+    iterateImpl<Func>(IndexList(), std::forward<Args>(args)...);
   }
 
   template <size_t N>
@@ -125,11 +125,14 @@ public:
 private:
   MessagesType mMessages;
 
-  template <template <size_t N, typename T> class Op, typename...Args,size_t... Is>
-  void iterateImpl(std::index_sequence<Is...>,Args&&...args) const
+  template <template <size_t N, typename T> class Op, typename... Args,
+            size_t... Is>
+  void iterateImpl(std::index_sequence<Is...>, Args&&... args) const
   {
     (void) std::initializer_list<int>{
-        (Op<Is, MessageTypeAt<Is>>()(std::get<Is>(mMessages),std::forward<Args>(args)...), 0)...};
+        (Op<Is, MessageTypeAt<Is>>()(std::get<Is>(mMessages),
+                                     std::forward<Args>(args)...),
+         0)...};
   }
 };
 

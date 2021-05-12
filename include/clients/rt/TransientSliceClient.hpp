@@ -24,56 +24,54 @@ namespace fluid {
 namespace client {
 namespace transientslice {
 
-  enum TransientParamIndex {
-    kOrder,
-    kBlockSize,
-    kPadding,
-    kSkew,
-    kThreshFwd,
-    kThreshBack,
-    kWinSize,
-    kDebounce,
-    kMinSeg
-  };
-  
-  constexpr auto TransientSliceParams = defineParameters(
-      LongParam("order", "Order", 20, Min(10), LowerLimit<kWinSize>(),
-                UpperLimit<kBlockSize>()),
-      LongParam("blockSize", "Block Size", 256, Min(100), LowerLimit<kOrder>()),
-      LongParam("padSize", "Padding", 128, Min(0)),
-      FloatParam("skew", "Skew", 0, Min(-10), Max(10)),
-      FloatParam("threshFwd", "Forward Threshold", 2, Min(0)),
-      FloatParam("threshBack", "Backward Threshold", 1.1, Min(0)),
-      LongParam("windowSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
-      LongParam("clumpLength", "Clumping Window Length", 25, Min(0)),
-      LongParam("minSliceLength", "Minimum Length of Slice", 1000));
-  
+enum TransientParamIndex {
+  kOrder,
+  kBlockSize,
+  kPadding,
+  kSkew,
+  kThreshFwd,
+  kThreshBack,
+  kWinSize,
+  kDebounce,
+  kMinSeg
+};
+
+constexpr auto TransientSliceParams = defineParameters(
+    LongParam("order", "Order", 20, Min(10), LowerLimit<kWinSize>(),
+              UpperLimit<kBlockSize>()),
+    LongParam("blockSize", "Block Size", 256, Min(100), LowerLimit<kOrder>()),
+    LongParam("padSize", "Padding", 128, Min(0)),
+    FloatParam("skew", "Skew", 0, Min(-10), Max(10)),
+    FloatParam("threshFwd", "Forward Threshold", 2, Min(0)),
+    FloatParam("threshBack", "Backward Threshold", 1.1, Min(0)),
+    LongParam("windowSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
+    LongParam("clumpLength", "Clumping Window Length", 25, Min(0)),
+    LongParam("minSliceLength", "Minimum Length of Slice", 1000));
+
 class TransientSliceClient : public FluidBaseClient,
                              public AudioIn,
                              public AudioOut
 {
 public:
-
-  using ParamDescType = decltype(TransientSliceParams); 
+  using ParamDescType = decltype(TransientSliceParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   std::reference_wrapper<ParamSetViewType> mParams;
 
   void setParams(ParamSetViewType& p) { mParams = p; }
 
-  template <size_t N> 
+  template <size_t N>
   auto& get() const
   {
     return mParams.get().template get<N>();
   }
 
   static constexpr auto getParameterDescriptors()
-  { 
-    return TransientSliceParams;  
+  {
+    return TransientSliceParams;
   }
 
-  TransientSliceClient(ParamSetViewType& p)
-      : mParams{p}
+  TransientSliceClient(ParamSetViewType& p) : mParams{p}
   {
     audioChannelsIn(1);
     audioChannelsOut(1);
@@ -149,17 +147,20 @@ private:
   BufferedProcess        mBufferedProcess;
   FluidTensor<double, 1> mTransients;
 };
-}
+} // namespace transientslice
 
-using RTTransientSliceClient = ClientWrapper<transientslice::TransientSliceClient>;
+using RTTransientSliceClient =
+    ClientWrapper<transientslice::TransientSliceClient>;
 
-auto constexpr NRTTransientSliceParams = makeNRTParams<transientslice::TransientSliceClient>(
-    InputBufferParam("source", "Source Buffer"),
-    BufferParam("indices", "Indices Buffer"));
+auto constexpr NRTTransientSliceParams =
+    makeNRTParams<transientslice::TransientSliceClient>(
+        InputBufferParam("source", "Source Buffer"),
+        BufferParam("indices", "Indices Buffer"));
 
 using NRTTransientSliceClient =
-    NRTSliceAdaptor<transientslice::TransientSliceClient, decltype(NRTTransientSliceParams),
-                    NRTTransientSliceParams, 1, 1>;
+    NRTSliceAdaptor<transientslice::TransientSliceClient,
+                    decltype(NRTTransientSliceParams), NRTTransientSliceParams,
+                    1, 1>;
 
 using NRTThreadedTransientSliceClient =
     NRTThreadingAdaptor<NRTTransientSliceClient>;

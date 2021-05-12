@@ -20,7 +20,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 namespace fluid {
 namespace client {
 namespace gain {
-  
+
 enum GainParamTags { kGain };
 
 constexpr auto GainParams = defineParameters(FloatParam("gain", "Gain", 1.0));

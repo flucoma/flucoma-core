@@ -22,22 +22,22 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 namespace client {
-namespace ampgate{ 
+namespace ampgate {
 
-  enum AmpGateParamIndex {
-    kRampUpTime,
-    kRampDownTime,
-    kOnThreshold,
-    kOffThreshold,
-    kMinEventDuration,
-    kMinSilenceDuration,
-    kMinTimeAboveThreshold,
-    kMinTimeBelowThreshold,
-    kUpwardLookupTime,
-    kDownwardLookupTime,
-    kHiPassFreq,
-    kMaxSize
-  };
+enum AmpGateParamIndex {
+  kRampUpTime,
+  kRampDownTime,
+  kOnThreshold,
+  kOffThreshold,
+  kMinEventDuration,
+  kMinSilenceDuration,
+  kMinTimeAboveThreshold,
+  kMinTimeBelowThreshold,
+  kUpwardLookupTime,
+  kDownwardLookupTime,
+  kHiPassFreq,
+  kMaxSize
+};
 
 constexpr auto AmpGateParams = defineParameters(
     LongParam("rampUp", "Ramp Up Length", 10, Min(1)),
@@ -53,31 +53,25 @@ constexpr auto AmpGateParams = defineParameters(
     LongParam("lookBack", "Backward Lookup Length", 0, Min(0)),
     LongParam("lookAhead", "Forward Lookup Length", 0, Min(0)),
     FloatParam("highPassFreq", "High-Pass Filter Cutoff", 85, Min(0)),
-    LongParam<Fixed<true>>("maxSize", "Maximum Total Latency", 88200,
-                           Min(1)));
+    LongParam<Fixed<true>>("maxSize", "Maximum Total Latency", 88200, Min(1)));
 
 class AmpGateClient : public FluidBaseClient, public AudioIn, public AudioOut
 {
 public:
-
-
-  using ParamDescType = decltype(AmpGateParams); 
+  using ParamDescType = decltype(AmpGateParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   std::reference_wrapper<ParamSetViewType> mParams;
 
   void setParams(ParamSetViewType& p) { mParams = p; }
 
-  template <size_t N> 
+  template <size_t N>
   auto& get() const
   {
     return mParams.get().template get<N>();
   }
 
-  static constexpr auto& getParameterDescriptors()
-  { 
-    return AmpGateParams;
-  }
+  static constexpr auto& getParameterDescriptors() { return AmpGateParams; }
 
   AmpGateClient(ParamSetViewType& p) : mParams{p}, mAlgorithm{get<kMaxSize>()}
   {
@@ -141,7 +135,8 @@ struct NRTAmpGate
   template <typename Client, typename InputList, typename OutputList>
   static Result process(Client& client, InputList& inputBuffers,
                         OutputList& outputBuffers, index nFrames, index nChans,
-                        std::pair<index,index> /*userpadding*/, FluidContext& c)
+                        std::pair<index, index> /*userpadding*/,
+                        FluidContext& c)
   {
     assert(inputBuffers.size() == 1);
     assert(outputBuffers.size() == 1);
@@ -187,13 +182,13 @@ struct NRTAmpGate
                                src.sampleRate());
   }
 };
-}
+} // namespace ampgate
 
 using RTAmpGateClient = ClientWrapper<ampgate::AmpGateClient>;
 
-auto constexpr NRTAmpGateParams =
-    makeNRTParams<ampgate::AmpGateClient>(InputBufferParam("source", "Source Buffer"),
-                                 BufferParam("indices", "Indices Buffer"));
+auto constexpr NRTAmpGateParams = makeNRTParams<ampgate::AmpGateClient>(
+    InputBufferParam("source", "Source Buffer"),
+    BufferParam("indices", "Indices Buffer"));
 
 using NRTAmpGateClient =
     impl::NRTClientWrapper<ampgate::NRTAmpGate, ampgate::AmpGateClient,

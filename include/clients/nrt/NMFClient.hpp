@@ -261,9 +261,7 @@ public:
         //        auto finalFilters = m.getW();
         auto filters = BufferAdaptor::Access{get<kFilters>().get()};
         for (index j = 0; j < get<kRank>(); ++j)
-        {
-          filters.samps(i * get<kRank>() + j) = outputFilters.row(j);
-        }
+        { filters.samps(i * get<kRank>() + j) = outputFilters.row(j); }
       }
 
       // Write H? Need to normalise also

@@ -26,16 +26,16 @@ namespace fluid {
 namespace client {
 namespace transient {
 
-  enum TransientParamIndex {
-    kOrder,
-    kBlockSize,
-    kPadding,
-    kSkew,
-    kThreshFwd,
-    kThreshBack,
-    kWinSize,
-    kDebounce
-  };
+enum TransientParamIndex {
+  kOrder,
+  kBlockSize,
+  kPadding,
+  kSkew,
+  kThreshFwd,
+  kThreshBack,
+  kWinSize,
+  kDebounce
+};
 
 constexpr auto TransientParams = defineParameters(
     LongParam("order", "Order", 20, Min(10), LowerLimit<kWinSize>(),
@@ -46,31 +46,27 @@ constexpr auto TransientParams = defineParameters(
     FloatParam("threshFwd", "Forward Threshold", 2, Min(0)),
     FloatParam("threshBack", "Backward Threshold", 1.1, Min(0)),
     LongParam("windowSize", "Window Size", 14, Min(0), UpperLimit<kOrder>()),
-    LongParam("clumpLength", "Clumping Window Length", 25, Min(0))); 
+    LongParam("clumpLength", "Clumping Window Length", 25, Min(0)));
 
 class TransientClient : public FluidBaseClient, public AudioIn, public AudioOut
 {
 public:
-  using ParamDescType =  decltype(TransientParams); 
+  using ParamDescType = decltype(TransientParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   std::reference_wrapper<ParamSetViewType> mParams;
 
   void setParams(ParamSetViewType& p) { mParams = p; }
 
-  template <size_t N> 
+  template <size_t N>
   auto& get() const
   {
     return mParams.get().template get<N>();
   }
 
-  static constexpr auto& getParameterDescriptors()
-  { 
-    return TransientParams; 
-  }
+  static constexpr auto& getParameterDescriptors() { return TransientParams; }
 
-  TransientClient(ParamSetViewType& p)
-      : mParams(p)
+  TransientClient(ParamSetViewType& p) : mParams(p)
   {
     audioChannelsIn(1);
     audioChannelsOut(2);
@@ -138,7 +134,7 @@ private:
   algorithm::TransientExtraction                    mExtractor;
   BufferedProcess                                   mBufferedProcess;
 };
-}
+} // namespace transient
 
 using RTTransientClient = ClientWrapper<transient::TransientClient>;
 

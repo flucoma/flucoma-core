@@ -1,17 +1,27 @@
+/*
+Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See license.md file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
+
 #pragma once
 
-#include <clients/common/Result.hpp>
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/FluidNRTClientWrapper.hpp>
-#include <clients/common/MessageSet.hpp>
-#include <clients/common/OfflineClient.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <clients/common/ParameterTypes.hpp>
-#include <data/FluidIndex.hpp>
-#include <data/FluidTensor.hpp>
-#include <data/TensorTypes.hpp>
-#include <data/FluidDataSet.hpp>
-#include "CommonResults.hpp"
 #include "ClientInputChecks.hpp"
+#include "CommonResults.hpp"
 #include "clients/common/FluidInputTrigger.hpp"
+#include "../common/FluidBaseClient.hpp"
+#include "../common/FluidNRTClientWrapper.hpp"
+#include "../common/MessageSet.hpp"
+#include "../common/OfflineClient.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../common/ParameterTypes.hpp"
+#include "../common/Result.hpp"
+#include "../../data/FluidDataSet.hpp"
+#include "../../data/FluidIndex.hpp"
+#include "../../data/FluidTensor.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <nlohmann/json.hpp>

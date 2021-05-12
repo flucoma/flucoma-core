@@ -47,7 +47,7 @@ public:
     return *this;
   }
 
-  void copyToOrigin(Result & r)
+  void copyToOrigin(Result& r)
   {
     if (mWrite && mOrigin)
     {
@@ -58,7 +58,8 @@ public:
           r = src.resize(numFrames(), numChans(), mSampleRate);
 
         if (r.ok() && src.valid())
-          for (index i = 0; i < numChans(); ++i) src.samps(i)(Slice(0,numFrames())) = samps(i);
+          for (index i = 0; i < numChans(); ++i)
+            src.samps(i)(Slice(0, numFrames())) = samps(i);
       }
       // TODO feedback failure to user somehow: I need a message queue
     }
@@ -78,16 +79,13 @@ public:
     return Result();
   }
 
-  FluidTensorView<float, 2> allFrames() override
+  FluidTensorView<float, 2> allFrames() override { return mData.transpose(); }
+
+  FluidTensorView<const float, 2> allFrames() const override
   {
-    return mData.transpose();
+    FluidTensorSlice<2> tmp(mData.descriptor());
+    return {tmp.transpose(), mData.data()};
   }
-  
- FluidTensorView<const float, 2> allFrames() const override
- {
-     FluidTensorSlice<2> tmp(mData.descriptor());
-     return {tmp.transpose(), mData.data()};
- }
 
   // Return a slice of the buffer
   FluidTensorView<float, 1> samps(index channel) override

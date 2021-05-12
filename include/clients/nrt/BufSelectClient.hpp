@@ -62,13 +62,9 @@ public:
   {
 
     if (!get<kSource>().get())
-    {
-      return {Result::Status::kError, "No source buffer "};
-    }
+    { return {Result::Status::kError, "No source buffer "}; }
     if (!get<kDest>().get())
-    {
-      return {Result::Status::kError, "No destination buffer"};
-    }
+    { return {Result::Status::kError, "No destination buffer"}; }
 
     BufferAdaptor::ReadAccess source(get<kSource>().get());
     BufferAdaptor::Access     destination(get<kDest>().get());

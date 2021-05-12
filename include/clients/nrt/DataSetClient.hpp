@@ -1,10 +1,20 @@
+/*
+Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See license.md file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
+
 #pragma once
 #include "DataClient.hpp"
 #include "LabelSetClient.hpp"
 #include "NRTClient.hpp"
 #include "../common/SharedClientUtils.hpp"
-#include "algorithms/public/DataSetIdSequence.hpp"
-#include "data/FluidDataSet.hpp"
+#include "../../algorithms/public/DataSetIdSequence.hpp"
+#include "../../data/FluidDataSet.hpp"
 #include <sstream>
 #include <string>
 
@@ -106,15 +116,14 @@ public:
   {
     if (!data) return Error(NoBuffer);
 
-    { //restrict buffer lock to this scope in case addPoint is called
+    { // restrict buffer lock to this scope in case addPoint is called
       BufferAdaptor::Access buf(data.get());
       if (!buf.exists()) return Error(InvalidBuffer);
       if (buf.numFrames() < mAlgorithm.dims()) return Error(WrongPointSize);
       RealVector point(mAlgorithm.dims());
       point = buf.samps(0, mAlgorithm.dims(), 0);
       bool result = mAlgorithm.update(id, point);
-      if (result)
-        return OK();
+      if (result) return OK();
     }
     return addPoint(id, data);
   }
@@ -144,8 +153,9 @@ public:
     return OK();
   }
 
-  MessageResult<void> fromBuffer(BufferPtr data, bool transpose,
-                                 SharedClientRef<labelset::LabelSetClient> labels)
+  MessageResult<void>
+  fromBuffer(BufferPtr data, bool transpose,
+             SharedClientRef<labelset::LabelSetClient> labels)
   {
     if (!data) return Error(NoBuffer);
     BufferAdaptor::Access buf(data.get());
@@ -155,9 +165,7 @@ public:
     {
       auto& labelSet = labelsPtr->getLabelSet();
       if (labelSet.size() != bufView.rows())
-      {
-        return Error("Label set size needs to match the buffer size");
-      }
+      { return Error("Label set size needs to match the buffer size"); }
       mAlgorithm = DataSet(labelSet.getData().col(0),
                            FluidTensorView<const float, 2>(bufView));
     }
@@ -203,7 +211,10 @@ public:
     mAlgorithm = DataSet(0);
     return OK();
   }
-  MessageResult<string> print() { return "DataSet "+get<kName>()+": "+mAlgorithm.print(); }
+  MessageResult<string> print()
+  {
+    return "DataSet " + get<kName>() + ": " + mAlgorithm.print();
+  }
 
   const DataSet getDataSet() const { return mAlgorithm; }
   void          setDataSet(DataSet ds) { mAlgorithm = ds; }
@@ -231,7 +242,6 @@ public:
   }
 
 private:
-
   LabelSet getIdsLabelSet()
   {
     algorithm::DataSetIdSequence seq("", 0, 0);

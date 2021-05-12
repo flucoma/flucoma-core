@@ -71,7 +71,7 @@ public:
 
   void reset()
   {
-    mMsg = std::stringstream(); 
+    mMsg = std::stringstream();
     mStatus = Status::kOk;
   }
 
