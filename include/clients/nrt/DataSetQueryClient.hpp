@@ -34,8 +34,6 @@ public:
   }
 
   using ParamDescType = decltype(DataSetQueryParams);
-  ;
-
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   std::reference_wrapper<ParamSetViewType> mParams;
 

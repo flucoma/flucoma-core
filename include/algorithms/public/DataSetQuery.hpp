@@ -87,7 +87,7 @@ public:
   {
     auto data = input.getData();
     auto ids = input.getIds();
-    mTmpPoint = RealVector(current.pointSize() + mColumns.size());
+    mTmpPoint = RealVector(asUnsigned(current.pointSize()) + mColumns.size());
     index limit = mLimit == 0 ? input.size() : mLimit;
     index count = 0;
     for (index i = 0; i < input.size() && count < limit; i++)
