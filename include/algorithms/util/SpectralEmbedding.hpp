@@ -37,7 +37,7 @@ public:
     SparseMatrixXd I = SparseMatrixXd(D.rows(), D.cols());
     I.setIdentity();
     SparseMatrixXd           L = I - (D * (graph * D));
-    int                      k = dims + 1;
+    int                      k = static_cast<int>(dims + 1);
     index                    ncv = max(2 * k + 1, int(round(sqrt(L.rows()))));
     VectorXd                 initV = VectorXd::Ones(L.rows());
     SparseSymMatProd<double> op(L);

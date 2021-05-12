@@ -311,8 +311,8 @@ private:
   {
     index p = 0;
     traverseGraph(graph, [&](auto it) {
-      rowIndices(p) = it.row();
-      colIndices(p) = it.col();
+      rowIndices(p) = static_cast<int>(it.row());
+      colIndices(p) = static_cast<int>(it.col());
       p++;
     });
   }
@@ -365,7 +365,7 @@ private:
         current += grad * alpha;
         if (updateReference) other += -grad * alpha;
         nextEpoch(j) += epochsPerSample(j);
-        size_t numNegative = static_cast<size_t>((i - nextNegEpoch(j)) /
+        index numNegative = static_cast<index>((i - nextNegEpoch(j)) /
                                                  epochsPerNegativeSample(j));
         for (index k = 0; k < numNegative; k++)
         {
