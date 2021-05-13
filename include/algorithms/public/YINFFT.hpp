@@ -48,7 +48,7 @@ public:
       tmpSum += yin(i);
       yin(i) *= i / tmpSum;
     }
-    double pitch = sampleRate / minFreq;
+    double pitch = 0;
     double pitchConfidence = 0;
     if (tmpSum > 0)
     {
