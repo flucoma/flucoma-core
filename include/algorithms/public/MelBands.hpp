@@ -83,7 +83,7 @@ public:
       result = result * energy / std::max(epsilon, result.sum());
     }
 
-    if (logOutput) result = 10 * result.max(epsilon).log10();
+    if (logOutput) result = 20 * result.max(epsilon).log10();
     out = _impl::asFluid(result);
   }
 
