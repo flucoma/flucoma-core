@@ -69,7 +69,7 @@ public:
     double flatness = exp(amp.log().mean()) / amp.mean();
     double rolloff = maxBin - 1;
     double cumSum = 0;
-    double target = rolloffTarget * ampSum;
+    double target = ampSum * rolloffTarget / 100.0;
     for (index i = 0; cumSum <= target && i < amp.size(); i++)
     {
       cumSum += amp(i);

@@ -39,7 +39,7 @@ enum SpectralShapeParamIndex {
 constexpr auto SpectralShapeParams = defineParameters(
     FloatParam("minFreq", "Low Frequency Bound", 0, Min(0)),
     FloatParam("maxFreq", "High Frequency Bound", -1, Min(-1)),
-    FloatParam("rolloffPercent", "Rolloff Percent", 0.95, Min(0), Max(1)),
+    FloatParam("rolloffPercent", "Rolloff Percent", 95, Min(0), Max(100)),
     EnumParam("unit", "Frequency Unit", 0, "Hz", "Midi Cents"),
     EnumParam("power", "Use Power", 0, "No", "Yes"),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
