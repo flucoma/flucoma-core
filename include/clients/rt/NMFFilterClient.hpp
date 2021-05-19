@@ -57,6 +57,8 @@ public:
   {
     audioChannelsIn(1);
     audioChannelsOut(get<kMaxRank>());
+    setInputLabels({"audio input"});
+    setOutputLabels({"filtered input"});
   }
 
   index latency() { return get<kFFT>().winSize(); }

@@ -77,6 +77,8 @@ public:
   {
     audioChannelsIn(1);
     controlChannelsOut(2);
+    setInputLabels({"audio input"});
+    setOutputLabels({"pitch (hz or MIDI), pitch confidence (0-1)"});
     mDescriptors = FluidTensor<double, 1>(2);
   }
 

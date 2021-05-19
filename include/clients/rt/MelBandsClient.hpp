@@ -73,6 +73,8 @@ public:
     mBands = FluidTensor<double, 1>(get<kNBands>());
     audioChannelsIn(1);
     controlChannelsOut(get<kMaxNBands>());
+    setInputLabels({"audio in"});
+    setOutputLabels({"mel band energies"}); 
   }
 
   template <typename T>

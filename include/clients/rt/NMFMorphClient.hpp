@@ -65,6 +65,7 @@ public:
   {
     audioChannelsIn(0);
     audioChannelsOut(1);
+    setOutputLabels({"morphed signal"});
   }
 
   index latency() { return get<kFFT>().winSize(); }
