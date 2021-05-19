@@ -70,7 +70,7 @@ public:
       0, typename std::tuple_element<N, DescriptorType>::type>::type;
 
   // clang < 3.7: index_sequence_for doesn't work here
-  using IndexList = std::make_index_sequence<sizeof...(Ts)>; 
+  using IndexList = std::make_index_sequence<sizeof...(Ts)>;
   using FixedIndexList =
       typename impl::FilterTupleIndices<IsFixed, DescriptorType,
                                         IndexList>::type;
@@ -213,19 +213,18 @@ protected:
 
 public:
   constexpr ParameterSetView(const DescriptorSetType& d, ValueRefTuple t)
-      : mDescriptors{d},
-        mKeepConstrained(false),
-        mParams{t}
+      : mDescriptors{d}, mKeepConstrained(false), mParams{t}
   {}
 
   ParameterSetView(ParameterSetView&& x)
-    : mDescriptors{std::move(x.mDescriptors)},mKeepConstrained{x.mKeepConstrained},  mParams{std::move(x.mParams)}
+      : mDescriptors{std::move(x.mDescriptors)},
+        mKeepConstrained{x.mKeepConstrained}, mParams{std::move(x.mParams)}
   {}
-  
+
   ParameterSetView& operator=(ParameterSetView&& x)
   {
 
-    mDescriptors =  x.mDescriptors;
+    mDescriptors = x.mDescriptors;
     mKeepConstrained = x.mKeepConstrained;
     mParams = x.mParams;
     return *this;
@@ -243,19 +242,20 @@ public:
 
   std::array<Result, sizeof...(Ts)> constrainParameterValues()
   {
-    return constrainParameterValuesImpl(IndexList(),IndexList());
+    return constrainParameterValuesImpl(IndexList(), IndexList());
   }
 
   void constrainParameterValuesRT(std::array<Result, sizeof...(Ts)>* results)
   {
-    return constrainParameterValuesRTImpl(results,IndexList(),IndexList());
+    return constrainParameterValuesRTImpl(results, IndexList(), IndexList());
   }
 
   template <template <size_t N, typename T> class Func, typename... Args>
-  void setParameterValuesRT(std::array<Result, sizeof...(Ts)>* reportage, Args&&... args)
+  void setParameterValuesRT(std::array<Result, sizeof...(Ts)>* reportage,
+                            Args&&... args)
   {
     setParameterValuesRTImpl<Func>(IndexList(), reportage,
-                                        std::forward<Args>(args)...);
+                                   std::forward<Args>(args)...);
   }
 
 
@@ -268,17 +268,18 @@ public:
   }
 
   template <template <size_t N, typename T> class Func, typename... Args>
-  std::array<Result, FixedIndexList::size()> setFixedParameterValues(bool reportage,
-                                                            Args&&... args)
+  std::array<Result, FixedIndexList::size()>
+  setFixedParameterValues(bool reportage, Args&&... args)
   {
     setParameterValuesImpl<Func>(FixedIndexList(), reportage,
-                                            std::forward<Args>(args)...);
-    return constrainParameterValuesImpl(std::make_index_sequence<FixedIndexList::size()>(),FixedIndexList());
+                                 std::forward<Args>(args)...);
+    return constrainParameterValuesImpl(
+        std::make_index_sequence<FixedIndexList::size()>(), FixedIndexList());
   }
 
   template <template <size_t N, typename T> class Func, typename... Args>
-  std::array<Result, MutableIndexList::size()> setMutableParameterValues(bool reportage,
-                                                              Args&&... args)
+  std::array<Result, MutableIndexList::size()>
+  setMutableParameterValues(bool reportage, Args&&... args)
   {
     return setParameterValuesImpl<Func>(MutableIndexList(), reportage,
                                         std::forward<Args>(args)...);
@@ -309,8 +310,8 @@ public:
     auto&       param = std::get<N>(mParams);
     const index offset = std::get<N>(std::make_tuple(Os...));
     param.get() = mKeepConstrained
-                ? constrain<offset, N, kAll>(x, constraints, reportage)
-                : x;
+                      ? constrain<offset, N, kAll>(x, constraints, reportage)
+                      : x;
   }
 
   template <std::size_t N>
@@ -339,11 +340,12 @@ public:
   void removeListener(void*)
   {} // no-op for non-shared parameter set?
 
-  template<size_t N> 
+  template <size_t N>
   auto descriptorAt()
   {
-     return descriptor<N>(); 
+    return descriptor<N>();
   }
+
 private:
   template <typename T>
   struct IsParamType
@@ -379,11 +381,12 @@ private:
         (Func<Is, ParamType<Is>>()(get<Is>(), std::forward<Args>(args)...),
          0)...};
   }
-  
+
   template <template <size_t, typename> class Func, typename... Args,
             size_t... Is>
-  void setParameterValuesRTImpl(std::index_sequence<Is...>, std::array<Result, sizeof...(Ts)>* reportage,
-                              Args&&... args)
+  void setParameterValuesRTImpl(std::index_sequence<Is...>,
+                                std::array<Result, sizeof...(Ts)>* reportage,
+                                Args&&... args)
   {
 
     (void) std::initializer_list<int>{
@@ -422,7 +425,7 @@ private:
   {
     using CT = std::tuple<Constraints...>;
     // clang < 3.7: index_sequence_for doesn't work here
-    using Idx = std::make_index_sequence<sizeof...(Constraints)>; 
+    using Idx = std::make_index_sequence<sizeof...(Constraints)>;
     switch (C)
     {
       // case kAll: return constrainImpl<Offset, N>(thisParam, c, Idx(), r);
@@ -451,57 +454,64 @@ private:
     return res;
   }
 
-  template <size_t...Cs, size_t... Is>
-  auto constrainParameterValuesImpl(std::index_sequence<Is...>,std::index_sequence<Cs...>)
+  template <size_t... Cs, size_t... Is>
+  auto constrainParameterValuesImpl(std::index_sequence<Is...>,
+                                    std::index_sequence<Cs...>)
   {
     std::array<Result, sizeof...(Is)> results;
 
     constexpr auto OffsetsTuple = std::make_tuple(Os...);
-    
+
 
     (void) std::initializer_list<int>{
-        (paramValue<Cs>(mParams) = constrain<std::get<Cs>(OffsetsTuple), Cs, kNonRelational>(
-             paramValue<Cs>(mParams), constraint<Cs>(), &std::get<Is>(results)),
+        (paramValue<Cs>(mParams) =
+             constrain<std::get<Cs>(OffsetsTuple), Cs, kNonRelational>(
+                 paramValue<Cs>(mParams), constraint<Cs>(),
+                 &std::get<Is>(results)),
          0)...};
     (void) std::initializer_list<int>{
-        (paramValue<Cs>(mParams) = constrain<std::get<Cs>(OffsetsTuple), Cs, kRelational>(
-             paramValue<Cs>(mParams), constraint<Cs>(), &std::get<Is>(results)),
+        (paramValue<Cs>(mParams) =
+             constrain<std::get<Cs>(OffsetsTuple), Cs, kRelational>(
+                 paramValue<Cs>(mParams), constraint<Cs>(),
+                 &std::get<Is>(results)),
          0)...};
 
     return results;
   }
-  
-  template <size_t...Cs, size_t... Is>
-  void constrainParameterValuesRTImpl(std::array<Result, sizeof...(Is)>* results, std::index_sequence<Is...>,std::index_sequence<Cs...>)
+
+  template <size_t... Cs, size_t... Is>
+  void
+  constrainParameterValuesRTImpl(std::array<Result, sizeof...(Is)>* results,
+                                 std::index_sequence<Is...>,
+                                 std::index_sequence<Cs...>)
   {
     constexpr auto OffsetsTuple = std::make_tuple(Os...);
-    
+
     (void) std::initializer_list<int>{
-        (paramValue<Cs>(mParams) = constrain<std::get<Cs>(OffsetsTuple), Cs, kNonRelational>(
-             paramValue<Cs>(mParams), constraint<Cs>(), results ? results->data() + Is : nullptr),
+        (paramValue<Cs>(mParams) =
+             constrain<std::get<Cs>(OffsetsTuple), Cs, kNonRelational>(
+                 paramValue<Cs>(mParams), constraint<Cs>(),
+                 results ? results->data() + Is : nullptr),
          0)...};
     (void) std::initializer_list<int>{
-        (paramValue<Cs>(mParams) = constrain<std::get<Cs>(OffsetsTuple), Cs, kRelational>(
-             paramValue<Cs>(mParams), constraint<Cs>(), results ? results->data() + Is: nullptr),
+        (paramValue<Cs>(mParams) =
+             constrain<std::get<Cs>(OffsetsTuple), Cs, kRelational>(
+                 paramValue<Cs>(mParams), constraint<Cs>(),
+                 results ? results->data() + Is : nullptr),
          0)...};
   }
 
 protected:
-
-  void refs(ValueTuple& p)
-  { 
-    refsImpl(p, IndexList()); 
-  }
+  void refs(ValueTuple& p) { refsImpl(p, IndexList()); }
 
   std::reference_wrapper<const DescriptorSetType> mDescriptors;
   bool                                            mKeepConstrained;
 
 private:
-
-  template<size_t...Is> 
+  template <size_t... Is>
   void refsImpl(ValueTuple& p, std::index_sequence<Is...>)
-  { 
-      mParams = ValueRefTuple{std::get<Is>(p)...}; 
+  {
+    mParams = ValueRefTuple{std::get<Is>(p)...};
   }
 
   ValueRefTuple mParams;
@@ -550,9 +560,9 @@ public:
   }
 
   // Move construct /assign
-  ParameterSet(ParameterSet&& x)noexcept
-            :ViewType{x.mDescriptors.get(), createRefTuple(IndexList())},
-             mParams{std::move(x.mParams)}
+  ParameterSet(ParameterSet&& x) noexcept
+      : ViewType{x.mDescriptors.get(), createRefTuple(IndexList())},
+        mParams{std::move(x.mParams)}
   {
     ViewType::refs(mParams);
   }
@@ -560,15 +570,14 @@ public:
   ParameterSet& operator=(ParameterSet&& x) noexcept
   {
     ViewType::operator=(std::move(x));
-    mParams =  std::move(x.mParams);
+    mParams = std::move(x.mParams);
     ViewType::refs(mParams);
     return *this;
   }
 
 private:
   template <size_t... Is>
-  auto create(const DescriptorSetType& d,
-                        std::index_sequence<Is...>) const
+  auto create(const DescriptorSetType& d, std::index_sequence<Is...>) const
   {
     return std::make_tuple(d.template makeValue<Is>()...);
   }

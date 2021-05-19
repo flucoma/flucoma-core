@@ -1,20 +1,30 @@
+/*
+Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See license.md file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
+
 #pragma once
 
-#include "data/FluidDataSet.hpp"
 #include "FluidSharedInstanceAdaptor.hpp"
+#include "../common/FluidBaseClient.hpp"
+#include "../common/FluidNRTClientWrapper.hpp"
+#include "../common/MessageSet.hpp"
+#include "../common/OfflineClient.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../common/ParameterTypes.hpp"
+#include "../common/Result.hpp"
 #include "../common/SharedClientUtils.hpp"
-#include <clients/common/FluidBaseClient.hpp>
-#include <clients/common/MessageSet.hpp>
-#include <clients/common/OfflineClient.hpp>
-#include <clients/common/ParameterSet.hpp>
-#include <clients/common/ParameterTypes.hpp>
-#include <clients/common/Result.hpp>
-#include <clients/common/FluidNRTClientWrapper.hpp>
-#include <data/FluidTensor.hpp>
-#include <data/TensorTypes.hpp>
+#include "../../data/FluidDataSet.hpp"
+#include "../../data/FluidTensor.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <memory>
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 
 namespace fluid {
 namespace client {
@@ -26,12 +36,14 @@ constexpr auto ProviderTestParams =
     defineParameters(StringParam<Fixed<true>>("name", "Provider name"),
                      LongParam("dummy", "Checking Attrui Updates", 0));
 
-class ProviderTestClient : public FluidBaseClient,public OfflineIn, public OfflineOut
+class ProviderTestClient : public FluidBaseClient,
+                           public OfflineIn,
+                           public OfflineOut
 {
   using string = std::string;
 
 public:
-  //external messages omitted
+  // external messages omitted
 
   struct Entry
   {
@@ -52,38 +64,45 @@ public:
     return mParams.get().template get<N>();
   }
 
-  static constexpr auto& getParameterDescriptors() { return ProviderTestParams; }
+  static constexpr auto& getParameterDescriptors()
+  {
+    return ProviderTestParams;
+  }
 
   using ProviderDataSet = FluidDataSet<string, Entry, 1>;
 
-  ProviderTestClient(ParamSetViewType &p):mParams(p), mTmp(1){}
+  ProviderTestClient(ParamSetViewType& p) : mParams(p), mTmp(1) {}
 
   template <typename T>
-  Result process(FluidContext&) { return {}; }
+  Result process(FluidContext&)
+  {
+    return {};
+  }
 
   std::string name() const { return get<kName>(); }
 
-  MessageResult<void> addPoint(string label, intptr_t offset,intptr_t length)
+  MessageResult<void> addPoint(string label, intptr_t offset, intptr_t length)
   {
-    mTmp.row(0) = Entry{offset,length};
-    return mData.add(label,mTmp)
-               ? MessageResult<void>{Result::Status::kOk}
-               : MessageResult<void>{Result::Status::kError, "Label already exists"};
+    mTmp.row(0) = Entry{offset, length};
+    return mData.add(label, mTmp) ? MessageResult<void>{Result::Status::kOk}
+                                  : MessageResult<void>{Result::Status::kError,
+                                                        "Label already exists"};
   }
 
   MessageResult<Entry> getPoint(string label) const
   {
-      FluidTensor<Entry, 1> data(1);
-      bool  result = mData.get(label, data);
-      if(result)
-        return {data.row(0)};
-      else
-        return {Result::Status::kError,"Couldn't retreive data"};
+    FluidTensor<Entry, 1> data(1);
+    bool                  result = mData.get(label, data);
+    if (result)
+      return {data.row(0)};
+    else
+      return {Result::Status::kError, "Couldn't retreive data"};
   }
 
-  MessageResult<void> updatePoint(string label,intptr_t offset,intptr_t length)
+  MessageResult<void> updatePoint(string label, intptr_t offset,
+                                  intptr_t length)
   {
-   mTmp.row(0) = Entry{offset,length};
+    mTmp.row(0) = Entry{offset, length};
     return mData.update(label, mTmp)
                ? MessageResult<void>{Result::Status::kOk}
                : MessageResult<void>{Result::Status::kError, "Point not found"};
@@ -106,13 +125,15 @@ public:
 
 private:
   mutable ProviderDataSet mData{1};
-  FluidTensor<Entry,1> mTmp;
+  FluidTensor<Entry, 1>   mTmp;
 };
 } // namespace providertest
 
-//this alias is what is used by subscribing clients, and is all that's needed to make a client a provider
+// this alias is what is used by subscribing clients, and is all that's needed
+// to make a client a provider
 using ProviderTestClientRef = SharedClientRef<providertest::ProviderTestClient>;
-using NRTThreadedProviderTest = NRTThreadingAdaptor<typename ProviderTestClientRef::SharedType>;
+using NRTThreadedProviderTest =
+    NRTThreadingAdaptor<typename ProviderTestClientRef::SharedType>;
 
 } // namespace client
 } // namespace fluid

@@ -11,12 +11,12 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #include "../../data/FluidIndex.hpp"
 #include "../../data/FluidTensor.hpp"
-#include <functional>
 #include <cassert>
+#include <functional>
 
 namespace fluid {
 
-///An output buffer, with overlap-add
+/// An output buffer, with overlap-add
 template <typename T>
 class FluidSink
 {
@@ -45,7 +45,7 @@ public:
   /// already there
   void push(View x, index frameTime)
   {
-    
+
     assert(x.rows() == mChannels);
 
     index blocksize = x.cols();
@@ -66,7 +66,7 @@ public:
     addIn(x(Slice(0), Slice(size, blocksize - size)), 0, blocksize - size);
   }
 
-  ///Copy data from the buffer, and zero where it was
+  /// Copy data from the buffer, and zero where it was
   template <typename U>
   void pull(FluidTensorView<U, 2> out)
   {
@@ -84,18 +84,16 @@ public:
     doPull(out, blocksize);
   }
 
-   /// Reset the buffer, resizing if the host buffer size
-   /// or user buffer size have changed.
+  /// Reset the buffer, resizing if the host buffer size
+  /// or user buffer size have changed.
   void reset(index channels = 0)
   {
     if (channels) mChannels = channels;
 
     if (matrix.cols() != bufferSize() || matrix.rows() != channels)
-    {
-      matrix.resize(mChannels, bufferSize());
-    }
+    { matrix.resize(mChannels, bufferSize()); }
     matrix.fill(0);
-    mCounter = 0;  
+    mCounter = 0;
   }
 
   void setSize(index n) { mSize = n; }
@@ -117,16 +115,15 @@ private:
     }
   }
 
-  template<typename U>
+  template <typename U>
   void doPull(U& container, index blocksize)
   {
-      index offset = mCounter;
-      index size = offset + blocksize > bufferSize()
-                                      ? bufferSize() - offset
-                                      : blocksize;
-      index overspill =  blocksize - size;
-    
-      fillContainer(container, offset, size, overspill);
+    index offset = mCounter;
+    index size =
+        offset + blocksize > bufferSize() ? bufferSize() - offset : blocksize;
+    index overspill = blocksize - size;
+
+    fillContainer(container, offset, size, overspill);
   }
 
   template <typename U>
@@ -149,8 +146,8 @@ private:
                  overspill, i, i == mChannels - 1);
   }
 
-  template<typename U, typename Chans>
-  void outAndZero(FluidTensorView<U,2> out, index offset, index size,
+  template <typename U, typename Chans>
+  void outAndZero(FluidTensorView<U, 2> out, index offset, index size,
                   Chans chans, bool incrementTime = true)
   {
     if (size)

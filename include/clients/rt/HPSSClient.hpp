@@ -109,9 +109,7 @@ public:
     index nBins = get<kFFT>().frameSize();
 
     if (!mHPSS.initialized() || mTrackChanges.changed(nBins, get<kHSize>()))
-    {
-      mHPSS.init(nBins, get<kHSize>());
-    }
+    { mHPSS.init(nBins, get<kHSize>()); }
 
     mSTFTBufferedProcess.process(
         mParams, input, output, c,

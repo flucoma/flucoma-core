@@ -49,7 +49,7 @@ public:
     FluidTensorView<const float, 2> allFrames() const
     {
       assert(mAdaptor);
-      return mAdaptor->allFrames(); 
+      return mAdaptor->allFrames();
     }
 
     FluidTensorView<const float, 1> samps(index channel) const
@@ -93,7 +93,7 @@ public:
     Access& operator=(const Access&) = delete;
     Access(Access&&) noexcept = default;
     Access& operator=(Access&&) noexcept = default;
-    
+
     FluidTensorView<float, 2> allFrames()
     {
       assert(mMutableAdaptor);
@@ -130,12 +130,12 @@ public:
     BufferAdaptor* mMutableAdaptor;
   };
 
-  
+
   BufferAdaptor() = default;
 
   BufferAdaptor(BufferAdaptor&& rhs) noexcept = default;
   BufferAdaptor& operator=(BufferAdaptor&& rhs) noexcept = default;
-  
+
   virtual ~BufferAdaptor()
   {
     //      destroy();
@@ -156,14 +156,14 @@ private:
   virtual FluidTensorView<const float, 1> samps(index channel) const = 0;
   virtual FluidTensorView<const float, 1> samps(index offset, index nframes,
                                                 index chanoffset) const = 0;
-  
-  virtual FluidTensorView<float,2>        allFrames() = 0;
-  virtual FluidTensorView<const float,2>  allFrames() const = 0;
-  
-  virtual index                           numFrames() const = 0;
-  virtual index                           numChans() const = 0;
-  virtual double                          sampleRate() const = 0;
-  virtual void                            refresh(){};
+
+  virtual FluidTensorView<float, 2>       allFrames() = 0;
+  virtual FluidTensorView<const float, 2> allFrames() const = 0;
+
+  virtual index        numFrames() const = 0;
+  virtual index        numChans() const = 0;
+  virtual double       sampleRate() const = 0;
+  virtual void         refresh(){};
   friend std::ostream& operator<<(std::ostream& os, const BufferAdaptor* b);
 };
 

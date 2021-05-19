@@ -23,7 +23,7 @@ namespace fluid {
 namespace client {
 namespace bufflatten {
 
-enum { kSource, kOffset, kNumFrames,kStartChan,kNumChans, kDest, kAxis };
+enum { kSource, kOffset, kNumFrames, kStartChan, kNumChans, kDest, kAxis };
 
 constexpr auto BufFlattenParams =
     defineParameters(InputBufferParam("source", "Source Buffer"),
@@ -61,24 +61,21 @@ public:
   {
 
     if (!get<kSource>().get())
-    {
-      return {Result::Status::kError, "No source buffer "};
-    }
+    { return {Result::Status::kError, "No source buffer "}; }
     if (!get<kDest>().get())
-    {
-      return {Result::Status::kError, "No destination buffer"};
-    }
+    { return {Result::Status::kError, "No destination buffer"}; }
 
-    auto srcptr = get<kSource>().get();
-    index startFrame = get<kOffset>(); 
-    index axis = get<kAxis>(); 
-    index numFrames =  get<kNumFrames>(); 
-    index numChans =   get<kNumChans>(); 
+    auto  srcptr = get<kSource>().get();
+    index startFrame = get<kOffset>();
+    index axis = get<kAxis>();
+    index numFrames = get<kNumFrames>();
+    index numChans = get<kNumChans>();
     index startChan = get<kStartChan>();
 
-    Result rangecheck = bufferRangeCheck(srcptr, startFrame, numFrames, startChan, numChans);
-    
-    if(!rangecheck.ok()) return rangecheck;
+    Result rangecheck =
+        bufferRangeCheck(srcptr, startFrame, numFrames, startChan, numChans);
+
+    if (!rangecheck.ok()) return rangecheck;
 
     BufferAdaptor::ReadAccess source(srcptr);
     BufferAdaptor::Access     destination(get<kDest>().get());
@@ -90,16 +87,16 @@ public:
       return {Result::Status::kError,
               "Destination Buffer Not Found or Invalid"};
 
-    auto resizeResult = destination.resize(
-        numFrames * numChans, 1, source.sampleRate());
+    auto resizeResult =
+        destination.resize(numFrames * numChans, 1, source.sampleRate());
 
     if (!resizeResult.ok()) return resizeResult;
 
-    auto frames = source.allFrames()(Slice(startChan, numChans),Slice(startFrame, numFrames));
-    
+    auto frames = source.allFrames()(Slice(startChan, numChans),
+                                     Slice(startFrame, numFrames));
+
     if (get<kAxis>() == 0)
-      std::copy(frames.begin(), frames.end(),
-                destination.allFrames().begin());
+      std::copy(frames.begin(), frames.end(), destination.allFrames().begin());
     else
       std::copy(frames.transpose().begin(), frames.transpose().end(),
                 destination.allFrames().begin());

@@ -11,8 +11,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "../util/FluidEigenMappings.hpp"
-#include "../../data/TensorTypes.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 
 namespace fluid {
@@ -28,7 +28,7 @@ public:
   {
     using namespace Eigen;
     using namespace std;
-    
+
     ArrayXd::Index maxIndex;
 
     ArrayXd mag = _impl::asEigen<Array>(input);
@@ -37,8 +37,9 @@ public:
     double  binHz = sampleRate / ((nBins - 1) * 2);
     index   minBin = lrint(minFreq / binHz);
     index   maxBin = lrint(maxFreq / binHz);
-    double  f0 = minBin * binHz;
+    double  f0 = 0;
     double  confidence = 0;
+    double hpsSum = 0;
 
     for (index i = 2; i < nHarmonics; i++)
     {
@@ -49,13 +50,13 @@ public:
       hp.segment(0, hBins) = h;
       hps = hps * hp;
     }
+    hpsSum = hps.sum();
 
-    if (maxBin > minBin)
+    if (maxBin > minBin &&  hpsSum > 0)
     {
       hps = hps.segment(minBin, maxBin - minBin);
       double maxVal = hps.maxCoeff(&maxIndex);
-      double sum = hps.sum();
-      confidence = sum == 0 ? 0 : maxVal / sum;
+      confidence = maxVal / hpsSum;
       f0 = (minBin + maxIndex) * binHz;
     }
     output(0) = f0;

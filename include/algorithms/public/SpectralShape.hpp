@@ -26,38 +26,62 @@ class SpectralShape
   using ArrayXd = Eigen::ArrayXd;
 
 public:
-  SpectralShape(index maxFrame) : mMagBuffer(maxFrame) {}
+  SpectralShape() {}
 
-  void processFrame(Eigen::Ref<ArrayXd> in)
+  void processFrame(Eigen::Ref<ArrayXd> in, double sampleRate, double minFreq,
+                    double maxFreq, double rolloffTarget, bool logFreq,
+                    bool usePower)
   {
     using namespace std;
-    double const epsilon = std::numeric_limits<double>::epsilon();
-
-    ArrayXd x = in.max(epsilon);
-    index   size = x.size();
-    double  xSum = x.sum();
-    ArrayXd xSquare = x.square();
-    ArrayXd lin = ArrayXd::LinSpaced(size, 0, size - 1);
-    double  centroid = (x * lin).sum() / xSum;
-    double  spread = (x * (lin - centroid).square()).sum() / xSum;
-    double  skewness =
-        (x * (lin - centroid).pow(3)).sum() / (spread * sqrt(spread) * xSum);
-    double kurtosis =
-        (x * (lin - centroid).pow(4)).sum() / (spread * spread * xSum);
-    double flatness = exp(x.log().mean()) / x.mean();
-    double rolloff = size - 1;
-    double cumSum = 0;
-    double target = 0.95 * xSquare.sum();
-    for (index i = 0; cumSum <= target && i < size; i++)
+    maxFreq = (maxFreq == -1) ? (sampleRate / 2) : min(maxFreq, sampleRate / 2);
+    ArrayXd mag = in.max(epsilon);
+    index   nBins = mag.size();
+    double  binHz = sampleRate / ((nBins - 1) * 2.);
+    index   minBin = ceil(minFreq / binHz);
+    index   maxBin =
+        min(static_cast<index>(floorl(maxFreq / binHz)), (nBins - 1));
+    if (maxBin <= minBin)
     {
-      cumSum += xSquare(i);
-      if (cumSum > target)
+      mOutputBuffer.setZero();
+      return;
+    }
+
+    if (logFreq && minBin == 0)
+    {
+      minBin = 1;
+      mag(1) += mag(0);
+    }
+    ArrayXd amp = usePower ? mag.square() : mag;
+    amp = amp.segment(minBin, maxBin - minBin);
+    double  ampSum = amp.sum();
+    ArrayXd freqs =
+        ArrayXd::LinSpaced(maxBin - minBin, minBin * binHz, maxBin * binHz);
+    if (logFreq)
+    { freqs = 69 + (12 * (freqs / 440).log() * log2E); } // MIDI cents
+
+    double centroid = (amp * freqs).sum() / ampSum;
+    double spread = (amp * (freqs - centroid).square()).sum() / ampSum;
+    double skewness = (amp * (freqs - centroid).pow(3)).sum() /
+                      (spread * sqrt(spread) * ampSum);
+    double kurtosis =
+        (amp * (freqs - centroid).pow(4)).sum() / (spread * spread * ampSum);
+
+    double flatness = exp(amp.log().mean()) / amp.mean();
+    double rolloff = maxBin - 1;
+    double cumSum = 0;
+    double target = rolloffTarget * ampSum;
+    for (index i = 0; cumSum <= target && i < amp.size(); i++)
+    {
+      cumSum += amp(i);
+      if (cumSum >= target)
       {
-        rolloff = i - (cumSum - target) / xSquare(i);
+        rolloff = (i == 0) ? freqs(i)
+                           : freqs(i) - (freqs(i) - freqs(i - 1)) *
+                                            (cumSum - target) / amp(i);
         break;
       }
     }
-    double crest = x.maxCoeff() / sqrt(x.square().mean());
+    double crest = amp.maxCoeff() / amp.mean();
 
     mOutputBuffer(0) = centroid;
     mOutputBuffer(1) = sqrt(spread);
@@ -68,16 +92,19 @@ public:
     mOutputBuffer(6) = 20 * log10(max(crest, epsilon));
   }
 
-  void processFrame(const RealVector& input, RealVectorView output)
+  void processFrame(const RealVector& input, RealVectorView output,
+                    double sampleRate, double minFreq = 0, double maxFreq = -1,
+                    double rolloffTarget = 0.95, bool logFreq = false,
+                    bool usePower = false)
   {
-    assert(output.size() == 7); // TODO
+    assert(output.size() == 7);
     ArrayXd in = _impl::asEigen<Eigen::Array>(input);
-    processFrame(in);
+    processFrame(in, sampleRate, minFreq, maxFreq, rolloffTarget, logFreq,
+                 usePower);
     output = _impl::asFluid(mOutputBuffer);
   }
 
 private:
-  ArrayXd mMagBuffer;
   ArrayXd mOutputBuffer{7};
 };
 

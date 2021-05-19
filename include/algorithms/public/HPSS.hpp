@@ -68,9 +68,9 @@ public:
     using namespace Eigen;
     assert(mInitialized);
 
-    index h2 = (hSize - 1) / 2;
-    index v2 = (vSize - 1) / 2;
-    index nBins = in.size();
+    index    h2 = (hSize - 1) / 2;
+    index    v2 = (vSize - 1) / 2;
+    index    nBins = in.size();
     ArrayXcd frame = _impl::asEigen<Array>(in);
     ArrayXd  mag = frame.abs().real();
 

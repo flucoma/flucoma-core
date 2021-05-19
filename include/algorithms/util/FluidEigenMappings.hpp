@@ -77,9 +77,8 @@ auto asFluid(const PlainObjectBase<Derived>& a)
 }
 
 
-
-/// lvalue FluidTensor<T> / FluidTensorView<T> -> Matrix/Array<T> (say which as template param)
-/// e.g. asEigen<Matrix>(myView)
+/// lvalue FluidTensor<T> / FluidTensorView<T> -> Matrix/Array<T> (say which as
+/// template param) e.g. asEigen<Matrix>(myView)
 
 template <template <typename, int, int, int, int, int> class EigenType,
           typename T, size_t N>
@@ -132,10 +131,9 @@ auto asEigen(const FluidTensor<T, N>& a)
 /// lvalue FluidTensorView<T> ->  Matrix / Array
 template <template <typename, int, int, int, int, int> class EigenType,
           typename T, size_t N>
-auto asEigen(const FluidTensorView<T, N>& a)
-    -> Map<EigenType<std::decay_t<T>, Dynamic, Dynamic, RowMajor, Dynamic,
-                           Dynamic>,
-           Eigen::AlignmentType::Unaligned, Stride<Dynamic, Dynamic>>
+auto asEigen(const FluidTensorView<T, N>& a) -> Map<
+    EigenType<std::decay_t<T>, Dynamic, Dynamic, RowMajor, Dynamic, Dynamic>,
+    Eigen::AlignmentType::Unaligned, Stride<Dynamic, Dynamic>>
 {
   static_assert(N < 3,
                 "Can't convert to Eigen types with more than two dimensions");

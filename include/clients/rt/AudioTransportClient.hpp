@@ -1,14 +1,14 @@
 #pragma once
 
+#include "../common/AudioClient.hpp"
+#include "../common/BufferedProcess.hpp"
+#include "../common/FluidBaseClient.hpp"
+#include "../common/FluidNRTClientWrapper.hpp"
+#include "../common/ParameterConstraints.hpp"
+#include "../common/ParameterSet.hpp"
+#include "../common/ParameterTrackChanges.hpp"
+#include "../common/ParameterTypes.hpp"
 #include "../../algorithms/public/AudioTransport.hpp"
-#include "clients/common/BufferedProcess.hpp"
-#include "clients/common/FluidBaseClient.hpp"
-#include "clients/common/FluidNRTClientWrapper.hpp"
-#include "clients/common/ParameterConstraints.hpp"
-#include "clients/common/ParameterSet.hpp"
-#include "clients/common/ParameterTrackChanges.hpp"
-#include "clients/common/ParameterTypes.hpp"
-#include <clients/common/AudioClient.hpp>
 #include <tuple>
 
 namespace fluid {
@@ -25,7 +25,8 @@ constexpr auto AudioTransportParams = defineParameters(
 
 class AudioTransportClient : public FluidBaseClient,
                              public AudioIn,
-                             public AudioOut {
+                             public AudioOut
+{
 public:
   using ParamDescType = decltype(AudioTransportParams);
 
@@ -45,56 +46,58 @@ public:
     return AudioTransportParams;
   }
 
-  AudioTransportClient(ParamSetViewType &p)
+  AudioTransportClient(ParamSetViewType& p)
       : mParams{p}, mSTFTBufferedProcess{get<kMaxFFTSize>(), 2, 1},
-        mAlgorithm(get<kMaxFFTSize>()) {
+        mAlgorithm(get<kMaxFFTSize>())
+  {
     audioChannelsIn(2);
     audioChannelsOut(1);
   }
 
   template <typename T>
-  void process(std::vector<FluidTensorView<T, 1>> &input,
-               std::vector<FluidTensorView<T, 1>> &output, FluidContext &c) {
-    if (!input[0].data() || !input[1].data())
-      return;
+  void process(std::vector<FluidTensorView<T, 1>>& input,
+               std::vector<FluidTensorView<T, 1>>& output, FluidContext& c)
+  {
+    if (!input[0].data() || !input[1].data()) return;
     index hostVecSize = input[0].size();
 
     if (!mAlgorithm.initialized() ||
         mTracking.changed(get<kFFT>().winSize(), get<kFFT>().hopSize(),
-                          get<kFFT>().fftSize())) {
+                          get<kFFT>().fftSize()))
+    {
       mAlgorithm.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
                       get<kFFT>().hopSize());
-                      mBufferedProcess.hostSize(hostVecSize);
-      mBufferedProcess.maxSize(get<kFFT>().winSize(), get<kFFT>().winSize(), 2, 2);
+      mBufferedProcess.hostSize(hostVecSize);
+      mBufferedProcess.maxSize(get<kFFT>().winSize(), get<kFFT>().winSize(), 2,
+                               2);
     }
     RealMatrix in(2, input[0].size());
     in.row(0) = input[0];
     in.row(1) = input[1];
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.process(
-      get<kFFT>().winSize(), get<kFFT>().winSize(), get<kFFT>().hopSize(), c,
-      [&](RealMatrixView _in, RealMatrixView _out) {
-        mAlgorithm.processFrame(_in.row(0), _in.row(1),
-                                get<kInterpolation>(), _out);
-    });
+        get<kFFT>().winSize(), get<kFFT>().winSize(), get<kFFT>().hopSize(), c,
+        [&](RealMatrixView _in, RealMatrixView _out) {
+          mAlgorithm.processFrame(_in.row(0), _in.row(1), get<kInterpolation>(),
+                                  _out);
+        });
     RealMatrix out(2, hostVecSize);
     mBufferedProcess.pull(RealMatrixView(out));
     RealVectorView result = out.row(0);
     RealVectorView norm = out.row(1);
-    for(index i = 0; i < result.size(); i++){
-      result(i) /= (norm(i) > 0 ? norm(i) : 1);
-    }
+    for (index i = 0; i < result.size(); i++)
+    { result(i) /= (norm(i) > 0 ? norm(i) : 1); }
     if (output[0].data()) output[0] = result;
   }
 
   index latency() { return get<kFFT>().winSize(); }
-  void reset() { mSTFTBufferedProcess.reset(); }
+  void  reset() { mSTFTBufferedProcess.reset(); }
 
 private:
-  BufferedProcess mBufferedProcess;
+  BufferedProcess                             mBufferedProcess;
   STFTBufferedProcess<ParamSetViewType, kFFT> mSTFTBufferedProcess;
-  algorithm::AudioTransport mAlgorithm;
-  ParameterTrackChanges<index, index, index> mTracking;
+  algorithm::AudioTransport                   mAlgorithm;
+  ParameterTrackChanges<index, index, index>  mTracking;
 };
 } // namespace audiotransport
 

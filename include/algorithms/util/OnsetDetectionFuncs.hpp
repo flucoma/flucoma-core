@@ -47,7 +47,7 @@ public:
     return phase.unaryExpr([=](const double p) {
       return p > (-pi) && p > pi
                  ? p
-                 : p + (twoPi) * (1.0 + floor((-pi - p)  / twoPi));
+                 : p + (twoPi) * (1.0 + floor((-pi - p) / twoPi));
     });
   }
 

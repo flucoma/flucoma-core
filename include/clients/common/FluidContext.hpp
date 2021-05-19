@@ -9,8 +9,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 */
 #pragma once
 
-#include <clients/common/FluidTask.hpp>
-#include <clients/common/Result.hpp>
+#include "../common/FluidTask.hpp"
+#include "../common/Result.hpp"
 
 namespace fluid {
 namespace client {

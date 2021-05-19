@@ -88,7 +88,8 @@ public:
 
     index hostVecSize = input[0].size();
     index totalWindow = get<kFFT>().winSize();
-    if(get<kFunction>() > 1 && get<kFunction>() < 5)  totalWindow += get<kFrameDelta>();
+    if (get<kFunction>() > 1 && get<kFunction>() < 5)
+      totalWindow += get<kFrameDelta>();
     if (mBufferParamsTracker.changed(hostVecSize, get<kFFT>().winSize(),
                                      get<kFrameDelta>()))
     {
@@ -117,11 +118,8 @@ public:
     output[0] = out.row(0);
   }
 
-  index latency()
-  {
-      return static_cast<index>(get<kFFT>().hopSize());
-  }
-  
+  index latency() { return static_cast<index>(get<kFFT>().hopSize()); }
+
   void reset()
   {
     mBufferedProcess.reset();

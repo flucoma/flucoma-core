@@ -18,60 +18,60 @@ under the European Union’s Horizon 2020 research and innovation programme
 namespace fluid {
 namespace algorithm {
 
-class NNActivations {
+class NNActivations
+{
 
 public:
-
-  enum class Activation {
-    kLinear,
-    kSigmoid,
-    kReLU,
-    kTanh
-  };
+  enum class Activation { kLinear, kSigmoid, kReLU, kTanh };
 
   using ArrayXXd = Eigen::ArrayXXd;
   using ActivationsMap =
-      std::map<Activation,
-      std::function<void( Eigen::Ref<Eigen::ArrayXXd>, Eigen::Ref<Eigen::ArrayXXd>)>>;
+      std::map<Activation, std::function<void(Eigen::Ref<Eigen::ArrayXXd>,
+                                              Eigen::Ref<Eigen::ArrayXXd>)>>;
 
-  static ActivationsMap &activation() {
+  static ActivationsMap& activation()
+  {
     static ActivationsMap _funcs = {
-      {Activation::kLinear,
-      [](Eigen::Ref<Eigen::ArrayXXd> in, Eigen::Ref<Eigen::ArrayXXd> out) {
-          out = in; }},
+        {Activation::kLinear,
+         [](Eigen::Ref<Eigen::ArrayXXd> in, Eigen::Ref<Eigen::ArrayXXd> out) {
+           out = in;
+         }},
         {Activation::kSigmoid,
-        [](Eigen::Ref<Eigen::ArrayXXd> in, Eigen::Ref<Eigen::ArrayXXd> out) {
-            out = 1 / (1 + (-in).exp()); }},
+         [](Eigen::Ref<Eigen::ArrayXXd> in, Eigen::Ref<Eigen::ArrayXXd> out) {
+           out = 1 / (1 + (-in).exp());
+         }},
         {Activation::kReLU,
-        [](Eigen::Ref<Eigen::ArrayXXd> in, Eigen::Ref<Eigen::ArrayXXd> out) {
-            out = in.max(0); }},
-         {Activation::kTanh,
-        [](Eigen::Ref<Eigen::ArrayXXd> in, Eigen::Ref<Eigen::ArrayXXd> out) {
-             out = (in.exp() - (-in).exp()) / (in.exp() + (-in).exp()); }},
+         [](Eigen::Ref<Eigen::ArrayXXd> in, Eigen::Ref<Eigen::ArrayXXd> out) {
+           out = in.max(0);
+         }},
+        {Activation::kTanh,
+         [](Eigen::Ref<Eigen::ArrayXXd> in, Eigen::Ref<Eigen::ArrayXXd> out) {
+           out = (in.exp() - (-in).exp()) / (in.exp() + (-in).exp());
+         }},
     };
     return _funcs;
   }
 
   // derivative from output of activation
-  static ActivationsMap &derivative() {
+  static ActivationsMap& derivative()
+  {
     static ActivationsMap _funcs = {
-       {Activation::kLinear,
-        [](Eigen::Ref<Eigen::ArrayXXd> in, Eigen::Ref<Eigen::ArrayXXd> out) {
-         out = ArrayXXd::Ones(in.rows(), in.cols());
-        }},
+        {Activation::kLinear,
+         [](Eigen::Ref<Eigen::ArrayXXd> in, Eigen::Ref<Eigen::ArrayXXd> out) {
+           out = ArrayXXd::Ones(in.rows(), in.cols());
+         }},
         {Activation::kSigmoid,
          [](Eigen::Ref<Eigen::ArrayXXd> in, Eigen::Ref<Eigen::ArrayXXd> out) {
            out = in * (1 - in);
          }},
         {Activation::kReLU,
-         [](Eigen::Ref<Eigen::ArrayXXd> in, Eigen::Ref<Eigen::ArrayXXd> out){
+         [](Eigen::Ref<Eigen::ArrayXXd> in, Eigen::Ref<Eigen::ArrayXXd> out) {
            out = (in > 0).cast<double>();
          }},
-         {Activation::kTanh,
-          [](Eigen::Ref<Eigen::ArrayXXd> in, Eigen::Ref<Eigen::ArrayXXd> out) {
-            out = 1 - in.square();
-          }}
-    };
+        {Activation::kTanh,
+         [](Eigen::Ref<Eigen::ArrayXXd> in, Eigen::Ref<Eigen::ArrayXXd> out) {
+           out = 1 - in.square();
+         }}};
     return _funcs;
   }
 };

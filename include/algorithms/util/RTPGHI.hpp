@@ -25,13 +25,15 @@ under the European Union’s Horizon 2020 research and innovation programme
 namespace fluid {
 namespace algorithm {
 
-class RTPGHI {
+class RTPGHI
+{
 
 public:
   using ArrayXd = Eigen::ArrayXd;
   using ArrayXcd = Eigen::ArrayXcd;
 
-  void init(index fftSize) {
+  void init(index fftSize)
+  {
     mBins = fftSize / 2 + 1;
     mPrevMag = ArrayXd::Zero(mBins);
     mPrevLogMag = ArrayXd::Zero(mBins);
@@ -43,12 +45,13 @@ public:
   }
 
   void processFrame(RealVectorView in, ComplexVectorView out, index winSize,
-                    index fftSize, index hopSize, double tolerance) {
+                    index fftSize, index hopSize, double tolerance)
+  {
     using namespace Eigen;
     using namespace _impl;
     using namespace std;
     using namespace std::complex_literals;
-    double gamma = 0.25645 * pow(winSize, 2); // assumes Hann window
+    double  gamma = 0.25645 * pow(winSize, 2); // assumes Hann window
     ArrayXd mag = asEigen<Array>(in);
     ArrayXd logMag = mag.max(epsilon).log();
     ArrayXd futureLogMag = logMag;
@@ -62,25 +65,27 @@ public:
     double absTol =
         log(tolerance) + max(currentLogMag.maxCoeff(), prevLogMag.maxCoeff());
     ArrayXd todo = (currentLogMag > absTol).cast<double>();
-    index numTodo = todo.sum();
+    index   numTodo = todo.sum();
     ArrayXd phaseEst = pi + ArrayXd::Random(mBins) * pi;
 
     vector<pair<double, index>> heap;
 
-    for (index i = 0; i < mBins; i++) {
-      if (prevLogMag(i) > absTol)
-        heap.push_back({prevLogMag(i), i});
+    for (index i = 0; i < mBins; i++)
+    {
+      if (prevLogMag(i) > absTol) heap.push_back({prevLogMag(i), i});
     }
     make_heap(heap.begin(), heap.end());
 
-    while (numTodo > 0 && heap.size() > 0) {
+    while (numTodo > 0 && heap.size() > 0)
+    {
       pop_heap(heap.begin(), heap.end());
       index _m = heap.back().second;
       heap.pop_back();
 
       // use indices 0..mBins for prev frame
       // mBins ... 2 * mBins  for current frame
-      if (_m < mBins && todo[_m] > 0) {
+      if (_m < mBins && todo[_m] > 0)
+      {
         index m = _m;
         phaseEst[m] =
             mPrevPhase[m] + 0.5 * (phaseDeltaT[m] + mPrevPhaseDeltaT[m]);
@@ -88,9 +93,12 @@ public:
         push_heap(heap.begin(), heap.end());
         todo[m] = 0;
         numTodo--;
-      } else if (_m >= mBins) {
+      }
+      else if (_m >= mBins)
+      {
         index m = _m - mBins;
-        if (m < mBins - 1 && todo[m + 1] > 0) {
+        if (m < mBins - 1 && todo[m + 1] > 0)
+        {
           phaseEst[m + 1] =
               phaseEst[m] + 0.5 * (phaseDeltaF[m] + phaseDeltaF[m + 1]);
           heap.push_back({currentLogMag[m + 1], _m + 1});
@@ -98,7 +106,8 @@ public:
           todo[m + 1] = 0;
           numTodo--;
         }
-        if (m > 0 && todo[m - 1] > 0) {
+        if (m > 0 && todo[m - 1] > 0)
+        {
           phaseEst[m - 1] =
               phaseEst[m] - 0.5 * (phaseDeltaF[m] + phaseDeltaF[m - 1]);
           heap.push_back({currentLogMag[m - 1], _m - 1});
@@ -109,7 +118,8 @@ public:
       }
     }
 
-    ArrayXd finalPhase = phaseEst - ArrayXd::LinSpaced(mBins, 0, 1) * pi * (winSize -1)/ 2;
+    ArrayXd finalPhase =
+        phaseEst - ArrayXd::LinSpaced(mBins, 0, 1) * pi * (winSize - 1) / 2;
     ArrayXcd result = mPrevMag * (1i * finalPhase).exp();
     mPrevPrevLogMag = mPrevLogMag;
     mPrevLogMag = logMag;
@@ -121,7 +131,8 @@ public:
 
 private:
   Eigen::ArrayXd getPhaseDeltaT(Eigen::Ref<ArrayXd> logMag, double gamma,
-                                index fftSize, index hopSize) {
+                                index fftSize, index hopSize)
+  {
     ArrayXd deltaT = ArrayXd::Zero(mBins);
     deltaT.segment(1, mBins - 2) =
         logMag.segment(2, mBins - 2) - logMag.segment(0, mBins - 2);
@@ -131,11 +142,12 @@ private:
   }
 
   Eigen::ArrayXd getPhaseDeltaF(ArrayXd prevLogMag, ArrayXd nextLogMag,
-                                double gamma, index fftSize, index hopSize) {
+                                double gamma, index fftSize, index hopSize)
+  {
     return 0.5 * (nextLogMag - prevLogMag) * (-gamma / (hopSize * fftSize));
   }
 
-  index mBins;
+  index   mBins;
   ArrayXd mBinIndices;
   ArrayXd mPrevMag;
   ArrayXd mPrevLogMag;

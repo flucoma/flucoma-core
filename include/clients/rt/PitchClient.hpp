@@ -39,11 +39,11 @@ enum PitchParamIndex {
 constexpr auto PitchParams = defineParameters(
     EnumParam("algorithm", "Algorithm", 2, "Cepstrum",
               "Harmonic Product Spectrum", "YinFFT"),
-    FloatParam("minFreq", "Minimum Frequency", 20, Min(0), Max(10000),
+    FloatParam("minFreq", "Low Frequency Bound", 20, Min(0), Max(10000),
                UpperLimit<kMaxFreq>()),
-    FloatParam("maxFreq", "Maximum Frequency", 10000, Min(1), Max(20000),
+    FloatParam("maxFreq", "High Frequency Bound", 10000, Min(1), Max(20000),
                LowerLimit<kMinFreq>()),
-    EnumParam("unit", "Unit", 0, "Hz", "MIDI"),
+    EnumParam("unit", "Frequency Unit", 0, "Hz", "MIDI"),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
                            PowerOfTwo{}));
@@ -116,10 +116,16 @@ public:
             break;
           }
         });
-    output[0](0) = static_cast<T>(
-        get<kUnit>() == 0 ? mDescriptors(0)
-                          : 69 + (12 * log2(mDescriptors(0) / 440.0))); // pitch
-    output[1](0) = static_cast<T>(mDescriptors(1)); // pitch confidence
+    // pitch
+    if(get<kUnit>() == 1){
+      output[0](0) = mDescriptors(0) == 0? 0:
+      69 + (12 * log2(mDescriptors(0) / 440.0));
+    }
+    else {
+      output[0](0) = mDescriptors(0);
+    }
+    // pitch confidence
+    output[1](0) = static_cast<T>(mDescriptors(1));
   }
   index latency() { return get<kFFT>().winSize(); }
   index controlRate() { return get<kFFT>().hopSize(); }

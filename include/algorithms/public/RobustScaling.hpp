@@ -8,7 +8,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 (grant agreement No 725899).
 */
 
-//modified version of Normalization.hpp code
+// modified version of Normalization.hpp code
 #pragma once
 
 #include "../util/FluidEigenMappings.hpp"
@@ -20,12 +20,14 @@ under the European Union’s Horizon 2020 research and innovation programme
 namespace fluid {
 namespace algorithm {
 
-class RobustScaling {
+class RobustScaling
+{
 public:
   using ArrayXd = Eigen::ArrayXd;
   using ArrayXXd = Eigen::ArrayXXd;
 
-void init(double low, double high, RealMatrixView in) {
+  void init(double low, double high, RealMatrixView in)
+  {
     using namespace Eigen;
     using namespace _impl;
     const double epsilon = std::numeric_limits<double>::epsilon();
@@ -37,7 +39,8 @@ void init(double low, double high, RealMatrixView in) {
     mMedian.resize(input.cols());
     mRange.resize(input.cols());
     index length = input.rows();
-    for (index i = 0;i<input.cols();i++) {
+    for (index i = 0; i < input.cols(); i++)
+    {
       ArrayXd sorted = input.col(i);
       std::sort(sorted.data(), sorted.data() + length);
       mMedian(i) = sorted(lrint(0.5 * (length - 1)));
@@ -49,9 +52,10 @@ void init(double low, double high, RealMatrixView in) {
     mInitialized = true;
   }
 
-void init(double low, double high, RealVectorView dataLow,
+  void init(double low, double high, RealVectorView dataLow,
             RealVectorView dataHigh, RealVectorView median,
-            RealVectorView range) {
+            RealVectorView range)
+  {
     using namespace Eigen;
     using namespace _impl;
     const double epsilon = std::numeric_limits<double>::epsilon();
@@ -61,69 +65,82 @@ void init(double low, double high, RealVectorView dataLow,
     mDataHigh = asEigen<Array>(dataHigh);
     mMedian = asEigen<Array>(median);
     mRange = asEigen<Array>(range);
-    mRange = mRange.max(epsilon);//in case it is imported from the outside world
+    mRange =
+        mRange.max(epsilon); // in case it is imported from the outside world
     mInitialized = true;
   }
 
-  void processFrame(const RealVectorView in, RealVectorView out, bool inverse = false) const{
+  void processFrame(const RealVectorView in, RealVectorView out,
+                    bool inverse = false) const
+  {
     using namespace Eigen;
     using namespace _impl;
     ArrayXd input = asEigen<Array>(in);
     ArrayXd result;
-    if(!inverse) {
-     result = (input - mMedian) / mRange;
-   } else{
-     result = (input * mRange) + mMedian;
-   }
+    if (!inverse) { result = (input - mMedian) / mRange; }
+    else
+    {
+      result = (input * mRange) + mMedian;
+    }
     out = asFluid(result);
   }
 
-  void process(const RealMatrixView in, RealMatrixView out, bool inverse = false) const{
+  void process(const RealMatrixView in, RealMatrixView out,
+               bool inverse = false) const
+  {
     using namespace Eigen;
     using namespace _impl;
     ArrayXXd input = asEigen<Array>(in);
     ArrayXXd result;
-    if(!inverse) {
-     result = (input.rowwise() - mMedian.transpose());
-     result = result.rowwise() / mRange.transpose();
-    } else {
-     result = (input.rowwise() * mRange.transpose());
-     result = (result.rowwise() + mMedian.transpose());
-   }
+    if (!inverse)
+    {
+      result = (input.rowwise() - mMedian.transpose());
+      result = result.rowwise() / mRange.transpose();
+    }
+    else
+    {
+      result = (input.rowwise() * mRange.transpose());
+      result = (result.rowwise() + mMedian.transpose());
+    }
     out = asFluid(result);
   }
 
   void setLow(double low) { mLow = low; }
   void setHigh(double high) { mHigh = high; }
-  bool initialized() const{ return mInitialized; }
+  bool initialized() const { return mInitialized; }
 
-  double getLow() const{ return mLow; }
-  double getHigh() const{ return mHigh; }
+  double getLow() const { return mLow; }
+  double getHigh() const { return mHigh; }
 
-  void getDataLow(RealVectorView out) const{
+  void getDataLow(RealVectorView out) const
+  {
     using namespace _impl;
     out = asFluid(mDataLow);
   }
 
-  void getDataHigh(RealVectorView out) const{
+  void getDataHigh(RealVectorView out) const
+  {
     using namespace _impl;
     out = asFluid(mDataHigh);
   }
 
-  void getMedian(RealVectorView out) const{
+  void getMedian(RealVectorView out) const
+  {
     using namespace _impl;
     out = asFluid(mMedian);
   }
 
-  void getRange(RealVectorView out) const{
+  void getRange(RealVectorView out) const
+  {
     using namespace _impl;
     out = asFluid(mRange);
   }
 
   index dims() const { return mMedian.size(); }
-  index size() const { return 1;}
+  index size() const { return 1; }
 
-  void clear() {
+  void clear()
+  {
     mLow = 0;
     mHigh = 1.0;
     mMedian.setZero();
@@ -132,13 +149,13 @@ void init(double low, double high, RealVectorView dataLow,
     mInitialized = false;
   }
 
-  double mLow{0.0};
-  double mHigh{1.0};
+  double  mLow{0.0};
+  double  mHigh{1.0};
   ArrayXd mDataHigh;
   ArrayXd mDataLow;
   ArrayXd mMedian;
   ArrayXd mRange;
-  bool mInitialized{false};
+  bool    mInitialized{false};
 };
 }; // namespace algorithm
 }; // namespace fluid

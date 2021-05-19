@@ -33,8 +33,7 @@ public:
     mOutputStorage = ArrayXd(maxSize);
   }
 
-  void init(double onThreshold, double offThreshold,
-            double hiPassFreq,
+  void init(double onThreshold, double offThreshold, double hiPassFreq,
             index minTimeAboveThreshold, index upwardLookupTime,
             index minTimeBelowThreshold, index downwardLookupTime)
   {

@@ -17,14 +17,16 @@ under the European Union’s Horizon 2020 research and innovation programme
 namespace fluid {
 namespace algorithm {
 
-class NNLayer {
+class NNLayer
+{
   using MatrixXd = Eigen::MatrixXd;
   using VectorXd = Eigen::VectorXd;
   using Activation = NNActivations::Activation;
   using LayerData = std::tuple<RealMatrixView, RealVectorView, index>;
 
 public:
-  NNLayer(index inputSize, index outputSize, index actType) {
+  NNLayer(index inputSize, index outputSize, index actType)
+  {
     using namespace Eigen;
     mWeights = MatrixXd::Ones(inputSize, outputSize);
     mBiases = VectorXd::Zero(outputSize);
@@ -32,7 +34,9 @@ public:
     mActivation = static_cast<Activation>(actType);
   }
 
-  void init(Eigen::Ref<MatrixXd> weights, Eigen::Ref<VectorXd> biases, index actType) {
+  void init(Eigen::Ref<MatrixXd> weights, Eigen::Ref<VectorXd> biases,
+            index actType)
+  {
     mWeights = weights;
     mBiases = biases;
     mActType = actType;
@@ -40,18 +44,20 @@ public:
     initGrads();
   }
 
-  void init() {
+  void init()
+  {
     double dev = std::sqrt(6.0 / (mWeights.rows() + mWeights.cols()));
     mWeights = dev * MatrixXd::Random(mWeights.rows(), mWeights.cols()).array();
     mBiases = VectorXd::Zero(mWeights.cols());
     initGrads();
   }
 
-  MatrixXd getWeights() const {return mWeights;}
-  VectorXd getBiases() const {return mBiases;}
-  index getActType() const {return mActType;}
+  MatrixXd getWeights() const { return mWeights; }
+  VectorXd getBiases() const { return mBiases; }
+  index    getActType() const { return mActType; }
 
-  void initGrads(){
+  void initGrads()
+  {
     mWeightsGrad = MatrixXd::Zero(mWeights.rows(), mWeights.cols());
     mBiasesGrad = VectorXd::Zero(mWeights.cols());
     mPrevWeightsUpdate = MatrixXd::Zero(mWeights.rows(), mWeights.cols());
@@ -62,7 +68,8 @@ public:
 
   index outputSize() const { return mWeights.cols(); }
 
-  void forward(Eigen::Ref<MatrixXd> in, Eigen::Ref<MatrixXd> out) {
+  void forward(Eigen::Ref<MatrixXd> in, Eigen::Ref<MatrixXd> out)
+  {
     mInput = in;
     MatrixXd WT = mWeights.transpose();
     MatrixXd IT = mInput.transpose();
@@ -72,24 +79,23 @@ public:
     out = mOutput;
   }
 
-  void backward(Eigen::Ref<MatrixXd> outGrad,
-                Eigen::Ref<MatrixXd> inGrad) { // going backwards, so out is in
+  void backward(Eigen::Ref<MatrixXd> outGrad, Eigen::Ref<MatrixXd> inGrad)
+  { // going backwards, so out is in
     MatrixXd dAct = MatrixXd::Zero(mOutput.rows(), mOutput.cols());
     NNActivations::derivative()[mActivation](mOutput, dAct);
     MatrixXd actGrad = dAct.array() * outGrad.array();
-    double norm = 1.0 / mInput.rows();
+    double   norm = 1.0 / mInput.rows();
     mWeightsGrad = norm * (mInput.transpose() * actGrad);
     inGrad = actGrad * mWeights.transpose();
     mBiasesGrad = actGrad.colwise().mean();
   }
 
-  void update(double learningRate, double momentum) {
-    MatrixXd wUpdate =
-        (momentum * mPrevWeightsUpdate) +
-        ((1 - momentum) * learningRate * mWeightsGrad);
-    VectorXd bUpdate =
-            (momentum * mPrevBiasesUpdate) +
-            ((1 - momentum) * learningRate * mBiasesGrad);
+  void update(double learningRate, double momentum)
+  {
+    MatrixXd wUpdate = (momentum * mPrevWeightsUpdate) +
+                       ((1 - momentum) * learningRate * mWeightsGrad);
+    VectorXd bUpdate = (momentum * mPrevBiasesUpdate) +
+                       ((1 - momentum) * learningRate * mBiasesGrad);
     mWeights = mWeights - wUpdate;
     mBiases = mBiases - bUpdate;
     mPrevWeightsUpdate = wUpdate;
@@ -97,9 +103,9 @@ public:
   }
 
 private:
-  MatrixXd mWeights;
-  VectorXd mBiases;
-  index mActType;
+  MatrixXd   mWeights;
+  VectorXd   mBiases;
+  index      mActType;
   Activation mActivation;
 
   MatrixXd mWeightsGrad;

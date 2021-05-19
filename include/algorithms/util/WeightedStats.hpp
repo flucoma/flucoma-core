@@ -23,7 +23,6 @@ namespace algorithm {
 class WeightedStats
 {
 public:
-
   Eigen::ArrayXd process(Eigen::Ref<Eigen::ArrayXd> input,
                          Eigen::Ref<Eigen::ArrayXd> weights, double low,
                          double mid, double high)
@@ -34,15 +33,17 @@ public:
     ArrayXd out = ArrayXd::Zero(7);
     double  mean = (weights * input).sum();
     double  stdev = sqrt((weights * (input - mean).square()).sum());
-    double skewness = (weights * ((input - mean) / (stdev == 0 ? 1 : stdev)).cube()).sum();
-    double kurtosis = (weights * ((input - mean) / (stdev == 0 ? 1 : stdev)).pow(4)).sum();
+    double  skewness =
+        (weights * ((input - mean) / (stdev == 0 ? 1 : stdev)).cube()).sum();
+    double kurtosis =
+        (weights * ((input - mean) / (stdev == 0 ? 1 : stdev)).pow(4)).sum();
     ArrayXd sorted = input;
     ArrayXi perm = ArrayXi::LinSpaced(length, 0, length - 1);
     std::sort(perm.data(), perm.data() + length,
               [&](size_t i, size_t j) { return input(i) < input(j); });
     index  level = 0;
     double lowVal{input(perm(0))};
-    double midVal{input(perm(lrint(length - 1)/2))};
+    double midVal{input(perm(lrint(length - 1) / 2))};
     double hiVal{input(perm(lrint(length - 1)))};
     double acc = weights(perm(0)), prevAcc = 0;
     for (index i = 1; i < length; i++)
@@ -50,17 +51,20 @@ public:
       acc += weights(perm(i));
       if (level == 0 && acc >= low)
       {
-        lowVal = abs(prevAcc - low) <= abs(acc - low)?input(perm(i - 1)):input(perm(i));
+        lowVal = abs(prevAcc - low) <= abs(acc - low) ? input(perm(i - 1))
+                                                      : input(perm(i));
         level = 1;
       }
       if (level == 1 && acc >= mid)
       {
-        midVal = abs(prevAcc - mid) < abs(acc - mid)?input(perm(i - 1)):input(perm(i));
+        midVal = abs(prevAcc - mid) < abs(acc - mid) ? input(perm(i - 1))
+                                                     : input(perm(i));
         level = 2;
       }
       if (level == 2 && acc >= high)
       {
-        hiVal = abs(prevAcc - high) < abs(acc - high)?input(perm(i - 1)):input(perm(i));
+        hiVal = abs(prevAcc - high) < abs(acc - high) ? input(perm(i - 1))
+                                                      : input(perm(i));
         break;
       }
       prevAcc = acc;

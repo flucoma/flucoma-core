@@ -26,9 +26,22 @@ namespace spectralshape {
 
 using algorithm::SpectralShape;
 
-enum SpectralShapeParamIndex { kFFT, kMaxFFTSize };
+enum SpectralShapeParamIndex {
+  kMinFreq,
+  kMaxFreq,
+  kRollOffPercent,
+  kFreqUnits,
+  kAmpMeasure,
+  kFFT,
+  kMaxFFTSize
+};
 
 constexpr auto SpectralShapeParams = defineParameters(
+    FloatParam("minFreq", "Low Frequency Bound", 0, Min(0)),
+    FloatParam("maxFreq", "High Frequency Bound", -1, Min(-1)),
+    FloatParam("rolloffPercent", "Rolloff Percent", 0.95, Min(0), Max(1)),
+    EnumParam("unit", "Frequency Unit", 0, "Hz", "Midi Cents"),
+    EnumParam("power", "Use Power", 0, "No", "Yes"),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
                            PowerOfTwo{}));
@@ -57,9 +70,7 @@ public:
   }
 
   SpectralShapeClient(ParamSetViewType& p)
-      : mParams(p),
-        mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0), mAlgorithm{
-                                                            get<kMaxFFTSize>()}
+      : mParams(p), mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0)
   {
     audioChannelsIn(1);
     controlChannelsOut(7);
@@ -80,25 +91,19 @@ public:
            "Too few output channels");
 
     if (mTracker.changed(get<kFFT>().frameSize(), sampleRate()))
-    {
-      mMagnitude.resize(get<kFFT>().frameSize());
-      mBinHz = sampleRate() / get<kFFT>().fftSize();
-    }
+    { mMagnitude.resize(get<kFFT>().frameSize()); }
 
     mSTFTBufferedProcess.processInput(
         mParams, input, c, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
-          mAlgorithm.processFrame(mMagnitude, mDescriptors);
+          mAlgorithm.processFrame(
+              mMagnitude, mDescriptors, sampleRate(), get<kMinFreq>(),
+              get<kMaxFreq>(), get<kRollOffPercent>(), get<kFreqUnits>() == 1,
+              get<kAmpMeasure>() == 1);
         });
 
     for (int i = 0; i < 7; ++i)
-    {
-      // TODO: probably move this logic to algorithm
-      if (i == 0 || i == 1 || i == 4)
-        output[asUnsigned(i)](0) = static_cast<T>(mBinHz * mDescriptors(i));
-      else
-        output[asUnsigned(i)](0) = static_cast<T>(mDescriptors(i));
-    }
+      output[asUnsigned(i)](0) = static_cast<T>(mDescriptors(i));
   }
 
   index latency() { return get<kFFT>().winSize(); }
@@ -114,7 +119,6 @@ private:
   SpectralShape          mAlgorithm;
   FluidTensor<double, 1> mMagnitude;
   FluidTensor<double, 1> mDescriptors;
-  double                 mBinHz;
 };
 } // namespace spectralshape
 

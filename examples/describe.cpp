@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
   MelBands      bands{nBands, fftSize};
   DCT           dct{nBands, nCoefs};
   YINFFT        yin;
-  SpectralShape shape{nBins};
+  SpectralShape shape;
   Loudness      loudness{windowSize};
   MultiStats    stats;
 
@@ -128,7 +128,7 @@ int main(int argc, char* argv[])
     mfccMat.row(i) = mfccs;
     yin.processFrame(magnitude, pitch, minFreq, maxFreq, samplingRate);
     pitchMat.row(i) = pitch;
-    shape.processFrame(magnitude, shapeDesc);
+    shape.processFrame(magnitude, shapeDesc, samplingRate);
     shapeMat.row(i) = shapeDesc;
     loudness.processFrame(window, loudnessDesc, true, true);
     loudnessMat.row(i) = loudnessDesc;

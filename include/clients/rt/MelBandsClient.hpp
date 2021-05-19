@@ -30,6 +30,7 @@ enum MFCCParamIndex {
   kMaxFreq,
   kMaxNBands,
   kNormalize,
+  kScale,
   kFFT,
   kMaxFFTSize
 };
@@ -42,6 +43,7 @@ constexpr auto MelBandsParams = defineParameters(
     LongParam<Fixed<true>>("maxNumBands", "Maximum Number of Bands", 120,
                            Min(2), MaxFrameSizeUpperLimit<kMaxFFTSize>()),
     EnumParam("normalize", "Normalize", 1, "No", "Yes"),
+    EnumParam("scale", "Amplitude Scale", 0, "Linear", "dB"),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
 
@@ -100,7 +102,7 @@ public:
         mParams, input, c, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mMagnitude);
           mMelBands.processFrame(mMagnitude, mBands, get<kNormalize>() == 1,
-                                 false, false);
+                                 false, get<kScale>() == 1);
         });
     for (index i = 0; i < get<kNBands>(); ++i)
       output[asUnsigned(i)](0) = static_cast<T>(mBands(i));
