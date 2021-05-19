@@ -75,7 +75,7 @@ public:
     audioChannelsIn(1);
     controlChannelsOut(7);
     setInputLabels({"audio input"});
-    setOutputLabels({"centroid, skew, skewness, kurtosis, rolloff, flatness, crest factor"});
+    setOutputLabels({"centroid, spread, skewness, kurtosis, rolloff, flatness, crest factor"});
     mDescriptors = FluidTensor<double, 1>(7);
   }
 
