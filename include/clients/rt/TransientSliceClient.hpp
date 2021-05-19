@@ -75,6 +75,8 @@ public:
   {
     audioChannelsIn(1);
     audioChannelsOut(1);
+    setInputLabels({"audio input"});
+    setOutputLabels({"1 when slice detected, 0 otherwise"});
   }
 
   template <typename T>

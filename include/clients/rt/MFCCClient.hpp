@@ -74,6 +74,8 @@ public:
     mCoefficients = FluidTensor<double, 1>(get<kNCoefs>());
     audioChannelsIn(1);
     controlChannelsOut(get<kMaxNCoefs>());
+    setInputLabels({"audio input"});
+    setOutputLabels({"MFCCs"});
   }
 
   template <typename T>

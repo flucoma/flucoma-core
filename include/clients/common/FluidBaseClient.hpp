@@ -50,6 +50,17 @@ public:
   double sampleRate() const noexcept { return mSampleRate; };
   void   sampleRate(double sr) { mSampleRate = sr; }
 
+  const char* getInputLabel(index i)
+  {
+    return i < mInputLabels.size() ? mInputLabels[i] : "";
+  }
+
+  const char* getOutputLabel(index i)
+  {
+    return i < mOutputLabels.size() ? mOutputLabels[i] : "";
+  }
+
+
 protected:
   void audioChannelsIn(const index x) noexcept { mAudioChannelsIn = x; }
   void audioChannelsOut(const index x) noexcept { mAudioChannelsOut = x; }
@@ -63,6 +74,20 @@ protected:
   void audioBuffersIn(const index x) noexcept { mBuffersIn = x; }
   void audioBuffersOut(const index x) noexcept { mBuffersOut = x; }
 
+  void setInputLabels(std::initializer_list<const char*> labels)
+  {
+    mInputLabels.clear();
+    mInputLabels.reserve(labels.size());
+    mInputLabels.insert(mInputLabels.end(),labels.begin(), labels.end());
+  }
+
+  void setOutputLabels(std::initializer_list<const char*> labels)
+  {
+    mOutputLabels.clear();
+    mOutputLabels.reserve(labels.size());
+    mOutputLabels.insert(mOutputLabels.end(),labels.begin(), labels.end());
+  }
+
 private:
   index  mAudioChannelsIn = 0;
   index  mAudioChannelsOut = 0;
@@ -73,6 +98,8 @@ private:
   index  mBuffersIn = 0;
   index  mBuffersOut = 0;
   double mSampleRate = 0;
+  std::vector<const char*> mInputLabels;
+  std::vector<const char*> mOutputLabels;
 };
 
 template <typename C>
@@ -218,6 +245,16 @@ public:
   typename std::enable_if_t<!P::value, void> setParams(ParamSetViewType& p)
   {
     mParams = p;
+  }
+
+  const char* getInputLabel(index i)
+  {
+    return mClient.getInputLabel(i);
+  }
+
+  const char* getOutputLabel(index i)
+  {
+    return mClient.getOutputLabel(i);
   }
 
 private:
