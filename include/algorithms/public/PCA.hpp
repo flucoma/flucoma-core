@@ -51,7 +51,7 @@ public:
   {
     using namespace Eigen;
     using namespace _impl;
-    if (k >= mBases.cols()) return;
+    if (k > mBases.cols()) return;
     VectorXd input = asEigen<Matrix>(in);
     input = input - mMean;
     VectorXd result = input.transpose() * mBases.block(0, 0, mBases.rows(), k);
