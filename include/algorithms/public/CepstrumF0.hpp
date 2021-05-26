@@ -51,15 +51,18 @@ public:
     ArrayXd logMag = mag.max(epsilon).log();
     double  pitch = 0;
     double  confidence = 0;
-    index   minBin = min(lrint(sampleRate / maxFreq),  mag.size());
-    index   maxBin = min(lrint(sampleRate / minFreq), mag.size());
+    index   minBin =
+        min<index>(lrint(sampleRate / maxFreq), asSigned(mag.size()));
+    index maxBin =
+        min<index>(lrint(sampleRate / minFreq), asSigned(mag.size()));
 
     mDCT.processFrame(logMag, mCepstrum);
 
     if (maxBin > minBin)
     {
       auto seg = mCepstrum.segment(minBin, maxBin - minBin);
-      auto vec = pd.process(mCepstrum.segment(minBin, maxBin - minBin), 1, seg.minCoeff());
+      auto vec = pd.process(mCepstrum.segment(minBin, maxBin - minBin), 1,
+                            seg.minCoeff());
       if (vec.size() > 0)
       {
         pitch = sampleRate / (vec[0].first + minBin);
