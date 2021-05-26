@@ -89,7 +89,7 @@ public:
            ArrayXd mag2 = prev.abs().real().max(epsilon);
            double  norm = mag1.matrix().norm() * mag2.matrix().norm();
            double  dot = mag1.matrix().dot(mag2.matrix());
-           return dot / norm;
+           return 1 - dot / norm;
          }},
         {ODF::kPhaseDev,
          [](ArrayXcd cur, ArrayXcd prev, ArrayXcd prevprev) {

@@ -64,7 +64,7 @@ public:
         {Distance::kCosine, [](ArrayXd x, ArrayXd y) {
            double norm = x.matrix().norm() * y.matrix().norm();
            double dot = x.matrix().dot(y.matrix());
-           return dot / norm;
+           return 1 - (dot / norm);
          }}};
     return _funcs;
   }
