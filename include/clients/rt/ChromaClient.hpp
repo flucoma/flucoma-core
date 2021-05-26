@@ -42,7 +42,7 @@ constexpr auto ChromaParams = defineParameters(
     EnumParam("normalize", "Normalize Frame", 0, "None", "Sum", "Max"),
     FloatParam("minFreq", "Low Frequency Bound", 0, Min(0)),
     FloatParam("maxFreq", "High Frequency Bound", -1, Min(-1)),
-    LongParam<Fixed<true>>("kMaxNChroma", "Maximum Number of Chroma Bins", 120, Min(2),
+    LongParam<Fixed<true>>("maxNumChroma", "Maximum Number of Chroma Bins", 120, Min(2),
                            MaxFrameSizeUpperLimit<kMaxFFTSize>()),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
