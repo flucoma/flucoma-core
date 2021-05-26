@@ -77,21 +77,22 @@ public:
       auto  dataset = datasetClientPtr->getDataSet();
       index pointSize = dataset.pointSize();
       auto  outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-      if (outBuf.samps(0).size() != (k * pointSize)) return;
+      index outputSize = k * pointSize;
+      if (outBuf.samps(0).size() < outputSize) return;
 
       RealVector point(mAlgorithm.dims());
       point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                   .samps(0, mAlgorithm.dims(), 0);
-      if (mRTBuffer.size() != k * pointSize)
+      if (mRTBuffer.size() != outputSize)
       {
-        mRTBuffer = RealVector(k * pointSize);
+        mRTBuffer = RealVector(outputSize);
         mRTBuffer.fill(0);
       }
       auto nearest = mAlgorithm.kNearest(point, k);
       auto ids = nearest.getIds();
       for (index i = 0; i < k; i++)
       { dataset.get(ids(i), mRTBuffer(Slice(i * pointSize, pointSize))); }
-      outBuf.samps(0) = mRTBuffer;
+      outBuf.samps(0, outputSize, 0) = mRTBuffer;
     });
   }
 

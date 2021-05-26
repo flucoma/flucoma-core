@@ -65,7 +65,7 @@ public:
     if (!bufCheck.checkInputs(get<kInputBuffer>().get(), get<kOutputBuffer>().get()))
       return;
     auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-    if(outBuf.samps(0).size() != mAlgorithm.dims()) return;
+    if(outBuf.samps(0).size() < mAlgorithm.dims()) return;
     RealVector src(mAlgorithm.dims());
     RealVector dest(mAlgorithm.dims());
     src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, mAlgorithm.dims(), 0);
@@ -73,7 +73,7 @@ public:
     mAlgorithm.setMax(get<kMax>());
     mTrigger.process(input, output, [&]() {
       mAlgorithm.processFrame(src, dest, get<kInvert>() == 1);
-      outBuf.samps(0) = dest;
+      outBuf.samps(0, mAlgorithm.dims(), 0) = dest;
     });
   }
 
@@ -118,7 +118,7 @@ public:
     mAlgorithm.setMin(get<kMin>());
     mAlgorithm.setMax(get<kMax>());
     mAlgorithm.processFrame(src, dest, get<kInvert>() == 1);
-    outBuf.samps(0) = dest;
+    outBuf.samps(0, mAlgorithm.dims(), 0) = dest;
     return OK();
   }
 

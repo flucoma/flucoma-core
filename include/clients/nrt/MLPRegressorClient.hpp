@@ -109,7 +109,7 @@ public:
                               get<kOutputBuffer>().get()))
       return;
     auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-    if(outBuf.samps(0).size() != mAlgorithm.outputSize(outputTap)) return;
+    if(outBuf.samps(0).size() < outputSize) return;
 
     RealVector src(inputSize);
     RealVector dest(outputSize);
@@ -117,7 +117,7 @@ public:
         BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, inputSize, 0);
     mTrigger.process(input, output, [&]() {
       mAlgorithm.processFrame(src, dest, inputTap, outputTap);
-      outBuf.samps(0) = dest;
+      outBuf.samps(0, outputSize, 0) = dest;
     });
   }
 
@@ -216,9 +216,9 @@ public:
       return Error(BufferAlloc);
     RealVector src(inputSize);
     RealVector dest(outputSize);
-    src = inBuf.samps(0,inputSize, 0);
+    src = inBuf.samps(0, inputSize, 0);
     mAlgorithm.processFrame(src, dest, inputTap, outputTap);
-    outBuf.samps(0) = dest;
+    outBuf.samps(0, outputSize, 0) = dest;
     return OK();
   }
 

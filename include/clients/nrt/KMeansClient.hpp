@@ -74,7 +74,7 @@ public:
                               get<kOutputBuffer>().get()))
       return;
     auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-    if (outBuf.samps(0).size() != 1) return;
+    if (outBuf.samps(0).size() < 1) return;
     RealVector point(mAlgorithm.dims());
     point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                 .samps(0, mAlgorithm.dims(), 0);
@@ -235,11 +235,10 @@ public:
     if (!resizeResult.ok()) return Error(BufferAlloc);
     RealMatrix src(1, mAlgorithm.dims());
     RealMatrix dest(1, mAlgorithm.size());
-    RealVector dest1(mAlgorithm.size());
     src.row(0) =
         BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
     mAlgorithm.getDistances(src, dest);
-    outBuf.samps(0) = dest.row(0);
+    outBuf.allFrames()(Slice(0, 1), Slice(0, mAlgorithm.size())) = dest;
     return OK();
   }
 

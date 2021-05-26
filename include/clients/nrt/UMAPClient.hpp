@@ -142,7 +142,7 @@ public:
     FluidTensor<double, 1> dest(outSize);
     src = BufferAdaptor::ReadAccess(in.get()).samps(0, inSize, 0);
     mAlgorithm.transformPoint(src, dest);
-    BufferAdaptor::Access(out.get()).samps(0) = dest;
+    outBuf.samps(0, outSize, 0) = dest;
     return OK();
   }
 
@@ -159,14 +159,14 @@ public:
                               get<kOutputBuffer>().get()))
       return;
     auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-    if (outBuf.samps(0).size() != outSize) return;
+    if (outBuf.samps(0).size() < outSize) return;
     RealVector src(inSize);
     RealVector dest(outSize);
     src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
               .samps(0, inSize, 0);
     mTrigger.process(input, output, [&]() {
       mAlgorithm.transformPoint(src, dest);
-      outBuf.samps(0) = dest;
+      outBuf.samps(0, outSize, 0) = dest;
     });
   }
 

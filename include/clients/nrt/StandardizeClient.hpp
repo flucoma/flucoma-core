@@ -73,14 +73,14 @@ public:
                               get<kOutputBuffer>().get()))
       return;
     auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-    if (outBuf.samps(0).size() != mAlgorithm.dims()) return;
+    if (outBuf.samps(0).size() < mAlgorithm.dims()) return;
     RealVector src(mAlgorithm.dims());
     RealVector dest(mAlgorithm.dims());
     src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
               .samps(0, mAlgorithm.dims(), 0);
     mTrigger.process(input, output, [&]() {
       mAlgorithm.processFrame(src, dest, get<kInvert>() == 1);
-      BufferAdaptor::Access(get<kOutputBuffer>().get()).samps(0) = dest;
+      outBuf.samps(0, mAlgorithm.dims(), 0) = dest;
     });
   }
 
@@ -122,7 +122,7 @@ public:
     RealVector dest(mAlgorithm.dims());
     src = BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
     mAlgorithm.processFrame(src, dest, get<kInvert>() == 1);
-    outBuf.samps(0) = dest;
+    outBuf.samps(0, mAlgorithm.dims(), 0) = dest;
     return OK();
   }
 
