@@ -36,13 +36,13 @@ enum ChromaParamIndex {
 };
 
 constexpr auto ChromaParams = defineParameters(
-    LongParam("numChroma", "Number of Bins per Octave", 12, Min(2),
+    LongParam("numChroma", "Number of Chroma Bins per Octave", 12, Min(2),
               UpperLimit<kMaxNChroma>()),
     FloatParam("ref", "Reference frequency", 440, Min(0), Max(22000)),
     EnumParam("normalize", "Normalize Frame", 0, "None", "Sum", "Max"),
     FloatParam("minFreq", "Low Frequency Bound", 0, Min(0)),
     FloatParam("maxFreq", "High Frequency Bound", -1, Min(-1)),
-    LongParam<Fixed<true>>("kMaxNChroma", "Maximum Number of Bins", 120, Min(2),
+    LongParam<Fixed<true>>("kMaxNChroma", "Maximum Number of Chroma Bins", 120, Min(2),
                            MaxFrameSizeUpperLimit<kMaxFFTSize>()),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
