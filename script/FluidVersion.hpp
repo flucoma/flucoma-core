@@ -14,7 +14,7 @@ namespace fluid{
 namespace client{
   inline const char* fluidVersion()
   {
-    return "TB2-beta01"; 
+    return "1.0.0-TB2.beta2"; 
   }
 }
 }
