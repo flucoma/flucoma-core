@@ -635,7 +635,7 @@ struct Slicing
   template <typename Client, typename InputList, typename OutputList>
   static Result process(Client& client, InputList& inputBuffers,
                         OutputList& outputBuffers, index nFrames, index nChans,
-                        std::pair<index, index> userPadding, FluidContext& c)
+                        std::pair<index, index> /*userPadding*/, FluidContext& c)
   {
 
     assert(inputBuffers.size() == 1);
