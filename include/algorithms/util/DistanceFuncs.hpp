@@ -30,7 +30,8 @@ public:
     kMax,
     kMin,
     kKL,
-    kCosine
+    kCosine,
+    kJS
   };
 
   using ArrayXcd = Eigen::ArrayXcd;
@@ -65,7 +66,22 @@ public:
            double norm = x.matrix().norm() * y.matrix().norm();
            double dot = x.matrix().dot(y.matrix());
            return 1 - (dot / norm);
-         }}};
+         }},
+         {Distance::kJS,
+           [](ArrayXd x, ArrayXd y) {
+             x = x.max(epsilon);
+             y = y.max(epsilon);
+             x = x / x.sum();
+             y = y / y.sum();
+             ArrayXd m = (0.5 * x) + (0.5 * y);
+             ArrayXd logX = x.log(),
+              logY = y.log(),
+              logM = m.log();
+              double d1 = (x * (logX - logM)).sum();
+              double d2 =  (y * (logY - logM)).sum();
+            return std::sqrt(0.5*(d1 + d2));
+          }}
+       };
     return _funcs;
   }
 };
