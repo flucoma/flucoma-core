@@ -17,6 +17,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <queue>
+#include <memory>
 #include <string>
 
 namespace fluid {
