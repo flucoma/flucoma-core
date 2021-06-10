@@ -47,8 +47,7 @@ public:
   }
 
   AudioTransportClient(ParamSetViewType& p)
-      : mParams{p}, mSTFTBufferedProcess{get<kMaxFFTSize>(), 2, 1},
-        mAlgorithm(get<kMaxFFTSize>())
+      : mParams{p}, mAlgorithm(get<kMaxFFTSize>())
   {
     audioChannelsIn(2);
     audioChannelsOut(1);
@@ -91,13 +90,12 @@ public:
   }
 
   index latency() { return get<kFFT>().winSize(); }
-  void  reset() { mSTFTBufferedProcess.reset(); }
+  void  reset() { mBufferedProcess.reset(); }
 
 private:
-  BufferedProcess                             mBufferedProcess;
-  STFTBufferedProcess<ParamSetViewType, kFFT> mSTFTBufferedProcess;
-  algorithm::AudioTransport                   mAlgorithm;
-  ParameterTrackChanges<index, index, index>  mTracking;
+  BufferedProcess                            mBufferedProcess;
+  algorithm::AudioTransport                  mAlgorithm;
+  ParameterTrackChanges<index, index, index> mTracking;
 };
 } // namespace audiotransport
 
