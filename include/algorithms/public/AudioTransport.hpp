@@ -16,7 +16,6 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #include "STFT.hpp"
 #include "WindowFuncs.hpp"
-#include "../util/ConvolutionTools.hpp"
 #include "../util/FFT.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidIndex.hpp"

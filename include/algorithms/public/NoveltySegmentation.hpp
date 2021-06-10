@@ -10,7 +10,6 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "../util/ConvolutionTools.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/Novelty.hpp"
 #include "../../data/FluidIndex.hpp"

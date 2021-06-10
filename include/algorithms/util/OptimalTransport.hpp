@@ -10,7 +10,6 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "ConvolutionTools.hpp"
 #include "FFT.hpp"
 #include "FluidEigenMappings.hpp"
 #include "../public/WindowFuncs.hpp"
