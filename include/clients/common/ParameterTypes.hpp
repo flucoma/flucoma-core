@@ -300,7 +300,7 @@ public:
         [](const FFTParams&) -> index { return 0; },
         [](const FFTParams& x) { return x.winSize() >> 1; },
         [](const FFTParams& x) { return x.winSize() - x.hopSize(); }};
-    return options[option](settings);
+    return options[asUnsigned(option)](settings);
   };
 
   void setWin(intptr_t win) { mWindowSize = win; }

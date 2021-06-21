@@ -104,7 +104,7 @@ public:
           return std::min(std::max(x, low), high);
         }};
 
-    auto   clipFn = clippingFunctions[get<kClip>()];
+    auto   clipFn = clippingFunctions[asUnsigned(get<kClip>())];
     double outLow = get<kOutLow>();
     double outHigh = get<kOutHigh>();
     double scale = (outHigh - outLow) / (get<kInHigh>() - get<kInLow>());

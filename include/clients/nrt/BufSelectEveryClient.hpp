@@ -111,8 +111,8 @@ public:
     float framehop = get<kFrameHop>();
     float chanhop = get<kChannelHop>();
 
-    numFrames = std::round(numFrames / framehop);
-    numChans = std::round(numChans / chanhop);
+    numFrames = static_cast<index>(std::round(numFrames / framehop));
+    numChans = static_cast<index>(std::round(numChans / chanhop));
 
 
     if (numChans <= 0 || numFrames <= 0)
@@ -123,8 +123,8 @@ public:
 
     if (!resizeResult.ok()) return resizeResult;
 
-    std::vector<index> indices(numFrames);
-    std::vector<index> channels(numChans);
+    std::vector<index> indices(asUnsigned(numFrames));
+    std::vector<index> channels(asUnsigned(numChans));
 
     std::generate(
         indices.begin(), indices.end(),
@@ -139,7 +139,7 @@ public:
 
     for (index c = 0; c < numChans; ++c)
       for (index i = 0; i < numFrames; ++i)
-        dest(c, i) = src(channels[c], indices[i]);
+        dest(c, i) = src(channels[asUnsigned(c)], indices[asUnsigned(i)]);
 
     return {Result::Status::kOk};
   }

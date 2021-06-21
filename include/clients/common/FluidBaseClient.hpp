@@ -52,12 +52,12 @@ public:
 
   const char* getInputLabel(index i)
   {
-    return i < asSigned(mInputLabels.size()) ? mInputLabels[i] : "";
+    return i < asSigned(mInputLabels.size()) ? mInputLabels[asUnsigned(i)] : "";
   }
 
   const char* getOutputLabel(index i)
   {
-    return i < asSigned(mOutputLabels.size()) ? mOutputLabels[i] : "";
+    return i < asSigned(mOutputLabels.size()) ? mOutputLabels[asUnsigned(i)] : "";
   }
 
 
