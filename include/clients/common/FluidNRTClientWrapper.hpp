@@ -1012,7 +1012,7 @@ private:
       mResult = mClient->template process<float>(mContext);
       resultReady.set_value();
       mState = kDone;
-      if (mCallback && !mDetached) mCallback();
+      if (mCallback && !mDetached && !mTask.cancelled()) mCallback();
       if (mDetached) delete this;
     }
 
