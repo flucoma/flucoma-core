@@ -195,12 +195,12 @@ Result bufferRangeCheck(const BufferAdaptor* b, index startFrame,
             " invalid start channel ", startChan}; // error
 
   nFrames = nFrames < 0 ? thisInput.numFrames() - startFrame : nFrames;
-  if (nFrames <= 0 || nFrames > thisInput.numFrames())
+  if (nFrames <= 0 || nFrames > thisInput.numFrames() - startFrame)
     return {Result::Status::kError, "Input buffer ", b,
             ": not enough frames"}; // error
 
   nChans = nChans < 0 ? thisInput.numChans() - startChan : nChans;
-  if (nChans <= 0 || nChans > thisInput.numChans())
+  if (nChans <= 0 || nChans > thisInput.numChans() - startChan)
     return {Result::Status::kError, "Input buffer ", b,
             ": not enough channels"}; // error
 
