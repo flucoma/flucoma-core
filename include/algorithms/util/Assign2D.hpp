@@ -62,6 +62,7 @@ public:
       }
     }
     result = mTransposed?mCol2Row:mRow2Col;
+    return true;
   }
 
   index shortestPath(index c){
