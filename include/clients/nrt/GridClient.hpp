@@ -1,0 +1,92 @@
+/*
+Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
+Copyright 2017-2019 University of Huddersfield.
+Licensed under the BSD-3 License.
+See license.md file in the project root for full license information.
+This project has received funding from the European Research Council (ERC)
+under the European Union’s Horizon 2020 research and innovation programme
+(grant agreement No 725899).
+*/
+
+#pragma once
+
+#include "DataSetClient.hpp"
+#include "NRTClient.hpp"
+#include "../../algorithms/public/Grid.hpp"
+
+namespace fluid {
+namespace client {
+namespace grid {
+
+enum {kResample, kRows, kCols};
+
+constexpr auto GridParams = defineParameters(
+    LongParam("oversample", "Oversampling factor", 1, Min(1)),
+    LongParam("rows", "Number of rows", 0, Min(0)),
+    LongParam("cols", "Number of cols", 0, Min(0)));
+
+class GridClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject
+{
+
+public:
+  using string = std::string;
+  using BufferPtr = std::shared_ptr<BufferAdaptor>;
+  using StringVector = FluidTensor<string, 1>;
+
+  template <typename T>
+  Result process(FluidContext&)
+  {
+    return {};
+  }
+
+  using ParamDescType = decltype(GridParams);
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors() { return GridParams; }
+
+  GridClient(ParamSetViewType& p) : mParams(p) {}
+
+  MessageResult<void> fitTransform(DataSetClientRef sourceClient,
+                                   DataSetClientRef destClient)
+  {
+    auto srcPtr = sourceClient.get().lock();
+    auto destPtr = destClient.get().lock();
+    if (!srcPtr || !destPtr) return Error(NoDataSet);
+    auto src = srcPtr->getDataSet();
+    auto dest = destPtr->getDataSet();
+    if (src.dims() != 2) return Error("Dataset should be 2D");
+    if (src.size() == 0) return Error(EmptyDataSet);
+    if(get<kRows>() > 0 && get<kCols>() >  0)
+      return Error("Either rows or cols should be zero");
+    FluidDataSet<string, double, 1> result;
+    result = mAlgorithm.process(src,
+        get<kResample>(), get<kRows>(), get<kCols>());
+    destPtr->setDataSet(result);
+    return OK();
+  }
+
+  static auto getMessageDescriptors()
+  {
+    return defineMessages(
+        makeMessage("fitTransform", &GridClient::fitTransform));
+  }
+
+private:
+  algorithm::Grid mAlgorithm;
+};
+} // namespace Grid
+
+using NRTThreadedGridClient = NRTThreadingAdaptor<ClientWrapper<grid::GridClient>>;
+
+} // namespace client
+} // namespace fluid
