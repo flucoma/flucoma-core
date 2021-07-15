@@ -43,6 +43,8 @@ public:
       mCost.transposeInPlace();
       mTransposed = true;
     }
+    else mTransposed = false;
+
     mRow2Col = ArrayXi::Constant(mCost.rows(), UNASSIGNED);
     mCol2Row = ArrayXi::Constant(mCost.cols(), UNASSIGNED);
     mV = ArrayXd::Zero(mCost.rows());
