@@ -18,12 +18,12 @@ namespace fluid {
 namespace client {
 namespace grid {
 
-enum {kResample, kRows, kCols};
+enum {kResample, kExtent, kAxis};
 
 constexpr auto GridParams = defineParameters(
     LongParam("oversample", "Oversampling factor", 1, Min(1)),
-    LongParam("rows", "Number of rows", 0, Min(0)),
-    LongParam("cols", "Number of cols", 0, Min(0)));
+    LongParam("extent", "Extent", 0, Min(0)),
+    EnumParam("axis", "Extent Axis", 0, "Horizontal", "Vertical"));
 
 class GridClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject
 {
@@ -66,11 +66,9 @@ public:
     auto dest = destPtr->getDataSet();
     if (src.dims() != 2) return Error("Dataset should be 2D");
     if (src.size() == 0) return Error(EmptyDataSet);
-    if(get<kRows>() > 0 && get<kCols>() >  0)
-      return Error("Either rows or cols should be zero");
     FluidDataSet<string, double, 1> result;
     result = mAlgorithm.process(src,
-        get<kResample>(), get<kRows>(), get<kCols>());
+        get<kResample>(), get<kExtent>(), get<kAxis>());
     destPtr->setDataSet(result);
     return OK();
   }
