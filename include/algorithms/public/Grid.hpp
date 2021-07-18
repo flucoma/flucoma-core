@@ -45,27 +45,41 @@ public:
     double   yMin = data.col(1).minCoeff();
     double   yMax = data.col(1).maxCoeff();
     double   area = (xMax - xMin) * (yMax - yMin);
+    double   size = static_cast<double>(N);
+    double   step = sqrt(area / M);
+    index    numCols, numRows;
+
     if (area <= 0) return DataSet();
-    double step = sqrt(area / M);
-    index  numCols, numRows;
 
     if (extent > 0)
     {
-      numCols = (axis == 0) ? extent : lrint(ceil(N / extent));
-      numRows = (axis == 1) ? extent : lrint(ceil(N / extent));
+      numCols = (axis == 0) ? extent : lrint(ceil(size / extent));
+      numRows = (axis == 1) ? extent : lrint(ceil(size / extent));
     }
     else
     {
-      numCols = lrint(floor((xMax - xMin) / step));
+      numCols = lrint(ceil((xMax - xMin) / step));
       numRows = lrint(ceil((yMax - yMin) / step));
     }
 
-    ArrayXd colPos = ArrayXi::LinSpaced(M, 0, M - 1)
-                         .unaryExpr([&](const index x) { return x % numCols; })
-                         .cast<double>();
-    ArrayXd rowPos = (ArrayXi::LinSpaced(M, 0, M - 1) / numCols).cast<double>();
-    ArrayXd xPos = xMin + (colPos / numCols) * (xMax - xMin);
-    ArrayXd yPos = yMin + (rowPos / numRows) * (yMax - yMin);
+    ArrayXd colPos, rowPos;
+    if (extent > 0 && axis == 1)
+    {
+      rowPos = ArrayXi::LinSpaced(M, 0, M - 1)
+                   .unaryExpr([&](const index x) { return x % numRows; })
+                   .cast<double>();
+      colPos = (ArrayXi::LinSpaced(M, 0, M - 1) / numRows).cast<double>();
+    }
+    else
+    {
+      colPos = ArrayXi::LinSpaced(M, 0, M - 1)
+                   .unaryExpr([&](const index x) { return x % numCols; })
+                   .cast<double>();
+      rowPos = (ArrayXi::LinSpaced(M, 0, M - 1) / numCols).cast<double>();
+    }
+
+    ArrayXd  xPos = xMin + (colPos / (numCols - 1)) * (xMax - xMin);
+    ArrayXd  yPos = yMin + (rowPos / (numRows - 1)) * (yMax - yMin);
     ArrayXXd grid(M, 2);
     grid << xPos, yPos;
     ArrayXXd cost = algorithm::DistanceMatrix<ArrayXXd>(data, grid, 1);
