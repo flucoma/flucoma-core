@@ -115,16 +115,18 @@ public:
 private:
   MemoryBufferAdaptor& operator=(const BufferAdaptor* other)
   {
-    BufferAdaptor::ReadAccess src(other);
-    mData.resize(src.numFrames(), src.numChans());
+    BufferAdaptor::ReadAccess src(other);    
     mExists = src.exists();
     mValid = src.valid();
     mSampleRate = src.sampleRate();
-    for (index i = 0; i < mData.cols(); i++)
-      mData.col(i) = src.samps(0, src.numFrames(), i);
     mWrite = false;
     mOrigin = nullptr;
-
+    if(mValid)
+    {
+      mData.resize(src.numFrames(), src.numChans());
+      for (index i = 0; i < mData.cols(); i++)
+        mData.col(i) = src.samps(0, src.numFrames(), i);
+    }
     return *this;
   }
 
