@@ -85,6 +85,15 @@ public:
     return mAlgorithm.update(id, point) ? OK() : Error(PointNotFound);
   }
 
+  MessageResult<void> setLabel(string id, string label)
+  {
+    if (id.empty()) return Error(EmptyId);
+    if (label.empty()) return Error(EmptyLabel);
+    bool result = updateLabel(id, label).ok();
+    if (result) return OK();
+    return addLabel(id, label);
+  }
+
   MessageResult<void> deleteLabel(string id)
   {
     return mAlgorithm.remove(id) ? OK() : Error(PointNotFound);
@@ -104,6 +113,8 @@ public:
         makeMessage("addLabel", &LabelSetClient::addLabel),
         makeMessage("getLabel", &LabelSetClient::getLabel),
         makeMessage("deleteLabel", &LabelSetClient::deleteLabel),
+        makeMessage("updateLabel", &LabelSetClient::updateLabel),
+        makeMessage("setLabel", &LabelSetClient::setLabel),
         makeMessage("dump", &LabelSetClient::dump),
         makeMessage("load", &LabelSetClient::load),
         makeMessage("print", &LabelSetClient::print),
