@@ -33,9 +33,13 @@ constexpr bool isAudio = isAudioIn<T> || isAudioOut<T>;
 
 struct Control
 {};
+struct ControlIn : Control 
+{}; 
 struct ControlOut : Control
 {};
 
+template <typename T>
+constexpr bool isControlIn = std::is_base_of<ControlIn, T>::value;
 template <typename T>
 constexpr bool isControlOut = std::is_base_of<ControlOut, T>::value;
 template <typename T>

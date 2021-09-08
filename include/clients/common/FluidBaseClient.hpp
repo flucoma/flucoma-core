@@ -272,7 +272,7 @@ constexpr typename ClientWrapper<C>::ParamDescType ClientWrapper<C>::descript;
 template <class T>
 using isNonRealTime = typename std::is_base_of<Offline, T>::type;
 template <class T>
-using isRealTime = std::integral_constant<bool, isAudio<T> || isControl<T>>;
+using isRealTime = std::integral_constant<bool, isAudio<T> || isControlOut<T>>;
 
 template <typename T>
 class SharedClientRef; // forward declaration
