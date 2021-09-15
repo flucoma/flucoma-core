@@ -93,7 +93,7 @@ public:
       else
       {
         forcedState = true;
-        mOutputBuffer(mLatency - 1) = 1;
+        mOutputBuffer(mWriteHead) = 1;
         mEventCount++;
       }
       // case 2: we are waiting for silence to finish
@@ -104,7 +104,7 @@ public:
       else
       {
         forcedState = true;
-        mOutputBuffer(mLatency - 1) = 0;
+        mOutputBuffer(mWriteHead) = 0;
         mSilenceCount++;
       }
     }
@@ -120,9 +120,19 @@ public:
           mFillCount >= mLatency)
       {
         index onsetIndex =
-            refineStart(mLatency - mMinTimeAboveThreshold - mUpwardLookupTime,
+            refineStart(mWriteHead - mMinTimeAboveThreshold - mUpwardLookupTime,
                         mUpwardLookupTime);
-        mOutputBuffer.segment(onsetIndex, mLatency - onsetIndex) = 1;
+
+        index blockSize = mWriteHead > onsetIndex
+                              ? mWriteHead - onsetIndex
+                              : (mLatency - onsetIndex) + mWriteHead;
+
+        index size = onsetIndex + blockSize > mLatency ? mLatency - onsetIndex
+                                                       : blockSize;
+
+        mOutputBuffer.segment(onsetIndex, size) = 1;
+        mOutputBuffer.segment(0, blockSize - size) = 1;
+
         mEventCount = mOnStateCount;
         mOutputState = true; // we are officially on
       }
@@ -131,28 +141,37 @@ public:
       {
 
         index offsetIndex =
-            refineStart(mLatency - mDownwardLatency, mDownwardLookupTime);
-        mOutputBuffer.segment(offsetIndex, mLatency - offsetIndex) = 0;
+            refineStart(mWriteHead - mDownwardLatency, mDownwardLookupTime);
+
+        index blockSize = mWriteHead > offsetIndex
+                              ? mWriteHead - offsetIndex
+                              : (mLatency - offsetIndex) + mWriteHead;
+
+        index size = offsetIndex + blockSize > mLatency ? mLatency - offsetIndex
+                                                        : blockSize;
+
+        mOutputBuffer.segment(offsetIndex, size) = 0;
+        mOutputBuffer.segment(0, blockSize - size) = 0;
+
         mSilenceCount = mOffStateCount;
         mOutputState = false; // we are officially off
       }
 
-      mOutputBuffer(mLatency - 1) = mOutputState ? 1 : 0;
+      mOutputBuffer(mWriteHead) = mOutputState ? 1 : 0;
+      
       mInputState = nextState;
     }
-    if (mLatency > 1)
-    {
-      mOutputBuffer.segment(0, mLatency - 1) =
-          mOutputBuffer.segment(1, mLatency - 1);
 
-      mInputBuffer.segment(0, mLatency - 1) =
-          mInputBuffer.segment(1, mLatency - 1);
-    }
-    mInputBuffer(mLatency - 1) = smoothed;
+    mInputBuffer(mWriteHead) = smoothed;
+    
     if (mFillCount < mLatency) mFillCount++;
-    return mOutputBuffer(0);
-  }
-
+    double result = mOutputBuffer(mReadHead); 
+    mWriteHead++;     
+    mWriteHead = mWriteHead % mOutputBuffer.size(); 
+    mReadHead++; 
+    mReadHead = mReadHead % mOutputBuffer.size(); 
+    return result;     
+}
   index getLatency() { return mLatency; }
   bool  initialized() { return mInitialized; }
 
@@ -168,6 +187,8 @@ private:
     mInputState = false;
     mOutputState = false;
     mFillCount = max<index>(mLatency, 1);
+    mWriteHead = mOutputBuffer.size() - 1;
+    mReadHead = 0;
   }
 
   void initFilters(double cutoff)
@@ -178,11 +199,42 @@ private:
 
   index refineStart(index start, index nSamples)
   {
-    if (nSamples < 2) return start + nSamples;
-    ArrayXd        seg = mInputBuffer.segment(start, nSamples);
-    ArrayXd::Index index;
-    seg.minCoeff(&index);
-    return start + index;
+
+    using Eigen::Array2d;
+    using Eigen::Array2i;
+
+    index circularStart = start < 0 ? mLatency + start : start;
+
+    if (nSamples < 2)
+      return circularStart + nSamples < mLatency
+                 ? circularStart + nSamples
+                 : circularStart + nSamples - mLatency;
+
+    index circularNSamples = circularStart + nSamples > mLatency
+                                 ? mLatency - circularStart
+                                 : nSamples;
+
+    if (circularNSamples == nSamples)
+    {
+      index argMin;
+      mInputBuffer.segment(circularStart, nSamples).minCoeff(&argMin);
+      return circularStart + argMin;
+    }
+    else
+    {
+      Array2i argMins;
+      mInputBuffer.segment(circularStart, circularNSamples)
+          .minCoeff(argMins.data());
+      mInputBuffer.segment(0, nSamples - circularNSamples)
+          .minCoeff(argMins.data() + 1);
+      Array2d mins = {
+          mInputBuffer.segment(circularStart, circularNSamples)(argMins(0)),
+          mInputBuffer.segment(0, nSamples - circularNSamples)(argMins(1))};
+      index whichArgMin;
+      mins.minCoeff(&whichArgMin);
+
+      return whichArgMin == 0 ? circularStart + argMins(0) : argMins(1);
+    }
   }
 
   void updateCounters(bool nextState)
@@ -221,6 +273,8 @@ private:
   ArrayXd mOutputBuffer;
   ArrayXd mInputStorage;
   ArrayXd mOutputStorage;
+  index   mWriteHead;
+  index   mReadHead;
 
   bool mInputState{false};
   bool mOutputState{false};
