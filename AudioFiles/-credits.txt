@@ -4,8 +4,14 @@ Green-Box639.wav
 Green-Box641.wav
   - Owen Green (bowed cardboard box) recorded by Sean Williams 26 June 2013, Anechoic Chamber, University of Edinburgh, with the support of the Leverhulme Trust
 
+Harker-DS-TenOboeMultiphonics-M.wav
+- oboe multiphonics recorded by Niamh Dell for the piece ‘Drift Shadow’ by Alex Harker, Huddersfield, 2021
+
 Nicol-LoopE-M.wav
   - Jean-Sébastien Nicol (drums) recorded by Pierre Alexandre Tremblay at Université de Montréal, 1998
+
+Olencki-TenTromboneLongTones-M.wav
+- trombone long tones recorded by Weston Olencki, Brattleboro, Vermont, 2021
 
 Tremblay-AaS-AcBassGuit-Melo-M.wav
 Tremblay-AaS-AcousticStrums-M.wav
