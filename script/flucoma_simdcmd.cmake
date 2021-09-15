@@ -10,9 +10,11 @@ include_guard()
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "amd64.*|x86_64.*|AMD64.*|i686.*|i386.*|x86.*")
   if(MSVC)
-    set(SIMD_OPT /arch:AVX)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 4) #32bit; SSE2 is always on for x64 MSVC
+      set(SIMD_OPT /arch:SSE2)
+    endif()
   else()
-    set(SIMD_OPT -mavx)
+    set(SIMD_OPT -msse2)
   endif() 
 elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")   
    set(SIMD_OPT -march=armv7-a -mtune=cortex-a8 -mfloat-abi=hard -mfpu=neon) 
