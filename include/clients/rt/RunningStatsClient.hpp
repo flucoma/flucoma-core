@@ -62,9 +62,9 @@ public:
   RunningStatsClient(ParamSetViewType& p): mParams(p)
   {
     controlChannelsIn(1);
-    controlChannelsOut(2);
+    controlChannelsOut({2,-1}	);
     setInputLabels({"list input"});
-    setOutputLabels({"stststst"});
+    setOutputLabels({"mean","standard deviation"});
   } 
   
   template <typename T>

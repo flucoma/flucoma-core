@@ -60,7 +60,7 @@ public:
       : mParams(p), mSTFTProcessor(get<kMaxFFTSize>(), 1, 0)
   {
     audioChannelsIn(1);
-    controlChannelsOut(get<kMaxRank>());
+    controlChannelsOut({1,get<kMaxRank>()});
     setInputLabels({"audio input"});
     setOutputLabels({"activation amount for each component"});
   }
@@ -74,8 +74,8 @@ public:
                std::vector<HostVector<T>>& output, FluidContext& c)
   {
     if (!input[0].data()) return;
-    assert(FluidBaseClient::controlChannelsOut() && "No control channels");
-    assert(output.size() >= asUnsigned(FluidBaseClient::controlChannelsOut()) &&
+    assert(FluidBaseClient::controlChannelsOut().size && "No control channels");
+    assert(output.size() >= asUnsigned(FluidBaseClient::controlChannelsOut().size) &&
            "Too few output channels");
 
     if (get<kFilterbuf>().get())

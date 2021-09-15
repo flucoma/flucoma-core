@@ -29,7 +29,8 @@ public:
     mSampleCount = 0; 
   }
 
-  void process(RealVectorView in, RealVectorView mean, RealVectorView var)
+  template<typename T>
+  void process(FluidTensorView<T,1> in, FluidTensorView<T,1> mean, FluidTensorView<T,1> var)
   {
     index size = in.size();
     
@@ -41,7 +42,9 @@ public:
       mVar.fill(0); 
     }
 
-    mInFrame.row(0) = _impl::asEigen<Eigen::Array>(in).transpose();
+    mInFrame.row(0) = _impl::asEigen<Eigen::Array>(in)
+                          .transpose()
+                          .template cast<double>();
     
     if(mSampleCount == 0)
     {

@@ -73,7 +73,7 @@ public:
     mBands = FluidTensor<double, 1>(get<kNBands>());
     mCoefficients = FluidTensor<double, 1>(get<kNCoefs>());
     audioChannelsIn(1);
-    controlChannelsOut(get<kMaxNCoefs>());
+    controlChannelsOut({1,get<kMaxNCoefs>()});
     setInputLabels({"audio input"});
     setOutputLabels({"MFCCs"});
   }
@@ -85,8 +85,8 @@ public:
     using std::size_t;
 
     if (!input[0].data() || !output[0].data()) return;
-    assert(controlChannelsOut() && "No control channels");
-    assert(output.size() >= asUnsigned(controlChannelsOut()) &&
+    assert(controlChannelsOut().count && "No control channels");
+    assert(output.size() >= asUnsigned(controlChannelsOut().size) &&
            "Too few output channels");
 
     if (mTracker.changed(get<kFFT>().frameSize(), get<kNCoefs>(),

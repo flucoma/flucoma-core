@@ -71,7 +71,7 @@ public:
   {
     mChroma = FluidTensor<double, 1>(get<kNChroma>());
     audioChannelsIn(1);
-    controlChannelsOut(get<kMaxNChroma>());
+    controlChannelsOut({1,get<kMaxNChroma>()});
     setInputLabels({"audio in"});
     setOutputLabels({"energies at chroma bins"});
   }
@@ -82,8 +82,8 @@ public:
   {
     using std::size_t;
     if (!input[0].data() || !output[0].data()) return;
-    assert(controlChannelsOut() && "No control channels");
-    assert(output.size() >= asUnsigned(controlChannelsOut()) &&
+    assert(controlChannelsOut().size && "No control channels");
+    assert(output.size() >= asUnsigned(controlChannelsOut().size) &&
            "Too few output channels");
     if (mTracker.changed(get<kFFT>().frameSize(), get<kNChroma>(), get<kRef>(),
                          sampleRate()))

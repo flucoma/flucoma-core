@@ -76,7 +76,7 @@ public:
         cepstrumF0(get<kMaxFFTSize>())
   {
     audioChannelsIn(1);
-    controlChannelsOut(2);
+    controlChannelsOut({1,2});
     setInputLabels({"audio input"});
     setOutputLabels({"pitch (hz or MIDI), pitch confidence (0-1)"});
     mDescriptors = FluidTensor<double, 1>(2);
@@ -87,8 +87,8 @@ public:
                std::vector<HostVector<T>>& output, FluidContext& c)
   {
     if (!input[0].data() || !output[0].data()) return;
-    assert(FluidBaseClient::controlChannelsOut() && "No control channels");
-    assert(asSigned(output.size()) >= FluidBaseClient::controlChannelsOut() &&
+    assert(FluidBaseClient::controlChannelsOut().size && "No control channels");
+    assert(asSigned(output.size()) >= FluidBaseClient::controlChannelsOut().size &&
            "Too few output channels");
 
     if (mParamTracker.changed(get<kFFT>().frameSize(), sampleRate()))

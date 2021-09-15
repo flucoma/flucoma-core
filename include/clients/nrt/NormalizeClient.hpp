@@ -54,7 +54,7 @@ public:
 
   NormalizeClient(ParamSetViewType &p) : mParams(p) {
     audioChannelsIn(1);
-    controlChannelsOut(1);
+    controlChannelsOut({1,1});
   }
 
   template <typename T>

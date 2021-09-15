@@ -73,7 +73,7 @@ public:
       : mParams(p), mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0)
   {
     audioChannelsIn(1);
-    controlChannelsOut(7);
+    controlChannelsOut({1,7});
     setInputLabels({"audio input"});
     setOutputLabels({"centroid, spread, skewness, kurtosis, rolloff, flatness, crest factor"});
     mDescriptors = FluidTensor<double, 1>(7);
@@ -86,8 +86,8 @@ public:
     using std::size_t;
 
     if (!input[0].data() || !output[0].data()) return;
-    assert(FluidBaseClient::controlChannelsOut() && "No control channels");
-    assert(output.size() >= asUnsigned(FluidBaseClient::controlChannelsOut()) &&
+    assert(FluidBaseClient::controlChannelsOut().size && "No control channels");
+    assert(output.size() >= asUnsigned(FluidBaseClient::controlChannelsOut().size) &&
            "Too few output channels");
 
     if (mTracker.changed(get<kFFT>().frameSize(), sampleRate()))
