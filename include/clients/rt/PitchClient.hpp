@@ -87,8 +87,8 @@ public:
                std::vector<HostVector<T>>& output, FluidContext& c)
   {
     if (!input[0].data() || !output[0].data()) return;
-    assert(FluidBaseClient::controlChannelsOut().size && "No control channels");
-    assert(asSigned(output.size()) >= FluidBaseClient::controlChannelsOut().size &&
+    assert(controlChannelsOut().size && "No control channels");
+    assert(output[0].size() >= controlChannelsOut().size &&
            "Too few output channels");
 
     if (mParamTracker.changed(get<kFFT>().frameSize(), sampleRate()))
@@ -125,7 +125,7 @@ public:
       output[0](0) = mDescriptors(0);
     }
     // pitch confidence
-    output[1](0) = static_cast<T>(mDescriptors(1));
+    output[0](1) = static_cast<T>(mDescriptors(1));
   }
   index latency() { return get<kFFT>().winSize(); }
   index controlRate() { return get<kFFT>().hopSize(); }

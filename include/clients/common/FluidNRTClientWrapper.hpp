@@ -588,13 +588,14 @@ struct StreamingControl
         inputs.reserve(inputBuffers.size());
         std::vector<HostVectorView> outputs;
         outputs.reserve(outputBuffers.size());
+        
         for (index k = 0; k < asSigned(inputBuffers.size()); ++k)
           inputs.emplace_back(
               inputData[asUnsigned(k)].row(i)(Slice(t, controlRate)));
 
-        for (index k = 0; k < nFeatures; ++k)
-          outputs.emplace_back(outputData.row(k + i * nFeatures)(Slice(j, 1)));
-
+        // for (index k = 0; k < nFeatures; ++k)
+        //   outputs.emplace_back(outputData.row(k + i * nFeatures)(Slice(j, 1)));
+        outputs.push_back(outputData.col(j)(Slice(i * nFeatures, nFeatures)));
 
         client.process(inputs, outputs, dummyContext);
 

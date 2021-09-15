@@ -77,7 +77,7 @@ public:
   {
     if (!input[0].data() || !output[0].data()) return;
     assert(FluidBaseClient::controlChannelsOut().size && "No control channels");
-    assert(output.size() >= asUnsigned(FluidBaseClient::controlChannelsOut().size) &&
+    assert(output[0].size() >= FluidBaseClient::controlChannelsOut().size &&
            "Too few output channels");
     index hostVecSize = input[0].size();
     if (mBufferParamsTracker.changed(hostVecSize, get<kWindowSize>(),
@@ -98,8 +98,9 @@ public:
                                   get<kKWeighting>() == 1,
                                   get<kTruePeak>() == 1);
         });
-    output[0](0) = static_cast<T>(mDescriptors(0));
-    output[1](0) = static_cast<T>(mDescriptors(1));
+    // output[0](0) = static_cast<T>(mDescriptors(0));
+    // output[1](0) = static_cast<T>(mDescriptors(1));
+    output[0] = mDescriptors; 
   }
 
   index latency() { return get<kWindowSize>(); }

@@ -86,8 +86,8 @@ public:
     using std::size_t;
 
     if (!input[0].data() || !output[0].data()) return;
-    assert(FluidBaseClient::controlChannelsOut().size && "No control channels");
-    assert(output.size() >= asUnsigned(FluidBaseClient::controlChannelsOut().size) &&
+    assert(controlChannelsOut().size && "No control channels");
+    assert(output[0].size() >= controlChannelsOut().size &&
            "Too few output channels");
 
     if (mTracker.changed(get<kFFT>().frameSize(), sampleRate()))
@@ -102,8 +102,9 @@ public:
               get<kAmpMeasure>() == 1);
         });
 
-    for (int i = 0; i < 7; ++i)
-      output[asUnsigned(i)](0) = static_cast<T>(mDescriptors(i));
+    // for (int i = 0; i < 7; ++i)
+    //   output[asUnsigned(i)](0) = static_cast<T>(mDescriptors(i));
+    output[0] = mDescriptors; 
   }
 
   index latency() { return get<kFFT>().winSize(); }

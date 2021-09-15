@@ -60,7 +60,7 @@ public:
       : mParams(p), mSTFTProcessor(get<kMaxFFTSize>(), 1, 0)
   {
     audioChannelsIn(1);
-    controlChannelsOut({1,get<kMaxRank>()});
+    controlChannelsOut({1, get<kMaxRank>()});
     setInputLabels({"audio input"});
     setOutputLabels({"activation amount for each component"});
   }
@@ -75,7 +75,7 @@ public:
   {
     if (!input[0].data()) return;
     assert(FluidBaseClient::controlChannelsOut().size && "No control channels");
-    assert(output.size() >= asUnsigned(FluidBaseClient::controlChannelsOut().size) &&
+    assert(output[0].size() >= controlChannelsOut().size &&
            "Too few output channels");
 
     if (get<kFilterbuf>().get())
@@ -107,8 +107,9 @@ public:
         //          controlTrigger(true);
       });
 
-      for (index i = 0; i < rank; ++i)
-        output[asUnsigned(i)](0) = static_cast<T>(tmpOut(i));
+      // for (index i = 0; i < rank; ++i)
+      //   output[asUnsigned(i)](0) = static_cast<T>(tmpOut(i));
+      output[0](Slice(0,rank)) = tmpOut; 
     }
   }
 

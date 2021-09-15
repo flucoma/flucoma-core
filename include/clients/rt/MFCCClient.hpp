@@ -86,7 +86,7 @@ public:
 
     if (!input[0].data() || !output[0].data()) return;
     assert(controlChannelsOut().count && "No control channels");
-    assert(output.size() >= asUnsigned(controlChannelsOut().size) &&
+    assert(output[0].size() >= controlChannelsOut().size &&
            "Too few output channels");
 
     if (mTracker.changed(get<kFFT>().frameSize(), get<kNCoefs>(),
@@ -108,8 +108,9 @@ public:
           mMelBands.processFrame(mMagnitude, mBands, false, false, true);
           mDCT.processFrame(mBands, mCoefficients);
         });
-    for (index i = 0; i < get<kNCoefs>(); ++i)
-      output[asUnsigned(i)](0) = static_cast<T>(mCoefficients(i));
+    // for (index i = 0; i < get<kNCoefs>(); ++i)
+    //   output[asUnsigned(i)](0) = static_cast<T>(mCoefficients(i));
+    output[0](Slice(0,get<kNCoefs>())) = mCoefficients; 
   }
 
   index latency() { return get<kFFT>().winSize(); }
