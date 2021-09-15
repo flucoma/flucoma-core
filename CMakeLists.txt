@@ -46,7 +46,7 @@ FetchContent_Declare(
   HISSTools
   GIT_REPOSITORY https://github.com/AlexHarker/HISSTools_Library
   GIT_PROGRESS TRUE
-  GIT_TAG 6c09283
+  GIT_TAG 5dd853049502b42f4ced9a5feb3e0d7f1ddac63c
 )
 
 FetchContent_Declare(
