@@ -81,7 +81,7 @@ public:
   }
   
   bool initialized() { return mAlgorithm.initialized(); }
-  
+  const T& algorithm() { return mAlgorithm; }
 protected:
   T mAlgorithm;
 };

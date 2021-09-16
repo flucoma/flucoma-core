@@ -20,21 +20,19 @@ namespace fluid {
 namespace client {
 namespace kmeans {
 
-enum { kNumClusters, kMaxIter, kInputBuffer, kOutputBuffer };
-
 constexpr auto KMeansParams = defineParameters(
+    StringParam<Fixed<true>>("name","Name"), 
     LongParam("numClusters", "Number of Clusters", 4, Min(1)),
-    LongParam("maxIter", "Max number of Iterations", 100, Min(1)),
-    BufferParam("inputPointBuffer", "Input Point Buffer"),
-    BufferParam("predictionBuffer", "Prediction Buffer"));
+    LongParam("maxIter", "Max number of Iterations", 100, Min(1))
+);
 
 class KMeansClient : public FluidBaseClient,
-                     AudioIn,
-                     ControlOut,
+                     OfflineIn,
+                     OfflineOut,
                      ModelObject,
                      public DataClient<algorithm::KMeans>
 {
-
+  enum { kName, kNumClusters, kMaxIter}; 
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
@@ -63,23 +61,11 @@ public:
     audioChannelsIn(1);
     controlChannelsOut({1,1});
   }
-
+  
   template <typename T>
-  void process(std::vector<FluidTensorView<T, 1>>& input,
-               std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
+  Result process(FluidContext&)
   {
-    if (!mAlgorithm.initialized()) return;
-    InOutBuffersCheck bufCheck(mAlgorithm.dims());
-    if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
-                              get<kOutputBuffer>().get()))
-      return;
-    auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-    if (outBuf.samps(0).size() < 1) return;
-    RealVector point(mAlgorithm.dims());
-    point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
-                .samps(0, mAlgorithm.dims(), 0);
-    mTrigger.process(input, output,
-                     [&]() { outBuf.samps(0)[0] = mAlgorithm.vq(point); });
+    return {};
   }
 
   MessageResult<IndexVector> fit(DataSetClientRef datasetClient)
@@ -242,9 +228,6 @@ public:
     return OK();
   }
 
-
-  index latency() { return 0; }
-
   static auto getMessageDescriptors()
   {
     return defineMessages(
@@ -289,9 +272,80 @@ private:
 
   FluidInputTrigger mTrigger;
 };
+
+using KMeansRef = SharedClientRef<KMeansClient>;
+
+constexpr auto KMeansQueryParams = defineParameters(
+  KMeansRef::makeParam("kmeans","Source KMeans model"), 
+  BufferParam("inputPointBuffer", "Input Point Buffer"),
+  BufferParam("predictionBuffer", "Prediction Buffer")
+); 
+
+class KMeansQuery: public FluidBaseClient, ControlIn, ControlOut 
+{
+  enum { kModel, kInputBuffer, kOutputBuffer };
+public: 
+  using ParamDescType = decltype(KMeansQueryParams);
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors() { return KMeansQueryParams; }
+
+  KMeansQuery(ParamSetViewType& p) : mParams(p)
+  {
+    controlChannelsIn(1);
+    controlChannelsOut({1,1});
+  }
+
+  template <typename T>
+  void process(std::vector<FluidTensorView<T, 1>>& input,
+               std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
+  {
+    output[0] = input[0]; 
+    if(input[0](0) > 0)
+    {
+      auto kmeansPtr = get<kModel>().get().lock(); 
+      if(!kmeansPtr)
+      {
+        //report error?
+        return; 
+      }
+      if (!kmeansPtr->initialized()) return;
+      index dims = kmeansPtr->dims();
+      InOutBuffersCheck bufCheck(dims);
+      if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
+                                get<kOutputBuffer>().get()))
+        return;
+      auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
+      if (outBuf.samps(0).size() < 1) return;
+      RealVector point(dims);
+      point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+                  .samps(0, dims, 0);
+      outBuf.samps(0)[0] = kmeansPtr->algorithm().vq(point);
+//      mTrigger.process(input, output,
+//                       [&]() { outBuf.samps(0)[0] = mAlgorithm.vq(point); });
+    }
+  }
+  
+  index latency() { return 0; }  
+};
+
+
 } // namespace kmeans
 
-using RTKMeansClient = ClientWrapper<kmeans::KMeansClient>;
+using NRTThreadedKMeansClient =
+    NRTThreadingAdaptor<typename kmeans::KMeansRef::SharedType>;
+
+using RTKMeansQueryClient = ClientWrapper<kmeans::KMeansQuery>;
 
 } // namespace client
 } // namespace fluid
