@@ -10,7 +10,9 @@ include_guard()
 
 if(APPLE)
     # https://stackoverflow.com/a/45921250
+  if(CMAKE_SYSTEM_PROCESSOR MATCHES) "amd64.*|x86_64.*|AMD64.*|i686.*|i386.*|x86.*")
     set (SIMD_OPT -march=core2 -mtune=haswell)  
+  endif() 
 elseif(MSVC)
     if(CMAKE_SIZEOF_VOID_P EQUAL 4) #32bit; SSE2 is always on for x64 MSVC
       set(SIMD_OPT /arch:SSE2)
