@@ -34,6 +34,7 @@ public:
     mX1 = ArrayXd::Zero(inputSize);
     mY1 = ArrayXd::Zero(inputSize);
     mInputSquared = ArrayXd::Zero(inputSize);
+    mCleanedInput = ArrayXd::Zero(inputSize);
     mHead = 0;
     mN = 0;
     mSize = historySize;
@@ -48,11 +49,15 @@ public:
     // oldest inputs and squared inputs from buffer
     mX1 = mInputBuffer.col(mHead);
     mY1 = mInputSquaredBuffer.col(mHead);
-
-    mInputSquared = _impl::asEigen<Eigen::Array>(in).square();
+    
+    using MapXd = decltype(_impl::asEigen<Eigen::Array>(in));
+    
+    MapXd inMap = _impl::asEigen<Eigen::Array>(in);
+    mCleanedInput = inMap.isNaN().select(0,inMap);
+    mInputSquared = mCleanedInput.square();
 
     // running sums
-    mXSum += (_impl::asEigen<Eigen::Array>(in) - mX1);
+    mXSum += (mCleanedInput - mX1);
     mXSqSum += (mInputSquared - mY1);
 
     // calculate stats
@@ -68,7 +73,7 @@ public:
     }
 
     // write new data
-    mInputBuffer.col(mHead) = _impl::asEigen<Eigen::Array>(in);
+    mInputBuffer.col(mHead) = mCleanedInput;
     mInputSquaredBuffer.col(mHead) = mInputSquared;
 
     // move on
@@ -83,6 +88,7 @@ private:
   ArrayXd  mXSqSum;
   ArrayXd  mX1;
   ArrayXd  mY1;
+  ArrayXd  mCleanedInput;
   ArrayXd  mInputSquared;
   index    mHead;
   index    mN;
