@@ -39,9 +39,10 @@ public:
     mN = 0;
     mSize = historySize;
   }
-
-  void process(RealVectorView in, RealVectorView meanOut,
-               RealVectorView stdDevOut)
+  
+  template<typename T>
+  void process(FluidTensorView<T, 1> in, FluidTensorView<T, 1> meanOut,
+               FluidTensorView<T, 1> stdDevOut)
   {
     // Moving average and _sample_ standard deviation
     // https://www.dsprelated.com/showthread/comp.dsp/97276-1.php
@@ -53,7 +54,7 @@ public:
     using MapXd = decltype(_impl::asEigen<Eigen::Array>(in));
     
     MapXd inMap = _impl::asEigen<Eigen::Array>(in);
-    mCleanedInput = inMap.isNaN().select(0,inMap);
+    mCleanedInput = inMap.isNaN().select(0,inMap).template cast<double>();
     mInputSquared = mCleanedInput.square();
 
     // running sums
@@ -62,10 +63,10 @@ public:
 
     // calculate stats
     mN = std::min(mN + 1, mSize);
-    _impl::asEigen<Eigen::Array>(meanOut) = mXSum / mN;
+    _impl::asEigen<Eigen::Array>(meanOut) = (mXSum / mN).template cast<T>();
     if(mN > 1)
     {
-      _impl::asEigen<Eigen::Array>(stdDevOut) = ((mN * mXSqSum - mXSum.square()) / (mN * (mN - 1))).sqrt();
+      _impl::asEigen<Eigen::Array>(stdDevOut) = ((mN * mXSqSum - mXSum.square()) / (mN * (mN - 1))).sqrt().template cast<T>();
     }
     else
     {
