@@ -105,7 +105,8 @@ public:
 
 private:
   Assign2D assign2D;
-  index    numCols = 0, numRows = 0;
+index numCols{0}; 
+indes numRows{0};  
 };
 }; // namespace algorithm
 }; // namespace fluid
