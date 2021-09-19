@@ -32,6 +32,7 @@ public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
   using StringVector = FluidTensor<string, 1>;
+  using IndexPair = std::tuple<index,index>;
 
   template <typename T>
   Result process(FluidContext&)
@@ -56,21 +57,22 @@ public:
 
   GridClient(ParamSetViewType& p) : mParams(p) {}
 
-  MessageResult<void> fitTransform(DataSetClientRef sourceClient,
+  MessageResult<IndexPair> fitTransform(DataSetClientRef sourceClient,
                                    DataSetClientRef destClient)
   {
     auto srcPtr = sourceClient.get().lock();
     auto destPtr = destClient.get().lock();
-    if (!srcPtr || !destPtr) return Error(NoDataSet);
+    if (!srcPtr || !destPtr) return Error<IndexPair>(NoDataSet);
     auto src = srcPtr->getDataSet();
     auto dest = destPtr->getDataSet();
-    if (src.dims() != 2) return Error("Dataset should be 2D");
-    if (src.size() == 0) return Error(EmptyDataSet);
+    if (src.dims() != 2) return Error<IndexPair>("Dataset should be 2D");
+    if (src.size() == 0) return Error<IndexPair>(EmptyDataSet);
     FluidDataSet<string, double, 1> result;
     result = mAlgorithm.process(src,
         get<kResample>(), get<kExtent>(), get<kAxis>());
     destPtr->setDataSet(result);
-    return OK();
+    IndexPair casted = mAlgorithm.getGridMax();
+    return {casted};
   }
 
   static auto getMessageDescriptors()

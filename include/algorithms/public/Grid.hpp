@@ -47,7 +47,6 @@ public:
     double   area = (xMax - xMin) * (yMax - yMin);
     double   size = static_cast<double>(N);
     double   step = sqrt(area / M);
-    index    numCols, numRows;
 
     if (area <= 0) return DataSet();
 
@@ -100,8 +99,13 @@ public:
     return result;
   }
 
+  std::pair<index, index> const getGridMax() {
+    return {numCols,numRows};
+  }
+
 private:
   Assign2D assign2D;
+  index    numCols = 0, numRows = 0;
 };
 }; // namespace algorithm
 }; // namespace fluid
