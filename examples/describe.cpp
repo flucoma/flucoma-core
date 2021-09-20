@@ -108,7 +108,7 @@ int main(int argc, char* argv[])
   RealMatrix loudnessMat(nFrames, 2);
   RealMatrix mfccMat(nFrames, nCoefs);
   RealMatrix shapeMat(nFrames, 7);
-  std::iota(padded.begin(), padded.end(), 0);
+  std::fill(padded.begin(), padded.end(), 0);
   padded(Slice(halfWindow, in.size())) = in;
 
   for (int i = 0; i < nFrames; i++)
