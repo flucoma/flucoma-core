@@ -203,8 +203,10 @@ public:
   void removeListener(void* key)
   {
     auto& listeners = mParams->listeners[N];
-    std::remove_if(listeners.begin(), listeners.end(),
-                   [&key](ListenerEntry& e) { return e.second == key; });
+    listeners.erase(
+        std::remove_if(listeners.begin(), listeners.end(),
+                       [&key](ListenerEntry& e) { return e.second == key; }),
+        listeners.end());
   }
 
 private:
