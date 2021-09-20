@@ -17,19 +17,19 @@ namespace fluid {
 namespace client {
 namespace pca {
 
-enum { kNumDimensions, kInputBuffer, kOutputBuffer };
-
 constexpr auto PCAParams = defineParameters(
-    LongParam("numDimensions", "Target Number of Dimensions", 2, Min(1)),
-    BufferParam("inputPointBuffer", "Input Point Buffer"),
-    BufferParam("predictionBuffer", "Prediction Buffer"));
+    StringParam<Fixed<true>>("name", "Name"),
+    LongParam("numDimensions", "Target Number of Dimensions", 2, Min(1)) 
+  );
 
 class PCAClient : public FluidBaseClient,
-                  AudioIn,
-                  ControlOut,
+                  OfflineIn,
+                  OfflineOut,
                   ModelObject,
                   public DataClient<algorithm::PCA>
 {
+  enum { kName, kNumDimensions };
+
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
@@ -50,34 +50,11 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return PCAParams; }
 
-  PCAClient(ParamSetViewType& p) : mParams(p)
-  {
-    audioChannelsIn(1);
-    controlChannelsOut({1,1});
-  }
+  PCAClient(ParamSetViewType& p) : mParams(p) {}
 
   template <typename T>
-  void process(std::vector<FluidTensorView<T, 1>>& input,
-               std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
-  {
-    if (!mAlgorithm.initialized()) return;
-    index k = get<kNumDimensions>();
-    if (k <= 0 || k > mAlgorithm.dims()) return;
-    InOutBuffersCheck bufCheck(mAlgorithm.dims());
-    if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
-                              get<kOutputBuffer>().get()))
-      return;
-    auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-    if (outBuf.samps(0).size() < k) return;
-    RealVector src(mAlgorithm.dims());
-    RealVector dest(k);
-    src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
-              .samps(0, mAlgorithm.dims(), 0);
-    mTrigger.process(input, output, [&]() {
-      mAlgorithm.processFrame(src, dest, k);
-      outBuf.samps(0, k, 0) = dest;
-    });
-  }
+  Result process(FluidContext&)
+  {}
 
   MessageResult<void> fit(DataSetClientRef datasetClient)
   {
@@ -151,8 +128,6 @@ public:
     return OK();
   }
 
-  index latency() { return 0; }
-
   static auto getMessageDescriptors()
   {
     return defineMessages(
@@ -172,8 +147,84 @@ public:
 private:
   FluidInputTrigger mTrigger;
 };
+
+using PCARef = SharedClientRef<PCAClient>;
+
+constexpr auto PCAQueryParams = defineParameters(
+    PCARef::makeParam("model", "Source Model"),
+    LongParam("numDimensions", "Target Number of Dimensions", 2, Min(1)),
+    BufferParam("inputPointBuffer", "Input Point Buffer"),
+    BufferParam("predictionBuffer", "Prediction Buffer"));
+
+class PCAQuery : public FluidBaseClient, ControlIn, ControlOut
+{
+  enum { kModel, kNumDimensions, kInputBuffer, kOutputBuffer };
+
+public:
+  using ParamDescType = decltype(PCAQueryParams);
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors() { return PCAQueryParams; }
+
+  PCAQuery(ParamSetViewType& p) : mParams(p)
+  {
+    controlChannelsIn(1);
+    controlChannelsOut({1, 1});
+  }
+
+  template <typename T>
+  void process(std::vector<FluidTensorView<T, 1>>& input,
+               std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
+  {
+    output[0] = input[0];
+    if (input[0](0) > 0)
+    {
+      auto PCAPtr = get<kModel>().get().lock();
+      if (!PCAPtr)
+      {
+        // report error?
+        return;
+      }
+      algorithm::PCA algorithm = PCAPtr->algorithm();
+      if (!algorithm.initialized()) return;
+      index k = get<kNumDimensions>();
+      if (k <= 0 || k > algorithm.dims()) return;
+      InOutBuffersCheck bufCheck(algorithm.dims());
+      if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
+                                get<kOutputBuffer>().get()))
+        return;
+      auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
+      if (outBuf.samps(0).size() < k) return;
+      RealVector src(algorithm.dims());
+      RealVector dest(k);
+      src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+                .samps(0, algorithm.dims(), 0);
+      // mTrigger.process(input, output, [&]() {
+      algorithm.processFrame(src, dest, k);
+      outBuf.samps(0, k, 0) = dest;
+      // });
+    }
+  }
+
+  index latency() { return 0; }
+};
+
+
 } // namespace pca
 
-using RTPCAClient = ClientWrapper<pca::PCAClient>;
+using NRTThreadedPCAClient =
+    NRTThreadingAdaptor<typename pca::PCARef::SharedType>;
+
+using RTPCAQueryClient = ClientWrapper<pca::PCAQuery>;
 } // namespace client
 } // namespace fluid
