@@ -41,7 +41,7 @@ constexpr auto MFCCParams = defineParameters(
               UpperLimit<kNBands, kMaxNCoefs>()),
     LongParam("numBands", "Number of Bands", 40, Min(2),
               FrameSizeUpperLimit<kFFT>(), LowerLimit<kNCoefs>()),
-    EnumParam("dropZero","Drop Zeroth Coefficient",0, "No","Yes"),
+    LongParam("startCoeff","Output Coefficient Offset",0),
     FloatParam("minFreq", "Low Frequency Bound", 20, Min(0)),
     FloatParam("maxFreq", "High Frequency Bound", 20000, Min(0)),
     LongParam<Fixed<true>>("maxNumCoeffs", "Maximum Number of Coefficients", 40,
