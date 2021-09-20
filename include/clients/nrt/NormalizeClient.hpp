@@ -22,7 +22,7 @@ constexpr auto NormalizeParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
     FloatParam("min", "Minimum Value", 0.0),
     FloatParam("max", "Maximum Value", 1.0),
-    EnumParam("invert", "Inverse Transform", 0, "False", "True") );
+    EnumParam("invert", "Inverse Transform", 0, "False", "True"));
 
 class NormalizeClient : public FluidBaseClient,
                         OfflineIn,
@@ -52,8 +52,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return NormalizeParams; }
 
-  NormalizeClient(ParamSetViewType& p) : mParams(p)
-  {}
+  NormalizeClient(ParamSetViewType& p) : mParams(p) {}
 
   template <typename T>
   Result process(FluidContext&)
@@ -153,7 +152,6 @@ private:
     }
     return OK();
   }
-  FluidInputTrigger mTrigger;
 };
 
 using NormalizeRef = SharedClientRef<NormalizeClient>;
@@ -171,7 +169,6 @@ class NormalizeQuery : public FluidBaseClient, ControlIn, ControlOut
   enum { kModel, kMin, kMax, kInvert, kInputBuffer, kOutputBuffer };
 
 public:
-  
   using ParamDescType = decltype(NormalizeQueryParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
@@ -185,7 +182,10 @@ public:
     return mParams.get().template get<N>();
   }
 
-  static constexpr auto& getParameterDescriptors() { return NormalizeQueryParams; }
+  static constexpr auto& getParameterDescriptors()
+  {
+    return NormalizeQueryParams;
+  }
 
   NormalizeQuery(ParamSetViewType& p) : mParams(p)
   {
@@ -193,7 +193,7 @@ public:
     controlChannelsOut({1, 1});
   }
 
-  
+
   template <typename T>
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
@@ -201,13 +201,13 @@ public:
     output[0] = input[0];
     if (input[0](0) > 0)
     {
-      auto normPtr = get<kModel>().get().lock(); 
-      if(!normPtr)
+      auto normPtr = get<kModel>().get().lock();
+      if (!normPtr)
       {
-        //report error?
-        return; 
+        // report error?
+        return;
       }
-      algorithm::Normalization& algorithm = normPtr->algorithm(); 
+      algorithm::Normalization& algorithm = normPtr->algorithm();
       if (!algorithm.initialized()) return;
       InOutBuffersCheck bufCheck(algorithm.dims());
       if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
@@ -221,10 +221,8 @@ public:
                 .samps(0, algorithm.dims(), 0);
       algorithm.setMin(get<kMin>());
       algorithm.setMax(get<kMax>());
-      // mTrigger.process(input, output, [&]() {
-        algorithm.processFrame(src, dest, get<kInvert>() == 1);
-        outBuf.samps(0, algorithm.dims(), 0) = dest;
-      // });
+      algorithm.processFrame(src, dest, get<kInvert>() == 1);
+      outBuf.samps(0, algorithm.dims(), 0) = dest;
     }
   }
 

@@ -20,17 +20,16 @@ namespace client {
 namespace kdtree {
 
 constexpr auto KDTreeParams = defineParameters(
-    StringParam<Fixed<true>>("name","Name"), 
+    StringParam<Fixed<true>>("name", "Name"),
     LongParam("numNeighbours", "Number of Nearest Neighbours", 1),
-    FloatParam("radius", "Maximum distance", 0, Min(0))
-);
+    FloatParam("radius", "Maximum distance", 0, Min(0)));
 
 class KDTreeClient : public FluidBaseClient,
                      OfflineIn,
                      OfflineOut,
                      ModelObject,
                      public DataClient<algorithm::KDTree>
-{  
+{
   enum { kName, kNumNeighbors, kRadius };
 
 public:
@@ -55,16 +54,14 @@ public:
   KDTreeClient(ParamSetViewType& p) : mParams(p)
   {
     audioChannelsIn(1);
-    controlChannelsOut({1,1});
+    controlChannelsOut({1, 1});
   }
-  
+
   template <typename T>
   Result process(FluidContext&)
   {
     return {};
   }
-  
-  // index latency() { return 0; }
 
   MessageResult<void> fit(DataSetClientRef datasetClient)
   {
@@ -128,31 +125,30 @@ public:
         makeMessage("write", &KDTreeClient::write),
         makeMessage("read", &KDTreeClient::read));
   }
-  
-  DataSetClientRef getDataSet()
-  {
-    return mDataSetClient; 
-  }
-  
-  const algorithm::KDTree&  algorithm(){ return mAlgorithm; }
-private: 
-  DataSetClientRef  mDataSetClient;
+
+  DataSetClientRef getDataSet() { return mDataSetClient; }
+
+  const algorithm::KDTree& algorithm() { return mAlgorithm; }
+
+private:
+  DataSetClientRef mDataSetClient;
 };
 
 using KDTreeRef = SharedClientRef<KDTreeClient>;
 
 constexpr auto KDTreeQueryParams = defineParameters(
-        KDTreeRef::makeParam("tree","KDTree"), 
-        LongParam("numNeighbours", "Number of Nearest Neighbours", 1),
-        FloatParam("radius", "Maximum distance", 0, Min(0)),
-        DataSetClientRef::makeParam("dataSet", "DataSet Name"),
-        BufferParam("inputPointBuffer", "Input Point Buffer"),
-        BufferParam("predictionBuffer", "Prediction Buffer"));
+    KDTreeRef::makeParam("tree", "KDTree"),
+    LongParam("numNeighbours", "Number of Nearest Neighbours", 1),
+    FloatParam("radius", "Maximum distance", 0, Min(0)),
+    DataSetClientRef::makeParam("dataSet", "DataSet Name"),
+    BufferParam("inputPointBuffer", "Input Point Buffer"),
+    BufferParam("predictionBuffer", "Prediction Buffer"));
 
-class KDTreeQuery: public FluidBaseClient, ControlIn, ControlOut
+class KDTreeQuery : public FluidBaseClient, ControlIn, ControlOut
 {
   enum { kTree, kNumNeighbors, kRadius, kDataSet, kInputBuffer, kOutputBuffer };
-public:  
+
+public:
   using ParamDescType = decltype(KDTreeQueryParams);
   using ParamSetViewType = ParameterSetView<ParamDescType>;
 
@@ -171,38 +167,39 @@ public:
   KDTreeQuery(ParamSetViewType& p) : mParams(p)
   {
     controlChannelsIn(1);
-    controlChannelsOut({1,1});
+    controlChannelsOut({1, 1});
   }
 
   index latency() { return 0; }
-  
+
   template <typename T>
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext& c)
   {
-    auto kdtreeptr = get<kTree>().get().lock(); 
-    if(!kdtreeptr)
+    output[0] = input[0];
+
+    if (input[0](0) > 0)
     {
-      // c.reportError("No FluidKDTree found"); 
-      return; 
-    }
-    
-    if(!kdtreeptr->initialized())
-    {
-      // c.reportError("FluidKDTree not fitted"); 
-      return;   
-    }
-    
-    index k = get<kNumNeighbors>();
-    if (k > kdtreeptr->size() || k <= 0) return;
-    index dims = kdtreeptr->dims();
-    InOutBuffersCheck bufCheck(dims);
-    if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
-                              get<kOutputBuffer>().get()))
-      return;
-    // mTrigger.process(input, output, [&]() {
-    if(input[0](0))
-    {
+      auto kdtreeptr = get<kTree>().get().lock();
+      if (!kdtreeptr)
+      {
+        // c.reportError("No FluidKDTree found");
+        return;
+      }
+
+      if (!kdtreeptr->initialized())
+      {
+        // c.reportError("FluidKDTree not fitted");
+        return;
+      }
+
+      index k = get<kNumNeighbors>();
+      if (k > kdtreeptr->size() || k <= 0) return;
+      index             dims = kdtreeptr->dims();
+      InOutBuffersCheck bufCheck(dims);
+      if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
+                                get<kOutputBuffer>().get()))
+        return;
       auto datasetClientPtr = get<kDataSet>().get().lock();
       // if (!datasetClientPtr) datasetClientPtr = mDataSetClient.get().lock();
       if (!datasetClientPtr)
@@ -231,18 +228,18 @@ public:
       auto nearest = kdtreeptr->algorithm().kNearest(point, k);
       auto ids = nearest.getIds();
       for (index i = 0; i < k; i++)
-      { dataset.get(ids(i), mRTBuffer(Slice(i * pointSize, pointSize))); }
+      {
+        dataset.get(ids(i), mRTBuffer(Slice(i * pointSize, pointSize)));
+      }
       outBuf.samps(0, outputSize, 0) = mRTBuffer;
-    // });
     }
-  }  
-  
+  }
 
-  private:
-    FluidInputTrigger mTrigger;
-    RealVector        mRTBuffer;
-    DataSetClientRef  mDataSetClient;
-}; 
+
+private:
+  RealVector       mRTBuffer;
+  DataSetClientRef mDataSetClient;
+};
 
 } // namespace kdtree
 

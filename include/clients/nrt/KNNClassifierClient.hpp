@@ -63,7 +63,8 @@ class KNNClassifierClient : public FluidBaseClient,
                             ModelObject,
                             public DataClient<KNNClassifierData>
 {
-  enum { kName, kNumNeighbors, kWeight};
+  enum { kName, kNumNeighbors, kWeight };
+
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
@@ -167,7 +168,7 @@ public:
     destPtr->setLabelSet(result);
     return OK();
   }
-  
+
 
   static auto getMessageDescriptors()
   {
@@ -186,11 +187,10 @@ public:
 
   index encodeIndex(std::string label)
   {
-    return mLabelSetEncoder.encodeIndex(label); 
-  }  
-  
+    return mLabelSetEncoder.encodeIndex(label);
+  }
+
 private:
-  FluidInputTrigger          mTrigger;
   algorithm::LabelSetEncoder mLabelSetEncoder;
 };
 
@@ -206,6 +206,7 @@ constexpr auto KNNClassifierQueryParams = defineParameters(
 class KNNClassifierQuery : public FluidBaseClient, ControlIn, ControlOut
 {
   enum { kModel, kNumNeighbors, kWeight, kInputBuffer, kOutputBuffer };
+
 public:
   using ParamDescType = decltype(KNNClassifierQueryParams);
 
@@ -237,19 +238,18 @@ public:
   {
     output[0] = input[0];
     if (input[0](0) > 0)
-    { 
+    {
       auto knnPtr = get<kModel>().get().lock();
-      if(!knnPtr)
+      if (!knnPtr)
       {
-        //report error? 
-        return; 
+        // report error?
+        return;
       }
       index k = get<kNumNeighbors>();
       bool  weight = get<kWeight>() != 0;
-      auto& algorithm = knnPtr->algorithm(); 
-      index treeSize = algorithm.tree.size() ; 
-      if (k == 0 || treeSize == 0 || treeSize < k)
-        return;
+      auto& algorithm = knnPtr->algorithm();
+      index treeSize = algorithm.tree.size();
+      if (k == 0 || treeSize == 0 || treeSize < k) return;
       InOutBuffersCheck bufCheck(algorithm.tree.dims());
       if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
                                 get<kOutputBuffer>().get()))
@@ -260,14 +260,12 @@ public:
       RealVector               point(algorithm.tree.dims());
       point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                   .samps(0, algorithm.tree.dims(), 0);
-      // mTrigger.process(input, output, [&]() {
       std::string result = classifier.predict(algorithm.tree, point,
                                               algorithm.labels, k, weight);
       outBuf.samps(0)[0] = static_cast<double>(knnPtr->encodeIndex(result));
-      // });
     }
   }
-  
+
   index latency() { return 0; }
 };
 

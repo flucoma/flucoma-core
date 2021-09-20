@@ -19,8 +19,7 @@ namespace pca {
 
 constexpr auto PCAParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
-    LongParam("numDimensions", "Target Number of Dimensions", 2, Min(1)) 
-  );
+    LongParam("numDimensions", "Target Number of Dimensions", 2, Min(1)));
 
 class PCAClient : public FluidBaseClient,
                   OfflineIn,
@@ -143,9 +142,6 @@ public:
         makeMessage("read", &PCAClient::read),
         makeMessage("write", &PCAClient::write));
   }
-
-private:
-  FluidInputTrigger mTrigger;
 };
 
 using PCARef = SharedClientRef<PCAClient>;
@@ -209,10 +205,8 @@ public:
       RealVector dest(k);
       src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                 .samps(0, algorithm.dims(), 0);
-      // mTrigger.process(input, output, [&]() {
       algorithm.processFrame(src, dest, k);
       outBuf.samps(0, k, 0) = dest;
-      // });
     }
   }
 

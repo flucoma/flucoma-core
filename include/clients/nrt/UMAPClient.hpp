@@ -158,9 +158,6 @@ public:
         makeMessage("write", &UMAPClient::write),
         makeMessage("read", &UMAPClient::read));
   }
-
-private:
-  FluidInputTrigger mTrigger;
 };
 
 using UMAPRef = SharedClientRef<UMAPClient>;
@@ -172,7 +169,8 @@ constexpr auto UMAPQueryParams =
 
 class UMAPQuery : public FluidBaseClient, ControlIn, ControlOut
 {
-  enum{ kModel, kInputBuffer, kOutputBuffer };
+  enum { kModel, kInputBuffer, kOutputBuffer };
+
 public:
   using ParamDescType = decltype(UMAPQueryParams);
 
@@ -223,10 +221,8 @@ public:
       RealVector dest(outSize);
       src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                 .samps(0, inSize, 0);
-//      mTrigger.process(input, output, [&]() {
-        algorithm.transformPoint(src, dest);
-        outBuf.samps(0, outSize, 0) = dest;
-//      });
+      algorithm.transformPoint(src, dest);
+      outBuf.samps(0, outSize, 0) = dest;
     }
   }
 

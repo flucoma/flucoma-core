@@ -20,7 +20,7 @@ namespace client {
 namespace robustscale {
 
 constexpr auto RobustScaleParams = defineParameters(
-    StringParam<Fixed<true>>("name","Name"),
+    StringParam<Fixed<true>>("name", "Name"),
     FloatParam("low", "Low Percentile", 25, Min(0), Max(100)),
     FloatParam("high", "High Percentile", 75, Min(0), Max(100)),
     EnumParam("invert", "Inverse Transform", 0, "False", "True"));
@@ -147,22 +147,19 @@ private:
     }
     return OK();
   }
-  FluidInputTrigger mTrigger;
 };
 
 using RobustScaleRef = SharedClientRef<RobustScaleClient>;
 
 constexpr auto RobustScaleQueryParams = defineParameters(
-    RobustScaleRef::makeParam("model","Source Model"), 
+    RobustScaleRef::makeParam("model", "Source Model"),
     EnumParam("invert", "Inverse Transform", 0, "False", "True"),
     BufferParam("inputPointBuffer", "Input Point Buffer"),
     BufferParam("predictionBuffer", "Prediction Buffer"));
 
-class RobustScaleQuery : public FluidBaseClient,
-                         ControlIn,
-                         ControlOut
+class RobustScaleQuery : public FluidBaseClient, ControlIn, ControlOut
 {
-  enum { kModel,kInvert, kInputBuffer, kOutputBuffer };
+  enum { kModel, kInvert, kInputBuffer, kOutputBuffer };
 
 public:
   using string = std::string;
@@ -200,13 +197,13 @@ public:
     output[0] = input[0];
     if (input[0](0) > 0)
     {
-      auto robustPtr = get<kModel>().get().lock(); 
-      if(!robustPtr)
+      auto robustPtr = get<kModel>().get().lock();
+      if (!robustPtr)
       {
-        //report error?
+        // report error?
         return;
       }
-      algorithm::RobustScaling& algorithm = robustPtr->algorithm(); 
+      algorithm::RobustScaling& algorithm = robustPtr->algorithm();
       if (!algorithm.initialized()) return;
       InOutBuffersCheck bufCheck(algorithm.dims());
       if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
@@ -218,10 +215,8 @@ public:
       RealVector dest(algorithm.dims());
       src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                 .samps(0, algorithm.dims(), 0);
-      // mTrigger.process(input, output, [&]() {
-        algorithm.processFrame(src, dest, get<kInvert>() == 1);
-        outBuf.samps(0, algorithm.dims(), 0) = dest;
-      // });
+      algorithm.processFrame(src, dest, get<kInvert>() == 1);
+      outBuf.samps(0, algorithm.dims(), 0) = dest;
     }
   }
 

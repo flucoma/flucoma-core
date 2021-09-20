@@ -221,7 +221,6 @@ public:
   }
 
 private:
-  FluidInputTrigger                         mTrigger;
   ParameterTrackChanges<IndexVector, index> mTracker;
 };
 
@@ -291,12 +290,10 @@ public:
       RealVector dest(algorithm.mlp.outputSize(layer));
       src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                 .samps(0, dims, 0);
-      // mTrigger.process(input, output, [&]() {
       algorithm.mlp.processFrame(src, dest, 0, layer);
       auto label = algorithm.encoder.decodeOneHot(dest);
       outBuf.samps(0)[0] =
           static_cast<double>(algorithm.encoder.encodeIndex(label));
-      // });
     }
   }
 

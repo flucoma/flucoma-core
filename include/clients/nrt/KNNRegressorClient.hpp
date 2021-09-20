@@ -183,9 +183,6 @@ public:
         makeMessage("write", &KNNRegressorClient::write),
         makeMessage("read", &KNNRegressorClient::read));
   }
-
-private:
-  FluidInputTrigger mTrigger;
 };
 
 using KNNRegressorRef = SharedClientRef<KNNRegressorClient>;
@@ -241,8 +238,8 @@ public:
         return;
       }
       const KNNRegressorData& algorithm = knnPtr->algorithm();
-      index             k = get<kNumNeighbors>();
-      bool              weight = get<kWeight>() != 0;
+      index                   k = get<kNumNeighbors>();
+      bool                    weight = get<kWeight>() != 0;
       if (k == 0 || algorithm.tree.size() == 0 || algorithm.tree.size() < k)
         return;
       InOutBuffersCheck bufCheck(algorithm.tree.dims());
@@ -257,12 +254,10 @@ public:
       RealVector point(algorithm.tree.dims());
       point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                   .samps(0, algorithm.tree.dims(), 0);
-                  
-      // mTrigger.process(input, output, [&]() {
-        double result = regressor.predict(algorithm.tree, algorithm.target,
-                                          point, k, weight);
-        outBuf.samps(0)[0] = result;
-      // });
+
+      double result =
+          regressor.predict(algorithm.tree, algorithm.target, point, k, weight);
+      outBuf.samps(0)[0] = result;
     }
   }
 

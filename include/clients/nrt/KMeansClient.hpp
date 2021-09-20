@@ -21,10 +21,9 @@ namespace client {
 namespace kmeans {
 
 constexpr auto KMeansParams = defineParameters(
-    StringParam<Fixed<true>>("name","Name"), 
+    StringParam<Fixed<true>>("name", "Name"),
     LongParam("numClusters", "Number of Clusters", 4, Min(1)),
-    LongParam("maxIter", "Max number of Iterations", 100, Min(1))
-);
+    LongParam("maxIter", "Max number of Iterations", 100, Min(1)));
 
 class KMeansClient : public FluidBaseClient,
                      OfflineIn,
@@ -32,7 +31,8 @@ class KMeansClient : public FluidBaseClient,
                      ModelObject,
                      public DataClient<algorithm::KMeans>
 {
-  enum { kName, kNumClusters, kMaxIter}; 
+  enum { kName, kNumClusters, kMaxIter };
+
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
@@ -59,9 +59,9 @@ public:
   KMeansClient(ParamSetViewType& p) : mParams(p)
   {
     audioChannelsIn(1);
-    controlChannelsOut({1,1});
+    controlChannelsOut({1, 1});
   }
-  
+
   template <typename T>
   Result process(FluidContext&)
   {
@@ -269,22 +269,20 @@ private:
     }
     return result;
   }
-
-  FluidInputTrigger mTrigger;
 };
 
 using KMeansRef = SharedClientRef<KMeansClient>;
 
-constexpr auto KMeansQueryParams = defineParameters(
-  KMeansRef::makeParam("kmeans","Source KMeans model"), 
-  BufferParam("inputPointBuffer", "Input Point Buffer"),
-  BufferParam("predictionBuffer", "Prediction Buffer")
-); 
+constexpr auto KMeansQueryParams =
+    defineParameters(KMeansRef::makeParam("kmeans", "Source KMeans model"),
+                     BufferParam("inputPointBuffer", "Input Point Buffer"),
+                     BufferParam("predictionBuffer", "Prediction Buffer"));
 
-class KMeansQuery: public FluidBaseClient, ControlIn, ControlOut 
+class KMeansQuery : public FluidBaseClient, ControlIn, ControlOut
 {
   enum { kModel, kInputBuffer, kOutputBuffer };
-public: 
+
+public:
   using ParamDescType = decltype(KMeansQueryParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
@@ -303,24 +301,24 @@ public:
   KMeansQuery(ParamSetViewType& p) : mParams(p)
   {
     controlChannelsIn(1);
-    controlChannelsOut({1,1});
+    controlChannelsOut({1, 1});
   }
 
   template <typename T>
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
   {
-    output[0] = input[0]; 
-    if(input[0](0) > 0)
+    output[0] = input[0];
+    if (input[0](0) > 0)
     {
-      auto kmeansPtr = get<kModel>().get().lock(); 
-      if(!kmeansPtr)
+      auto kmeansPtr = get<kModel>().get().lock();
+      if (!kmeansPtr)
       {
-        //report error?
-        return; 
+        // report error?
+        return;
       }
       if (!kmeansPtr->initialized()) return;
-      index dims = kmeansPtr->dims();
+      index             dims = kmeansPtr->dims();
       InOutBuffersCheck bufCheck(dims);
       if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
                                 get<kOutputBuffer>().get()))
@@ -331,12 +329,10 @@ public:
       point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                   .samps(0, dims, 0);
       outBuf.samps(0)[0] = kmeansPtr->algorithm().vq(point);
-//      mTrigger.process(input, output,
-//                       [&]() { outBuf.samps(0)[0] = mAlgorithm.vq(point); });
     }
   }
-  
-  index latency() { return 0; }  
+
+  index latency() { return 0; }
 };
 
 

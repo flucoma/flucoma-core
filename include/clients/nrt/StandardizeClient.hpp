@@ -147,8 +147,6 @@ private:
     }
     return OK();
   }
-
-  FluidInputTrigger mTrigger;
 };
 
 using StandardizeRef = SharedClientRef<StandardizeClient>;
@@ -195,14 +193,14 @@ public:
     output[0] = input[0];
     if (input[0](0) > 0)
     {
-      auto stdPtr = get<kModel>().get().lock(); 
-      if(!stdPtr)
+      auto stdPtr = get<kModel>().get().lock();
+      if (!stdPtr)
       {
-        //report error ?
-        return; 
+        // report error ?
+        return;
       }
-      
-      algorithm::Standardization& algorithm = stdPtr->algorithm(); 
+
+      algorithm::Standardization& algorithm = stdPtr->algorithm();
 
       if (!algorithm.initialized()) return;
       InOutBuffersCheck bufCheck(algorithm.dims());
@@ -215,10 +213,8 @@ public:
       RealVector dest(algorithm.dims());
       src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                 .samps(0, algorithm.dims(), 0);
-      // mTrigger.process(input, output, [&]() {
-        algorithm.processFrame(src, dest, get<kInvert>() == 1);
-        outBuf.samps(0, algorithm.dims(), 0) = dest;
-      // });
+      algorithm.processFrame(src, dest, get<kInvert>() == 1);
+      outBuf.samps(0, algorithm.dims(), 0) = dest;
     }
   }
 

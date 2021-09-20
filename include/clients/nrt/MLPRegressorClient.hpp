@@ -212,7 +212,6 @@ public:
   }
 
 private:
-  FluidInputTrigger                         mTrigger;
   ParameterTrackChanges<IndexVector, index> mTracker;
 };
 
@@ -292,10 +291,8 @@ public:
       RealVector dest(outputSize);
       src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                 .samps(0, inputSize, 0);
-      // mTrigger.process(input, output, [&]() {
       algorithm.processFrame(src, dest, inputTap, outputTap);
       outBuf.samps(0, outputSize, 0) = dest;
-      // });
     }
   }
 
