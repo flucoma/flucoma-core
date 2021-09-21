@@ -117,7 +117,7 @@ public:
         });
   
       output[0](Slice(0, get<kNCoefs>())) =
-        mCoefficients(Slice(coeffOffset, get<kNCoefs>()));
+        mCoefficients(Slice(get<kDrop0>(), get<kNCoefs>()));
   }
 
   index latency() { return get<kFFT>().winSize(); }
