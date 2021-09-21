@@ -41,7 +41,7 @@ constexpr auto MFCCParams = defineParameters(
               UpperLimit<kNBands, kMaxNCoefs>()),
     LongParam("numBands", "Number of Bands", 40, Min(2),
               FrameSizeUpperLimit<kFFT>(), LowerLimit<kNCoefs>()),
-    LongParam("startCoeff","Output Coefficient Offset",0),
+    LongParam("startCoeff","Output Coefficient Offset",0, Min(0), Max(1)),// this needs to be programmatically changed to start+num coeffs <= numBands as discussed
     FloatParam("minFreq", "Low Frequency Bound", 20, Min(0)),
     FloatParam("maxFreq", "High Frequency Bound", 20000, Min(0)),
     LongParam<Fixed<true>>("maxNumCoeffs", "Maximum Number of Coefficients", 40,
@@ -91,7 +91,7 @@ public:
     assert(output.size() >= asUnsigned(controlChannelsOut()) &&
            "Too few output channels");
 
-    bool has0 = !get<kDrop0>(); 
+    bool has0 = !get<kDrop0>();
 
     if (mTracker.changed(get<kFFT>().frameSize(), get<kNCoefs>() + !has0,
                          get<kNBands>(), get<kMinFreq>(), get<kMaxFreq>(),
@@ -112,7 +112,7 @@ public:
           mMelBands.processFrame(mMagnitude, mBands, false, false, true);
           mDCT.processFrame(mBands, mCoefficients);
         });
-    
+
     index coeffOffset = !has0;
     for (index i = 0; i < get<kNCoefs>(); ++i)
       output[asUnsigned(i)](0) = static_cast<T>(mCoefficients(i + coeffOffset));
