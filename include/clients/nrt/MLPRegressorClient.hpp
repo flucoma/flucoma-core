@@ -58,7 +58,8 @@ class MLPRegressorClient : public FluidBaseClient,
                            AudioIn,
                            ControlOut,
                            ModelObject,
-                           public DataClient<algorithm::MLP> {
+                           public DataClient<algorithm::MLP>
+{
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
@@ -84,22 +85,23 @@ public:
     return MLPRegressorParams;
   }
 
-  MLPRegressorClient(ParamSetViewType &p) : mParams(p) {
+  MLPRegressorClient(ParamSetViewType& p) : mParams(p)
+  {
     audioChannelsIn(1);
     controlChannelsOut(1);
   }
 
   template <typename T>
-  void process(std::vector<FluidTensorView<T, 1>> &input,
-               std::vector<FluidTensorView<T, 1>> &output, FluidContext &) {
-    if (!mAlgorithm.trained())
-      return;
+  void process(std::vector<FluidTensorView<T, 1>>& input,
+               std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
+  {
+    if (!mAlgorithm.trained()) return;
     index inputTap = get<kInputTap>();
     index outputTap = get<kOutputTap>();
-    if(inputTap >= mAlgorithm.size() - 1) return;
-    if(outputTap >= mAlgorithm.size()) return;
-    if(outputTap == 0) return;
-    if(outputTap == -1) outputTap = mAlgorithm.size();
+    if (inputTap >= mAlgorithm.size() - 1) return;
+    if (outputTap >= mAlgorithm.size()) return;
+    if (outputTap == 0) return;
+    if (outputTap == -1) outputTap = mAlgorithm.size();
 
     index inputSize = mAlgorithm.inputSize(inputTap);
     index outputSize = mAlgorithm.outputSize(outputTap);
@@ -109,117 +111,117 @@ public:
                               get<kOutputBuffer>().get()))
       return;
     auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-    if(outBuf.samps(0).size() < outputSize) return;
+    if (outBuf.samps(0).size() < outputSize) return;
 
     RealVector src(inputSize);
     RealVector dest(outputSize);
-    src =
-        BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, inputSize, 0);
+    src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+              .samps(0, inputSize, 0);
     mTrigger.process(input, output, [&]() {
       mAlgorithm.processFrame(src, dest, inputTap, outputTap);
       outBuf.samps(0, outputSize, 0) = dest;
     });
   }
 
-  MessageResult<double> fit(DataSetClientRef source, DataSetClientRef target) {
+  MessageResult<double> fit(DataSetClientRef source, DataSetClientRef target)
+  {
     auto sourceClientPtr = source.get().lock();
-    if (!sourceClientPtr)
-      return Error<double>(NoDataSet);
+    if (!sourceClientPtr) return Error<double>(NoDataSet);
     auto sourceDataSet = sourceClientPtr->getDataSet();
-    if (sourceDataSet.size() == 0)
-      return Error<double>(EmptyDataSet);
-    if(mAlgorithm.initialized() && sourceDataSet.dims() != mAlgorithm.dims())
-        return Error<double>(DimensionsDontMatch);
+    if (sourceDataSet.size() == 0) return Error<double>(EmptyDataSet);
+    if (mAlgorithm.initialized() && sourceDataSet.dims() != mAlgorithm.dims())
+      return Error<double>(DimensionsDontMatch);
 
     auto targetClientPtr = target.get().lock();
-    if (!targetClientPtr)
-      return Error<double>(NoDataSet);
+    if (!targetClientPtr) return Error<double>(NoDataSet);
     auto targetDataSet = targetClientPtr->getDataSet();
-    if (targetDataSet.size() == 0)
-      return Error<double>(EmptyDataSet);
+    if (targetDataSet.size() == 0) return Error<double>(EmptyDataSet);
     if (sourceDataSet.size() != targetDataSet.size())
       return Error<double>(SizesDontMatch);
-    if (!mAlgorithm.initialized() || mTracker.changed(get<kHidden>(), get<kActivation>())) {
-      index outputAct = get<kOutputActivation>() == -1?get<kActivation>():get<kOutputActivation>();
+    index outputAct = get<kOutputActivation>() == -1 ? get<kActivation>()
+                                                     : get<kOutputActivation>();
+    if (!mAlgorithm.initialized() ||
+        mTracker.changed(sourceDataSet.pointSize(), targetDataSet.pointSize(),
+                         get<kHidden>(), get<kActivation>(), outputAct))
+    {
+
       mAlgorithm.init(sourceDataSet.pointSize(), targetDataSet.pointSize(),
                       get<kHidden>(), get<kActivation>(), outputAct);
     }
 
     mAlgorithm.setTrained(false);
-    DataSet result(1);
-    auto data = sourceDataSet.getData();
-    auto tgt = targetDataSet.getData();
+    DataSet        result(1);
+    auto           data = sourceDataSet.getData();
+    auto           tgt = targetDataSet.getData();
     algorithm::SGD sgd;
-    double error =
+    double         error =
         sgd.train(mAlgorithm, data, tgt, get<kIter>(), get<kBatchSize>(),
                   get<kRate>(), get<kMomentum>(), get<kVal>());
     return error;
   }
 
   MessageResult<void> predict(DataSetClientRef srcClient,
-                              DataSetClientRef destClient) {
+                              DataSetClientRef destClient)
+  {
     index inputTap = get<kInputTap>();
     index outputTap = get<kOutputTap>();
-    if(inputTap >= mAlgorithm.size()) return Error("Input tap too large");
-    if(outputTap > mAlgorithm.size()) return Error("Ouput tap too large");
-    if(outputTap == 0) return Error("Ouput tap cannot be 0");
-    if(outputTap == -1) outputTap = mAlgorithm.size();
+    if (inputTap >= mAlgorithm.size()) return Error("Input tap too large");
+    if (outputTap > mAlgorithm.size()) return Error("Ouput tap too large");
+    if (outputTap == 0) return Error("Ouput tap cannot be 0");
+    if (outputTap == -1) outputTap = mAlgorithm.size();
     index inputSize = mAlgorithm.inputSize(inputTap);
     index outputSize = mAlgorithm.outputSize(outputTap);
-    auto srcPtr = srcClient.get().lock();
-    auto destPtr = destClient.get().lock();
+    auto  srcPtr = srcClient.get().lock();
+    auto  destPtr = destClient.get().lock();
 
-    if (!srcPtr || !destPtr)
-      return Error(NoDataSet);
+    if (!srcPtr || !destPtr) return Error(NoDataSet);
     auto srcDataSet = srcPtr->getDataSet();
-    if (srcDataSet.size() == 0)
-      return Error(EmptyDataSet);
-    if (!mAlgorithm.trained())
-      return Error(NoDataFitted);
-    if (srcDataSet.dims() != inputSize)
-      return Error(WrongPointSize);
+    if (srcDataSet.size() == 0) return Error(EmptyDataSet);
+    if (!mAlgorithm.trained()) return Error(NoDataFitted);
+    if (srcDataSet.dims() != inputSize) return Error(WrongPointSize);
 
     StringVector ids{srcDataSet.getIds()};
-    RealMatrix output(srcDataSet.size(), outputSize);
+    RealMatrix   output(srcDataSet.size(), outputSize);
     mAlgorithm.process(srcDataSet.getData(), output, inputTap, outputTap);
     FluidDataSet<string, double, 1> result(ids, output);
     destPtr->setDataSet(result);
     return OK();
   }
 
-  MessageResult<void> predictPoint(BufferPtr in, BufferPtr out) {
+  MessageResult<void> predictPoint(BufferPtr in, BufferPtr out)
+  {
     index inputTap = get<kInputTap>();
     index outputTap = get<kOutputTap>();
-    if(inputTap >= mAlgorithm.size()) return Error("Input tap too large");
-    if(outputTap > mAlgorithm.size()) return Error("Ouput tap too large");
-    if(outputTap == 0) return Error("Ouput tap should be > 0 or -1");
-    if(outputTap == -1) outputTap = mAlgorithm.size();
+    if (inputTap >= mAlgorithm.size()) return Error("Input tap too large");
+    if (outputTap > mAlgorithm.size()) return Error("Ouput tap too large");
+    if (outputTap == 0) return Error("Ouput tap should be > 0 or -1");
+    if (outputTap == -1) outputTap = mAlgorithm.size();
     index inputSize = mAlgorithm.inputSize(inputTap);
     index outputSize = mAlgorithm.outputSize(outputTap);
 
-    if (!in || !out)
-      return Error(NoBuffer);
+    if (!in || !out) return Error(NoBuffer);
     BufferAdaptor::Access inBuf(in.get());
     BufferAdaptor::Access outBuf(out.get());
-    if (!inBuf.exists())
-      return Error(InvalidBuffer);
-    if (!outBuf.exists())
-      return Error(InvalidBuffer);
-    if (inBuf.numFrames() != inputSize)
-      return Error(WrongPointSize);
-    if (!mAlgorithm.trained())
-      return Error(NoDataFitted);
+    if (!inBuf.exists()) return Error(InvalidBuffer);
+    if (!outBuf.exists()) return Error(InvalidBuffer);
+    if (inBuf.numFrames() != inputSize) return Error(WrongPointSize);
+    if (!mAlgorithm.trained()) return Error(NoDataFitted);
 
-    Result resizeResult =
-        outBuf.resize(outputSize, 1, inBuf.sampleRate());
-    if (!resizeResult.ok())
-      return Error(BufferAlloc);
+    Result resizeResult = outBuf.resize(outputSize, 1, inBuf.sampleRate());
+    if (!resizeResult.ok()) return Error(BufferAlloc);
     RealVector src(inputSize);
     RealVector dest(outputSize);
     src = inBuf.samps(0, inputSize, 0);
     mAlgorithm.processFrame(src, dest, inputTap, outputTap);
     outBuf.samps(0, outputSize, 0) = dest;
     return OK();
+  }
+
+  MessageResult<void> read(string fileName)
+  {
+    auto result = DataClient::read(fileName);
+    if (result.ok()) updateParameters();
+    return result;
   }
 
   index latency() { return 0; }
@@ -240,10 +242,28 @@ public:
   }
 
 private:
-  FluidInputTrigger mTrigger;
-  ParameterTrackChanges<IndexVector, index> mTracker;
+  FluidInputTrigger                         mTrigger;
+  ParameterTrackChanges<index, index, IndexVector, index, index> mTracker;
+
+  void updateParameters()
+  {
+    const index nLayers = mAlgorithm.size();
+    if (nLayers > 1)
+    {
+      auto&                 params = mParams.get();
+      FluidTensor<index, 1> layersParam(nLayers - 1);
+      for (index i = 0; i < nLayers - 1; i++)
+        layersParam[i] = mAlgorithm.outputSize(i + 1);
+      params.template set<kHidden>(std::move(layersParam), nullptr);
+      params.template set<kActivation>(mAlgorithm.hiddenActivation(), nullptr);
+      params.template set<kOutputActivation>(mAlgorithm.outputActivation(),
+                                             nullptr);
+      params.template set<kInputTap>(0, nullptr);
+      params.template set<kOutputTap>(-1, nullptr);
+    }
+  }
 };
-}
+} // namespace mlpregressor
 
 using RTMLPRegressorClient = ClientWrapper<mlpregressor::MLPRegressorClient>;
 } // namespace client

@@ -146,6 +146,13 @@ public:
     });
   }
 
+  MessageResult<void> read(string fileName)
+  {
+    auto result = DataClient::read(fileName);
+    if(result.ok()) updateParameters();
+    return result;
+  }
+
   index latency() { return 0; }
 
   MessageResult<double> fit(DataSetClientRef source, LabelSetClientRef target)
@@ -166,7 +173,9 @@ public:
 
     mAlgorithm.encoder.fit(targetDataSet);
 
-    if (mTracker.changed(get<kHidden>(), get<kActivation>()))
+    if (mTracker.changed(sourceDataSet.pointSize(),
+                         mAlgorithm.encoder.numLabels(), get<kHidden>(),
+                         get<kActivation>()))
     {
       mAlgorithm.mlp.init(sourceDataSet.pointSize(),
                           mAlgorithm.encoder.numLabels(), get<kHidden>(),
@@ -251,7 +260,20 @@ public:
 
 private:
   FluidInputTrigger                         mTrigger;
-  ParameterTrackChanges<IndexVector, index> mTracker;
+  ParameterTrackChanges<index, index, IndexVector, index> mTracker;
+
+  void updateParameters(){
+    const index nLayers = mAlgorithm.size();
+    if(nLayers > 1){
+      auto& params = mParams.get();
+      FluidTensor<index, 1> layersParam(nLayers - 1);
+      for(index i = 0;  i < nLayers - 1; i++)
+          layersParam[i] = mAlgorithm.mlp.outputSize(i + 1);
+      params.template set<kHidden>(std::move(layersParam), nullptr);
+      params.template set<kActivation>(mAlgorithm.mlp.hiddenActivation(), nullptr);
+  }
+}
+
 };
 
 } // namespace mlpclassifier

@@ -176,6 +176,14 @@ public:
                : mLayers[asUnsigned(layer)].inputSize();
   }
 
+  index hiddenActivation() const{
+    return mLayers.size() == 0 ? 0 : mLayers[0].getActType();
+  }
+
+  index outputActivation() const{
+    return mLayers.size() == 0 ? 0 : mLayers[mLayers.size() - 1].getActType();
+  }
+  
   index dims() const
   {
     return mLayers.size() == 0 ? 0 : mLayers[0].inputSize();
