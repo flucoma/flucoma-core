@@ -224,6 +224,13 @@ public:
     return result;
   }
 
+  MessageResult<void> load(string s)
+  {
+    auto result = DataClient::load(s);
+    if (result.ok()) updateParameters();
+    return result;
+  }
+
   index latency() { return 0; }
 
   static auto getMessageDescriptors()
