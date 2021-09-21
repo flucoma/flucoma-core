@@ -64,7 +64,7 @@ public:
       : mParams(p), mAlgorithm{get<kMaxWindowSize>()}
   {
     audioChannelsIn(1);
-    controlChannelsOut(2);
+    controlChannelsOut({1,2});
     setInputLabels({"audio input"});
     setOutputLabels({"loudness and peak amplitude"});
 
@@ -76,8 +76,8 @@ public:
                std::vector<HostVector<T>>& output, FluidContext& c)
   {
     if (!input[0].data() || !output[0].data()) return;
-    assert(FluidBaseClient::controlChannelsOut() && "No control channels");
-    assert(output.size() >= asUnsigned(FluidBaseClient::controlChannelsOut()) &&
+    assert(FluidBaseClient::controlChannelsOut().size && "No control channels");
+    assert(output[0].size() >= FluidBaseClient::controlChannelsOut().size &&
            "Too few output channels");
     index hostVecSize = input[0].size();
     if (mBufferParamsTracker.changed(hostVecSize, get<kWindowSize>(),
@@ -86,7 +86,7 @@ public:
       mBufferedProcess.hostSize(hostVecSize);
       mBufferedProcess.maxSize(get<kWindowSize>(), get<kWindowSize>(),
                                FluidBaseClient::audioChannelsIn(),
-                               FluidBaseClient::controlChannelsOut());
+                               FluidBaseClient::controlChannelsOut().size);
       mAlgorithm.init(get<kWindowSize>(), sampleRate());
     }
     RealMatrix in(1, hostVecSize);
@@ -98,8 +98,9 @@ public:
                                   get<kKWeighting>() == 1,
                                   get<kTruePeak>() == 1);
         });
-    output[0](0) = static_cast<T>(mDescriptors(0));
-    output[1](0) = static_cast<T>(mDescriptors(1));
+    // output[0](0) = static_cast<T>(mDescriptors(0));
+    // output[1](0) = static_cast<T>(mDescriptors(1));
+    output[0] = mDescriptors; 
   }
 
   index latency() { return get<kWindowSize>(); }

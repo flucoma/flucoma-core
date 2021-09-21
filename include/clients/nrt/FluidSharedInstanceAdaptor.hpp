@@ -269,7 +269,7 @@ public:
   index audioChannelsIn() const noexcept { return 0; }
   index audioChannelsOut() const noexcept { return 0; }
   index controlChannelsIn() const noexcept { return 0; }
-  index controlChannelsOut() const noexcept { return 0; }
+  ControlChannel controlChannelsOut() const noexcept { return {0,0}; }
   index audioBuffersIn() const noexcept
   {
     return ParamDescType::template NumOf<InputBufferT>();

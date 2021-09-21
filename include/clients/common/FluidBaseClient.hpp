@@ -31,6 +31,11 @@ struct ModelObject
 
 enum ProcessState { kNoProcess, kProcessing, kDone, kDoneStillProcessing };
 
+struct ControlChannel {
+  index count{0}; 
+  index size{-1}; 
+}; 
+
 class FluidBaseClient
 {
 public:
@@ -39,7 +44,7 @@ public:
   index audioChannelsIn() const noexcept { return mAudioChannelsIn; }
   index audioChannelsOut() const noexcept { return mAudioChannelsOut; }
   index controlChannelsIn() const noexcept { return mControlChannelsIn; }
-  index controlChannelsOut() const noexcept { return mControlChannelsOut; }
+  ControlChannel controlChannelsOut() const noexcept { return mControlChannelsOut; }
   index maxControlChannelsOut() const noexcept
   {
     return mMaxControlChannelsOut;
@@ -65,7 +70,7 @@ protected:
   void audioChannelsIn(const index x) noexcept { mAudioChannelsIn = x; }
   void audioChannelsOut(const index x) noexcept { mAudioChannelsOut = x; }
   void controlChannelsIn(const index x) noexcept { mControlChannelsIn = x; }
-  void controlChannelsOut(const index x) noexcept { mControlChannelsOut = x; }
+  void controlChannelsOut(const ControlChannel x) noexcept { mControlChannelsOut = x; }
   void maxControlChannelsOut(const index x) noexcept
   {
     mMaxControlChannelsOut = x;
@@ -92,7 +97,7 @@ private:
   index  mAudioChannelsIn = 0;
   index  mAudioChannelsOut = 0;
   index  mControlChannelsIn = 0;
-  index  mControlChannelsOut = 0;
+  ControlChannel  mControlChannelsOut {0,0};
   index  mMaxControlChannelsOut = 0;
   bool   mControlTrigger{false};
   index  mBuffersIn = 0;
@@ -217,7 +222,7 @@ public:
   {
     return mClient.controlChannelsIn();
   }
-  index controlChannelsOut() const noexcept
+  ControlChannel controlChannelsOut() const noexcept
   {
     return mClient.controlChannelsOut();
   }
@@ -272,7 +277,7 @@ constexpr typename ClientWrapper<C>::ParamDescType ClientWrapper<C>::descript;
 template <class T>
 using isNonRealTime = typename std::is_base_of<Offline, T>::type;
 template <class T>
-using isRealTime = std::integral_constant<bool, isAudio<T> || isControl<T>>;
+using isRealTime = std::integral_constant<bool, isAudio<T> || isControlOut<T>>;
 
 template <typename T>
 class SharedClientRef; // forward declaration
