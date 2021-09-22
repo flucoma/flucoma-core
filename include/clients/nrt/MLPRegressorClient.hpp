@@ -82,6 +82,8 @@ public:
   using ParamDescType = decltype(MLPRegressorParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
+  using ParamValues = typename ParamSetViewType::ValueTuple;
+
   std::reference_wrapper<ParamSetViewType> mParams;
 
   void setParams(ParamSetViewType& p) { mParams = p; }
@@ -118,12 +120,13 @@ public:
     if (targetDataSet.size() == 0) return Error<double>(EmptyDataSet);
     if (sourceDataSet.size() != targetDataSet.size())
       return Error<double>(SizesDontMatch);
+    index outputAct = get<kOutputActivation>() == -1 ? get<kActivation>()
+                                                     : get<kOutputActivation>();
     if (!mAlgorithm.initialized() ||
-        mTracker.changed(get<kHidden>(), get<kActivation>()))
+        mTracker.changed(sourceDataSet.pointSize(), targetDataSet.pointSize(),
+                         get<kHidden>(), get<kActivation>(), outputAct))
     {
-      index outputAct = get<kOutputActivation>() == -1
-                            ? get<kActivation>()
-                            : get<kOutputActivation>();
+
       mAlgorithm.init(sourceDataSet.pointSize(), targetDataSet.pointSize(),
                       get<kHidden>(), get<kActivation>(), outputAct);
     }
@@ -196,6 +199,20 @@ public:
     return OK();
   }
 
+  MessageResult<ParamValues> read(string fileName)
+  {
+    auto result = DataClient::read(fileName);
+    if (result.ok()) return  updateParameters();
+    return {result.status(), result.message()};
+  }
+
+  MessageResult<ParamValues> load(string s)
+  {
+    auto result = DataClient::load(s);
+    if (result.ok()) return updateParameters();
+    return {result.status(), result.message()};
+  }
+
   static auto getMessageDescriptors()
   {
     return defineMessages(
@@ -212,7 +229,27 @@ public:
   }
 
 private:
-  ParameterTrackChanges<IndexVector, index> mTracker;
+  ParameterTrackChanges<index, index, IndexVector, index, index> mTracker;
+
+  MessageResult<ParamValues> updateParameters()
+  {
+    const index nLayers = mAlgorithm.size();
+    ParamValues newParams = mParams.get().toTuple();
+
+    if (nLayers > 1)
+    {
+      FluidTensor<index, 1> layersParam(nLayers - 1);
+      for (index i = 0; i < nLayers - 1; i++)
+        layersParam[i] = mAlgorithm.outputSize(i + 1);
+      std::get<kHidden>(newParams) = std::move(layersParam);
+      std::get<kActivation>(newParams) = mAlgorithm.hiddenActivation();
+      std::get<kOutputActivation>(newParams) = mAlgorithm.outputActivation();
+      std::get<kInputTap>(newParams) = 0;
+      std::get<kOutputTap>(newParams) = -1;
+    }
+
+    return newParams;
+  }
 };
 
 using MLPRegressorRef = SharedClientRef<MLPRegressorClient>;
@@ -298,7 +335,6 @@ public:
 
   index latency() { return 0; }
 };
-
 
 } // namespace mlpregressor
 

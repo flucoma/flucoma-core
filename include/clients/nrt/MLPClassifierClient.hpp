@@ -96,6 +96,8 @@ public:
   using ParamDescType = decltype(MLPClassifierParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
+  using ParamValues = typename ParamSetViewType::ValueTuple;
+
   std::reference_wrapper<ParamSetViewType> mParams;
 
   void setParams(ParamSetViewType& p) { mParams = p; }
@@ -117,6 +119,20 @@ public:
   Result process(FluidContext&)
   {}
 
+  MessageResult<ParamValues> read(string fileName)
+  {
+    auto result = DataClient::read(fileName);
+    if (result.ok()) return updateParameters();
+    return {result.status(),result.message()};
+  }
+
+  MessageResult<ParamValues> load(string s)
+  {
+    auto result = DataClient::load(s);
+    if (result.ok()) return updateParameters();
+    return {result.status(), result.message()};
+  }
+
   MessageResult<double> fit(DataSetClientRef source, LabelSetClientRef target)
   {
     auto sourceClientPtr = source.get().lock();
@@ -135,7 +151,9 @@ public:
 
     mAlgorithm.encoder.fit(targetDataSet);
 
-    if (mTracker.changed(get<kHidden>(), get<kActivation>()))
+    if (mTracker.changed(sourceDataSet.pointSize(),
+                         mAlgorithm.encoder.numLabels(), get<kHidden>(),
+                         get<kActivation>()))
     {
       mAlgorithm.mlp.init(sourceDataSet.pointSize(),
                           mAlgorithm.encoder.numLabels(), get<kHidden>(),
@@ -221,7 +239,23 @@ public:
   }
 
 private:
-  ParameterTrackChanges<IndexVector, index> mTracker;
+  ParameterTrackChanges<index, index, IndexVector, index> mTracker;
+
+  MessageResult<ParamValues> updateParameters()
+  {
+    const index nLayers = mAlgorithm.size();
+    ParamValues newParams = mParams.get().toTuple();
+
+    if (nLayers > 1)
+    {
+      FluidTensor<index, 1> layersParam(nLayers - 1);
+      for (index i = 0; i < nLayers - 1; i++)
+        layersParam[i] = mAlgorithm.mlp.outputSize(i + 1);
+      std::get<kHidden>(newParams) = std::move(layersParam);
+      std::get<kActivation>(newParams) = mAlgorithm.mlp.hiddenActivation();
+    }    
+    return newParams; 
+  }
 };
 
 using MLPClassifierRef = SharedClientRef<MLPClassifierClient>;

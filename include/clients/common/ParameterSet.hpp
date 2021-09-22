@@ -194,7 +194,7 @@ protected:
   }
 
   using DescriptorType = typename DescriptorSetType::DescriptorType;
-  using ValueTuple = typename DescriptorSetType::ValueTuple;
+  
   using ValueRefTuple = typename DescriptorSetType::ValueRefTuple;
   using IndexList = typename DescriptorSetType::IndexList;
   using FixedIndexList = typename DescriptorSetType::FixedIndexList;
@@ -212,6 +212,9 @@ protected:
   using ParamType = typename DescriptorSetType::template ParamType<N>;
 
 public:
+
+  using ValueTuple = typename DescriptorSetType::ValueTuple;
+
   constexpr ParameterSetView(const DescriptorSetType& d, ValueRefTuple t)
       : mDescriptors{d}, mKeepConstrained(false), mParams{t}
   {}
@@ -346,6 +349,20 @@ public:
     return descriptor<N>();
   }
 
+  template <typename... Us>
+  void fromTuple(std::tuple<Us...> vals)
+  {
+    static_assert(sizeof...(Ts) >= sizeof...(Us), "Value tuple too big");
+    // fill from back, because this might be a padded parameter set via NRT
+    // wrapper
+    ReverseForEach(vals, [this](auto& x, auto N)
+    {
+      std::get<decltype(N)::value>(mParams).get() = x;
+    });
+  }
+
+  ValueTuple toTuple() { return {mParams}; }
+
 private:
   template <typename T>
   struct IsParamType
@@ -394,6 +411,8 @@ private:
                  reportage ? reportage->data() + Is : nullptr),
          0)...};
   }
+
+
 
 #ifdef _MSC_VER
 #pragma warning(disable : 4100) // unused params on Args pack contents; don't
@@ -531,9 +550,12 @@ class ParameterSet<
       ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>;
   using ViewType = ParameterSetView<const DescriptorSetType>;
   using IndexList = typename DescriptorSetType::IndexList;
-  using ValueTuple = typename DescriptorSetType::ValueTuple;
+  
 
 public:
+
+  using ValueTuple = typename DescriptorSetType::ValueTuple;
+
   ParameterSet(const DescriptorSetType& d)
       : ViewType(d, createRefTuple(IndexList())), mParams{
                                                       create(d, IndexList())}
