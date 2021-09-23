@@ -53,7 +53,9 @@ public:
 
   template <typename T>
   Result process(FluidContext&)
-  {}
+  {
+      return{};
+  }
 
   MessageResult<void> fit(DataSetClientRef datasetClient)
   {
