@@ -117,7 +117,9 @@ public:
 
   template <typename T>
   Result process(FluidContext&)
-  {}
+  {
+    return {};
+  }
 
   MessageResult<ParamValues> read(string fileName)
   {
