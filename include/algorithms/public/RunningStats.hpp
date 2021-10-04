@@ -35,6 +35,7 @@ public:
     mY1 = ArrayXd::Zero(inputSize);
     mInputSquared = ArrayXd::Zero(inputSize);
     mCleanedInput = ArrayXd::Zero(inputSize);
+    mTmpOut = ArrayXd::Zero(inputSize);
     mHead = 0;
     mN = 0;
     mSize = historySize;
@@ -66,7 +67,8 @@ public:
     _impl::asEigen<Eigen::Array>(meanOut) = (mXSum / mN).template cast<T>();
     if(mN > 1)
     {
-      _impl::asEigen<Eigen::Array>(stdDevOut) = ((mN * mXSqSum - mXSum.square()) / (mN * (mN - 1))).sqrt().template cast<T>();
+     mTmpOut = ((mN * mXSqSum - mXSum.square()) / (mN * (mN - 1))).sqrt().template cast<T>();
+     _impl::asEigen<Eigen::Array>(stdDevOut) = mTmpOut.isNaN().select(0,mTmpOut); 
     }
     else
     {
@@ -91,6 +93,7 @@ private:
   ArrayXd  mY1;
   ArrayXd  mCleanedInput;
   ArrayXd  mInputSquared;
+  ArrayXd  mTmpOut;
   index    mHead;
   index    mN;
   index    mSize;
