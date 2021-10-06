@@ -67,8 +67,8 @@ public:
     _impl::asEigen<Eigen::Array>(meanOut) = (mXSum / mN).template cast<T>();
     if(mN > 1)
     {
-     mTmpOut = ((mN * mXSqSum - mXSum.square()) / (mN * (mN - 1))).sqrt().template cast<T>();
-     _impl::asEigen<Eigen::Array>(stdDevOut) = mTmpOut.isNaN().select(0,mTmpOut); 
+     mTmpOut = ((mN * mXSqSum - mXSum.square()) / (mN * (mN - 1))).sqrt();
+     _impl::asEigen<Eigen::Array>(stdDevOut) = mTmpOut.isNaN().select(0,mTmpOut).template cast<T>();
     }
     else
     {
