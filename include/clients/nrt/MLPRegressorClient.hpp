@@ -160,10 +160,11 @@ public:
                               DataSetClientRef destClient) {
     index inputTap = get<kInputTap>();
     index outputTap = get<kOutputTap>();
-    if(inputTap >= mAlgorithm.size()) return Error("Input tap too large");
-    if(outputTap > mAlgorithm.size()) return Error("Ouput tap too large");
-    if(outputTap == 0) return Error("Ouput tap cannot be 0");
-    if(outputTap == -1) outputTap = mAlgorithm.size();
+    if (inputTap >= mAlgorithm.size()) return Error("Input tap too large");
+    if (outputTap > mAlgorithm.size()) return Error("Ouput tap too large");
+    if (outputTap == 0) return Error("Ouput tap cannot be 0");
+    if (outputTap == -1) outputTap = mAlgorithm.size();
+    if (outputTap - inputTap <= 0) return Error("Output Tap must be > Input Tap");
     index inputSize = mAlgorithm.inputSize(inputTap);
     index outputSize = mAlgorithm.outputSize(outputTap);
     auto srcPtr = srcClient.get().lock();
@@ -190,10 +191,11 @@ public:
   MessageResult<void> predictPoint(BufferPtr in, BufferPtr out) {
     index inputTap = get<kInputTap>();
     index outputTap = get<kOutputTap>();
-    if(inputTap >= mAlgorithm.size()) return Error("Input tap too large");
-    if(outputTap > mAlgorithm.size()) return Error("Ouput tap too large");
-    if(outputTap == 0) return Error("Ouput tap should be > 0 or -1");
-    if(outputTap == -1) outputTap = mAlgorithm.size();
+    if (inputTap >= mAlgorithm.size()) return Error("Input tap too large");
+    if (outputTap > mAlgorithm.size()) return Error("Ouput tap too large");
+    if (outputTap == 0) return Error("Ouput tap should be > 0 or -1");
+    if (outputTap == -1) outputTap = mAlgorithm.size();
+    if (outputTap - inputTap <= 0) return Error("Output Tap must be > Input Tap");
     index inputSize = mAlgorithm.inputSize(inputTap);
     index outputSize = mAlgorithm.outputSize(outputTap);
 
