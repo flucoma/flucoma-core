@@ -10,54 +10,60 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "NRTClient.hpp"
 #include "DataSetClient.hpp"
 #include "LabelSetClient.hpp"
-#include "../../algorithms/public/LabelSetEncoder.hpp"
+#include "NRTClient.hpp"
 #include "../../algorithms/public/KNNClassifier.hpp"
+#include "../../algorithms/public/LabelSetEncoder.hpp"
 
 namespace fluid {
 namespace client {
-namespace knnclassifier{
+namespace knnclassifier {
 
-struct KNNClassifierData{
-  algorithm::KDTree tree{0};
+struct KNNClassifierData
+{
+  algorithm::KDTree                         tree{0};
   FluidDataSet<std::string, std::string, 1> labels{1};
-  index size(){return labels.size();}
-  index dims(){return tree.dims();}
-  void clear(){labels = FluidDataSet<std::string, std::string, 1>(1);tree.clear();}
-  bool initialized() const{return tree.initialized();}
+  index                                     size() { return labels.size(); }
+  index                                     dims() { return tree.dims(); }
+  void                                      clear()
+  {
+    labels = FluidDataSet<std::string, std::string, 1>(1);
+    tree.clear();
+  }
+  bool initialized() const { return tree.initialized(); }
 };
 
-void to_json(nlohmann::json& j, const KNNClassifierData& data) {
+void to_json(nlohmann::json& j, const KNNClassifierData& data)
+{
   j["tree"] = data.tree;
   j["labels"] = data.labels;
 }
 
-bool check_json(const nlohmann::json& j, const KNNClassifierData&){
-  return fluid::check_json(j,
-    {"tree", "labels"}, {JSONTypes::OBJECT, JSONTypes::OBJECT}
-  );
+bool check_json(const nlohmann::json& j, const KNNClassifierData&)
+{
+  return fluid::check_json(j, {"tree", "labels"},
+                           {JSONTypes::OBJECT, JSONTypes::OBJECT});
 }
 
-void from_json(const nlohmann::json& j, KNNClassifierData& data) {
+void from_json(const nlohmann::json& j, KNNClassifierData& data)
+{
   data.tree = j.at("tree").get<algorithm::KDTree>();
   data.labels = j.at("labels").get<FluidDataSet<std::string, std::string, 1>>();
 }
 
-enum { kNumNeighbors, kWeight, kInputBuffer, kOutputBuffer };
-
 constexpr auto KNNClassifierParams = defineParameters(
+    StringParam<Fixed<true>>("name", "Name"),
     LongParam("numNeighbours", "Number of Nearest Neighbours", 3, Min(1)),
-    EnumParam("weight", "Weight Neighbours by Distance", 1, "No", "Yes"),
-    BufferParam("inputPointBuffer", "Input Point Buffer"),
-    BufferParam("predictionBuffer", "Prediction Buffer"));
+    EnumParam("weight", "Weight Neighbours by Distance", 1, "No", "Yes"));
 
 class KNNClassifierClient : public FluidBaseClient,
-                     AudioIn,
-                     ControlOut,
-                     ModelObject,
-                     public DataClient<KNNClassifierData> {
+                            OfflineIn,
+                            OfflineOut,
+                            ModelObject,
+                            public DataClient<KNNClassifierData>
+{
+  enum { kName, kNumNeighbors, kWeight };
 
 public:
   using string = std::string;
@@ -84,48 +90,27 @@ public:
     return KNNClassifierParams;
   }
 
-  KNNClassifierClient(ParamSetViewType &p) : mParams(p)
-  {
-    audioChannelsIn(1);
-    controlChannelsOut(1);
-  }
+  KNNClassifierClient(ParamSetViewType& p) : mParams(p) {}
+
 
   template <typename T>
-  void process(std::vector<FluidTensorView<T, 1>> &input,
-               std::vector<FluidTensorView<T, 1>> &output, FluidContext &)
+  Result process(FluidContext&)
   {
-    index k = get<kNumNeighbors>();
-    bool weight = get<kWeight>() != 0;
-    if(k == 0 || mAlgorithm.tree.size() == 0 || mAlgorithm.tree.size() < k) return;
-    InOutBuffersCheck bufCheck(mAlgorithm.tree.dims());
-    if(!bufCheck.checkInputs(
-      get<kInputBuffer>().get(),
-      get<kOutputBuffer>().get()))
-      return;
-    auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-    if(outBuf.samps(0).size() != 1) return;
-    algorithm::KNNClassifier classifier;
-    RealVector point(mAlgorithm.tree.dims());
-    point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, mAlgorithm.tree.dims(), 0);
-    mTrigger.process(input, output, [&](){
-      std::string result = classifier.predict(mAlgorithm.tree, point, mAlgorithm.labels, k, weight);
-      outBuf.samps(0)[0] = static_cast<double>(mLabelSetEncoder.encodeIndex(result));
-    });
+    return {};
   }
 
-  MessageResult<void> fit(
-    DataSetClientRef datasetClient,
-    LabelSetClientRef labelsetClient)
-    {
+  MessageResult<void> fit(DataSetClientRef  datasetClient,
+                          LabelSetClientRef labelsetClient)
+  {
     auto datasetClientPtr = datasetClient.get().lock();
-    if(!datasetClientPtr) return Error(NoDataSet);
+    if (!datasetClientPtr) return Error(NoDataSet);
     auto dataset = datasetClientPtr->getDataSet();
     if (dataset.size() == 0) return Error(EmptyDataSet);
     auto labelsetPtr = labelsetClient.get().lock();
-    if(!labelsetPtr) return Error(NoLabelSet);
+    if (!labelsetPtr) return Error(NoLabelSet);
     auto labelSet = labelsetPtr->getLabelSet();
     if (labelSet.size() == 0) return Error(EmptyLabelSet);
-    if(dataset.size() != labelSet.size()) return Error(SizesDontMatch);
+    if (dataset.size() != labelSet.size()) return Error(SizesDontMatch);
     mAlgorithm.tree = algorithm::KDTree{dataset};
     mAlgorithm.labels = labelSet;
     mAlgorithm = {mAlgorithm.tree, mAlgorithm.labels};
@@ -133,55 +118,57 @@ public:
     return OK();
   }
 
-  MessageResult<string> predictPoint(
-    BufferPtr data) const
+  MessageResult<string> predictPoint(BufferPtr data) const
   {
     index k = get<kNumNeighbors>();
-    bool weight = get<kWeight>() != 0;
-    if(k == 0) return Error<string>(SmallK);
-    if(mAlgorithm.tree.size() == 0) return Error<string>(NoDataFitted);
+    bool  weight = get<kWeight>() != 0;
+    if (k == 0) return Error<string>(SmallK);
+    if (mAlgorithm.tree.size() == 0) return Error<string>(NoDataFitted);
     if (mAlgorithm.tree.size() < k) return Error<string>(NotEnoughData);
     InBufferCheck bufCheck(mAlgorithm.tree.dims());
-    if(!bufCheck.checkInputs(data.get())) return Error<string>(bufCheck.error());
+    if (!bufCheck.checkInputs(data.get()))
+      return Error<string>(bufCheck.error());
     algorithm::KNNClassifier classifier;
-    RealVector point(mAlgorithm.tree.dims());
-    point = BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.tree.dims(), 0);
-    std::string result = classifier.predict(mAlgorithm.tree, point, mAlgorithm.labels, k, weight);
+    RealVector               point(mAlgorithm.tree.dims());
+    point = BufferAdaptor::ReadAccess(data.get())
+                .samps(0, mAlgorithm.tree.dims(), 0);
+    std::string result = classifier.predict(mAlgorithm.tree, point,
+                                            mAlgorithm.labels, k, weight);
     return result;
   }
 
-  MessageResult<void> predict(
-    DataSetClientRef source,
-    LabelSetClientRef dest) const
+  MessageResult<void> predict(DataSetClientRef  source,
+                              LabelSetClientRef dest) const
   {
     index k = get<kNumNeighbors>();
-    bool weight = get<kWeight>() != 0;
-    auto sourcePtr = source.get().lock();
-    if(!sourcePtr) return Error(NoDataSet);
+    bool  weight = get<kWeight>() != 0;
+    auto  sourcePtr = source.get().lock();
+    if (!sourcePtr) return Error(NoDataSet);
     auto dataSet = sourcePtr->getDataSet();
     if (dataSet.size() == 0) return Error(EmptyDataSet);
     auto destPtr = dest.get().lock();
-    if(!destPtr) return Error(NoLabelSet);
-    if (dataSet.pointSize() != mAlgorithm.tree.dims()) return Error(WrongPointSize);
-    if(k == 0) return Error(SmallK);
-    if(mAlgorithm.tree.size() == 0) return Error(NoDataFitted);
+    if (!destPtr) return Error(NoLabelSet);
+    if (dataSet.pointSize() != mAlgorithm.tree.dims())
+      return Error(WrongPointSize);
+    if (k == 0) return Error(SmallK);
+    if (mAlgorithm.tree.size() == 0) return Error(NoDataFitted);
     if (mAlgorithm.tree.size() < k) return Error(NotEnoughData);
 
     algorithm::KNNClassifier classifier;
-    auto ids = dataSet.getIds();
-    auto data = dataSet.getData();
-    LabelSet result(1);
-    for (index i = 0; i < dataSet.size(); i++) {
+    auto                     ids = dataSet.getIds();
+    auto                     data = dataSet.getData();
+    LabelSet                 result(1);
+    for (index i = 0; i < dataSet.size(); i++)
+    {
       RealVectorView point = data.row(i);
-      StringVector label = {
-        classifier.predict(mAlgorithm.tree, point, mAlgorithm.labels, k, weight)
-      };
+      StringVector   label = {classifier.predict(mAlgorithm.tree, point,
+                                               mAlgorithm.labels, k, weight)};
       result.add(ids(i), label);
     }
     destPtr->setLabelSet(result);
     return OK();
   }
-  index latency() { return 0; }
+
 
   static auto getMessageDescriptors()
   {
@@ -198,12 +185,96 @@ public:
         makeMessage("read", &KNNClassifierClient::read));
   }
 
+  index encodeIndex(std::string label)
+  {
+    return mLabelSetEncoder.encodeIndex(label);
+  }
+
 private:
-  FluidInputTrigger mTrigger;
   algorithm::LabelSetEncoder mLabelSetEncoder;
 };
-}
 
-using RTKNNClassifierClient = ClientWrapper<knnclassifier::KNNClassifierClient>;
+using KNNClassifierRef = SharedClientRef<KNNClassifierClient>;
+
+constexpr auto KNNClassifierQueryParams = defineParameters(
+    KNNClassifierRef::makeParam("model", "Source model"),
+    LongParam("numNeighbours", "Number of Nearest Neighbours", 3, Min(1)),
+    EnumParam("weight", "Weight Neighbours by Distance", 1, "No", "Yes"),
+    BufferParam("inputPointBuffer", "Input Point Buffer"),
+    BufferParam("predictionBuffer", "Prediction Buffer"));
+
+class KNNClassifierQuery : public FluidBaseClient, ControlIn, ControlOut
+{
+  enum { kModel, kNumNeighbors, kWeight, kInputBuffer, kOutputBuffer };
+
+public:
+  using ParamDescType = decltype(KNNClassifierQueryParams);
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors()
+  {
+    return KNNClassifierQueryParams;
+  }
+
+  KNNClassifierQuery(ParamSetViewType& p) : mParams(p)
+  {
+    controlChannelsIn(1);
+    controlChannelsOut({1, 1});
+  }
+
+  template <typename T>
+  void process(std::vector<FluidTensorView<T, 1>>& input,
+               std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
+  {
+    output[0] = input[0];
+    if (input[0](0) > 0)
+    {
+      auto knnPtr = get<kModel>().get().lock();
+      if (!knnPtr)
+      {
+        // report error?
+        return;
+      }
+      index k = get<kNumNeighbors>();
+      bool  weight = get<kWeight>() != 0;
+      auto& algorithm = knnPtr->algorithm();
+      index treeSize = algorithm.tree.size();
+      if (k == 0 || treeSize == 0 || treeSize < k) return;
+      InOutBuffersCheck bufCheck(algorithm.tree.dims());
+      if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
+                                get<kOutputBuffer>().get()))
+        return;
+      auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
+      if (outBuf.samps(0).size() != 1) return;
+      algorithm::KNNClassifier classifier;
+      RealVector               point(algorithm.tree.dims());
+      point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+                  .samps(0, algorithm.tree.dims(), 0);
+      std::string result = classifier.predict(algorithm.tree, point,
+                                              algorithm.labels, k, weight);
+      outBuf.samps(0)[0] = static_cast<double>(knnPtr->encodeIndex(result));
+    }
+  }
+
+  index latency() { return 0; }
+};
+
+} // namespace knnclassifier
+
+using NRTThreadedKNNClassifierClient =
+    NRTThreadingAdaptor<typename knnclassifier::KNNClassifierRef::SharedType>;
+
+using RTKNNClassifierQueryClient =
+    ClientWrapper<knnclassifier::KNNClassifierQuery>;
 } // namespace client
 } // namespace fluid

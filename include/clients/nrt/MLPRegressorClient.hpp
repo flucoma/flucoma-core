@@ -20,25 +20,10 @@ namespace fluid {
 namespace client {
 namespace mlpregressor {
 
-enum {
-  kHidden,
-  kActivation,
-  kOutputActivation,
-  kInputTap,
-  kOutputTap,
-  kIter,
-  kRate,
-  kMomentum,
-  kBatchSize,
-  kVal,
-  kInputBuffer,
-  kOutputBuffer
-};
-
-
 constexpr std::initializer_list<index> HiddenLayerDefaults = {3, 3};
 
 constexpr auto MLPRegressorParams = defineParameters(
+    StringParam<Fixed<true>>("name", "Name"),
     LongArrayParam("hidden", "Hidden Layer Sizes", HiddenLayerDefaults),
     EnumParam("activation", "Activation Function", 2, "Identity", "Sigmoid",
               "ReLU", "Tanh"),
@@ -50,16 +35,29 @@ constexpr auto MLPRegressorParams = defineParameters(
     FloatParam("learnRate", "Learning Rate", 0.01, Min(0.0), Max(1.0)),
     FloatParam("momentum", "Momentum", 0.9, Min(0.0), Max(0.99)),
     LongParam("batchSize", "Batch Size", 50, Min(1)),
-    FloatParam("validation", "Validation Amount", 0.2, Min(0), Max(0.9)),
-    BufferParam("inputPointBuffer", "Input Point Buffer"),
-    BufferParam("predictionBuffer", "Prediction Buffer"));
+    FloatParam("validation", "Validation Amount", 0.2, Min(0), Max(0.9)));
 
 class MLPRegressorClient : public FluidBaseClient,
-                           AudioIn,
-                           ControlOut,
+                           OfflineIn,
+                           OfflineOut,
                            ModelObject,
                            public DataClient<algorithm::MLP>
 {
+
+  enum {
+    kName,
+    kHidden,
+    kActivation,
+    kOutputActivation,
+    kInputTap,
+    kOutputTap,
+    kIter,
+    kRate,
+    kMomentum,
+    kBatchSize,
+    kVal
+  };
+
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
@@ -70,6 +68,8 @@ public:
   using ParamDescType = decltype(MLPRegressorParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
+  using ParamValues = typename ParamSetViewType::ValueTuple;
+
   std::reference_wrapper<ParamSetViewType> mParams;
 
   void setParams(ParamSetViewType& p) { mParams = p; }
@@ -85,42 +85,12 @@ public:
     return MLPRegressorParams;
   }
 
-  MLPRegressorClient(ParamSetViewType& p) : mParams(p)
-  {
-    audioChannelsIn(1);
-    controlChannelsOut(1);
-  }
+  MLPRegressorClient(ParamSetViewType& p) : mParams(p) {}
 
   template <typename T>
-  void process(std::vector<FluidTensorView<T, 1>>& input,
-               std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
+  Result process(FluidContext&)
   {
-    if (!mAlgorithm.trained()) return;
-    index inputTap = get<kInputTap>();
-    index outputTap = get<kOutputTap>();
-    if (inputTap >= mAlgorithm.size() - 1) return;
-    if (outputTap >= mAlgorithm.size()) return;
-    if (outputTap == 0) return;
-    if (outputTap == -1) outputTap = mAlgorithm.size();
-
-    index inputSize = mAlgorithm.inputSize(inputTap);
-    index outputSize = mAlgorithm.outputSize(outputTap);
-
-    InOutBuffersCheck bufCheck(inputSize);
-    if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
-                              get<kOutputBuffer>().get()))
-      return;
-    auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-    if (outBuf.samps(0).size() < outputSize) return;
-
-    RealVector src(inputSize);
-    RealVector dest(outputSize);
-    src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
-              .samps(0, inputSize, 0);
-    mTrigger.process(input, output, [&]() {
-      mAlgorithm.processFrame(src, dest, inputTap, outputTap);
-      outBuf.samps(0, outputSize, 0) = dest;
-    });
+    return {};
   }
 
   MessageResult<double> fit(DataSetClientRef source, DataSetClientRef target)
@@ -217,21 +187,19 @@ public:
     return OK();
   }
 
-  MessageResult<void> read(string fileName)
+  MessageResult<ParamValues> read(string fileName)
   {
     auto result = DataClient::read(fileName);
-    if (result.ok()) updateParameters();
-    return result;
+    if (result.ok()) return  updateParameters();
+    return {result.status(), result.message()};
   }
 
-  MessageResult<void> load(string s)
+  MessageResult<ParamValues> load(string s)
   {
     auto result = DataClient::load(s);
-    if (result.ok()) updateParameters();
-    return result;
+    if (result.ok()) return updateParameters();
+    return {result.status(), result.message()};
   }
-
-  index latency() { return 0; }
 
   static auto getMessageDescriptors()
   {
@@ -249,29 +217,120 @@ public:
   }
 
 private:
-  FluidInputTrigger                         mTrigger;
+
   ParameterTrackChanges<index, index, IndexVector, index, index> mTracker;
 
-  void updateParameters()
+  MessageResult<ParamValues> updateParameters()
   {
     const index nLayers = mAlgorithm.size();
+    ParamValues newParams = mParams.get().toTuple();
+
     if (nLayers > 1)
     {
-      auto&                 params = mParams.get();
       FluidTensor<index, 1> layersParam(nLayers - 1);
       for (index i = 0; i < nLayers - 1; i++)
         layersParam[i] = mAlgorithm.outputSize(i + 1);
-      params.template set<kHidden>(std::move(layersParam), nullptr);
-      params.template set<kActivation>(mAlgorithm.hiddenActivation(), nullptr);
-      params.template set<kOutputActivation>(mAlgorithm.outputActivation(),
-                                             nullptr);
-      params.template set<kInputTap>(0, nullptr);
-      params.template set<kOutputTap>(-1, nullptr);
+      std::get<kHidden>(newParams) = std::move(layersParam);
+      std::get<kActivation>(newParams) = mAlgorithm.hiddenActivation();
+      std::get<kOutputActivation>(newParams) = mAlgorithm.outputActivation();
+      std::get<kInputTap>(newParams) = 0;
+      std::get<kOutputTap>(newParams) = -1;
     }
+
+    return newParams;
   }
 };
+
+using MLPRegressorRef = SharedClientRef<MLPRegressorClient>;
+
+constexpr auto MLPRegressorQueryParams =
+    defineParameters(MLPRegressorRef::makeParam("model", "Source Model"),
+                     LongParam("tapIn", "Input Tap Index", 0, Min(0)),
+                     LongParam("tapOut", "Output Tap Index", -1, Min(-1)),
+                     BufferParam("inputPointBuffer", "Input Point Buffer"),
+                     BufferParam("predictionBuffer", "Prediction Buffer"));
+
+class MLPRegressorQuery : public FluidBaseClient, ControlIn, ControlOut
+{
+  enum { kModel, kInputTap, kOutputTap, kInputBuffer, kOutputBuffer };
+
+public:
+  using ParamDescType = decltype(MLPRegressorQueryParams);
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors()
+  {
+    return MLPRegressorQueryParams;
+  }
+
+  MLPRegressorQuery(ParamSetViewType& p) : mParams(p)
+  {
+    controlChannelsIn(1);
+    controlChannelsOut({1, 1});
+  }
+
+  template <typename T>
+  void process(std::vector<FluidTensorView<T, 1>>& input,
+               std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
+  {
+    output[0] = input[0];
+    if (input[0](0) > 0)
+    {
+      auto MLPRef = get<kModel>().get().lock();
+      if (!MLPRef)
+      {
+        // report error?
+        return;
+      }
+
+      algorithm::MLP& algorithm = MLPRef->algorithm();
+
+      if (!algorithm.trained()) return;
+      index inputTap = get<kInputTap>();
+      index outputTap = get<kOutputTap>();
+      if (inputTap >= algorithm.size() - 1) return;
+      if (outputTap >= algorithm.size()) return;
+      if (outputTap == 0) return;
+      if (outputTap == -1) outputTap = algorithm.size();
+
+      index inputSize = algorithm.inputSize(inputTap);
+      index outputSize = algorithm.outputSize(outputTap);
+
+      InOutBuffersCheck bufCheck(inputSize);
+      if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
+                                get<kOutputBuffer>().get()))
+        return;
+      auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
+      if (outBuf.samps(0).size() < outputSize) return;
+
+      RealVector src(inputSize);
+      RealVector dest(outputSize);
+      src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+                .samps(0, inputSize, 0);
+      algorithm.processFrame(src, dest, inputTap, outputTap);
+      outBuf.samps(0, outputSize, 0) = dest;
+    }
+  }
+
+  index latency() { return 0; }
+};
+
 } // namespace mlpregressor
 
-using RTMLPRegressorClient = ClientWrapper<mlpregressor::MLPRegressorClient>;
+using NRTThreadedMLPRegressorClient =
+    NRTThreadingAdaptor<typename mlpregressor::MLPRegressorRef::SharedType>;
+
+using RTMLPRegressorQueryClient =
+    ClientWrapper<mlpregressor::MLPRegressorQuery>;
 } // namespace client
 } // namespace fluid
