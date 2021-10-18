@@ -259,7 +259,7 @@ public:
   index audioChannelsIn() const noexcept { return 0; }
   index audioChannelsOut() const noexcept { return 0; }
   index controlChannelsIn() const noexcept { return 0; }
-  index controlChannelsOut() const noexcept { return 0; }
+  ControlChannel controlChannelsOut() const noexcept { return {0,0}; }
   /// Map delegate audio / control channels to audio buffers
   index audioBuffersIn() const noexcept { return mClient.audioChannelsIn(); }
   index audioBuffersOut() const noexcept
@@ -531,7 +531,7 @@ struct StreamingControl
   {
     // To account for process latency we need to copy the buffers with padding
     std::vector<HostMatrix> inputData;
-    index                   nFeatures = client.controlChannelsOut();
+    index                   nFeatures = client.controlChannelsOut().size;
     //      outputData.reserve(nFeatures);
     inputData.reserve(inputBuffers.size());
 
@@ -588,13 +588,14 @@ struct StreamingControl
         inputs.reserve(inputBuffers.size());
         std::vector<HostVectorView> outputs;
         outputs.reserve(outputBuffers.size());
+        
         for (index k = 0; k < asSigned(inputBuffers.size()); ++k)
           inputs.emplace_back(
               inputData[asUnsigned(k)].row(i)(Slice(t, controlRate)));
 
-        for (index k = 0; k < nFeatures; ++k)
-          outputs.emplace_back(outputData.row(k + i * nFeatures)(Slice(j, 1)));
-
+        // for (index k = 0; k < nFeatures; ++k)
+        //   outputs.emplace_back(outputData.row(k + i * nFeatures)(Slice(j, 1)));
+        outputs.push_back(outputData.col(j)(Slice(i * nFeatures, nFeatures)));
 
         client.process(inputs, outputs, dummyContext);
 
@@ -765,7 +766,7 @@ public:
   index audioChannelsIn() const noexcept { return 0; }
   index audioChannelsOut() const noexcept { return 0; }
   index controlChannelsIn() const noexcept { return 0; }
-  index controlChannelsOut() const noexcept { return 0; }
+  ControlChannel controlChannelsOut() const noexcept { return {0,0}; }
   index audioBuffersIn() const noexcept
   {
     return ParamDescType::template NumOf<InputBufferT>();

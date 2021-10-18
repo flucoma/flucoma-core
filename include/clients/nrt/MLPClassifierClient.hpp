@@ -54,21 +54,10 @@ void from_json(const nlohmann::json& j, MLPClassifierData& data)
   data.encoder = j.at("labels").get<algorithm::LabelSetEncoder>();
 }
 
-enum {
-  kHidden,
-  kActivation,
-  kIter,
-  kRate,
-  kMomentum,
-  kBatchSize,
-  kVal,
-  kInputBuffer,
-  kOutputBuffer
-};
-
 constexpr std::initializer_list<index> HiddenLayerDefaults = {3, 3};
 
 constexpr auto MLPClassifierParams = defineParameters(
+    StringParam<Fixed<true>>("name", "Name"),
     LongArrayParam("hidden", "Hidden Layer Sizes", HiddenLayerDefaults),
     EnumParam("activation", "Activation Function", 2, "Identity", "Sigmoid",
               "ReLU", "Tanh"),
@@ -76,17 +65,26 @@ constexpr auto MLPClassifierParams = defineParameters(
     FloatParam("learnRate", "Learning Rate", 0.01, Min(0.0), Max(1.0)),
     FloatParam("momentum", "Momentum", 0.5, Min(0.0), Max(0.99)),
     LongParam("batchSize", "Batch Size", 50),
-    FloatParam("validation", "Validation Amount", 0.2, Min(0), Max(0.9)),
-    BufferParam("inputPointBuffer", "Input Point Buffer"),
-    BufferParam("predictionBuffer", "Prediction Buffer"));
+    FloatParam("validation", "Validation Amount", 0.2, Min(0), Max(0.9)));
 
 
 class MLPClassifierClient : public FluidBaseClient,
-                            AudioIn,
-                            ControlOut,
+                            OfflineIn,
+                            OfflineOut,
                             ModelObject,
                             public DataClient<MLPClassifierData>
 {
+  enum {
+    kName,
+    kHidden,
+    kActivation,
+    kIter,
+    kRate,
+    kMomentum,
+    kBatchSize,
+    kVal
+  };
+
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
@@ -98,6 +96,8 @@ public:
   using ParamDescType = decltype(MLPClassifierParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
+  using ParamValues = typename ParamSetViewType::ValueTuple;
+
   std::reference_wrapper<ParamSetViewType> mParams;
 
   void setParams(ParamSetViewType& p) { mParams = p; }
@@ -113,40 +113,27 @@ public:
     return MLPClassifierParams;
   }
 
-  MLPClassifierClient(ParamSetViewType& p) : mParams(p)
-  {
-    audioChannelsIn(1);
-    controlChannelsOut(1);
-  }
+  MLPClassifierClient(ParamSetViewType& p) : mParams(p) {}
 
   template <typename T>
-  void process(std::vector<FluidTensorView<T, 1>>& input,
-               std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
+  Result process(FluidContext&)
   {
-    if (!mAlgorithm.mlp.trained()) return;
-    index dims = mAlgorithm.mlp.dims();
-    index layer = mAlgorithm.mlp.size();
-
-    InOutBuffersCheck bufCheck(dims);
-    if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
-                              get<kOutputBuffer>().get()))
-      return;
-    auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-    if (outBuf.samps(0).size() != 1) return;
-
-    RealVector src(dims);
-    RealVector dest(mAlgorithm.mlp.outputSize(layer));
-    src =
-        BufferAdaptor::ReadAccess(get<kInputBuffer>().get()).samps(0, dims, 0);
-    mTrigger.process(input, output, [&]() {
-      mAlgorithm.mlp.processFrame(src, dest, 0, layer);
-      auto label = mAlgorithm.encoder.decodeOneHot(dest);
-      outBuf.samps(0)[0] =
-          static_cast<double>(mAlgorithm.encoder.encodeIndex(label));
-    });
+    return {};
   }
 
-  index latency() { return 0; }
+  MessageResult<ParamValues> read(string fileName)
+  {
+    auto result = DataClient::read(fileName);
+    if (result.ok()) return updateParameters();
+    return {result.status(),result.message()};
+  }
+
+  MessageResult<ParamValues> load(string s)
+  {
+    auto result = DataClient::load(s);
+    if (result.ok()) return updateParameters();
+    return {result.status(), result.message()};
+  }
 
   MessageResult<double> fit(DataSetClientRef source, LabelSetClientRef target)
   {
@@ -166,7 +153,9 @@ public:
 
     mAlgorithm.encoder.fit(targetDataSet);
 
-    if (mTracker.changed(get<kHidden>(), get<kActivation>()))
+    if (mTracker.changed(sourceDataSet.pointSize(),
+                         mAlgorithm.encoder.numLabels(), get<kHidden>(),
+                         get<kActivation>()))
     {
       mAlgorithm.mlp.init(sourceDataSet.pointSize(),
                           mAlgorithm.encoder.numLabels(), get<kHidden>(),
@@ -180,7 +169,9 @@ public:
     RealMatrix oneHot(targetDataSet.size(), mAlgorithm.encoder.numLabels());
     oneHot.fill(0);
     for (index i = 0; i < targetDataSet.size(); i++)
-    { mAlgorithm.encoder.encodeOneHot(tgt.row(i)(0), oneHot.row(i)); }
+    {
+      mAlgorithm.encoder.encodeOneHot(tgt.row(i)(0), oneHot.row(i));
+    }
 
     algorithm::SGD sgd;
     double         error =
@@ -250,13 +241,111 @@ public:
   }
 
 private:
-  FluidInputTrigger                         mTrigger;
-  ParameterTrackChanges<IndexVector, index> mTracker;
+
+  ParameterTrackChanges<index, index, IndexVector, index> mTracker;
+
+  MessageResult<ParamValues> updateParameters()
+  {
+    const index nLayers = mAlgorithm.size();
+    ParamValues newParams = mParams.get().toTuple();
+
+    if (nLayers > 1)
+    {
+      FluidTensor<index, 1> layersParam(nLayers - 1);
+      for (index i = 0; i < nLayers - 1; i++)
+        layersParam[i] = mAlgorithm.mlp.outputSize(i + 1);
+      std::get<kHidden>(newParams) = std::move(layersParam);
+      std::get<kActivation>(newParams) = mAlgorithm.mlp.hiddenActivation();
+    }    
+    return newParams; 
+  }
+
 };
+
+using MLPClassifierRef = SharedClientRef<MLPClassifierClient>;
+
+constexpr auto MLPClassifierQueryParams =
+    defineParameters(MLPClassifierRef::makeParam("model", "Source Model"),
+                     BufferParam("inputPointBuffer", "Input Point Buffer"),
+                     BufferParam("predictionBuffer", "Prediction Buffer"));
+
+class MLPClassifierQuery : public FluidBaseClient, ControlIn, ControlOut
+{
+  enum { kModel, kInputBuffer, kOutputBuffer };
+
+public:
+  using ParamDescType = decltype(MLPClassifierQueryParams);
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors()
+  {
+    return MLPClassifierQueryParams;
+  }
+
+  MLPClassifierQuery(ParamSetViewType& p) : mParams(p)
+  {
+    controlChannelsIn(1);
+    controlChannelsOut({1, 1});
+  }
+
+  template <typename T>
+  void process(std::vector<FluidTensorView<T, 1>>& input,
+               std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
+  {
+    output[0] = input[0];
+    if (input[0](0) > 0)
+    {
+      auto mlpPtr = get<kModel>().get().lock();
+      if (!mlpPtr)
+      {
+        // report error?
+        return;
+      }
+      MLPClassifierData& algorithm = mlpPtr->algorithm();
+
+      if (!algorithm.mlp.trained()) return;
+      index dims = algorithm.mlp.dims();
+      index layer = algorithm.mlp.size();
+
+      InOutBuffersCheck bufCheck(dims);
+      if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
+                                get<kOutputBuffer>().get()))
+        return;
+      auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
+      if (outBuf.samps(0).size() != 1) return;
+
+      RealVector src(dims);
+      RealVector dest(algorithm.mlp.outputSize(layer));
+      src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+                .samps(0, dims, 0);
+      algorithm.mlp.processFrame(src, dest, 0, layer);
+      auto label = algorithm.encoder.decodeOneHot(dest);
+      outBuf.samps(0)[0] =
+          static_cast<double>(algorithm.encoder.encodeIndex(label));
+    }
+  }
+
+  index latency() { return 0; }
+};
+
 
 } // namespace mlpclassifier
 
-using RTMLPClassifierClient = ClientWrapper<mlpclassifier::MLPClassifierClient>;
+using NRTThreadedMLPClassifierClient =
+    NRTThreadingAdaptor<typename mlpclassifier::MLPClassifierRef::SharedType>;
+
+using RTMLPClassifierQueryClient =
+    ClientWrapper<mlpclassifier::MLPClassifierQuery>;
 
 } // namespace client
 } // namespace fluid

@@ -79,7 +79,9 @@ public:
       return OK();
     }
   }
-
+  
+  bool initialized() { return mAlgorithm.initialized(); }
+  T& algorithm() { return mAlgorithm; }
 protected:
   T mAlgorithm;
 };

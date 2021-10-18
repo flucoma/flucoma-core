@@ -18,31 +18,28 @@ namespace fluid {
 namespace client {
 namespace umap {
 
-enum {
-  kNumDimensions,
-  kNumNeighbors,
-  kMinDistance,
-  kNumIter,
-  kLearningRate,
-  kInputBuffer,
-  kOutputBuffer
-};
-
 constexpr auto UMAPParams = defineParameters(
+    StringParam<Fixed<true>>("name", "Name"),
     LongParam("numDimensions", "Target Number of Dimensions", 2, Min(1)),
     LongParam("numNeighbours", "Number of Nearest Neighbours", 15, Min(1)),
     FloatParam("minDist", "Minimum Distance", 0.1, Min(0)),
     LongParam("iterations", "Number of Iterations", 200, Min(1)),
-    FloatParam("learnRate", "Learning Rate", 0.1, Min(0.0), Max(1.0)),
-    BufferParam("inputPointBuffer", "Input Point Buffer"),
-    BufferParam("predictionBuffer", "Prediction Buffer"));
+    FloatParam("learnRate", "Learning Rate", 0.1, Min(0.0), Max(1.0)));
 
 class UMAPClient : public FluidBaseClient,
-                   AudioIn,
-                   ControlOut,
+                   OfflineIn,
+                   OfflineOut,
                    ModelObject,
                    public DataClient<algorithm::UMAP>
 {
+  enum {
+    kName,
+    kNumDimensions,
+    kNumNeighbors,
+    kMinDistance,
+    kNumIter,
+    kLearningRate
+  };
 
 public:
   using string = std::string;
@@ -64,10 +61,12 @@ public:
 
   static constexpr auto getParameterDescriptors() { return UMAPParams; }
 
-  UMAPClient(ParamSetViewType& p) : mParams(p)
+  UMAPClient(ParamSetViewType& p) : mParams(p) {}
+
+  template <typename T>
+  Result process(FluidContext&)
   {
-    audioChannelsIn(1);
-    controlChannelsOut(1);
+      return{};
   }
 
   MessageResult<void> fitTransform(DataSetClientRef sourceClient,
@@ -146,32 +145,6 @@ public:
     return OK();
   }
 
-  template <typename T>
-  void process(std::vector<FluidTensorView<T, 1>>& input,
-               std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
-  {
-    if (!mAlgorithm.initialized()) return;
-    index inSize = mAlgorithm.inputDims();
-    index outSize = mAlgorithm.dims();
-    if (get<kNumDimensions>() != outSize) return;
-    InOutBuffersCheck bufCheck(inSize);
-    if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
-                              get<kOutputBuffer>().get()))
-      return;
-    auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-    if (outBuf.samps(0).size() < outSize) return;
-    RealVector src(inSize);
-    RealVector dest(outSize);
-    src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
-              .samps(0, inSize, 0);
-    mTrigger.process(input, output, [&]() {
-      mAlgorithm.transformPoint(src, dest);
-      outBuf.samps(0, outSize, 0) = dest;
-    });
-  }
-
-  index latency() { return 0; }
-
   static auto getMessageDescriptors()
   {
     return defineMessages(
@@ -187,13 +160,83 @@ public:
         makeMessage("write", &UMAPClient::write),
         makeMessage("read", &UMAPClient::read));
   }
-
-private:
-  FluidInputTrigger mTrigger;
 };
+
+using UMAPRef = SharedClientRef<UMAPClient>;
+
+constexpr auto UMAPQueryParams =
+    defineParameters(UMAPRef::makeParam("model", "Source Model"),
+                     BufferParam("inputPointBuffer", "Input Point Buffer"),
+                     BufferParam("predictionBuffer", "Prediction Buffer"));
+
+class UMAPQuery : public FluidBaseClient, ControlIn, ControlOut
+{
+  enum { kModel, kInputBuffer, kOutputBuffer };
+
+public:
+  using ParamDescType = decltype(UMAPQueryParams);
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto getParameterDescriptors() { return UMAPQueryParams; }
+
+  UMAPQuery(ParamSetViewType& p) : mParams(p)
+  {
+    controlChannelsIn(1);
+    controlChannelsOut({1, 1});
+  }
+
+  template <typename T>
+  void process(std::vector<FluidTensorView<T, 1>>& input,
+               std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
+  {
+    output[0] = input[0];
+    if (input[0](0) > 0)
+    {
+      auto UMAPPtr = get<kModel>().get().lock();
+      if (!UMAPPtr)
+      {
+        // report error?
+        return;
+      }
+      algorithm::UMAP& algorithm = UMAPPtr->algorithm();
+      if (!algorithm.initialized()) return;
+      index inSize = algorithm.inputDims();
+      index outSize = algorithm.dims();
+      if (algorithm.dims() != outSize) return;
+      InOutBuffersCheck bufCheck(inSize);
+      if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
+                                get<kOutputBuffer>().get()))
+        return;
+      auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
+      if (outBuf.samps(0).size() < outSize) return;
+      RealVector src(inSize);
+      RealVector dest(outSize);
+      src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+                .samps(0, inSize, 0);
+      algorithm.transformPoint(src, dest);
+      outBuf.samps(0, outSize, 0) = dest;
+    }
+  }
+
+  index latency() { return 0; }
+};
+
 } // namespace umap
 
-using RTUMAPClient = ClientWrapper<umap::UMAPClient>;
+using NRTThreadedUMAPClient =
+    NRTThreadingAdaptor<typename umap::UMAPRef::SharedType>;
+
+using RTUMAPQueryClient = ClientWrapper<umap::UMAPQuery>;
 
 } // namespace client
 } // namespace fluid

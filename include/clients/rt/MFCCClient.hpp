@@ -41,7 +41,9 @@ constexpr auto MFCCParams = defineParameters(
               UpperLimit<kNBands, kMaxNCoefs>()),
     LongParam("numBands", "Number of Bands", 40, Min(2),
               FrameSizeUpperLimit<kFFT>(), LowerLimit<kNCoefs>()),
-    LongParam("startCoeff","Output Coefficient Offset",0, Min(0), Max(1)),// this needs to be programmatically changed to start+num coeffs <= numBands as discussed
+    LongParam("startCoeff", "Output Coefficient Offset", 0, Min(0),
+              Max(1)), // this needs to be programmatically changed to start+num
+                       // coeffs <= numBands as discussed
     FloatParam("minFreq", "Low Frequency Bound", 20, Min(0)),
     FloatParam("maxFreq", "High Frequency Bound", 20000, Min(0)),
     LongParam<Fixed<true>>("maxNumCoeffs", "Maximum Number of Coefficients", 40,
@@ -70,12 +72,13 @@ public:
   MFCCClient(ParamSetViewType& p)
       : mParams{p}, mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0),
         mMelBands(get<kMaxFFTSize>(), get<kMaxFFTSize>()),
-        mDCT(get<kMaxFFTSize>(), get<kMaxNCoefs>()  + 1) // + 1 for possibility of dropping 0th
+        mDCT(get<kMaxFFTSize>(),
+             get<kMaxNCoefs>() + 1) // + 1 for possibility of dropping 0th
   {
     mBands = FluidTensor<double, 1>(get<kNBands>());
-    mCoefficients = FluidTensor<double, 1>(get<kNCoefs>() + get<kDrop0>() );
+    mCoefficients = FluidTensor<double, 1>(get<kNCoefs>() + get<kDrop0>());
     audioChannelsIn(1);
-    controlChannelsOut(get<kMaxNCoefs>());
+    controlChannelsOut({1, get<kMaxNCoefs>()});
     setInputLabels({"audio input"});
     setOutputLabels({"MFCCs"});
   }
@@ -87,8 +90,8 @@ public:
     using std::size_t;
 
     if (!input[0].data() || !output[0].data()) return;
-    assert(controlChannelsOut() && "No control channels");
-    assert(output.size() >= asUnsigned(controlChannelsOut()) &&
+    assert(controlChannelsOut().count && "No control channels");
+    assert(output[0].size() >= controlChannelsOut().size &&
            "Too few output channels");
 
     bool has0 = !get<kDrop0>();
@@ -112,10 +115,9 @@ public:
           mMelBands.processFrame(mMagnitude, mBands, false, false, true);
           mDCT.processFrame(mBands, mCoefficients);
         });
-
-    index coeffOffset = !has0;
-    for (index i = 0; i < get<kNCoefs>(); ++i)
-      output[asUnsigned(i)](0) = static_cast<T>(mCoefficients(i + coeffOffset));
+  
+      output[0](Slice(0, get<kNCoefs>())) =
+        mCoefficients(Slice(get<kDrop0>(), get<kNCoefs>()));
   }
 
   index latency() { return get<kFFT>().winSize(); }

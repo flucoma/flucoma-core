@@ -13,9 +13,9 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include <iterator>
+#include <tuple>
 #include <type_traits>
-#include <utility> 
-#include <tuple> 
+#include <utility>
 namespace fluid {
 
 /****
@@ -132,7 +132,7 @@ using Detected_t = typename impl::Detector<Nonesuch, void, Op, Args...>::type;
 template <class Default, template <class...> class Op, class... Args>
 using DetectedOr = impl::Detector<Default, void, Op, Args...>;
 
-//Tuple for each
+// Tuple for each
 template <typename Tuple, typename F, typename... Args, size_t... Is>
 void ForEachImpl(Tuple&& tuple, F&& f, std::index_sequence<Is...>,
                  Args&&... args)
@@ -144,6 +144,18 @@ void ForEachImpl(Tuple&& tuple, F&& f, std::index_sequence<Is...>,
                      void(), int{})...};
 }
 
+template <typename Tuple, typename F, typename... Args, size_t... Is>
+void ForEachIndexImpl(Tuple&& tuple, F&& f, std::index_sequence<Is...>,
+                      Args&&... args)
+{
+  // Nice trick from Louis Dionne makes this more readble;
+  using swallow = int[];
+  (void) swallow{
+      1, (f(std::get<Is>(std::forward<Tuple>(tuple)),
+            std::integral_constant<size_t, Is>{}, std::forward<Args>(args)...),
+          void(), int{})...};
+}
+
 template <typename Tuple, typename F, typename... Args>
 void ForEach(Tuple&& tuple, F&& f, Args&&... args)
 {
@@ -151,5 +163,25 @@ void ForEach(Tuple&& tuple, F&& f, Args&&... args)
   ForEachImpl(std::forward<Tuple>(tuple), std::forward<F>(f),
               std::make_index_sequence<N>{}, std::forward<Args>(args)...);
 }
+
+namespace impl {
+
+template <std::size_t... Is>
+constexpr auto indexSequenceReverse(std::index_sequence<Is...> const&)
+    -> decltype(std::index_sequence<sizeof...(Is) - 1U - Is...>{});
+
+template <std::size_t N>
+using ReverseIndexSequence =
+    decltype(indexSequenceReverse(std::make_index_sequence<N>{}));
+} // namespace impl
+
+template <typename Tuple, typename F, typename... Args>
+void ReverseForEach(Tuple&& tuple, F&& f, Args&&... args)
+{
+  constexpr size_t N = std::tuple_size<std::remove_reference_t<Tuple>>::value;
+  ForEachIndexImpl(std::forward<Tuple>(tuple), std::forward<F>(f),
+              impl::ReverseIndexSequence<N>{}, std::forward<Args>(args)...);
+}
+
 
 } // namespace fluid

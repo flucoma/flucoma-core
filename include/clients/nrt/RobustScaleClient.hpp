@@ -19,21 +19,20 @@ namespace fluid {
 namespace client {
 namespace robustscale {
 
-enum { kLow, kHigh, kInvert, kInputBuffer, kOutputBuffer };
-
 constexpr auto RobustScaleParams = defineParameters(
+    StringParam<Fixed<true>>("name", "Name"),
     FloatParam("low", "Low Percentile", 25, Min(0), Max(100)),
     FloatParam("high", "High Percentile", 75, Min(0), Max(100)),
-    EnumParam("invert", "Inverse Transform", 0, "False", "True"),
-    BufferParam("inputPointBuffer", "Input Point Buffer"),
-    BufferParam("predictionBuffer", "Prediction Buffer"));
+    EnumParam("invert", "Inverse Transform", 0, "False", "True"));
 
 class RobustScaleClient : public FluidBaseClient,
-                          AudioIn,
-                          ControlOut,
+                          OfflineIn,
+                          OfflineOut,
                           ModelObject,
                           public DataClient<algorithm::RobustScaling>
 {
+  enum { kName, kLow, kHigh, kInvert, kInputBuffer, kOutputBuffer };
+
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
@@ -54,34 +53,13 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return RobustScaleParams; }
 
-  RobustScaleClient(ParamSetViewType& p) : mParams(p)
-  {
-    audioChannelsIn(1);
-    controlChannelsOut(1);
-  }
+  RobustScaleClient(ParamSetViewType& p) : mParams(p) {}
 
   template <typename T>
-  void process(std::vector<FluidTensorView<T, 1>>& input,
-               std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
+  Result process(FluidContext&)
   {
-    if (!mAlgorithm.initialized()) return;
-    InOutBuffersCheck bufCheck(mAlgorithm.dims());
-    if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
-                              get<kOutputBuffer>().get()))
-      return;
-    auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-    if (outBuf.samps(0).size() < mAlgorithm.dims()) return;
-    RealVector src(mAlgorithm.dims());
-    RealVector dest(mAlgorithm.dims());
-    src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
-              .samps(0, mAlgorithm.dims(), 0);
-    mTrigger.process(input, output, [&]() {
-      mAlgorithm.processFrame(src, dest, get<kInvert>() == 1);
-      outBuf.samps(0, mAlgorithm.dims(), 0) = dest;
-    });
+      return{};
   }
-
-  index latency() { return 0; }
 
   MessageResult<void> fit(DataSetClientRef datasetClient)
   {
@@ -171,11 +149,88 @@ private:
     }
     return OK();
   }
-  FluidInputTrigger mTrigger;
 };
+
+using RobustScaleRef = SharedClientRef<RobustScaleClient>;
+
+constexpr auto RobustScaleQueryParams = defineParameters(
+    RobustScaleRef::makeParam("model", "Source Model"),
+    EnumParam("invert", "Inverse Transform", 0, "False", "True"),
+    BufferParam("inputPointBuffer", "Input Point Buffer"),
+    BufferParam("predictionBuffer", "Prediction Buffer"));
+
+class RobustScaleQuery : public FluidBaseClient, ControlIn, ControlOut
+{
+  enum { kModel, kInvert, kInputBuffer, kOutputBuffer };
+
+public:
+  using string = std::string;
+  using BufferPtr = std::shared_ptr<BufferAdaptor>;
+  using StringVector = FluidTensor<string, 1>;
+
+  using ParamDescType = decltype(RobustScaleQueryParams);
+
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors()
+  {
+    return RobustScaleQueryParams;
+  }
+
+  RobustScaleQuery(ParamSetViewType& p) : mParams(p)
+  {
+    controlChannelsIn(1);
+    controlChannelsOut({1, 1});
+  }
+
+  template <typename T>
+  void process(std::vector<FluidTensorView<T, 1>>& input,
+               std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
+  {
+    output[0] = input[0];
+    if (input[0](0) > 0)
+    {
+      auto robustPtr = get<kModel>().get().lock();
+      if (!robustPtr)
+      {
+        // report error?
+        return;
+      }
+      algorithm::RobustScaling& algorithm = robustPtr->algorithm();
+      if (!algorithm.initialized()) return;
+      InOutBuffersCheck bufCheck(algorithm.dims());
+      if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
+                                get<kOutputBuffer>().get()))
+        return;
+      auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
+      if (outBuf.samps(0).size() < algorithm.dims()) return;
+      RealVector src(algorithm.dims());
+      RealVector dest(algorithm.dims());
+      src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+                .samps(0, algorithm.dims(), 0);
+      algorithm.processFrame(src, dest, get<kInvert>() == 1);
+      outBuf.samps(0, algorithm.dims(), 0) = dest;
+    }
+  }
+
+  index latency() { return 0; }
+};
+
 } // namespace robustscale
 
-using RTRobustScaleClient = ClientWrapper<robustscale::RobustScaleClient>;
+using NRTThreadedRobustScaleClient =
+    NRTThreadingAdaptor<typename robustscale::RobustScaleRef::SharedType>;
+
+using RTRobustScaleQueryClient = ClientWrapper<robustscale::RobustScaleQuery>;
 
 } // namespace client
 } // namespace fluid
