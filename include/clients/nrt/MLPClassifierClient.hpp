@@ -241,6 +241,7 @@ public:
   }
 
 private:
+
   ParameterTrackChanges<index, index, IndexVector, index> mTracker;
 
   MessageResult<ParamValues> updateParameters()
@@ -258,6 +259,7 @@ private:
     }    
     return newParams; 
   }
+
 };
 
 using MLPClassifierRef = SharedClientRef<MLPClassifierClient>;

@@ -20,21 +20,6 @@ namespace fluid {
 namespace client {
 namespace mlpregressor {
 
-enum {
-  kHidden,
-  kActivation,
-  kOutputActivation,
-  kInputTap,
-  kOutputTap,
-  kIter,
-  kRate,
-  kMomentum,
-  kBatchSize,
-  kVal,
-  kInputBuffer,
-  kOutputBuffer
-};
-
 constexpr std::initializer_list<index> HiddenLayerDefaults = {3, 3};
 
 constexpr auto MLPRegressorParams = defineParameters(
@@ -58,6 +43,7 @@ class MLPRegressorClient : public FluidBaseClient,
                            ModelObject,
                            public DataClient<algorithm::MLP>
 {
+
   enum {
     kName,
     kHidden,
@@ -231,6 +217,7 @@ public:
   }
 
 private:
+
   ParameterTrackChanges<index, index, IndexVector, index, index> mTracker;
 
   MessageResult<ParamValues> updateParameters()
