@@ -44,7 +44,7 @@ constexpr auto BufSelectEveryParams =
                      LongParam("numChans", "Source Number of Channels", -1),
                      BufferParam("destination", "Destination Buffer"),
                      LongParam("framehop", "Frame Hop", 1),
-                     LongParam("channelhop", "Channel Hop", 1));
+                     LongParam("chanhop", "Channel Hop", 1));
 
 
 class BufSelectEveryClient : public FluidBaseClient, OfflineIn, OfflineOut
