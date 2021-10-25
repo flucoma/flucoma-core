@@ -51,9 +51,9 @@ FetchContent_Declare(
 
 FetchContent_Declare(
   Eigen
-  GIT_REPOSITORY https://github.com/eigenteam/eigen-git-mirror/
+  GIT_REPOSITORY https://gitlab.com/libeigen/eigen
   GIT_PROGRESS TRUE
-  GIT_BRANCH "branches/3.3"
+  GIT_BRANCH "3.3"
   GIT_TAG "3.3.5"
 )
 
