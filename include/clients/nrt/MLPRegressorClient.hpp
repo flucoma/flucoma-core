@@ -139,6 +139,8 @@ public:
     if (outputTap > mAlgorithm.size()) return Error("Ouput tap too large");
     if (outputTap == 0) return Error("Ouput tap cannot be 0");
     if (outputTap == -1) outputTap = mAlgorithm.size();
+    if (outputTap - inputTap <= 0) return Error("Output Tap must be > Input Tap");
+
     index inputSize = mAlgorithm.inputSize(inputTap);
     index outputSize = mAlgorithm.outputSize(outputTap);
     auto  srcPtr = srcClient.get().lock();
@@ -166,6 +168,8 @@ public:
     if (outputTap > mAlgorithm.size()) return Error("Ouput tap too large");
     if (outputTap == 0) return Error("Ouput tap should be > 0 or -1");
     if (outputTap == -1) outputTap = mAlgorithm.size();
+    if (outputTap - inputTap <= 0) return Error("Output Tap must be > Input Tap");
+
     index inputSize = mAlgorithm.inputSize(inputTap);
     index outputSize = mAlgorithm.outputSize(outputTap);
 
