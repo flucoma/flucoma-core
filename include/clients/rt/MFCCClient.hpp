@@ -131,7 +131,7 @@ public:
     mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
                    get<kFFT>().frameSize(), sampleRate(),
                    get<kFFT>().winSize());
-    mDCT.init(get<kNBands>(), get<kNCoefs>());
+    mDCT.init(get<kNBands>(), get<kNCoefs>() + get<kDrop0>());
   }
 
   index controlRate() { return get<kFFT>().hopSize(); }
