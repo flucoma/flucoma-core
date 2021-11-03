@@ -13,9 +13,19 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "DataClient.hpp"
 #include "NRTClient.hpp"
 #include "../common/SharedClientUtils.hpp"
+#include "../../algorithms/public/DataSetIdSequence.hpp"
 
 namespace fluid {
 namespace client {
+
+//Do a forward declaration here so that LabelSetClient can refer to a LabelSetClientRef 
+namespace labelset {
+  class LabelSetClient;
+}
+
+//Note that the shared type alias is declared after the Client implementation in most other cases 
+using LabelSetClientRef = SharedClientRef<labelset::LabelSetClient>;
+
 namespace labelset {
 
 enum { kName };
@@ -105,6 +115,14 @@ public:
     return OK();
   }
 
+  MessageResult<void> getIds(LabelSetClientRef dest)
+  {
+    auto destPtr = dest.get().lock();
+    if (!destPtr) return Error(NoDataSet);
+    destPtr->setLabelSet(getIdsLabelSet());
+    return OK();
+  }
+
   MessageResult<string> print() { return mAlgorithm.print(); }
 
   static auto getMessageDescriptors()
@@ -122,15 +140,27 @@ public:
         makeMessage("cols", &LabelSetClient::dims),
         makeMessage("clear", &LabelSetClient::clear),
         makeMessage("write", &LabelSetClient::write),
-        makeMessage("read", &LabelSetClient::read));
+        makeMessage("read", &LabelSetClient::read),
+        makeMessage("getIds", &LabelSetClient::getIds));
   }
 
   const LabelSet getLabelSet() const { return mAlgorithm; }
   void           setLabelSet(LabelSet ls) { mAlgorithm = ls; }
+  
+private: 
+  LabelSet getIdsLabelSet()
+  {
+    algorithm::DataSetIdSequence seq("", 0, 0);
+    FluidTensor<string, 1>       newIds(mAlgorithm.size());
+    FluidTensor<string, 2>       labels(mAlgorithm.size(), 1);
+    labels.col(0) = mAlgorithm.getIds();
+    seq.generate(newIds);
+    return LabelSet(newIds, labels);
+  }  
 };
 } // namespace labelset
 
-using LabelSetClientRef = SharedClientRef<labelset::LabelSetClient>;
+
 using NRTThreadedLabelSetClient =
     NRTThreadingAdaptor<typename LabelSetClientRef::SharedType>;
 
