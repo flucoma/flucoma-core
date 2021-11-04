@@ -61,7 +61,7 @@ public:
         maxBin = yinFlip.size() - minBin - 1;
       if (maxBin > minBin)
       {
-        yinFlip = yinFlip.segment(minBin, maxBin - minBin);
+        yinFlip = yinFlip.segment(minBin, maxBin - minBin).eval();
 
         auto vec = pd.process(yinFlip, 1, yinFlip.minCoeff());
         if (vec.size() > 0)
