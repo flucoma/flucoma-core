@@ -51,8 +51,9 @@ public:
       minBin = 1;
       mag(1) += mag(0);
     }
-    ArrayXd amp = usePower ? mag.square() : mag;
-    amp = amp.segment(minBin, maxBin - minBin);
+    ArrayXd amp = usePower ? mag.square() : mag; 
+    amp = amp.segment(minBin, maxBin - minBin).eval(); 
+    
     double  ampSum = amp.sum();
     ArrayXd freqs =
         ArrayXd::LinSpaced(maxBin - minBin, minBin * binHz, maxBin * binHz);
