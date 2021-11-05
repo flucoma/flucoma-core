@@ -1,3 +1,26 @@
+# 1.0.0-TB2.beta4: Change Log
+Date: November 5th, 2021
+
+## Objects
+- fluid.waveform~ is a new JSUI abstraction that allows you to draw and overlay the contents of audio, feature curves and segmentation from buffers in a visual display.
+- FluidWaveform is the SuperCollider class that mirrors the Max JSUI abstraction.
+- SuperCollider has a a new class, FluidPlotter, that allows you to plot points in a two-dimensional canvas.
+- Pure Data now has an abstraction that mirrors the functionality `fluid.plotter`.
+
+## Interfaces and Behaviours
+- `fluid.plotter` has a modified interface compared to its original release in beta3. It is worth checking the help file for these changes if you use the object as they are subtle but breaking. Namely, there are new ways for managing the properties of individual points such as their colour and size. (https://github.com/flucoma/flucoma-max/pull/69)
+- `fluid.plotter` will deterministically colour points when the number of clusters exceeds the number of possible colours in a palette. (https://github.com/flucoma/flucoma-max/pull/72)
+
+## Fixes
+- Calling `load` on a dataset with no arguments no longer crashes Max. (https://github.com/flucoma/flucoma-max/pull/61)
+- Unnamed objects that rely on `libmanipulation` will now generate unique names so that all unnamed objects no longer talk to each other across a patch. This means that unnamed objects will behave the same as they did prior to the addition of named objects. (https://github.com/flucoma/flucoma-max/pull/57)
+- Stricter ordering for access to `mDone` in the NRT Wrapper. https://github.com/flucoma/flucoma-sc/pull/30
+
+## Tooling
+- Copy the `jsui` and `js` folder when building the Max package.
+
+---
+
 # 1.0.0-TB2.beta3:
 Date: Oct 25th, 2021
 
