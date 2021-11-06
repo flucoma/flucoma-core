@@ -181,7 +181,6 @@ if(APPLE)
 endif()
 
 #Apply any vector instruction flags
-include("${CMAKE_CURRENT_SOURCE_DIR}/script/flucoma_simdcmd.cmake")
 if(DEFINED FLUID_ARCH)
   target_compile_options(HISSTools_FFT PUBLIC ${FLUID_ARCH})
   target_compile_options(HISSTools_AudioFile PUBLIC ${FLUID_ARCH})
