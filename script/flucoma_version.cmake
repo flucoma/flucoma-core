@@ -10,6 +10,19 @@ include_guard()
 
 find_package(Git REQUIRED)
 
+macro(getsha workingDir varName)
+  execute_process( 
+    COMMAND ${GIT_EXECUTABLE} log -1 --format=%h
+    WORKING_DIRECTORY ${${workingDir}}
+    OUTPUT_VARIABLE ${varName}
+    # ERROR_QUIET
+    OUTPUT_STRIP_TRAILING_WHITESPACE  
+  )
+endmacro() 
+
+getSha(CMAKE_CURRENT_LIST_DIR FLUID_CORE_SHA)
+getSha(CMAKE_CURRENT_SOURCE_DIR FLUID_VERSION_SHA)
+
 execute_process( 
   COMMAND ${GIT_EXECUTABLE} describe --abbrev=0 --always
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -18,6 +31,8 @@ execute_process(
   ERROR_QUIET
   OUTPUT_STRIP_TRAILING_WHITESPACE  
 )
+
+set(FLUID_VERSION_TAG "${FLUID_VERSION_TAG}-${FLUID_VERSION_SHA} (core: ${FLUID_CORE_SHA})")
 
 if(result)
   message(VERBOSE "Failed to get version string from Git, falling back to indexed header")
