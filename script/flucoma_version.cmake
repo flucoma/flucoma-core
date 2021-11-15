@@ -32,7 +32,7 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE  
 )
 
-set(FLUID_VERSION_TAG "${FLUID_VERSION_TAG}-${FLUID_VERSION_SHA} (core: ${FLUID_CORE_SHA})")
+set(FLUID_VERSION_TAG "${FLUID_VERSION_TAG}+sha.${FLUID_VERSION_SHA}.core.sha.${FLUID_CORE_SHA}")
 
 if(result)
   message(VERBOSE "Failed to get version string from Git, falling back to indexed header")
