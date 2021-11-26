@@ -16,6 +16,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
+#include "../../algorithms/public/ChromaFilterBank.hpp"
 #include "../../algorithms/public/DCT.hpp"
 #include "../../algorithms/public/Loudness.hpp"
 #include "../../algorithms/public/MelBands.hpp"
@@ -43,7 +44,8 @@ enum NoveltyParamIndex {
 };
 
 constexpr auto NoveltySliceParams = defineParameters(
-    EnumParam("feature", "Feature", 0, "Spectrum", "MFCC", "Pitch", "Loudness"),
+    EnumParam("feature", "Feature", 0, "Spectrum", "MFCC", "Chroma", "Pitch",
+              "Loudness"),
     LongParam("kernelSize", "KernelSize", 3, Min(3), Odd(),
               UpperLimit<kMaxKernelSize>()),
     FloatParam("threshold", "Threshold", 0.5, Min(0)),
@@ -85,7 +87,8 @@ public:
       : mParams{p}, mNovelty{get<kMaxKernelSize>(), get<kMaxFilterSize>()},
         mSTFT{get<kFFT>().winSize(), get<kFFT>().fftSize(),
               get<kFFT>().hopSize()},
-        mMelBands{40, get<kMaxFFTSize>()}, mLoudness{get<kMaxFFTSize>()}
+        mMelBands{40, get<kMaxFFTSize>()},
+        mChroma(12, get<kMaxFFTSize>()), mLoudness{get<kMaxFFTSize>()}
   {
     audioChannelsIn(1);
     audioChannelsOut(1);
@@ -113,7 +116,12 @@ public:
       mDCT.init(40, 13);
       nDims = 13;
     }
-    else if (feature == 3)
+    else if (feature == 2)
+    {
+      mChroma.init(12, get<kFFT>().frameSize(), 440,  sampleRate());
+      nDims = 12;
+    }
+    else if (feature == 4)
     {
       mLoudness.init(windowSize, sampleRate());
     }
@@ -165,9 +173,14 @@ public:
           case 2:
             mSTFT.processFrame(in.row(0), mSpectrum);
             mSTFT.magnitude(mSpectrum, mMagnitude);
-            mYinFFT.processFrame(mMagnitude, mFeature, 20, 5000, sampleRate());
+            mChroma.processFrame(mMagnitude, mFeature, 20, 5000);
             break;
           case 3:
+            mSTFT.processFrame(in.row(0), mSpectrum);
+            mSTFT.magnitude(mSpectrum, mMagnitude);
+            mYinFFT.processFrame(mMagnitude, mFeature, 20, 5000, sampleRate());
+            break;
+          case 4:
             mLoudness.processFrame(in.row(0), mFeature, true, true);
             break;
           }
@@ -205,6 +218,7 @@ private:
   FluidTensor<double, 1>               mFeature;
   algorithm::MelBands                  mMelBands;
   algorithm::DCT                       mDCT{40, 13};
+  algorithm::ChromaFilterBank          mChroma;
   algorithm::YINFFT                    mYinFFT;
   algorithm::Loudness                  mLoudness;
 };
