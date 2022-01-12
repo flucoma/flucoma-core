@@ -38,16 +38,9 @@ function (add_compile_test testname sourcefile should_fail)
   set_tests_properties(${testname} PROPERTIES WILL_FAIL ${should_fail})
 endfunction()
 
-
-
-
-function add_assert_fail_test(assert_fail testname sourcefile)
+function (add_assert_fail_test testname sourcefile)
   add_executable(${testname} "${sourcefile}")
   target_link_libraries(${testname} PRIVATE FLUID_DECOMPOSITION)
-  # set_target_properties(${testname} PROPERTIES CXX_STANDARD 14
-  #                                              CXX_STANDARD_REQUIRED ON
-  #                                             CXX_EXTENSIONS OFF
-  #                                        )  
   add_test(NAME ${testname}
     COMMAND ${testname} 
   )
@@ -78,3 +71,4 @@ catch_discover_tests(TestFluidTensor WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 
 # add_compile_fail_test(NoBuildy data/TestFluidTensor_Compile.cpp)
 load_compile_tests("FluidTensor Compilation Tests" data/compile_tests/TestFluidTensor_Compile.cpp) 
+add_assert_fail_test("FluidTensorAsserts" "data/death_tests/TestFluidTensorAsserts.cpp")
