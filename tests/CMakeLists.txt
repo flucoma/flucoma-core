@@ -95,6 +95,9 @@ target_link_libraries(TestFluidTensor PUBLIC Catch2::Catch2WithMain FLUID_DECOMP
 add_executable(TestFluidTensorDeath data/death_tests/TestFluidTensorAsserts.cpp)
 target_link_libraries(TestFluidTensorDeath PUBLIC Catch2::Catch2WithMain FLUID_DECOMPOSITION  $<TARGET_OBJECTS:AbortHandler>)
 
+add_executable(TestFluidTensorView data/TestFluidTensorView.cpp)
+target_link_libraries(TestFluidTensorView PUBLIC Catch2::Catch2WithMain FLUID_DECOMPOSITION)
+
 include(CTest)
 include(Catch)
 
@@ -104,5 +107,7 @@ catch_discover_tests(TestFluidTensorDeath
   WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
   PROPERTIES WILL_FAIL true
 )
+
+catch_discover_tests(TestFluidTensorView WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 
 load_compile_tests("FluidTensor Compilation Tests" data/compile_tests/TestFluidTensor_Compile.cpp) 
