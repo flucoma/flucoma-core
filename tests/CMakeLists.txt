@@ -7,6 +7,16 @@ set_target_properties(AbortHandler PROPERTIES
   CXX_STANDARD_REQUIRED ON
 )
 
+add_library(TestUtils INTERFACE)
+target_include_directories(TestUtils  INTERFACE 
+  include
+)
+target_link_libraries(TestUtils INTERFACE
+  Catch2::Catch2WithMain
+  FLUID_DECOMPOSITION
+)
+
+
 function (load_compile_tests test_name_stub sourcefile) 
 
   file(STRINGS ${sourcefile} FAILERS REGEX "#ifdef (FAIL_.+)")
@@ -89,14 +99,20 @@ list(APPEND CMAKE_MODULE_PATH ${Catch2_SOURCE_DIR}/extras)
 
 # add_executable(TestAR algorithms/util/TestAR.cpp algorithms/util/burg.cpp)
 add_executable(TestFluidTensor data/TestFluidTensor.cpp)
-target_link_libraries(TestFluidTensor PUBLIC Catch2::Catch2WithMain FLUID_DECOMPOSITION)
+target_link_libraries(TestFluidTensor PUBLIC TestUtils)
 
-# message(STATUS TestFluidTensor_TESTS)
 add_executable(TestFluidTensorDeath data/death_tests/TestFluidTensorAsserts.cpp)
-target_link_libraries(TestFluidTensorDeath PUBLIC Catch2::Catch2WithMain FLUID_DECOMPOSITION  $<TARGET_OBJECTS:AbortHandler>)
+target_link_libraries(TestFluidTensorDeath PUBLIC 
+  TestUtils  $<TARGET_OBJECTS:AbortHandler>   
+)
 
 add_executable(TestFluidTensorView data/TestFluidTensorView.cpp)
-target_link_libraries(TestFluidTensorView PUBLIC Catch2::Catch2WithMain FLUID_DECOMPOSITION)
+target_link_libraries(TestFluidTensorView PUBLIC TestUtils)
+
+add_executable(TestFluidTensorSupport data/TestFluidTensorSupport.cpp)
+target_link_libraries(TestFluidTensorSupport PUBLIC TestUtils)
+
+
 
 include(CTest)
 include(Catch)
