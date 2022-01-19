@@ -2,13 +2,15 @@
 #include <data/FluidTensor.hpp> 
 #include <data/FluidMeta.hpp> 
 
-#include <array> 
+#include <array>
+#include <vector>
 #include <algorithm> 
 
 using fluid::FluidTensor; 
 using fluid::FluidTensorView; 
 using fluid::Slice;
 
+  
 TEST_CASE("FluidTensor can be created from a list of dimenions","[FluidTensor]"){
   
   SECTION("1D creation reports correct sizes"){
@@ -234,20 +236,3 @@ TEST_CASE("const FluidTensor returns View(const T)","[FluidTensor]"){
     CHECK(std::is_same<decltype(x(0,0)),const int&>());
   }
 }
-
-// template <class T> 
-// using BadDims_t = decltype(FluidTensor<int,1>(3,2)); 
-
-// TEST_CASE("FluidTensor implements compile time conditions","[FluidTensor]"){
-  
-//   using fluid::isDetected; 
-
-//   SECTION("dimension count mismatch"){
-    
-//     FluidTensor<int,1> x(3,2); 
-//     constexpr bool badness = isDetected<BadDims_t,void>::value; 
-//     static_assert(badness == false,"Really"); 
-//     STATIC_REQUIRE_FALSE(badness);  
-
-//   }
-// }

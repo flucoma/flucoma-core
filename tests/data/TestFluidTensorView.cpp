@@ -2,6 +2,7 @@
 #include <catch2/matchers/catch_matchers_templated.hpp>
 #include <data/FluidTensor.hpp> 
 #include <data/FluidMeta.hpp> 
+#include <CatchUtils.hpp> 
 
 
 #include <array>
@@ -13,34 +14,8 @@ using fluid::FluidTensorView;
 using fluid::Slice;
 using fluid::FluidTensorSlice; 
 
+using fluid::EqualsRange; 
 
-// ...
-
-template<typename Range>
-struct EqualsRangeMatcher : Catch::Matchers::MatcherGenericBase {
-    EqualsRangeMatcher(Range&& range):
-        range{ range }
-    {}
-
-    template<typename OtherRange>
-    bool match(OtherRange const& other) const {
-        using std::begin; using std::end;
-
-        return std::equal(begin(range), end(range), begin(other), end(other));
-    }
-
-    std::string describe() const override {
-        return "Equals: " + Catch::rangeToString(range);
-    }
-
-private:
-    Range range;
-};
-
-template<typename Range>
-auto EqualsRange(Range&& range) -> EqualsRangeMatcher<Range> {
-    return EqualsRangeMatcher<Range>{std::forward<Range>(range)};
-}
 
 TEST_CASE("FluidTensorView can be constructed from a pointer and a slice","[FliudTensorView]"){ 
     std::array<int,6> x{0,1,2,3,4,5}; 
