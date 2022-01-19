@@ -126,4 +126,6 @@ catch_discover_tests(TestFluidTensorDeath
 
 catch_discover_tests(TestFluidTensorView WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 
+catch_discover_tests(TestFluidTensorSupport WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+
 load_compile_tests("FluidTensor Compilation Tests" data/compile_tests/TestFluidTensor_Compile.cpp) 
