@@ -44,7 +44,7 @@ macro(getsha working_dir output_variable result_variable)
 endmacro() 
 
 getSha(CMAKE_CURRENT_LIST_DIR flucoma_CORE_SHA flucoma_CORESHA_ERR)
-getSha(CMAKE_CURRENT_SOURCE_DIR flucoma_VERSION_SHA flucoma_VERSIONSHA_ERR)
+getSha(CMAKE_SOURCE_DIR flucoma_VERSION_SHA flucoma_VERSIONSHA_ERR)
 
 make_flucoma_version_string(flucoma_VERSION_STRING)
 
