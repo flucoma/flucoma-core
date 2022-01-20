@@ -159,11 +159,28 @@ TEST_CASE("FluidDataSet prints consistent summaries for approval","[FluidDataSet
 {
     using namespace ApprovalTests; 
 
-    FluidTensor<int, 2> points{{0,1,2,3,4},{5,6,7,8,9}}; 
-    FluidTensor<std::string,1> labels{"zero","one"}; 
+    SECTION("small")
+    {
+        FluidTensor<int, 2> points{{0,1,2,3,4},{5,6,7,8,9}}; 
+        FluidTensor<std::string,1> labels{"zero","one"}; 
 
-    DataSet d(labels, points); 
+        DataSet d(labels, points); 
 
-    Approvals::verify(d.print());
+        Approvals::verify(d.print());
+    }
+
+    SECTION("bigger"){
+        FluidTensor<int, 2> points(100,100); 
+        std::iota(points.begin(), points.end(),0); 
+        FluidTensor<std::string,1> labels(100); 
+        std::transform(labels.begin(),labels.end(),labels.begin(), 
+        [n=0](std::string s)mutable {
+            return std::to_string(n); 
+        }); 
+
+        DataSet d(labels, points); 
+
+        Approvals::verify(d.print()); 
+    }
 
 }
