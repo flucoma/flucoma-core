@@ -192,4 +192,7 @@ add_subdirectory(
 )
 
 enable_testing()
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/tests")
+
+if(FLUCOMA_TESTS)
+  add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/tests")
+endif()
