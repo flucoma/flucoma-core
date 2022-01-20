@@ -103,7 +103,6 @@ public:
       mMagnitude.resize(get<kFFT>().frameSize());
       mBands.resize(get<kNBands>());
       mCoefficients.resize(get<kNCoefs>() + !has0);
-      output[0].fill(0);//zero the output
       mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
                      get<kFFT>().frameSize(), sampleRate(),
                      get<kFFT>().winSize());
@@ -119,6 +118,7 @@ public:
   
       output[0](Slice(0, get<kNCoefs>())) =
         mCoefficients(Slice(get<kDrop0>(), get<kNCoefs>()));
+      output[0](Slice(get<kNCoefs>(), get<kMaxNCoefs>() - get<kNCoefs>())).fill(0); 
   }
 
   index latency() { return get<kFFT>().winSize(); }

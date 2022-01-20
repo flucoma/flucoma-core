@@ -93,7 +93,6 @@ public:
     {
       mMagnitude.resize(get<kFFT>().frameSize());
       mBands.resize(get<kNBands>());
-      output[0].fill(0);//zero the output
       mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
                      get<kFFT>().frameSize(), sampleRate(),
                      get<kFFT>().winSize());
@@ -108,6 +107,7 @@ public:
     // for (index i = 0; i < get<kNBands>(); ++i)
     //   output[asUnsigned(i)](0) = static_cast<T>(mBands(i));
     output[0](Slice(0,get<kNBands>())) = mBands; 
+    output[0](Slice(get<kNBands>(), get<kMaxNBands>() - get<kNBands>())).fill(0); 
   }
 
   index latency() { return get<kFFT>().winSize(); }

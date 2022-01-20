@@ -90,7 +90,6 @@ public:
     {
       mMagnitude.resize(get<kFFT>().frameSize());
       mChroma.resize(get<kNChroma>());
-      output[0].fill(0);//zero the output
       mAlgorithm.init(get<kNChroma>(), get<kFFT>().frameSize(), get<kRef>(),
                       sampleRate());
     }
@@ -103,6 +102,7 @@ public:
         });
 
     output[0](Slice(0,get<kNChroma>())) = mChroma; 
+    output[0](Slice(get<kNChroma>(), get<kMaxNChroma>() - get<kNChroma>())).fill(0); 
   }
 
   index latency() { return get<kFFT>().winSize(); }
