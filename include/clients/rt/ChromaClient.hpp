@@ -90,6 +90,7 @@ public:
     {
       mMagnitude.resize(get<kFFT>().frameSize());
       mChroma.resize(get<kNChroma>());
+      output[0].fill(0);//zero the output
       mAlgorithm.init(get<kNChroma>(), get<kFFT>().frameSize(), get<kRef>(),
                       sampleRate());
     }

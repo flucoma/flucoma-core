@@ -93,6 +93,7 @@ public:
     {
       mMagnitude.resize(get<kFFT>().frameSize());
       mBands.resize(get<kNBands>());
+      output[0].fill(0);//zero the output
       mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
                      get<kFFT>().frameSize(), sampleRate(),
                      get<kFFT>().winSize());
