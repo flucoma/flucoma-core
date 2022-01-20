@@ -1,5 +1,7 @@
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_templated.hpp>
+#define CATCH_CONFIG_MAIN 
+#include <catch2/catch.hpp> 
+// #include <catch2/catch_test_macros.hpp>
+// #include <catch2/matchers/catch_matchers_templated.hpp>
 #include <data/FluidIndex.hpp>
 #include <data/FluidTensor_Support.hpp> 
 #include <data/FluidMeta.hpp> 
@@ -8,13 +10,9 @@
 #include <data/FluidTensor.hpp> 
 
 #include <array>
-// #include <vector>
 #include <algorithm> 
 
-// using fluid::FluidTensor; 
-// using fluid::FluidTensorView; 
 using fluid::Slice;
-// using fluid::index; 
 using fluid::FluidTensorSlice; 
 using fluid::impl::SliceIterator; 
 using fluid::EqualsRange; 

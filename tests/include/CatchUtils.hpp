@@ -1,13 +1,18 @@
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_templated.hpp>
+// #include <catch2/catch_test_macros.hpp>
+// #include <catch2/matchers/catch_matchers_templated.hpp>
+#include <catch2/catch.hpp> 
 
 namespace fluid { 
 
 template<typename Range>
-struct EqualsRangeMatcher : Catch::Matchers::MatcherGenericBase {
+struct EqualsRangeMatcher : public Catch::MatcherBase<Range> { //Catch::Matchers::MatcherGenericBase {
     EqualsRangeMatcher(Range&& range):
         range{ range }
     {}
+
+    bool match(Range const& other) const override {
+        return match<Range>(other); 
+    }
 
     template<typename OtherRange>
     bool match(OtherRange const& other) const {

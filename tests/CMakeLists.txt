@@ -7,16 +7,6 @@ set_target_properties(AbortHandler PROPERTIES
   CXX_STANDARD_REQUIRED ON
 )
 
-add_library(TestUtils INTERFACE)
-target_include_directories(TestUtils  INTERFACE 
-  include
-)
-target_link_libraries(TestUtils INTERFACE
-  Catch2::Catch2WithMain
-  FLUID_DECOMPOSITION
-)
-
-
 function (load_compile_tests test_name_stub sourcefile) 
 
   file(STRINGS ${sourcefile} FAILERS REGEX "#ifdef (FAIL_.+)")
@@ -91,11 +81,39 @@ FetchContent_Declare(
   Catch2
   GIT_SHALLOW    TRUE
   GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-  GIT_TAG        devel
+  GIT_TAG        v2.x
 )
 FetchContent_MakeAvailable(Catch2)
 
-list(APPEND CMAKE_MODULE_PATH ${Catch2_SOURCE_DIR}/extras)
+FetchContent_Declare( 
+  ApprovalCPP 
+  GIT_SHALLOW    TRUE
+  GIT_REPOSITORY https://github.com/approvals/ApprovalTests.cpp.git
+  GIT_TAG        master
+)
+FetchContent_MakeAvailable(ApprovalCPP)
+
+add_library(TestUtils INTERFACE)
+target_include_directories(TestUtils  INTERFACE include)
+target_link_libraries(TestUtils INTERFACE
+  Catch2::Catch2
+  FLUID_DECOMPOSITION
+  ApprovalTests::ApprovalTests
+)
+target_compile_definitions(TestUtils INTERFACE APPROVAL_TESTS_HIDE_DEPRECATED_CODE=1)
+set_target_properties(TestUtils PROPERTIES 
+  CXX_STANDARD 14
+  CXX_STANDARD_REQUIRED ON
+  CXX_EXTENSIONS  OFF
+)
+
+
+# #until approvalcpp is up to date with Catch2 changes 
+# execute_process(
+#   COMMAND ${CMAKE_COMMAND} -E create_symlink ${catch2_SOURCE_DIR}/src/catch2/catch_all.hpp ${catch2_SOURCE_DIR}/src/catch2/catch.hpp 
+# )
+
+list(APPEND CMAKE_MODULE_PATH ${Catch2_SOURCE_DIR}/contrib)
 
 # add_executable(TestAR algorithms/util/TestAR.cpp algorithms/util/burg.cpp)
 add_executable(TestFluidTensor data/TestFluidTensor.cpp)
@@ -105,14 +123,37 @@ add_executable(TestFluidTensorDeath data/death_tests/TestFluidTensorAsserts.cpp)
 target_link_libraries(TestFluidTensorDeath PUBLIC 
   TestUtils  $<TARGET_OBJECTS:AbortHandler>   
 )
+set_target_properties(TestFluidTensorDeath PROPERTIES 
+  CXX_STANDARD 14
+  CXX_STANDARD_REQUIRED ON
+  CXX_EXTENSIONS  OFF
+)
 
 add_executable(TestFluidTensorView data/TestFluidTensorView.cpp)
 target_link_libraries(TestFluidTensorView PUBLIC TestUtils)
+set_target_properties(TestFluidTensorView PROPERTIES 
+  CXX_STANDARD 14
+  CXX_STANDARD_REQUIRED ON
+  CXX_EXTENSIONS  OFF
+)
+
 
 add_executable(TestFluidTensorSupport data/TestFluidTensorSupport.cpp)
 target_link_libraries(TestFluidTensorSupport PUBLIC TestUtils)
+set_target_properties(TestFluidTensorSupport PROPERTIES 
+  CXX_STANDARD 14
+  CXX_STANDARD_REQUIRED ON
+  CXX_EXTENSIONS  OFF
+)
 
 
+add_executable(TestFluidDataSet data/TestFluidDataSet.cpp)
+target_link_libraries(TestFluidDataSet PUBLIC TestUtils)
+set_target_properties(TestFluidDataSet PROPERTIES 
+  CXX_STANDARD 14
+  CXX_STANDARD_REQUIRED ON
+  CXX_EXTENSIONS  OFF
+)
 
 include(CTest)
 include(Catch)
@@ -125,7 +166,7 @@ catch_discover_tests(TestFluidTensorDeath
 )
 
 catch_discover_tests(TestFluidTensorView WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
-
 catch_discover_tests(TestFluidTensorSupport WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+catch_discover_tests(TestFluidDataSet WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 
 load_compile_tests("FluidTensor Compilation Tests" data/compile_tests/TestFluidTensor_Compile.cpp) 
