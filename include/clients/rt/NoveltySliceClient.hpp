@@ -100,7 +100,7 @@ public:
   void initAlgorithms(index feature, index windowSize)
   {
     index nDims = 2;
-    if (feature < 3)
+    if (feature < 4)
     {
       mSpectrum.resize(get<kFFT>().frameSize());
       mMagnitude.resize(get<kFFT>().frameSize());
