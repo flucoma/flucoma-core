@@ -1,7 +1,7 @@
 name: Flucoma Core CI 
 
 on:
-  workflow-dispatch:
+  workflow_dispatch:
   push:
     branches: [ main, dev ]
   pull_request:
