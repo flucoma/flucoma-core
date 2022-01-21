@@ -67,7 +67,6 @@ public:
 
     auto  srcptr = get<kSource>().get();
     index startFrame = get<kOffset>();
-    index axis = get<kAxis>();
     index numFrames = get<kNumFrames>();
     index numChans = get<kNumChans>();
     index startChan = get<kStartChan>();

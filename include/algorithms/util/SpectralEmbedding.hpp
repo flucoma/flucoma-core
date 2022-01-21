@@ -35,7 +35,7 @@ public:
     SymEigsSolver<double, SMALLEST_MAGN, SparseSymMatProd<double>> eig(&op, k,
                                                                        ncv);
     eig.init(initV.data());
-    auto nConverged = eig.compute(
+    /*auto nConverged = */eig.compute(
         D.cols(), 1e-4, SMALLEST_MAGN); // TODO: failback if not converging
     mEigenVectors = eig.eigenvectors();
     mEigenValues = eig.eigenvalues();

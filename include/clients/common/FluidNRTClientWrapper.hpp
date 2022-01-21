@@ -394,10 +394,7 @@ public:
     constexpr size_t WinOffset = 2;
     constexpr size_t HopOffset = 3;
 
-    auto winSizeDescriptor =
-        mParams.get().template descriptorAt<ParamOffset + WinOffset>();
-
-    assert(winSizeDescriptor.name == "windowSize");
+    assert((mParams.get().template descriptorAt<ParamOffset + WinOffset>()).name == "windowSize");
 
     index winSize = get<ParamOffset + WinOffset>();
     index hopSize = get<ParamOffset + HopOffset>();
