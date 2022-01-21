@@ -2,3 +2,6 @@ build
 **/.DS_Store
 /examples/out*.wav
 .vs/
+.dsp_cache
+FluidVersion.cpp
+flucoma.version.rc
