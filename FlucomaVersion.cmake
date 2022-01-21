@@ -8,6 +8,8 @@
 
 cmake_minimum_required (VERSION 3.11)
 
+find_package(Git REQUIRED)
+
 set(flucoma_VERSION_MAJOR 1)
 set(flucoma_VERSION_MINOR 0)
 set(flucoma_VERSION_PATCH 0)
