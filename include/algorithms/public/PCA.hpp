@@ -91,5 +91,5 @@ public:
   VectorXd mMean;
   bool     mInitialized{false};
 };
-}; // namespace algorithm
-}; // namespace fluid
+}// namespace algorithm
+}// namespace fluid

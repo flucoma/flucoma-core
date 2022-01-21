@@ -46,12 +46,13 @@ template <typename T>
 MessageResult<T> Error(std::string msg)
 {
   return MessageResult<T>{Result::Status::kError, msg};
-};
+}
 
 MessageResult<void> Error(std::string msg)
 {
   return MessageResult<void>{Result::Status::kError, msg};
-};
+}
+
 MessageResult<void> OK() { return MessageResult<void>{Result::Status::kOk}; }
 } // namespace client
 } // namespace fluid

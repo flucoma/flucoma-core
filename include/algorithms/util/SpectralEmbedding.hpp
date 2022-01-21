@@ -51,5 +51,5 @@ private:
   Eigen::MatrixXd mEigenVectors;
   Eigen::MatrixXd mEigenValues;
 };
-}; // namespace algorithm
-}; // namespace fluid
+}// namespace algorithm
+}// namespace fluid

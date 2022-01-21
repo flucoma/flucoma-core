@@ -52,5 +52,5 @@ public:
     out = asFluid(result);
   }
 };
-}; // namespace algorithm
-}; // namespace fluid
+}// namespace algorithm
+}// namespace fluid
