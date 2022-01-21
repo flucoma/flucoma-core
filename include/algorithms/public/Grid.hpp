@@ -65,17 +65,17 @@ public:
     ArrayXd colPos, rowPos;
     if (extent > 0 && axis == 1)
     {
-      rowPos = ArrayXi::LinSpaced(M, 0, M - 1)
+      rowPos = ArrayXidx::LinSpaced(M, 0, M - 1)
                    .unaryExpr([&](const index x) { return x % numRows; })
                    .cast<double>();
-      colPos = (ArrayXi::LinSpaced(M, 0, M - 1) / numRows).cast<double>();
+      colPos = (ArrayXidx::LinSpaced(M, 0, M - 1) / numRows).cast<double>();
     }
     else
     {
-      colPos = ArrayXi::LinSpaced(M, 0, M - 1)
+      colPos = ArrayXidx::LinSpaced(M, 0, M - 1)
                    .unaryExpr([&](const index x) { return x % numCols; })
                    .cast<double>();
-      rowPos = (ArrayXi::LinSpaced(M, 0, M - 1) / numCols).cast<double>();
+      rowPos = (ArrayXidx::LinSpaced(M, 0, M - 1) / numCols).cast<double>();
     }
 
     ArrayXd  xPos = xMin + (colPos / (numCols - 1)) * (xMax - xMin);
@@ -83,7 +83,7 @@ public:
     ArrayXXd grid(M, 2);
     grid << xPos, yPos;
     ArrayXXd cost = algorithm::DistanceMatrix<ArrayXXd>(data, grid, 1);
-    ArrayXi  assignment(N);
+    ArrayXidx  assignment(N);
     bool     outcome = assign2D.process(cost, assignment);
     if (!outcome) return DataSet();
 
