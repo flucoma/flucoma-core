@@ -120,11 +120,13 @@ private:
     index  padding = FFTParams::padding(get<kFFT>(), get<kPadding>());
     double totalPadding = padding << 1;
 
-    index paddedLength = numFrames + totalPadding;
+    index paddedLength = static_cast<index>(numFrames + totalPadding);
     if (get<kPadding>() == 2)
-      paddedLength = (std::ceil(double(paddedLength) / hopSize) * hopSize);
+      paddedLength = static_cast<index>(
+          std::ceil(double(paddedLength) / hopSize) * hopSize);
 
-    index numHops = 1 + std::floor((paddedLength - winSize) / hopSize);
+    index numHops =
+        static_cast<index>(1 + std::floor((paddedLength - winSize) / hopSize));
 
     index numBins = (fftSize >> 1) + 1;
 
