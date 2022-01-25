@@ -1,0 +1,39 @@
+name: Flucoma Core CI 
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+env:  
+  BUILD_TYPE: Release
+
+jobs: 
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-18.04, windows-latest, macOS-latest]
+      fail-fast: false 
+      
+    steps:  
+    - uses: actions/checkout@v2
+    
+    - name: Cache Build Folder 
+      uses: actions/cache@v2
+      with: 
+        path: ${{github.workspace}}/build
+        key: ${{ runner.os }}-buildcache
+
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/build -DFLUCOMA_TESTS=On -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
+    - name: Test
+      working-directory: ${{github.workspace}}/build
+      run: ctest -C ${{env.BUILD_TYPE}}
+      

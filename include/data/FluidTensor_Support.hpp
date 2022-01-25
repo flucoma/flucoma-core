@@ -358,7 +358,7 @@ struct FluidTensorSlice
   operator()(Dims... dims) const
   {
     static_assert(sizeof...(Dims) == N, "");
-    size_t args[N]{Index(dims)...};
+    size_t args[N]{size_t(dims)...};
     return std::inner_product(args, args + N, strides.begin(), index(0));
   }
 
