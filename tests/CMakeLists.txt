@@ -127,6 +127,9 @@ target_link_libraries(TestFluidTensorDeath PRIVATE
 add_test_executable(TestFluidTensorView data/TestFluidTensorView.cpp)
 add_test_executable(TestFluidTensorSupport data/TestFluidTensorSupport.cpp)
 add_test_executable(TestFluidDataSet data/TestFluidDataSet.cpp)
+add_test_executable(TestFluidSource clients/common/TestFluidSource.cpp)
+add_test_executable(TestFluidSink clients/common/TestFluidSink.cpp)
+add_test_executable(TestBufferedProcess clients/common/TestBufferedProcess.cpp)
 
 include(CTest)
 include(Catch)
@@ -141,5 +144,9 @@ catch_discover_tests(TestFluidTensorDeath
 catch_discover_tests(TestFluidTensorView WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 catch_discover_tests(TestFluidTensorSupport WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 catch_discover_tests(TestFluidDataSet WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+
+catch_discover_tests(TestFluidSource WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+catch_discover_tests(TestFluidSink WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+catch_discover_tests(TestBufferedProcess WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 
 add_compile_tests("FluidTensor Compilation Tests" data/compile_tests/TestFluidTensor_Compile.cpp) 
