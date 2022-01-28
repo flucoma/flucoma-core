@@ -111,7 +111,7 @@ public:
     else if (feature == 1)
     {
       mBands.resize(40);
-      mMelBands.init(20, 2000, 40, get<kFFT>().frameSize(), sampleRate(),
+      mMelBands.init(20, 20e3, 40, get<kFFT>().frameSize(), sampleRate(),
                      get<kFFT>().winSize());
       mDCT.init(40, 13);
       nDims = 13;
