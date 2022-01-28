@@ -1,6 +1,7 @@
 cmake_minimum_required (VERSION 3.11)
 
 ###### Utils 
+add_subdirectory(test_signals)
 
 ##### Assert Death Testing 
 
@@ -131,6 +132,11 @@ add_test_executable(TestFluidSource clients/common/TestFluidSource.cpp)
 add_test_executable(TestFluidSink clients/common/TestFluidSink.cpp)
 add_test_executable(TestBufferedProcess clients/common/TestBufferedProcess.cpp)
 
+add_test_executable(TestNoveltySeg algorithms/public/TestNoveltySegmentation.cpp)
+
+
+target_link_libraries(TestNoveltySeg PRIVATE TestSignals)
+
 include(CTest)
 include(Catch)
 
@@ -144,6 +150,10 @@ catch_discover_tests(TestFluidTensorDeath
 catch_discover_tests(TestFluidTensorView WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 catch_discover_tests(TestFluidTensorSupport WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 catch_discover_tests(TestFluidDataSet WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+catch_discover_tests(TestNoveltySeg 
+  EXTRA_ARGS --audio=${CMAKE_CURRENT_SOURCE_DIR}/../AudioFiles
+  WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+)
 
 catch_discover_tests(TestFluidSource WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 catch_discover_tests(TestFluidSink WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
