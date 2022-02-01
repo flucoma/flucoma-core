@@ -1,6 +1,4 @@
-//#define CATCH_CONFIG_MAIN
-#define CATCH_CONFIG_RUNNER
-//#include <algorithms/public/ChromaFilterBank.hpp>
+#define CATCH_CONFIG_MAIN
 #include <algorithms/public/DCT.hpp>
 #include <algorithms/public/Loudness.hpp>
 #include <algorithms/public/MelBands.hpp>
@@ -181,7 +179,7 @@ TEST_CASE("NoveltySegmentation will segment on clicks with some predictability",
 
   using fluid::index;
 
-  auto testSignal = fluid::testsignals::stereoImpulses();
+  auto monoInput = fluid::testsignals::monoImpulses();
 
   Params p;
   p.window = 128;
@@ -193,9 +191,9 @@ TEST_CASE("NoveltySegmentation will segment on clicks with some predictability",
   p.filter = 1;
   p.dims = (p.fft / 2) + 1;
 
-  FluidTensor<double, 1> monoInput(testSignal.cols());
-  monoInput = testSignal.row(0);
-  monoInput.apply(testSignal.row(1), [](double& x, double y) { x += y; });
+  // FluidTensor<double, 1> monoInput(testSignal.cols());
+  // monoInput = testSignal.row(0);
+  // monoInput.apply(testSignal.row(1), [](double& x, double y) { x += y; });
 
   const std::vector<index> spikePositions = NoveltySTFTTest(monoInput, p);
 
@@ -286,7 +284,7 @@ TEST_CASE("NoveltySegmentation behaves with different filter sizes","[Novelty][s
   p.filter = settings.filterSize;
   p.dims = (p.fft / 2) + 1;
 
-  const auto testSignal = fluid::testsignals::guitarStrums(audio_path);
+  const auto testSignal = fluid::testsignals::guitarStrums();
 
   const std::vector<index> spikePositions = NoveltySTFTTest(testSignal.row(0), p);
   CHECK(spikePositions.size() == settings.expected.size());
@@ -312,7 +310,7 @@ TEST_CASE("NoveltySegmentation works with MFCC feature","[Novelty][slicers]"){
   p.filter = 5;
   p.dims = 13;
 
-  const auto testSignal = fluid::testsignals::eurorackSynth(audio_path);
+  const auto testSignal = fluid::testsignals::eurorackSynth();
 
   const std::vector<index> spikePositions = NoveltyMFCCTest(testSignal.row(0), p);
   CHECK(spikePositions.size() == expected.size());
@@ -339,7 +337,7 @@ TEST_CASE("NoveltySegmentation works with pitch feature","[Novelty][slicers]"){
   p.filter = 5;
   p.dims = 2;
 
-  const auto testSignal = fluid::testsignals::eurorackSynth(audio_path);
+  const auto testSignal = fluid::testsignals::eurorackSynth();
 
   const std::vector<index> spikePositions = NoveltyPitchTest(testSignal.row(0), p);
   CHECK(spikePositions.size() == expected.size());
@@ -365,36 +363,9 @@ TEST_CASE("NoveltySegmentation works with loudness feature","[Novelty][slicers]"
   p.filter = 5;
   p.dims = 2;
 
-  const auto testSignal = fluid::testsignals::eurorackSynth(audio_path);
+  const auto testSignal = fluid::testsignals::eurorackSynth();
 
   const std::vector<index> spikePositions = NoveltyLoudnessTest(testSignal.row(0), p);
   CHECK(spikePositions.size() == expected.size());
   REQUIRE_THAT(spikePositions, Catch::Matchers::Equals(expected));
-}
-
-int main(int argc, char* argv[])
-{
-  Catch::Session session; // There must be exactly one instance
-
-  // Build a new parser on top of Catch2's
-  using namespace Catch::clara;
-  auto cli =
-      session.cli() // Get Catch2's command line parser
-      | Opt(audio_path,
-            "path to demo audio files") // bind variable to a new option, with a
-                                        // hint string
-            ["-A"]["--audio"]           // the option names it
-                                        // will respond to
-      ("path to audio"); // description string for the help output
-
-  // Now pass the new composite back to Catch2 so it uses that
-  session.cli(cli);
-
-  // Let Catch2 (using Clara) parse the command line
-  int returnCode = session.applyCommandLine(argc, argv);
-  if (returnCode != 0) // Indicates a command line error
-    return returnCode;
-
-
-  return session.run();
 }
