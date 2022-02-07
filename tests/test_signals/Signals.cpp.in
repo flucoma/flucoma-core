@@ -30,6 +30,11 @@ FluidTensor<double, 1> make_oneImpulse()
   return oneImpulse;
 }
 
+std::vector<index> stereoImpulsePositions()
+{
+  return {1000, 12025, 23051, 34076}; 
+}
+
 FluidTensor<double, 2> make_stereoImpulses()
 {
   FluidTensor<double, 2> impulses(2, fs);
@@ -105,7 +110,7 @@ FluidTensor<double, 2>& stereoImpulses()
 
 FluidTensor<double, 1>& sharpSines()
 {
-  static auto resource = make_sharpSines();
+  static auto resource = load("/tmp/sharpSines.wav"); 
   return resource;
 }
 

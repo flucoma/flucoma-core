@@ -1,6 +1,7 @@
 #define CATCH_CONFIG_MAIN
 
 #include "SlicerTestHarness.hpp"
+#include <TestUtils.hpp> 
 #include <algorithms/public/OnsetSegmentation.hpp>
 #include <algorithms/public/STFT.hpp>
 #include <catch2/catch.hpp>
@@ -15,8 +16,6 @@
 #include <vector>
 
 
-// std::string audio_path;
-
 namespace fluid {
 
 using testsignals::drums;
@@ -26,17 +25,6 @@ using testsignals::oneImpulse;
 using testsignals::stereoImpulses;
 
 std::vector<index> spikeExpected{22050};
-
-template <typename T, typename Tag>
-struct StrongType
-{
-  StrongType(T val) : mValue{val} {}
-           operator const T&() const { return mValue; }
-  const T& operator()() const { return mValue; }
-
-private:
-  T mValue;
-};
 
 using Window = StrongType<index, struct WindowTag>;
 using Hop = StrongType<index, struct HopTag>;

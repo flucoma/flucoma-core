@@ -136,9 +136,12 @@ add_test_executable(TestNoveltySeg
   algorithms/public/TestNoveltySegmentation.cpp
 )
 add_test_executable(TestOnsetSeg algorithms/public/TestOnsetSegmentation.cpp)
+add_test_executable(TestEnvelopeSeg algorithms/public/TestEnvelopeSegmentation.cpp)
+
 
 target_link_libraries(TestNoveltySeg PRIVATE TestSignals)
 target_link_libraries(TestOnsetSeg PRIVATE TestSignals)
+target_link_libraries(TestEnvelopeSeg PRIVATE TestSignals)
 
 include(CTest)
 include(Catch)
@@ -155,8 +158,8 @@ catch_discover_tests(TestFluidTensorSupport WORKING_DIRECTORY "${CMAKE_BINARY_DI
 catch_discover_tests(TestFluidDataSet WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 
 catch_discover_tests(TestNoveltySeg WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
-
 catch_discover_tests(TestOnsetSeg WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+catch_discover_tests(TestEnvelopeSeg WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 
 catch_discover_tests(TestFluidSource WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 catch_discover_tests(TestFluidSink WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")

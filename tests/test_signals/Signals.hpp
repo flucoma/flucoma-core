@@ -1,3 +1,5 @@
+#pragma once
+
 #include <data/FluidTensor.hpp>
 
 #include <algorithm>
@@ -10,6 +12,7 @@ namespace testsignals {
 
 FluidTensor<double, 1>& oneImpulse();
 FluidTensor<double, 2>& stereoImpulses();
+
 FluidTensor<double, 1>& sharpSines();
 FluidTensor<double, 1>& smoothSine();
 FluidTensor<double, 2>& guitarStrums();
@@ -18,5 +21,6 @@ FluidTensor<double, 2>& drums();
 FluidTensor<double, 1>& monoDrums();
 FluidTensor<double, 1>& monoImpulses(); 
 
+std::vector<index> stereoImpulsePositions(); 
 } // namespace testsignals
 } // namespace fluid
