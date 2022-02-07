@@ -72,7 +72,7 @@ std::vector<index> runTest(FluidTensorView<const double, 1> testSignal,
 }
 
 
-TEST_CASE("EnvSeg can be exactly precise with impulses", "[slicers][ampslice]")
+TEST_CASE("EnvSeg can be exactly precise with impulses", "[slicers][AmpSlice]")
 {
 
   auto data = testsignals::monoImpulses();
@@ -88,7 +88,7 @@ TEST_CASE("EnvSeg can be exactly precise with impulses", "[slicers][ampslice]")
   REQUIRE_THAT(result, Catch::Equals(exp));
 }
 
-TEST_CASE("EnvSeg is predictable with sharp sine bursts", "[slicers][ampslice]")
+TEST_CASE("EnvSeg is predictable with sharp sine bursts", "[slicers][AmpSlice]")
 {
 
   auto data = testsignals::sharpSines();
@@ -105,7 +105,7 @@ TEST_CASE("EnvSeg is predictable with sharp sine bursts", "[slicers][ampslice]")
 }
 
 
-TEST_CASE("EnvSeg schmitt triggering is predictable", "[slicers][ampslice]")
+TEST_CASE("EnvSeg schmitt triggering is predictable", "[slicers][AmpSlice]")
 {
 
   auto data = testsignals::sharpSines();
@@ -120,7 +120,7 @@ TEST_CASE("EnvSeg schmitt triggering is predictable", "[slicers][ampslice]")
   REQUIRE_THAT(result, Catch::Equals(exp));
 }
 
-TEST_CASE("EnvSeg debouncing is predictable", "[slicers][ampslice]")
+TEST_CASE("EnvSeg debouncing is predictable", "[slicers][AmpSlice]")
 {
 
   auto data = testsignals::sharpSines();
@@ -136,7 +136,7 @@ TEST_CASE("EnvSeg debouncing is predictable", "[slicers][ampslice]")
 }
 
 TEST_CASE("EnvSeg debouncing and Schmitt trigger together are predictable",
-          "[slicers][ampslice]")
+          "[slicers][AmpSlice]")
 {
 
   auto data = testsignals::sharpSines();
@@ -152,7 +152,7 @@ TEST_CASE("EnvSeg debouncing and Schmitt trigger together are predictable",
   REQUIRE_THAT(result, Catch::Equals(exp));
 }
 
-TEST_CASE("EnvSeg is predictable on real meaterial", "[slicers][ampslice]")
+TEST_CASE("EnvSeg is predictable on real meaterial", "[slicers][AmpSlice]")
 {
 
   auto data = testsignals::monoDrums();

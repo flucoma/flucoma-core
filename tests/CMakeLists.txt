@@ -138,10 +138,14 @@ add_test_executable(TestNoveltySeg
 add_test_executable(TestOnsetSeg algorithms/public/TestOnsetSegmentation.cpp)
 add_test_executable(TestEnvelopeSeg algorithms/public/TestEnvelopeSegmentation.cpp)
 
+add_test_executable(TestEnvelopeGate algorithms/public/TestEnvelopeGate.cpp)
+
+
 
 target_link_libraries(TestNoveltySeg PRIVATE TestSignals)
 target_link_libraries(TestOnsetSeg PRIVATE TestSignals)
 target_link_libraries(TestEnvelopeSeg PRIVATE TestSignals)
+target_link_libraries(TestEnvelopeGate PRIVATE TestSignals)
 
 include(CTest)
 include(Catch)
@@ -160,6 +164,7 @@ catch_discover_tests(TestFluidDataSet WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 catch_discover_tests(TestNoveltySeg WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 catch_discover_tests(TestOnsetSeg WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 catch_discover_tests(TestEnvelopeSeg WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+catch_discover_tests(TestEnvelopeGate WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 
 catch_discover_tests(TestFluidSource WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 catch_discover_tests(TestFluidSink WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
