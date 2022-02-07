@@ -17,6 +17,7 @@ FluidTensor<double, 1>& sharpSines();
 FluidTensor<double, 1>& smoothSine();
 FluidTensor<double, 2>& guitarStrums();
 FluidTensor<double, 2>& eurorackSynth();
+FluidTensor<double, 1>& monoEurorackSynth();
 FluidTensor<double, 2>& drums();
 FluidTensor<double, 1>& monoDrums();
 FluidTensor<double, 1>& monoImpulses(); 

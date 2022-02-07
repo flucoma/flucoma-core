@@ -110,7 +110,7 @@ FluidTensor<double, 2>& stereoImpulses()
 
 FluidTensor<double, 1>& sharpSines()
 {
-  static auto resource = load("/tmp/sharpSines.wav"); 
+  static auto resource = make_sharpSines(); 
   return resource;
 }
 
