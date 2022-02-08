@@ -132,6 +132,12 @@ FluidTensor<double, 2>& eurorackSynth()
   return resource; 
 }
 
+FluidTensor<double, 1>& monoEurorackSynth()
+{
+  static auto resource = mono(eurorackSynth()); 
+  return resource; 
+}
+
 FluidTensor<double, 2>& drums()
 {
   static auto resource = load(audio_path,"Nicol-LoopE-M.wav"); 
