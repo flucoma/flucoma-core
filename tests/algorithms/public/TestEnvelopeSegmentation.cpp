@@ -101,7 +101,10 @@ TEST_CASE("EnvSeg is predictable with sharp sine bursts", "[slicers][AmpSlice]")
       HighPassFreq(85), Data(data),       Expected(exp),   Margin(1)};
 
   auto result = runTest(params.data(), params);
-  REQUIRE_THAT(result, Catch::Equals(exp));
+  
+  
+  
+  REQUIRE_THAT(result, Catch::Matchers::Approx(exp).margin(1));
 }
 
 
@@ -117,7 +120,8 @@ TEST_CASE("EnvSeg schmitt triggering is predictable", "[slicers][AmpSlice]")
       HighPassFreq(85), Data(data),       Expected(exp),   Margin(1)};
 
   auto result = runTest(params.data(), params);
-  REQUIRE_THAT(result, Catch::Equals(exp));
+//  REQUIRE_THAT(result, Catch::Equals(exp));
+  REQUIRE_THAT(result, Catch::Matchers::Approx(exp).margin(1));
 }
 
 TEST_CASE("EnvSeg debouncing is predictable", "[slicers][AmpSlice]")
@@ -132,7 +136,8 @@ TEST_CASE("EnvSeg debouncing is predictable", "[slicers][AmpSlice]")
       HighPassFreq(85), Data(data),       Expected(exp),   Margin(1)};
 
   auto result = runTest(params.data(), params);
-  REQUIRE_THAT(result, Catch::Equals(exp));
+//  REQUIRE_THAT(result, Catch::Equals(exp));
+REQUIRE_THAT(result, Catch::Matchers::Approx(exp).margin(1));
 }
 
 TEST_CASE("EnvSeg debouncing and Schmitt trigger together are predictable",
@@ -149,7 +154,8 @@ TEST_CASE("EnvSeg debouncing and Schmitt trigger together are predictable",
                  Data(data),        Expected(exp),         Margin(1)};
 
   auto result = runTest(params.data(), params);
-  REQUIRE_THAT(result, Catch::Equals(exp));
+//  REQUIRE_THAT(result, Catch::Equals(exp));
+  REQUIRE_THAT(result, Catch::Matchers::Approx(exp).margin(1));
 }
 
 TEST_CASE("EnvSeg is predictable on real meaterial", "[slicers][AmpSlice]")

@@ -54,7 +54,7 @@ FluidTensor<double, 1> make_sharpSines()
   std::generate(sharpSines.begin() + 1000, sharpSines.end(),
                 [i = 1000]() mutable {
                   constexpr double freq = 640;
-                  double           sinx = sin(2 * M_PI * i * freq / fs - 1);
+                  double           sinx = sin(2 * M_PI * i * freq / (fs - 1));
                   constexpr double nPeriods = 4;
                   double           phasor =
                       (((fs - 1 - i) % index(fs / nPeriods)) / (fs / nPeriods));
