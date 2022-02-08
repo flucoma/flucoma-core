@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.11)
 
 get_filename_component(FLUCOMA_CORE_AUDIO 
-  "${CMAKE_CURRENT_SOURCE_DIR}/../../AudioFiles" ABSOLUTE
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../Resources/AudioFiles" ABSOLUTE
 )
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Signals.cpp.in ${CMAKE_CURRENT_SOURCE_DIR}/Signals.cpp @ONLY)
