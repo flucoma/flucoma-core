@@ -109,7 +109,7 @@ private:
   {
     if (size)
     {
-      matrix(Slice(0), Slice(offset, size)).apply(in, [](double& x, double y) {
+      matrix(Slice(0), Slice(offset, size)).apply(in, [](T& x, T y) {
         x += y;
       });
     }
