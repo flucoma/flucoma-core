@@ -21,11 +21,11 @@ jobs:
     steps:  
     - uses: actions/checkout@v2
     
-    - name: Cache Build Folder 
-      uses: actions/cache@v2
-      with: 
-        path: ${{github.workspace}}/build
-        key: ${{ runner.os }}-buildcache
+    # - name: Cache Build Folder 
+    #   uses: actions/cache@v2
+    #   with: 
+    #     path: ${{github.workspace}}/build
+    #     key: ${{ runner.os }}-buildcache
 
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DFLUCOMA_TESTS=On -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
