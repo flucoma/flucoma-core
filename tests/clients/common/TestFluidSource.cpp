@@ -28,34 +28,32 @@ TEMPLATE_TEST_CASE(
 
   std::array<TestType, 2 * maxFrameSize> data;
   std::array<TestType, maxFrameSize>     output;
-//  std::array<TestType, maxFrameSize>     emptyFrame;
 
-//  emptyFrame.fill(0);
   std::iota(data.begin(), data.end(), 0);
 
   // run the test with each of these frame sizes
   auto frameSize = GENERATE(32, 43, 64, 96, 128, 512);
 
-  
+
   // and for each frame size above, we test with these hops
-  auto hop = GENERATE_REF(int(frameSize / 4), int(frameSize / 3),
-                          int(frameSize / 2), int(frameSize));
-  
+  auto overlap = GENERATE(4, 3, 2, 1);
+  int  hop = frameSize / overlap;
 
   FluidTensor<TestType, 1> expected(data.size() + frameSize);
-  expected(Slice(frameSize)) = FluidTensorView<TestType,1>(data.data(),0,data.size());
+  expected(Slice(frameSize)) =
+      FluidTensorView<TestType, 1>(data.data(), 0, data.size());
 
   for (int i = 0, j = 0, k = 0; i < data.size() - hostSize; i += hostSize)
   {
-    auto input = FluidTensorView<TestType, 2>{ data.data(), i, 1, hostSize };
+    auto input = FluidTensorView<TestType, 2>{data.data(), i, 1, hostSize};
     framer.push(input);
-    auto outputView = FluidTensorView<TestType, 2>{ output.data(), 0, 1, frameSize };
-
+    auto outputView =
+        FluidTensorView<TestType, 2>{output.data(), 0, 1, frameSize};
 
     for (; j < hostSize; j += hop, k += hop)
     {
       framer.pull(outputView, j);
-      CHECK_THAT(outputView, EqualsRange(expected(Slice(k,frameSize))));
+      CHECK_THAT(outputView, EqualsRange(expected(Slice(k, frameSize))));
     }
 
     j = j < hostSize ? j : j - hostSize;
