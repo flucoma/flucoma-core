@@ -5,7 +5,7 @@ This library comprises a suite of C++ algorithms used by the Fluid Corpus Manipu
 # Dependencies
 
 * [CMake](http://cmake.org) (>=3.11)
-* [Eigen](https://gitlab.com/libeigen/eigen) (3.3.5)
+* [Eigen](https://gitlab.com/libeigen/eigen) (3.4)
 * [HISSTools Library](https://github.com/AlexHarker/HISSTools_Library)
 
 # Building
