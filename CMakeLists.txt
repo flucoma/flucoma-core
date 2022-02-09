@@ -52,10 +52,11 @@ FetchContent_Declare(
 
 FetchContent_Declare(
   Eigen
+  GIT_SHALLOW TRUE
   GIT_REPOSITORY https://gitlab.com/libeigen/eigen
   GIT_PROGRESS TRUE
-  GIT_BRANCH "3.3"
-  GIT_TAG "3.3.5"
+  GIT_BRANCH "3.4"
+  GIT_TAG "3.4.0"
 )
 
 FetchContent_Declare(
