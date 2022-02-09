@@ -1,6 +1,7 @@
 cmake_minimum_required (VERSION 3.11)
 
 ###### Utils 
+add_subdirectory(test_signals)
 
 ##### Assert Death Testing 
 
@@ -131,6 +132,23 @@ add_test_executable(TestFluidSource clients/common/TestFluidSource.cpp)
 add_test_executable(TestFluidSink clients/common/TestFluidSink.cpp)
 add_test_executable(TestBufferedProcess clients/common/TestBufferedProcess.cpp)
 
+add_test_executable(TestNoveltySeg 
+  algorithms/public/TestNoveltySegmentation.cpp
+)
+add_test_executable(TestOnsetSeg algorithms/public/TestOnsetSegmentation.cpp)
+add_test_executable(TestEnvelopeSeg algorithms/public/TestEnvelopeSegmentation.cpp)
+
+add_test_executable(TestEnvelopeGate algorithms/public/TestEnvelopeGate.cpp)
+
+add_test_executable(TestTransientSlice algorithms/public/TestTransientSlice.cpp)
+
+
+target_link_libraries(TestNoveltySeg PRIVATE TestSignals)
+target_link_libraries(TestOnsetSeg PRIVATE TestSignals)
+target_link_libraries(TestEnvelopeSeg PRIVATE TestSignals)
+target_link_libraries(TestEnvelopeGate PRIVATE TestSignals)
+target_link_libraries(TestTransientSlice PRIVATE TestSignals)
+
 include(CTest)
 include(Catch)
 
@@ -144,6 +162,12 @@ catch_discover_tests(TestFluidTensorDeath
 catch_discover_tests(TestFluidTensorView WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 catch_discover_tests(TestFluidTensorSupport WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 catch_discover_tests(TestFluidDataSet WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+
+catch_discover_tests(TestNoveltySeg WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+catch_discover_tests(TestOnsetSeg WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+catch_discover_tests(TestEnvelopeSeg WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+catch_discover_tests(TestEnvelopeGate WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+catch_discover_tests(TestTransientSlice WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 
 catch_discover_tests(TestFluidSource WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 catch_discover_tests(TestFluidSink WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
