@@ -153,7 +153,7 @@ public:
     RealMatrix in(1, hostVecSize);
     in.row(0) = input[0];
     RealMatrix out(1, hostVecSize);
-    index      frameOffset = 0; // in case kHopSize < hostVecSize
+    
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.process(
         windowSize, windowSize, get<kFFT>().hopSize(), c,
@@ -184,11 +184,15 @@ public:
             mLoudness.processFrame(in.row(0), mFeature, true, true);
             break;
           }
-          if (frameOffset < out.row(0).size())
-            out.row(0)(frameOffset) = mNovelty.processFrame(
+          if (mFrameOffset < out.row(0).size())
+            out.row(0)(mFrameOffset) = mNovelty.processFrame(
                 mFeature, get<kThreshold>(), get<kDebounce>());
-          frameOffset += get<kFFT>().hopSize();
+          mFrameOffset += get<kFFT>().hopSize();
         });
+
+    mFrameOffset =
+        mFrameOffset < hostVecSize ? mFrameOffset : mFrameOffset - hostVecSize;
+
     output[0] = out.row(0);
   }
 
@@ -203,6 +207,7 @@ public:
   void reset()
   {
     mBufferedProcess.reset();
+    mFrameOffset = 0; 
     initAlgorithms(get<kFeature>(), get<kFFT>().winSize());
   }
 
@@ -221,6 +226,7 @@ private:
   algorithm::ChromaFilterBank          mChroma;
   algorithm::YINFFT                    mYinFFT;
   algorithm::Loudness                  mLoudness;
+  index mFrameOffset{0}; // in case kHopSize < hostVecSize
 };
 } // namespace noveltyslice
 

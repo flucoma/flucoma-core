@@ -106,23 +106,28 @@ public:
     RealMatrix in(1, hostVecSize);
     in.row(0) = input[0];
     RealMatrix out(1, hostVecSize);
-    index      frameOffset = 0; // in case kHopSize < hostVecSize
+    
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.processInput(
         totalWindow, get<kFFT>().hopSize(), c, [&, this](RealMatrixView in) {
-          out.row(0)(frameOffset) = mAlgorithm.processFrame(
+          out.row(0)(mFrameOffset) = mAlgorithm.processFrame(
               in.row(0), get<kFunction>(), get<kFilterSize>(),
               get<kThreshold>(), get<kDebounce>(), get<kFrameDelta>());
-          frameOffset += get<kFFT>().hopSize();
+          mFrameOffset += get<kFFT>().hopSize();
         });
+
+    mFrameOffset =
+        mFrameOffset < hostVecSize ? mFrameOffset : mFrameOffset - hostVecSize;
+
     output[0] = out.row(0);
   }
 
   index latency() { return static_cast<index>(get<kFFT>().hopSize()); }
 
   void reset()
-  {
+  {    
     mBufferedProcess.reset();
+    mFrameOffset = 0;
     mAlgorithm.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
                     get<kFilterSize>());
   }
@@ -132,6 +137,7 @@ private:
   ParameterTrackChanges<index, index, index> mBufferParamsTracker;
   ParameterTrackChanges<index, index>        mParamsTracker;
   BufferedProcess                            mBufferedProcess;
+  index mFrameOffset{0}; // in case kHopSize < hostVecSize
 };
 } // namespace onsetslice
 
