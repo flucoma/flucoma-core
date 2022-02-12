@@ -90,7 +90,7 @@ public:
       mAlgorithm.init(get<kWindowSize>(), sampleRate());
     }
     RealMatrix in(1, hostVecSize);
-    in.row(0) = input[0];
+    in.row(0) <<= input[0];
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.processInput(
         get<kWindowSize>(), get<kHopSize>(), c, [&](RealMatrixView frame) {
@@ -100,7 +100,7 @@ public:
         });
     // output[0](0) = static_cast<T>(mDescriptors(0));
     // output[1](0) = static_cast<T>(mDescriptors(1));
-    output[0] = mDescriptors; 
+    output[0] <<= mDescriptors; 
   }
 
   index latency() { return get<kWindowSize>(); }

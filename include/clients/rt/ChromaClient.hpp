@@ -101,7 +101,7 @@ public:
                                   get<kMaxFreq>(), get<kNorm>());
         });
 
-    output[0](Slice(0,get<kNChroma>())) = mChroma; 
+    output[0](Slice(0,get<kNChroma>())) <<= mChroma; 
     output[0](Slice(get<kNChroma>(), get<kMaxNChroma>() - get<kNChroma>())).fill(0); 
   }
 

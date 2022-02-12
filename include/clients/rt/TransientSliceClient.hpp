@@ -116,7 +116,7 @@ public:
 
     RealMatrix in(1, hostVecSize);
 
-    in.row(0) = input[0]; // need to convert float->double in some hosts
+    in.row(0) <<= input[0]; // need to convert float->double in some hosts
     mBufferedProcess.push(RealMatrixView(in));
 
     mBufferedProcess.process(mExtractor.inputSize(), mExtractor.hopSize(),
@@ -128,7 +128,7 @@ public:
     RealMatrix out(1, hostVecSize);
     mBufferedProcess.pull(RealMatrixView(out));
 
-    if (output[0].data()) output[0] = out.row(0);
+    if (output[0].data()) output[0] <<= out.row(0);
   }
 
   index latency()

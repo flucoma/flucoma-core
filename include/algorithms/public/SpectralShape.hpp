@@ -102,7 +102,7 @@ public:
     ArrayXd in = _impl::asEigen<Eigen::Array>(input);
     processFrame(in, sampleRate, minFreq, maxFreq, rolloffTarget, logFreq,
                  usePower);
-    output = _impl::asFluid(mOutputBuffer);
+    output <<= _impl::asFluid(mOutputBuffer);
   }
 
 private:

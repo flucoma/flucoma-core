@@ -153,7 +153,7 @@ private:
     algorithm::DataSetIdSequence seq("", 0, 0);
     FluidTensor<string, 1>       newIds(mAlgorithm.size());
     FluidTensor<string, 2>       labels(mAlgorithm.size(), 1);
-    labels.col(0) = mAlgorithm.getIds();
+    labels.col(0) <<= mAlgorithm.getIds();
     seq.generate(newIds);
     return LabelSet(newIds, labels);
   }  

@@ -87,7 +87,7 @@ public:
       double norm = normalize == 1? result.sum() : result.maxCoeff();
       result = result / std::max(norm, epsilon);
     }
-    out = _impl::asFluid(result);
+    out <<= _impl::asFluid(result);
   }
 
   index mNChroma;

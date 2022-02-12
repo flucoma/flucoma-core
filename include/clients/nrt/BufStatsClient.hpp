@@ -146,7 +146,7 @@ public:
       if (weightsBuf.numFrames() != numFrames)
         return {Result::Status::kError, "Weights buffer invalid size"};
       weights = RealVector(numFrames);
-      weights = weightsBuf.samps(0); // copy from buffer
+      weights <<= weightsBuf.samps(0); // copy from buffer
       if (*std::min_element(weights.begin(), weights.end()) < 0)
       {
         processingResult =
@@ -162,11 +162,11 @@ public:
     FluidTensor<double, 2> result(numChannels, outputSize);
     for (int i = 0; i < numChannels; i++)
     {
-      tmp.row(i) =
+      tmp.row(i) <<=
           source.samps(get<kOffset>(), numFrames, get<kStartChan>() + i);
     }
     processor.process(tmp, result, get<kOutliersCutoff>(), weights);
-    for (int i = 0; i < numChannels; i++) { dest.samps(i) = result.row(i); }
+    for (int i = 0; i < numChannels; i++) { dest.samps(i) <<= result.row(i); }
     return processingResult;
   }
 };

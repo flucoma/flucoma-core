@@ -68,7 +68,7 @@ public:
     // Here we do an STFT and its inverse
     mSTFTBufferedProcess.process(
         mParams, input, output, c,
-        [](ComplexMatrixView in, ComplexMatrixView out) { out = in; });
+        [](ComplexMatrixView in, ComplexMatrixView out) { out <<= in; });
   }
 
 private:

@@ -98,7 +98,7 @@ public:
       }
 
       for (index i = 0; i < tmpFilt.rows(); ++i)
-        tmpFilt.row(i) = filterBuffer.samps(i);
+        tmpFilt.row(i) <<= filterBuffer.samps(i);
 
       //      controlTrigger(false);
       mSTFTProcessor.processInput(mParams, input, c, [&](ComplexMatrixView in) {
@@ -109,7 +109,7 @@ public:
 
       // for (index i = 0; i < rank; ++i)
       //   output[asUnsigned(i)](0) = static_cast<T>(tmpOut(i));
-      output[0](Slice(0,rank)) = tmpOut; 
+      output[0](Slice(0,rank)) <<= tmpOut; 
     }
   }
 

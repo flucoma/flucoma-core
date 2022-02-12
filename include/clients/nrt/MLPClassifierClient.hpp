@@ -219,7 +219,7 @@ public:
     index      layer = mAlgorithm.mlp.size();
     RealVector src(mAlgorithm.mlp.dims());
     RealVector dest(mAlgorithm.mlp.outputSize(layer));
-    src = inBuf.samps(0, mAlgorithm.mlp.dims(), 0);
+    src <<= inBuf.samps(0, mAlgorithm.mlp.dims(), 0);
     mAlgorithm.mlp.processFrame(src, dest, 0, layer);
     auto label = mAlgorithm.encoder.decodeOneHot(dest);
     return label;
@@ -302,7 +302,7 @@ public:
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
   {
-    output[0] = input[0];
+    output[0] <<= input[0];
     if (input[0](0) > 0)
     {
       auto mlpPtr = get<kModel>().get().lock();
@@ -326,7 +326,7 @@ public:
 
       RealVector src(dims);
       RealVector dest(algorithm.mlp.outputSize(layer));
-      src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+      src <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                 .samps(0, dims, 0);
       algorithm.mlp.processFrame(src, dest, 0, layer);
       auto label = algorithm.encoder.decodeOneHot(dest);

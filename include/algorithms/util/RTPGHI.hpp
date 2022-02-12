@@ -126,7 +126,7 @@ public:
     mPrevPhase = phaseEst;
     mPrevPhaseDeltaT = phaseDeltaT;
     mPrevMag = mag;
-    out = asFluid(result);
+    out <<= asFluid(result);
   }
 
 private:
