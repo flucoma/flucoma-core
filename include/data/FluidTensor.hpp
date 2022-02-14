@@ -458,15 +458,16 @@ public:
   **********/
   FluidTensorView(FluidTensor<T, N>&& r) = delete;
 
-
   // Move construction is allowed
   FluidTensorView(FluidTensorView&& other) noexcept { swap(*this, other); }
-
-
   // Copy
   FluidTensorView(FluidTensorView const&) = default;
-
-  // Copy from same type
+  
+  //copy and move assignment are shallow
+  FluidTensorView& operator=(FluidTensorView const&) = default; 
+  FluidTensorView& operator=(FluidTensorView&&) = default; 
+  
+  // Copy data from same type
   FluidTensorView& operator<<=(const FluidTensorView& x)
   {
     assert(sameExtents(mDesc, x.descriptor()));
@@ -487,7 +488,7 @@ public:
     return *this;
   }
 
-  // Copy from Tensor of same type
+  // Copy data from Tensor of same type
   FluidTensorView& operator<<=(const FluidTensor<T, N>& x)
   {
     assert(sameExtents(mDesc, x.descriptor()));
@@ -507,7 +508,7 @@ public:
     return *this;
   }
 
-  /// Converting copy
+  /// Converting copy of data
   template <typename U>
   FluidTensorView& operator<<=(const FluidTensorView<U, N> x)
   {
@@ -530,7 +531,7 @@ public:
     return *this;
   }
 
-  // Converting copy from Tensor
+  // Converting copy of data from Tensor
   template <typename U>
   FluidTensorView& operator<<=(FluidTensor<U, N>& x)
   {
