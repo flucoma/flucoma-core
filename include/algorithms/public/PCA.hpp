@@ -25,6 +25,7 @@ class PCA
 public:
   using MatrixXd = Eigen::MatrixXd;
   using VectorXd = Eigen::VectorXd;
+  using ArrayXd = Eigen::ArrayXd;
 
   void init(RealMatrixView in)
   {
@@ -35,19 +36,21 @@ public:
     MatrixXd         X = (input.rowwise() - mMean.transpose());
     BDCSVD<MatrixXd> svd(X.matrix(), ComputeThinV | ComputeThinU);
     mBases = svd.matrixV();
-    mValues = svd.singularValues();
+    mExplainedVariance = svd.singularValues().array().square() / (X.rows() - 1);
     mInitialized = true;
   }
 
-  void init(RealMatrixView bases, RealVectorView values, RealVectorView mean)
+  void init(RealMatrixView bases, RealVectorView explainedVariance,
+            RealVectorView mean)
   {
     mBases = _impl::asEigen<Eigen::Matrix>(bases);
-    mValues = _impl::asEigen<Eigen::Matrix>(values);
+    mExplainedVariance = _impl::asEigen<Eigen::Matrix>(explainedVariance);
     mMean = _impl::asEigen<Eigen::Matrix>(mean);
     mInitialized = true;
   }
 
-  void processFrame(const RealVectorView in, RealVectorView out, index k) const
+  void processFrame(const RealVectorView in, RealVectorView out, index k,
+                    bool whiten = false) const
   {
     using namespace Eigen;
     using namespace _impl;
@@ -55,10 +58,16 @@ public:
     VectorXd input = asEigen<Matrix>(in);
     input = input - mMean;
     VectorXd result = input.transpose() * mBases.block(0, 0, mBases.rows(), k);
+    if (whiten)
+    {
+      ArrayXd norm = mExplainedVariance.segment(0, k).max(epsilon).rsqrt();
+      result.array() *= norm;
+    }
     out = _impl::asFluid(result);
   }
 
-  double process(const RealMatrixView in, RealMatrixView out, index k) const
+  double process(const RealMatrixView in, RealMatrixView out, index k,
+                 bool whiten = false) const
   {
     using namespace Eigen;
     using namespace _impl;
@@ -66,16 +75,27 @@ public:
     MatrixXd input = asEigen<Matrix>(in);
     MatrixXd result = (input.rowwise() - mMean.transpose()) *
                       mBases.block(0, 0, mBases.rows(), k);
+    if (whiten)
+    {
+      ArrayXd norm = mExplainedVariance.segment(0, k).max(epsilon).rsqrt();
+      result = result.array().rowwise() * norm.transpose().max(epsilon);
+    }
     double variance = 0;
-    double total = mValues.sum();
-    for (index i = 0; i < k; i++) variance += mValues[i];
+    double total = mExplainedVariance.sum();
+    for (index i = 0; i < k; i++) variance += mExplainedVariance[i];
     out = _impl::asFluid(result);
     return variance / total;
   }
 
-  bool  initialized() const { return mInitialized; }
-  void  getBases(RealMatrixView out) const { out = _impl::asFluid(mBases); }
-  void  getValues(RealVectorView out) const { out = _impl::asFluid(mValues); }
+  bool initialized() const { return mInitialized; }
+
+  void getBases(RealMatrixView out) const { out = _impl::asFluid(mBases); }
+
+  void getExplainedVariance(RealVectorView out) const
+  {
+    out = _impl::asFluid(mExplainedVariance);
+  }
+
   void  getMean(RealVectorView out) const { out = _impl::asFluid(mMean); }
   index dims() const { return mBases.rows(); }
   index size() const { return mBases.cols(); }
@@ -87,7 +107,7 @@ public:
   }
 
   MatrixXd mBases;
-  VectorXd mValues;
+  ArrayXd  mExplainedVariance;
   VectorXd mMean;
   bool     mInitialized{false};
 };
