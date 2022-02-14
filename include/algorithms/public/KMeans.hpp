@@ -118,7 +118,7 @@ public:
     out = _impl::asFluid(D);
   }
 
-private:
+protected:
   double distance(Eigen::ArrayXd v1, Eigen::ArrayXd v2) const
   {
     return (v1 - v2).matrix().norm();
