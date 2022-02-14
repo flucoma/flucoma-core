@@ -19,7 +19,8 @@ namespace pca {
 
 constexpr auto PCAParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
-    LongParam("numDimensions", "Target Number of Dimensions", 2, Min(1)));
+    LongParam("numDimensions", "Target Number of Dimensions", 2, Min(1)),
+    EnumParam("whiten", "Whiten data", 0, "No", "Yes"));
 
 class PCAClient : public FluidBaseClient,
                   OfflineIn,
@@ -27,7 +28,7 @@ class PCAClient : public FluidBaseClient,
                   ModelObject,
                   public DataClient<algorithm::PCA>
 {
-  enum { kName, kNumDimensions };
+  enum { kName, kNumDimensions, kWhiten };
 
 public:
   using string = std::string;
@@ -54,7 +55,7 @@ public:
   template <typename T>
   Result process(FluidContext&)
   {
-      return{};
+    return {};
   }
 
   MessageResult<void> fit(DataSetClientRef datasetClient)
@@ -98,7 +99,7 @@ public:
 
       StringVector ids{srcDataSet.getIds()};
       RealMatrix   output(srcDataSet.size(), k);
-      result = mAlgorithm.process(srcDataSet.getData(), output, k);
+      result = mAlgorithm.process(srcDataSet.getData(), output, k, get<kWhiten>() == 1);
       FluidDataSet<string, double, 1> result(ids, output);
       destPtr->setDataSet(result);
     }
@@ -124,7 +125,7 @@ public:
     FluidTensor<double, 1> src(mAlgorithm.dims());
     FluidTensor<double, 1> dest(k);
     src = BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
-    mAlgorithm.processFrame(src, dest, k);
+    mAlgorithm.processFrame(src, dest, k, get<kWhiten>() == 1);
     outBuf.samps(0, k, 0) = dest;
     return OK();
   }
@@ -151,12 +152,13 @@ using PCARef = SharedClientRef<PCAClient>;
 constexpr auto PCAQueryParams = defineParameters(
     PCARef::makeParam("model", "Source Model"),
     LongParam("numDimensions", "Target Number of Dimensions", 2, Min(1)),
+    EnumParam("whiten", "Whiten data", 0, "No", "Yes"),
     BufferParam("inputPointBuffer", "Input Point Buffer"),
     BufferParam("predictionBuffer", "Prediction Buffer"));
 
 class PCAQuery : public FluidBaseClient, ControlIn, ControlOut
 {
-  enum { kModel, kNumDimensions, kInputBuffer, kOutputBuffer };
+  enum { kModel, kNumDimensions, kWhiten, kInputBuffer, kOutputBuffer };
 
 public:
   using ParamDescType = decltype(PCAQueryParams);
@@ -207,7 +209,7 @@ public:
       RealVector dest(k);
       src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                 .samps(0, algorithm.dims(), 0);
-      algorithm.processFrame(src, dest, k);
+      algorithm.processFrame(src, dest, k, get<kWhiten>() == 1);
       outBuf.samps(0, k, 0) = dest;
     }
   }
