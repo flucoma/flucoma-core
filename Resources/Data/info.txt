@@ -1,0 +1,5 @@
+blobs : Three blobs distributed randomly
+moon : Two overlapping crescent shapes
+line: A single thinly distributed line
+circles: Two centric circles
+gaussian4: Four evenly distributed gaussian masses

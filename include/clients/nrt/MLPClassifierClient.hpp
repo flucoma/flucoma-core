@@ -64,7 +64,7 @@ constexpr auto MLPClassifierParams = defineParameters(
     LongParam("maxIter", "Maximum Number of Iterations", 1000, Min(1)),
     FloatParam("learnRate", "Learning Rate", 0.01, Min(0.0), Max(1.0)),
     FloatParam("momentum", "Momentum", 0.5, Min(0.0), Max(0.99)),
-    LongParam("batchSize", "Batch Size", 50),
+    LongParam("batchSize", "Batch Size", 50, Min(1)),
     FloatParam("validation", "Validation Amount", 0.2, Min(0), Max(0.9)));
 
 

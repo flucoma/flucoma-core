@@ -24,6 +24,7 @@ endif()
 project (flucoma-core LANGUAGES CXX)
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/script/flucoma-buildtype.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/FlucomaVersion.cmake")
 
 include(FetchContent)
 set(HISS_PATH "" CACHE PATH "The path to a HISSTools_Library folder. Will pull from github if not set")
@@ -51,10 +52,11 @@ FetchContent_Declare(
 
 FetchContent_Declare(
   Eigen
+  GIT_SHALLOW TRUE
   GIT_REPOSITORY https://gitlab.com/libeigen/eigen
   GIT_PROGRESS TRUE
-  GIT_BRANCH "3.3"
-  GIT_TAG "3.3.5"
+  GIT_BRANCH "3.4"
+  GIT_TAG "3.4.0"
 )
 
 FetchContent_Declare(
@@ -150,7 +152,7 @@ target_include_directories(
   "${hisstools_SOURCE_DIR}"
 )
 target_link_libraries(
-  FLUID_DECOMPOSITION INTERFACE HISSTools_FFT
+  FLUID_DECOMPOSITION INTERFACE HISSTools_FFT flucoma_VERSION_LIB
 )
 target_sources(
   FLUID_DECOMPOSITION INTERFACE ${HEADERS}
@@ -170,7 +172,6 @@ endif()
 target_compile_definitions(FLUID_DECOMPOSITION INTERFACE EIGEN_MPL2_ONLY=1)
 
 if(APPLE)
-  target_compile_definitions(FLUID_DECOMPOSITION INTERFACE EIGEN_USE_BLAS=1)
   #targeting <= 10.9, need to really emphasise that we want libc++ both to compiler and linker
   target_compile_options(HISSTools_FFT PUBLIC -stdlib=libc++)
   target_compile_options(HISSTools_AudioFile PUBLIC -stdlib=libc++)
@@ -191,3 +192,9 @@ endif()
 add_subdirectory(
    "${CMAKE_CURRENT_SOURCE_DIR}/examples"
 )
+
+enable_testing()
+
+if(FLUCOMA_TESTS)
+  add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/tests")
+endif()

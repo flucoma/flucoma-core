@@ -16,6 +16,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
+#include "../../algorithms/public/ChromaFilterBank.hpp"
 #include "../../algorithms/public/DCT.hpp"
 #include "../../algorithms/public/Loudness.hpp"
 #include "../../algorithms/public/MelBands.hpp"
@@ -43,7 +44,8 @@ enum NoveltyParamIndex {
 };
 
 constexpr auto NoveltySliceParams = defineParameters(
-    EnumParam("feature", "Feature", 0, "Spectrum", "MFCC", "Pitch", "Loudness"),
+    EnumParam("feature", "Feature", 0, "Spectrum", "MFCC", "Chroma", "Pitch",
+              "Loudness"),
     LongParam("kernelSize", "KernelSize", 3, Min(3), Odd(),
               UpperLimit<kMaxKernelSize>()),
     FloatParam("threshold", "Threshold", 0.5, Min(0)),
@@ -85,7 +87,8 @@ public:
       : mParams{p}, mNovelty{get<kMaxKernelSize>(), get<kMaxFilterSize>()},
         mSTFT{get<kFFT>().winSize(), get<kFFT>().fftSize(),
               get<kFFT>().hopSize()},
-        mMelBands{40, get<kMaxFFTSize>()}, mLoudness{get<kMaxFFTSize>()}
+        mMelBands{40, get<kMaxFFTSize>()},
+        mChroma(12, get<kMaxFFTSize>()), mLoudness{get<kMaxFFTSize>()}
   {
     audioChannelsIn(1);
     audioChannelsOut(1);
@@ -97,7 +100,7 @@ public:
   void initAlgorithms(index feature, index windowSize)
   {
     index nDims = 2;
-    if (feature < 3)
+    if (feature < 4)
     {
       mSpectrum.resize(get<kFFT>().frameSize());
       mMagnitude.resize(get<kFFT>().frameSize());
@@ -108,12 +111,17 @@ public:
     else if (feature == 1)
     {
       mBands.resize(40);
-      mMelBands.init(20, 2000, 40, get<kFFT>().frameSize(), sampleRate(),
+      mMelBands.init(20, 20e3, 40, get<kFFT>().frameSize(), sampleRate(),
                      get<kFFT>().winSize());
       mDCT.init(40, 13);
       nDims = 13;
     }
-    else if (feature == 3)
+    else if (feature == 2)
+    {
+      mChroma.init(12, get<kFFT>().frameSize(), 440,  sampleRate());
+      nDims = 12;
+    }
+    else if (feature == 4)
     {
       mLoudness.init(windowSize, sampleRate());
     }
@@ -145,7 +153,7 @@ public:
     RealMatrix in(1, hostVecSize);
     in.row(0) = input[0];
     RealMatrix out(1, hostVecSize);
-    index      frameOffset = 0; // in case kHopSize < hostVecSize
+    
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.process(
         windowSize, windowSize, get<kFFT>().hopSize(), c,
@@ -165,17 +173,26 @@ public:
           case 2:
             mSTFT.processFrame(in.row(0), mSpectrum);
             mSTFT.magnitude(mSpectrum, mMagnitude);
-            mYinFFT.processFrame(mMagnitude, mFeature, 20, 5000, sampleRate());
+            mChroma.processFrame(mMagnitude, mFeature, 20, 5000);
             break;
           case 3:
+            mSTFT.processFrame(in.row(0), mSpectrum);
+            mSTFT.magnitude(mSpectrum, mMagnitude);
+            mYinFFT.processFrame(mMagnitude, mFeature, 20, 5000, sampleRate());
+            break;
+          case 4:
             mLoudness.processFrame(in.row(0), mFeature, true, true);
             break;
           }
-          if (frameOffset < out.row(0).size())
-            out.row(0)(frameOffset) = mNovelty.processFrame(
+          if (mFrameOffset < out.row(0).size())
+            out.row(0)(mFrameOffset) = mNovelty.processFrame(
                 mFeature, get<kThreshold>(), get<kDebounce>());
-          frameOffset += get<kFFT>().hopSize();
+          mFrameOffset += get<kFFT>().hopSize();
         });
+
+    mFrameOffset =
+        mFrameOffset < hostVecSize ? mFrameOffset : mFrameOffset - hostVecSize;
+
     output[0] = out.row(0);
   }
 
@@ -190,6 +207,7 @@ public:
   void reset()
   {
     mBufferedProcess.reset();
+    mFrameOffset = 0; 
     initAlgorithms(get<kFeature>(), get<kFFT>().winSize());
   }
 
@@ -205,8 +223,10 @@ private:
   FluidTensor<double, 1>               mFeature;
   algorithm::MelBands                  mMelBands;
   algorithm::DCT                       mDCT{40, 13};
+  algorithm::ChromaFilterBank          mChroma;
   algorithm::YINFFT                    mYinFFT;
   algorithm::Loudness                  mLoudness;
+  index mFrameOffset{0}; // in case kHopSize < hostVecSize
 };
 } // namespace noveltyslice
 

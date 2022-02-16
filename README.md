@@ -5,7 +5,7 @@ This library comprises a suite of C++ algorithms used by the Fluid Corpus Manipu
 # Dependencies
 
 * [CMake](http://cmake.org) (>=3.11)
-* [Eigen](https://gitlab.com/libeigen/eigen) (3.3.5)
+* [Eigen](https://gitlab.com/libeigen/eigen) (3.4)
 * [HISSTools Library](https://github.com/AlexHarker/HISSTools_Library)
 
 # Building
@@ -65,7 +65,7 @@ If your Intel / AMD chip is too old to support AVX, it probably still supports S
 #### FluCoMa core development team (in alphabetical order)
 Owen Green, Gerard Roma, Pierre Alexandre Tremblay
 
-#### Other contributors:
-Alex Harker, Francesco Cameli
+#### Other contributors (in alphabetical order):
+James Bradbury, Francesco Cameli, Alex Harker, Ted Moore
 
 > This project has received funding from the European Research Council (ERC) under the European Union’s Horizon 2020 research and innovation programme (grant agreement No 725899).

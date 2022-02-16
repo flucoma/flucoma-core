@@ -43,14 +43,14 @@ template <typename B>
 auto constexpr makeWrapperInputs(B b1, B b2)
 {
   return defineParameters(
-      std::forward<B>(b1), LongParam("startFrame", "Source Offset", 0, Min(0)),
-      LongParam("numFrames", "Number of Frames", -1),
-      LongParam("startChan", "Start Channel", 0, Min(0)),
-      LongParam("numChans", "Number of Channels", -1), std::forward<B>(b2),
-      LongParam("startFrameB", "Source Offset B", 0, Min(0)),
-      LongParam("numFramesB", "Number of Frames B", -1),
-      LongParam("startChanB", "Start Channel B", 0, Min(0)),
-      LongParam("numChansB", "Number of Channels B", -1));
+      std::forward<B>(b1), LongParam("startFrameA", "Source A Offset", 0, Min(0)),
+      LongParam("numFramesA", "Source A Number of Frames", -1),
+      LongParam("startChanA", "Source A Start Channel", 0, Min(0)),
+      LongParam("numChansA", "Source A Number of Channels", -1), std::forward<B>(b2),
+      LongParam("startFrameB", "Source B Offset", 0, Min(0)),
+      LongParam("numFramesB", "Source B Number of Frames", -1),
+      LongParam("startChanB", "Source B Start Channel", 0, Min(0)),
+      LongParam("numChansB", "Source B Number of Channels", -1));
 }
 
 template <typename... B>

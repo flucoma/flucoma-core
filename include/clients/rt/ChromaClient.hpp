@@ -102,6 +102,7 @@ public:
         });
 
     output[0](Slice(0,get<kNChroma>())) = mChroma; 
+    output[0](Slice(get<kNChroma>(), get<kMaxNChroma>() - get<kNChroma>())).fill(0); 
   }
 
   index latency() { return get<kFFT>().winSize(); }
