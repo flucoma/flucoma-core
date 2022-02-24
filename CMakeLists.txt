@@ -67,6 +67,13 @@ FetchContent_Declare(
   GIT_TAG "v0.9.0"
 )
 
+FetchContent_Declare(
+  tl_optional 
+  GIT_SHALLOW TRUE
+  GIT_REPOSITORY https://github.com/TartanLlama/optional.git  
+  GIT_PROGRESS TRUE
+)
+
 if(HISS_PATH) #if hiss path is set, this will stop it downloading
   get_filename_component(FETCHCONTENT_SOURCE_DIR_HISSTOOLS ${HISS_PATH} ABSOLUTE)
 endif()
@@ -95,6 +102,14 @@ if(NOT spectra_POPULATED)
   FetchContent_Populate(Spectra)
 endif()
 
+
+FetchContent_GetProperties(tl_optional)
+if(NOT tl_optional_POPULATED)
+  FetchContent_Populate(tl_optional)
+endif()
+
+
+add_subdirectory(${tl_optional_SOURCE_DIR} ${tl_optional_BINARY_DIR} EXCLUDE_FROM_ALL)
 
 # HISSTools FFT target
 add_library(
@@ -152,7 +167,10 @@ target_include_directories(
   "${hisstools_SOURCE_DIR}"
 )
 target_link_libraries(
-  FLUID_DECOMPOSITION INTERFACE HISSTools_FFT flucoma_VERSION_LIB
+  FLUID_DECOMPOSITION INTERFACE 
+  HISSTools_FFT 
+  flucoma_VERSION_LIB 
+  tl::optional
 )
 target_sources(
   FLUID_DECOMPOSITION INTERFACE ${HEADERS}
