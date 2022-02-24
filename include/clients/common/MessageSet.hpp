@@ -2,11 +2,15 @@
 
 #include "ParameterSet.hpp"
 #include "ParameterTypes.hpp"
+#include "tl/optional.hpp"
 #include <functional>
 #include <tuple>
 
 namespace fluid {
 namespace client {
+
+template<typename T> 
+using Optional = tl::optional<T>; 
 
 template <typename L, typename Ret, typename T, typename... Args>
 struct Message
