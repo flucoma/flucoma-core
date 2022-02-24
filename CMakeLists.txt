@@ -102,7 +102,8 @@ if(NOT spectra_POPULATED)
   FetchContent_Populate(Spectra)
 endif()
 
-
+set(OPTIONAL_BUILD_PACKAGE OFF CACHE BOOL "" FORCE)
+set(OPTIONAL_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 FetchContent_GetProperties(tl_optional)
 if(NOT tl_optional_POPULATED)
   FetchContent_Populate(tl_optional)
