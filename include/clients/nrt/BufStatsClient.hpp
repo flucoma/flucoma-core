@@ -28,6 +28,7 @@ enum BufferStatsParamIndex {
   kStartChan,
   kNumChans,
   kStats,
+  kSelect,
   kNumDerivatives,
   kLow,
   kMiddle,
@@ -43,6 +44,7 @@ constexpr auto BufStatsParams = defineParameters(
     LongParam("startChan", "Start Channel", 0, Min(0)),
     LongParam("numChans", "Number of Channels", -1),
     BufferParam("stats", "Stats Buffer"),
+    ChoicesParam("select","Selection of Statistics","mean","std","skew","kurtosis","low","mid","high"),
     LongParam("numDerivs", "Number of Derivatives", 0, Min(0), Max(2)),
     FloatParam("low", "Low Percentile", 0, Min(0), Max(100),
                UpperLimit<kMiddle>()),
@@ -124,7 +126,9 @@ public:
     if (numFrames <= get<kNumDerivatives>())
       return {Result::Status::kError, "Not enough frames"};
 
-    index  outputSize = processor.numStats() * (get<kNumDerivatives>() + 1);
+    index  outputSize = get<kSelect>().count() * (get<kNumDerivatives>() + 1);
+    index  processorOutputSize = processor.numStats() * (get<kNumDerivatives>() + 1);
+    
     Result resizeResult =
         dest.resize(outputSize, numChannels, source.sampleRate());
 
@@ -159,14 +163,29 @@ public:
       }
     }
     FluidTensor<double, 2> tmp(numChannels, numFrames);
-    FluidTensor<double, 2> result(numChannels, outputSize);
+    FluidTensor<double, 2> result(numChannels, processorOutputSize);
     for (int i = 0; i < numChannels; i++)
     {
       tmp.row(i) =
           source.samps(get<kOffset>(), numFrames, get<kStartChan>() + i);
     }
     processor.process(tmp, result, get<kOutliersCutoff>(), weights);
-    for (int i = 0; i < numChannels; i++) { dest.samps(i) = result.row(i); }
+    
+    
+    auto selection = get<kSelect>();
+    
+    for (index i = 0; i < numChannels; ++i)
+    {
+      auto outputChannel = dest.samps(i);
+      auto resultChannel = result.row(i);
+      for(index j = 0, k = 0; j < processorOutputSize; ++j)
+      {
+         if(selection[j % 7])
+          outputChannel(k++) = resultChannel(j); 
+      }
+    }
+    
+    
     return processingResult;
   }
 };
