@@ -15,11 +15,12 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "Result.hpp"
 #include "../../data/FluidIndex.hpp"
 #include <memory>
+#include <bitset> 
 #include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
-
+#include <set>
 
 namespace fluid {
 namespace client {
@@ -125,6 +126,37 @@ struct EnumT : ParamTypeBase
   };
 };
 
+
+struct ChoicesT: ParamTypeBase
+{
+  using type = std::bitset<16>; 
+
+  
+  template <index... N>
+  constexpr ChoicesT(const char* name, const char* displayName,
+                  const char (&... string)[N])
+      : ParamTypeBase(name, displayName), strings{string...}, fixedSize(1),
+        numOptions(sizeof...(N)), defaultValue((1 << numOptions) - 1)
+  {
+    static_assert(sizeof...(N) > 0, "Fluid Param: No choice strings supplied!");
+    static_assert(sizeof...(N) <= 16,
+                  "Fluid Param: : Maximum 16 things in an choice param");
+  }
+  const char* strings[16]; // unilateral descision klaxon: if you have more than
+                           // 16 things in an Enum, you need to rethink
+  const index fixedSize;
+  const index numOptions;
+  const type  defaultValue;
+
+  index lookup(std::string name)
+  {
+    static std::set<std::string> lookupTable(strings, strings + numOptions);
+
+    auto pos = lookupTable.find(name);
+    return pos != lookupTable.end() ? std::distance(lookupTable.begin(), pos)
+                                  : -1;
+  }
+};
 
 // can I avoid making this constexpr and thus using std::string? Let's see;
 struct StringT : ParamTypeBase
@@ -491,6 +523,15 @@ EnumParam(const char* name, const char* displayName,
   return {EnumT(name, displayName, defaultVal, strings...),
           std::make_tuple(EnumT::EnumConstraint()), IsFixed{}};
 }
+
+template <typename IsFixed = Fixed<false>, size_t... N>
+constexpr ParamSpec<ChoicesT, IsFixed>
+ChoicesParam(const char* name, const char* displayName, const char (&... strings)[N])
+{
+  return {ChoicesT(name, displayName, strings...), std::make_tuple(),
+          Fixed<false>{}};
+}
+
 
 template <typename IsFixed = Fixed<false>, size_t N, typename... Constraints>
 constexpr ParamSpec<FloatArrayT, IsFixed, Constraints...>
