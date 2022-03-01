@@ -204,8 +204,8 @@ private:
     // Iterate to find new filtered input
     for (index i = 0; i < size; i++)
     {
-      const double prediction = fowardPrediction(estimates);
-      estimates[0] =
+      const double prediction = fowardPrediction(estimates + i);
+      estimates[i] =
           prediction +
           robustResidual(input[i], prediction, robustFactor * sqrt(mVariance));
     }
