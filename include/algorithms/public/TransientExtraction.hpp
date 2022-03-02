@@ -130,7 +130,8 @@ private:
   void analyze()
   {
     mModel.setMinVariance(0.0000001);
-    mModel.estimate(mInput.data() + modelOrder(), analysisSize());
+    mModel.estimate(FluidTensorView<const double, 1>(
+        mInput.data(), modelOrder(), analysisSize()));
   }
 
   void detection()
@@ -139,12 +140,22 @@ private:
 
     // Forward and backward error
     const double normFactor = 1.0 / sqrt(mModel.variance());
-    errorCalculation<&ARModel::forwardErrorArray>(
-        mForwardError.data(), input, blockSize() + mDetectHalfWindow + 1,
-        normFactor);
-    errorCalculation<&ARModel::backwardErrorArray>(
-        mBackwardError.data(), input, blockSize() + mDetectHalfWindow + 1,
-        normFactor);
+
+    assert(mInput.size() >  modelOrder() + padSize() +
+        blockSize() + mDetectHalfWindow + 1 + modelOrder()); 
+
+    auto inputView = FluidTensorView<const double, 1>(
+        mInput.data(), modelOrder() + padSize(),
+        blockSize() + mDetectHalfWindow + 1 + modelOrder());
+    auto fwdError = FluidTensorView<double, 1>(
+        mForwardError.data(), 0, blockSize() + mDetectHalfWindow + 1);
+    auto backError = FluidTensorView<double, 1>(
+        mBackwardError.data(), 0, blockSize() + mDetectHalfWindow + 1);
+
+    errorCalculation<&ARModel::forwardErrorArray>(inputView, fwdError,
+                                                  normFactor);
+    errorCalculation<&ARModel::backwardErrorArray>(inputView, backError,
+                                                   normFactor);
 
     // Window error functions (brute force convolution)
     windowError(mForwardWindowedError.data(),
@@ -284,7 +295,7 @@ private:
         residual[i] = input[i + order];
     }
 
-    if (mRefine) refine(residual, size, Au, u);
+    if (mRefine) refine(FluidTensorView<double,1>(residual,0, size), Au, u);
 
     for (index i = 0; i < (size - order); i++)
       transients[i] = input[i + order] - residual[i];
@@ -294,17 +305,19 @@ private:
               mInput.data() + padSize() + order + order);
   }
 
-  void refine(double* io, index size, Eigen::MatrixXd& Au, Eigen::MatrixXd& ls)
+  void refine(FluidTensorView<double, 1> io, Eigen::MatrixXd& Au, Eigen::MatrixXd& ls)
   {
     const double energy = mModel.variance() * mCount;
     double       energyLS = 0.0;
     index        order = modelOrder();
-
+    index        size = io.size();
+    
+    
     for (index i = 0; i < (size - order); i++)
     {
       if (mDetect[asUnsigned(i)] != 0)
       {
-        const double error = mModel.forwardError(io + i);
+        const double error = mModel.forwardError(io(Slice(i)));
         energyLS += error * error;
       }
     }
@@ -341,14 +354,15 @@ private:
     return sum;
   }
 
-  template <void (ARModel::*Method)(double*, const double*, index)>
-  void errorCalculation(double* error, const double* input, index size,
-                        double normFactor)
+  template <void (ARModel::*Method)(FluidTensorView<const double, 1>,
+                                    FluidTensorView<double, 1>)>
+  void errorCalculation(FluidTensorView<const double, 1> input,
+                        FluidTensorView<double, 1> error, double normFactor)
   {
-    (mModel.*Method)(error, input, size);
+    (mModel.*Method)(input,error);
 
     // Take absolutes and normalise
-    for (index i = 0; i < size; i++)
+    for (index i = 0; i < error.size(); i++)
       error[i] = std::fabs(error[i]) * normFactor;
   }
 
