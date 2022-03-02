@@ -163,7 +163,7 @@ private:
     directEstimate(input, size, true);
 
     // Initialise Estimates
-    for (index i = mParameters.size(); i < mParameters.size() + size; i++)
+    for (index i = 0; i < mParameters.size() + size; i++)
       estimates[asUnsigned(i)] = input[i - mParameters.size()];
 
     // Variance
