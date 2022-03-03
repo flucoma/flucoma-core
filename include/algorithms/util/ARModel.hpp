@@ -14,6 +14,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "Toeplitz.hpp"
 #include "../public/WindowFuncs.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/FluidTensor.hpp"
+#include "FluidEigenMappings.hpp"
 #include <Eigen/Eigen>
 #include <algorithm>
 #include <cmath>
@@ -36,80 +38,111 @@ public:
   double        variance() const { return mVariance; }
   index         order() const { return mParameters.size(); }
 
-  void estimate(const double* input, index size, index nIterations = 3,
+  void estimate(FluidTensorView<const double, 1> input, index nIterations = 3,
                 double robustFactor = 3.0)
   {
     if (nIterations > 0)
-      robustEstimate(input, size, nIterations, robustFactor);
+      robustEstimate(input, nIterations, robustFactor);
     else
-      directEstimate(input, size, true);
+      directEstimate(input, true);
+  }
+  
+  
+  double fowardPrediction(FluidTensorView<const double, 1> input)
+  {
+    double prediction;
+    modelPredict(input, FluidTensorView<double, 1>(&prediction, 0, 1),
+                 std::negate<index>{}, Predict{});
+    return prediction;
   }
 
-  double fowardPrediction(const double* input)
+  double backwardPrediction(FluidTensorView<const double, 1> input)
   {
-    return modelPredict<std::negate<index>>(input);
+    double prediction;
+    modelPredict(input, FluidTensorView<double, 1>(&prediction, 0, 1),
+                 Identity{}, Predict{});
+    return prediction;
   }
 
-  double backwardPrediction(const double* input)
+  double forwardError(FluidTensorView<const double, 1> input)
   {
-    struct Identity
-    {
-      index operator()(index a) { return a; }
-    };
-    return modelPredict<Identity>(input);
+      double error;
+      forwardErrorArray(input,FluidTensorView<double,1>(&error,0,1));
+      return error;
   }
 
-  double forwardError(const double* input)
+  double backwardError(FluidTensorView<const double, 1> input)
   {
-    return modelError<&ARModel::fowardPrediction>(input);
+      double error;
+      backwardErrorArray(input,FluidTensorView<double,1>(&error,0,1));
+      return error;
   }
 
-  double backwardError(const double* input)
+  void forwardErrorArray(FluidTensorView<const double, 1> input,FluidTensorView<double, 1> errors)
   {
-    return modelError<&ARModel::backwardPrediction>(input);
+      modelPredict(input, errors, std::negate<index>{},Error{});
   }
 
-  void forwardErrorArray(double* errors, const double* input, index size)
+  void backwardErrorArray(FluidTensorView<const double, 1> input, FluidTensorView<double, 1> errors)
   {
-    modelErrorArray<&ARModel::forwardError>(errors, input, size);
-  }
-
-  void backwardErrorArray(double* errors, const double* input, index size)
-  {
-    modelErrorArray<&ARModel::backwardError>(errors, input, size);
+      modelPredict(input, errors, Identity{}, Error{});
   }
 
   void setMinVariance(double variance) { mMinVariance = variance; }
 
 private:
-  template <typename Op>
-  double modelPredict(const double* input)
+  
+  struct Identity
   {
-    double estimate = 0.0;
+    index operator()(index a) { return a; }
+  };
+  
+  struct Predict
+  {
+    double operator()(double, double estimate) {return estimate;}
+  };
+  
+  struct Error{
+    double operator()(double input, double estimate) {return input -  estimate;}
+  };
+  
+  
+  /// \pre Op(numPredictons + mParameters.size()) < input.size() && Op(mParameters.size()) >= -input.descriptor().start
+  template <typename Indexer, typename OutputFn>
+  void modelPredict(FluidTensorView<const double, 1> input,
+                    FluidTensorView<double, 1> output, Indexer f_idx,
+                    OutputFn f_out)
+  {
+    
+    index numPredictions = output.size();
+    
+//    std::cout << ((numPredictions - 1) + f_idx(mParameters.size())) << '\t' << input.size() << '\n';
+//    std::cout << f_idx(mParameters.size()) << '\t' << -input.descriptor().start <<  '\n';
 
-    for (index i = 0; i < mParameters.size(); i++)
-      estimate += mParameters(i) * input[Op()(i + 1)];
+    assert(((numPredictions - 1) + f_idx(mParameters.size())) <= input.size() &&
+          "array bounds error in AR model prediction: input too short");
+    assert(f_idx(mParameters.size()) >= -input.descriptor().start &&
+           "array bounds error in AR model prediction: input offset too small");
 
-    return estimate;
+    const double* input_ptr = input.data();
+        
+    for(index p = 0; p < numPredictions; p++)
+    {
+      double estimate = 0;
+      for (index i = 0; i < mParameters.size(); i++)
+          estimate += mParameters(i) * (input_ptr + p)[f_idx(i + 1)];
+      output[p] = f_out(input_ptr[p], estimate);
+    }
   }
 
-  template <double (ARModel::*Method)(const double*)>
-  double modelError(const double* input)
+  void directEstimate(FluidTensorView<const double,1> input, bool updateVariance)
   {
-    return input[0] - (this->*Method)(input);
-  }
-
-  template <double (ARModel::*Method)(const double*)>
-  void modelErrorArray(double* errors, const double* input, index size)
-  {
-    for (index i = 0; i < size; i++) errors[i] = (this->*Method)(input + i);
-  }
-
-  void directEstimate(const double* input, index size, bool updateVariance)
-  {
+  
+    index size = input.size();
+  
     // copy input to a 32 byte aligned block (otherwise risk segfaults on Linux)
-    VectorXd frame = Eigen::Map<const VectorXd>(input, size);
-
+    VectorXd frame = _impl::asEigen<Eigen::Matrix>(input);
+  
     if (mUseWindow)
     {
       if (mWindow.size() != size)
@@ -154,25 +187,26 @@ private:
     }
   }
 
-  void robustEstimate(const double* input, index size, index nIterations,
+  void robustEstimate(FluidTensorView<const double, 1> input, index nIterations,
                       double robustFactor)
   {
-    std::vector<double> estimates(asUnsigned(size + mParameters.size()));
-
+    FluidTensor<double, 1> estimates(input.size() + mParameters.size());
+    
     // Calculate an initial estimate of parameters
-    directEstimate(input, size, true);
+    directEstimate(input, true);
 
+    assert(input.descriptor().start >= mParameters.size()&&"too little offset into input data"); 
+    
     // Initialise Estimates
-    for (index i = 0; i < mParameters.size() + size; i++)
-      estimates[asUnsigned(i)] = input[i - mParameters.size()];
+    for (index i = 0; i < input.size() + mParameters.size(); i++)
+      estimates[i] = input.data()[i - mParameters.size()];
 
     // Variance
-    robustVariance(estimates.data() + mParameters.size(), input, size,
-                   robustFactor);
+    robustVariance(estimates(Slice(mParameters.size())), input, robustFactor);
 
     // Iterate
     for (index iterations = nIterations; iterations--;)
-      robustIteration(estimates.data() + mParameters.size(), input, size,
+      robustIteration(estimates(Slice(mParameters.size())), input,
                       robustFactor);
   }
 
@@ -181,38 +215,40 @@ private:
     return cs * psiFunction((input - prediction) / cs);
   }
 
-  void robustVariance(double* estimates, const double* input, index size,
-                      double robustFactor)
+  void robustVariance(FluidTensorView<double, 1>       estimates,
+                      FluidTensorView<const double, 1> input,
+                      double                           robustFactor)
   {
     double residualSqSum = 0.0;
 
     // Iterate to find new filtered input
-    for (index i = 0; i < size; i++)
+    for (index i = 0; i < input.size(); i++)
     {
       const double residual =
-          robustResidual(input[i], fowardPrediction(estimates + i),
+          robustResidual(input[i], fowardPrediction(estimates(Slice(i))),
                          robustFactor * sqrt(mVariance));
       residualSqSum += residual * residual;
     }
 
-    setVariance(residualSqSum / size);
+    setVariance(residualSqSum / input.size());
   }
 
-  void robustIteration(double* estimates, const double* input, index size,
-                       double robustFactor)
+  void robustIteration(FluidTensorView<double, 1>       estimates,
+                       FluidTensorView<const double, 1> input,
+                       double                           robustFactor)
   {
     // Iterate to find new filtered input
-    for (index i = 0; i < size; i++)
+    for (index i = 0; i < input.size(); i++)
     {
-      const double prediction = fowardPrediction(estimates + i);
+      const double prediction = fowardPrediction(estimates(Slice(i)));
       estimates[i] =
           prediction +
           robustResidual(input[i], prediction, robustFactor * sqrt(mVariance));
     }
 
     // New parameters
-    directEstimate(estimates, size, false);
-    robustVariance(estimates, input, size, robustFactor);
+    directEstimate(estimates(Slice(0,input.size())), false);
+    robustVariance(estimates(Slice(0,input.size())), input, robustFactor);
   }
 
   void setVariance(double variance)
