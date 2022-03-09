@@ -24,8 +24,6 @@ namespace fluid {
 namespace client {
 namespace onsetfeature {
 
-using algorithm::OnsetDetectionFunctions;
-
 enum OnsetParamIndex {
   kFunction,
   kFilterSize,
@@ -48,6 +46,9 @@ constexpr auto OnsetFeatureParams = defineParameters(
 
 class OnsetFeatureClient : public FluidBaseClient, public AudioIn, public ControlOut
 {
+
+  using OnsetDetectionFunctions = algorithm::OnsetDetectionFunctions;
+
 public:
   using ParamDescType = decltype(OnsetFeatureParams);
 
@@ -70,14 +71,13 @@ public:
     audioChannelsIn(1);
     controlChannelsOut({1,1});
     setInputLabels({"audio input"});
-    setOutputLabels({"Onset detection feature curve"});
+    setOutputLabels({"1 when slice detected, 0 otherwise"});
   }
 
   template <typename T>
   void process(std::vector<HostVector<T>>& input,
                std::vector<HostVector<T>>& output, FluidContext& c)
   {
-    using algorithm::OnsetDetectionFunctions;
     using std::size_t;
 
     if (!input[0].data() || !output[0].data()) return;
@@ -101,29 +101,25 @@ public:
     }
     RealMatrix in(1, hostVecSize);
     in.row(0) = input[0];
-    // RealMatrix out(1, hostVecSize);
-    double out{0}; 
+    double out{0};
     
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.processInput(
         totalWindow, get<kFFT>().hopSize(), c, [&, this](RealMatrixView in) {
           out = mAlgorithm.processFrame(
               in.row(0), get<kFunction>(), get<kFilterSize>(), get<kFrameDelta>());
-          // mFrameOffset += get<kFFT>().hopSize();
         });
-
-    // mFrameOffset =
-    //     mFrameOffset < hostVecSize ? mFrameOffset : mFrameOffset - hostVecSize;
 
     output[0](0) = out;
   }
 
   index latency() { return static_cast<index>(get<kFFT>().hopSize()); }
 
+  index controlRate() {  return get<kFFT>().hopSize(); }
+
   void reset()
   {    
     mBufferedProcess.reset();
-    // mFrameOffset = 0;
     mAlgorithm.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
                     get<kFilterSize>());
   }
@@ -133,7 +129,6 @@ private:
   ParameterTrackChanges<index, index, index> mBufferParamsTracker;
   ParameterTrackChanges<index, index>        mParamsTracker;
   BufferedProcess                            mBufferedProcess;
-  // index mFrameOffset{0}; // in case kHopSize < hostVecSize
 };
 } // namespace onsetfeature
 
@@ -150,7 +145,7 @@ using NRTOnsetFeatureClient =
                     NRTOnsetFeatureParams, 1, 1>;
 
 
-using NRTThreadingOnsetFeatureClient = NRTThreadingAdaptor<NRTOnsetFeatureClient>;
+using NRTThreadedOnsetFeatureClient = NRTThreadingAdaptor<NRTOnsetFeatureClient>;
 
 } // namespace client
 } // namespace fluid

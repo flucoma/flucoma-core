@@ -195,6 +195,8 @@ public:
            (1 + ((get<kKernelSize>() + 1) >> 1) + (filterSize >> 1));
   }
 
+  index controlRate() {  return get<kFFT>().hopSize(); }
+
   void reset()
   {
     mBufferedProcess.reset();
@@ -229,7 +231,7 @@ using NRTNoveltyFeatureClient = NRTControlAdaptor<noveltyfeature::NoveltyFeature
                                               decltype(NRTNoveltyFeatureParams),
                                               NRTNoveltyFeatureParams, 1, 1>;
 
-using NRTThreadingNoveltyFeatureClient =
+using NRTThreadedNoveltyFeatureClient =
     NRTThreadingAdaptor<NRTNoveltyFeatureClient>;
 
 } // namespace client
