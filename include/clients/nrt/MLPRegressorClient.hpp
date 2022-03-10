@@ -61,6 +61,7 @@ class MLPRegressorClient : public FluidBaseClient,
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
+  using InputBufferPtr = std::shared_ptr<const BufferAdaptor>;
   using IndexVector = FluidTensor<index, 1>;
   using StringVector = FluidTensor<string, 1>;
   using DataSet = FluidDataSet<string, double, 1>;
@@ -93,7 +94,8 @@ public:
     return {};
   }
 
-  MessageResult<double> fit(DataSetClientRef source, DataSetClientRef target)
+  MessageResult<double> fit(InputDataSetClientRef source,
+                            InputDataSetClientRef target)
   {
     auto sourceClientPtr = source.get().lock();
     if (!sourceClientPtr) return Error<double>(NoDataSet);
@@ -130,8 +132,8 @@ public:
     return error;
   }
 
-  MessageResult<void> predict(DataSetClientRef srcClient,
-                              DataSetClientRef destClient)
+  MessageResult<void> predict(InputDataSetClientRef srcClient,
+                              DataSetClientRef      destClient)
   {
     index inputTap = get<kInputTap>();
     index outputTap = get<kOutputTap>();
@@ -160,7 +162,7 @@ public:
     return OK();
   }
 
-  MessageResult<void> predictPoint(BufferPtr in, BufferPtr out)
+  MessageResult<void> predictPoint(InputBufferPtr in, BufferPtr out)
   {
     index inputTap = get<kInputTap>();
     index outputTap = get<kOutputTap>();
@@ -174,7 +176,7 @@ public:
     index outputSize = mAlgorithm.outputSize(outputTap);
 
     if (!in || !out) return Error(NoBuffer);
-    BufferAdaptor::Access inBuf(in.get());
+    BufferAdaptor::ReadAccess inBuf(in.get());
     BufferAdaptor::Access outBuf(out.get());
     if (!inBuf.exists()) return Error(InvalidBuffer);
     if (!outBuf.exists()) return Error(InvalidBuffer);
@@ -245,13 +247,13 @@ private:
   }
 };
 
-using MLPRegressorRef = SharedClientRef<MLPRegressorClient>;
+using MLPRegressorRef = SharedClientRef<const MLPRegressorClient>;
 
 constexpr auto MLPRegressorQueryParams =
     defineParameters(MLPRegressorRef::makeParam("model", "Source Model"),
                      LongParam("tapIn", "Input Tap Index", 0, Min(0)),
                      LongParam("tapOut", "Output Tap Index", -1, Min(-1)),
-                     BufferParam("inputPointBuffer", "Input Point Buffer"),
+                     InputBufferParam("inputPointBuffer", "Input Point Buffer"),
                      BufferParam("predictionBuffer", "Prediction Buffer"));
 
 class MLPRegressorQuery : public FluidBaseClient, ControlIn, ControlOut
@@ -297,7 +299,7 @@ public:
         return;
       }
 
-      algorithm::MLP& algorithm = MLPRef->algorithm();
+      algorithm::MLP const& algorithm = MLPRef->algorithm();
 
       if (!algorithm.trained()) return;
       index inputTap = get<kInputTap>();
