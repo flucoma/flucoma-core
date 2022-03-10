@@ -35,6 +35,7 @@ class DataSetClient : public FluidBaseClient,
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
+  using InputBufferPtr = std::shared_ptr<const BufferAdaptor>;
   using DataSet = FluidDataSet<string, double, 1>;
   using LabelSet = FluidDataSet<string, string, 1>;
 
@@ -61,11 +62,11 @@ public:
 
   DataSetClient(ParamSetViewType& p) : mParams(p) {}
 
-  MessageResult<void> addPoint(string id, BufferPtr data)
+  MessageResult<void> addPoint(string id, InputBufferPtr data)
   {
     DataSet& dataset = mAlgorithm;
     if (!data) return Error(NoBuffer);
-    BufferAdaptor::Access buf(data.get());
+    BufferAdaptor::ReadAccess buf(data.get());
     if (!buf.exists()) return Error(InvalidBuffer);
     if (buf.numFrames() == 0) return Error(EmptyBuffer);
     if (dataset.size() == 0)
@@ -101,10 +102,10 @@ public:
     }
   }
 
-  MessageResult<void> updatePoint(string id, BufferPtr data)
+  MessageResult<void> updatePoint(string id, InputBufferPtr data)
   {
     if (!data) return Error(NoBuffer);
-    BufferAdaptor::Access buf(data.get());
+    BufferAdaptor::ReadAccess buf(data.get());
     if (!buf.exists()) return Error(InvalidBuffer);
     if (buf.numFrames() < mAlgorithm.dims()) return Error(WrongPointSize);
     RealVector point(mAlgorithm.dims());
@@ -112,12 +113,12 @@ public:
     return mAlgorithm.update(id, point) ? OK() : Error(PointNotFound);
   }
 
-  MessageResult<void> setPoint(string id, BufferPtr data)
+  MessageResult<void> setPoint(string id, InputBufferPtr data)
   {
     if (!data) return Error(NoBuffer);
 
     { // restrict buffer lock to this scope in case addPoint is called
-      BufferAdaptor::Access buf(data.get());
+      BufferAdaptor::ReadAccess buf(data.get());
       if (!buf.exists()) return Error(InvalidBuffer);
       if (buf.numFrames() < mAlgorithm.dims()) return Error(WrongPointSize);
       RealVector point(mAlgorithm.dims());
@@ -133,7 +134,7 @@ public:
     return mAlgorithm.remove(id) ? OK() : Error(PointNotFound);
   }
 
-  MessageResult<void> merge(SharedClientRef<DataSetClient> datasetClient,
+  MessageResult<void> merge(SharedClientRef<const DataSetClient> datasetClient,
                             bool                           overwrite)
   {
     auto datasetClientPtr = datasetClient.get().lock();
@@ -154,11 +155,11 @@ public:
   }
 
   MessageResult<void>
-  fromBuffer(BufferPtr data, bool transpose,
-             SharedClientRef<labelset::LabelSetClient> labels)
+  fromBuffer(InputBufferPtr data, bool transpose,
+             SharedClientRef<const labelset::LabelSetClient> labels)
   {
     if (!data) return Error(NoBuffer);
-    BufferAdaptor::Access buf(data.get());
+    BufferAdaptor::ReadAccess buf(data.get());
     if (!buf.exists()) return Error(InvalidBuffer);
     auto bufView = transpose ? buf.allFrames() : buf.allFrames().transpose();
     if (auto labelsPtr = labels.get().lock())
@@ -256,6 +257,8 @@ private:
 } // namespace dataset
 
 using DataSetClientRef = SharedClientRef<dataset::DataSetClient>;
+using InputDataSetClientRef = SharedClientRef<const dataset::DataSetClient>;
+
 using NRTThreadedDataSetClient =
     NRTThreadingAdaptor<typename DataSetClientRef::SharedType>;
 
