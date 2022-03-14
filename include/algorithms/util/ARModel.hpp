@@ -47,7 +47,6 @@ public:
       directEstimate(input, true);
   }
   
-  
   double fowardPrediction(FluidTensorView<const double, 1> input)
   {
     double prediction;
@@ -66,26 +65,26 @@ public:
 
   double forwardError(FluidTensorView<const double, 1> input)
   {
-      double error;
-      forwardErrorArray(input,FluidTensorView<double,1>(&error,0,1));
-      return error;
+    double error;
+    forwardErrorArray(input,FluidTensorView<double,1>(&error,0,1));
+    return error;
   }
 
   double backwardError(FluidTensorView<const double, 1> input)
   {
-      double error;
-      backwardErrorArray(input,FluidTensorView<double,1>(&error,0,1));
-      return error;
+    double error;
+    backwardErrorArray(input,FluidTensorView<double,1>(&error,0,1));
+    return error;
   }
 
   void forwardErrorArray(FluidTensorView<const double, 1> input,FluidTensorView<double, 1> errors)
   {
-      modelPredict(input, errors, std::negate<index>{},Error{});
+    modelPredict(input, errors, std::negate<index>{},Error{});
   }
 
   void backwardErrorArray(FluidTensorView<const double, 1> input, FluidTensorView<double, 1> errors)
   {
-      modelPredict(input, errors, Identity{}, Error{});
+    modelPredict(input, errors, Identity{}, Error{});
   }
 
   void setMinVariance(double variance) { mMinVariance = variance; }
@@ -106,14 +105,11 @@ private:
     double operator()(double input, double estimate) {return input -  estimate;}
   };
   
-  
-  /// \pre Op(numPredictons + mParameters.size()) < input.size() && Op(mParameters.size()) >= -input.descriptor().start
   template <typename Indexer, typename OutputFn>
   void modelPredict(FluidTensorView<const double, 1> input,
-                    FluidTensorView<double, 1> output, Indexer f_idx,
-                    OutputFn f_out)
+                    FluidTensorView<double, 1> output, Indexer fIdx,
+                    OutputFn fOut)
   {
-    
     index numPredictions = output.size();
     
 //    std::cout << ((numPredictions - 1) + f_idx(mParameters.size())) << '\t' << input.size() << '\n';
@@ -126,18 +122,17 @@ private:
 
     const double* input_ptr = input.data();
         
-    for(index p = 0; p < numPredictions; p++)
+    for (index p = 0; p < numPredictions; p++)
     {
       double estimate = 0;
       for (index i = 0; i < mParameters.size(); i++)
-          estimate += mParameters(i) * (input_ptr + p)[f_idx(i + 1)];
-      output[p] = f_out(input_ptr[p], estimate);
+          estimate += mParameters(i) * (input_ptr + p)[fIdx(i + 1)];
+      output[p] = fOut(input_ptr[p], estimate);
     }
   }
 
   void directEstimate(FluidTensorView<const double,1> input, bool updateVariance)
   {
-  
     index size = input.size();
   
     // copy input to a 32 byte aligned block (otherwise risk segfaults on Linux)
@@ -153,7 +148,6 @@ private:
 
       frame.array() *= mWindow;
     }
-
 
     VectorXd autocorrelation(size);
     algorithm::autocorrelateReal(autocorrelation.data(), frame.data(),
@@ -247,8 +241,8 @@ private:
     }
 
     // New parameters
-    directEstimate(estimates(Slice(0,input.size())), false);
-    robustVariance(estimates(Slice(0,input.size())), input, robustFactor);
+    directEstimate(estimates(Slice(0, input.size())), false);
+    robustVariance(estimates(Slice(0, input.size())), input, robustFactor);
   }
 
   void setVariance(double variance)
