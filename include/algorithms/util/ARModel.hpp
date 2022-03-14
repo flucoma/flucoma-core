@@ -112,14 +112,23 @@ private:
   {
     index numPredictions = output.size();
     
-//    std::cout << ((numPredictions - 1) + f_idx(mParameters.size())) << '\t' << input.size() << '\n';
-//    std::cout << f_idx(mParameters.size()) << '\t' << -input.descriptor().start <<  '\n';
-
-    assert(((numPredictions - 1) + f_idx(mParameters.size())) <= input.size() &&
-          "array bounds error in AR model prediction: input too short");
-    assert(f_idx(mParameters.size()) >= -input.descriptor().start &&
-           "array bounds error in AR model prediction: input offset too small");
-
+    assert(fIdx(1) >= -input.descriptor().start &&
+           "array bounds error in AR model prediction: input too short");
+    assert(fIdx(1) < input.size() &&
+           "array bounds error in AR model prediction: input too short");
+    assert(fIdx(mParameters.size()) >= -input.descriptor().start &&
+           "array bounds error in AR model prediction: input too short");
+    assert(fIdx(mParameters.size()) < input.size() &&
+           "array bounds error in AR model prediction: input too short");
+    assert(((numPredictions - 1) + fIdx(1)) >= -input.descriptor().start &&
+           "array bounds error in AR model prediction: input too short");
+    assert(((numPredictions - 1) + fIdx(1)) < input.size() &&
+           "array bounds error in AR model prediction: input too short");
+    assert(((numPredictions - 1) + fIdx(mParameters.size())) >= -input.descriptor().start &&
+           "array bounds error in AR model prediction: input too short");
+    assert(((numPredictions - 1) + fIdx(mParameters.size())) < input.size() &&
+           "array bounds error in AR model prediction: input too short");
+      
     const double* input_ptr = input.data();
         
     for (index p = 0; p < numPredictions; p++)
