@@ -82,6 +82,8 @@ public:
 
   index detect(const double* input, index inSize)
   {
+    assert(mInitialized && "Call init() before processing");
+    assert(modelOrder() >= mDetectHalfWindow && "model order needs to be >= half filter size");
     frame(input, inSize);
     analyze();
     detection();
@@ -91,7 +93,8 @@ public:
   void process(const RealVectorView input, RealVectorView transients,
                RealVectorView residual)
   {
-    assert(mInitialized);
+    assert(mInitialized && "Call init() before processing");
+    assert(modelOrder() >= mDetectHalfWindow && "model order needs to be >= half filter size");
     index inSize = input.extent(0);
     frame(input.data(), inSize);
     analyze();
@@ -102,6 +105,8 @@ public:
   void process(const RealVectorView input, const RealVectorView unknowns,
                RealVectorView transients, RealVectorView residual)
   {
+    assert(mInitialized && "Call init() before processing");
+    assert(modelOrder() >= mDetectHalfWindow && "model order needs to be >= half filter size");
     index inSize = input.extent(0);
     std::copy(unknowns.data(), unknowns.data() + hopSize(), mDetect.data());
     mCount = 0;
@@ -141,16 +146,12 @@ private:
     // Forward and backward error
     const double normFactor = 1.0 / sqrt(mModel.variance());
 
-    assert(mInput.size() >  modelOrder() + padSize() +
-        blockSize() + mDetectHalfWindow + 1 + modelOrder()); 
-
     auto inputView = FluidTensorView<const double, 1>(
-        mInput.data(), modelOrder() + padSize(),
-        blockSize() + mDetectHalfWindow + 1 + modelOrder());
+        mInput.data(), modelOrder() + padSize(), blockSize() + modelOrder());
     auto fwdError = FluidTensorView<double, 1>(
-        mForwardError.data(), 0, blockSize() + mDetectHalfWindow + 1);
+        mForwardError.data(), 0, blockSize() + mDetectHalfWindow);
     auto backError = FluidTensorView<double, 1>(
-        mBackwardError.data(), 0, blockSize() + mDetectHalfWindow + 1);
+        mBackwardError.data(), 0, blockSize() + mDetectHalfWindow);
 
     errorCalculation<&ARModel::forwardErrorArray>(inputView, fwdError,
                                                   normFactor);
@@ -158,12 +159,15 @@ private:
                                                    normFactor);
 
     // Window error functions (brute force convolution)
-    windowError(mForwardWindowedError.data(),
-                mForwardError.data() + modelOrder(), hopSize());
-    windowError(mBackwardWindowedError.data(),
-                mBackwardError.data() + modelOrder(), hopSize());
-
-    // Detection
+    auto fwdWindowedError = FluidTensorView<double, 1>(
+        mForwardWindowedError.data(), 0, hopSize());
+    auto backWindowedError = FluidTensorView<double, 1>(
+        mBackwardWindowedError.data(), 0, hopSize());
+  
+    windowError(fwdError(Slice(modelOrder())),fwdWindowedError);
+    windowError(backError(Slice(modelOrder())),backWindowedError);
+      
+    // Detection  
     index        count = 0;
     const double hiThresh = mDetectThreshHi;
     const double loThresh = mDetectThreshLo;
@@ -369,30 +373,32 @@ private:
   // Triangle window
   double calcWindow(double norm) { return std::min(norm, 1.0 - norm); }
 
-  void windowError(double* errorWindowed, const double* error, index size)
+  void windowError(FluidTensorView<const double,1> error, FluidTensorView<double,1> errorWindowed)
   {
-    const index  windowSize = mDetectHalfWindow * 2 + 1;
-    const index  windowOffset = mDetectHalfWindow;
+    assert(error.descriptor().start >= mDetectHalfWindow && "insufficient offset for filter size");
+    assert(error.size() > errorWindowed.size() - 1 + (mDetectHalfWindow) && "insufficient input for filter size");
+    
+    const index  windowSize = mDetectHalfWindow * 2 + 3;
+    const index  windowOffset = mDetectHalfWindow + 1;
     const double powFactor = mDetectPowerFactor;
 
     // Calculate window normalisation factor
     double windowNormFactor = 0.0;
 
     for (index j = 0; j < windowSize; j++)
-      windowNormFactor += calcWindow((double) j / windowSize);
+      windowNormFactor += calcWindow((double) j / (windowSize - 1));
 
     windowNormFactor = 1.0 / windowNormFactor;
 
     // Do window processing
-    for (index i = 0; i < size; i++)
+    for (index i = 0; i < errorWindowed.size(); i++)
     {
       double windowed = 0.0;
 
-      for (index j = 1; j < windowSize; j++)
+      for (index j = 1; j < windowSize - 1; j++)
       {
         const double value = pow(fabs(error[i - windowOffset + j]), powFactor);
-        windowed += value * calcWindow((double) j / windowSize);
-        ;
+        windowed += value * calcWindow((double) j / (windowSize - 1));
       }
 
       errorWindowed[i] = pow((windowed * windowNormFactor), 1.0 / powFactor);
