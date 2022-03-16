@@ -11,11 +11,11 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "ConvolutionTools.hpp"
+#include "FluidEigenMappings.hpp"
 #include "Toeplitz.hpp"
 #include "../public/WindowFuncs.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/FluidTensor.hpp"
-#include "FluidEigenMappings.hpp"
 #include <Eigen/Eigen>
 #include <algorithm>
 #include <cmath>
@@ -46,7 +46,7 @@ public:
     else
       directEstimate(input, true);
   }
-  
+
   double fowardPrediction(FluidTensorView<const double, 1> input)
   {
     double prediction;
@@ -66,23 +66,25 @@ public:
   double forwardError(FluidTensorView<const double, 1> input)
   {
     double error;
-    forwardErrorArray(input,FluidTensorView<double,1>(&error,0,1));
+    forwardErrorArray(input, FluidTensorView<double, 1>(&error, 0, 1));
     return error;
   }
 
   double backwardError(FluidTensorView<const double, 1> input)
   {
     double error;
-    backwardErrorArray(input,FluidTensorView<double,1>(&error,0,1));
+    backwardErrorArray(input, FluidTensorView<double, 1>(&error, 0, 1));
     return error;
   }
 
-  void forwardErrorArray(FluidTensorView<const double, 1> input,FluidTensorView<double, 1> errors)
+  void forwardErrorArray(FluidTensorView<const double, 1> input,
+                         FluidTensorView<double, 1>       errors)
   {
-    modelPredict(input, errors, std::negate<index>{},Error{});
+    modelPredict(input, errors, std::negate<index>{}, Error{});
   }
 
-  void backwardErrorArray(FluidTensorView<const double, 1> input, FluidTensorView<double, 1> errors)
+  void backwardErrorArray(FluidTensorView<const double, 1> input,
+                          FluidTensorView<double, 1>       errors)
   {
     modelPredict(input, errors, Identity{}, Error{});
   }
@@ -90,28 +92,31 @@ public:
   void setMinVariance(double variance) { mMinVariance = variance; }
 
 private:
-  
   struct Identity
   {
     index operator()(index a) { return a; }
   };
-  
+
   struct Predict
   {
-    double operator()(double, double estimate) {return estimate;}
+    double operator()(double, double estimate) { return estimate; }
   };
-  
-  struct Error{
-    double operator()(double input, double estimate) {return input -  estimate;}
+
+  struct Error
+  {
+    double operator()(double input, double estimate)
+    {
+      return input - estimate;
+    }
   };
-  
+
   template <typename Indexer, typename OutputFn>
   void modelPredict(FluidTensorView<const double, 1> input,
                     FluidTensorView<double, 1> output, Indexer fIdx,
                     OutputFn fOut)
   {
     index numPredictions = output.size();
-    
+
     assert(fIdx(1) >= -input.descriptor().start &&
            "array bounds error in AR model prediction: input too short");
     assert(fIdx(1) < input.size() &&
@@ -124,29 +129,31 @@ private:
            "array bounds error in AR model prediction: input too short");
     assert(((numPredictions - 1) + fIdx(1)) < input.size() &&
            "array bounds error in AR model prediction: input too short");
-    assert(((numPredictions - 1) + fIdx(mParameters.size())) >= -input.descriptor().start &&
+    assert(((numPredictions - 1) + fIdx(mParameters.size())) >=
+               -input.descriptor().start &&
            "array bounds error in AR model prediction: input too short");
     assert(((numPredictions - 1) + fIdx(mParameters.size())) < input.size() &&
            "array bounds error in AR model prediction: input too short");
-      
+
     const double* input_ptr = input.data();
-        
+
     for (index p = 0; p < numPredictions; p++)
     {
       double estimate = 0;
       for (index i = 0; i < mParameters.size(); i++)
-          estimate += mParameters(i) * (input_ptr + p)[fIdx(i + 1)];
+        estimate += mParameters(i) * (input_ptr + p)[fIdx(i + 1)];
       output[p] = fOut(input_ptr[p], estimate);
     }
   }
 
-  void directEstimate(FluidTensorView<const double,1> input, bool updateVariance)
+  void directEstimate(FluidTensorView<const double, 1> input,
+                      bool                             updateVariance)
   {
     index size = input.size();
-  
+
     // copy input to a 32 byte aligned block (otherwise risk segfaults on Linux)
     VectorXd frame = _impl::asEigen<Eigen::Matrix>(input);
-  
+
     if (mUseWindow)
     {
       if (mWindow.size() != size)
@@ -194,12 +201,13 @@ private:
                       double robustFactor)
   {
     FluidTensor<double, 1> estimates(input.size() + mParameters.size());
-    
+
     // Calculate an initial estimate of parameters
     directEstimate(input, true);
 
-    assert(input.descriptor().start >= mParameters.size()&&"too little offset into input data"); 
-    
+    assert(input.descriptor().start >= mParameters.size() &&
+           "too little offset into input data");
+
     // Initialise Estimates
     for (index i = 0; i < input.size() + mParameters.size(); i++)
       estimates[i] = input.data()[i - mParameters.size()];
