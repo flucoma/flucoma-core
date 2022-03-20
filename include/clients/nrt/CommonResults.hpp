@@ -21,7 +21,7 @@ static const std::string PointNotFound{"Point not found"};
 static const std::string WrongPointSize{"Wrong Point Size"};
 static const std::string WrongPointNumber{"Wrong number of points"};
 static const std::string WrongNumInitial{"Wrong number of initial points"};
-static const std::string DuplicateLabel{"Label already in dataset"};
+static const std::string DuplicateLabel{"Identifier already in dataset"};
 static const std::string SmallDataSet{"DataSet is smaller than k"};
 static const std::string SmallK{"k is too small"};
 static const std::string LargeK{"k is too large"};
