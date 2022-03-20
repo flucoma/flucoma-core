@@ -34,7 +34,7 @@ static const std::string NoLabelSet{"LabelSet does not exist"};
 static const std::string NoDataFitted{"No data fitted"};
 static const std::string NotEnoughData{"Not enough data"};
 static const std::string EmptyLabel{"Empty label"};
-static const std::string EmptyId{"Empty id"};
+static const std::string EmptyId{"Empty identifier"};
 static const std::string BufferAlloc{"Can't allocate buffer"};
 static const std::string FileRead{"Couldn't read file"};
 static const std::string FileWrite{"Couldn't write file"};
