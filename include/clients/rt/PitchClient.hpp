@@ -128,7 +128,12 @@ public:
     output[0](1) = static_cast<T>(mDescriptors(1));
   }
   index latency() { return get<kFFT>().winSize(); }
-  index controlRate() { return get<kFFT>().hopSize(); }
+
+  AnalysisSize analysisSettings()
+  {
+    return { get<kFFT>().winSize(), get<kFFT>().hopSize() }; 
+  }
+
   void  reset()
   {
     mSTFTBufferedProcess.reset();

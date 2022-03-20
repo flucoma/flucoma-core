@@ -538,7 +538,7 @@ struct StreamingControl
     index startPadding = client.latency() + userPadding.first;
 
     index totalPadding = startPadding + userPadding.first;
-    index controlRate = client.controlRate();
+    index controlRate = client.analysisSettings().hop;
 
     index paddedLength = nFrames + totalPadding;
 
@@ -550,8 +550,9 @@ struct StreamingControl
 
     // Fix me. This assumes that client.latency() is always the window size of
     // whatever buffered process we're wrapping, which seems well dodgy
-    index nHops =
-        static_cast<index>(1 + std::floor((paddedLength - client.latency()) / controlRate));
+    index windowSize = client.analysisSettings().window;
+    index nHops = static_cast<index>(
+        1 + std::floor((paddedLength - windowSize) / controlRate));
 
     // in contrast to the plain streaming case, we're going to call process()
     // iteratively with a vector size = the control vector size, so we get KR
@@ -608,7 +609,7 @@ struct StreamingControl
 
     BufferAdaptor::Access thisOutput(outputBuffers[0]);
 
-    index latencyHops = client.latency() / client.controlRate();
+    index latencyHops = client.latency() / controlRate;
     index keepHops = nHops - latencyHops;
 
     Result resizeResult = thisOutput.resize(keepHops, nChans * nFeatures,
