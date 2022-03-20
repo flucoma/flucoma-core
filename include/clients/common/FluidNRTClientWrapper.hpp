@@ -548,8 +548,6 @@ struct StreamingControl
       paddedLength =
           static_cast<index>(std::ceil(double(paddedLength) / controlRate) * controlRate);
 
-    // Fix me. This assumes that client.latency() is always the window size of
-    // whatever buffered process we're wrapping, which seems well dodgy
     index windowSize = client.analysisSettings().window;
     index nHops = static_cast<index>(
         1 + std::floor((paddedLength - windowSize) / controlRate));
