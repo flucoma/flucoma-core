@@ -195,7 +195,10 @@ public:
            (1 + ((get<kKernelSize>() + 1) >> 1) + (filterSize >> 1));
   }
 
-  index controlRate() {  return get<kFFT>().hopSize(); }
+  AnalysisSize analysisSettings() 
+  {  
+    return {get<kFFT>().winSize(), get<kFFT>().hopSize()}; 
+  }
 
   void reset()
   {
