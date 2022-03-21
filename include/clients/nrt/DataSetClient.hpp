@@ -76,7 +76,7 @@ public:
       return Error(WrongPointSize);
     RealVector point(dataset.dims());
     point = buf.samps(0, dataset.dims(), 0);
-    return dataset.add(id, point) ? OK() : Error(DuplicateLabel);
+    return dataset.add(id, point) ? OK() : Error(DuplicateIdentifier);
   }
 
   MessageResult<void> getPoint(string id, BufferPtr data) const
