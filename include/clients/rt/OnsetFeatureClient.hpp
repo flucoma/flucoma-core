@@ -115,7 +115,10 @@ public:
 
   index latency() { return static_cast<index>(get<kFFT>().hopSize()); }
 
-  index controlRate() {  return get<kFFT>().hopSize(); }
+  AnalysisSize analysisSettings()
+  {
+    return {get<kFFT>().winSize(), get<kFFT>().hopSize()};
+  }
 
   void reset()
   {    
