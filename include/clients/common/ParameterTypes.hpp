@@ -150,9 +150,9 @@ struct ChoicesT: ParamTypeBase
 
   index lookup(std::string name)
   {
-    static std::set<std::string> lookupTable(strings, strings + numOptions);
+    static std::vector<std::string> lookupTable(strings, strings + numOptions);
 
-    auto pos = lookupTable.find(name);
+    auto pos = std::find(lookupTable.begin(), lookupTable.end(), name);
     return pos != lookupTable.end() ? std::distance(lookupTable.begin(), pos)
                                   : -1;
   }
