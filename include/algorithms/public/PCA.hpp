@@ -62,10 +62,11 @@ public:
   {
     using namespace Eigen;
     using namespace _impl;
+    if(in.size() != dims() || out.size() != dims()) return;
     asEigen<Matrix>(out) = mMean + (asEigen<Matrix>(in).transpose() * mBases.transpose()).transpose();
   }
     
-    
+      
   double process(const RealMatrixView in, RealMatrixView out, index k) const
   {
     using namespace Eigen;
@@ -79,6 +80,17 @@ public:
     for (index i = 0; i < k; i++) variance += mValues[i];
     out = _impl::asFluid(result);
     return variance / total;
+  }
+
+  void inverseProcess(RealMatrixView in, RealMatrixView out) const
+  {
+    using namespace Eigen;
+
+    if (in.cols() > dims()) return;
+    if (out.cols() < in.cols()) return;
+    _impl::asEigen<Matrix>(out) =
+        (_impl::asEigen<Matrix>(in) * mBases.transpose()).rowwise() +
+        mMean.transpose();
   }
 
   bool  initialized() const { return mInitialized; }
