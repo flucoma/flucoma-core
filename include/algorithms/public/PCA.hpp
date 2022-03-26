@@ -32,20 +32,24 @@ public:
     using namespace Eigen;
     using namespace _impl;
     MatrixXd input = asEigen<Matrix>(in);
+    mNumDataPoints = input.rows();
     mMean = input.colwise().mean();
     MatrixXd         X = (input.rowwise() - mMean.transpose());
     BDCSVD<MatrixXd> svd(X.matrix(), ComputeThinV | ComputeThinU);
     mBases = svd.matrixV();
-    mExplainedVariance = svd.singularValues().array().square() / (X.rows() - 1);
+    mValues = svd.singularValues();
+    mExplainedVariance = mValues.array().square() / (mNumDataPoints - 1);
     mInitialized = true;
   }
 
-  void init(RealMatrixView bases, RealVectorView explainedVariance,
-            RealVectorView mean)
+  void init(RealMatrixView bases, RealVectorView values, RealVectorView mean,
+            index numDataPoints = 2)
   {
     mBases = _impl::asEigen<Eigen::Matrix>(bases);
-    mExplainedVariance = _impl::asEigen<Eigen::Matrix>(explainedVariance);
+    mValues = _impl::asEigen<Eigen::Matrix>(values);
     mMean = _impl::asEigen<Eigen::Matrix>(mean);
+    mNumDataPoints = numDataPoints;
+    mExplainedVariance = mValues.array().square() / (mNumDataPoints - 1);
     mInitialized = true;
   }
 
@@ -66,11 +70,21 @@ public:
     out = _impl::asFluid(result);
   }
 
+  void inverseProcessFrame(RealVectorView in, RealVectorView out) const
+  {
+    using namespace Eigen;
+    using namespace _impl;
+    asEigen<Matrix>(out) =
+        mMean +
+        (asEigen<Matrix>(in).transpose() * mBases.transpose()).transpose();
+  }
+
   double process(const RealMatrixView in, RealMatrixView out, index k,
                  bool whiten = false) const
   {
     using namespace Eigen;
     using namespace _impl;
+
     if (k > mBases.cols()) return 0;
     MatrixXd input = asEigen<Matrix>(in);
     MatrixXd result = (input.rowwise() - mMean.transpose()) *
@@ -87,16 +101,11 @@ public:
     return variance / total;
   }
 
-  bool initialized() const { return mInitialized; }
-
-  void getBases(RealMatrixView out) const { out = _impl::asFluid(mBases); }
-
-  void getExplainedVariance(RealVectorView out) const
-  {
-    out = _impl::asFluid(mExplainedVariance);
-  }
-
+  bool  initialized() const { return mInitialized; }
+  void  getBases(RealMatrixView out) const { out = _impl::asFluid(mBases); }
+  void  getValues(RealVectorView out) const { out = _impl::asFluid(mValues); }
   void  getMean(RealVectorView out) const { out = _impl::asFluid(mMean); }
+  index getNumDataPoints() const { return mNumDataPoints; }
   index dims() const { return mBases.rows(); }
   index size() const { return mBases.cols(); }
   void  clear()
@@ -107,8 +116,10 @@ public:
   }
 
   MatrixXd mBases;
+  VectorXd mValues;
   ArrayXd  mExplainedVariance;
   VectorXd mMean;
+  index    mNumDataPoints;
   bool     mInitialized{false};
 };
 }; // namespace algorithm

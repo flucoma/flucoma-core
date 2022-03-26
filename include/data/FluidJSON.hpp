@@ -297,21 +297,22 @@ void to_json(nlohmann::json &j, const PCA &pca) {
   index cols = pca.size();
   RealMatrix bases(rows, cols);
   RealVector values(cols);
-  RealVector explainedVariance(cols);
   RealVector mean(rows);
+  index numPoints = pca.getNumDataPoints();
   pca.getBases(bases);
-  pca.getExplainedVariance(explainedVariance);
+  pca.getValues(values);
   pca.getMean(mean);
   j["bases"] = RealMatrixView(bases);
-  j["explainedvariance"] = RealVectorView(explainedVariance);
+  j["values"] = RealVectorView(values);
   j["mean"] = RealVectorView(mean);
+  j["numpoints"] = numPoints;
   j["rows"] = rows;
   j["cols"] = cols;
 }
 
 bool check_json(const nlohmann::json &j, const PCA &) {
   return fluid::check_json(j,
-    {"rows","cols", "bases", "explainedvariance", "mean"},
+    {"rows","cols", "bases", "values", "mean"},
     {JSONTypes::NUMBER, JSONTypes::NUMBER, JSONTypes::ARRAY, JSONTypes::ARRAY, JSONTypes::ARRAY}
   );
 }
@@ -319,13 +320,17 @@ bool check_json(const nlohmann::json &j, const PCA &) {
 void from_json(const nlohmann::json &j, PCA &pca) {
   index rows = j.at("rows");
   index cols = j.at("cols");
+  index numPoints = 2;// default for backwards compatibility
   RealMatrix bases(rows, cols);
   RealVector mean(rows);
-  RealVector explainedVariance(cols);
+  RealVector values(cols);
   j.at("mean").get_to(mean);
-  j.at("explainedvariance").get_to(explainedVariance);
+  j.at("values").get_to(values);
   j.at("bases").get_to(bases);
-  pca.init(bases, explainedVariance, mean);
+  if (j.contains("numpoints")){
+    j.at("numpoints").get_to(numPoints);
+  }
+  pca.init(bases, values, mean, numPoints);
 }
 
 

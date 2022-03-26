@@ -184,3 +184,29 @@ TEST_CASE("SliceIterator does strided iteration","[FluidTensorSupport]"){
         REQUIRE(std::equal(colIterator,end,colData.begin())); 
     }
 }
+
+
+
+TEST_CASE("SliceIterator end() does sensible things","[FluidTensorSupport]"){
+  
+  std::array<int,10>  data{0,1,2,3,4,5,6,7,8,9}; 
+  fluid::FluidTensorView<int,2> view{data.data(),0,1,10};
+  auto size = GENERATE(0,1,2,3,4,5,6,7,8,9); 
+  
+  using Iterator = fluid::impl::SliceIterator<int,1>; 
+  FluidTensorSlice<1> s(size);
+  
+  auto colIterator = Iterator(s,data.data()); 
+  auto end = Iterator(s,data.data(), true); 
+  size_t distance=std::distance(colIterator,end); 
+  
+  CHECK(size == distance);
+  
+  auto slice = view(Slice(0),Slice(0,size));
+  distance=std::distance(slice.begin(),slice.end());
+  CHECK(size == distance);
+  
+  
+  
+  
+}

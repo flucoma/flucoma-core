@@ -53,6 +53,14 @@ class ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>
         std::integral_constant<bool,
                                !(std::is_base_of<impl::Relational, T>::value)>;
   };
+  
+  template <typename T>
+  struct IsParamType
+  {
+    template <typename U>
+    using apply = std::is_same<T, typename std::tuple_element<0, U>::type>;
+  };
+
 
   template <typename T>
   using DefaultValue = decltype(std::declval<T>().defaultValue);
@@ -87,11 +95,14 @@ public:
       typename impl::FilterTupleIndices<IsNonRelational, T, List>::type;
 
 
+  template<typename T>
+  constexpr static index NumOfType = impl::FilterTupleIndices<IsParamType<T>, DescriptorType, IndexList>::type::size();
+
   template <typename T>
-  index NumOf() const
+  constexpr index NumOf() const
   {
     return
-        typename impl::FilterTupleIndices<T, DescriptorType, IndexList>::size();
+        typename impl::FilterTupleIndices<T, DescriptorType, IndexList>::type::size();
   }
 
   static constexpr index NumFixedParams = FixedIndexList::size();
@@ -302,6 +313,22 @@ public:
         IsParamType<T>, std::decay_t<DescriptorType>, IndexList>::type;
     forEachParamImpl<Func>(Is{}, std::forward<Args>(args)...);
   }
+  
+  //lambda version
+  template <typename T, class Func,
+            typename... Args>
+  void forEachParamType(Func&& f, Args&&... args)
+  {
+    using Is = typename impl::FilterTupleIndices<
+        IsParamType<T>, std::decay_t<DescriptorType>, IndexList>::type;
+    
+    ForThese(mParams,std::forward<Func>(f),Is{},std::forward<Args>(args)...);
+        
+    // /forEachParamImpl<Func>(Is{}, std::forward<Args>(args)...);
+  }
+  
+  
+  
 
   void reset() { resetImpl(IndexList()); }
 
@@ -362,8 +389,18 @@ public:
   }
 
   ValueTuple toTuple() { return {mParams}; }
+  
+  template<typename T>
+  static constexpr index NumOfType()
+  {
+    return
+        typename impl::FilterTupleIndices<IsParamType<T>, DescriptorType, IndexList>::size();
+
+  }
+
 
 private:
+
   template <typename T>
   struct IsParamType
   {
