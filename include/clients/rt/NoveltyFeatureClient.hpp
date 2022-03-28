@@ -20,7 +20,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../algorithms/public/DCT.hpp"
 #include "../../algorithms/public/Loudness.hpp"
 #include "../../algorithms/public/MelBands.hpp"
-#include "../../algorithms/public/NoveltyCurve.hpp"
+#include "../../algorithms/public/NoveltyFeature.hpp"
 #include "../../algorithms/public/STFT.hpp"
 #include "../../algorithms/public/YINFFT.hpp"
 #include "../../algorithms/util/TruePeak.hpp"
@@ -42,7 +42,7 @@ enum NoveltyParamIndex {
 };
 
 constexpr auto NoveltyFeatureParams = defineParameters(
-    EnumParam("feature", "Feature", 0, "Spectrum", "MFCC", "Chroma", "Pitch",
+    EnumParam("algorithm", "Feature", 0, "Spectrum", "MFCC", "Chroma", "Pitch",
               "Loudness"),
     LongParam("kernelSize", "KernelSize", 3, Min(3), Odd(),
               UpperLimit<kMaxKernelSize>()),
@@ -129,7 +129,7 @@ public:
   void process(std::vector<HostVector<T>>& input,
                std::vector<HostVector<T>>& output, FluidContext& c)
   {
-    using algorithm::NoveltyCurve;
+    using algorithm::NoveltyFeature;
 
 
     if (!input[0].data() || !output[0].data()) return;
@@ -207,7 +207,7 @@ public:
   }
 
 private:
-  algorithm::NoveltyCurve mNovelty;
+  algorithm::NoveltyFeature mNovelty;
   ParameterTrackChanges<index, index, index, index, index, double>
                                        mParamsTracker;
   BufferedProcess                      mBufferedProcess;

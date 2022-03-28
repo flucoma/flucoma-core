@@ -44,7 +44,7 @@ enum NoveltyParamIndex {
 };
 
 constexpr auto NoveltySliceParams = defineParameters(
-    EnumParam("feature", "Feature", 0, "Spectrum", "MFCC", "Chroma", "Pitch",
+    EnumParam("algorithm", "Feature", 0, "Spectrum", "MFCC", "Chroma", "Pitch",
               "Loudness"),
     LongParam("kernelSize", "KernelSize", 3, Min(3), Odd(),
               UpperLimit<kMaxKernelSize>()),

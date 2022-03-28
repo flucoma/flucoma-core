@@ -19,13 +19,13 @@ under the European Union’s Horizon 2020 research and innovation programme
 namespace fluid {
 namespace algorithm {
 
-class NoveltyCurve
+class NoveltyFeature
 {
 
 public:
   using ArrayXd = Eigen::ArrayXd;
 
-  NoveltyCurve(index maxKernelSize, index maxFilterSize)
+  NoveltyFeature(index maxKernelSize, index maxFilterSize)
       : mFilterBufferStorage(maxFilterSize), mNovelty(maxKernelSize)
   {}
 
