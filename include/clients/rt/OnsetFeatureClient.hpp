@@ -140,7 +140,7 @@ using RTOnsetFeatureClient = ClientWrapper<onsetfeature::OnsetFeatureClient>;
 auto constexpr NRTOnsetFeatureParams =
     makeNRTParams<onsetfeature::OnsetFeatureClient>(
         InputBufferParam("source", "Source Buffer"),
-        BufferParam("feature", "Feature Buffer"));
+        BufferParam("features", "Feature Buffer"));
 
 
 using NRTOnsetFeatureClient =
