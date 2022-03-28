@@ -10,7 +10,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "NoveltyCurve.hpp"
+#include "NoveltyFeature.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
@@ -57,7 +57,7 @@ public:
   }
 
 private:
-  NoveltyCurve mNovelty;
+  NoveltyFeature mNovelty;
   ArrayXd      mPeakBuffer{3};
   index        mDebounceCount{1};
 };
