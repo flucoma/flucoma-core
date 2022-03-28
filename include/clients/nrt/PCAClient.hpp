@@ -147,7 +147,7 @@ public:
     src(Slice(0,k)) = inBuf.samps(0,k,0);
     Result resizeResult = outBuf.resize(mAlgorithm.dims(), 1, outBuf.sampleRate());
     
-    mAlgorithm.inverseProcessFrame(src,dst);
+    mAlgorithm.inverseProcessFrame(src, dst, get<kWhiten>());
     outBuf.samps(0,mAlgorithm.dims(),0) = dst;
     return OK();
   }
