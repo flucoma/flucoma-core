@@ -111,7 +111,11 @@ public:
     mAlgorithm.init(get<kWindowSize>(), sampleRate());
   }
 
-  index controlRate() { return get<kHopSize>(); }
+  AnalysisSize analysisSettings()
+  {
+    return { get<kWindowSize>(), get<kHopSize>() }; 
+  }
+
 
 private:
   ParameterTrackChanges<index, index, index, double> mBufferParamsTracker;

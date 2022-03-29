@@ -135,7 +135,11 @@ public:
     mDCT.init(get<kNBands>(), get<kNCoefs>() + get<kDrop0>());
   }
 
-  index controlRate() { return get<kFFT>().hopSize(); }
+  AnalysisSize analysisSettings()
+  {
+    return { get<kFFT>().winSize(), get<kFFT>().hopSize() }; 
+  }
+
 
 private:
   ParameterTrackChanges<index, index, index, double, double, double> mTracker;

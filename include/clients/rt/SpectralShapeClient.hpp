@@ -111,7 +111,10 @@ public:
 
   void reset() { mSTFTBufferedProcess.reset(); }
 
-  index controlRate() { return get<kFFT>().hopSize(); }
+  AnalysisSize analysisSettings()
+  {
+    return { get<kFFT>().winSize(), get<kFFT>().hopSize() }; 
+  }
 
 private:
   ParameterTrackChanges<index, double>        mTracker;
