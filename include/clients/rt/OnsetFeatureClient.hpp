@@ -101,16 +101,15 @@ public:
     }
     RealMatrix in(1, hostVecSize);
     in.row(0) = input[0];
-    double out{0};
     
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.processInput(
         totalWindow, get<kFFT>().hopSize(), c, [&, this](RealMatrixView in) {
-          out = mAlgorithm.processFrame(
+          mDescriptor = mAlgorithm.processFrame(
               in.row(0), get<kFunction>(), get<kFilterSize>(), get<kFrameDelta>());
         });
 
-    output[0](0) = out;
+    output[0](0) = mDescriptor;
   }
 
   index latency() { return static_cast<index>(get<kFFT>().hopSize()); }
@@ -129,6 +128,7 @@ public:
 
 private:
   OnsetDetectionFunctions                    mAlgorithm;
+  double                                     mDescriptor;
   ParameterTrackChanges<index, index, index> mBufferParamsTracker;
   ParameterTrackChanges<index, index>        mParamsTracker;
   BufferedProcess                            mBufferedProcess;

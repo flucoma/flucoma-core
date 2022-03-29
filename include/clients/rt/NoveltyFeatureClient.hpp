@@ -148,8 +148,7 @@ public:
     }
     RealMatrix in(1, hostVecSize);
     in.row(0) = input[0];
-    double out{0}; 
-    
+        
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.processInput(
         windowSize, get<kFFT>().hopSize(), c,
@@ -181,10 +180,10 @@ public:
             break;
           }
 //          if (mFrameOffset < out.row(0).size())
-          out = mNovelty.processFrame(mFeature);
+          mDescriptor = mNovelty.processFrame(mFeature);
         });
 
-    output[0](0) = out;
+    output[0](0) = mDescriptor;
   }
 
   index latency()
@@ -216,6 +215,7 @@ private:
   FluidTensor<double, 1>               mMagnitude;
   FluidTensor<double, 1>               mBands;
   FluidTensor<double, 1>               mFeature;
+  double                               mDescriptor;
   algorithm::MelBands                  mMelBands;
   algorithm::DCT                       mDCT{40, 13};
   algorithm::ChromaFilterBank          mChroma;
