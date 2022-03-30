@@ -10,6 +10,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
+#include "Envelope.hpp"
 #include "../util/ButterworthHPFilter.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/SlideUDFilter.hpp"
@@ -29,14 +30,15 @@ class EnvelopeSegmentation
 public:
   void init(double floor, double hiPassFreq)
   {
-    mFastSlide.init(floor);
-    mSlowSlide.init(floor);
+    // mFastSlide.init(floor);
+    // mSlowSlide.init(floor);
+    mEnvelope.init(floor,hiPassFreq); 
     mDebounceCount = 1;
-    initFilters(hiPassFreq);
-    mHiPassFreq = hiPassFreq;
+    // initFilters(hiPassFreq);
+    // mHiPassFreq = hiPassFreq;
     mPrevValue = 0;
     mState = false;
-    mInitialized = true;
+    // mInitialized = true;
   }
 
   double processSample(const double in, double onThreshold, double offThreshold,
@@ -44,25 +46,30 @@ public:
                        index fastRampDownTime, index slowRampDownTime,
                        double hiPassFreq, index debounce)
   {
-    using namespace std;
-    assert(mInitialized);
-    mFastSlide.updateCoeffs(fastRampUpTime, fastRampDownTime);
-    mSlowSlide.updateCoeffs(slowRampUpTime, slowRampDownTime);
-    double filtered = in;
-    if (hiPassFreq != mHiPassFreq)
-    {
-      initFilters(hiPassFreq);
-      mHiPassFreq = hiPassFreq;
-    }
-    if (mHiPassFreq > 0){
-      filtered = mHiPass2.processSample(mHiPass1.processSample(in));
-    }
-    double rectified = abs(filtered);
-    double dB = 20 * log10(rectified);
-    double clipped = max(dB, floor);
-    double fast = mFastSlide.processSample(clipped);
-    double slow = mSlowSlide.processSample(clipped);
-    double value = fast - slow;
+    // using namespace std;
+    // assert(mInitialized);
+    // mFastSlide.updateCoeffs(fastRampUpTime, fastRampDownTime);
+    // mSlowSlide.updateCoeffs(slowRampUpTime, slowRampDownTime);
+    // double filtered = in;
+    // if (hiPassFreq != mHiPassFreq)
+    // {
+    //   initFilters(hiPassFreq);
+    //   mHiPassFreq = hiPassFreq;
+    // }
+    // if (mHiPassFreq > 0){
+    //   filtered = mHiPass2.processSample(mHiPass1.processSample(in));
+    // }
+    // double rectified = abs(filtered);
+    // double dB = 20 * log10(rectified);
+    // double clipped = max(dB, floor);
+    // double fast = mFastSlide.processSample(clipped);
+    // double slow = mSlowSlide.processSample(clipped);
+    // double value = fast - slow;
+
+
+    double value =
+        mEnvelope.processSample(in, floor, fastRampUpTime, slowRampUpTime,
+                                fastRampDownTime, slowRampUpTime, hiPassFreq);
     double detected = 0;
 
     if (!mState && value > onThreshold && mPrevValue < onThreshold &&
@@ -81,25 +88,26 @@ public:
     return detected;
   }
 
-  bool initialized() { return mInitialized; }
+  bool initialized() { return mEnvelope.initialized(); }
 
 private:
-  void initFilters(double cutoff)
-  {
-    mHiPass1.init(cutoff);
-    mHiPass2.init(cutoff);
-  }
-
-  double mHiPassFreq{0};
+//  void initFilters(double cutoff)
+//  {
+//    mHiPass1.init(cutoff);
+//    mHiPass2.init(cutoff);
+//  }
+  
+  Envelope mEnvelope; 
+  // double mHiPassFreq{0};
   index  mDebounceCount{1};
   double mPrevValue{0};
-  bool   mInitialized{false};
+  // bool   mInitialized{false};
   bool   mState{false};
 
-  ButterworthHPFilter mHiPass1;
-  ButterworthHPFilter mHiPass2;
-  SlideUDFilter       mFastSlide;
-  SlideUDFilter       mSlowSlide;
+  // ButterworthHPFilter mHiPass1;
+  // ButterworthHPFilter mHiPass2;
+  // SlideUDFilter       mFastSlide;
+  // SlideUDFilter       mSlowSlide;
 };
 } // namespace algorithm
 } // namespace fluid

@@ -114,16 +114,19 @@ public:
                     sampleRate());
   }
 
-  index controlRate() { return get<kFFT>().hopSize(); }
+  AnalysisSize analysisSettings()
+  {
+    return { get<kFFT>().winSize(), get<kFFT>().hopSize() }; 
+  }
 
-private:
-  ParameterTrackChanges<index, index, double, double> mTracker;
-  STFTBufferedProcess<ParamSetViewType, kFFT, false>  mSTFTBufferedProcess;
+  private:
+    ParameterTrackChanges<index, index, double, double> mTracker;
+    STFTBufferedProcess<ParamSetViewType, kFFT, false>  mSTFTBufferedProcess;
 
-  algorithm::ChromaFilterBank mAlgorithm;
-  FluidTensor<double, 1>      mMagnitude;
-  FluidTensor<double, 1>      mChroma;
-};
+    algorithm::ChromaFilterBank mAlgorithm;
+    FluidTensor<double, 1>      mMagnitude;
+    FluidTensor<double, 1>      mChroma;
+  };
 } // namespace chroma
 
 using RTChromaClient = ClientWrapper<chroma::ChromaClient>;

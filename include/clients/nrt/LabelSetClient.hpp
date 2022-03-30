@@ -76,7 +76,7 @@ public:
     if (label.empty()) return Error(EmptyLabel);
     if (mAlgorithm.dims() == 0) { mAlgorithm = LabelSet(1); }
     StringVector point = {label};
-    return mAlgorithm.add(id, point) ? OK() : Error(DuplicateLabel);
+    return mAlgorithm.add(id, point) ? OK() : Error(DuplicateIdentifier);
   }
 
   MessageResult<string> getLabel(string id) const

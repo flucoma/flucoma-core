@@ -118,8 +118,6 @@ TEST_CASE("FluidTensorSlice operator() maps indices back to flat layout","[Fluid
 
     SECTION("3D"){
         FluidTensorSlice<3> x{2,9,3}; 
-        for(auto& s:x.strides) std::cout << s <<','; 
-        std::cout <<std::endl; 
         for(int i = 0; i < 2; i++)
             for(int j = 0; j < 9; j++)
                 for(int k = 0; k < 3; k++ )

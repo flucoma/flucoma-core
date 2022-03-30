@@ -58,6 +58,14 @@ public:
     out = _impl::asFluid(result);
   }
 
+  void inverseProcessFrame(RealVectorView in, RealVectorView out) const
+  {
+    using namespace Eigen;
+    using namespace _impl;
+    asEigen<Matrix>(out) = mMean + (asEigen<Matrix>(in).transpose() * mBases.transpose()).transpose();
+  }
+    
+    
   double process(const RealMatrixView in, RealMatrixView out, index k) const
   {
     using namespace Eigen;

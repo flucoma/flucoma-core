@@ -35,5 +35,6 @@ jobs:
 
     - name: Test
       working-directory: ${{github.workspace}}/build
-      run: ctest -C ${{env.BUILD_TYPE}} -j3
+
+      run: ctest -C ${{env.BUILD_TYPE}} -j3 --output-on-failure
       

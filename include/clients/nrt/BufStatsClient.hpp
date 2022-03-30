@@ -51,7 +51,7 @@ constexpr auto BufStatsParams = defineParameters(
     FloatParam("high", "High Percentile", 100, Min(0), Max(100),
                LowerLimit<kMiddle>()),
     FloatParam("outliersCutoff", "Outliers Cutoff", -1, Min(-1)),
-    BufferParam("weights", "Weights Buffer"));
+    InputBufferParam("weights", "Weights Buffer"));
 
 class BufferStatsClient : public FluidBaseClient,
                           public OfflineIn,
