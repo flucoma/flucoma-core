@@ -119,10 +119,10 @@ public:
     // pitch
     if(get<kUnit>() == 1){
       output[0](0) = mDescriptors(0) == 0? -999:
-      69 + (12 * log2(mDescriptors(0) / 440.0));
+      static_cast<T>(69 + (12 * log2(mDescriptors(0) / 440.0)));
     }
     else {
-      output[0](0) = mDescriptors(0);
+      output[0](0) = static_cast<T>(mDescriptors(0));
     }
     // pitch confidence
     output[0](1) = static_cast<T>(mDescriptors(1));

@@ -65,7 +65,7 @@ public:
     double absTol =
         log(tolerance) + max(currentLogMag.maxCoeff(), prevLogMag.maxCoeff());
     ArrayXd todo = (currentLogMag > absTol).cast<double>();
-    index   numTodo = todo.sum();
+    index   numTodo = static_cast<index>(todo.sum());
     ArrayXd phaseEst = pi + ArrayXd::Random(mBins) * pi;
 
     vector<pair<double, index>> heap;

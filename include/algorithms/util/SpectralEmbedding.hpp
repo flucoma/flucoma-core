@@ -28,14 +28,14 @@ public:
     SparseMatrixXd I = SparseMatrixXd(D.rows(), D.cols());
     I.setIdentity();
     SparseMatrixXd           L = I - (D * (graph * D));
-    int                      k = dims + 1;
+    int                      k = static_cast<int>(dims + 1);
     index                    ncv = max(2 * k + 1, int(round(sqrt(L.rows()))));
     VectorXd                 initV = VectorXd::Ones(L.rows());
     SparseSymMatProd<double> op(L);
     SymEigsSolver<double, SMALLEST_MAGN, SparseSymMatProd<double>> eig(&op, k,
                                                                        ncv);
     eig.init(initV.data());
-    auto nConverged = eig.compute(
+    /*auto nConverged = */eig.compute(
         D.cols(), 1e-4, SMALLEST_MAGN); // TODO: failback if not converging
     mEigenVectors = eig.eigenvectors();
     mEigenValues = eig.eigenvalues();
@@ -51,5 +51,5 @@ private:
   Eigen::MatrixXd mEigenVectors;
   Eigen::MatrixXd mEigenValues;
 };
-}; // namespace algorithm
-}; // namespace fluid
+}// namespace algorithm
+}// namespace fluid

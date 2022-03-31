@@ -174,7 +174,7 @@ public:
 
   template <typename T>
   void process(std::vector<FluidTensorView<T, 1>>& input,
-               std::vector<FluidTensorView<T, 1>>& output, FluidContext& c)
+               std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
   {
     output[0] = input[0];
 

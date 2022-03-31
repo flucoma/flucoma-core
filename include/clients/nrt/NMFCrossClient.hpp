@@ -98,11 +98,11 @@ public:
 
     index srcFrames = source.numFrames();
     index tgtFrames = target.numFrames();
-    index srcWindows =
-        std::floor((srcFrames + fftParams.hopSize()) / fftParams.hopSize());
+    index srcWindows = static_cast<index>(
+        std::floor((srcFrames + fftParams.hopSize()) / fftParams.hopSize()));
     index nBins = fftParams.frameSize();
-    index tgtWindows =
-        std::floor((tgtFrames + fftParams.hopSize()) / fftParams.hopSize());
+    index tgtWindows = static_cast<index>(
+        std::floor((tgtFrames + fftParams.hopSize()) / fftParams.hopSize()));
 
     if (srcFrames <= 0) return {Result::Status::kError, "Empty source buffer"};
 

@@ -37,7 +37,7 @@ public:
     ArrayXd mag = in.max(epsilon);
     index   nBins = mag.size();
     double  binHz = sampleRate / ((nBins - 1) * 2.);
-    index   minBin = ceil(minFreq / binHz);
+    index   minBin = static_cast<index>(ceil(minFreq / binHz));
     index   maxBin =
         min(static_cast<index>(floorl(maxFreq / binHz)), (nBins - 1));
     if (maxBin <= minBin)

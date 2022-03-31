@@ -31,8 +31,9 @@ public:
   using ArrayXXd = Eigen::ArrayXXd;
   using ArrayXi = Eigen::ArrayXi;
   static const index UNASSIGNED = -1;
+
   bool process(Eigen::Ref<const Eigen::ArrayXXd> costMatrix,
-               Eigen::Ref<Eigen::ArrayXi>        result)
+               Eigen::Ref<ArrayXidx>             result)
   {
     using namespace std;
     using namespace Eigen;
@@ -45,8 +46,8 @@ public:
     }
     else mTransposed = false;
 
-    mRow2Col = ArrayXi::Constant(mCost.rows(), UNASSIGNED);
-    mCol2Row = ArrayXi::Constant(mCost.cols(), UNASSIGNED);
+    mRow2Col = ArrayXidx::Constant(mCost.rows(), UNASSIGNED);
+    mCol2Row = ArrayXidx::Constant(mCost.cols(), UNASSIGNED);
     mV = ArrayXd::Zero(mCost.rows());
     mU = ArrayXd::Zero(mCost.cols());
     for (index c = 0; c < mCost.cols(); c++){
@@ -69,10 +70,10 @@ public:
 
   index shortestPath(index c){
     using namespace std;
-    mPred = ArrayXi::Zero(mCost.rows());
-    ArrayXi scannedCols = ArrayXi::Zero(mCost.cols());
-    ArrayXi scannedRows = ArrayXi::Zero(mCost.rows());
-    vector<int> row2Scan(mCost.rows());
+    mPred = ArrayXidx::Zero(mCost.rows());
+    ArrayXidx scannedCols = ArrayXidx::Zero(mCost.cols());
+    ArrayXidx scannedRows = ArrayXidx::Zero(mCost.rows());
+    vector<index> row2Scan(asUnsigned(mCost.rows()));
     iota(row2Scan.begin(), row2Scan.end(), 0);
     index nRows2Scan = mCost.rows();
     index sink = UNASSIGNED;
@@ -85,7 +86,7 @@ public:
       scannedCols(currentCol) = 1;
       minVal = infinity;
       for(index r = 0; r < nRows2Scan; r++){
-        currentRow = row2Scan[r];
+        currentRow = row2Scan[asUnsigned(r)];
         reducedCost = delta
                     + mCost(currentRow, currentCol)
                     - mU(currentCol) - mV(currentRow);
@@ -99,7 +100,7 @@ public:
         }
       }
       if(isinf(minVal)) return UNASSIGNED;
-      closestRow = row2Scan[currentClosestRow];
+      closestRow = row2Scan[asUnsigned(currentClosestRow)];
       scannedRows(closestRow) = 1;
       nRows2Scan--;
       row2Scan.erase(row2Scan.begin() + currentClosestRow);
@@ -123,11 +124,11 @@ public:
 }
 private:
   ArrayXXd mCost;
-  ArrayXi  mRow2Col;
-  ArrayXi  mCol2Row;
+  ArrayXidx  mRow2Col;
+  ArrayXidx  mCol2Row;
   ArrayXd  mU;
   ArrayXd  mV;
-  ArrayXi mPred;
+  ArrayXidx mPred;
   bool mTransposed{false};
 };
 } // namespace algorithm

@@ -409,5 +409,5 @@ private:
   ArrayXXd mEmbedding;
   bool     mInitialized{false};
 };
-}; // namespace algorithm
-}; // namespace fluid
+}// namespace algorithm
+}// namespace fluid

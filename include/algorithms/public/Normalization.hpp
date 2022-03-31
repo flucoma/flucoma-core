@@ -135,5 +135,5 @@ public:
   ArrayXd mDataRange;
   bool    mInitialized{false};
 };
-}; // namespace algorithm
-}; // namespace fluid
+}// namespace algorithm
+}// namespace fluid
