@@ -53,7 +53,7 @@ public:
     MatrixXd  H = asEigen<Matrix>(h);
     MatrixXcd W = asEigen<Matrix>(w);
     MatrixXcd V = H * W;
-    out = asFluid(V);
+    out <<= asFluid(V);
   }
 
   void process(const RealMatrixView X, RealMatrixView H1, RealMatrixView W0,
@@ -70,7 +70,7 @@ public:
     MatrixXd V = asEigen<Matrix>(X).transpose();
     multiplicativeUpdates(V, W, H, r, p, c);
     MatrixXd HT = H.transpose();
-    H1 = asFluid(HT);
+    H1 <<= asFluid(HT);
   }
 
   void addProgressCallback(ProgressCallback&& callback)

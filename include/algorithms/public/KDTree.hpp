@@ -232,7 +232,7 @@ private:
   {
     if (current == nullptr) { return nodeId; }
     store.ids(nodeId) = current->id;
-    store.data.row(nodeId) = current->data;
+    store.data.row(nodeId) <<= current->data;
 
     index nextNodeId = nodeId + 1;
     if (current->left == nullptr) { store.tree(nodeId, 0) = -1; }

@@ -97,7 +97,7 @@ public:
     mInitialized = true;
   }
 
-  void getLabels(FluidTensorView<string, 1> out) const { out = mLabels; }
+  void getLabels(FluidTensorView<string, 1> out) const { out <<= mLabels; }
 
   bool initialized() const { return mInitialized; }
 

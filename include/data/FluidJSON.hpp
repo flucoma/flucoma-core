@@ -87,7 +87,7 @@ void from_json(const nlohmann::json &j, FluidTensor<T, 2> &t) {
     FluidTensor<T, 1> tmp(j[0].size());
     for (size_t i = 0; i < j.size(); i++) {
       j.at(i).get_to(tmp);
-      result.row(asSigned(i)) = tmp;
+      result.row(asSigned(i)) <<= tmp;
     }
     t = result;
   }

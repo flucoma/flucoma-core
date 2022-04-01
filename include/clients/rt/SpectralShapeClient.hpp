@@ -104,7 +104,7 @@ public:
 
     // for (int i = 0; i < 7; ++i)
     //   output[asUnsigned(i)](0) = static_cast<T>(mDescriptors(i));
-    output[0] = mDescriptors; 
+    output[0] <<= mDescriptors; 
   }
 
   index latency() { return get<kFFT>().winSize(); }

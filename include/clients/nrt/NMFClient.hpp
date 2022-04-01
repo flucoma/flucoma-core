@@ -220,7 +220,7 @@ public:
                                      static_cast<double>(nChannels)))
         return {Result::Status::kCancelled, ""};
       //          tmp = sourceData.col(i);
-      tmp = source.samps(get<kOffset>(), nFrames, get<kStartChan>() + i);
+      tmp <<= source.samps(get<kOffset>(), nFrames, get<kStartChan>() + i);
       stft.process(tmp, spectrum);
       algorithm::STFT::magnitude(spectrum, magnitude);
       int progressCount{0};
@@ -231,12 +231,12 @@ public:
         if (seedFilters || fixFilters)
         {
           auto filters = BufferAdaptor::Access{get<kFilters>().get()};
-          seededFilters.row(j) = filters.samps(i * get<kRank>() + j);
+          seededFilters.row(j) <<= filters.samps(i * get<kRank>() + j);
         }
         if (seedEnvelopes || fixEnvelopes)
         {
           auto envelopes = BufferAdaptor::Access(get<kEnvelopes>().get());
-          seededEnvelopes.col(j) = envelopes.samps(i * get<kRank>() + j);
+          seededEnvelopes.col(j) <<= envelopes.samps(i * get<kRank>() + j);
         }
       }
 
@@ -261,7 +261,7 @@ public:
         //        auto finalFilters = m.getW();
         auto filters = BufferAdaptor::Access{get<kFilters>().get()};
         for (index j = 0; j < get<kRank>(); ++j)
-        { filters.samps(i * get<kRank>() + j) = outputFilters.row(j); }
+        { filters.samps(i * get<kRank>() + j) <<= outputFilters.row(j); }
       }
 
       // Write H? Need to normalise also
@@ -276,7 +276,7 @@ public:
         for (index j = 0; j < get<kRank>(); ++j)
         {
           auto env = envelopes.samps(i * get<kRank>() + j);
-          env = outputEnvelopes.col(j);
+          env <<= outputEnvelopes.col(j);
           env.apply([scale](float& x) { x *= static_cast<float>(scale); });
         }
       }
@@ -307,7 +307,7 @@ public:
               !c.task()->processUpdate(++progressCount, progressTotal))
             return {Result::Status::kCancelled, ""};
           istft.process(resynthSpectrum, resynthAudio);
-          resynth.samps(i * get<kRank>() + j) = resynthAudio(Slice(0, nFrames));
+          resynth.samps(i * get<kRank>() + j) <<= resynthAudio(Slice(0, nFrames));
           if (c.task() &&
               !c.task()->processUpdate(++progressCount, progressTotal))
             return {Result::Status::kCancelled, ""};

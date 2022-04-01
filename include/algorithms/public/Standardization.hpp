@@ -58,7 +58,7 @@ public:
     {
       result = (input * mStd) + mMean;
     }
-    out = asFluid(result);
+    out <<= asFluid(result);
   }
 
   void process(const RealMatrixView in, RealMatrixView out,
@@ -79,14 +79,14 @@ public:
       result = (input.rowwise() * mStd.transpose());
       result = (result.rowwise() + mMean.transpose());
     }
-    out = asFluid(result);
+    out <<= asFluid(result);
   }
 
   bool initialized() const { return mInitialized; }
 
-  void getMean(RealVectorView out) const { out = _impl::asFluid(mMean); }
+  void getMean(RealVectorView out) const { out <<= _impl::asFluid(mMean); }
 
-  void getStd(RealVectorView out) const { out = _impl::asFluid(mStd); }
+  void getStd(RealVectorView out) const { out <<= _impl::asFluid(mStd); }
 
   index dims() const { return mMean.size(); }
   index size() const { return 1; }
