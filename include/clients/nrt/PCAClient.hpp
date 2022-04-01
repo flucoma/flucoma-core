@@ -123,9 +123,9 @@ public:
     if (!resizeResult.ok()) return Error(BufferAlloc);
     FluidTensor<double, 1> src(mAlgorithm.dims());
     FluidTensor<double, 1> dest(k);
-    src = BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
+    src <<= BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
     mAlgorithm.processFrame(src, dest, k);
-    outBuf.samps(0, k, 0) = dest;
+    outBuf.samps(0, k, 0) <<= dest;
     return OK();
   }
   
@@ -143,11 +143,11 @@ public:
     FluidTensor<double, 1> dst(mAlgorithm.dims());
     index k = std::min(inBuf.numFrames(),mAlgorithm.dims());
     
-    src(Slice(0,k)) = inBuf.samps(0,k,0);
+    src(Slice(0,k)) <<= inBuf.samps(0,k,0);
     Result resizeResult = outBuf.resize(mAlgorithm.dims(), 1, outBuf.sampleRate());
     
     mAlgorithm.inverseProcessFrame(src,dst);
-    outBuf.samps(0,mAlgorithm.dims(),0) = dst;
+    outBuf.samps(0,mAlgorithm.dims(),0) <<= dst;
     return OK();
   }
 
@@ -207,7 +207,7 @@ public:
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
   {
-    output[0] = input[0];
+    output[0] <<= input[0];
     if (input[0](0) > 0)
     {
       auto PCAPtr = get<kModel>().get().lock();
@@ -228,10 +228,10 @@ public:
       if (outBuf.samps(0).size() < k) return;
       RealVector src(algorithm.dims());
       RealVector dest(k);
-      src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+      src <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                 .samps(0, algorithm.dims(), 0);
       algorithm.processFrame(src, dest, k);
-      outBuf.samps(0, k, 0) = dest;
+      outBuf.samps(0, k, 0) <<= dest;
     }
   }
 

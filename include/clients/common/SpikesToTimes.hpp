@@ -77,7 +77,7 @@ Result spikesToTimes(FluidTensorView<T, 2> changePoints, BufferAdaptor* output,
                      return x;
                    });
 
-    idx.samps(i) = FluidTensorView<index, 1>{indices.data(), 0, numSpikes[0]};
+    idx.samps(i) <<= FluidTensorView<index, 1>{indices.data(), 0, numSpikes[0]};
   }
   return {};
 }

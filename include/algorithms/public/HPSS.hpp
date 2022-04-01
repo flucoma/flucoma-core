@@ -135,7 +135,7 @@ public:
     result.col(0) = mBuf.col(0) * harmonicMask.min(1.0);
     result.col(1) = mBuf.col(0) * percussiveMask.min(1.0);
     result.col(2) = mBuf.col(0) * residualMask.min(1.0);
-    out = _impl::asFluid(result);
+    out <<= _impl::asFluid(result);
   }
   bool initialized() { return mInitialized; }
 

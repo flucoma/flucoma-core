@@ -121,7 +121,7 @@ public:
     r = dest.resize(numFrames, numChans, source.sampleRate());
     if (!r.ok()) return r;
 
-    dest.allFrames() = tmp;
+    dest.allFrames() <<= tmp;
 
     return {};
   }

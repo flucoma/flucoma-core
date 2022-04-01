@@ -75,7 +75,7 @@ public:
     else if (buf.numFrames() != dataset.dims())
       return Error(WrongPointSize);
     RealVector point(dataset.dims());
-    point = buf.samps(0, dataset.dims(), 0);
+    point <<= buf.samps(0, dataset.dims(), 0);
     return dataset.add(id, point) ? OK() : Error(DuplicateIdentifier);
   }
 
@@ -88,11 +88,11 @@ public:
     if (!resizeResult.ok())
       return {resizeResult.status(), resizeResult.message()};
     RealVector point(mAlgorithm.dims());
-    point = buf.samps(0, mAlgorithm.dims(), 0);
+    point <<= buf.samps(0, mAlgorithm.dims(), 0);
     bool result = mAlgorithm.get(id, point);
     if (result)
     {
-      buf.samps(0, mAlgorithm.dims(), 0) = point;
+      buf.samps(0, mAlgorithm.dims(), 0) <<= point;
       return OK();
     }
     else
@@ -108,7 +108,7 @@ public:
     if (!buf.exists()) return Error(InvalidBuffer);
     if (buf.numFrames() < mAlgorithm.dims()) return Error(WrongPointSize);
     RealVector point(mAlgorithm.dims());
-    point = buf.samps(0, mAlgorithm.dims(), 0);
+    point <<= buf.samps(0, mAlgorithm.dims(), 0);
     return mAlgorithm.update(id, point) ? OK() : Error(PointNotFound);
   }
 
@@ -121,7 +121,7 @@ public:
       if (!buf.exists()) return Error(InvalidBuffer);
       if (buf.numFrames() < mAlgorithm.dims()) return Error(WrongPointSize);
       RealVector point(mAlgorithm.dims());
-      point = buf.samps(0, mAlgorithm.dims(), 0);
+      point <<= buf.samps(0, mAlgorithm.dims(), 0);
       bool result = mAlgorithm.update(id, point);
       if (result) return OK();
     }
@@ -189,7 +189,7 @@ public:
     index  nChannels = transpose ? mAlgorithm.size() : mAlgorithm.dims();
     Result resizeResult = buf.resize(nFrames, nChannels, buf.sampleRate());
     if (!resizeResult.ok()) return Error(resizeResult.message());
-    buf.allFrames() =
+    buf.allFrames() <<=
         transpose ? mAlgorithm.getData()
                   : FluidTensorView<const double, 2>(mAlgorithm.getData())
                         .transpose();
@@ -247,7 +247,7 @@ private:
     algorithm::DataSetIdSequence seq("", 0, 0);
     FluidTensor<string, 1>       newIds(mAlgorithm.size());
     FluidTensor<string, 2>       labels(mAlgorithm.size(), 1);
-    labels.col(0) = mAlgorithm.getIds();
+    labels.col(0) <<= mAlgorithm.getIds();
     seq.generate(newIds);
     return LabelSet(newIds, labels);
   };

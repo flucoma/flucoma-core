@@ -51,7 +51,7 @@ public:
       phase = phase / (phase.abs() + epsilon);
     }
     estimate = magnitude * phase;
-    in = asFluid(estimate);
+    in <<= asFluid(estimate);
   }
 };
 } // namespace algorithm

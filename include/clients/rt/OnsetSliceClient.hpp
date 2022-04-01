@@ -104,7 +104,7 @@ public:
                       get<kFilterSize>());
     }
     RealMatrix in(1, hostVecSize);
-    in.row(0) = input[0];
+    in.row(0) <<= input[0];
     RealMatrix out(1, hostVecSize);
     
     mBufferedProcess.push(RealMatrixView(in));
@@ -119,7 +119,7 @@ public:
     mFrameOffset =
         mFrameOffset < hostVecSize ? mFrameOffset : mFrameOffset - hostVecSize;
 
-    output[0] = out.row(0);
+    output[0]<<= out.row(0);
   }
 
   index latency() { return static_cast<index>(get<kFFT>().hopSize()); }

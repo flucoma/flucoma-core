@@ -156,7 +156,7 @@ private:
     FluidTensor<double, 1> paddedInput(paddedLength);
 
     auto paddingSlice = Slice(padding, input.size());
-    paddedInput(paddingSlice) = input;
+    paddedInput(paddingSlice) <<= input;
 
     FluidTensor<double, 2> tmpMags(numHops, numBins);
     FluidTensor<double, 2> tmpPhase(numHops, numBins);
@@ -172,13 +172,13 @@ private:
     if (haveMag)
     {
       algorithm::STFT::magnitude(tmpComplex, tmpMags);
-      mags.allFrames().transpose() = tmpMags(Slice(0, numHops), Slice(0));
+      mags.allFrames().transpose() <<= tmpMags(Slice(0, numHops), Slice(0));
     }
 
     if (havePhase)
     {
       algorithm::STFT::phase(tmpComplex, tmpPhase);
-      phases.allFrames().transpose() = tmpPhase(Slice(0, numHops), Slice(0));
+      phases.allFrames().transpose() <<= tmpPhase(Slice(0, numHops), Slice(0));
     }
     return {};
   }
@@ -270,7 +270,7 @@ private:
                      return x / std::max(y, epsilon);
                    });
 
-    resynth.samps(0) = tmpOut(Slice(padding, finalOutputSize));
+    resynth.samps(0) <<= tmpOut(Slice(padding, finalOutputSize));
 
     return {};
   }

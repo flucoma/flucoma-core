@@ -139,9 +139,9 @@ public:
     if (!resizeResult.ok()) return Error(BufferAlloc);
     FluidTensor<double, 1> src(inSize);
     FluidTensor<double, 1> dest(outSize);
-    src = BufferAdaptor::ReadAccess(in.get()).samps(0, inSize, 0);
+    src <<= BufferAdaptor::ReadAccess(in.get()).samps(0, inSize, 0);
     mAlgorithm.transformPoint(src, dest);
-    outBuf.samps(0, outSize, 0) = dest;
+    outBuf.samps(0, outSize, 0) <<= dest;
     return OK();
   }
 
@@ -199,7 +199,7 @@ public:
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
   {
-    output[0] = input[0];
+    output[0] <<= input[0];
     if (input[0](0) > 0)
     {
       auto UMAPPtr = get<kModel>().get().lock();
@@ -221,10 +221,10 @@ public:
       if (outBuf.samps(0).size() < outSize) return;
       RealVector src(inSize);
       RealVector dest(outSize);
-      src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+      src <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                 .samps(0, inSize, 0);
       algorithm.transformPoint(src, dest);
-      outBuf.samps(0, outSize, 0) = dest;
+      outBuf.samps(0, outSize, 0) <<= dest;
     }
   }
 

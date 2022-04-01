@@ -484,7 +484,7 @@ struct Streaming
       {
         BufferAdaptor::ReadAccess thisInput(inputBuffers[asUnsigned(j)].buffer);
         if (i == 0 && j == 0) sampleRate = thisInput.sampleRate();
-        inputData[asUnsigned(j)].row(i)(Slice(userPadding.first, nFrames)) =
+        inputData[asUnsigned(j)].row(i)(Slice(userPadding.first, nFrames)) <<=
             thisInput.samps(inputBuffers[asUnsigned(j)].startFrame, nFrames,
                             inputBuffers[asUnsigned(j)].startChan + i);
         inputs.emplace_back(inputData[asUnsigned(j)].row(i));
@@ -510,7 +510,7 @@ struct Streaming
       Result                r = thisOutput.resize(nFrames, nChans, sampleRate);
       if (!r.ok()) return r;
       for (index j = 0; j < nChans; ++j)
-        thisOutput.samps(j) =
+        thisOutput.samps(j) <<=
             outputData[asUnsigned(i)].row(j)(Slice(startPadding, nFrames));
     }
 
@@ -566,7 +566,7 @@ struct StreamingControl
       {
         BufferAdaptor::ReadAccess thisInput(inputBuffers[asUnsigned(j)].buffer);
         if (i == 0 && j == 0) sampleRate = thisInput.sampleRate();
-        inputData[asUnsigned(j)].row(i)(Slice(userPadding.first, nFrames)) =
+        inputData[asUnsigned(j)].row(i)(Slice(userPadding.first, nFrames)) <<=
             thisInput.samps(inputBuffers[asUnsigned(j)].startFrame, nFrames,
                             inputBuffers[asUnsigned(j)].startChan + i);
       }
@@ -616,7 +616,7 @@ struct StreamingControl
     for (index i = 0; i < nFeatures; ++i)
     {
       for (index j = 0; j < nChans; ++j)
-        thisOutput.samps(i + j * nFeatures) =
+        thisOutput.samps(i + j * nFeatures) <<=
             outputData.row(i + j * nFeatures)(Slice(latencyHops, keepHops));
     }
 

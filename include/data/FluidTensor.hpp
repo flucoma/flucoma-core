@@ -158,7 +158,7 @@ public:
 //  FluidTensor& operator=(std::initializer_list<U>) = delete;
 
   /// Copy from a view
-  FluidTensor& operator=(const FluidTensorView<T, N> x)
+  FluidTensor& operator<<=(const FluidTensorView<T, N> x)
   {
     assert(sameExtents(mDesc, x.descriptor()));
     std::copy(x.begin(), x.end(), mContainer.begin());
@@ -167,7 +167,7 @@ public:
 
   /// Converting copy from view
   template <typename U, size_t M>
-  FluidTensor& operator=(const FluidTensorView<U, M> x)
+  FluidTensor& operator<<=(const FluidTensorView<U, M> x)
   {
     static_assert(M <= N, "View has too many diensions");
     static_assert(std::is_convertible<U, T>::value,  "Cannot convert between types");
@@ -458,21 +458,17 @@ public:
   **********/
   FluidTensorView(FluidTensor<T, N>&& r) = delete;
 
-
   // Move construction is allowed
   FluidTensorView(FluidTensorView&& other) noexcept { swap(*this, other); }
-
-  /// Move assignment disabled because it doesn't make sense to move from a
-  /// possibly arbitary pointer into the middle of what might be a FluidTensor's
-  /// vector
-  /// ==> assignment is always copy
-
-
   // Copy
   FluidTensorView(FluidTensorView const&) = default;
-
-  // Copy assignment from same type
-  FluidTensorView& operator=(const FluidTensorView& x)
+  
+  //copy and move assignment are shallow
+  FluidTensorView& operator=(FluidTensorView const&) = default; 
+  FluidTensorView& operator=(FluidTensorView&&) = default; 
+  
+  // Copy data from same type
+  FluidTensorView& operator<<=(const FluidTensorView& x)
   {
     assert(sameExtents(mDesc, x.descriptor()));
     std::array<index, N> a;
@@ -492,8 +488,8 @@ public:
     return *this;
   }
 
-  // Copy from Tensor of same type
-  FluidTensorView& operator=(const FluidTensor<T, N>& x)
+  // Copy data from Tensor of same type
+  FluidTensorView& operator<<=(const FluidTensor<T, N>& x)
   {
     assert(sameExtents(mDesc, x.descriptor()));
     std::array<index, N> a;
@@ -512,9 +508,9 @@ public:
     return *this;
   }
 
-  /// Converting copy
+  /// Converting copy of data
   template <typename U>
-  FluidTensorView& operator=(const FluidTensorView<U, N> x)
+  FluidTensorView& operator<<=(const FluidTensorView<U, N> x)
   {
     static_assert(std::is_convertible<U, T>::value,  "Can't convert between types");
     assert(sameExtents(mDesc, x.descriptor()));
@@ -535,9 +531,9 @@ public:
     return *this;
   }
 
-  // Converting copy from Tensor
+  // Converting copy of data from Tensor
   template <typename U>
-  FluidTensorView& operator=(FluidTensor<U, N>& x)
+  FluidTensorView& operator<<=(FluidTensor<U, N>& x)
   {
     static_assert(std::is_convertible<U, T>::value,  "Can't convert between types");
     assert(sameExtents(*this, x));
