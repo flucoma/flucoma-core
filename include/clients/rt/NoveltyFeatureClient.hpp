@@ -147,7 +147,7 @@ public:
       initAlgorithms(feature, windowSize);
     }
     RealMatrix in(1, hostVecSize);
-    in.row(0) = input[0];
+    in.row(0) <<= input[0];
         
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.processInput(

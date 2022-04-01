@@ -143,11 +143,11 @@ public:
     FluidTensor<double, 1> dst(mAlgorithm.dims());
     index k = std::min(inBuf.numFrames(),mAlgorithm.dims());
     
-    src(Slice(0,k)) = inBuf.samps(0,k,0);
+    src(Slice(0,k)) <<= inBuf.samps(0,k,0);
     Result resizeResult = outBuf.resize(mAlgorithm.dims(), 1, outBuf.sampleRate());
     
     mAlgorithm.inverseProcessFrame(src,dst);
-    outBuf.samps(0,mAlgorithm.dims(),0) = dst;
+    outBuf.samps(0,mAlgorithm.dims(),0) <<= dst;
     return OK();
   }
 
