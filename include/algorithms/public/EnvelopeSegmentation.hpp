@@ -69,7 +69,7 @@ public:
 
     double value =
         mEnvelope.processSample(in, floor, fastRampUpTime, slowRampUpTime,
-                                fastRampDownTime, slowRampUpTime, hiPassFreq);
+                                fastRampDownTime, slowRampDownTime, hiPassFreq);
     double detected = 0;
 
     if (!mState && value > onThreshold && mPrevValue < onThreshold &&
