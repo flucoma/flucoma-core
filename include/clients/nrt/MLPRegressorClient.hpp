@@ -187,9 +187,9 @@ public:
     if (!resizeResult.ok()) return Error(BufferAlloc);
     RealVector src(inputSize);
     RealVector dest(outputSize);
-    src = inBuf.samps(0, inputSize, 0);
+    src <<= inBuf.samps(0, inputSize, 0);
     mAlgorithm.processFrame(src, dest, inputTap, outputTap);
-    outBuf.samps(0, outputSize, 0) = dest;
+    outBuf.samps(0, outputSize, 0) <<= dest;
     return OK();
   }
 
@@ -289,7 +289,7 @@ public:
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
   {
-    output[0] = input[0];
+    output[0] <<= input[0];
     if (input[0](0) > 0)
     {
       auto MLPRef = get<kModel>().get().lock();
@@ -321,10 +321,10 @@ public:
 
       RealVector src(inputSize);
       RealVector dest(outputSize);
-      src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+      src <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                 .samps(0, inputSize, 0);
       algorithm.processFrame(src, dest, inputTap, outputTap);
-      outBuf.samps(0, outputSize, 0) = dest;
+      outBuf.samps(0, outputSize, 0) <<= dest;
     }
   }
 

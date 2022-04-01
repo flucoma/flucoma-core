@@ -37,7 +37,7 @@ fluid::RealVector computeStats(fluid::RealMatrixView   matrix,
   stats.process(matrix.transpose(), tmp);
   for (int j = 0; j < dim; j++)
   {
-    result(fluid::Slice(j * 7, 7)) = tmp.row(j);
+    result(fluid::Slice(j * 7, 7)) <<= tmp.row(j);
   }
   return result;
 }
@@ -109,7 +109,7 @@ int main(int argc, char* argv[])
   RealMatrix mfccMat(nFrames, nCoefs);
   RealMatrix shapeMat(nFrames, 7);
   std::fill(padded.begin(), padded.end(), 0);
-  padded(Slice(halfWindow, in.size())) = in;
+  padded(Slice(halfWindow, in.size())) <<= in;
 
   for (int i = 0; i < nFrames; i++)
   {
@@ -125,13 +125,13 @@ int main(int argc, char* argv[])
     stft.magnitude(frame, magnitude);
     bands.processFrame(magnitude, mels, false, false, true);
     dct.processFrame(mels, mfccs);
-    mfccMat.row(i) = mfccs;
+    mfccMat.row(i) <<= mfccs;
     yin.processFrame(magnitude, pitch, minFreq, maxFreq, samplingRate);
-    pitchMat.row(i) = pitch;
+    pitchMat.row(i) <<= pitch;
     shape.processFrame(magnitude, shapeDesc, samplingRate);
-    shapeMat.row(i) = shapeDesc;
+    shapeMat.row(i) <<= shapeDesc;
     loudness.processFrame(window, loudnessDesc, true, true);
-    loudnessMat.row(i) = loudnessDesc;
+    loudnessMat.row(i) <<= loudnessDesc;
   }
   RealVector  pitchStats = computeStats(pitchMat, stats);
   RealVector  loudnessStats = computeStats(loudnessMat, stats);

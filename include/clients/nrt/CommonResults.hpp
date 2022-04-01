@@ -21,7 +21,7 @@ static const std::string PointNotFound{"Point not found"};
 static const std::string WrongPointSize{"Wrong Point Size"};
 static const std::string WrongPointNumber{"Wrong number of points"};
 static const std::string WrongNumInitial{"Wrong number of initial points"};
-static const std::string DuplicateLabel{"Label already in dataset"};
+static const std::string DuplicateIdentifier{"Identifier already in dataset"};
 static const std::string SmallDataSet{"DataSet is smaller than k"};
 static const std::string SmallK{"k is too small"};
 static const std::string LargeK{"k is too large"};
@@ -34,7 +34,7 @@ static const std::string NoLabelSet{"LabelSet does not exist"};
 static const std::string NoDataFitted{"No data fitted"};
 static const std::string NotEnoughData{"Not enough data"};
 static const std::string EmptyLabel{"Empty label"};
-static const std::string EmptyId{"Empty id"};
+static const std::string EmptyId{"Empty identifier"};
 static const std::string BufferAlloc{"Can't allocate buffer"};
 static const std::string FileRead{"Couldn't read file"};
 static const std::string FileWrite{"Couldn't write file"};
@@ -46,12 +46,13 @@ template <typename T>
 MessageResult<T> Error(std::string msg)
 {
   return MessageResult<T>{Result::Status::kError, msg};
-};
+}
 
 MessageResult<void> Error(std::string msg)
 {
   return MessageResult<void>{Result::Status::kError, msg};
-};
+}
+
 MessageResult<void> OK() { return MessageResult<void>{Result::Status::kOk}; }
 } // namespace client
 } // namespace fluid

@@ -131,7 +131,7 @@ public:
       return Error<double>(bufCheck.error());
     algorithm::KNNRegressor regressor;
     RealVector              point(mAlgorithm.tree.dims());
-    point = BufferAdaptor::ReadAccess(data.get())
+    point <<= BufferAdaptor::ReadAccess(data.get())
                 .samps(0, mAlgorithm.tree.dims(), 0);
     double result =
         regressor.predict(mAlgorithm.tree, mAlgorithm.target, point, k, weight);
@@ -229,7 +229,7 @@ public:
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
   {
-    output[0] = input[0];
+    output[0] <<= input[0];
     if (input[0](0) > 0)
     {
       auto knnPtr = get<kModel>().get().lock();
@@ -253,7 +253,7 @@ public:
       algorithm::KNNRegressor regressor;
 
       RealVector point(algorithm.tree.dims());
-      point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+      point <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                   .samps(0, algorithm.tree.dims(), 0);
 
       double result =

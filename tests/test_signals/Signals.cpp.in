@@ -16,7 +16,7 @@ const std::string audio_path("@FLUCOMA_CORE_AUDIO@");
 FluidTensor<double, 1> mono(const FluidTensor<double, 2>& x)
 {
   FluidTensor<double, 1> monoInput(x.cols());
-  monoInput = x.row(0);
+  monoInput <<= x.row(0);
   for (index i = 1; i < x.rows(); ++i)
     monoInput.apply(x.row(i), [](double& x, double y) { x += y; });
   return monoInput;

@@ -55,9 +55,17 @@ public:
     VectorXd input = asEigen<Matrix>(in);
     input = input - mMean;
     VectorXd result = input.transpose() * mBases.block(0, 0, mBases.rows(), k);
-    out = _impl::asFluid(result);
+    out <<= _impl::asFluid(result);
   }
 
+  void inverseProcessFrame(RealVectorView in, RealVectorView out) const
+  {
+    using namespace Eigen;
+    using namespace _impl;
+    asEigen<Matrix>(out) = mMean + (asEigen<Matrix>(in).transpose() * mBases.transpose()).transpose();
+  }
+    
+    
   double process(const RealMatrixView in, RealMatrixView out, index k) const
   {
     using namespace Eigen;
@@ -69,14 +77,14 @@ public:
     double variance = 0;
     double total = mValues.sum();
     for (index i = 0; i < k; i++) variance += mValues[i];
-    out = _impl::asFluid(result);
+    out <<= _impl::asFluid(result);
     return variance / total;
   }
 
   bool  initialized() const { return mInitialized; }
-  void  getBases(RealMatrixView out) const { out = _impl::asFluid(mBases); }
-  void  getValues(RealVectorView out) const { out = _impl::asFluid(mValues); }
-  void  getMean(RealVectorView out) const { out = _impl::asFluid(mMean); }
+  void  getBases(RealMatrixView out) const { out <<= _impl::asFluid(mBases); }
+  void  getValues(RealVectorView out) const { out <<= _impl::asFluid(mValues); }
+  void  getMean(RealVectorView out) const { out <<= _impl::asFluid(mMean); }
   index dims() const { return mBases.rows(); }
   index size() const { return mBases.cols(); }
   void  clear()
@@ -91,5 +99,5 @@ public:
   VectorXd mMean;
   bool     mInitialized{false};
 };
-}; // namespace algorithm
-}; // namespace fluid
+}// namespace algorithm
+}// namespace fluid

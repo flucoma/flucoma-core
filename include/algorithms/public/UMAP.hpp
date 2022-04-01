@@ -70,7 +70,7 @@ public:
 
   void getEmbedding(RealMatrixView out) const
   {
-    if (mInitialized) out = _impl::asFluid(mEmbedding);
+    if (mInitialized) out <<= _impl::asFluid(mEmbedding);
   }
 
   double getA() const { return mInitialized ? mAB(0) : 0; }
@@ -179,7 +179,7 @@ public:
     normalizeRows(knnGraph);
     ArrayXXd embedding = initTransformEmbedding(knnGraph, mEmbedding, 1);
     ArrayXd  result = embedding.row(0);
-    out = _impl::asFluid(result);
+    out <<= _impl::asFluid(result);
   }
 
 
@@ -409,5 +409,5 @@ private:
   mutable ArrayXXd mEmbedding;
   bool     mInitialized{false};
 };
-}; // namespace algorithm
-}; // namespace fluid
+}// namespace algorithm
+}// namespace fluid

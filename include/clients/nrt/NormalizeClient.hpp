@@ -103,11 +103,11 @@ public:
     if (!resizeResult.ok()) return Error(BufferAlloc);
     RealVector src(mAlgorithm.dims());
     RealVector dest(mAlgorithm.dims());
-    src = BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
+    src <<= BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
     mAlgorithm.setMin(get<kMin>());
     mAlgorithm.setMax(get<kMax>());
     mAlgorithm.processFrame(src, dest, get<kInvert>() == 1);
-    outBuf.samps(0, mAlgorithm.dims(), 0) = dest;
+    outBuf.samps(0, mAlgorithm.dims(), 0) <<= dest;
     return OK();
   }
 
@@ -199,7 +199,7 @@ public:
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
   {
-    output[0] = input[0];
+    output[0] <<= input[0];
     if (input[0](0) > 0)
     {
       auto normPtr = get<kModel>().get().lock();
@@ -218,12 +218,12 @@ public:
       if (outBuf.samps(0).size() < algorithm.dims()) return;
       RealVector src(algorithm.dims());
       RealVector dest(algorithm.dims());
-      src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+      src <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                 .samps(0, algorithm.dims(), 0);
 //      algorithm.setMin(get<kMin>());
 //      algorithm.setMax(get<kMax>());
       algorithm.processFrame(src, dest, get<kInvert>() == 1);
-      outBuf.samps(0, algorithm.dims(), 0) = dest;
+      outBuf.samps(0, algorithm.dims(), 0) <<= dest;
     }
   }
 

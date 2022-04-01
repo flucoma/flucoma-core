@@ -44,21 +44,21 @@ public:
                         FluidTensorView<double, 2>                     out)
   {
     ArrayXXd mag = _impl::asEigen<Eigen::Array>(in).abs().real();
-    out = _impl::asFluid(mag);
+    out <<= _impl::asFluid(mag);
   }
 
   static void magnitude(const FluidTensorView<std::complex<double>, 1> in,
                         FluidTensorView<double, 1>                     out)
   {
     ArrayXd mag = _impl::asEigen<Eigen::Array>(in).abs().real();
-    out = _impl::asFluid(mag);
+    out <<= _impl::asFluid(mag);
   }
 
   static void phase(const FluidTensorView<std::complex<double>, 2> in,
                     FluidTensorView<double, 2>                     out)
   {
     ArrayXXd phase = _impl::asEigen<Eigen::Array>(in).arg().real();
-    out = _impl::asFluid(phase);
+    out <<= _impl::asFluid(phase);
   }
 
   static void phase(const FluidTensorView<std::complex<double>, 1> in,
@@ -85,7 +85,7 @@ public:
       result.row(i) =
           mFFT.process(padded.segment(i * mHopSize, mWindowSize) * mWindow);
     }
-    spectrogram = _impl::asFluid(result);
+    spectrogram <<= _impl::asFluid(result);
   }
 
   void processFrame(const RealVectorView frame, ComplexVectorView out)
@@ -93,7 +93,7 @@ public:
     assert(frame.size() == mWindowSize);
     ArrayXcd spectrum =
         mFFT.process(_impl::asEigen<Eigen::Array>(frame) * mWindow);
-    out = _impl::asFluid(spectrum);
+    out <<= _impl::asFluid(spectrum);
   }
 
   void processFrame(Eigen::Ref<ArrayXd> frame, Eigen::Ref<ArrayXcd> out)
@@ -153,7 +153,7 @@ public:
     }
     outputPadded = outputPadded / norm.max(epsilon());
     ArrayXd trimmed = outputPadded.segment(halfWindow, audio.size());
-    audio = _impl::asFluid(trimmed);
+    audio <<= _impl::asFluid(trimmed);
   }
 
   void processFrame(const ComplexVectorView frame, RealVectorView audio)
@@ -161,7 +161,7 @@ public:
     mBuffer = mIFFT.process(_impl::asEigen<Eigen::Array>(frame))
                   .segment(0, mWindowSize) *
               mWindow * mScale;
-    audio = _impl::asFluid(mBuffer);
+    audio <<= _impl::asFluid(mBuffer);
   }
 
   void processFrame(Eigen::Ref<ArrayXcd> frame, Eigen::Ref<ArrayXd> audio)

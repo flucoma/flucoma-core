@@ -85,7 +85,7 @@ public:
     if (!bufCheck.checkInputs(data.get()))
       return Error<StringVector>(bufCheck.error());
     RealVector point(mAlgorithm.dims());
-    point =
+    point <<=
         BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0);
     FluidDataSet<std::string, double, 1> nearest =
         mAlgorithm.kNearest(point, k, get<kRadius>());
@@ -104,7 +104,7 @@ public:
     if (!bufCheck.checkInputs(data.get()))
       return Error<RealVector>(bufCheck.error());
     RealVector point(mAlgorithm.dims());
-    point =
+    point <<=
         BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0);
     FluidDataSet<std::string, double, 1> nearest =
         mAlgorithm.kNearest(point, k, get<kRadius>());
@@ -175,9 +175,9 @@ public:
 
   template <typename T>
   void process(std::vector<FluidTensorView<T, 1>>& input,
-               std::vector<FluidTensorView<T, 1>>& output, FluidContext& c)
+               std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
   {
-    output[0] = input[0];
+    output[0] <<= input[0];
 
     if (input[0](0) > 0)
     {
@@ -219,7 +219,7 @@ public:
       if (outBuf.samps(0).size() < outputSize) return;
 
       RealVector point(dims);
-      point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+      point <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                   .samps(0, dims, 0);
       if (mRTBuffer.size() != outputSize)
       {
@@ -232,7 +232,7 @@ public:
       {
         dataset.get(ids(i), mRTBuffer(Slice(i * pointSize, pointSize)));
       }
-      outBuf.samps(0, outputSize, 0) = mRTBuffer;
+      outBuf.samps(0, outputSize, 0) <<= mRTBuffer;
     }
   }
 

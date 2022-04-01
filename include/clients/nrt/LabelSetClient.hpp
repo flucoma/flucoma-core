@@ -77,7 +77,7 @@ public:
     if (label.empty()) return Error(EmptyLabel);
     if (mAlgorithm.dims() == 0) { mAlgorithm = LabelSet(1); }
     StringVector point = {label};
-    return mAlgorithm.add(id, point) ? OK() : Error(DuplicateLabel);
+    return mAlgorithm.add(id, point) ? OK() : Error(DuplicateIdentifier);
   }
 
   MessageResult<string> getLabel(string id) const
@@ -154,7 +154,7 @@ private:
     algorithm::DataSetIdSequence seq("", 0, 0);
     FluidTensor<string, 1>       newIds(mAlgorithm.size());
     FluidTensor<string, 2>       labels(mAlgorithm.size(), 1);
-    labels.col(0) = mAlgorithm.getIds();
+    labels.col(0) <<= mAlgorithm.getIds();
     seq.generate(newIds);
     return LabelSet(newIds, labels);
   }  

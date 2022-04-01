@@ -74,7 +74,8 @@ public:
     if(minFreq != 0 || maxFreq != -1){
         maxFreq = (maxFreq == -1) ? (mSampleRate / 2) : min(maxFreq, mSampleRate / 2);
         double  binHz = mSampleRate / ((mNBins - 1) * 2.);
-        index   minBin = minFreq == 0? 0 : ceil(minFreq / binHz);
+        index   minBin =
+            minFreq == 0 ? 0 : static_cast<index>(ceil(minFreq / binHz));
         index   maxBin =
             min(static_cast<index>(floorl(maxFreq / binHz)), (mNBins - 1));
         frame.segment(0, minBin).setZero();
@@ -87,7 +88,7 @@ public:
       double norm = normalize == 1? result.sum() : result.maxCoeff();
       result = result / std::max(norm, epsilon);
     }
-    out = _impl::asFluid(result);
+    out <<= _impl::asFluid(result);
   }
 
   index mNChroma;

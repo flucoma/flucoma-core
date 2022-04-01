@@ -122,9 +122,9 @@ public:
       }
     }
     MatrixXd W1 = WT.transpose();
-    W = asFluid(W1);
+    W <<= asFluid(W1);
     MatrixXd H1 = HT.transpose();
-    H = asFluid(H1);
+    H <<= asFluid(H1);
     return k;
   }
 };

@@ -71,8 +71,8 @@ public:
                                2);
     }
     RealMatrix in(2, input[0].size());
-    in.row(0) = input[0];
-    in.row(1) = input[1];
+    in.row(0) <<= input[0];
+    in.row(1) <<= input[1];
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.process(
         get<kFFT>().winSize(), get<kFFT>().winSize(), get<kFFT>().hopSize(), c,
@@ -86,7 +86,7 @@ public:
     RealVectorView norm = out.row(1);
     for (index i = 0; i < result.size(); i++)
     { result(i) /= (norm(i) > 0 ? norm(i) : 1); }
-    if (output[0].data()) output[0] = result;
+    if (output[0].data()) output[0] <<= result;
   }
 
   index latency() { return get<kFFT>().winSize(); }

@@ -87,7 +87,7 @@ public:
     FluidTensor<float, 2> tmp(numChans, numFrames);
 
     for (index i = 0; i < numChans; ++i)
-      tmp.row(i) = source.samps(startFrame, numFrames, (i + startChan));
+      tmp.row(i) <<= source.samps(startFrame, numFrames, (i + startChan));
 
     // process
     double threshold = get<kThresh>();
@@ -99,7 +99,7 @@ public:
 
     if (!r.ok()) return r;
 
-    for (index i = 0; i < numChans; ++i) dest.samps(i) = tmp.row(i);
+    for (index i = 0; i < numChans; ++i) dest.samps(i) <<= tmp.row(i);
 
     return {};
   }

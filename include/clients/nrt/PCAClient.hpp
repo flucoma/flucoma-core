@@ -124,9 +124,31 @@ public:
     if (!resizeResult.ok()) return Error(BufferAlloc);
     FluidTensor<double, 1> src(mAlgorithm.dims());
     FluidTensor<double, 1> dest(k);
-    src = BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
+    src <<= BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
     mAlgorithm.processFrame(src, dest, k);
-    outBuf.samps(0, k, 0) = dest;
+    outBuf.samps(0, k, 0) <<= dest;
+    return OK();
+  }
+  
+  MessageResult<void> inverseTransformPoint(BufferPtr in, BufferPtr out) const
+  {
+    if (!mAlgorithm.initialized()) return Error(NoDataFitted);
+    InOutBuffersCheck bufCheck(mAlgorithm.dims());
+    BufferAdaptor::Access inBuf(in.get());
+    BufferAdaptor::Access outBuf(out.get());
+    if(!inBuf.exists()) return Error("Input buffer not found");
+    if(!inBuf.valid()) return Error("Input buffer may be zero sized");
+    if(!outBuf.exists()) return Error("Output buffer not found");
+        
+    FluidTensor<double, 1> src(mAlgorithm.dims());
+    FluidTensor<double, 1> dst(mAlgorithm.dims());
+    index k = std::min(inBuf.numFrames(),mAlgorithm.dims());
+    
+    src(Slice(0,k)) <<= inBuf.samps(0,k,0);
+    Result resizeResult = outBuf.resize(mAlgorithm.dims(), 1, outBuf.sampleRate());
+    
+    mAlgorithm.inverseProcessFrame(src,dst);
+    outBuf.samps(0,mAlgorithm.dims(),0) <<= dst;
     return OK();
   }
 
@@ -137,6 +159,7 @@ public:
         makeMessage("transform", &PCAClient::transform),
         makeMessage("fitTransform", &PCAClient::fitTransform),
         makeMessage("transformPoint", &PCAClient::transformPoint),
+        makeMessage("inverseTransformPoint", &PCAClient::inverseTransformPoint),
         makeMessage("cols", &PCAClient::dims),
         makeMessage("size", &PCAClient::size),
         makeMessage("clear", &PCAClient::clear),
@@ -185,7 +208,7 @@ public:
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
   {
-    output[0] = input[0];
+    output[0] <<= input[0];
     if (input[0](0) > 0)
     {
       auto PCAPtr = get<kModel>().get().lock();
@@ -206,10 +229,10 @@ public:
       if (outBuf.samps(0).size() < k) return;
       RealVector src(algorithm.dims());
       RealVector dest(k);
-      src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+      src <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                 .samps(0, algorithm.dims(), 0);
       algorithm.processFrame(src, dest, k);
-      outBuf.samps(0, k, 0) = dest;
+      outBuf.samps(0, k, 0) <<= dest;
     }
   }
 
