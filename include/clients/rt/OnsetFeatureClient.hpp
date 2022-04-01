@@ -109,7 +109,7 @@ public:
               in.row(0), get<kFunction>(), get<kFilterSize>(), get<kFrameDelta>());
         });
 
-    output[0](0) = mDescriptor;
+    output[0](0) = static_cast<T>(mDescriptor);
   }
 
   index latency() { return static_cast<index>(get<kFFT>().hopSize()); }

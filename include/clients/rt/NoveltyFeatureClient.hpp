@@ -183,7 +183,7 @@ public:
           mDescriptor = mNovelty.processFrame(mFeature);
         });
 
-    output[0](0) = mDescriptor;
+    output[0](0) = static_cast<T>(mDescriptor);
   }
 
   index latency()
