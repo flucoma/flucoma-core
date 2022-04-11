@@ -24,8 +24,8 @@ struct KNNClassifierData
 {
   algorithm::KDTree                         tree{0};
   FluidDataSet<std::string, std::string, 1> labels{1};
-  index                                     size() { return labels.size(); }
-  index                                     dims() { return tree.dims(); }
+  index                                     size() const { return labels.size(); }
+  index                                     dims() const { return tree.dims(); }
   void                                      clear()
   {
     labels = FluidDataSet<std::string, std::string, 1>(1);
@@ -68,6 +68,7 @@ class KNNClassifierClient : public FluidBaseClient,
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
+  using InputBufferPtr = std::shared_ptr<const BufferAdaptor>;
   using LabelSet = FluidDataSet<string, string, 1>;
   using DataSet = FluidDataSet<string, double, 1>;
   using StringVector = FluidTensor<string, 1>;
@@ -99,8 +100,8 @@ public:
     return {};
   }
 
-  MessageResult<void> fit(DataSetClientRef  datasetClient,
-                          LabelSetClientRef labelsetClient)
+  MessageResult<void> fit(InputDataSetClientRef  datasetClient,
+                          InputLabelSetClientRef labelsetClient)
   {
     auto datasetClientPtr = datasetClient.get().lock();
     if (!datasetClientPtr) return Error(NoDataSet);
@@ -118,7 +119,7 @@ public:
     return OK();
   }
 
-  MessageResult<string> predictPoint(BufferPtr data) const
+  MessageResult<string> predictPoint(InputBufferPtr data) const
   {
     index k = get<kNumNeighbors>();
     bool  weight = get<kWeight>() != 0;
@@ -137,7 +138,7 @@ public:
     return result;
   }
 
-  MessageResult<void> predict(DataSetClientRef  source,
+  MessageResult<void> predict(InputDataSetClientRef  source,
                               LabelSetClientRef dest) const
   {
     index k = get<kNumNeighbors>();
@@ -185,7 +186,7 @@ public:
         makeMessage("read", &KNNClassifierClient::read));
   }
 
-  index encodeIndex(std::string label)
+  index encodeIndex(std::string label) const 
   {
     return mLabelSetEncoder.encodeIndex(label);
   }
@@ -194,13 +195,13 @@ private:
   algorithm::LabelSetEncoder mLabelSetEncoder;
 };
 
-using KNNClassifierRef = SharedClientRef<KNNClassifierClient>;
+using KNNClassifierRef = SharedClientRef<const KNNClassifierClient>;
 
 constexpr auto KNNClassifierQueryParams = defineParameters(
     KNNClassifierRef::makeParam("model", "Source model"),
     LongParam("numNeighbours", "Number of Nearest Neighbours", 3, Min(1)),
     EnumParam("weight", "Weight Neighbours by Distance", 1, "No", "Yes"),
-    BufferParam("inputPointBuffer", "Input Point Buffer"),
+    InputBufferParam("inputPointBuffer", "Input Point Buffer"),
     BufferParam("predictionBuffer", "Prediction Buffer"));
 
 class KNNClassifierQuery : public FluidBaseClient, ControlIn, ControlOut

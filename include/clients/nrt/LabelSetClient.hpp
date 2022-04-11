@@ -25,6 +25,7 @@ namespace labelset {
 
 //Note that the shared type alias is declared after the Client implementation in most other cases 
 using LabelSetClientRef = SharedClientRef<labelset::LabelSetClient>;
+using InputLabelSetClientRef = SharedClientRef<const labelset::LabelSetClient>;
 
 namespace labelset {
 

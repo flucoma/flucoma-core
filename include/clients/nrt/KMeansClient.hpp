@@ -36,6 +36,7 @@ class KMeansClient : public FluidBaseClient,
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
+  using InputBufferPtr = std::shared_ptr<const BufferAdaptor>;
   using IndexVector = FluidTensor<index, 1>;
   using StringVector = FluidTensor<string, 1>;
   using StringVectorView = FluidTensorView<string, 1>;
@@ -68,7 +69,7 @@ public:
     return {};
   }
 
-  MessageResult<IndexVector> fit(DataSetClientRef datasetClient)
+  MessageResult<IndexVector> fit(InputDataSetClientRef datasetClient)
   {
     index k = get<kNumClusters>();
     index maxIter = get<kMaxIter>();
@@ -83,7 +84,7 @@ public:
     return getCounts(assignments, k);
   }
 
-  MessageResult<IndexVector> fitPredict(DataSetClientRef  datasetClient,
+  MessageResult<IndexVector> fitPredict(InputDataSetClientRef  datasetClient,
                                         LabelSetClientRef labelsetClient)
   {
     index k = get<kNumClusters>();
@@ -104,7 +105,7 @@ public:
     return getCounts(assignments, k);
   }
 
-  MessageResult<IndexVector> predict(DataSetClientRef  datasetClient,
+  MessageResult<IndexVector> predict(InputDataSetClientRef  datasetClient,
                                      LabelSetClientRef labelClient) const
   {
     auto dataPtr = datasetClient.get().lock();
@@ -129,7 +130,7 @@ public:
   }
 
 
-  MessageResult<void> transform(DataSetClientRef srcClient,
+  MessageResult<void> transform(InputDataSetClientRef srcClient,
                                 DataSetClientRef dstClient) const
   {
     auto srcPtr = srcClient.get().lock();
@@ -151,7 +152,7 @@ public:
     return OK();
   }
 
-  MessageResult<IndexVector> fitTransform(DataSetClientRef srcClient,
+  MessageResult<IndexVector> fitTransform(InputDataSetClientRef srcClient,
                                           DataSetClientRef dstClient)
   {
     index k = get<kNumClusters>();
@@ -171,7 +172,7 @@ public:
     return getCounts(assignments, k);
   }
 
-  MessageResult<index> predictPoint(BufferPtr data) const
+  MessageResult<index> predictPoint(InputBufferPtr data) const
   {
     if (!mAlgorithm.initialized()) return Error<index>(NoDataFitted);
     InBufferCheck bufCheck(mAlgorithm.dims());
@@ -198,7 +199,7 @@ public:
     return OK();
   }
 
-  MessageResult<void> setMeans(DataSetClientRef srcClient)
+  MessageResult<void> setMeans(InputDataSetClientRef srcClient)
   {
     auto srcPtr = srcClient.get().lock();
     if (!srcPtr) return Error(NoDataSet);
@@ -210,7 +211,7 @@ public:
   }
 
 
-  MessageResult<void> transformPoint(BufferPtr in, BufferPtr out) const
+  MessageResult<void> transformPoint(InputBufferPtr in, BufferPtr out) const
   {
     if (!mAlgorithm.initialized()) return Error(NoDataFitted);
     InBufferCheck bufCheck(mAlgorithm.dims());
@@ -271,11 +272,11 @@ private:
   }
 };
 
-using KMeansRef = SharedClientRef<KMeansClient>;
+using KMeansRef = SharedClientRef<const KMeansClient>;
 
 constexpr auto KMeansQueryParams =
     defineParameters(KMeansRef::makeParam("kmeans", "Source KMeans model"),
-                     BufferParam("inputPointBuffer", "Input Point Buffer"),
+                     InputBufferParam("inputPointBuffer", "Input Point Buffer"),
                      BufferParam("predictionBuffer", "Prediction Buffer"));
 
 class KMeansQuery : public FluidBaseClient, ControlIn, ControlOut

@@ -100,7 +100,7 @@ public:
   }
 
   void processFrame(RealVectorView in, RealVectorView out, index startLayer,
-                    index endLayer)
+                    index endLayer) const
   {
     using namespace _impl;
     using namespace Eigen;
@@ -113,13 +113,13 @@ public:
     out <<= asFluid(tmpOut);
   }
 
-  void forward(Eigen::Ref<ArrayXXd> in, Eigen::Ref<ArrayXXd> out)
+  void forward(Eigen::Ref<ArrayXXd> in, Eigen::Ref<ArrayXXd> out) const
   {
     forward(in, out, 0, asSigned(mLayers.size()));
   }
 
   void forward(Eigen::Ref<ArrayXXd> in, Eigen::Ref<ArrayXXd> out,
-               index startLayer, index endLayer)
+               index startLayer, index endLayer) const
   {
     if (startLayer >= asSigned(mLayers.size()) ||
         endLayer > asSigned(mLayers.size()))
@@ -137,7 +137,7 @@ public:
     out = output;
   }
 
-  void backward(Eigen::Ref<ArrayXXd> out)
+  void backward(Eigen::Ref<ArrayXXd> out) 
   {
     index    nRows = out.rows();
     ArrayXXd chain =

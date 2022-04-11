@@ -133,7 +133,7 @@ public:
     return out;
   }
 
-  DataSet transform(DataSet& in, index maxIter = 200, double learningRate = 1.0)
+  DataSet transform(DataSet& in, index maxIter = 200, double learningRate = 1.0) const
   {
     if (!mInitialized) return DataSet();
     SparseMatrixXd knnGraph(in.size(), mEmbedding.rows());
@@ -158,7 +158,7 @@ public:
   }
 
 
-  void transformPoint(RealVectorView in, RealVectorView out)
+  void transformPoint(RealVectorView in, RealVectorView out) const
   {
     if (!mInitialized) return;
     SparseMatrixXd knnGraph(1, mEmbedding.rows());
@@ -185,7 +185,7 @@ public:
 
 private:
   template <typename F>
-  void traverseGraph(const SparseMatrixXd& graph, F func)
+  void traverseGraph(const SparseMatrixXd& graph, F func) const
   {
     for (index i = 0; i < graph.outerSize(); i++)
     {
@@ -204,7 +204,7 @@ private:
   }
 
   ArrayXd findSigma(index k, Ref<ArrayXXd> dists, index maxIter = 64,
-                    double tolerance = 1e-5)
+                    double tolerance = 1e-5) const
   {
     using namespace std;
     double  target = log2(k);
@@ -242,7 +242,7 @@ private:
   }
 
   void computeHighDimProb(const Ref<ArrayXXd>& dists, const Ref<ArrayXd>& sigma,
-                          SparseMatrixXd& graph)
+                          SparseMatrixXd& graph) const
   {
     traverseGraph(graph, [&](auto it) {
       it.valueRef() =
@@ -263,7 +263,7 @@ private:
   }
 
   void makeGraph(const DataSet& in, index k, SparseMatrixXd& graph,
-                 Ref<ArrayXXd> dists, bool discardFirst)
+                 Ref<ArrayXXd> dists, bool discardFirst) const
   {
     graph.reserve(in.size() * k);
     auto data = in.getData();
@@ -298,7 +298,7 @@ private:
   }
 
   void getGraphIndices(const SparseMatrixXd& graph, Ref<ArrayXi> rowIndices,
-                       Ref<ArrayXi> colIndices)
+                       Ref<ArrayXi> colIndices) const
   {
     index p = 0;
     traverseGraph(graph, [&](auto it) {
@@ -309,7 +309,7 @@ private:
   }
 
   void computeEpochsPerSample(const SparseMatrixXd& graph,
-                              Ref<ArrayXd>          epochsPerSample)
+                              Ref<ArrayXd>          epochsPerSample) const
   {
     index  p = 0;
     double maxVal = graph.coeffs().maxCoeff();
@@ -321,7 +321,7 @@ private:
   void optimizeLayout(Ref<ArrayXXd> embedding, Ref<ArrayXXd> reference,
                       Ref<ArrayXi> embIndices, Ref<ArrayXi> refIndices,
                       Ref<ArrayXd> epochsPerSample, bool updateReference,
-                      double learningRate, index maxIter, double gamma = 1.0)
+                      double learningRate, index maxIter, double gamma = 1.0) const
   {
     using namespace std;
     double alpha = learningRate;
@@ -385,7 +385,7 @@ private:
   }
 
   ArrayXXd initTransformEmbedding(const SparseMatrixXd& graph,
-                                  Ref<ArrayXXd> reference, index N)
+                                  Ref<const ArrayXXd> reference, index N) const
   {
     ArrayXXd embedding = ArrayXXd::Zero(N, reference.cols());
     traverseGraph(graph, [&](auto it) {
@@ -394,7 +394,7 @@ private:
     return embedding;
   }
 
-  void normalizeRows(const SparseMatrixXd& graph)
+  void normalizeRows(const SparseMatrixXd& graph) const
   {
     ArrayXd sums = ArrayXd::Zero(graph.innerSize());
     traverseGraph(graph, [&](auto it) { sums(it.row()) += it.value(); });
@@ -406,7 +406,7 @@ private:
   KDTree   mTree;
   index    mK;
   VectorXd mAB;
-  ArrayXXd mEmbedding;
+  mutable ArrayXXd mEmbedding;
   bool     mInitialized{false};
 };
 }// namespace algorithm

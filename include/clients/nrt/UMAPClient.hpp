@@ -44,6 +44,7 @@ class UMAPClient : public FluidBaseClient,
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
+  using InputBufferPtr = std::shared_ptr<const BufferAdaptor>;
   using StringVector = FluidTensor<string, 1>;
 
   using ParamDescType = decltype(UMAPParams);
@@ -69,7 +70,7 @@ public:
       return{};
   }
 
-  MessageResult<void> fitTransform(DataSetClientRef sourceClient,
+  MessageResult<void> fitTransform(InputDataSetClientRef sourceClient,
                                    DataSetClientRef destClient)
   {
     auto srcPtr = sourceClient.get().lock();
@@ -88,7 +89,7 @@ public:
     return OK();
   }
 
-  MessageResult<void> fit(DataSetClientRef sourceClient)
+  MessageResult<void> fit(InputDataSetClientRef sourceClient)
   {
     auto srcPtr = sourceClient.get().lock();
     if (!srcPtr) return Error(NoDataSet);
@@ -104,7 +105,7 @@ public:
     return OK();
   }
 
-  MessageResult<void> transform(DataSetClientRef sourceClient,
+  MessageResult<void> transform(InputDataSetClientRef sourceClient,
                                 DataSetClientRef destClient)
   {
     auto srcPtr = sourceClient.get().lock();
@@ -124,7 +125,7 @@ public:
     return OK();
   }
 
-  MessageResult<void> transformPoint(BufferPtr in, BufferPtr out)
+  MessageResult<void> transformPoint(InputBufferPtr in, BufferPtr out)
   {
     index inSize = mAlgorithm.inputDims();
     index outSize = mAlgorithm.dims();
@@ -162,11 +163,11 @@ public:
   }
 };
 
-using UMAPRef = SharedClientRef<UMAPClient>;
+using UMAPRef = SharedClientRef<const UMAPClient>;
 
 constexpr auto UMAPQueryParams =
     defineParameters(UMAPRef::makeParam("model", "Source Model"),
-                     BufferParam("inputPointBuffer", "Input Point Buffer"),
+                     InputBufferParam("inputPointBuffer", "Input Point Buffer"),
                      BufferParam("predictionBuffer", "Prediction Buffer"));
 
 class UMAPQuery : public FluidBaseClient, ControlIn, ControlOut
@@ -208,7 +209,7 @@ public:
         // report error?
         return;
       }
-      algorithm::UMAP& algorithm = UMAPPtr->algorithm();
+      algorithm::UMAP const& algorithm = UMAPPtr->algorithm();
       if (!algorithm.initialized()) return;
       index inSize = algorithm.inputDims();
       index outSize = algorithm.dims();
