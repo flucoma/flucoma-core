@@ -33,6 +33,7 @@ public:
   {
     mNovelty.init(kernelSize, filterSize, nDims);
     mDebounceCount = 1;
+    mPeakBuffer.setZero(); 
   }
 
   double processFrame(const RealVectorView input, double threshold,
