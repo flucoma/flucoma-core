@@ -126,6 +126,7 @@ public:
       mLoudness.init(windowSize, sampleRate());
     }
     mFeature.resize(nDims);
+    mFrameOffset = 0; 
     mNovelty.init(get<kKernelSize>(), get<kFilterSize>(), nDims);
   }
 
