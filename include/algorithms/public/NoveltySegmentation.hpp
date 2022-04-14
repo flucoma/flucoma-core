@@ -26,7 +26,7 @@ public:
   using ArrayXd = Eigen::ArrayXd;
 
   NoveltySegmentation(index maxKernelSize, index maxFilterSize)
-      : mNovelty(maxFilterSize, maxKernelSize)
+      : mNovelty(maxKernelSize, maxFilterSize)
   {}
 
   void init(index kernelSize, index filterSize, index nDims)
