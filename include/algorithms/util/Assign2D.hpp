@@ -30,7 +30,7 @@ public:
   using ArrayXd = Eigen::ArrayXd;
   using ArrayXXd = Eigen::ArrayXXd;
   using ArrayXi = Eigen::ArrayXi;
-  static const index UNASSIGNED = -1;
+  static constexpr index UNASSIGNED = -1;
 
   bool process(Eigen::Ref<const Eigen::ArrayXXd> costMatrix,
                Eigen::Ref<ArrayXidx>             result)
