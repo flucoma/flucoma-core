@@ -131,5 +131,8 @@ private:
   ArrayXidx mPred;
   bool mTransposed{false};
 };
+
+constexpr index Assign2D::UNASSIGNED;
+
 } // namespace algorithm
 } // namespace fluid
