@@ -100,6 +100,12 @@ target_compile_definitions(TestUtils INTERFACE
   APPROVAL_TESTS_HIDE_DEPRECATED_CODE=1
 )
 
+if(APPLE)
+  target_compile_definitions(TestUtils INTERFACE   
+    CATCH_CONFIG_NO_CPP17_UNCAUGHT_EXCEPTIONS
+  )
+endif()
+
 function(add_test_executable target_name source_file)
   add_executable(${target_name} ${source_file})
   target_link_libraries(${target_name} PUBLIC TestUtils)
