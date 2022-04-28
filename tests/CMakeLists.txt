@@ -99,7 +99,6 @@ target_link_libraries(TestUtils INTERFACE
 target_compile_definitions(TestUtils INTERFACE 
   APPROVAL_TESTS_HIDE_DEPRECATED_CODE=1
 )
-target_compile_features(TestUtils INTERFACE cxx_std_14)
 
 function(add_test_executable target_name source_file)
   add_executable(${target_name} ${source_file})
