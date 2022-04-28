@@ -39,7 +39,7 @@ public:
     if (&r == this) return *this;
 
     mStatus = r.mStatus;
-    mMsg = std::stringstream(r.mMsg.str());
+    mMsg = std::ostringstream(r.mMsg.str());
     return *this;
   };
 
@@ -71,13 +71,13 @@ public:
 
   void reset()
   {
-    mMsg = std::stringstream();
+    mMsg = std::ostringstream();
     mStatus = Status::kOk;
   }
 
 private:
   Status            mStatus = Status::kOk;
-  std::stringstream mMsg;
+  std::ostringstream mMsg;
 };
 
 

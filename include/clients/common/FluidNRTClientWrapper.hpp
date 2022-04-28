@@ -528,7 +528,7 @@ struct StreamingControl
   {
     // To account for process latency we need to copy the buffers with padding
     std::vector<HostMatrix> inputData;
-    index                   nFeatures = client.controlChannelsOut().size;
+    index                   maxFeatures = client.maxControlChannelsOut();
     //      outputData.reserve(nFeatures);
     inputData.reserve(inputBuffers.size());
 
@@ -557,7 +557,7 @@ struct StreamingControl
     std::fill_n(std::back_inserter(inputData), inputBuffers.size(),
                 HostMatrix(nChans, nFrames + totalPadding));
 
-    HostMatrix outputData(nChans * nFeatures, nHops);
+    HostMatrix outputData(nChans * maxFeatures, nHops);
     double     sampleRate{0};
     // Copy input data
     for (index i = 0; i < nChans; ++i)
@@ -591,7 +591,7 @@ struct StreamingControl
 
         // for (index k = 0; k < nFeatures; ++k)
         //   outputs.emplace_back(outputData.row(k + i * nFeatures)(Slice(j, 1)));
-        outputs.push_back(outputData.col(j)(Slice(i * nFeatures, nFeatures)));
+        outputs.push_back(outputData.col(j)(Slice(i * maxFeatures, maxFeatures)));
 
         client.process(inputs, outputs, dummyContext);
 
@@ -603,7 +603,7 @@ struct StreamingControl
     }
 
     BufferAdaptor::Access thisOutput(outputBuffers[0]);
-
+    index nFeatures = client.controlChannelsOut().size;
     index latencyHops = client.latency() / controlRate;
     index keepHops = nHops - latencyHops;
 

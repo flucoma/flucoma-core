@@ -126,6 +126,12 @@ public:
       return {Result::Status::kWarning, name, " not found"};
   }
 
+  template<typename Func,typename... Args>
+  auto setPrimaryParameterValues(bool reportage,Func&& f, Args&&...args)
+  {
+     return mParams->params.setPrimaryParameterValues(reportage, std::forward<Func>(f),std::forward<Args>(args)...);
+  }
+  
   template <template <size_t N, typename T> class Func, typename... Args>
   auto setFixedParameterValues(bool reportage, Args&&... args)
   {

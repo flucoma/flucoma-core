@@ -41,6 +41,8 @@ struct Fixed
   static bool constexpr value{b};
 };
 
+struct Primary {};
+
 struct ParamTypeBase
 {
   constexpr ParamTypeBase(const char* n, const char* display)
@@ -71,6 +73,7 @@ struct LongT : ParamTypeBase
   const index fixedSize = 1;
   const type  defaultValue;
 };
+
 
 struct BufferT : ParamTypeBase
 {
@@ -249,12 +252,11 @@ struct ConstrainMaxFFTSize<true>
 class FFTParams
 {
 public:
-  constexpr FFTParams(intptr_t win, intptr_t hop, intptr_t fft)
-      : mWindowSize{win}, mHopSize{hop}, mFFTSize{fft}, trackWin{win},
-        trackHop{hop}, trackFFT{fft}
+  constexpr FFTParams(intptr_t win, intptr_t hop, intptr_t fft, intptr_t max = -1)
+      : mWindowSize{win}, mHopSize{hop}, mFFTSize{fft}, mMaxFFTSize{max},
+        trackWin{win}, trackHop{hop}, trackFFT{fft}
   {}
-
-
+  
   constexpr FFTParams(const FFTParams& p) noexcept = default;
   constexpr FFTParams(FFTParams&& p) noexcept = default;
 
@@ -264,7 +266,7 @@ public:
     mWindowSize = p.mWindowSize;
     mHopSize = p.mHopSize;
     mFFTSize = p.mFFTSize;
-
+    mMaxFFTSize = p.mMaxFFTSize;
     return *this;
   }
 
@@ -273,8 +275,13 @@ public:
     mWindowSize = p.mWindowSize;
     mHopSize = p.mHopSize;
     mFFTSize = p.mFFTSize;
-
+    mMaxFFTSize = p.mMaxFFTSize;
     return *this;
+  }
+
+  index maxSize() const noexcept
+  {
+    return mMaxFFTSize;
   }
 
   index fftSize() const noexcept
@@ -424,9 +431,10 @@ public:
   };
 
 private:
-  intptr_t mWindowSize{0};
-  intptr_t mHopSize{0};
-  intptr_t mFFTSize{0};
+  intptr_t mWindowSize;
+  intptr_t mHopSize;
+  intptr_t mFFTSize;
+  intptr_t mMaxFFTSize;
 
   ParameterTrackChanges<intptr_t> trackWin;
   ParameterTrackChanges<intptr_t> trackHop;
@@ -440,10 +448,85 @@ struct FFTParamsT : ParamTypeBase
   constexpr FFTParamsT(const char* name, const char* displayName,
                        index winDefault, index hopDefault, index fftDefault)
       : ParamTypeBase(name, displayName), defaultValue{winDefault, hopDefault,
-                                                       fftDefault}
+                                                       fftDefault,-1}
   {}
 
   const index fixedSize = 3;
+  const type  defaultValue;
+};
+
+class LongRuntimeMaxParam {
+public:
+  
+  constexpr LongRuntimeMaxParam(index val, index max)
+    : mValue(max < 0 ? val: std::min(val,max)), mMax(max < 0 ? val : max)
+  {}
+
+  constexpr LongRuntimeMaxParam(index val): LongRuntimeMaxParam(val,-1){}
+  //todo do I need this?
+  LongRuntimeMaxParam(std::reference_wrapper<index> val): LongRuntimeMaxParam(val.get(),-1){}
+
+  index operator()() const  { return mValue; }
+  operator fluid::index() const {return mValue; }
+  index max() const { return mMax; }
+  
+  void set(index val)
+  {
+    mValue = val;
+  }
+  
+  void clamp() { mValue = std::min(mValue,mMax);   }
+  
+  struct RuntimeMaxConstraint
+  {
+    template <index Offset, size_t N, typename Tuple, typename Descriptor>
+    constexpr void clamp(LongRuntimeMaxParam& v, Tuple&, Descriptor& d,
+                         Result* r) const
+    {
+       index oldValue = v;
+       v.clamp();
+       if(r && oldValue != v)
+       {
+          r->set(Result::Status::kWarning);
+          r->addMessage(d.template get<N>().name, " value, ", oldValue,
+                    ", above user defined maximum ", v.max());
+       }
+    }
+  };
+  
+  friend bool operator<(const LongRuntimeMaxParam& l, const LongRuntimeMaxParam& r)
+  {
+    return l() < r();
+  }
+  
+  friend bool operator>(const LongRuntimeMaxParam& l, const LongRuntimeMaxParam& r)
+  {
+    return r() < l();
+  }
+  
+  friend bool operator<=(const LongRuntimeMaxParam& l, const LongRuntimeMaxParam& r)
+  {
+    return !(l() > r());
+  }
+  
+  friend bool operator>=(const LongRuntimeMaxParam& l, const LongRuntimeMaxParam& r)
+  {
+    return !(l() < r());
+  }
+    
+private:
+  index mValue;
+  index mMax;
+};
+
+struct LongRuntimeMaxT: ParamTypeBase
+{
+  using type = LongRuntimeMaxParam;
+  constexpr LongRuntimeMaxT(const char* name, const char* displayName,
+                           index defaultValue)
+       : ParamTypeBase(name, displayName), defaultValue(defaultValue,-1)
+  {}
+  const index fixedSize = 2;
   const type  defaultValue;
 };
 
@@ -543,6 +626,14 @@ FFTParam(const char* name, const char* displayName, index winDefault,
           Fixed<false>{}};
 }
 
+template<typename IsPrimary = Fixed<false>, typename...Constraints>
+constexpr ParamSpec<LongRuntimeMaxT,IsPrimary,LongRuntimeMaxParam::RuntimeMaxConstraint,Constraints...>
+LongParamRuntimeMax(const char* name, const char* displayName, index defaultValue,  const Constraints&&...c)
+{
+  return { LongRuntimeMaxT(name, displayName,defaultValue),
+            std::make_tuple(LongRuntimeMaxParam::RuntimeMaxConstraint(), std::forward<const Constraints>(c)...),
+            IsPrimary()};
+}
 
 template <typename IsFixed = Fixed<false>, typename... Constraints>
 constexpr ParamSpec<StringT, IsFixed, Constraints...>
@@ -581,6 +672,18 @@ struct ParamLiterals<FFTParamsT>
     return {{p.winSize(), p.hopRaw(), p.fftRaw()}};
   }
 };
+
+template <>
+struct ParamLiterals<LongRuntimeMaxT>
+{
+   using type = index;
+   
+   static std::array<index,2> getLiteral(const LongRuntimeMaxParam& p)
+   {
+      return {{p(),p.max()}};
+   }
+};
+
 } // namespace impl
 
 template <typename T, size_t N>
