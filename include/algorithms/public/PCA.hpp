@@ -62,12 +62,13 @@ public:
     VectorXd input = asEigen<Matrix>(in);
     input = input - mMean;
     VectorXd result = input.transpose() * mBases.block(0, 0, mBases.rows(), k);
+
     if (whiten)
     {
       ArrayXd norm = mExplainedVariance.segment(0, k).max(epsilon).rsqrt();
       result.array() *= norm;
     }
-    out = _impl::asFluid(result);
+     out <<= _impl::asFluid(result);
   }
 
   void inverseProcessFrame(RealVectorView in, RealVectorView out, bool whiten = false) const
@@ -104,17 +105,21 @@ public:
       result = result.array().rowwise() * norm.transpose().max(epsilon);
     }
     double variance = 0;
+
     double total = mExplainedVariance.sum();
     for (index i = 0; i < k; i++) variance += mExplainedVariance[i];
-    out = _impl::asFluid(result);
+    out <<= _impl::asFluid(result);
+
     return variance / total;
   }
 
   bool  initialized() const { return mInitialized; }
-  void  getBases(RealMatrixView out) const { out = _impl::asFluid(mBases); }
-  void  getValues(RealVectorView out) const { out = _impl::asFluid(mValues); }
-  void  getMean(RealVectorView out) const { out = _impl::asFluid(mMean); }
+
+  void  getBases(RealMatrixView out) const { out <<= _impl::asFluid(mBases); }
+  void  getValues(RealVectorView out) const { out <<= _impl::asFluid(mValues); }
+  void  getMean(RealVectorView out) const { out <<= _impl::asFluid(mMean); }
   index getNumDataPoints() const { return mNumDataPoints; }
+
   index dims() const { return mBases.rows(); }
   index size() const { return mBases.cols(); }
   void  clear()
@@ -131,5 +136,5 @@ public:
   index    mNumDataPoints;
   bool     mInitialized{false};
 };
-}; // namespace algorithm
-}; // namespace fluid
+}// namespace algorithm
+}// namespace fluid

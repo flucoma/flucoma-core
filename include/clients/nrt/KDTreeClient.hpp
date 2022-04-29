@@ -35,6 +35,7 @@ class KDTreeClient : public FluidBaseClient,
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
+  using InputBufferPtr = std::shared_ptr<const BufferAdaptor>;
   using StringVector = FluidTensor<string, 1>;
   using ParamDescType = decltype(KDTreeParams);
 
@@ -63,7 +64,7 @@ public:
     return {};
   }
 
-  MessageResult<void> fit(DataSetClientRef datasetClient)
+  MessageResult<void> fit(InputDataSetClientRef datasetClient)
   {
     mDataSetClient = datasetClient;
     auto datasetClientPtr = mDataSetClient.get().lock();
@@ -74,7 +75,7 @@ public:
     return OK();
   }
 
-  MessageResult<StringVector> kNearest(BufferPtr data) const
+  MessageResult<StringVector> kNearest(InputBufferPtr data) const
   {
     index k = get<kNumNeighbors>();
     if (k > mAlgorithm.size()) return Error<StringVector>(SmallDataSet);
@@ -84,7 +85,7 @@ public:
     if (!bufCheck.checkInputs(data.get()))
       return Error<StringVector>(bufCheck.error());
     RealVector point(mAlgorithm.dims());
-    point =
+    point <<=
         BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0);
     FluidDataSet<std::string, double, 1> nearest =
         mAlgorithm.kNearest(point, k, get<kRadius>());
@@ -92,7 +93,7 @@ public:
     return result;
   }
 
-  MessageResult<RealVector> kNearestDist(BufferPtr data) const
+  MessageResult<RealVector> kNearestDist(InputBufferPtr data) const
   {
     // TODO: refactor with kNearest
     index k = get<kNumNeighbors>();
@@ -103,7 +104,7 @@ public:
     if (!bufCheck.checkInputs(data.get()))
       return Error<RealVector>(bufCheck.error());
     RealVector point(mAlgorithm.dims());
-    point =
+    point <<=
         BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0);
     FluidDataSet<std::string, double, 1> nearest =
         mAlgorithm.kNearest(point, k, get<kRadius>());
@@ -126,22 +127,22 @@ public:
         makeMessage("read", &KDTreeClient::read));
   }
 
-  DataSetClientRef getDataSet() { return mDataSetClient; }
+  InputDataSetClientRef getDataSet() const { return mDataSetClient; }
 
-  const algorithm::KDTree& algorithm() { return mAlgorithm; }
+  const algorithm::KDTree& algorithm() const { return mAlgorithm; }
 
 private:
-  DataSetClientRef mDataSetClient;
+  InputDataSetClientRef mDataSetClient;
 };
 
-using KDTreeRef = SharedClientRef<KDTreeClient>;
+using KDTreeRef = SharedClientRef<const KDTreeClient>;
 
 constexpr auto KDTreeQueryParams = defineParameters(
     KDTreeRef::makeParam("tree", "KDTree"),
     LongParam("numNeighbours", "Number of Nearest Neighbours", 1),
     FloatParam("radius", "Maximum distance", 0, Min(0)),
-    DataSetClientRef::makeParam("dataSet", "DataSet Name"),
-    BufferParam("inputPointBuffer", "Input Point Buffer"),
+    InputDataSetClientRef::makeParam("dataSet", "DataSet Name"),
+    InputBufferParam("inputPointBuffer", "Input Point Buffer"),
     BufferParam("predictionBuffer", "Prediction Buffer"));
 
 class KDTreeQuery : public FluidBaseClient, ControlIn, ControlOut
@@ -174,9 +175,9 @@ public:
 
   template <typename T>
   void process(std::vector<FluidTensorView<T, 1>>& input,
-               std::vector<FluidTensorView<T, 1>>& output, FluidContext& c)
+               std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
   {
-    output[0] = input[0];
+    output[0] <<= input[0];
 
     if (input[0](0) > 0)
     {
@@ -218,7 +219,7 @@ public:
       if (outBuf.samps(0).size() < outputSize) return;
 
       RealVector point(dims);
-      point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+      point <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                   .samps(0, dims, 0);
       if (mRTBuffer.size() != outputSize)
       {
@@ -231,14 +232,14 @@ public:
       {
         dataset.get(ids(i), mRTBuffer(Slice(i * pointSize, pointSize)));
       }
-      outBuf.samps(0, outputSize, 0) = mRTBuffer;
+      outBuf.samps(0, outputSize, 0) <<= mRTBuffer;
     }
   }
 
 
 private:
   RealVector       mRTBuffer;
-  DataSetClientRef mDataSetClient;
+  InputDataSetClientRef mDataSetClient;
 };
 
 } // namespace kdtree

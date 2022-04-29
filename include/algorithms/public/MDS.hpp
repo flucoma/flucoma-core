@@ -49,8 +49,8 @@ public:
     ArrayXd          s = svd.singularValues().segment(0, k);
     MatrixXd         result =
         U.block(0, 0, U.rows(), k).array().rowwise() * s.transpose();
-    out = asFluid(result);
+    out <<= asFluid(result);
   }
 };
-}; // namespace algorithm
-}; // namespace fluid
+}// namespace algorithm
+}// namespace fluid

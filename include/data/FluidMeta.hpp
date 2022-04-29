@@ -167,7 +167,6 @@ void ForEach(Tuple&& tuple, F&& f, Args&&... args)
 template <typename Tuple, typename F, typename Indices, typename... Args>
 void ForThese(Tuple&& tuple, F&& f, Indices idx, Args&&... args)
 {
-  constexpr size_t N = std::tuple_size<std::remove_reference_t<Tuple>>::value;
   ForEachIndexImpl(std::forward<Tuple>(tuple), std::forward<F>(f), idx,
                    std::forward<Args>(args)...);
 }

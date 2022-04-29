@@ -111,7 +111,7 @@ public:
   constexpr ParameterDescriptorSet(const Ts&&... ts)
       : mDescriptors{std::make_tuple(ts...)}
   {}
-  constexpr ParameterDescriptorSet(const std::tuple<Ts...>&& t)
+  constexpr ParameterDescriptorSet(const std::tuple<Ts...>& t)
       : mDescriptors{t}
   {}
 
@@ -659,6 +659,19 @@ constexpr ParamDescTypeFor<Args...> defineParameters(Args&&... args)
 {
   return {std::forward<Args>(args)...};
 }
+
+template<typename...Ts>
+constexpr ParamDescTypeFor<Ts...> defineParametersFromTuple(const std::tuple<Ts...>& t)
+{
+  return {t};
+}
+
+template <size_t N,typename P, typename... Args>
+constexpr auto insertParameterAfter(ParamDescTypeFor<Args...> d,const P&& param)
+{
+  return defineParametersFromTuple(impl::tupleInsertAfter<N>(d.descriptors(),param));
+}
+
 
 auto constexpr NoParameters = defineParameters();
 

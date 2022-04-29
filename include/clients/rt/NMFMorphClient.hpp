@@ -100,9 +100,9 @@ public:
         tmpAct.resize(rank, actBuffer.numFrames());
         for (index i = 0; i < rank; ++i)
         {
-          tmpSource.row(i) = sourceBuffer.samps(i);
-          tmpTarget.row(i) = targetBuffer.samps(i);
-          tmpAct.row(i) = actBuffer.samps(i);
+          tmpSource.row(i) <<= sourceBuffer.samps(i);
+          tmpTarget.row(i) <<= targetBuffer.samps(i);
+          tmpAct.row(i) <<= actBuffer.samps(i);
         }
         mNMFMorph.init(tmpSource, tmpTarget, tmpAct, fftParams.winSize(),
                        fftParams.fftSize(), fftParams.hopSize(),

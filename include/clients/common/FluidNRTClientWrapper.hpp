@@ -394,10 +394,7 @@ public:
     constexpr size_t WinOffset = 2;
     constexpr size_t HopOffset = 3;
 
-    auto winSizeDescriptor =
-        mParams.get().template descriptorAt<ParamOffset + WinOffset>();
-
-    assert(winSizeDescriptor.name == "windowSize");
+    assert((mParams.get().template descriptorAt<ParamOffset + WinOffset>()).name == "windowSize");
 
     index winSize = get<ParamOffset + WinOffset>();
     index hopSize = get<ParamOffset + HopOffset>();
@@ -487,7 +484,7 @@ struct Streaming
       {
         BufferAdaptor::ReadAccess thisInput(inputBuffers[asUnsigned(j)].buffer);
         if (i == 0 && j == 0) sampleRate = thisInput.sampleRate();
-        inputData[asUnsigned(j)].row(i)(Slice(userPadding.first, nFrames)) =
+        inputData[asUnsigned(j)].row(i)(Slice(userPadding.first, nFrames)) <<=
             thisInput.samps(inputBuffers[asUnsigned(j)].startFrame, nFrames,
                             inputBuffers[asUnsigned(j)].startChan + i);
         inputs.emplace_back(inputData[asUnsigned(j)].row(i));
@@ -513,7 +510,7 @@ struct Streaming
       Result                r = thisOutput.resize(nFrames, nChans, sampleRate);
       if (!r.ok()) return r;
       for (index j = 0; j < nChans; ++j)
-        thisOutput.samps(j) =
+        thisOutput.samps(j) <<=
             outputData[asUnsigned(i)].row(j)(Slice(startPadding, nFrames));
     }
 
@@ -538,7 +535,7 @@ struct StreamingControl
     index startPadding = client.latency() + userPadding.first;
 
     index totalPadding = startPadding + userPadding.first;
-    index controlRate = client.controlRate();
+    index controlRate = client.analysisSettings().hop;
 
     index paddedLength = nFrames + totalPadding;
 
@@ -548,10 +545,9 @@ struct StreamingControl
       paddedLength =
           static_cast<index>(std::ceil(double(paddedLength) / controlRate) * controlRate);
 
-    // Fix me. This assumes that client.latency() is always the window size of
-    // whatever buffered process we're wrapping, which seems well dodgy
-    index nHops =
-        static_cast<index>(1 + std::floor((paddedLength - client.latency()) / controlRate));
+    index windowSize = client.analysisSettings().window;
+    index nHops = static_cast<index>(
+        1 + std::floor((paddedLength - windowSize) / controlRate));
 
     // in contrast to the plain streaming case, we're going to call process()
     // iteratively with a vector size = the control vector size, so we get KR
@@ -570,7 +566,7 @@ struct StreamingControl
       {
         BufferAdaptor::ReadAccess thisInput(inputBuffers[asUnsigned(j)].buffer);
         if (i == 0 && j == 0) sampleRate = thisInput.sampleRate();
-        inputData[asUnsigned(j)].row(i)(Slice(userPadding.first, nFrames)) =
+        inputData[asUnsigned(j)].row(i)(Slice(userPadding.first, nFrames)) <<=
             thisInput.samps(inputBuffers[asUnsigned(j)].startFrame, nFrames,
                             inputBuffers[asUnsigned(j)].startChan + i);
       }
@@ -608,7 +604,7 @@ struct StreamingControl
 
     BufferAdaptor::Access thisOutput(outputBuffers[0]);
 
-    index latencyHops = client.latency() / client.controlRate();
+    index latencyHops = client.latency() / controlRate;
     index keepHops = nHops - latencyHops;
 
     Result resizeResult = thisOutput.resize(keepHops, nChans * nFeatures,
@@ -620,7 +616,7 @@ struct StreamingControl
     for (index i = 0; i < nFeatures; ++i)
     {
       for (index j = 0; j < nChans; ++j)
-        thisOutput.samps(i + j * nFeatures) =
+        thisOutput.samps(i + j * nFeatures) <<=
             outputData.row(i + j * nFeatures)(Slice(latencyHops, keepHops));
     }
 

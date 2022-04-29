@@ -33,6 +33,7 @@ class PCAClient : public FluidBaseClient,
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
+  using InputBufferPtr = std::shared_ptr<const BufferAdaptor>;
   using StringVector = FluidTensor<string, 1>;
 
   using ParamDescType = decltype(PCAParams);
@@ -58,7 +59,7 @@ public:
     return {};
   }
 
-  MessageResult<void> fit(DataSetClientRef datasetClient)
+  MessageResult<void> fit(InputDataSetClientRef datasetClient)
   {
     auto datasetClientPtr = datasetClient.get().lock();
     if (!datasetClientPtr) return Error(NoDataSet);
@@ -68,7 +69,7 @@ public:
     return OK();
   }
 
-  MessageResult<double> fitTransform(DataSetClientRef sourceClient,
+  MessageResult<double> fitTransform(InputDataSetClientRef sourceClient,
                                      DataSetClientRef destClient)
   {
     auto fitResult = fit(sourceClient);
@@ -78,7 +79,7 @@ public:
     return result;
   }
 
-  MessageResult<double> transform(DataSetClientRef sourceClient,
+  MessageResult<double> transform(InputDataSetClientRef sourceClient,
                                   DataSetClientRef destClient) const
   {
     using namespace std;
@@ -110,7 +111,7 @@ public:
     return result;
   }
 
-  MessageResult<void> transformPoint(BufferPtr in, BufferPtr out) const
+  MessageResult<void> transformPoint(InputBufferPtr in, BufferPtr out) const
   {
     index k = get<kNumDimensions>();
     if (k <= 0) return Error(SmallDim);
@@ -124,9 +125,10 @@ public:
     if (!resizeResult.ok()) return Error(BufferAlloc);
     FluidTensor<double, 1> src(mAlgorithm.dims());
     FluidTensor<double, 1> dest(k);
-    src = BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
+    src <<= BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
     mAlgorithm.processFrame(src, dest, k, get<kWhiten>() == 1);
-    outBuf.samps(0, k, 0) = dest;
+    outBuf.samps(0, k, 0) <<= dest;
+
     return OK();
   }
   
@@ -144,11 +146,11 @@ public:
     FluidTensor<double, 1> dst(mAlgorithm.dims());
     index k = std::min(inBuf.numFrames(),mAlgorithm.dims());
     
-    src(Slice(0,k)) = inBuf.samps(0,k,0);
+    src(Slice(0,k)) <<= inBuf.samps(0,k,0);
     Result resizeResult = outBuf.resize(mAlgorithm.dims(), 1, outBuf.sampleRate());
     
     mAlgorithm.inverseProcessFrame(src, dst, get<kWhiten>());
-    outBuf.samps(0,mAlgorithm.dims(),0) = dst;
+    outBuf.samps(0,mAlgorithm.dims(),0)<< = dst;
     return OK();
   }
 
@@ -170,13 +172,13 @@ public:
   }
 };
 
-using PCARef = SharedClientRef<PCAClient>;
+using PCARef = SharedClientRef<const PCAClient>;
 
 constexpr auto PCAQueryParams = defineParameters(
     PCARef::makeParam("model", "Source Model"),
     LongParam("numDimensions", "Target Number of Dimensions", 2, Min(1)),
     EnumParam("whiten", "Whiten data", 0, "No", "Yes"),
-    BufferParam("inputPointBuffer", "Input Point Buffer"),
+    InputBufferParam("inputPointBuffer", "Input Point Buffer"),
     BufferParam("predictionBuffer", "Prediction Buffer"));
 
 class PCAQuery : public FluidBaseClient, ControlIn, ControlOut
@@ -209,7 +211,7 @@ public:
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
   {
-    output[0] = input[0];
+    output[0] <<= input[0];
     if (input[0](0) > 0)
     {
       auto PCAPtr = get<kModel>().get().lock();
@@ -230,10 +232,10 @@ public:
       if (outBuf.samps(0).size() < k) return;
       RealVector src(algorithm.dims());
       RealVector dest(k);
-      src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+      src <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                 .samps(0, algorithm.dims(), 0);
       algorithm.processFrame(src, dest, k, get<kWhiten>() == 1);
-      outBuf.samps(0, k, 0) = dest;
+      outBuf.samps(0, k, 0) <<= dest;
     }
   }
 

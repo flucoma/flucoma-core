@@ -87,7 +87,7 @@ public:
 
   void getMeans(RealMatrixView out) const
   {
-    if (mTrained) out = _impl::asFluid(mMeans);
+    if (mTrained) out <<= _impl::asFluid(mMeans);
   }
 
   void setMeans(RealMatrixView means)
@@ -106,7 +106,7 @@ public:
 
   void getAssignments(FluidTensorView<index, 1> out) const
   {
-    out = _impl::asFluid(mAssignments);
+    out <<= _impl::asFluid(mAssignments);
   }
 
   void getDistances(RealMatrixView data, RealMatrixView out) const
@@ -115,7 +115,7 @@ public:
     Eigen::ArrayXXd D = fluid::algorithm::DistanceMatrix(points, 2);
     Eigen::MatrixXd means = mMeans.matrix();
     D = fluid::algorithm::DistanceMatrix<Eigen::ArrayXXd>(points, mMeans, 2);
-    out = _impl::asFluid(D);
+    out <<= _impl::asFluid(D);
   }
 
 private:
