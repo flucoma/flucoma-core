@@ -206,7 +206,7 @@ public:
             mISTFT->processFrame(mSpectrumOut.row(i), out.row(i));
           if (Normalise)
           {
-            out.row(chansOut) = mSTFT->window();
+            out.row(chansOut) <<= mSTFT->window();
             out.row(chansOut).apply(mISTFT->window(),
                                     [](double& x, double& y) { x *= y; });
           }
@@ -223,7 +223,7 @@ public:
                                          if (x != 0) { x /= (g > 0) ? g : 1; }
                                        });
       if (output[asUnsigned(i)].data())
-        output[asUnsigned(i)] = unnormalisedFrame.row(i);
+        output[asUnsigned(i)] <<= unnormalisedFrame.row(i);
     }
   }
 
@@ -267,7 +267,7 @@ public:
 
           if (Normalise)
           {
-            out.row(chansOut) = mSTFT->window();
+            out.row(chansOut) <<= mSTFT->window();
             out.row(chansOut).apply(mISTFT->window(),
                                     [](double& x, double& y) { x *= y; });
           }
@@ -284,7 +284,7 @@ public:
                                          if (x != 0) { x /= (g > 0) ? g : 1; }
                                        });
       if (output[asUnsigned(i)].data())
-        output[asUnsigned(i)] = unnormalisedFrame.row(i);
+        output[asUnsigned(i)] <<= unnormalisedFrame.row(i);
     }
   }
 

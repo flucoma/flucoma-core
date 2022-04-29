@@ -82,7 +82,7 @@ public:
     {
       result = (input * mRange) + mMedian;
     }
-    out = asFluid(result);
+    out <<= asFluid(result);
   }
 
   void process(const RealMatrixView in, RealMatrixView out,
@@ -102,7 +102,7 @@ public:
       result = (input.rowwise() * mRange.transpose());
       result = (result.rowwise() + mMedian.transpose());
     }
-    out = asFluid(result);
+    out <<= asFluid(result);
   }
 
   void setLow(double low) { mLow = low; }
@@ -115,25 +115,25 @@ public:
   void getDataLow(RealVectorView out) const
   {
     using namespace _impl;
-    out = asFluid(mDataLow);
+    out <<= asFluid(mDataLow);
   }
 
   void getDataHigh(RealVectorView out) const
   {
     using namespace _impl;
-    out = asFluid(mDataHigh);
+    out <<= asFluid(mDataHigh);
   }
 
   void getMedian(RealVectorView out) const
   {
     using namespace _impl;
-    out = asFluid(mMedian);
+    out <<= asFluid(mMedian);
   }
 
   void getRange(RealVectorView out) const
   {
     using namespace _impl;
-    out = asFluid(mRange);
+    out <<= asFluid(mRange);
   }
 
   index dims() const { return mMedian.size(); }
@@ -157,5 +157,5 @@ public:
   ArrayXd mRange;
   bool    mInitialized{false};
 };
-}; // namespace algorithm
-}; // namespace fluid
+}// namespace algorithm
+}// namespace fluid

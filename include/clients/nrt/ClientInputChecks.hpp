@@ -31,7 +31,7 @@ class InBufferCheck : public ClientInputCheck
 {
 public:
   InBufferCheck(index size) : mInputSize(size){};
-  bool checkInputs(BufferAdaptor* inputPtr)
+  bool checkInputs(const BufferAdaptor* inputPtr)
   {
     if (!inputPtr)
     {
@@ -61,7 +61,7 @@ class InOutBuffersCheck : public InBufferCheck
 
 public:
   using InBufferCheck::InBufferCheck;
-  bool checkInputs(BufferAdaptor* inputPtr, BufferAdaptor* outputPtr)
+  bool checkInputs(const BufferAdaptor* inputPtr, BufferAdaptor* outputPtr)
   {
     if (!InBufferCheck::checkInputs(inputPtr)) { return false; }
     if (!outputPtr)

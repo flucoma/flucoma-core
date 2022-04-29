@@ -59,7 +59,7 @@ public:
 
         if (r.ok() && src.valid())
           for (index i = 0; i < numChans(); ++i)
-            src.samps(i)(Slice(0, numFrames())) = samps(i);
+            src.samps(i)(Slice(0, numFrames())) <<= samps(i);
       }
       // TODO feedback failure to user somehow: I need a message queue
     }
@@ -125,7 +125,7 @@ private:
     {
       mData.resize(src.numFrames(), src.numChans());
       for (index i = 0; i < mData.cols(); i++)
-        mData.col(i) = src.samps(0, src.numFrames(), i);
+        mData.col(i) <<= src.samps(0, src.numFrames(), i);
     }
     return *this;
   }

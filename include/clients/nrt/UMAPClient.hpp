@@ -44,6 +44,7 @@ class UMAPClient : public FluidBaseClient,
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
+  using InputBufferPtr = std::shared_ptr<const BufferAdaptor>;
   using StringVector = FluidTensor<string, 1>;
 
   using ParamDescType = decltype(UMAPParams);
@@ -69,7 +70,7 @@ public:
       return{};
   }
 
-  MessageResult<void> fitTransform(DataSetClientRef sourceClient,
+  MessageResult<void> fitTransform(InputDataSetClientRef sourceClient,
                                    DataSetClientRef destClient)
   {
     auto srcPtr = sourceClient.get().lock();
@@ -88,7 +89,7 @@ public:
     return OK();
   }
 
-  MessageResult<void> fit(DataSetClientRef sourceClient)
+  MessageResult<void> fit(InputDataSetClientRef sourceClient)
   {
     auto srcPtr = sourceClient.get().lock();
     if (!srcPtr) return Error(NoDataSet);
@@ -104,7 +105,7 @@ public:
     return OK();
   }
 
-  MessageResult<void> transform(DataSetClientRef sourceClient,
+  MessageResult<void> transform(InputDataSetClientRef sourceClient,
                                 DataSetClientRef destClient)
   {
     auto srcPtr = sourceClient.get().lock();
@@ -124,7 +125,7 @@ public:
     return OK();
   }
 
-  MessageResult<void> transformPoint(BufferPtr in, BufferPtr out)
+  MessageResult<void> transformPoint(InputBufferPtr in, BufferPtr out)
   {
     index inSize = mAlgorithm.inputDims();
     index outSize = mAlgorithm.dims();
@@ -139,9 +140,9 @@ public:
     if (!resizeResult.ok()) return Error(BufferAlloc);
     FluidTensor<double, 1> src(inSize);
     FluidTensor<double, 1> dest(outSize);
-    src = BufferAdaptor::ReadAccess(in.get()).samps(0, inSize, 0);
+    src <<= BufferAdaptor::ReadAccess(in.get()).samps(0, inSize, 0);
     mAlgorithm.transformPoint(src, dest);
-    outBuf.samps(0, outSize, 0) = dest;
+    outBuf.samps(0, outSize, 0) <<= dest;
     return OK();
   }
 
@@ -162,11 +163,11 @@ public:
   }
 };
 
-using UMAPRef = SharedClientRef<UMAPClient>;
+using UMAPRef = SharedClientRef<const UMAPClient>;
 
 constexpr auto UMAPQueryParams =
     defineParameters(UMAPRef::makeParam("model", "Source Model"),
-                     BufferParam("inputPointBuffer", "Input Point Buffer"),
+                     InputBufferParam("inputPointBuffer", "Input Point Buffer"),
                      BufferParam("predictionBuffer", "Prediction Buffer"));
 
 class UMAPQuery : public FluidBaseClient, ControlIn, ControlOut
@@ -199,7 +200,7 @@ public:
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
   {
-    output[0] = input[0];
+    output[0] <<= input[0];
     if (input[0](0) > 0)
     {
       auto UMAPPtr = get<kModel>().get().lock();
@@ -208,7 +209,7 @@ public:
         // report error?
         return;
       }
-      algorithm::UMAP& algorithm = UMAPPtr->algorithm();
+      algorithm::UMAP const& algorithm = UMAPPtr->algorithm();
       if (!algorithm.initialized()) return;
       index inSize = algorithm.inputDims();
       index outSize = algorithm.dims();
@@ -221,10 +222,10 @@ public:
       if (outBuf.samps(0).size() < outSize) return;
       RealVector src(inSize);
       RealVector dest(outSize);
-      src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+      src <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                 .samps(0, inSize, 0);
       algorithm.transformPoint(src, dest);
-      outBuf.samps(0, outSize, 0) = dest;
+      outBuf.samps(0, outSize, 0) <<= dest;
     }
   }
 

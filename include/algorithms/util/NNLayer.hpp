@@ -68,7 +68,7 @@ public:
 
   index outputSize() const { return mWeights.cols(); }
 
-  void forward(Eigen::Ref<MatrixXd> in, Eigen::Ref<MatrixXd> out)
+  void forward(Eigen::Ref<MatrixXd> in, Eigen::Ref<MatrixXd> out) const
   {
     mInput = in;
     MatrixXd WT = mWeights.transpose();
@@ -114,8 +114,8 @@ private:
   MatrixXd mPrevWeightsUpdate;
   VectorXd mPrevBiasesUpdate;
 
-  MatrixXd mInput;
-  MatrixXd mOutput;
+  mutable MatrixXd mInput;
+  mutable MatrixXd mOutput;
 };
 } // namespace algorithm
 } // namespace fluid

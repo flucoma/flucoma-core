@@ -133,7 +133,7 @@ public:
                            .transpose();
       }
     }
-    out = asFluid(result);
+    out <<= asFluid(result);
   }
   index  mNumDerivatives{0};
   double mLow{0};

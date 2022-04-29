@@ -71,7 +71,7 @@ public:
     auto  result = mIndex.insert({id, pos});
     if (!result.second) return false;
     mData.resizeDim(0, 1);
-    mData.row(mData.rows() - 1) = point;
+    mData.row(mData.rows() - 1) <<= point;
     mIds.resizeDim(0, 1);
     mIds(mIds.rows() - 1) = id;
     return true;
@@ -81,7 +81,7 @@ public:
   {
     auto pos = mIndex.find(id);
     if (pos == mIndex.end()) return false;
-    point = mData.row(pos->second);
+    point <<= mData.row(pos->second);
     return true;
   }
 
@@ -100,7 +100,7 @@ public:
     if (pos == mIndex.end())
       return false;
     else
-      mData.row(pos->second) = point;
+      mData.row(pos->second) <<= point;
     return true;
   }
 

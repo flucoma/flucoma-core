@@ -53,7 +53,7 @@ public:
     MatrixXd  H = asEigen<Matrix>(h);
     MatrixXcd W = asEigen<Matrix>(w);
     MatrixXcd V = H * W;
-    out = asFluid(V);
+    out <<= asFluid(V);
   }
 
   void process(const RealMatrixView X, RealMatrixView H1, RealMatrixView W0,
@@ -70,7 +70,7 @@ public:
     MatrixXd V = asEigen<Matrix>(X).transpose();
     multiplicativeUpdates(V, W, H, r, p, c);
     MatrixXd HT = H.transpose();
-    H1 = asFluid(HT);
+    H1 <<= asFluid(HT);
   }
 
   void addProgressCallback(ProgressCallback&& callback)
@@ -87,10 +87,10 @@ private:
     using namespace std;
     vector<double> stdVec(vec.data(), vec.data() + vec.size());
     sort(stdVec.begin(), stdVec.end());
-    vector<index> idx(vec.size());
+    vector<index> idx(asUnsigned(vec.size()));
     iota(idx.begin(), idx.end(), 0);
     sort(idx.begin(), idx.end(),
-         [&vec](size_t i1, size_t i2) { return vec[i1] > vec[i2]; });
+         [&vec](index i1, index i2) { return vec[i1] > vec[i2]; });
     auto result = std::vector<index>(idx.begin(), idx.begin() + c);
     return result;
   }

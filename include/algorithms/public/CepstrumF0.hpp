@@ -51,10 +51,8 @@ public:
     ArrayXd logMag = mag.max(epsilon).log();
     double  pitch = 0;
     double  confidence = 0;
-    index   minBin =
-        min<index>(lrint(sampleRate / maxFreq), asSigned(mag.size()));
-    index maxBin =
-        min<index>(lrint(sampleRate / minFreq), asSigned(mag.size()));
+    index   minBin = min<index>(lrint(sampleRate / maxFreq), mag.size());
+    index   maxBin = min<index>(lrint(sampleRate / minFreq), mag.size());
 
     mDCT.processFrame(logMag, mCepstrum);
 

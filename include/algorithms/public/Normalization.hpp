@@ -70,7 +70,7 @@ public:
       result = (input - mMin) / std::max((mMax - mMin), epsilon);
       result = mDataMin + (result * mDataRange);
     }
-    out = asFluid(result);
+    out <<= asFluid(result);
   }
 
   void process(const RealMatrixView in, RealMatrixView out,
@@ -93,7 +93,7 @@ public:
       result = (result.rowwise() * mDataRange.transpose());
       result = (result.rowwise() + mDataMin.transpose());
     }
-    out = asFluid(result);
+    out <<= asFluid(result);
   }
 
   void setMin(double min) { mMin = min; }
@@ -106,13 +106,13 @@ public:
   void getDataMin(RealVectorView out) const
   {
     using namespace _impl;
-    out = asFluid(mDataMin);
+    out <<= asFluid(mDataMin);
   }
 
   void getDataMax(RealVectorView out) const
   {
     using namespace _impl;
-    out = asFluid(mDataMax);
+    out <<= asFluid(mDataMax);
   }
 
   index dims() const { return mDataMin.size(); }
@@ -135,5 +135,5 @@ public:
   ArrayXd mDataRange;
   bool    mInitialized{false};
 };
-}; // namespace algorithm
-}; // namespace fluid
+}// namespace algorithm
+}// namespace fluid
