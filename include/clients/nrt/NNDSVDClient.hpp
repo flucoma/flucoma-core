@@ -89,7 +89,7 @@ public:
     auto stft = algorithm::STFT(fftParams.winSize(), fftParams.fftSize(),
                                 fftParams.hopSize());
     auto tmp = RealVector(nFrames);
-    tmp = source.samps(0, nFrames, 0);
+    tmp <<= source.samps(0, nFrames, 0);
     auto spectrum = ComplexMatrix(nWindows, nBins);
     auto magnitude = RealMatrix(nWindows, nBins);
     auto outputFilters = RealMatrix(get<kMaxRank>(), nBins);
@@ -110,7 +110,7 @@ public:
     if (!resizeResult.ok()) return resizeResult;
 
     for (index j = 0; j < rank; ++j)
-    { filters.samps(j) = outputFilters.row(j); }
+    { filters.samps(j) <<= outputFilters.row(j); }
 
     auto envelopes = BufferAdaptor::Access{get<kEnvelopes>().get()};
     resizeResult = envelopes.resize((nFrames / fftParams.hopSize()) + 1, rank,
@@ -122,7 +122,7 @@ public:
     for (index j = 0; j < rank; j++)
     {
       auto env = envelopes.samps(j);
-      env = outputEnvelopes.col(j);
+      env <<= outputEnvelopes.col(j);
       env.apply([scale](float& x) { x *= static_cast<float>(scale); });
     }
     return OK();

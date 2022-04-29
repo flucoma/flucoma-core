@@ -116,7 +116,7 @@ public:
           mDCT.processFrame(mBands, mCoefficients);
         });
   
-      output[0](Slice(0, get<kNCoefs>())) =
+      output[0](Slice(0, get<kNCoefs>())) <<=
         mCoefficients(Slice(get<kDrop0>(), get<kNCoefs>()));
       output[0](Slice(get<kNCoefs>(), get<kMaxNCoefs>() - get<kNCoefs>())).fill(0); 
   }
@@ -135,7 +135,11 @@ public:
     mDCT.init(get<kNBands>(), get<kNCoefs>() + get<kDrop0>());
   }
 
-  index controlRate() { return get<kFFT>().hopSize(); }
+  AnalysisSize analysisSettings()
+  {
+    return { get<kFFT>().winSize(), get<kFFT>().hopSize() }; 
+  }
+
 
 private:
   ParameterTrackChanges<index, index, index, double, double, double> mTracker;

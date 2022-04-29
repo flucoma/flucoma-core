@@ -35,6 +35,7 @@ class NormalizeClient : public FluidBaseClient,
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
+  using InputBufferPtr = std::shared_ptr<const BufferAdaptor>;
   using StringVector = FluidTensor<string, 1>;
 
   using ParamDescType = decltype(NormalizeParams);
@@ -60,7 +61,7 @@ public:
     return {};
   }
 
-  MessageResult<void> fit(DataSetClientRef datasetClient)
+  MessageResult<void> fit(InputDataSetClientRef datasetClient)
   {
     auto weakPtr = datasetClient.get();
     if (auto datasetClientPtr = weakPtr.lock())
@@ -75,13 +76,13 @@ public:
     }
     return {};
   }
-  MessageResult<void> transform(DataSetClientRef sourceClient,
+  MessageResult<void> transform(InputDataSetClientRef sourceClient,
                                 DataSetClientRef destClient)
   {
     return _transform(sourceClient, destClient, get<kInvert>() == 1);
   }
 
-  MessageResult<void> fitTransform(DataSetClientRef sourceClient,
+  MessageResult<void> fitTransform(InputDataSetClientRef sourceClient,
                                    DataSetClientRef destClient)
   {
     auto result = fit(sourceClient);
@@ -90,7 +91,7 @@ public:
     return result;
   }
 
-  MessageResult<void> transformPoint(BufferPtr in, BufferPtr out)
+  MessageResult<void> transformPoint(InputBufferPtr in, BufferPtr out)
   {
     if (!mAlgorithm.initialized()) return Error(NoDataFitted);
     InOutBuffersCheck bufCheck(mAlgorithm.dims());
@@ -102,11 +103,11 @@ public:
     if (!resizeResult.ok()) return Error(BufferAlloc);
     RealVector src(mAlgorithm.dims());
     RealVector dest(mAlgorithm.dims());
-    src = BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
+    src <<= BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
     mAlgorithm.setMin(get<kMin>());
     mAlgorithm.setMax(get<kMax>());
     mAlgorithm.processFrame(src, dest, get<kInvert>() == 1);
-    outBuf.samps(0, mAlgorithm.dims(), 0) = dest;
+    outBuf.samps(0, mAlgorithm.dims(), 0) <<= dest;
     return OK();
   }
 
@@ -127,7 +128,7 @@ public:
   }
 
 private:
-  MessageResult<void> _transform(DataSetClientRef sourceClient,
+  MessageResult<void> _transform(InputDataSetClientRef sourceClient,
                                  DataSetClientRef destClient, bool invert)
   {
     using namespace std;
@@ -154,14 +155,14 @@ private:
   }
 };
 
-using NormalizeRef = SharedClientRef<NormalizeClient>;
+using NormalizeRef = SharedClientRef<const NormalizeClient>;
 
 constexpr auto NormalizeQueryParams = defineParameters(
     NormalizeRef::makeParam("model", "Source Model"),
     FloatParam("min", "Minimum Value", 0.0),
     FloatParam("max", "Maximum Value", 1.0),
     EnumParam("invert", "Inverse Transform", 0, "False", "True"),
-    BufferParam("inputPointBuffer", "Input Point Buffer"),
+    InputBufferParam("inputPointBuffer", "Input Point Buffer"),
     BufferParam("predictionBuffer", "Prediction Buffer"));
 
 class NormalizeQuery : public FluidBaseClient, ControlIn, ControlOut
@@ -198,7 +199,7 @@ public:
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
   {
-    output[0] = input[0];
+    output[0] <<= input[0];
     if (input[0](0) > 0)
     {
       auto normPtr = get<kModel>().get().lock();
@@ -207,7 +208,7 @@ public:
         // report error?
         return;
       }
-      algorithm::Normalization& algorithm = normPtr->algorithm();
+      algorithm::Normalization const& algorithm = normPtr->algorithm();
       if (!algorithm.initialized()) return;
       InOutBuffersCheck bufCheck(algorithm.dims());
       if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
@@ -217,12 +218,12 @@ public:
       if (outBuf.samps(0).size() < algorithm.dims()) return;
       RealVector src(algorithm.dims());
       RealVector dest(algorithm.dims());
-      src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+      src <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                 .samps(0, algorithm.dims(), 0);
-      algorithm.setMin(get<kMin>());
-      algorithm.setMax(get<kMax>());
+//      algorithm.setMin(get<kMin>());
+//      algorithm.setMax(get<kMax>());
       algorithm.processFrame(src, dest, get<kInvert>() == 1);
-      outBuf.samps(0, algorithm.dims(), 0) = dest;
+      outBuf.samps(0, algorithm.dims(), 0) <<= dest;
     }
   }
 

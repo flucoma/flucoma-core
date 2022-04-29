@@ -52,7 +52,7 @@ TEST_CASE("BufferedProcess will reconstruct windowed input properly under COLA c
       //Hann windowing with overlap of 2 should be COLA
       processor.process(frameSize, frameSize,hop,c,
       [&window](FluidTensorView<double, 2> in, FluidTensorView<double, 2> out) {
-        out = in;
+        out <<= in;
         out.apply(window, [](double& x, double w) { x *= w; });
       });
 

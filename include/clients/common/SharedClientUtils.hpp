@@ -27,9 +27,9 @@ public:
 
   SharedClientRef() {}
   SharedClientRef(const char* name) : mName{name} {}
-  WeakPointer get() { return {SharedType::lookup(mName)}; }
+  WeakPointer get() const { return {SharedType::lookup(mName)}; }
   void        set(const char* name) { mName = std::string(name); }
-  const char* name() { return mName.c_str(); }
+  const char* name() const { return mName.c_str(); }
 
   // Supporting machinery for making new parameter types
 

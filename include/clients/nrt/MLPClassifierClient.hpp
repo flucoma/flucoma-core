@@ -26,8 +26,8 @@ struct MLPClassifierData
 {
   algorithm::MLP             mlp;
   algorithm::LabelSetEncoder encoder;
-  index                      size() { return mlp.size(); }
-  index                      dims() { return mlp.dims(); }
+  index                      size() const { return mlp.size(); }
+  index                      dims() const { return mlp.dims(); }
   void                       clear()
   {
     mlp.clear();
@@ -88,6 +88,7 @@ class MLPClassifierClient : public FluidBaseClient,
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
+  using InputBufferPtr = std::shared_ptr<BufferAdaptor>;
   using IndexVector = FluidTensor<index, 1>;
   using StringVector = FluidTensor<string, 1>;
   using DataSet = FluidDataSet<string, double, 1>;
@@ -135,7 +136,7 @@ public:
     return {result.status(), result.message()};
   }
 
-  MessageResult<double> fit(DataSetClientRef source, LabelSetClientRef target)
+  MessageResult<double> fit(InputDataSetClientRef source, InputLabelSetClientRef target)
   {
     auto sourceClientPtr = source.get().lock();
     if (!sourceClientPtr) return Error<double>(NoDataSet);
@@ -181,7 +182,7 @@ public:
     return error;
   }
 
-  MessageResult<void> predict(DataSetClientRef  srcClient,
+  MessageResult<void> predict(InputDataSetClientRef  srcClient,
                               LabelSetClientRef destClient)
   {
     auto srcPtr = srcClient.get().lock();
@@ -207,7 +208,7 @@ public:
     return OK();
   }
 
-  MessageResult<string> predictPoint(BufferPtr in)
+  MessageResult<string> predictPoint(InputBufferPtr in)
   {
     if (!in) return Error<string>(NoBuffer);
     BufferAdaptor::Access inBuf(in.get());
@@ -219,7 +220,7 @@ public:
     index      layer = mAlgorithm.mlp.size();
     RealVector src(mAlgorithm.mlp.dims());
     RealVector dest(mAlgorithm.mlp.outputSize(layer));
-    src = inBuf.samps(0, mAlgorithm.mlp.dims(), 0);
+    src <<= inBuf.samps(0, mAlgorithm.mlp.dims(), 0);
     mAlgorithm.mlp.processFrame(src, dest, 0, layer);
     auto label = mAlgorithm.encoder.decodeOneHot(dest);
     return label;
@@ -262,11 +263,11 @@ private:
 
 };
 
-using MLPClassifierRef = SharedClientRef<MLPClassifierClient>;
+using MLPClassifierRef = SharedClientRef<const MLPClassifierClient>;
 
 constexpr auto MLPClassifierQueryParams =
     defineParameters(MLPClassifierRef::makeParam("model", "Source Model"),
-                     BufferParam("inputPointBuffer", "Input Point Buffer"),
+                     InputBufferParam("inputPointBuffer", "Input Point Buffer"),
                      BufferParam("predictionBuffer", "Prediction Buffer"));
 
 class MLPClassifierQuery : public FluidBaseClient, ControlIn, ControlOut
@@ -302,7 +303,7 @@ public:
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
   {
-    output[0] = input[0];
+    output[0] <<= input[0];
     if (input[0](0) > 0)
     {
       auto mlpPtr = get<kModel>().get().lock();
@@ -311,7 +312,7 @@ public:
         // report error?
         return;
       }
-      MLPClassifierData& algorithm = mlpPtr->algorithm();
+      MLPClassifierData const& algorithm = mlpPtr->algorithm();
 
       if (!algorithm.mlp.trained()) return;
       index dims = algorithm.mlp.dims();
@@ -326,7 +327,7 @@ public:
 
       RealVector src(dims);
       RealVector dest(algorithm.mlp.outputSize(layer));
-      src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+      src <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                 .samps(0, dims, 0);
       algorithm.mlp.processFrame(src, dest, 0, layer);
       auto label = algorithm.encoder.decodeOneHot(dest);

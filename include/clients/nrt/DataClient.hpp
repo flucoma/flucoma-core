@@ -27,9 +27,9 @@ class DataClient
 public:
   using string = std::string;
 
-  MessageResult<index> size() { return mAlgorithm.size(); }
+  MessageResult<index> size() const { return mAlgorithm.size(); }
 
-  MessageResult<index> dims() { return mAlgorithm.dims(); }
+  MessageResult<index> dims() const { return mAlgorithm.dims(); }
 
   MessageResult<void> clear()
   {
@@ -80,8 +80,8 @@ public:
     }
   }
   
-  bool initialized() { return mAlgorithm.initialized(); }
-  T& algorithm() { return mAlgorithm; }
+  bool initialized() const { return mAlgorithm.initialized(); }
+  T const& algorithm() const { return mAlgorithm; }
 protected:
   T mAlgorithm;
 };

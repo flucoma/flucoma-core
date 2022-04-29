@@ -20,7 +20,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../algorithms/public/DCT.hpp"
 #include "../../algorithms/public/Loudness.hpp"
 #include "../../algorithms/public/MelBands.hpp"
-#include "../../algorithms/public/NoveltySegmentation.hpp"
+#include "../../algorithms/public/NoveltyFeature.hpp"
 #include "../../algorithms/public/STFT.hpp"
 #include "../../algorithms/public/YINFFT.hpp"
 #include "../../algorithms/util/TruePeak.hpp"
@@ -29,29 +29,25 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 namespace client {
-namespace noveltyslice {
+namespace noveltyfeature {
 
 enum NoveltyParamIndex {
   kFeature,
   kKernelSize,
-  kThreshold,
   kFilterSize,
-  kDebounce,
   kFFT,
   kMaxFFTSize,
   kMaxKernelSize,
   kMaxFilterSize,
 };
 
-constexpr auto NoveltySliceParams = defineParameters(
+constexpr auto NoveltyFeatureParams = defineParameters(
     EnumParam("algorithm", "Algorithm for Feature Extraction", 0, "Spectrum", "MFCC", "Chroma", "Pitch",
               "Loudness"),
     LongParam("kernelSize", "KernelSize", 3, Min(3), Odd(),
               UpperLimit<kMaxKernelSize>()),
-    FloatParam("threshold", "Threshold", 0.5, Min(0)),
     LongParam("filterSize", "Smoothing Filter Size", 1, Min(1),
               UpperLimit<kMaxFilterSize>()),
-    LongParam("minSliceLength", "Minimum Length of Slice", 2, Min(0)),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
                            PowerOfTwo{}),
@@ -60,12 +56,12 @@ constexpr auto NoveltySliceParams = defineParameters(
     LongParam<Fixed<true>>("maxFilterSize", "Maxiumm Filter Size", 100,
                            Min(1)));
 
-class NoveltySliceClient : public FluidBaseClient,
+class NoveltyFeatureClient : public FluidBaseClient,
                            public AudioIn,
-                           public AudioOut
+                           public ControlOut
 {
 public:
-  using ParamDescType = decltype(NoveltySliceParams);
+  using ParamDescType = decltype(NoveltyFeatureParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   std::reference_wrapper<ParamSetViewType> mParams;
@@ -80,10 +76,10 @@ public:
 
   static constexpr auto& getParameterDescriptors()
   {
-    return NoveltySliceParams;
+    return NoveltyFeatureParams;
   }
 
-  NoveltySliceClient(ParamSetViewType& p)
+  NoveltyFeatureClient(ParamSetViewType& p)
       : mParams{p}, mNovelty{get<kMaxKernelSize>(), get<kMaxFilterSize>()},
         mSTFT{get<kFFT>().winSize(), get<kFFT>().fftSize(),
               get<kFFT>().hopSize()},
@@ -91,9 +87,9 @@ public:
         mChroma(12, get<kMaxFFTSize>()), mLoudness{get<kMaxFFTSize>()}
   {
     audioChannelsIn(1);
-    audioChannelsOut(1);
+    controlChannelsOut({1,1});
     setInputLabels({"audio input"});
-    setOutputLabels({"1 when slice detected, 0 otherwise"});
+    setOutputLabels({"estimated novelty"});
   }
 
 
@@ -126,7 +122,6 @@ public:
       mLoudness.init(windowSize, sampleRate());
     }
     mFeature.resize(nDims);
-    mFrameOffset = 0; 
     mNovelty.init(get<kKernelSize>(), get<kFilterSize>(), nDims);
   }
 
@@ -134,7 +129,7 @@ public:
   void process(std::vector<HostVector<T>>& input,
                std::vector<HostVector<T>>& output, FluidContext& c)
   {
-    using algorithm::NoveltySegmentation;
+    using algorithm::NoveltyFeature;
 
 
     if (!input[0].data() || !output[0].data()) return;
@@ -153,12 +148,11 @@ public:
     }
     RealMatrix in(1, hostVecSize);
     in.row(0) <<= input[0];
-    RealMatrix out(1, hostVecSize);
-    
+        
     mBufferedProcess.push(RealMatrixView(in));
-    mBufferedProcess.process(
-        windowSize, windowSize, get<kFFT>().hopSize(), c,
-        [&, this](RealMatrixView in, RealMatrixView) {
+    mBufferedProcess.processInput(
+        windowSize, get<kFFT>().hopSize(), c,
+        [&, this](RealMatrixView in) {
           switch (feature)
           {
           case 0:
@@ -185,16 +179,11 @@ public:
             mLoudness.processFrame(in.row(0), mFeature, true, true);
             break;
           }
-          if (mFrameOffset < out.row(0).size())
-            out.row(0)(mFrameOffset) = mNovelty.processFrame(
-                mFeature, get<kThreshold>(), get<kDebounce>());
-          mFrameOffset += get<kFFT>().hopSize();
+//          if (mFrameOffset < out.row(0).size())
+          mDescriptor = mNovelty.processFrame(mFeature);
         });
 
-    mFrameOffset =
-        mFrameOffset < hostVecSize ? mFrameOffset : mFrameOffset - hostVecSize;
-
-    output[0] <<= out.row(0);
+    output[0](0) = static_cast<T>(mDescriptor);
   }
 
   index latency()
@@ -205,15 +194,19 @@ public:
            (1 + ((get<kKernelSize>() + 1) >> 1) + (filterSize >> 1));
   }
 
+  AnalysisSize analysisSettings() 
+  {  
+    return {get<kFFT>().winSize(), get<kFFT>().hopSize()}; 
+  }
+
   void reset()
   {
     mBufferedProcess.reset();
-    mFrameOffset = 0; 
     initAlgorithms(get<kFeature>(), get<kFFT>().winSize());
   }
 
 private:
-  algorithm::NoveltySegmentation mNovelty;
+  algorithm::NoveltyFeature mNovelty;
   ParameterTrackChanges<index, index, index, index, index, double>
                                        mParamsTracker;
   BufferedProcess                      mBufferedProcess;
@@ -222,27 +215,27 @@ private:
   FluidTensor<double, 1>               mMagnitude;
   FluidTensor<double, 1>               mBands;
   FluidTensor<double, 1>               mFeature;
+  double                               mDescriptor;
   algorithm::MelBands                  mMelBands;
   algorithm::DCT                       mDCT{40, 13};
   algorithm::ChromaFilterBank          mChroma;
   algorithm::YINFFT                    mYinFFT;
   algorithm::Loudness                  mLoudness;
-  index mFrameOffset{0}; // in case kHopSize < hostVecSize
 };
-} // namespace noveltyslice
+} // namespace noveltyfeature
 
-using RTNoveltySliceClient = ClientWrapper<noveltyslice::NoveltySliceClient>;
+using RTNoveltyFeatureClient = ClientWrapper<noveltyfeature::NoveltyFeatureClient>;
 
-auto constexpr NRTNoveltySliceParams = makeNRTParams<RTNoveltySliceClient>(
+auto constexpr NRTNoveltyFeatureParams = makeNRTParams<RTNoveltyFeatureClient>(
     InputBufferParam("source", "Source Buffer"),
-    BufferParam("indices", "Indices Buffer"));
+    BufferParam("features", "Feature Buffer"));
 
-using NRTNoveltySliceClient = NRTSliceAdaptor<noveltyslice::NoveltySliceClient,
-                                              decltype(NRTNoveltySliceParams),
-                                              NRTNoveltySliceParams, 1, 1>;
+using NRTNoveltyFeatureClient = NRTControlAdaptor<noveltyfeature::NoveltyFeatureClient,
+                                              decltype(NRTNoveltyFeatureParams),
+                                              NRTNoveltyFeatureParams, 1, 1>;
 
-using NRTThreadingNoveltySliceClient =
-    NRTThreadingAdaptor<NRTNoveltySliceClient>;
+using NRTThreadedNoveltyFeatureClient =
+    NRTThreadingAdaptor<NRTNoveltyFeatureClient>;
 
 } // namespace client
 } // namespace fluid

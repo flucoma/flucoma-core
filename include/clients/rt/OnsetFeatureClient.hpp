@@ -16,44 +16,41 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
-#include "../../algorithms/public/OnsetSegmentation.hpp"
+#include "../../algorithms/public/OnsetDetectionFunctions.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <tuple>
 
 namespace fluid {
 namespace client {
-namespace onsetslice {
-
-using algorithm::OnsetSegmentation;
+namespace onsetfeature {
 
 enum OnsetParamIndex {
   kFunction,
-  kThreshold,
-  kDebounce,
   kFilterSize,
   kFrameDelta,
   kFFT,
   kMaxFFTSize
 };
 
-constexpr auto OnsetSliceParams = defineParameters(
+constexpr auto OnsetFeatureParams = defineParameters(
     EnumParam("metric", "Spectral Change Metric", 0, "Energy",
               "High Frequency Content", "Spectral Flux",
               "Modified Kullback-Leibler", "Itakura-Saito", "Cosine",
               "Phase Deviation", "Weighted Phase Deviation", "Complex Domain",
               "Rectified Complex Domain"),
-    FloatParam("threshold", "Threshold", 0.5, Min(0)),
-    LongParam("minSliceLength", "Minimum Length of Slice", 2, Min(0)),
     LongParam("filterSize", "Filter Size", 5, Min(1), Odd(), Max(101)),
     LongParam("frameDelta", "Frame Delta", 0, Min(0)),
     FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
     LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
                            PowerOfTwo{}));
 
-class OnsetSliceClient : public FluidBaseClient, public AudioIn, public AudioOut
+class OnsetFeatureClient : public FluidBaseClient, public AudioIn, public ControlOut
 {
+
+  using OnsetDetectionFunctions = algorithm::OnsetDetectionFunctions;
+
 public:
-  using ParamDescType = decltype(OnsetSliceParams);
+  using ParamDescType = decltype(OnsetFeatureParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   std::reference_wrapper<ParamSetViewType> mParams;
@@ -66,13 +63,13 @@ public:
     return mParams.get().template get<N>();
   }
 
-  static constexpr auto& getParameterDescriptors() { return OnsetSliceParams; }
+  static constexpr auto& getParameterDescriptors() { return OnsetFeatureParams; }
 
-  OnsetSliceClient(ParamSetViewType& p)
+  OnsetFeatureClient(ParamSetViewType& p)
       : mParams{p}, mAlgorithm{get<kMaxFFTSize>()}
   {
     audioChannelsIn(1);
-    audioChannelsOut(1);
+    controlChannelsOut({1,1});
     setInputLabels({"audio input"});
     setOutputLabels({"1 when slice detected, 0 otherwise"});
   }
@@ -81,7 +78,6 @@ public:
   void process(std::vector<HostVector<T>>& input,
                std::vector<HostVector<T>>& output, FluidContext& c)
   {
-    using algorithm::OnsetSegmentation;
     using std::size_t;
 
     if (!input[0].data() || !output[0].data()) return;
@@ -105,56 +101,54 @@ public:
     }
     RealMatrix in(1, hostVecSize);
     in.row(0) <<= input[0];
-    RealMatrix out(1, hostVecSize);
     
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.processInput(
         totalWindow, get<kFFT>().hopSize(), c, [&, this](RealMatrixView in) {
-          out.row(0)(mFrameOffset) = mAlgorithm.processFrame(
-              in.row(0), get<kFunction>(), get<kFilterSize>(),
-              get<kThreshold>(), get<kDebounce>(), get<kFrameDelta>());
-          mFrameOffset += get<kFFT>().hopSize();
+          mDescriptor = mAlgorithm.processFrame(
+              in.row(0), get<kFunction>(), get<kFilterSize>(), get<kFrameDelta>());
         });
 
-    mFrameOffset =
-        mFrameOffset < hostVecSize ? mFrameOffset : mFrameOffset - hostVecSize;
-
-    output[0]<<= out.row(0);
+    output[0](0) = static_cast<T>(mDescriptor);
   }
 
   index latency() { return static_cast<index>(get<kFFT>().hopSize()); }
 
+  AnalysisSize analysisSettings()
+  {
+    return {get<kFFT>().winSize(), get<kFFT>().hopSize()};
+  }
+
   void reset()
   {    
     mBufferedProcess.reset();
-    mFrameOffset = 0;
     mAlgorithm.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
                     get<kFilterSize>());
   }
 
 private:
-  OnsetSegmentation                          mAlgorithm;
+  OnsetDetectionFunctions                    mAlgorithm;
+  double                                     mDescriptor;
   ParameterTrackChanges<index, index, index> mBufferParamsTracker;
   ParameterTrackChanges<index, index>        mParamsTracker;
   BufferedProcess                            mBufferedProcess;
-  index mFrameOffset{0}; // in case kHopSize < hostVecSize
 };
-} // namespace onsetslice
+} // namespace onsetfeature
 
-using RTOnsetSliceClient = ClientWrapper<onsetslice::OnsetSliceClient>;
+using RTOnsetFeatureClient = ClientWrapper<onsetfeature::OnsetFeatureClient>;
 
-auto constexpr NRTOnsetSliceParams =
-    makeNRTParams<onsetslice::OnsetSliceClient>(
+auto constexpr NRTOnsetFeatureParams =
+    makeNRTParams<onsetfeature::OnsetFeatureClient>(
         InputBufferParam("source", "Source Buffer"),
-        BufferParam("indices", "Indices Buffer"));
+        BufferParam("features", "Feature Buffer"));
 
 
-using NRTOnsetSliceClient =
-    NRTSliceAdaptor<onsetslice::OnsetSliceClient, decltype(NRTOnsetSliceParams),
-                    NRTOnsetSliceParams, 1, 1>;
+using NRTOnsetFeatureClient =
+    NRTControlAdaptor<onsetfeature::OnsetFeatureClient, decltype(NRTOnsetFeatureParams),
+                    NRTOnsetFeatureParams, 1, 1>;
 
 
-using NRTThreadingOnsetSliceClient = NRTThreadingAdaptor<NRTOnsetSliceClient>;
+using NRTThreadedOnsetFeatureClient = NRTThreadingAdaptor<NRTOnsetFeatureClient>;
 
 } // namespace client
 } // namespace fluid

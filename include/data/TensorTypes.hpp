@@ -10,6 +10,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "FluidTensor.hpp"
+#include <Eigen/Core> 
 #include <complex>
 
 namespace fluid {
@@ -24,4 +25,6 @@ using ComplexMatrixView = FluidTensorView<std::complex<double>, 2>;
 using RealVectorView = FluidTensorView<double, 1>;
 using ComplexVectorView = FluidTensorView<std::complex<double>, 1>;
 
+using ArrayXXidx = Eigen::Array<fluid::index, Eigen::Dynamic, Eigen::Dynamic>; 
+using ArrayXidx = Eigen::Array<fluid::index, Eigen::Dynamic, 1>; 
 } // namespace fluid

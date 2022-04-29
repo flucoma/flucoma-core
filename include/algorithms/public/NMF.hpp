@@ -37,7 +37,7 @@ public:
     MatrixXd W1 = asEigen<Matrix>(W).transpose();
     MatrixXd H1 = asEigen<Matrix>(H).transpose();
     MatrixXd result = (W1.col(idx) * H1.row(idx)).transpose();
-    V = asFluid(result);
+    V <<= asFluid(result);
   }
 
   // processFrame computes activations of a dictionary W in a given frame
@@ -69,11 +69,11 @@ public:
       // double divergence = (v.cwiseProduct(v.cwiseQuotient(r)) - v + r).sum();
       // std::cout<<"Divergence "<<divergence<<std::endl;
     }
-    out = asFluid(h);
+    out <<= asFluid(h);
     if (v.extent(0) > 0)
     {
       ArrayXd v2 = (W * h).array();
-      v = asFluid(v2);
+      v <<= asFluid(v2);
     }
   }
 
@@ -117,9 +117,9 @@ public:
     MatrixXd WT = W.transpose();
     MatrixXd HT = H.transpose();
 
-    V1 = asFluid(VT);
-    W1 = asFluid(WT);
-    H1 = asFluid(HT);
+    V1 <<= asFluid(VT);
+    W1 <<= asFluid(WT);
+    H1 <<= asFluid(HT);
   }
 
   void addProgressCallback(ProgressCallback&& callback)

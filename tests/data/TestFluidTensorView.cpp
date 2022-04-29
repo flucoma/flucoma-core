@@ -108,7 +108,7 @@ TEST_CASE("FluidTensorView copy assignment is deep","[FluidTensorView]")
     auto x = FluidTensorView<int,1>{data.data(),0,3}; 
     auto y = FluidTensorView<int,1>{data2.data(),0,3}; 
 
-    y = x; 
+    y <<= x; 
 
     CHECK(y.data() != x.data()); 
     CHECK(y.descriptor() == x.descriptor());    

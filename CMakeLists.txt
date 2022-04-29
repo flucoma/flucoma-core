@@ -74,6 +74,17 @@ FetchContent_Declare(
   GIT_PROGRESS TRUE
 )
 
+FetchContent_Declare(
+  json 
+  GIT_SHALLOW TRUE
+  # GIT_REPOSITORY https://github.com/nlohmann/json.git
+  # advice on nlohmann repo is to use this mirror unless we really want ~150 meg of test data as well as headers:
+  GIT_REPOSITORY https://github.com/ArthurSonzogni/nlohmann_json_cmake_fetchcontent
+  GIT_PROGRESS TRUE
+  GIT_TAG v3.10.5
+)
+set(JSON_SystemInclude ON CACHE BOOL "")
+
 if(HISS_PATH) #if hiss path is set, this will stop it downloading
   get_filename_component(FETCHCONTENT_SOURCE_DIR_HISSTOOLS ${HISS_PATH} ABSOLUTE)
 endif()
@@ -86,6 +97,9 @@ if(SPECTRA_PATH) #if spectra path is set, this will stop it downloading
   get_filename_component(FETCHCONTENT_SOURCE_DIR_SPECTRA ${SPECTRA_PATH} ABSOLUTE)
 endif()
 
+if(JSON_PATH)
+  get_filename_component(FETCHCONTENT_SOURCE_DIR_JSON ${JSON_PATH} ABSOLUTE)  
+endif()
 
 FetchContent_GetProperties(HISSTools)
 if(NOT hisstools_POPULATED)
@@ -111,6 +125,13 @@ endif()
 
 
 add_subdirectory(${tl_optional_SOURCE_DIR} ${tl_optional_BINARY_DIR} EXCLUDE_FROM_ALL)
+
+FetchContent_GetProperties(json)
+if(NOT json_POPULATED)
+  FetchContent_Populate(json)  
+endif()
+
+add_subdirectory(${json_SOURCE_DIR} ${json_BINARY_DIR} EXCLUDE_FROM_ALL)
 
 # HISSTools FFT target
 add_library(
@@ -159,7 +180,7 @@ set_target_properties(HISSTools_AudioFile PROPERTIES
 add_library(FLUID_DECOMPOSITION INTERFACE)
 
 target_include_directories(
-  FLUID_DECOMPOSITION INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty"
+  FLUID_DECOMPOSITION INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include" 
 )
 target_include_directories(
   FLUID_DECOMPOSITION SYSTEM INTERFACE #we don't want warnings from Eigen or HissTools
@@ -172,6 +193,7 @@ target_link_libraries(
   HISSTools_FFT 
   flucoma_VERSION_LIB 
   tl::optional
+  nlohmann_json::nlohmann_json
 )
 target_sources(
   FLUID_DECOMPOSITION INTERFACE ${HEADERS}
@@ -196,8 +218,6 @@ if(APPLE)
   target_compile_options(HISSTools_AudioFile PUBLIC -stdlib=libc++)
   target_compile_options(FLUID_DECOMPOSITION INTERFACE -stdlib=libc++)
   target_link_libraries(FLUID_DECOMPOSITION INTERFACE -stdlib=libc++)
-
-
 endif()
 
 #Apply any vector instruction flags

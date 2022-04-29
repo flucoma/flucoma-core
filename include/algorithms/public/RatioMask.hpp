@@ -43,7 +43,7 @@ public:
         asEigen<Array>(mixture) *
         (asEigen<Array>(targetMag).pow(exponent) * mMultiplier.pow(exponent))
             .min(1.0);
-    result = asFluid(tmp);
+    result <<= asFluid(tmp);
   }
 
 private:

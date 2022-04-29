@@ -60,7 +60,7 @@ public:
     if (!input[0].data()) return;
 
     // Copy the input samples
-    output[0] = input[0];
+    output[0] <<= input[0];
 
     // 2nd input? -> ar version
     if (input[1].data())

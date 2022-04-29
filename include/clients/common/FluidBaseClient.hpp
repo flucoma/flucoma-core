@@ -107,6 +107,12 @@ private:
   std::vector<const char*> mOutputLabels;
 };
 
+struct AnalysisSize
+{
+  index window;
+  index hop;    
+}; 
+
 template <typename C>
 class ClientWrapper
 {
@@ -206,7 +212,7 @@ public:
         mClient, std::forward<Args>(args)...);
   }
 
-  index controlRate() { return mClient.controlRate(); }
+  AnalysisSize analysisSettings() { return mClient.analysisSettings(); }
 
   template <size_t N, typename T>
   void set(T&& x, Result* reportage) noexcept
