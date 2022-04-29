@@ -96,8 +96,8 @@ public:
     ArrayXcd result =
         interpolate(spectrum1, spectrum1Dh, spectrum2, spectrum2Dh, weight);
     mISTFT.processFrame(result, output);
-    out.row(0) = asFluid(output);
-    out.row(1) = asFluid(mWindowSquared);
+    out.row(0) <<= asFluid(output);
+    out.row(1) <<= asFluid(mWindowSquared);
   }
 
   vector<SpetralMass> segmentSpectrum(const Ref<ArrayXd> mag,

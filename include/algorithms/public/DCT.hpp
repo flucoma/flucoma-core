@@ -54,7 +54,7 @@ public:
     assert(in.size() == mInputSize);
     ArrayXd frame = _impl::asEigen<Eigen::Array>(in);
     ArrayXd result = (mTable * frame.matrix()).array();
-    out = _impl::asFluid(result);
+    out <<= _impl::asFluid(result);
   }
 
   void processFrame(Eigen::Ref<const ArrayXd> input, Eigen::Ref<ArrayXd> output)

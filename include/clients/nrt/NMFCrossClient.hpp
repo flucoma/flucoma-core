@@ -98,11 +98,11 @@ public:
 
     index srcFrames = source.numFrames();
     index tgtFrames = target.numFrames();
-    index srcWindows =
-        std::floor((srcFrames + fftParams.hopSize()) / fftParams.hopSize());
+    index srcWindows = static_cast<index>(
+        std::floor((srcFrames + fftParams.hopSize()) / fftParams.hopSize()));
     index nBins = fftParams.frameSize();
-    index tgtWindows =
-        std::floor((tgtFrames + fftParams.hopSize()) / fftParams.hopSize());
+    index tgtWindows = static_cast<index>(
+        std::floor((tgtFrames + fftParams.hopSize()) / fftParams.hopSize()));
 
     if (srcFrames <= 0) return {Result::Status::kError, "Empty source buffer"};
 
@@ -129,10 +129,10 @@ public:
     Result resizeResult = output.resize(tgtFrames, 1, sampleRate);
     if (!resizeResult.ok()) return resizeResult;
 
-    srcTmp = source.samps(0, srcFrames, 0);
+    srcTmp <<= source.samps(0, srcFrames, 0);
     stft.process(srcTmp, srcSpectrum);
     STFT::magnitude(srcSpectrum, W);
-    tgtTmp = target.samps(0, tgtFrames, 0);
+    tgtTmp <<= target.samps(0, tgtFrames, 0);
     stft.process(tgtTmp, tgtSpectrum);
     STFT::magnitude(tgtSpectrum, tgtMag);
     index rank = W.rows();
@@ -176,7 +176,7 @@ public:
     r = checkTask(c, ++progressCount, progressTotal);
     if (!r.ok()) return r;
 
-    output.samps(0) = resultAudio(Slice(0, tgtFrames));
+    output.samps(0) <<= resultAudio(Slice(0, tgtFrames));
     return OK();
   }
 };

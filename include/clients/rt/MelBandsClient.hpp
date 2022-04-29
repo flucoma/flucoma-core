@@ -106,7 +106,7 @@ public:
         });
     // for (index i = 0; i < get<kNBands>(); ++i)
     //   output[asUnsigned(i)](0) = static_cast<T>(mBands(i));
-    output[0](Slice(0,get<kNBands>())) = mBands; 
+    output[0](Slice(0,get<kNBands>())) <<= mBands; 
     output[0](Slice(get<kNBands>(), get<kMaxNBands>() - get<kNBands>())).fill(0); 
   }
 
@@ -120,7 +120,11 @@ public:
                    get<kFFT>().winSize());
   }
 
-  index controlRate() { return get<kFFT>().hopSize(); }
+  AnalysisSize analysisSettings()
+  {
+    return { get<kFFT>().winSize(), get<kFFT>().hopSize() }; 
+  }
+
 
 private:
   ParameterTrackChanges<index, index, index, index, double, double, double>

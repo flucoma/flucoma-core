@@ -10,8 +10,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
+#include "NoveltyFeature.hpp"
 #include "../util/FluidEigenMappings.hpp"
-#include "../util/Novelty.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
@@ -26,32 +26,24 @@ public:
   using ArrayXd = Eigen::ArrayXd;
 
   NoveltySegmentation(index maxKernelSize, index maxFilterSize)
-      : mFilterBufferStorage(maxFilterSize), mNovelty(maxKernelSize)
+      : mNovelty(maxKernelSize, maxFilterSize)
   {}
 
   void init(index kernelSize, index filterSize, index nDims)
   {
-    assert(kernelSize % 2);
-    mNovelty.init(kernelSize, nDims);
-    mFilterBuffer = mFilterBufferStorage.segment(0, filterSize);
-    mFilterBuffer.setZero();
+    mNovelty.init(kernelSize, filterSize, nDims);
     mDebounceCount = 1;
+    mPeakBuffer.setZero(); 
   }
 
   double processFrame(const RealVectorView input, double threshold,
                       index minSliceLength)
   {
-    double novelty = mNovelty.processFrame(_impl::asEigen<Eigen::Array>(input));
     double detected = 0.;
-    index  filterSize = mFilterBuffer.size();
-    if (filterSize > 1)
-    {
-      mFilterBuffer.segment(0, filterSize - 1) =
-          mFilterBuffer.segment(1, filterSize - 1);
-    }
+
     mPeakBuffer.segment(0, 2) = mPeakBuffer.segment(1, 2);
-    mFilterBuffer(filterSize - 1) = novelty;
-    mPeakBuffer(2) = mFilterBuffer.mean();
+    mPeakBuffer(2) = mNovelty.processFrame(input);
+
     if (mPeakBuffer(1) > mPeakBuffer(0) && mPeakBuffer(1) > mPeakBuffer(2) &&
         mPeakBuffer(1) > threshold && mDebounceCount == 0)
     {
@@ -66,11 +58,9 @@ public:
   }
 
 private:
-  ArrayXd mFilterBuffer;
-  ArrayXd mFilterBufferStorage;
-  ArrayXd mPeakBuffer{3};
-  Novelty mNovelty;
-  index   mDebounceCount{1};
+  NoveltyFeature mNovelty;
+  ArrayXd      mPeakBuffer{3};
+  index        mDebounceCount{1};
 };
 } // namespace algorithm
 } // namespace fluid

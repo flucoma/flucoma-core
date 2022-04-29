@@ -143,6 +143,50 @@ constexpr size_t zeroAll()
 template <typename... Ts>
 using zeroSequenceFor = std::index_sequence<zeroAll<Ts>()...>;
 
+
+template<typename T>
+constexpr std::tuple<T> Include(T& t, std::true_type)
+{
+  return std::make_tuple(t);
+}
+
+template<typename T>
+constexpr std::tuple<> Include(T&, std::false_type)
+{
+  return std::make_tuple();
+}
+
+template<size_t N,typename...Ts,size_t...Is>
+constexpr auto tupleHead_impl(const std::tuple<Ts...>& t,std::index_sequence<Is...>)
+{
+  return std::tuple_cat(Include(std::get<Is>(t),std::integral_constant<bool, (Is < N)>{})...);
+}
+
+template<size_t N,typename...Ts>
+constexpr auto tupleHead(const std::tuple<Ts...>& t)
+{
+  return tupleHead_impl<N>(t,std::make_index_sequence<sizeof...(Ts)>{});
+}
+
+template<size_t N,typename...Ts,size_t...Is>
+constexpr auto tupleTail_impl(const std::tuple<Ts...>& t,std::index_sequence<Is...>)
+{
+  return std::tuple_cat(Include(std::get<Is>(t),std::integral_constant<bool,(Is >= N)>{})...);
+}
+
+template<size_t N,typename...Ts>
+constexpr auto tupleTail(const std::tuple<Ts...>& t)
+{
+  return tupleTail_impl<N>(t,std::make_index_sequence<sizeof...(Ts)>{});
+}
+
+template<size_t N,typename T, typename...Ts>
+constexpr auto tupleInsertAfter(const std::tuple<Ts...>& t, T&& x)
+{
+  return std::tuple_cat(tupleHead<N>(t), std::make_tuple(std::forward<T>(x)),
+                        tupleTail<N>(t));
+}
+
 } // namespace impl
 } // namespace client
 } // namespace fluid

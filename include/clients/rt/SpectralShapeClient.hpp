@@ -104,14 +104,17 @@ public:
 
     // for (int i = 0; i < 7; ++i)
     //   output[asUnsigned(i)](0) = static_cast<T>(mDescriptors(i));
-    output[0] = mDescriptors; 
+    output[0] <<= mDescriptors; 
   }
 
   index latency() { return get<kFFT>().winSize(); }
 
   void reset() { mSTFTBufferedProcess.reset(); }
 
-  index controlRate() { return get<kFFT>().hopSize(); }
+  AnalysisSize analysisSettings()
+  {
+    return { get<kFFT>().winSize(), get<kFFT>().hopSize() }; 
+  }
 
 private:
   ParameterTrackChanges<index, double>        mTracker;

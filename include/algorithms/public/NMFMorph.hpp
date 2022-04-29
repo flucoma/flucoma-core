@@ -69,8 +69,8 @@ public:
     mRTPGHI.init(fftSize);
 
     index rank = mW1.cols();
-    mOT = std::vector<OptimalTransport>(rank);
-    for (index i = 0; i < rank; i++) { mOT[i].init(mW1.col(i), mW2.col(i)); }
+    mOT = std::vector<OptimalTransport>(asUnsigned(rank));
+    for (index i = 0; i < rank; i++) { mOT[asUnsigned(i)].init(mW1.col(i), mW2.col(i)); }
     mPos = 0;
   }
 
@@ -82,7 +82,7 @@ public:
     for (int i = 0; i < W.cols(); i++)
     {
       ArrayXd out = ArrayXd::Zero(mW2.rows());
-      mOT[i].interpolate(interpolation, out);
+      mOT[asUnsigned(i)].interpolate(interpolation, out);
       W.col(i) = out;
     }
 

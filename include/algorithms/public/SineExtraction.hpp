@@ -110,7 +110,7 @@ public:
       mBuf.pop();
     }
     mTracking.prune();
-    out = _impl::asFluid(result);
+    out <<= _impl::asFluid(result);
     mCurrentFrame++;
   }
 

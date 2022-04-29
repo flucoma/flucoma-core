@@ -87,7 +87,7 @@ void from_json(const nlohmann::json &j, FluidTensor<T, 2> &t) {
     FluidTensor<T, 1> tmp(j[0].size());
     for (size_t i = 0; i < j.size(); i++) {
       j.at(i).get_to(tmp);
-      result.row(asSigned(i)) = tmp;
+      result.row(asSigned(i)) <<= tmp;
     }
     t = result;
   }
@@ -123,7 +123,7 @@ bool check_json(const nlohmann::json &j,
 template <typename T>
 void from_json(const nlohmann::json &j, FluidDataSet<std::string, T, 1> &ds) {
   auto rows = j.at("data");
-  index pointSize = j.at("cols");
+  index pointSize = j.at("cols").get<index>();
   ds.resize(pointSize);
   FluidTensor<T, 1> tmp(pointSize);
   for (auto r = rows.begin(); r != rows.end(); ++r) {
@@ -153,8 +153,8 @@ bool check_json(const nlohmann::json &j, const KDTree &) {
 }
 
 void from_json(const nlohmann::json &j, KDTree &tree) {
-  index rows = j.at("rows");
-  index cols = j.at("cols");
+  index rows = j.at("rows").get<index>();
+  index cols = j.at("cols").get<index>();
   KDTree::FlatData treeData(rows, cols);
   j.at("tree").get_to(treeData.tree);
   j.at("data").get_to(treeData.data);
@@ -179,8 +179,8 @@ bool check_json(const nlohmann::json &j, const KMeans &) {
 }
 
 void from_json(const nlohmann::json &j, KMeans &kmeans) {
-  index rows = j.at("rows");
-  index cols = j.at("cols");
+  index rows = j.at("rows").get<index>();
+  index cols = j.at("cols").get<index>();
   RealMatrix means(rows, cols);
   j.at("means").get_to(means);
   kmeans.setMeans(means);
@@ -209,13 +209,13 @@ bool check_json(const nlohmann::json &j, const Normalization &) {
 }
 
 void from_json(const nlohmann::json &j, Normalization &normalization) {
-  index cols = j.at("cols");
+  index cols = j.at("cols").get<index>();
   RealVector dataMin(cols);
   RealVector dataMax(cols);
   j.at("data_min").get_to(dataMin);
   j.at("data_max").get_to(dataMax);
-  double min = j.at("min");
-  double max = j.at("max");
+  double min = j.at("min").get<double>();
+  double max = j.at("max").get<double>();
   normalization.init(min, max, dataMin, dataMax);
 }
 
@@ -249,7 +249,7 @@ bool check_json(const nlohmann::json &j, const RobustScaling &) {
 }
 
 void from_json(const nlohmann::json &j, RobustScaling &robustScaling) {
-  index cols = j.at("cols");
+  index cols = j.at("cols").get<index>();
   RealVector median(cols);
   RealVector range(cols);
   RealVector dataLow(cols);
@@ -258,8 +258,8 @@ void from_json(const nlohmann::json &j, RobustScaling &robustScaling) {
   j.at("range").get_to(range);
   j.at("data_low").get_to(dataLow);
   j.at("data_high").get_to(dataHigh);
-  double low = j.at("low");
-  double high = j.at("high");
+  double low = j.at("low").get<double>();
+  double high = j.at("high").get<double>();
   robustScaling.init(low, high, dataLow, dataHigh, median, range);
 }
 
@@ -282,7 +282,7 @@ bool check_json(const nlohmann::json &j, const Standardization &) {
 }
 
 void from_json(const nlohmann::json &j, Standardization &standardization) {
-  index cols = j.at("cols");
+  index cols = j.at("cols").get<index>();
   RealVector mean(cols);
   RealVector std(cols);
   j.at("mean").get_to(mean);
@@ -315,8 +315,8 @@ bool check_json(const nlohmann::json &j, const PCA &) {
 }
 
 void from_json(const nlohmann::json &j, PCA &pca) {
-  index rows = j.at("rows");
-  index cols = j.at("cols");
+  index rows = j.at("rows").get<index>();
+  index cols = j.at("cols").get<index>();
   RealMatrix bases(rows, cols);
   RealVector mean(rows);
   RealVector values(cols);
@@ -343,7 +343,7 @@ bool check_json(const nlohmann::json &j, const LabelSetEncoder &) {
 }
 
 void from_json(const nlohmann::json &j, LabelSetEncoder &lse) {
-  index rows = asSigned(j["rows"]);
+  index rows = j["rows"].get<index>();
   FluidTensor<std::string, 1> labels(rows);
   j.at("labels").get_to(labels);
   lse.init(labels);
@@ -381,26 +381,26 @@ void from_json(const nlohmann::json &j, MLP &mlp) {
   using namespace std;
   index nLayers = asSigned(j["layers"].size());
   if(nLayers <= 0) return;
-  index inputSize = asSigned(j["layers"][0]["rows"]);
-  index outputSize = asSigned(j["layers"][asUnsigned(nLayers - 1)]["cols"]);
-  index activation = asSigned(j["layers"][0]["activation"]);
-  index finalActivation = asSigned(j["layers"][asUnsigned(nLayers - 1)]["activation"]);
+  index inputSize = j["layers"][0]["rows"].get<index>();
+  index outputSize = j["layers"][asUnsigned(nLayers - 1)]["cols"].get<index>();
+  index activation = j["layers"][0]["activation"].get<index>();
+  index finalActivation = j["layers"][asUnsigned(nLayers - 1)]["activation"].get<index>();
   FluidTensor<index, 1> hiddenSizes(j["layers"].size() - 1);
   if(nLayers > 1){
     for (index i = 0; i < nLayers - 1; i++){
-      hiddenSizes(i) =  asSigned(j["layers"][asUnsigned(i)]["cols"]);
+      hiddenSizes(i) =  j["layers"][asUnsigned(i)]["cols"].get<index>();
     }
   }
   mlp.init(inputSize,outputSize, hiddenSizes, activation, finalActivation);
   for (index i = 0; i < nLayers; i++){
     auto l = j["layers"][asUnsigned(i)];
-    index rows = asSigned(l["rows"]);
-    index cols = asSigned(l["cols"]);
+    index rows = l["rows"].get<index>();
+    index cols = l["cols"].get<index>();
     RealMatrix W(rows, cols);
     l.at("weights").get_to(W);
     RealVector b(cols);
     l.at("biases").get_to(b);
-    index a = asSigned(l.at("activation"));
+    index a = l.at("activation").get<index>();
     mlp.setParameters(i, W, b, a);
   }
   mlp.setTrained(true);
@@ -428,14 +428,14 @@ bool check_json(const nlohmann::json &j, const UMAP &) {
 }
 
 void from_json(const nlohmann::json &j, UMAP &umap) {
-  index rows = j.at("rows");
-  index cols = j.at("cols");
+  index rows = j.at("rows").get<index>();
+  index cols = j.at("cols").get<index>();
   RealMatrix embedding(rows, cols);
   j.at("embedding").get_to(embedding);
   KDTree tree = j.at("tree").get<algorithm::KDTree>();
-  double a = j.at("a");
-  double b = j.at("b");
-  index k = j.at("k");
+  double a = j.at("a").get<index>();
+  double b = j.at("b").get<index>();
+  index k = j.at("k").get<index>();
   umap.init(embedding, tree, k, a, b);
 }
 

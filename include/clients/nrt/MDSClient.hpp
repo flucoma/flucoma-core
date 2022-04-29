@@ -32,6 +32,7 @@ class MDSClient : public FluidBaseClient, OfflineIn, OfflineOut, ModelObject
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
+  using InputBufferPtr = std::shared_ptr<const BufferAdaptor>;
   using StringVector = FluidTensor<string, 1>;
 
   template <typename T>
@@ -57,7 +58,7 @@ public:
 
   MDSClient(ParamSetViewType& p) : mParams(p) {}
 
-  MessageResult<void> fitTransform(DataSetClientRef sourceClient,
+  MessageResult<void> fitTransform(InputDataSetClientRef sourceClient,
                                    DataSetClientRef destClient)
   {
     index k = get<kNumDimensions>();

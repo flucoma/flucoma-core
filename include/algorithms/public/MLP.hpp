@@ -59,8 +59,8 @@ public:
                      index& layerType) const
   {
     using namespace _impl;
-    W = asFluid(mLayers[asUnsigned(layer)].getWeights());
-    b = asFluid(mLayers[asUnsigned(layer)].getBiases());
+    W <<= asFluid(mLayers[asUnsigned(layer)].getWeights());
+    b <<= asFluid(mLayers[asUnsigned(layer)].getBiases());
     layerType = mLayers[asUnsigned(layer)].getActType();
   }
 
@@ -96,11 +96,11 @@ public:
     ArrayXXd input = asEigen<Eigen::Array>(in);
     ArrayXXd output = ArrayXXd::Zero(out.rows(), out.cols());
     forward(input, output, startLayer, endLayer);
-    out = asFluid(output);
+    out <<= asFluid(output);
   }
 
   void processFrame(RealVectorView in, RealVectorView out, index startLayer,
-                    index endLayer)
+                    index endLayer) const
   {
     using namespace _impl;
     using namespace Eigen;
@@ -110,16 +110,16 @@ public:
     ArrayXXd output = ArrayXXd::Zero(1, out.size());
     forward(input, output, startLayer, endLayer);
     ArrayXd tmpOut = output.row(0);
-    out = asFluid(tmpOut);
+    out <<= asFluid(tmpOut);
   }
 
-  void forward(Eigen::Ref<ArrayXXd> in, Eigen::Ref<ArrayXXd> out)
+  void forward(Eigen::Ref<ArrayXXd> in, Eigen::Ref<ArrayXXd> out) const
   {
     forward(in, out, 0, asSigned(mLayers.size()));
   }
 
   void forward(Eigen::Ref<ArrayXXd> in, Eigen::Ref<ArrayXXd> out,
-               index startLayer, index endLayer)
+               index startLayer, index endLayer) const
   {
     if (startLayer >= asSigned(mLayers.size()) ||
         endLayer > asSigned(mLayers.size()))
@@ -137,7 +137,7 @@ public:
     out = output;
   }
 
-  void backward(Eigen::Ref<ArrayXXd> out)
+  void backward(Eigen::Ref<ArrayXXd> out) 
   {
     index    nRows = out.rows();
     ArrayXXd chain =

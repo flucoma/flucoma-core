@@ -38,9 +38,9 @@ public:
     double kurtosis =
         (weights * ((input - mean) / (stdev == 0 ? 1 : stdev)).pow(4)).sum();
     ArrayXd sorted = input;
-    ArrayXi perm = ArrayXi::LinSpaced(length, 0, length - 1);
+    ArrayXidx perm = ArrayXidx::LinSpaced(length, 0, length - 1);
     std::sort(perm.data(), perm.data() + length,
-              [&](size_t i, size_t j) { return input(i) < input(j); });
+              [&](index i, index j) { return input(i) < input(j); });
     index  level = 0;
     double lowVal{input(perm(0))};
     double midVal{input(perm(lrint(length - 1) / 2))};
