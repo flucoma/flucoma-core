@@ -91,14 +91,19 @@ public:
 
     if (!resizeResult.ok()) return resizeResult;
 
-    auto frames = source.allFrames()(Slice(startChan, numChans),
-                                     Slice(startFrame, numFrames));
+    auto frames = source.allFrames();
+
+    auto frameSel = frames(Slice(startChan, numChans),
+                                     Slice(startFrame, numFrames)); 
+    
+    auto frameSelT = frameSel.transpose(); 
+                                     
+    auto destFrames = destination.allFrames();                                 
 
     if (get<kAxis>() == 0)
-      std::copy(frames.begin(), frames.end(), destination.allFrames().begin());
+      std::copy(frameSel.begin(), frameSel.end(), destFrames.begin());
     else
-      std::copy(frames.transpose().begin(), frames.transpose().end(),
-                destination.allFrames().begin());
+      std::copy(frameSelT.begin(), frameSelT.end(), destFrames.begin());
 
     return {Result::Status::kOk};
   }
