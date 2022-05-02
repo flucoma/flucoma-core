@@ -1,5 +1,8 @@
 All provided samples are for demonstration purpose only and should not be used in creative and/or commercial work.
 
+Constanzo-PreparedSnare-M.wav
+  - prepared snare recorded by Rodrigo Constanzo, Portugal, 2018
+
 Green-Box639.wav
 Green-Box641.wav
   - Owen Green (bowed cardboard box) recorded by Sean Williams 26 June 2013, Anechoic Chamber, University of Edinburgh, with the support of the Leverhulme Trust
@@ -37,11 +40,9 @@ Tremblay-CEL-GlitchyMusicBoxMelo.wav
 Tremblay-CF-ChurchBells.wav
   - sound sources for the piece 'La cloche fêlée', recorded in Ephraim Scott Memorial Presbyterian Church, Montreal, by Pierre Alexandre Tremblay, 2003
 
-Tremblay-FMTri-M.wav
 Tremblay-FMTriDist-M.wav
 Tremblay-Iterative-M.wav
 Tremblay-SlideChoirAdd-M.wav
-Tremblay-SlideChoirSin-M.wav
   - examples devised as difficult to segment. Some might end up in a piece.
 
 Tremblay-SA-UprightPianoPedalWide.wav
