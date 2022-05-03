@@ -21,8 +21,7 @@ namespace normalize {
 constexpr auto NormalizeParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
     FloatParam("min", "Minimum Value", 0.0),
-    FloatParam("max", "Maximum Value", 1.0),
-    EnumParam("invert", "Inverse Transform", 0, "False", "True"));
+    FloatParam("max", "Maximum Value", 1.0));
 
 class NormalizeClient : public FluidBaseClient,
                         OfflineIn,
@@ -30,7 +29,7 @@ class NormalizeClient : public FluidBaseClient,
                         ModelObject,
                         public DataClient<algorithm::Normalization>
 {
-  enum { kName, kMin, kMax, kInvert };
+  enum { kName, kMin, kMax };
 
 public:
   using string = std::string;
@@ -79,7 +78,7 @@ public:
   MessageResult<void> transform(InputDataSetClientRef sourceClient,
                                 DataSetClientRef destClient)
   {
-    return _transform(sourceClient, destClient, get<kInvert>() == 1);
+    return _transform(sourceClient, destClient, false);
   }
 
   MessageResult<void> fitTransform(InputDataSetClientRef sourceClient,
@@ -93,22 +92,18 @@ public:
 
   MessageResult<void> transformPoint(InputBufferPtr in, BufferPtr out)
   {
-    if (!mAlgorithm.initialized()) return Error(NoDataFitted);
-    InOutBuffersCheck bufCheck(mAlgorithm.dims());
-    if (!bufCheck.checkInputs(in.get(), out.get()))
-      return Error(bufCheck.error());
-    BufferAdaptor::Access outBuf(out.get());
-    Result                resizeResult =
-        outBuf.resize(mAlgorithm.dims(), 1, outBuf.sampleRate());
-    if (!resizeResult.ok()) return Error(BufferAlloc);
-    RealVector src(mAlgorithm.dims());
-    RealVector dest(mAlgorithm.dims());
-    src <<= BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
-    mAlgorithm.setMin(get<kMin>());
-    mAlgorithm.setMax(get<kMax>());
-    mAlgorithm.processFrame(src, dest, get<kInvert>() == 1);
-    outBuf.samps(0, mAlgorithm.dims(), 0) <<= dest;
-    return OK();
+    return _transformPoint(in, out, false); 
+  }
+  
+  MessageResult<void> inverseTransform(InputDataSetClientRef sourceClient,
+                                DataSetClientRef destClient)
+  {
+    return _transform(sourceClient, destClient, true);
+  }
+  
+  MessageResult<void> inverseTransformPoint(InputBufferPtr in, BufferPtr out)
+  {
+    return _transformPoint(in, out, true); 
   }
 
   static auto getMessageDescriptors()
@@ -118,6 +113,9 @@ public:
         makeMessage("fitTransform", &NormalizeClient::fitTransform),
         makeMessage("transform", &NormalizeClient::transform),
         makeMessage("transformPoint", &NormalizeClient::transformPoint),
+        makeMessage("inverseTransform", &NormalizeClient::inverseTransform),
+        makeMessage("inverseTransformPoint",
+                    &NormalizeClient::inverseTransformPoint),
         makeMessage("cols", &NormalizeClient::dims),
         makeMessage("clear", &NormalizeClient::clear),
         makeMessage("size", &NormalizeClient::size),
@@ -151,6 +149,27 @@ private:
     {
       return Error(NoDataSet);
     }
+    return OK();
+  }
+
+  MessageResult<void> _transformPoint(InputBufferPtr in, BufferPtr out,
+                                      bool invert)
+  {
+    if (!mAlgorithm.initialized()) return Error(NoDataFitted);
+    InOutBuffersCheck bufCheck(mAlgorithm.dims());
+    if (!bufCheck.checkInputs(in.get(), out.get()))
+      return Error(bufCheck.error());
+    BufferAdaptor::Access outBuf(out.get());
+    Result                resizeResult =
+        outBuf.resize(mAlgorithm.dims(), 1, outBuf.sampleRate());
+    if (!resizeResult.ok()) return Error(BufferAlloc);
+    RealVector src(mAlgorithm.dims());
+    RealVector dest(mAlgorithm.dims());
+    src <<= BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
+    mAlgorithm.setMin(get<kMin>());
+    mAlgorithm.setMax(get<kMax>());
+    mAlgorithm.processFrame(src, dest, invert);
+    outBuf.samps(0, mAlgorithm.dims(), 0) <<= dest;
     return OK();
   }
 };
