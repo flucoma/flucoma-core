@@ -126,10 +126,10 @@ public:
       StringVector ids{srcDataSet.getIds()};
       RealMatrix   paddedInput(srcPtr->size(), mAlgorithm.dims());
       auto         inputData = srcDataSet.getData();
-      paddedInput(Slice(0, inputData.size()), Slice(0, inputData.cols())) =
+      paddedInput(Slice(0, inputData.rows()), Slice(0, inputData.cols())) <<=
           inputData;
       RealMatrix output(srcDataSet.size(), mAlgorithm.dims());
-      mAlgorithm.inverseProcess(paddedInput, output);
+      mAlgorithm.inverseProcess(paddedInput, output,get<kWhiten>() == 1);
       FluidDataSet<string, double, 1> result(ids, output);
       destPtr->setDataSet(result);
       return {};
@@ -179,7 +179,7 @@ public:
     Result resizeResult = outBuf.resize(mAlgorithm.dims(), 1, outBuf.sampleRate());
     
     mAlgorithm.inverseProcessFrame(src, dst, get<kWhiten>());
-    outBuf.samps(0,mAlgorithm.dims(),0)<< = dst;
+    outBuf.samps(0,mAlgorithm.dims(),0) <<= dst;
     return OK();
   }
 
