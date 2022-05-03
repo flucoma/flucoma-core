@@ -68,6 +68,13 @@ FetchContent_Declare(
 )
 
 FetchContent_Declare(
+  tl_optional 
+  GIT_SHALLOW TRUE
+  GIT_REPOSITORY https://github.com/TartanLlama/optional.git  
+  GIT_PROGRESS TRUE
+)
+
+FetchContent_Declare(
   json 
   GIT_SHALLOW TRUE
   # GIT_REPOSITORY https://github.com/nlohmann/json.git
@@ -77,6 +84,7 @@ FetchContent_Declare(
   GIT_TAG v3.10.5
 )
 set(JSON_SystemInclude ON CACHE BOOL "")
+
 if(HISS_PATH) #if hiss path is set, this will stop it downloading
   get_filename_component(FETCHCONTENT_SOURCE_DIR_HISSTOOLS ${HISS_PATH} ABSOLUTE)
 endif()
@@ -107,6 +115,16 @@ FetchContent_GetProperties(Spectra)
 if(NOT spectra_POPULATED)
   FetchContent_Populate(Spectra)
 endif()
+
+set(OPTIONAL_BUILD_PACKAGE OFF CACHE BOOL "" FORCE)
+set(OPTIONAL_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+FetchContent_GetProperties(tl_optional)
+if(NOT tl_optional_POPULATED)
+  FetchContent_Populate(tl_optional)
+endif()
+
+
+add_subdirectory(${tl_optional_SOURCE_DIR} ${tl_optional_BINARY_DIR} EXCLUDE_FROM_ALL)
 
 FetchContent_GetProperties(json)
 if(NOT json_POPULATED)
@@ -171,10 +189,10 @@ target_include_directories(
   "${hisstools_SOURCE_DIR}"
 )
 target_link_libraries(
-  FLUID_DECOMPOSITION INTERFACE HISSTools_FFT flucoma_VERSION_LIB
   FLUID_DECOMPOSITION INTERFACE 
   HISSTools_FFT 
   flucoma_VERSION_LIB 
+  tl::optional
   nlohmann_json::nlohmann_json
 )
 target_sources(

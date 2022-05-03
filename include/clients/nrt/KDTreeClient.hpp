@@ -75,9 +75,12 @@ public:
     return OK();
   }
 
-  MessageResult<StringVector> kNearest(InputBufferPtr data) const
+  MessageResult<StringVector> kNearest(InputBufferPtr data, Optional<index> nNeighbours) const
   {
-    index k = get<kNumNeighbors>();
+    //we can deprecate ancillary parameters in favour of optional args by falling back to using parameters when arg not present
+    index k = nNeighbours ? nNeighbours.value() : get<kNumNeighbors>();
+    //alternatively we could just be hardcore and ignore parameters and have message handlers fallback to a default when arg missing (which would be eventual behaviour, I guess)
+    //index k =  nNeighbours.value_or(1); 
     if (k > mAlgorithm.size()) return Error<StringVector>(SmallDataSet);
     // if (k <= 0 && get<kRadius>() <= 0) return Error<StringVector>(SmallK);
     if (!mAlgorithm.initialized()) return Error<StringVector>(NoDataFitted);

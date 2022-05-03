@@ -2,16 +2,63 @@
 
 #include "ParameterSet.hpp"
 #include "ParameterTypes.hpp"
+#include "tl/optional.hpp"
 #include <functional>
 #include <tuple>
 
 namespace fluid {
 namespace client {
 
+template<typename T>
+using Optional = tl::optional<T>; 
+
+namespace impl{
+
+//template<typename T>
+//constexpr index isOptional(T&&) { return false; }
+//
+//template<typename T>
+//constexpr index isOptional(Optional<T>&&) { return true; }
+
+template<typename T>
+struct IsOptional: std::false_type{};
+
+template<typename T>
+struct IsOptional<Optional<T>>: std::true_type{};
+
+template<typename...Ts>
+constexpr std::array<index,sizeof...(Ts)> flagOptionalArgs()
+{
+  constexpr std::array<index,sizeof...(Ts)> result{
+    IsOptional<Ts>::value...
+  };
+  
+  return result;
+}
+
+template<typename...Ts>
+constexpr bool optionalsAtEnd()
+{
+  constexpr auto optionalFlags = flagOptionalArgs<Ts...>();
+  if(!optionalFlags.size()) return true;
+  bool result = true;
+  for(size_t i = 1; i < optionalFlags.size(); ++i)
+  {
+    result = result && optionalFlags[i] >= optionalFlags[i-1];
+  }
+  return result;
+}
+
+}
+
+
 template <typename L, typename Ret, typename T, typename... Args>
 struct Message
 {
-  Message(const char* n, L l) : name{n}, op(l) {}
+  Message(const char* n, L l) : name{n}, op(l)
+  {
+    static_assert(impl::optionalsAtEnd<Args...>(),"FluCoMa: OPTIONAL MESSAGE ARGUMENTS MUST BE AT END");
+  }
   const char* name;
   L           op;
   using ReturnType = Ret;
