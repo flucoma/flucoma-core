@@ -8,6 +8,10 @@
 
 cmake_minimum_required (VERSION 3.11)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 get_directory_property(hasParent PARENT_DIRECTORY)
 
 #set module path at top level so wrapper projects can easily include fluid_version script
@@ -145,9 +149,6 @@ target_link_libraries(
 target_include_directories(HISSTools_FFT PUBLIC "${hisstools_SOURCE_DIR}")
 
 set_target_properties(HISSTools_FFT PROPERTIES
-    CXX_STANDARD 14
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
     POSITION_INDEPENDENT_CODE ON
 )
 
@@ -170,11 +171,6 @@ add_library(
   "${hisstools_SOURCE_DIR}/AudioFile/OAudioFile.cpp"
 )
 
-set_target_properties(HISSTools_AudioFile PROPERTIES
-    CXX_STANDARD 14
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
 
 #Fluid Decomposition header-only target
 add_library(FLUID_DECOMPOSITION INTERFACE)
