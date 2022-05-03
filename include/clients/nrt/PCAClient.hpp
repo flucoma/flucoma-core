@@ -111,6 +111,35 @@ public:
     return result;
   }
 
+  MessageResult<void> inverseTransform(InputDataSetClientRef sourceClient,
+                                       DataSetClientRef destClient) const
+  {
+
+    auto srcPtr = sourceClient.get().lock();
+    auto destPtr = destClient.get().lock();
+
+    if (srcPtr && destPtr)
+    {
+      auto srcDataSet = srcPtr->getDataSet();
+      if (srcDataSet.size() == 0) return Error<void>(EmptyDataSet);
+      if (!mAlgorithm.initialized()) return Error<void>(NoDataFitted);
+      StringVector ids{srcDataSet.getIds()};
+      RealMatrix   paddedInput(srcPtr->size(), mAlgorithm.dims());
+      auto         inputData = srcDataSet.getData();
+      paddedInput(Slice(0, inputData.rows()), Slice(0, inputData.cols())) <<=
+          inputData;
+      RealMatrix output(srcDataSet.size(), mAlgorithm.dims());
+      mAlgorithm.inverseProcess(paddedInput, output,get<kWhiten>() == 1);
+      FluidDataSet<string, double, 1> result(ids, output);
+      destPtr->setDataSet(result);
+      return {};
+    }
+    else
+    {
+      return Error<void>(NoDataSet);
+    }
+  }
+
   MessageResult<void> transformPoint(InputBufferPtr in, BufferPtr out) const
   {
     index k = get<kNumDimensions>();
@@ -150,7 +179,7 @@ public:
     Result resizeResult = outBuf.resize(mAlgorithm.dims(), 1, outBuf.sampleRate());
     
     mAlgorithm.inverseProcessFrame(src, dst, get<kWhiten>());
-    outBuf.samps(0,mAlgorithm.dims(),0)<< = dst;
+    outBuf.samps(0,mAlgorithm.dims(),0) <<= dst;
     return OK();
   }
 
@@ -160,6 +189,7 @@ public:
         makeMessage("fit", &PCAClient::fit),
         makeMessage("transform", &PCAClient::transform),
         makeMessage("fitTransform", &PCAClient::fitTransform),
+        makeMessage("inverseTransform",&PCAClient::inverseTransform),
         makeMessage("transformPoint", &PCAClient::transformPoint),
         makeMessage("inverseTransformPoint", &PCAClient::inverseTransformPoint),
         makeMessage("cols", &PCAClient::dims),

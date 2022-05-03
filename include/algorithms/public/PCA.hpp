@@ -113,6 +113,29 @@ public:
     return variance / total;
   }
 
+  void inverseProcess(RealMatrixView in, RealMatrixView out, bool whiten = false) const
+  {
+    using namespace Eigen;
+
+    if (in.cols() > dims()) return;
+    if (out.cols() < in.cols()) return;
+
+    if (!whiten)
+      _impl::asEigen<Matrix>(out) =
+          (_impl::asEigen<Matrix>(in) * mBases.transpose()).rowwise() +
+          mMean.transpose();
+
+    else
+    {
+      _impl::asEigen<Matrix>(out) =
+          (_impl::asEigen<Matrix>(in) *
+           (mExplainedVariance.sqrt().matrix().asDiagonal() *
+            mBases.transpose()))
+              .rowwise() +
+          mMean.transpose();
+    }
+  }
+
   bool  initialized() const { return mInitialized; }
 
   void  getBases(RealMatrixView out) const { out <<= _impl::asFluid(mBases); }
