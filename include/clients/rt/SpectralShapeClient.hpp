@@ -27,6 +27,7 @@ namespace spectralshape {
 using algorithm::SpectralShape;
 
 enum SpectralShapeParamIndex {
+  kSelect,
   kMinFreq,
   kMaxFreq,
   kRollOffPercent,
@@ -37,6 +38,7 @@ enum SpectralShapeParamIndex {
 };
 
 constexpr auto SpectralShapeParams = defineParameters(
+    ChoicesParam("select","Selection of Features","centroid","spread","skew","kurtosis","rolloff","flatness","crest"),
     FloatParam("minFreq", "Low Frequency Bound", 0, Min(0)),
     FloatParam("maxFreq", "High Frequency Bound", -1, Min(-1)),
     FloatParam("rolloffPercent", "Rolloff Percent", 95, Min(0), Max(100)),
@@ -70,12 +72,13 @@ public:
   }
 
   SpectralShapeClient(ParamSetViewType& p)
-      : mParams(p), mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0)
+      : mParams(p), mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0),
+        mMaxOutputSize{asSigned(get<kSelect>().count())}
   {
     audioChannelsIn(1);
-    controlChannelsOut({1,7});
+    controlChannelsOut({1,mMaxOutputSize});
     setInputLabels({"audio input"});
-    setOutputLabels({"centroid, spread, skewness, kurtosis, rolloff, flatness, crest factor"});
+    setOutputLabels({"spectral features"});
     mDescriptors = FluidTensor<double, 1>(7);
   }
 
@@ -101,10 +104,17 @@ public:
               get<kMaxFreq>(), get<kRollOffPercent>(), get<kFreqUnits>() == 1,
               get<kAmpMeasure>() == 1);
         });
-
-    // for (int i = 0; i < 7; ++i)
-    //   output[asUnsigned(i)](0) = static_cast<T>(mDescriptors(i));
-    output[0] <<= mDescriptors; 
+    
+    auto selection = get<kSelect>();
+    index numSelected = asSigned(selection.count());
+    index numOuts = std::min<index>(mMaxOutputSize,numSelected);
+    for(index i = 0, j = 0 ; i < 7 && j < numOuts; ++i)
+    {
+       if(selection[asUnsigned(i)]) output[0](j++) = static_cast<T>(mDescriptors(i)); 
+    }
+    if(mMaxOutputSize > numSelected)
+      for(index i = (mMaxOutputSize - numSelected); i < mMaxOutputSize; ++i)
+        output[0](i) = 0;
   }
 
   index latency() { return get<kFFT>().winSize(); }
@@ -123,6 +133,8 @@ private:
   SpectralShape          mAlgorithm;
   FluidTensor<double, 1> mMagnitude;
   FluidTensor<double, 1> mDescriptors;
+  
+  index mMaxOutputSize; 
 };
 } // namespace spectralshape
 
