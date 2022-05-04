@@ -491,7 +491,8 @@ class LongRuntimeMaxParam {
 public:
   
   constexpr LongRuntimeMaxParam(index val, index max)
-    : mValue(max < 0 ? val: std::min(val,max)), mMax(max < 0 ? val : max)
+    : mValue(val),
+      mMax(max < 0 ? val : max)
   {}
 
   constexpr LongRuntimeMaxParam(index val): LongRuntimeMaxParam(val,-1){}
