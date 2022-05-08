@@ -25,6 +25,7 @@ namespace client {
 namespace loudness {
 
 enum LoudnessParamIndex {
+  kSelect,
   kKWeighting,
   kTruePeak,
   kWindowSize,
@@ -33,6 +34,7 @@ enum LoudnessParamIndex {
 };
 
 constexpr auto LoudnessParams = defineParameters(
+    ChoicesParam("select","Selection of Outputs","loudness","truepeak"),
     EnumParam("kWeighting", "Apply K-Weighting", 1, "Off", "On"),
     EnumParam("truePeak", "Compute True Peak", 1, "Off", "On"),
     LongParam("windowSize", "Window Size", 1024, UpperLimit<kMaxWindowSize>()),
@@ -61,13 +63,13 @@ public:
   static constexpr auto& getParameterDescriptors() { return LoudnessParams; }
 
   LoudnessClient(ParamSetViewType& p)
-      : mParams(p), mAlgorithm{get<kMaxWindowSize>()}
+      : mParams(p), mAlgorithm{get<kMaxWindowSize>()},
+        mMaxOutputSize{asSigned(get<kSelect>().count())}
   {
     audioChannelsIn(1);
-    controlChannelsOut({1,2});
+    controlChannelsOut({1,mMaxOutputSize});
     setInputLabels({"audio input"});
     setOutputLabels({"loudness and peak amplitude"});
-
     mDescriptors = FluidTensor<double, 1>(2);
   }
 
@@ -98,9 +100,18 @@ public:
                                   get<kKWeighting>() == 1,
                                   get<kTruePeak>() == 1);
         });
-    // output[0](0) = static_cast<T>(mDescriptors(0));
-    // output[1](0) = static_cast<T>(mDescriptors(1));
-    output[0] <<= mDescriptors; 
+    
+    auto selection = get<kSelect>();
+    index numSelected = asSigned(selection.count());
+    index numOuts = std::min<index>(mMaxOutputSize,numSelected);
+
+    for(index i = 0, j = 0 ; i < 2 && j < numOuts; ++i)
+    {
+      if(selection[asUnsigned(i)]) output[0](j++) = static_cast<T>(mDescriptors(i)); 
+    }
+    if(mMaxOutputSize > numSelected)
+      for(index i = (mMaxOutputSize - numSelected); i < mMaxOutputSize; ++i)
+        output[0](i) = 0;
   }
 
   index latency() { return get<kWindowSize>(); }
@@ -122,6 +133,8 @@ private:
   algorithm::Loudness                                mAlgorithm;
   BufferedProcess                                    mBufferedProcess;
   FluidTensor<double, 1>                             mDescriptors;
+
+  index mMaxOutputSize;
 };
 } // namespace loudness
 
