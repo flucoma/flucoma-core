@@ -108,6 +108,16 @@ public:
           return std::min(std::max(x, low), high);
         }};
 
+    // scaling functions
+    using scaleFnType = double (*)(double);
+
+    static const std::array<scaleFnType, 5> scalingFunctions = {
+        [](double x) { return x; },
+        [](double x) { return pow(10.0, x / 20.0); }, 
+        [](double x) { return std::max(log10(x) * 20.0, -157.226593); },
+        [](double x) { return exp2((x - 69.0) / 12.0) * 440.0; },
+        [](double x) { return log2(x / 440.0) * 12.0 + 69.0; }
+      };
     auto   clipFn = clippingFunctions[asUnsigned(get<kClip>())];
     double outLow = get<kOutLow>();
     double outHigh = get<kOutHigh>();
