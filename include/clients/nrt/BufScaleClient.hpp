@@ -47,7 +47,7 @@ constexpr auto BufScaleParams =
                      FloatParam("outputLow", "Output Low Range", 0),
                      FloatParam("outputHigh", "Output High Range", 1),
                      EnumParam("scale", "Scaling Function", 0, "None", "dbtoa", "atodb", "mtof", "ftom"),
-                     FloatParam("exponent", "Scaling Exponent", 1),
+                     FloatParam("exponent", "Scaling Exponent", Min(1)),
                      EnumParam("clipping", "Optional Clipping", 0, "None",
                                "Minimum", "Maximum", "Both"));
 
