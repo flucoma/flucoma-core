@@ -125,7 +125,8 @@ public:
     double outLow = get<kOutLow>();
     double inHigh = get<kInHigh>();
     double outHigh = get<kOutHigh>();
-
+    double exponent = get<kExponent>();
+    
     // process
     tmp.apply([&](double& x) {
       x *= scale;
