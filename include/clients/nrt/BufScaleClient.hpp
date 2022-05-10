@@ -30,7 +30,7 @@ enum {
   kInHigh,
   kOutLow,
   kOutHigh,
-  kScale,
+  kConvert,
   kExponent,
   kClip
 };
@@ -120,13 +120,13 @@ public:
       };
 
     auto   clipFn = clippingFunctions[asUnsigned(get<kClip>())];
-    auto   scaleFn = scalingFunctions[asUnsigned(get<kScale>())];
+    auto   scaleFn = scalingFunctions[asUnsigned(get<kConvert>())];
     double inLow = get<kInLow>();
     double outLow = get<kOutLow>();
     double inHigh = get<kInHigh>();
     double outHigh = get<kOutHigh>();
     double exponent = get<kExponent>();
-    
+
     // process
     tmp.apply([&](double& x) {
       x = scaleFn(x);
