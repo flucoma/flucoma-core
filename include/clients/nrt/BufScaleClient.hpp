@@ -129,8 +129,13 @@ public:
     
     // process
     tmp.apply([&](double& x) {
-      x *= scale;
-      x += offset;
+      x = scaleFn(x);
+      // x *= scale;
+      // x += offset;
+      x = ((x-inLow)/(inHigh-inLow) == 0) ? outLow 
+          : (((x-inLow)/(inHigh-inLow)) > 0) 
+          ? (outLow + (outHigh-outLow) * pow(((x-inLow)/(inHigh-inLow)), exponent)) 
+          : (outLow + (outHigh-outLow) * -pow(((-x+inLow)/(inHigh-inLow)), exponent));
       x = clipFn(x, outLow, outHigh);
     });
 
