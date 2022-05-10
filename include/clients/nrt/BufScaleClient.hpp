@@ -118,11 +118,13 @@ public:
         [](double x) { return exp2((x - 69.0) / 12.0) * 440.0; },
         [](double x) { return log2(x / 440.0) * 12.0 + 69.0; }
       };
+
     auto   clipFn = clippingFunctions[asUnsigned(get<kClip>())];
+    auto   scaleFn = scalingFunctions[asUnsigned(get<kScale>())];
+    double inLow = get<kInLow>();
     double outLow = get<kOutLow>();
+    double inHigh = get<kInHigh>();
     double outHigh = get<kOutHigh>();
-    double scale = (outHigh - outLow) / (get<kInHigh>() - get<kInLow>());
-    double offset = outLow - (scale * get<kInLow>());
 
     // process
     tmp.apply([&](double& x) {
