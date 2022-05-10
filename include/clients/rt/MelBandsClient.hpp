@@ -28,24 +28,18 @@ enum MFCCParamIndex {
   kNBands,
   kMinFreq,
   kMaxFreq,
-  kMaxNBands,
   kNormalize,
   kScale,
-  kFFT,
-  kMaxFFTSize
+  kFFT
 };
 
 constexpr auto MelBandsParams = defineParameters(
-    LongParam("numBands", "Number of Bands", 40, Min(2),
-              UpperLimit<kMaxNBands>()),
+    LongParamRuntimeMax<Primary>("numBands", "Number of Bands", 40, Min(2)),
     FloatParam("minFreq", "Low Frequency Bound", 20, Min(0)),
     FloatParam("maxFreq", "High Frequency Bound", 20000, Min(0)),
-    LongParam<Fixed<true>>("maxNumBands", "Maximum Number of Bands", 120,
-                           Min(2), MaxFrameSizeUpperLimit<kMaxFFTSize>()),
     EnumParam("normalize", "Normalize", 1, "No", "Yes"),
     EnumParam("scale", "Amplitude Scale", 0, "Linear", "dB"),
-    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
+    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class MelBandsClient : public FluidBaseClient, public AudioIn, public ControlOut
 {
@@ -67,12 +61,12 @@ public:
   static constexpr auto& getParameterDescriptors() { return MelBandsParams; }
 
   MelBandsClient(ParamSetViewType& p)
-      : mParams{p}, mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0),
-        mMelBands(get<kMaxNBands>(), get<kMaxFFTSize>())
+      : mParams{p}, mSTFTBufferedProcess(get<kFFT>().max(), 1, 0),
+        mMelBands(get<kNBands>().max(), get<kFFT>().max())
   {
     mBands = FluidTensor<double, 1>(get<kNBands>());
     audioChannelsIn(1);
-    controlChannelsOut({1,get<kMaxNBands>()});
+    controlChannelsOut({1,get<kNBands>(),get<kNBands>().max()});
     setInputLabels({"audio in"});
     setOutputLabels({"mel band energies"}); 
   }
@@ -107,7 +101,7 @@ public:
     // for (index i = 0; i < get<kNBands>(); ++i)
     //   output[asUnsigned(i)](0) = static_cast<T>(mBands(i));
     output[0](Slice(0,get<kNBands>())) <<= mBands; 
-    output[0](Slice(get<kNBands>(), get<kMaxNBands>() - get<kNBands>())).fill(0); 
+    output[0](Slice(get<kNBands>(), get<kNBands>().max() - get<kNBands>())).fill(0);
   }
 
   index latency() { return get<kFFT>().winSize(); }

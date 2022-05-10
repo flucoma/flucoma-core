@@ -25,18 +25,15 @@ enum NMFMatchParamIndex {
   kFilterbuf,
   kMaxRank,
   kIterations,
-  kFFT,
-  kMaxFFTSize
+  kFFT
 };
 
 constexpr auto NMFMatchParams = defineParameters(
     InputBufferParam("bases", "Bases Buffer"),
-    LongParam<Fixed<true>>("maxComponents", "Maximum Number of Components", 20,
+    LongParamRuntimeMax<Primary>("maxComponents", "Maximum Number of Components", 20,
                            Min(1)),
     LongParam("iterations", "Number of Iterations", 10, Min(1)),
-    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                           PowerOfTwo{}));
+    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class NMFMatchClient : public FluidBaseClient, public AudioIn, public ControlOut
 {
@@ -57,10 +54,10 @@ public:
   static constexpr auto& getParameterDescriptors() { return NMFMatchParams; }
 
   NMFMatchClient(ParamSetViewType& p)
-      : mParams(p), mSTFTProcessor(get<kMaxFFTSize>(), 1, 0)
+      : mParams(p), mSTFTProcessor(get<kFFT>().max(), 1, 0)
   {
     audioChannelsIn(1);
-    controlChannelsOut({1, get<kMaxRank>()});
+    controlChannelsOut({1, get<kMaxRank>(),get<kMaxRank>().max()});
     setInputLabels({"audio input"});
     setOutputLabels({"activation amount for each component"});
   }
@@ -109,7 +106,8 @@ public:
 
       // for (index i = 0; i < rank; ++i)
       //   output[asUnsigned(i)](0) = static_cast<T>(tmpOut(i));
-      output[0](Slice(0,rank)) <<= tmpOut; 
+      output[0](Slice(0,rank)) <<= tmpOut;
+      output[0](Slice(rank,get<kMaxRank>().max() - rank)).fill(0);
     }
   }
 

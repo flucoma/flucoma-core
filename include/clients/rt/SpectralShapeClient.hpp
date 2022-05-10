@@ -33,8 +33,7 @@ enum SpectralShapeParamIndex {
   kRollOffPercent,
   kFreqUnits,
   kAmpMeasure,
-  kFFT,
-  kMaxFFTSize
+  kFFT
 };
 
 constexpr auto SpectralShapeParams = defineParameters(
@@ -44,9 +43,7 @@ constexpr auto SpectralShapeParams = defineParameters(
     FloatParam("rolloffPercent", "Rolloff Percent", 95, Min(0), Max(100)),
     EnumParam("unit", "Frequency Unit", 0, "Hz", "Midi Cents"),
     EnumParam("power", "Use Power", 0, "No", "Yes"),
-    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                           PowerOfTwo{}));
+    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class SpectralShapeClient : public FluidBaseClient,
                             public AudioIn,
@@ -72,7 +69,7 @@ public:
   }
 
   SpectralShapeClient(ParamSetViewType& p)
-      : mParams(p), mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0),
+      : mParams(p), mSTFTBufferedProcess(get<kFFT>().max(), 1, 0),
         mMaxOutputSize{asSigned(get<kSelect>().count())}
   {
     audioChannelsIn(1);

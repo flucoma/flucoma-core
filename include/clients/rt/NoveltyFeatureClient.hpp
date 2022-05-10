@@ -35,26 +35,14 @@ enum NoveltyParamIndex {
   kFeature,
   kKernelSize,
   kFilterSize,
-  kFFT,
-  kMaxFFTSize,
-  kMaxKernelSize,
-  kMaxFilterSize,
+  kFFT
 };
 
 constexpr auto NoveltyFeatureParams = defineParameters(
-    EnumParam("algorithm", "Algorithm for Feature Extraction", 0, "Spectrum", "MFCC", "Chroma", "Pitch",
-              "Loudness"),
-    LongParam("kernelSize", "KernelSize", 3, Min(3), Odd(),
-              UpperLimit<kMaxKernelSize>()),
-    LongParam("filterSize", "Smoothing Filter Size", 1, Min(1),
-              UpperLimit<kMaxFilterSize>()),
-    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                           PowerOfTwo{}),
-    LongParam<Fixed<true>>("maxKernelSize", "Maxiumm Kernel Size", 101, Min(3),
-                           Odd()),
-    LongParam<Fixed<true>>("maxFilterSize", "Maxiumm Filter Size", 100,
-                           Min(1)));
+    EnumParam("algorithm", "Algorithm for Feature Extraction", 0, "Spectrum", "MFCC", "Chroma", "Pitch", "Loudness"),
+    LongParamRuntimeMax<Primary>("kernelSize", "KernelSize", 3, Min(3), Odd()),
+    LongParamRuntimeMax<Primary>("filterSize", "Smoothing Filter Size", 1, Min(1)),
+    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class NoveltyFeatureClient : public FluidBaseClient,
                            public AudioIn,
@@ -80,11 +68,11 @@ public:
   }
 
   NoveltyFeatureClient(ParamSetViewType& p)
-      : mParams{p}, mNovelty{get<kMaxKernelSize>(), get<kMaxFilterSize>()},
+      : mParams{p}, mNovelty{get<kKernelSize>().max(), get<kFilterSize>().max()},
         mSTFT{get<kFFT>().winSize(), get<kFFT>().fftSize(),
               get<kFFT>().hopSize()},
-        mMelBands{40, get<kMaxFFTSize>()},
-        mChroma(12, get<kMaxFFTSize>()), mLoudness{get<kMaxFFTSize>()}
+        mMelBands{40, get<kFFT>().max()},
+        mChroma(12, get<kFFT>().max()), mLoudness{get<kFFT>().max()}
   {
     audioChannelsIn(1);
     controlChannelsOut({1,1});

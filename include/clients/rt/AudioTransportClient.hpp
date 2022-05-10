@@ -15,13 +15,11 @@ namespace fluid {
 namespace client {
 namespace audiotransport {
 
-enum AudioTransportParamTags { kInterpolation, kFFT, kMaxFFTSize };
+enum AudioTransportParamTags { kInterpolation, kFFT };
 
 constexpr auto AudioTransportParams = defineParameters(
     FloatParam("interpolation", "Interpolation", 0.0, Min(0.0), Max(1.0)),
-    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                           PowerOfTwo{}));
+    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class AudioTransportClient : public FluidBaseClient,
                              public AudioIn,
@@ -47,7 +45,7 @@ public:
   }
 
   AudioTransportClient(ParamSetViewType& p)
-      : mParams{p}, mAlgorithm(get<kMaxFFTSize>())
+      : mParams{p}, mAlgorithm(get<kFFT>().max())
   {
     audioChannelsIn(2);
     audioChannelsOut(1);

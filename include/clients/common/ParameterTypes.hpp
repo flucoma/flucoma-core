@@ -258,29 +258,6 @@ struct FloatPairsArrayT : ParamTypeBase
   const FloatPairsArrayType defaultValue{0.0, 1.0, 1.0, 1.0};
 };
 
-template <bool>
-struct ConstrainMaxFFTSize;
-
-template <>
-struct ConstrainMaxFFTSize<false>
-{
-  template <intptr_t N, typename T>
-  index clamp(intptr_t x, T& /*constraints*/) const
-  {
-    return x;
-  }
-};
-
-template <>
-struct ConstrainMaxFFTSize<true>
-{
-  template <intptr_t N, typename T>
-  index clamp(intptr_t x, T& constraints) const
-  {
-    return std::min<intptr_t>(x, std::get<N>(constraints));
-  }
-};
-
 class FFTParams
 {
 public:
@@ -311,9 +288,9 @@ public:
     return *this;
   }
 
-  index maxSize() const noexcept
+  index max() const noexcept
   {
-    return mMaxFFTSize;
+    return mMaxFFTSize < 0 ? fftSize() : mMaxFFTSize;
   }
 
   index fftSize() const noexcept
@@ -323,6 +300,8 @@ public:
     return mFFTSize < 0 ? nextPow2(static_cast<uint32_t>(mWindowSize), true)
                         : mFFTSize;
   }
+  
+  intptr_t maxRaw() const noexcept { return mMaxFFTSize; }
   intptr_t fftRaw() const noexcept { return mFFTSize; }
   intptr_t hopRaw() const noexcept { return mHopSize; }
   intptr_t winSize() const noexcept { return mWindowSize; }
@@ -367,7 +346,6 @@ public:
 
   bool operator!=(const FFTParams& x) { return !(*this == x); }
 
-  template <index MaxFFTIndex = -1>
   struct FFTSettingsConstraint
   {
     template <index Offset, size_t N, typename Tuple, typename Descriptor>
@@ -409,33 +387,15 @@ public:
           fft = std::max<index>(
               fft, v.nextPow2(static_cast<uint32_t>(v.winSize()), true));
           v.setFFT(fft);
-          //          v.setFFT(std::max(v.fftRaw(), v.nextPow2(v.winSize(),
-          //          true)));
+
         }
       }
 
       if (hopChanged) v.setHop(v.hopRaw() <= 0 ? -1 : v.hopRaw());
-
-      //      //If both have changed at once (e.g. startup), then we need to
-      //      prioritse something if(winChanged && fftChanged && v.fftRaw() > 0)
-      //          v.setFFT(v.fftRaw() < 0 ? -1 :
-      //          v.nextPow2(std::max<intptr_t>(v.winSize(),
-      //          inParams.fftRaw()),trackFFT.template direction<0>() > 0));
-      //
-      constexpr bool HasMaxFFT = MaxFFTIndex > 0;
-
-      static_assert(std::numeric_limits<index>::max() >= MaxFFTIndex + Offset,
-                    "MaxFFT + Offset too big! You must have a ridiculous "
-                    "number of parameters");
-
-      constexpr index I = static_cast<index>(MaxFFTIndex + Offset);
-
-      // Now check (optionally) against MaxFFTSize
-
-      index clippedFFT = std::max<index>(
-          ConstrainMaxFFTSize<HasMaxFFT>{}.template clamp<I, Tuple>(v.fftSize(),
-                                                                    allParams),
-          4);
+      
+      if(v.mMaxFFTSize > 0) v.mMaxFFTSize = static_cast<index>(v.nextPow2(static_cast<uint32_t>(v.mMaxFFTSize), true));
+      
+      index clippedFFT = v.mMaxFFTSize > 0 ? std::min(v.fftSize(),v.mMaxFFTSize) : v.fftSize();
 
       bool fftSizeWasClipped{clippedFFT != v.fftSize()};
       if (fftSizeWasClipped)
@@ -483,7 +443,7 @@ struct FFTParamsT : ParamTypeBase
                                                        fftDefault,-1}
   {}
 
-  const index fixedSize = 3;
+  const index fixedSize = 4;
   const type  defaultValue;
 };
 
@@ -654,16 +614,16 @@ FloatPairsArrayParam(const char* name, const char* displayName,
           IsFixed{}};
 }
 
-template <index MaxFFTIndex = -1, typename... Constraints>
+template <typename... Constraints>
 constexpr ParamSpec<FFTParamsT, Fixed<false>,
-                    FFTParams::FFTSettingsConstraint<MaxFFTIndex>,
+                    FFTParams::FFTSettingsConstraint,
                     Constraints...>
 FFTParam(const char* name, const char* displayName, index winDefault,
          index hopDefault, index fftDefault, const Constraints... c)
 {
   return {FFTParamsT(name, displayName, winDefault, hopDefault, fftDefault),
           std::tuple_cat(
-              std::make_tuple(FFTParams::FFTSettingsConstraint<MaxFFTIndex>()),
+              std::make_tuple(FFTParams::FFTSettingsConstraint()),
               std::make_tuple(c...)),
           Fixed<false>{}};
 }
@@ -709,7 +669,7 @@ struct ParamLiterals<FFTParamsT>
 {
   using type = LongUnderlyingType;
 
-  static std::array<type, 3> getLiteral(const FFTParams& p)
+  static std::array<type, 4> getLiteral(const FFTParams& p)
   {
     return {{p.winSize(), p.hopRaw(), p.fftRaw()}};
   }
