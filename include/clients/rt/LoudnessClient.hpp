@@ -63,11 +63,10 @@ public:
   static constexpr auto& getParameterDescriptors() { return LoudnessParams; }
 
   LoudnessClient(ParamSetViewType& p)
-      : mParams(p), mAlgorithm{get<kMaxWindowSize>()},
-        mMaxOutputSize{asSigned(get<kSelect>().count())}
+      : mParams(p), mAlgorithm{get<kMaxWindowSize>()}
   {
     audioChannelsIn(1);
-    controlChannelsOut({1,mMaxOutputSize});
+    controlChannelsOut({1,2});
     setInputLabels({"audio input"});
     setOutputLabels({"loudness and peak amplitude"});
     mDescriptors = FluidTensor<double, 1>(2);
@@ -103,14 +102,14 @@ public:
     
     auto selection = get<kSelect>();
     index numSelected = asSigned(selection.count());
-    index numOuts = std::min<index>(mMaxOutputSize,numSelected);
+    index numOuts = std::min<index>(2,numSelected);
 
     for(index i = 0, j = 0 ; i < 2 && j < numOuts; ++i)
     {
       if(selection[asUnsigned(i)]) output[0](j++) = static_cast<T>(mDescriptors(i)); 
     }
-    if(mMaxOutputSize > numSelected)
-      for(index i = (mMaxOutputSize - numSelected); i < mMaxOutputSize; ++i)
+    if(2 > numSelected)
+      for(index i = (2 - numSelected); i < 2; ++i)
         output[0](i) = 0;
   }
 
@@ -134,7 +133,7 @@ private:
   BufferedProcess                                    mBufferedProcess;
   FluidTensor<double, 1>                             mDescriptors;
 
-  index mMaxOutputSize;
+  index 2;
 };
 } // namespace loudness
 
