@@ -34,7 +34,7 @@ enum LoudnessParamIndex {
 };
 
 constexpr auto LoudnessParams = defineParameters(
-    ChoicesParam("select","Selection of Outputs","loudness","truepeak"),
+    ChoicesParam("select","Selection of Outputs","loudness","peak"),
     EnumParam("kWeighting", "Apply K-Weighting", 1, "Off", "On"),
     EnumParam("truePeak", "Compute True Peak", 1, "Off", "On"),
     LongParam("windowSize", "Window Size", 1024, UpperLimit<kMaxWindowSize>()),
