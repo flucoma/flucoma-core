@@ -88,7 +88,7 @@ class MLPClassifierClient : public FluidBaseClient,
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
-  using InputBufferPtr = std::shared_ptr<BufferAdaptor>;
+  using InputBufferPtr = std::shared_ptr<const BufferAdaptor>;
   using IndexVector = FluidTensor<index, 1>;
   using StringVector = FluidTensor<string, 1>;
   using DataSet = FluidDataSet<string, double, 1>;
@@ -211,7 +211,7 @@ public:
   MessageResult<string> predictPoint(InputBufferPtr in)
   {
     if (!in) return Error<string>(NoBuffer);
-    BufferAdaptor::Access inBuf(in.get());
+    BufferAdaptor::ReadAccess inBuf(in.get());
     if (!inBuf.exists()) return Error<string>(InvalidBuffer);
     if (inBuf.numFrames() != mAlgorithm.mlp.dims())
       return Error<string>(WrongPointSize);
