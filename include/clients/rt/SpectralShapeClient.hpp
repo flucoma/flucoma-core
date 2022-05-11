@@ -49,6 +49,7 @@ class SpectralShapeClient : public FluidBaseClient,
                             public AudioIn,
                             public ControlOut
 {
+  static constexpr index mMaxOutputSize = 7;
 public:
   using ParamDescType = decltype(SpectralShapeParams);
 
@@ -69,14 +70,14 @@ public:
   }
 
   SpectralShapeClient(ParamSetViewType& p)
-      : mParams(p), mSTFTBufferedProcess(get<kFFT>().max(), 1, 0),
-        mMaxOutputSize{asSigned(get<kSelect>().count())}
+      : mParams(p), mSTFTBufferedProcess(get<kFFT>().max(), 1, 0)
+        //mMaxOutputSize{asSigned(get<kSelect>().count())}
   {
     audioChannelsIn(1);
-    controlChannelsOut({1,mMaxOutputSize});
+    controlChannelsOut({1, asSigned(get<kSelect>().count()), mMaxOutputSize});
     setInputLabels({"audio input"});
     setOutputLabels({"spectral features"});
-    mDescriptors = FluidTensor<double, 1>(7);
+    mDescriptors = FluidTensor<double, 1>(mMaxOutputSize);
   }
 
   template <typename T>
@@ -105,7 +106,8 @@ public:
     auto selection = get<kSelect>();
     index numSelected = asSigned(selection.count());
     index numOuts = std::min<index>(mMaxOutputSize,numSelected);
-    for(index i = 0, j = 0 ; i < 7 && j < numOuts; ++i)
+    controlChannelsOut({1, numOuts, mMaxOutputSize});
+    for(index i = 0, j = 0 ; i < mMaxOutputSize && j < numOuts; ++i)
     {
        if(selection[asUnsigned(i)]) output[0](j++) = static_cast<T>(mDescriptors(i)); 
     }
@@ -130,8 +132,6 @@ private:
   SpectralShape          mAlgorithm;
   FluidTensor<double, 1> mMagnitude;
   FluidTensor<double, 1> mDescriptors;
-  
-  index mMaxOutputSize; 
 };
 } // namespace spectralshape
 
