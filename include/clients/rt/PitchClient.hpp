@@ -28,6 +28,7 @@ namespace client {
 namespace pitch {
 
 enum PitchParamIndex {
+  kSelect,
   kAlgorithm,
   kMinFreq,
   kMaxFreq,
@@ -36,6 +37,7 @@ enum PitchParamIndex {
 };
 
 constexpr auto PitchParams = defineParameters(
+    ChoicesParam("select","Selection of Outputs","pitch","confidence"),
     EnumParam("algorithm", "Algorithm", 2, "Cepstrum",
               "Harmonic Product Spectrum", "YinFFT"),
     FloatParam("minFreq", "Low Frequency Bound", 20, Min(0), Max(10000),
@@ -51,6 +53,12 @@ class PitchClient : public FluidBaseClient, public AudioIn, public ControlOut
   using CepstrumF0 = algorithm::CepstrumF0;
   using HPS = algorithm::HPS;
   using YINFFT = algorithm::YINFFT;
+  
+  static constexpr index mMaxFeatures = 2;
+
+  constexpr static std::array<double (*)(double), 2> setPitchUnits{
+      [](double x) { return x; },
+      [](double x) { return x == 0 ? -999 : (69 + (12 * log2(x / 440.0))); }};
 
 public:
   using ParamDescType = decltype(PitchParams);
@@ -73,7 +81,7 @@ public:
         cepstrumF0(get<kFFT>().max())
   {
     audioChannelsIn(1);
-    controlChannelsOut({1,2});
+    controlChannelsOut({1,mMaxFeatures});
     setInputLabels({"audio input"});
     setOutputLabels({"pitch (hz or MIDI), pitch confidence (0-1)"});
     mDescriptors = FluidTensor<double, 1>(2);
@@ -114,15 +122,26 @@ public:
           }
         });
     // pitch
-    if(get<kUnit>() == 1){
-      output[0](0) = mDescriptors(0) == 0? -999:
-      static_cast<T>(69 + (12 * log2(mDescriptors(0) / 440.0)));
+    
+    auto selection = get<kSelect>();
+    index numSelected = asSigned(selection.count());
+    index numOuts = std::min<index>(mMaxFeatures,numSelected);
+    controlChannelsOut({1,numOuts, mMaxFeatures});
+    
+    index i = 0;
+
+    //pitch
+    if (selection[0])
+    {
+      output[0](i++) =
+          static_cast<T>(setPitchUnits[get<kUnit>()](mDescriptors(0)));
     }
-    else {
-      output[0](0) = static_cast<T>(mDescriptors(0));
-    }
+
     // pitch confidence
-    output[0](1) = static_cast<T>(mDescriptors(1));
+    if(selection[1])
+      output[0](i) = static_cast<T>(mDescriptors(1));
+      
+    output[0](Slice(numOuts,mMaxFeatures - numOuts)).fill(0);         
   }
   index latency() { return get<kFFT>().winSize(); }
 

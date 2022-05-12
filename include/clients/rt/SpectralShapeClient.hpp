@@ -107,13 +107,14 @@ public:
     index numSelected = asSigned(selection.count());
     index numOuts = std::min<index>(mMaxOutputSize,numSelected);
     controlChannelsOut({1, numOuts, mMaxOutputSize});
-    for(index i = 0, j = 0 ; i < mMaxOutputSize && j < numOuts; ++i)
+    
+    for (index i = 0, j = 0; i < mMaxOutputSize && j < numOuts; ++i)
     {
-       if(selection[asUnsigned(i)]) output[0](j++) = static_cast<T>(mDescriptors(i)); 
+      if (selection[asUnsigned(i)])
+        output[0](j++) = static_cast<T>(mDescriptors(i));
     }
-    if(mMaxOutputSize > numSelected)
-      for(index i = (mMaxOutputSize - numSelected); i < mMaxOutputSize; ++i)
-        output[0](i) = 0;
+    
+    output[0](Slice(numOuts, mMaxOutputSize - numOuts)).fill(0); 
   }
 
   index latency() { return get<kFFT>().winSize(); }

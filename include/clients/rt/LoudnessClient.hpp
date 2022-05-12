@@ -45,7 +45,7 @@ constexpr auto LoudnessParams = defineParameters(
 
 class LoudnessClient : public FluidBaseClient, public AudioIn, public ControlOut
 {
-
+  static constexpr index mMaxFeatures = 2; 
 public:
   using ParamDescType = decltype(LoudnessParams);
 
@@ -66,10 +66,10 @@ public:
       : mParams(p), mAlgorithm{get<kMaxWindowSize>()}
   {
     audioChannelsIn(1);
-    controlChannelsOut({1,2});
+    controlChannelsOut({1,mMaxFeatures});
     setInputLabels({"audio input"});
     setOutputLabels({"loudness and peak amplitude"});
-    mDescriptors = FluidTensor<double, 1>(2);
+    mDescriptors = FluidTensor<double, 1>(mMaxFeatures);
   }
 
   template <typename T>
@@ -102,15 +102,14 @@ public:
     
     auto selection = get<kSelect>();
     index numSelected = asSigned(selection.count());
-    index numOuts = std::min<index>(2,numSelected);
+    index numOuts = std::min<index>(mMaxFeatures,numSelected);
+    index i = 0;
+    controlChannelsOut({1,numOuts, mMaxFeatures});
 
-    for(index i = 0, j = 0 ; i < 2 && j < numOuts; ++i)
-    {
-      if(selection[asUnsigned(i)]) output[0](j++) = static_cast<T>(mDescriptors(i)); 
-    }
-    if(2 > numSelected)
-      for(index i = (2 - numSelected); i < 2; ++i)
-        output[0](i) = 0;
+    if (selection[0]) output[0](i++) = static_cast<T>(mDescriptors(0));
+    if (selection[1]) output[0](i) = static_cast<T>(mDescriptors(1));
+
+    output[0](Slice(numOuts, mMaxFeatures - numOuts)).fill(0);
   }
 
   index latency() { return get<kWindowSize>(); }
@@ -132,8 +131,6 @@ private:
   algorithm::Loudness                                mAlgorithm;
   BufferedProcess                                    mBufferedProcess;
   FluidTensor<double, 1>                             mDescriptors;
-
-  index 2;
 };
 } // namespace loudness
 

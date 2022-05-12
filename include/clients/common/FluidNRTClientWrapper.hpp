@@ -391,8 +391,8 @@ public:
     //    return {FFTParams::padding(fftSettings,
     //    userPaddingParamValue),userPaddingParamValue};
     index            userPaddingParamValue = get<ParamOffset - 1>();
-    constexpr size_t WinOffset = 2;
-    constexpr size_t HopOffset = 3;
+    constexpr size_t WinOffset = 3;
+    constexpr size_t HopOffset = 4;
 
     assert((mParams.get().template descriptorAt<ParamOffset + WinOffset>()).name == "windowSize");
 
