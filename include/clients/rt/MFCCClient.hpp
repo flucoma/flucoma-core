@@ -31,8 +31,7 @@ enum MFCCParamIndex {
   kDrop0,
   kMinFreq,
   kMaxFreq,
-  kFFT,
-  kMaxFFTSize
+  kFFT
 };
 
 constexpr auto MFCCParams = defineParameters(
@@ -46,8 +45,7 @@ constexpr auto MFCCParams = defineParameters(
                        // coeffs <= numBands as discussed
     FloatParam("minFreq", "Low Frequency Bound", 20, Min(0)),
     FloatParam("maxFreq", "High Frequency Bound", 20000, Min(0)),
-    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
+    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class MFCCClient : public FluidBaseClient, public AudioIn, public ControlOut
 {
@@ -72,9 +70,9 @@ public:
   static constexpr auto& getParameterDescriptors() { return MFCCParams; }
 
   MFCCClient(ParamSetViewType& p)
-      : mParams{p}, mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0),
-        mMelBands(get<kMaxFFTSize>(), get<kMaxFFTSize>()),
-        mDCT(get<kMaxFFTSize>(), get<kNCoefs>().max() + 1)
+      : mParams{p}, mSTFTBufferedProcess(get<kFFT>().max(), 1, 0),
+        mMelBands(get<kFFT>().max(), get<kFFT>().max()),
+        mDCT(get<kFFT>().max(), get<kNCoefs>().max() + 1)
   {
     mBands = FluidTensor<double, 1>(get<kNBands>());
     mCoefficients = FluidTensor<double, 1>(get<kNCoefs>() + get<kDrop0>());

@@ -32,8 +32,7 @@ enum PitchParamIndex {
   kMinFreq,
   kMaxFreq,
   kUnit,
-  kFFT,
-  kMaxFFTSize
+  kFFT
 };
 
 constexpr auto PitchParams = defineParameters(
@@ -44,9 +43,7 @@ constexpr auto PitchParams = defineParameters(
     FloatParam("maxFreq", "High Frequency Bound", 10000, Min(1), Max(20000),
                LowerLimit<kMinFreq>()),
     EnumParam("unit", "Frequency Unit", 0, "Hz", "MIDI"),
-    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                           PowerOfTwo{}));
+    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class PitchClient : public FluidBaseClient, public AudioIn, public ControlOut
 {
@@ -72,8 +69,8 @@ public:
   static constexpr auto& getParameterDescriptors() { return PitchParams; }
 
   PitchClient(ParamSetViewType& p)
-      : mParams(p), mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0),
-        cepstrumF0(get<kMaxFFTSize>())
+      : mParams(p), mSTFTBufferedProcess(get<kFFT>().max(), 1, 0),
+        cepstrumF0(get<kFFT>().max())
   {
     audioChannelsIn(1);
     controlChannelsOut({1,2});

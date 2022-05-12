@@ -297,6 +297,16 @@ struct Odd
   {
     x = x % 2 ? x : x + 1;
   }
+  
+  template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
+  constexpr void clamp(LongRuntimeMaxParam& x, Tuple& /*params*/, Descriptor&,
+                       Result*) const
+  {
+    index val = x();
+    val = val % 2 ? val : val + 1;    
+    x.set(val);
+  }
+  
 };
 
 template <int FFTIndex>

@@ -27,8 +27,7 @@ enum NMFFilterIndex {
   kActBuf,
   kAutoAssign,
   kInterp,
-  kFFT,
-  kMaxFFTSize
+  kFFT
 };
 
 constexpr auto NMFMorphParams = defineParameters(
@@ -37,9 +36,7 @@ constexpr auto NMFMorphParams = defineParameters(
     InputBufferParam("activations", "Activations"),
     EnumParam("autoassign", "Automatic assign", 1, "No", "Yes"),
     FloatParam("interp", "Interpolation", 0, Min(0.0), Max(1.0)),
-    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                           PowerOfTwo{}));
+    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class NMFMorphClient : public FluidBaseClient, public AudioOut
 {
@@ -61,7 +58,7 @@ public:
   static constexpr auto getParameterDescriptors() { return NMFMorphParams; }
 
   NMFMorphClient(ParamSetViewType& p)
-      : mParams{p}, mSTFTProcessor{get<kMaxFFTSize>(), 0, 1}
+      : mParams{p}, mSTFTProcessor{get<kFFT>().max(), 0, 1}
   {
     audioChannelsIn(0);
     audioChannelsOut(1);

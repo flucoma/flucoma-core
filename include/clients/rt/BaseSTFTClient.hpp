@@ -25,9 +25,7 @@ namespace stftpass {
 enum STFTParamIndex { kFFT, kMaxFFT };
 
 constexpr auto STFTPassParams = defineParameters(
-    FFTParam<kMaxFFT>("fftSettings", "FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                           PowerOfTwo{}));
+    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class BaseSTFTClient : public FluidBaseClient, public AudioIn, public AudioOut
 {
@@ -49,7 +47,7 @@ public:
 
 
   BaseSTFTClient(ParamSetViewType& p)
-      : mParams(p), mSTFTBufferedProcess{get<kMaxFFT>(), 1, 1}
+      : mParams(p), mSTFTBufferedProcess{get<kFFT>().max(), 1, 1}
   {
     audioChannelsIn(1);
     audioChannelsOut(1);

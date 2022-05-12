@@ -28,8 +28,7 @@ enum OnsetParamIndex {
   kFunction,
   kFilterSize,
   kFrameDelta,
-  kFFT,
-  kMaxFFTSize
+  kFFT
 };
 
 constexpr auto OnsetFeatureParams = defineParameters(
@@ -40,9 +39,7 @@ constexpr auto OnsetFeatureParams = defineParameters(
               "Rectified Complex Domain"),
     LongParam("filterSize", "Filter Size", 5, Min(1), Odd(), Max(101)),
     LongParam("frameDelta", "Frame Delta", 0, Min(0)),
-    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                           PowerOfTwo{}));
+    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class OnsetFeatureClient : public FluidBaseClient, public AudioIn, public ControlOut
 {
@@ -66,7 +63,7 @@ public:
   static constexpr auto& getParameterDescriptors() { return OnsetFeatureParams; }
 
   OnsetFeatureClient(ParamSetViewType& p)
-      : mParams{p}, mAlgorithm{get<kMaxFFTSize>()}
+      : mParams{p}, mAlgorithm{get<kFFT>().max()}
   {
     audioChannelsIn(1);
     controlChannelsOut({1,1});

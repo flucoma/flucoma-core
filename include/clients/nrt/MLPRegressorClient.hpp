@@ -24,7 +24,7 @@ constexpr std::initializer_list<index> HiddenLayerDefaults = {3, 3};
 
 constexpr auto MLPRegressorParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
-    LongArrayParam("hidden", "Hidden Layer Sizes", HiddenLayerDefaults),
+    LongArrayParam("hiddenlayers", "Hidden Layer Sizes", HiddenLayerDefaults),
     EnumParam("activation", "Activation Function", 2, "Identity", "Sigmoid",
               "ReLU", "Tanh"),
     EnumParam("outputActivation", "Output Activation Function", 0, "Identity",
