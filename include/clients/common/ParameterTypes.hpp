@@ -451,8 +451,8 @@ class LongRuntimeMaxParam {
 public:
   
   constexpr LongRuntimeMaxParam(index val, index max)
-    : mValue(val),
-      mMax(max < 0 ? val : max)
+    : mValue(val),mInitialValue{mValue},
+      mMax(max)
   {}
 
   constexpr LongRuntimeMaxParam(index val): LongRuntimeMaxParam(val,-1){}
@@ -461,14 +461,15 @@ public:
 
   index operator()() const  { return mValue; }
   operator fluid::index() const {return mValue; }
-  index max() const { return mMax; }
+  index max() const { return mMax < 0 ? mInitialValue : mMax; }
+  index maxRaw() const { return mMax; }
   
   void set(index val)
   {
     mValue = val;
   }
   
-  void clamp() { mValue = std::min(mValue,mMax);   }
+  void clamp() { mValue = std::min(mValue,max());   }
   
   struct RuntimeMaxConstraint
   {
@@ -510,6 +511,7 @@ public:
 private:
   index mValue;
   index mMax;
+  index mInitialValue;
 };
 
 struct LongRuntimeMaxT: ParamTypeBase
