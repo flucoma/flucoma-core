@@ -11,8 +11,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 // modified version of Normalization.hpp code
 #pragma once
 
-#include "../util/FluidEigenMappings.hpp"
 #include "../util/ScalerUtils.hpp"
+#include "../util/FluidEigenMappings.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <cassert>
