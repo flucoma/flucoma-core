@@ -10,7 +10,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "../util/AlgorithmUtils.hpp"
+#include "../util/ScalerUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
@@ -32,10 +32,13 @@ public:
     using namespace _impl;
     mMin = min;
     mMax = max;
+    mRange = mMax - mMin;
+    handleZerosInScale(mRange);
     ArrayXXd input = asEigen<Array>(in);
     mDataMin = input.colwise().minCoeff();
     mDataMax = input.colwise().maxCoeff();
     mDataRange = mDataMax - mDataMin;
+    handleZerosInScale(mDataRange);
     mInitialized = true;
   }
 
@@ -49,7 +52,7 @@ public:
     mDataMin = asEigen<Array>(dataMin);
     mDataMax = asEigen<Array>(dataMax);
     mDataRange = mDataMax - mDataMin;
-    mDataRange = mDataRange.max(epsilon);
+    handleZerosInScale(mDataRange);
     mInitialized = true;
   }
 
@@ -62,12 +65,12 @@ public:
     ArrayXd result;
     if (!inverse)
     {
-      result = (input - mDataMin) / mDataRange.max(epsilon);
-      result = mMin + (result * (mMax - mMin));
+      result = (input - mDataMin) / mDataRange;
+      result = mMin + (result * mRange);
     }
     else
     {
-      result = (input - mMin) / std::max((mMax - mMin), epsilon);
+      result = (input - mMin) / mRange;
       result = mDataMin + (result * mDataRange);
     }
     out <<= asFluid(result);
@@ -83,21 +86,29 @@ public:
     if (!inverse)
     {
       result = (input.rowwise() - mDataMin.transpose());
-      result = result.rowwise() / mDataRange.transpose().max(epsilon);
-      result = mMin + (result * (mMax - mMin));
+      result = result.rowwise() / mDataRange.transpose();
+      result = mMin + (result * mRange);
     }
     else
     {
       result = input - mMin;
-      result = result / std::max((mMax - mMin), epsilon);
+      result = result / mRange;
       result = (result.rowwise() * mDataRange.transpose());
       result = (result.rowwise() + mDataMin.transpose());
     }
     out <<= asFluid(result);
   }
 
-  void setMin(double min) { mMin = min; }
-  void setMax(double max) { mMax = max; }
+  void setMin(double min) { 
+    mMin = min; 
+    mRange = mMax - mMin;
+    handleZerosInScale(mRange);
+  }
+  void setMax(double max) { 
+    mMax = max;
+    mRange = mMax - mMin;
+    handleZerosInScale(mRange);
+  }
   bool initialized() const { return mInitialized; }
 
   double getMin() const { return mMin; }
@@ -130,6 +141,7 @@ public:
 
   double  mMin{0.0};
   double  mMax{1.0};
+  double  mRange{1.0};
   ArrayXd mDataMin;
   ArrayXd mDataMax;
   ArrayXd mDataRange;

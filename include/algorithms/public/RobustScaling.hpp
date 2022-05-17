@@ -11,6 +11,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 // modified version of Normalization.hpp code
 #pragma once
 
+#include "../util/ScalerUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
@@ -30,7 +31,6 @@ public:
   {
     using namespace Eigen;
     using namespace _impl;
-    const double epsilon = std::numeric_limits<double>::epsilon();
     mLow = low;
     mHigh = high;
     ArrayXXd input = asEigen<Array>(in);
@@ -48,7 +48,7 @@ public:
       mDataHigh(i) = sorted(lrint((mHigh / 100.0) * (length - 1)));
     }
     mRange = mDataHigh - mDataLow;
-    mRange = mRange.max(epsilon);
+    handleZerosInScale(mRange);
     mInitialized = true;
   }
 
@@ -58,15 +58,13 @@ public:
   {
     using namespace Eigen;
     using namespace _impl;
-    const double epsilon = std::numeric_limits<double>::epsilon();
     mLow = low;
     mHigh = high;
     mDataLow = asEigen<Array>(dataLow);
     mDataHigh = asEigen<Array>(dataHigh);
     mMedian = asEigen<Array>(median);
     mRange = asEigen<Array>(range);
-    mRange =
-        mRange.max(epsilon); // in case it is imported from the outside world
+    handleZerosInScale(mRange); // in case it is imported from the outside world
     mInitialized = true;
   }
 
