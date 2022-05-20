@@ -617,7 +617,7 @@ struct StreamingControl
     {
       for (index j = 0; j < nChans; ++j)
         thisOutput.samps(i + j * nFeatures) <<=
-            outputData.row(i + j * nFeatures)(Slice(latencyHops, keepHops));
+            outputData.row(i + j * maxFeatures)(Slice(latencyHops, keepHops));
     }
 
     return {};
