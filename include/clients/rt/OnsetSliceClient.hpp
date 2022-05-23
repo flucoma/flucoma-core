@@ -94,6 +94,7 @@ public:
       mBufferedProcess.maxSize(totalWindow, totalWindow,
                                FluidBaseClient::audioChannelsIn(),
                                FluidBaseClient::audioChannelsOut());
+      mFrameOffset = 0; 
     }
     if (mParamsTracker.changed(get<kFFT>().fftSize(), get<kFFT>().winSize()))
     {
