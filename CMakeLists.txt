@@ -6,17 +6,20 @@
 # under the European Union’s Horizon 2020 research and innovation programme
 # (grant agreement No 725899).
 
-cmake_minimum_required (VERSION 3.11)
+cmake_minimum_required (VERSION 3.18)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-get_directory_property(hasParent PARENT_DIRECTORY)
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/script")
 
 #set module path at top level so wrapper projects can easily include fluid_version script
+get_directory_property(hasParent PARENT_DIRECTORY)
 if(hasParent)
-  set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/script PARENT_SCOPE)
+  set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/script 
+  PARENT_SCOPE)
 endif()
 
 if(APPLE)
@@ -27,8 +30,9 @@ endif()
 
 project (flucoma-core LANGUAGES CXX)
 
-include("${CMAKE_CURRENT_SOURCE_DIR}/script/flucoma-buildtype.cmake")
-include("${CMAKE_CURRENT_SOURCE_DIR}/FlucomaVersion.cmake")
+include(flucoma-buildtype)
+include(FlucomaVersion.cmake)
+include(FlucomaClients.cmake)
 
 include(FetchContent)
 set(HISS_PATH "" CACHE PATH "The path to a HISSTools_Library folder. Will pull from github if not set")
@@ -127,7 +131,6 @@ if(NOT tl_optional_POPULATED)
   FetchContent_Populate(tl_optional)
 endif()
 
-
 add_subdirectory(${tl_optional_SOURCE_DIR} ${tl_optional_BINARY_DIR} EXCLUDE_FROM_ALL)
 
 FetchContent_GetProperties(json)
@@ -170,7 +173,6 @@ add_library(
   "${hisstools_SOURCE_DIR}/AudioFile/IAudioFile.cpp"
   "${hisstools_SOURCE_DIR}/AudioFile/OAudioFile.cpp"
 )
-
 
 #Fluid Decomposition header-only target
 add_library(FLUID_DECOMPOSITION INTERFACE)
