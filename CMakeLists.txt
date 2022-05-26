@@ -48,8 +48,6 @@ ENDIF (APPLE)
 # Grab the Fluid Decpomposition header files so they can be added to IDE builds
 file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/include/**/*.hpp")
 
-set(FETCHCONTENT_QUIET FALSE)
-
 # Either download or point to dependencies
 FetchContent_Declare(
   HISSTools
