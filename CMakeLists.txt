@@ -18,7 +18,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/script")
 #set module path at top level so wrapper projects can easily include fluid_version script
 get_directory_property(hasParent PARENT_DIRECTORY)
 if(hasParent)
-  set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/script 
+  set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/script"
   PARENT_SCOPE)
 endif()
 
