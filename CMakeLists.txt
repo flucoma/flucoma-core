@@ -17,10 +17,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/script")
 
 #set module path at top level so wrapper projects can easily include fluid_version script
 get_directory_property(hasParent PARENT_DIRECTORY)
-if(hasParent)
-  
-  message(WARNING "Adding to parent module path: ${CMAKE_CURRENT_LIST_DIR}/script")
-  
+if(hasParent)  
   set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_LIST_DIR}/script"
   PARENT_SCOPE)
 endif()
@@ -62,7 +59,7 @@ FetchContent_Declare(
 FetchContent_Declare(
   Eigen
   GIT_SHALLOW TRUE
-  GIT_REPOSITORY https://gitlab.com/libeigen/eigen
+  GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
   GIT_PROGRESS TRUE
   GIT_BRANCH "3.4"
   GIT_TAG "3.4.0"
