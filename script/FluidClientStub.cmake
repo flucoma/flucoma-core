@@ -43,11 +43,8 @@ function(generate_source)
   endif()
   
   if(ARG_EXTRA_SOURCE)
-    message(WARNING "${ARG_EXTRA_SOURCE}")
-    # set(EXTRA_SOURCE "${ARG_EXTRA_SOURCE}")    
     file(READ ${ARG_EXTRA_SOURCE} extra)
     string(APPEND MAKE_WRAPPER_BLOCK "${extra}")
-    message(WARNING "${MAKE_WRAPPER_BLOCK}")
   endif()
   
   configure_file("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/client.cpp.in" generated_sources/${external_filename}.cpp)
