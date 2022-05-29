@@ -126,6 +126,12 @@ public:
       return {Result::Status::kWarning, name, " not found"};
   }
 
+  template<typename Func,typename... Args>
+  auto setPrimaryParameterValues(bool reportage,Func&& f, Args&&...args)
+  {
+     return mParams->params.setPrimaryParameterValues(reportage, std::forward<Func>(f),std::forward<Args>(args)...);
+  }
+  
   template <template <size_t N, typename T> class Func, typename... Args>
   auto setFixedParameterValues(bool reportage, Args&&... args)
   {
@@ -173,6 +179,15 @@ public:
         std::forward<Args>(args)...);
   }
 
+
+  //lambda version
+  template <typename T, class Func,
+            typename... Args>
+  void forEachParamType(Func&& f, Args&&... args)
+  {
+    mParams->params.template forEachParamType<T>(std::forward<Func>(f),std::forward<Args>(args)...);
+  }
+  
   void reset() { mParams->params.reset(); }
 
   template <size_t N>
@@ -196,7 +211,13 @@ public:
   {
     return mParams->params.template subset<offset>();
   }
-
+  
+  template <size_t N>
+  auto descriptorAt()
+  {
+    return mParams->params.template descriptor<N>();
+  }
+  
   template <typename Tuple>
   void fromTuple(Tuple vals)
   {

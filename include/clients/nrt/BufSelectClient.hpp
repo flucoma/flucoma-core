@@ -127,12 +127,12 @@ public:
     if (allFrames)
       std::iota(indices.begin(), indices.end(), 0);
     else
-      indices = indexMap;
+      indices <<= indexMap;
 
     if (allChannels)
       std::iota(channels.begin(), channels.end(), 0);
     else
-      channels = channelMap;
+      channels <<= channelMap;
 
     auto dest = destination.allFrames();
     auto src = source.allFrames();

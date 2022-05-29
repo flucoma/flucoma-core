@@ -140,7 +140,7 @@ public:
         if (destination.numChans() > 0 && destination.numFrames() > 0)
         {
           for (index i = 0; i < destination.numChans(); ++i)
-            destinationOrig.row(i)(Slice(0, destination.numFrames())) =
+            destinationOrig.row(i)(Slice(0, destination.numFrames())) <<=
                 destination.samps(i);
           destinationOrig(Slice(dstStartChan, dstEndChan - dstStartChan),
                           Slice(dstStart, dstEnd - dstStart))
@@ -152,7 +152,7 @@ public:
         destinationOrig.resize(nChannels, nFrames);
         for (index i = 0; i < nChannels; ++i)
         {
-          destinationOrig.row(i) =
+          destinationOrig.row(i) <<=
               destination.samps(dstStart, nFrames, dstStartChan + i);
           destinationOrig.row(i).apply(applyGain);
         }
@@ -202,12 +202,12 @@ public:
                              destination.sampleRate());
       if (!resizeResult.ok()) return resizeResult;
       for (index i = 0; i < destination.numChans(); ++i)
-        destination.samps(i) = destinationOrig.row(i);
+        destination.samps(i) <<= destinationOrig.row(i);
     }
     else
     {
       for (index i = 0; i < nChannels; ++i)
-        destination.samps(dstStart, nFrames, dstStartChan + i) =
+        destination.samps(dstStart, nFrames, dstStartChan + i) <<=
             destinationOrig.row(i);
       destination.refresh(); // make sure the buffer is marked dirty
     }

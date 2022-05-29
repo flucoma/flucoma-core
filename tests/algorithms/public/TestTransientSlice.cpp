@@ -57,7 +57,7 @@ std::vector<index> runTest(FluidTensorView<const double, 1> testSignal,
   const index            hopSize = algo.hopSize();
   index                  nHops = std::ceil(testSignal.size() / hopSize);
   FluidTensor<double, 1> paddedInput(testSignal.size() + latency + hopSize);
-  paddedInput(Slice(latency, testSignal.size())) = testSignal;
+  paddedInput(Slice(latency, testSignal.size())) <<= testSignal;
 
   FluidTensor<double, 1> output(hopSize);
 

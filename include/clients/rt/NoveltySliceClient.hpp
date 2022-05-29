@@ -37,28 +37,17 @@ enum NoveltyParamIndex {
   kThreshold,
   kFilterSize,
   kDebounce,
-  kFFT,
-  kMaxFFTSize,
-  kMaxKernelSize,
-  kMaxFilterSize,
+  kFFT
 };
 
 constexpr auto NoveltySliceParams = defineParameters(
-    EnumParam("feature", "Feature", 0, "Spectrum", "MFCC", "Chroma", "Pitch",
+    EnumParam("algorithm", "Algorithm for Feature Extraction", 0, "Spectrum", "MFCC", "Chroma", "Pitch",
               "Loudness"),
-    LongParam("kernelSize", "KernelSize", 3, Min(3), Odd(),
-              UpperLimit<kMaxKernelSize>()),
+    LongParamRuntimeMax<Primary>("kernelSize", "KernelSize", 3, Min(3), Odd()),
     FloatParam("threshold", "Threshold", 0.5, Min(0)),
-    LongParam("filterSize", "Smoothing Filter Size", 1, Min(1),
-              UpperLimit<kMaxFilterSize>()),
+    LongParamRuntimeMax<Primary>("filterSize", "Smoothing Filter Size", 1, Min(1)),
     LongParam("minSliceLength", "Minimum Length of Slice", 2, Min(0)),
-    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                           PowerOfTwo{}),
-    LongParam<Fixed<true>>("maxKernelSize", "Maxiumm Kernel Size", 101, Min(3),
-                           Odd()),
-    LongParam<Fixed<true>>("maxFilterSize", "Maxiumm Filter Size", 100,
-                           Min(1)));
+    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class NoveltySliceClient : public FluidBaseClient,
                            public AudioIn,
@@ -84,11 +73,11 @@ public:
   }
 
   NoveltySliceClient(ParamSetViewType& p)
-      : mParams{p}, mNovelty{get<kMaxKernelSize>(), get<kMaxFilterSize>()},
+      : mParams{p}, mNovelty{get<kKernelSize>().max(), get<kFilterSize>().max()},
         mSTFT{get<kFFT>().winSize(), get<kFFT>().fftSize(),
               get<kFFT>().hopSize()},
-        mMelBands{40, get<kMaxFFTSize>()},
-        mChroma(12, get<kMaxFFTSize>()), mLoudness{get<kMaxFFTSize>()}
+        mMelBands{40, get<kFFT>().max()},
+        mChroma(12, get<kFFT>().max()), mLoudness{get<kFFT>().max()}
   {
     audioChannelsIn(1);
     audioChannelsOut(1);
@@ -126,6 +115,7 @@ public:
       mLoudness.init(windowSize, sampleRate());
     }
     mFeature.resize(nDims);
+    mFrameOffset = 0; 
     mNovelty.init(get<kKernelSize>(), get<kFilterSize>(), nDims);
   }
 
@@ -151,7 +141,7 @@ public:
       initAlgorithms(feature, windowSize);
     }
     RealMatrix in(1, hostVecSize);
-    in.row(0) = input[0];
+    in.row(0) <<= input[0];
     RealMatrix out(1, hostVecSize);
     
     mBufferedProcess.push(RealMatrixView(in));
@@ -193,7 +183,7 @@ public:
     mFrameOffset =
         mFrameOffset < hostVecSize ? mFrameOffset : mFrameOffset - hostVecSize;
 
-    output[0] = out.row(0);
+    output[0] <<= out.row(0);
   }
 
   index latency()

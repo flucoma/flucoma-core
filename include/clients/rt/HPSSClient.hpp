@@ -31,31 +31,21 @@ enum HPSSParamIndex {
   kMode,
   kHThresh,
   kPThresh,
-  kFFT,
-  kMaxFFT,
-  kMaxHSize,
-  kMaxPSize
+  kFFT
 };
 
 constexpr auto HPSSParams = defineParameters(
-    LongParam("harmFilterSize", "Harmonic Filter Size", 17,
-              UpperLimit<kMaxHSize>(), Odd{}, Min(3)),
-    LongParam("percFilterSize", "Percussive Filter Size", 31,
-              UpperLimit<kMaxPSize>(), Odd{}, Min(3)),
+    LongParamRuntimeMax<Primary>("harmFilterSize", "Harmonic Filter Size", 17,
+               Odd{}, Min(3)),
+    LongParamRuntimeMax<Primary>("percFilterSize", "Percussive Filter Size", 31,
+               Odd{}, Min(3)),
     EnumParam("maskingMode", "Masking Mode", 0, "Classic", "Coupled",
               "Advanced"),
     FloatPairsArrayParam("harmThresh", "Harmonic Filter Thresholds",
                          FrequencyAmpPairConstraint{}),
     FloatPairsArrayParam("percThresh", "Percussive Filter Thresholds",
                          FrequencyAmpPairConstraint{}),
-    FFTParam<kMaxFFT>("fftSettings", "FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                           PowerOfTwo{}),
-    LongParam<Fixed<true>>("maxHarmFilterSize", "Maximum Harmonic Filter Size",
-                           101, Min(3), Odd{}),
-    LongParam<Fixed<true>>("maxPercFilterSize",
-                           "Maximum Percussive Filter Size", 101, Min(3),
-                           Odd{}));
+    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 
 class HPSSClient : public FluidBaseClient, public AudioIn, public AudioOut
@@ -77,8 +67,8 @@ public:
   static constexpr auto& getParameterDescriptors() { return HPSSParams; }
 
   HPSSClient(ParamSetViewType& p)
-      : mParams{p}, mSTFTBufferedProcess{get<kMaxFFT>(), 1, 3},
-        mHPSS{get<kMaxFFT>(), get<kMaxHSize>()}
+      : mParams{p}, mSTFTBufferedProcess{get<kFFT>().max(), 1, 3},
+        mHPSS{get<kFFT>().max(), get<kHSize>().max()}
   {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::audioChannelsOut(3);

@@ -39,6 +39,7 @@ enum NMFParamIndex {
   kStartChan,
   kNumChans,
   kResynth,
+  kResynthMode,
   kFilters,
   kFiltersUpdate,
   kEnvelopes,
@@ -55,6 +56,7 @@ constexpr auto BufNMFParams = defineParameters(
     LongParam("startChan", "Start Channel", 0, Min(0)),
     LongParam("numChans", "Number Channels", -1),
     BufferParam("resynth", "Resynthesis Buffer"),
+    LongParam("resynthMode","Resynthesise components", 0,Min(0),Max(1)),
     BufferParam("bases", "Bases Buffer"),
     EnumParam("basesMode", "Bases Buffer Update Mode", 0, "None", "Seed",
               "Fixed"),
@@ -110,38 +112,40 @@ public:
     bool       hasFilters{false};
     const bool seedFilters{get<kFiltersUpdate>() > 0};
     const bool fixFilters{get<kFiltersUpdate>() == 2};
+    const bool shouldResynth = get<kResynthMode>();
 
     if (get<kFilters>())
     {
       BufferAdaptor::Access buf(get<kFilters>().get());
       if (!buf.exists())
-        return {Result::Status::kError, "Filter Buffer Supplied But Invalid"};
+        return {Result::Status::kError, "Bases Buffer Supplied But Invalid"};
 
       if ((get<kFiltersUpdate>() > 0) &&
           (!buf.valid() || buf.numFrames() != nBins ||
            buf.numChans() != get<kRank>() * nChannels))
         return {Result::Status::kError,
-                "Supplied filter buffer for seeding must be [(FFTSize / 2) + "
+                "Supplied bases buffer for seeding must be [(FFTSize / 2) + "
                 "1] frames long, and have [rank] * [channels] channels"};
       hasFilters = true;
     }
     else if (get<kFiltersUpdate>() > 0)
       return {Result::Status::kError,
-              "Filter Mode set to Seed or Fix , but no Filter Buffer supplied"};
+              "Bases Mode set to Seed or Fix , but no Bases Buffer supplied"};
 
     bool       hasEnvelopes{false};
     const bool seedEnvelopes{get<kEnvelopesUpdate>() > 0};
     const bool fixEnvelopes{get<kEnvelopesUpdate>() == 2};
+    const bool needsAnalysis = !(fixEnvelopes && fixFilters);
 
-    if (fixEnvelopes && fixFilters)
-      return {Result::Status::kError,
-              "It doesn't make any sense to fix both filters and envelopes"};
+    if (!needsAnalysis && !shouldResynth)
+      return {Result::Status::kWarning,
+              "Bases and Activations buffers both fixed, but resynthesis disabled: no work to do"};
 
     if (get<kEnvelopes>())
     {
       BufferAdaptor::Access buf(get<kEnvelopes>().get());
       if (!buf.exists())
-        return {Result::Status::kError, "Envelope Buffer Supplied But Invalid"};
+        return {Result::Status::kError, "Activations Buffer Supplied But Invalid"};
 
       if ((get<kEnvelopesUpdate>() > 0) &&
           (!buf.valid() ||
@@ -149,7 +153,7 @@ public:
            buf.numChans() != get<kRank>() * nChannels))
         return {
             Result::Status::kError,
-            "Supplied envelope buffer for seeding must be [(num samples / hop "
+            "Supplied activations buffer for seeding must be [(num samples / hop "
             "size)  + 1] frames long, and have [rank] * [channels] channels"};
 
       hasEnvelopes = true;
@@ -157,26 +161,36 @@ public:
     else if (get<kEnvelopesUpdate>() > 0)
       return {
           Result::Status::kError,
-          "Envelope Mode set to Seed or Fix , but no Envelope Buffer supplied"};
+          "Activations Mode set to Seed or Fix , but no Activations Buffer supplied"};
 
     bool hasResynth{false};
-
-    if (get<kResynth>())
+    
+    
+    if(shouldResynth)
     {
-      BufferAdaptor::Access buf(get<kResynth>().get());
-      if (!buf.exists())
+      if (get<kResynth>())
+      {
+        BufferAdaptor::Access buf(get<kResynth>().get());
+        if (!buf.exists())
+          return {Result::Status::kError,
+            "Resynthesis Buffer Supplied But Invalid"};
+        hasResynth = true;
+      }
+      else
+      {
         return {Result::Status::kError,
-                "Resynthesis Buffer Supplied But Invalid"};
-      hasResynth = true;
+            "Resynthesis requested but no buffer supplied"};
+      }
+      
+      if (hasResynth)
+      {
+        Result resizeResult =
+        BufferAdaptor::Access(get<kResynth>().get())
+        .resize(nFrames, nChannels * get<kRank>(), sampleRate);
+        if (!resizeResult.ok()) return resizeResult;
+      }
     }
-
-    if (hasResynth)
-    {
-      Result resizeResult =
-          BufferAdaptor::Access(get<kResynth>().get())
-              .resize(nFrames, nChannels * get<kRank>(), sampleRate);
-      if (!resizeResult.ok()) return resizeResult;
-    }
+    
     if (hasFilters && !get<kFiltersUpdate>())
     {
       Result resizeResult = BufferAdaptor::Access(get<kFilters>().get())
@@ -211,7 +225,7 @@ public:
 
 
     const double progressTotal = static_cast<double>(
-        get<kIterations>() + (hasResynth ? 3 * get<kRank>() : 0));
+        (needsAnalysis * get<kIterations>()) + ((shouldResynth && hasResynth) ? 3 * get<kRank>() : 0));
 
     for (index i = 0; i < nChannels; ++i)
     {
@@ -220,7 +234,7 @@ public:
                                      static_cast<double>(nChannels)))
         return {Result::Status::kCancelled, ""};
       //          tmp = sourceData.col(i);
-      tmp = source.samps(get<kOffset>(), nFrames, get<kStartChan>() + i);
+      tmp <<= source.samps(get<kOffset>(), nFrames, get<kStartChan>() + i);
       stft.process(tmp, spectrum);
       algorithm::STFT::magnitude(spectrum, magnitude);
       int progressCount{0};
@@ -231,15 +245,15 @@ public:
         if (seedFilters || fixFilters)
         {
           auto filters = BufferAdaptor::Access{get<kFilters>().get()};
-          seededFilters.row(j) = filters.samps(i * get<kRank>() + j);
+          seededFilters.row(j) <<= filters.samps(i * get<kRank>() + j);
         }
         if (seedEnvelopes || fixEnvelopes)
         {
           auto envelopes = BufferAdaptor::Access(get<kEnvelopes>().get());
-          seededEnvelopes.col(j) = envelopes.samps(i * get<kRank>() + j);
+          seededEnvelopes.col(j) <<= envelopes.samps(i * get<kRank>() + j);
         }
       }
-
+      
       auto nmf = algorithm::NMF();
       nmf.addProgressCallback(
           [&c, &progressCount, progressTotal](const index) -> bool {
@@ -249,7 +263,7 @@ public:
                             : true;
           });
       nmf.process(magnitude, outputFilters, outputEnvelopes, outputMags,
-                  get<kRank>(), get<kIterations>(), !fixFilters, !fixEnvelopes,
+                  get<kRank>(), get<kIterations>() * needsAnalysis, !fixFilters, !fixEnvelopes,
                   seededFilters, seededEnvelopes);
 
       if (c.task() && c.task()->cancelled())
@@ -261,7 +275,7 @@ public:
         //        auto finalFilters = m.getW();
         auto filters = BufferAdaptor::Access{get<kFilters>().get()};
         for (index j = 0; j < get<kRank>(); ++j)
-        { filters.samps(i * get<kRank>() + j) = outputFilters.row(j); }
+        { filters.samps(i * get<kRank>() + j) <<= outputFilters.row(j); }
       }
 
       // Write H? Need to normalise also
@@ -276,12 +290,12 @@ public:
         for (index j = 0; j < get<kRank>(); ++j)
         {
           auto env = envelopes.samps(i * get<kRank>() + j);
-          env = outputEnvelopes.col(j);
+          env <<= outputEnvelopes.col(j);
           env.apply([scale](float& x) { x *= static_cast<float>(scale); });
         }
       }
 
-      if (hasResynth)
+      if (shouldResynth && hasResynth)
       {
         auto mask = algorithm::RatioMask();
         mask.init(outputMags);
@@ -307,7 +321,7 @@ public:
               !c.task()->processUpdate(++progressCount, progressTotal))
             return {Result::Status::kCancelled, ""};
           istft.process(resynthSpectrum, resynthAudio);
-          resynth.samps(i * get<kRank>() + j) = resynthAudio(Slice(0, nFrames));
+          resynth.samps(i * get<kRank>() + j) <<= resynthAudio(Slice(0, nFrames));
           if (c.task() &&
               !c.task()->processUpdate(++progressCount, progressTotal))
             return {Result::Status::kCancelled, ""};

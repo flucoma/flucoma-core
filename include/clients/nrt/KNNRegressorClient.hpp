@@ -22,8 +22,8 @@ struct KNNRegressorData
 {
   algorithm::KDTree                    tree{0};
   FluidDataSet<std::string, double, 1> target{1};
-  index                                size() { return target.size(); }
-  index                                dims() { return tree.dims(); }
+  index                                size() const { return target.size(); }
+  index                                dims() const { return tree.dims(); }
   void                                 clear()
   {
     tree.clear();
@@ -67,6 +67,7 @@ class KNNRegressorClient : public FluidBaseClient,
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
+  using InputBufferPtr = std::shared_ptr<const BufferAdaptor>;
   using DataSet = FluidDataSet<string, double, 1>;
   using StringVector = FluidTensor<string, 1>;
 
@@ -100,8 +101,8 @@ public:
     return {};
   }
 
-  MessageResult<string> fit(DataSetClientRef datasetClient,
-                            DataSetClientRef targetClient)
+  MessageResult<string> fit(InputDataSetClientRef datasetClient,
+                            InputDataSetClientRef targetClient)
   {
     auto datasetClientPtr = datasetClient.get().lock();
     if (!datasetClientPtr) return Error<string>(NoDataSet);
@@ -118,7 +119,7 @@ public:
     return {};
   }
 
-  MessageResult<double> predictPoint(BufferPtr data) const
+  MessageResult<double> predictPoint(InputBufferPtr data) const
   {
     index k = get<kNumNeighbors>();
     bool  weight = get<kWeight>() != 0;
@@ -130,14 +131,14 @@ public:
       return Error<double>(bufCheck.error());
     algorithm::KNNRegressor regressor;
     RealVector              point(mAlgorithm.tree.dims());
-    point = BufferAdaptor::ReadAccess(data.get())
+    point <<= BufferAdaptor::ReadAccess(data.get())
                 .samps(0, mAlgorithm.tree.dims(), 0);
     double result =
         regressor.predict(mAlgorithm.tree, mAlgorithm.target, point, k, weight);
     return result;
   }
 
-  MessageResult<void> predict(DataSetClientRef source,
+  MessageResult<void> predict(InputDataSetClientRef source,
                               DataSetClientRef dest) const
   {
     index k = get<kNumNeighbors>();
@@ -185,13 +186,13 @@ public:
   }
 };
 
-using KNNRegressorRef = SharedClientRef<KNNRegressorClient>;
+using KNNRegressorRef = SharedClientRef<const KNNRegressorClient>;
 
 constexpr auto KNNRegressorQueryParams = defineParameters(
     KNNRegressorRef::makeParam("model", "Source model"),
     LongParam("numNeighbours", "Number of Nearest Neighbours", 3, Min(1)),
     EnumParam("weight", "Weight Neighbours by Distance", 1, "No", "Yes"),
-    BufferParam("inputPointBuffer", "Input Point Buffer"),
+    InputBufferParam("inputPointBuffer", "Input Point Buffer"),
     BufferParam("predictionBuffer", "Prediction Buffer"));
 
 class KNNRegressorQuery : public FluidBaseClient, ControlIn, ControlOut
@@ -228,7 +229,7 @@ public:
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
   {
-    output[0] = input[0];
+    output[0] <<= input[0];
     if (input[0](0) > 0)
     {
       auto knnPtr = get<kModel>().get().lock();
@@ -252,7 +253,7 @@ public:
       algorithm::KNNRegressor regressor;
 
       RealVector point(algorithm.tree.dims());
-      point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+      point <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                   .samps(0, algorithm.tree.dims(), 0);
 
       double result =

@@ -16,6 +16,9 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../data/FluidIndex.hpp"
 #include <functional>
 #include <tuple>
+#include <type_traits>
+		
+
 
 namespace fluid {
 namespace client {
@@ -29,16 +32,41 @@ class ParameterDescriptorSet;
 template <size_t... Os, typename... Ts>
 class ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>
 {
+  
+  
+  template<size_t N, typename Tuple>
+  using tuple_element_t = typename std::tuple_element<N,Tuple>::type;
+  
+  struct IsPrimary
+  {
+    template <typename T>
+    using apply = std::is_same<Primary,tuple_element_t<2,T>>;
+  };
+  
   template <bool B>
   struct FixedParam
   {
     template <typename T>
-    using apply =
-        std::is_same<Fixed<B>, typename std::tuple_element<2, T>::type>;
+    using apply = std::is_same<Fixed<B>, tuple_element_t<2,T>>;
   };
-
-  using IsFixed = FixedParam<true>;
-  using IsMutable = FixedParam<false>;
+  
+  struct IsFixed
+  {
+    template <typename T>
+    using apply = std::is_same<Fixed<true>, tuple_element_t<2,T>>;
+  };
+  
+  struct IsMutable
+  {
+    template <typename T>
+    using apply = std::disjunction<
+      std::is_same<Fixed<false>, tuple_element_t<2,T>>,
+      std::is_same<Primary, tuple_element_t<2,T>>>;  
+  };
+  
+    
+//  using IsFixed = FixedParam<true>;
+//  using IsMutable = FixedParam<false>;
 
   struct IsRelational
   {
@@ -53,6 +81,14 @@ class ParameterDescriptorSet<std::index_sequence<Os...>, std::tuple<Ts...>>
         std::integral_constant<bool,
                                !(std::is_base_of<impl::Relational, T>::value)>;
   };
+  
+  template <typename T>
+  struct IsParamType
+  {
+    template <typename U>
+    using apply = std::is_same<T, typename std::tuple_element<0, U>::type>;
+  };
+
 
   template <typename T>
   using DefaultValue = decltype(std::declval<T>().defaultValue);
@@ -71,6 +107,9 @@ public:
 
   // clang < 3.7: index_sequence_for doesn't work here
   using IndexList = std::make_index_sequence<sizeof...(Ts)>;
+  
+  using PrimaryIndexList = typename impl::FilterTupleIndices<IsPrimary, DescriptorType,IndexList>::type;
+  
   using FixedIndexList =
       typename impl::FilterTupleIndices<IsFixed, DescriptorType,
                                         IndexList>::type;
@@ -87,20 +126,24 @@ public:
       typename impl::FilterTupleIndices<IsNonRelational, T, List>::type;
 
 
+  template<typename T>
+  constexpr static index NumOfType = impl::FilterTupleIndices<IsParamType<T>, DescriptorType, IndexList>::type::size();
+
   template <typename T>
-  index NumOf() const
+  constexpr index NumOf() const
   {
     return
-        typename impl::FilterTupleIndices<T, DescriptorType, IndexList>::size();
+        typename impl::FilterTupleIndices<T, DescriptorType, IndexList>::type::size();
   }
 
+  static constexpr index NumPrimaryParams = PrimaryIndexList::size();
   static constexpr index NumFixedParams = FixedIndexList::size();
   static constexpr index NumMutableParams = MutableIndexList::size();
 
   constexpr ParameterDescriptorSet(const Ts&&... ts)
       : mDescriptors{std::make_tuple(ts...)}
   {}
-  constexpr ParameterDescriptorSet(const std::tuple<Ts...>&& t)
+  constexpr ParameterDescriptorSet(const std::tuple<Ts...>& t)
       : mDescriptors{t}
   {}
 
@@ -113,6 +156,14 @@ public:
     iterateImpl<Func>(IndexList(), std::forward<Args>(args)...);
   }
 
+  template<class Func>
+  void iteratePrimary(Func&& func) const
+  {
+    ForThese(mDescriptors,
+            [](auto& d, auto idx, auto&& f){ f(std::get<0>(d),idx); },
+            PrimaryIndexList(), std::forward<Func>(func));
+  }
+  
   template <template <size_t N, typename T> class Func>
   void iterateFixed() const
   {
@@ -197,6 +248,7 @@ protected:
   
   using ValueRefTuple = typename DescriptorSetType::ValueRefTuple;
   using IndexList = typename DescriptorSetType::IndexList;
+  using PrimaryIndexList = typename DescriptorSetType::PrimaryIndexList;
   using FixedIndexList = typename DescriptorSetType::FixedIndexList;
   using MutableIndexList = typename DescriptorSetType::MutableIndexList;
 
@@ -270,6 +322,24 @@ public:
                                         std::forward<Args>(args)...);
   }
 
+
+  template<typename Func,typename... Args>
+  std::array<Result, PrimaryIndexList::size()>
+  setPrimaryParameterValues(bool reportage, Func&& func, Args&&... args)
+  {
+    static std::array<Result, PrimaryIndexList::size()> results;
+    results.fill(Result(Result::Status::kOk)); 
+    
+    ForThese(mParams,[this,reportage,n=0u](auto&, auto idx, auto& res, Func&& f, auto&&... As) mutable
+    {
+        this->template set<idx()>(f(idx,std::forward<Args>(As)...),reportage ? &res[n++] : nullptr);
+    }, PrimaryIndexList(), results, std::forward<Func>(func), std::forward<Args>(args)...);
+    
+    
+    return constrainParameterValuesImpl(std::make_index_sequence<PrimaryIndexList::size()>(),
+                                 PrimaryIndexList());  
+  }
+
   template <template <size_t N, typename T> class Func, typename... Args>
   std::array<Result, FixedIndexList::size()>
   setFixedParameterValues(bool reportage, Args&&... args)
@@ -302,6 +372,22 @@ public:
         IsParamType<T>, std::decay_t<DescriptorType>, IndexList>::type;
     forEachParamImpl<Func>(Is{}, std::forward<Args>(args)...);
   }
+  
+  //lambda version
+  template <typename T, class Func,
+            typename... Args>
+  void forEachParamType(Func&& f, Args&&... args)
+  {
+    using Is = typename impl::FilterTupleIndices<
+        IsParamType<T>, std::decay_t<DescriptorType>, IndexList>::type;
+    
+    ForThese(mParams,std::forward<Func>(f),Is{},std::forward<Args>(args)...);
+        
+    // /forEachParamImpl<Func>(Is{}, std::forward<Args>(args)...);
+  }
+  
+  
+  
 
   void reset() { resetImpl(IndexList()); }
 
@@ -362,8 +448,18 @@ public:
   }
 
   ValueTuple toTuple() { return {mParams}; }
+  
+  template<typename T>
+  static constexpr index NumOfType()
+  {
+    return
+        typename impl::FilterTupleIndices<IsParamType<T>, DescriptorType, IndexList>::size();
+
+  }
+
 
 private:
+
   template <typename T>
   struct IsParamType
   {
@@ -622,6 +718,19 @@ constexpr ParamDescTypeFor<Args...> defineParameters(Args&&... args)
 {
   return {std::forward<Args>(args)...};
 }
+
+template<typename...Ts>
+constexpr ParamDescTypeFor<Ts...> defineParametersFromTuple(const std::tuple<Ts...>& t)
+{
+  return {t};
+}
+
+template <size_t N,typename P, typename... Args>
+constexpr auto insertParameterAfter(ParamDescTypeFor<Args...> d,const P&& param)
+{
+  return defineParametersFromTuple(impl::tupleInsertAfter<N>(d.descriptors(),param));
+}
+
 
 auto constexpr NoParameters = defineParameters();
 

@@ -35,7 +35,22 @@ struct MinImpl
   constexpr void clamp(U& x, Tuple& /*params*/, Descriptor& d, Result* r) const
   {
     U oldX = x;
-    x = std::max<U>(x, value);
+    x = std::max<U>(x, static_cast<U>(value));
+    if (r && oldX != x)
+    {
+      r->set(Result::Status::kWarning);
+      r->addMessage(d.template get<N>().name, " value, ", oldX,
+                    ", below absolute minimum ", x);
+    }
+  }
+  
+  template <size_t Offset, size_t N, typename Tuple,
+            typename Descriptor>
+  constexpr void clamp(LongRuntimeMaxParam& x, Tuple& /*params*/, Descriptor& d, Result* r) const
+  {
+    index oldX = x();
+    index newx = std::max<index>(x(), value);
+    x.set(newx); 
     if (r && oldX != x)
     {
       r->set(Result::Status::kWarning);
@@ -75,17 +90,17 @@ struct LowerLimitImpl : public Relational
   {
     T oldV = v;
 
-    v = std::max<T>({v, std::get<Is + Offset>(params)...});
+    v = std::max<T>({v, std::get<Is + Offset>(params).get()...});
 
     if (r && oldV != v)
     {
       r->set(Result::Status::kWarning);
       std::array<T, sizeof...(Is)> constraintValues{
-          {std::get<Is + Offset>(params)...}};
+          {std::get<Is + Offset>(params).get()...}};
       index minPos = std::distance(
           constraintValues.begin(),
           std::min_element(constraintValues.begin(), constraintValues.end()));
-      std::array<const char*, sizeof...(Is)> constraintNames{
+      std::array<std::string_view, sizeof...(Is)> constraintNames{
           {d.template get<Is + Offset>().name...}};
       r->addMessage(d.template get<N>().name, " value (", oldV,
                     ") below parameter ", constraintNames[asUnsigned(minPos)],
@@ -113,7 +128,7 @@ struct UpperLimitImpl : public Relational
       index maxPos = std::distance(
           constraintValues.begin(),
           std::max_element(constraintValues.begin(), constraintValues.end()));
-      std::array<const char*, sizeof...(Is)> constraintNames{
+      std::array<std::string_view, sizeof...(Is)> constraintNames{
           {d.template get<Is + Offset>().name...}};
       r->addMessage(d.template get<N>().name, " value, ", oldV,
                     ", above parameter ", constraintNames[asUnsigned(maxPos)],
@@ -282,6 +297,16 @@ struct Odd
   {
     x = x % 2 ? x : x + 1;
   }
+  
+  template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
+  constexpr void clamp(LongRuntimeMaxParam& x, Tuple& /*params*/, Descriptor&,
+                       Result*) const
+  {
+    index val = x();
+    val = val % 2 ? val : val + 1;    
+    x.set(val);
+  }
+  
 };
 
 template <int FFTIndex>

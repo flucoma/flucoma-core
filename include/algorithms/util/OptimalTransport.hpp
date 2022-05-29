@@ -82,7 +82,7 @@ public:
       masses.emplace_back(SpectralMass{start, center, end, mass});
       nextValley++;
     }
-    if (nextValley < valleys.size() - 1)
+    if (nextValley < asSigned(valleys.size() - 1))
     {
       index lastStart = valleys[asUnsigned(nextValley)];
       index lastSize = magnitude.size() - 1 - lastStart;

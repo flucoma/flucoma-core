@@ -166,11 +166,10 @@ struct SliceIterator
     
     mIndexes[0] = s.extents[0];
     
-    // size = s.size;
-    if (!s.transposed) // Not transposed
-      endoffset = s.strides[0] * s.extents[0];
-    else // transposed
-      endoffset = s.strides[N - 1] * s.extents[N - 1];
+    if (!s.transposed) 
+      endoffset = s.strides[0] * s.size ; 
+    else 
+      endoffset = s.strides[N - 1] * s.size; 
     mPtr = end ? base + s.start + endoffset : base + s.start;
   }
   

@@ -100,7 +100,7 @@ public:
   }
 
 
-  MessageResult<void> transform(DataSetClientRef sourceClient,
+  MessageResult<void> transform(InputDataSetClientRef sourceClient,
                                 DataSetClientRef destClient)
   {
     if (mAlgorithm.numColumns() <= 0) return Error("No columns");
@@ -118,8 +118,8 @@ public:
     return OK();
   }
 
-  MessageResult<void> transformJoin(DataSetClientRef source1Client,
-                                    DataSetClientRef source2Client,
+  MessageResult<void> transformJoin(InputDataSetClientRef source1Client,
+                                    InputDataSetClientRef source2Client,
                                     DataSetClientRef destClient)
   {
     auto src1Ptr = source1Client.get().lock();

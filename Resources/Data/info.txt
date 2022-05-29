@@ -1,0 +1,9 @@
+Datasets:
+- blobs : Three blobs distributed randomly
+- circles: Two centric circles
+- flucoma_corpus_*: pre-analysed MFCCs of the FluCoMa demo audio files in small slices
+- help.reg.*: pre-trained mlp regressor for the helpfile
+- gaussian4: Four evenly distributed gaussian masses
+- line: A single thinly distributed line
+- mammoth: a 3d dataset in a shape of a mammoth (source: https://pair-code.github.io/understanding-umap/)
+- moon : Two overlapping crescent shapes

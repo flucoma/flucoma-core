@@ -25,6 +25,7 @@ namespace client {
 namespace loudness {
 
 enum LoudnessParamIndex {
+  kSelect,
   kKWeighting,
   kTruePeak,
   kWindowSize,
@@ -33,6 +34,7 @@ enum LoudnessParamIndex {
 };
 
 constexpr auto LoudnessParams = defineParameters(
+    ChoicesParam("select","Selection of Outputs","loudness","peak"),
     EnumParam("kWeighting", "Apply K-Weighting", 1, "Off", "On"),
     EnumParam("truePeak", "Compute True Peak", 1, "Off", "On"),
     LongParam("windowSize", "Window Size", 1024, UpperLimit<kMaxWindowSize>()),
@@ -43,7 +45,7 @@ constexpr auto LoudnessParams = defineParameters(
 
 class LoudnessClient : public FluidBaseClient, public AudioIn, public ControlOut
 {
-
+  static constexpr index mMaxFeatures = 2; 
 public:
   using ParamDescType = decltype(LoudnessParams);
 
@@ -64,11 +66,10 @@ public:
       : mParams(p), mAlgorithm{get<kMaxWindowSize>()}
   {
     audioChannelsIn(1);
-    controlChannelsOut({1,2});
+    controlChannelsOut({1,mMaxFeatures});
     setInputLabels({"audio input"});
     setOutputLabels({"loudness and peak amplitude"});
-
-    mDescriptors = FluidTensor<double, 1>(2);
+    mDescriptors = FluidTensor<double, 1>(mMaxFeatures);
   }
 
   template <typename T>
@@ -90,7 +91,7 @@ public:
       mAlgorithm.init(get<kWindowSize>(), sampleRate());
     }
     RealMatrix in(1, hostVecSize);
-    in.row(0) = input[0];
+    in.row(0) <<= input[0];
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.processInput(
         get<kWindowSize>(), get<kHopSize>(), c, [&](RealMatrixView frame) {
@@ -98,9 +99,17 @@ public:
                                   get<kKWeighting>() == 1,
                                   get<kTruePeak>() == 1);
         });
-    // output[0](0) = static_cast<T>(mDescriptors(0));
-    // output[1](0) = static_cast<T>(mDescriptors(1));
-    output[0] = mDescriptors; 
+    
+    auto selection = get<kSelect>();
+    index numSelected = asSigned(selection.count());
+    index numOuts = std::min<index>(mMaxFeatures,numSelected);
+    index i = 0;
+    controlChannelsOut({1,numOuts, mMaxFeatures});
+
+    if (selection[0]) output[0](i++) = static_cast<T>(mDescriptors(0));
+    if (selection[1]) output[0](i) = static_cast<T>(mDescriptors(1));
+
+    output[0](Slice(numOuts, mMaxFeatures - numOuts)).fill(0);
   }
 
   index latency() { return get<kWindowSize>(); }
@@ -111,7 +120,11 @@ public:
     mAlgorithm.init(get<kWindowSize>(), sampleRate());
   }
 
-  index controlRate() { return get<kHopSize>(); }
+  AnalysisSize analysisSettings()
+  {
+    return { get<kWindowSize>(), get<kHopSize>() }; 
+  }
+
 
 private:
   ParameterTrackChanges<index, index, index, double> mBufferParamsTracker;

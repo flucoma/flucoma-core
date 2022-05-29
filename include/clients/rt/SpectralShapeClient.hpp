@@ -27,29 +27,29 @@ namespace spectralshape {
 using algorithm::SpectralShape;
 
 enum SpectralShapeParamIndex {
+  kSelect,
   kMinFreq,
   kMaxFreq,
   kRollOffPercent,
   kFreqUnits,
   kAmpMeasure,
-  kFFT,
-  kMaxFFTSize
+  kFFT
 };
 
 constexpr auto SpectralShapeParams = defineParameters(
+    ChoicesParam("select","Selection of Features","centroid","spread","skew","kurtosis","rolloff","flatness","crest"),
     FloatParam("minFreq", "Low Frequency Bound", 0, Min(0)),
     FloatParam("maxFreq", "High Frequency Bound", -1, Min(-1)),
     FloatParam("rolloffPercent", "Rolloff Percent", 95, Min(0), Max(100)),
     EnumParam("unit", "Frequency Unit", 0, "Hz", "Midi Cents"),
     EnumParam("power", "Use Power", 0, "No", "Yes"),
-    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                           PowerOfTwo{}));
+    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class SpectralShapeClient : public FluidBaseClient,
                             public AudioIn,
                             public ControlOut
 {
+  static constexpr index mMaxOutputSize = 7;
 public:
   using ParamDescType = decltype(SpectralShapeParams);
 
@@ -70,13 +70,14 @@ public:
   }
 
   SpectralShapeClient(ParamSetViewType& p)
-      : mParams(p), mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0)
+      : mParams(p), mSTFTBufferedProcess(get<kFFT>().max(), 1, 0)
+        //mMaxOutputSize{asSigned(get<kSelect>().count())}
   {
     audioChannelsIn(1);
-    controlChannelsOut({1,7});
+    controlChannelsOut({1, asSigned(get<kSelect>().count()), mMaxOutputSize});
     setInputLabels({"audio input"});
-    setOutputLabels({"centroid, spread, skewness, kurtosis, rolloff, flatness, crest factor"});
-    mDescriptors = FluidTensor<double, 1>(7);
+    setOutputLabels({"spectral features"});
+    mDescriptors = FluidTensor<double, 1>(mMaxOutputSize);
   }
 
   template <typename T>
@@ -101,17 +102,29 @@ public:
               get<kMaxFreq>(), get<kRollOffPercent>(), get<kFreqUnits>() == 1,
               get<kAmpMeasure>() == 1);
         });
-
-    // for (int i = 0; i < 7; ++i)
-    //   output[asUnsigned(i)](0) = static_cast<T>(mDescriptors(i));
-    output[0] = mDescriptors; 
+    
+    auto selection = get<kSelect>();
+    index numSelected = asSigned(selection.count());
+    index numOuts = std::min<index>(mMaxOutputSize,numSelected);
+    controlChannelsOut({1, numOuts, mMaxOutputSize});
+    
+    for (index i = 0, j = 0; i < mMaxOutputSize && j < numOuts; ++i)
+    {
+      if (selection[asUnsigned(i)])
+        output[0](j++) = static_cast<T>(mDescriptors(i));
+    }
+    
+    output[0](Slice(numOuts, mMaxOutputSize - numOuts)).fill(0); 
   }
 
   index latency() { return get<kFFT>().winSize(); }
 
   void reset() { mSTFTBufferedProcess.reset(); }
 
-  index controlRate() { return get<kFFT>().hopSize(); }
+  AnalysisSize analysisSettings()
+  {
+    return { get<kFFT>().winSize(), get<kFFT>().hopSize() }; 
+  }
 
 private:
   ParameterTrackChanges<index, double>        mTracker;

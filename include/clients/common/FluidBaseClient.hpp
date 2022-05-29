@@ -33,7 +33,8 @@ enum ProcessState { kNoProcess, kProcessing, kDone, kDoneStillProcessing };
 
 struct ControlChannel {
   index count{0}; 
-  index size{-1}; 
+  index size{-1};
+  index max{-1}; 
 }; 
 
 class FluidBaseClient
@@ -47,7 +48,7 @@ public:
   ControlChannel controlChannelsOut() const noexcept { return mControlChannelsOut; }
   index maxControlChannelsOut() const noexcept
   {
-    return mMaxControlChannelsOut;
+    return mControlChannelsOut.max > -1 ? mControlChannelsOut.max : mControlChannelsOut.size;
   }
   bool   controlTrigger() const noexcept { return mControlTrigger; }
   index  audioBuffersIn() const noexcept { return mBuffersIn; }
@@ -71,10 +72,6 @@ protected:
   void audioChannelsOut(const index x) noexcept { mAudioChannelsOut = x; }
   void controlChannelsIn(const index x) noexcept { mControlChannelsIn = x; }
   void controlChannelsOut(const ControlChannel x) noexcept { mControlChannelsOut = x; }
-  void maxControlChannelsOut(const index x) noexcept
-  {
-    mMaxControlChannelsOut = x;
-  }
   void controlTrigger(const bool x) noexcept { mControlTrigger = x; }
   void audioBuffersIn(const index x) noexcept { mBuffersIn = x; }
   void audioBuffersOut(const index x) noexcept { mBuffersOut = x; }
@@ -97,8 +94,7 @@ private:
   index  mAudioChannelsIn = 0;
   index  mAudioChannelsOut = 0;
   index  mControlChannelsIn = 0;
-  ControlChannel  mControlChannelsOut {0,0};
-  index  mMaxControlChannelsOut = 0;
+  ControlChannel  mControlChannelsOut {0,0,-1};
   bool   mControlTrigger{false};
   index  mBuffersIn = 0;
   index  mBuffersOut = 0;
@@ -106,6 +102,12 @@ private:
   std::vector<const char*> mInputLabels;
   std::vector<const char*> mOutputLabels;
 };
+
+struct AnalysisSize
+{
+  index window;
+  index hop;    
+}; 
 
 template <typename C>
 class ClientWrapper
@@ -206,7 +208,7 @@ public:
         mClient, std::forward<Args>(args)...);
   }
 
-  index controlRate() { return mClient.controlRate(); }
+  AnalysisSize analysisSettings() { return mClient.analysisSettings(); }
 
   template <size_t N, typename T>
   void set(T&& x, Result* reportage) noexcept
