@@ -29,8 +29,8 @@ constexpr auto SKMeansParams = defineParameters(
     LongParam("maxIter", "Max number of Iterations", 100, Min(1)));
 
 class SKMeansClient : public FluidBaseClient,
-                      AudioIn,
-                      ControlOut,
+                      OfflineIn,
+                      OfflineOut,
                       ModelObject,
                       public DataClient<algorithm::SKMeans>
 {
@@ -182,7 +182,7 @@ public:
     if (!bufCheck.checkInputs(data.get()))
       return Error<index>(bufCheck.error());
     RealVector point(mAlgorithm.dims());
-    point =
+    point <<=
         BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0);
     return mAlgorithm.vq(point);
   }
@@ -225,10 +225,10 @@ public:
     if (!resizeResult.ok()) return Error(BufferAlloc);
     RealMatrix src(1, mAlgorithm.dims());
     RealMatrix dest(1, mAlgorithm.size());
-    src.row(0) =
+    src.row(0) <<=
         BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
     mAlgorithm.transform(src, dest, get<kThreshold>());
-    outBuf.allFrames()(Slice(0, 1), Slice(0, mAlgorithm.size())) = dest;
+    outBuf.allFrames()(Slice(0, 1), Slice(0, mAlgorithm.size())) <<= dest;
     return OK();
   }
 
@@ -335,7 +335,7 @@ public:
       auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
       if (outBuf.samps(0).size() < 1) return;
       RealVector point(dims);
-      point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+      point <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                   .samps(0, dims, 0);
       outBuf.samps(0)[0] = kmeansPtr->algorithm().vq(point);
     }

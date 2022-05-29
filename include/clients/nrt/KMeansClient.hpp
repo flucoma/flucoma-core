@@ -146,7 +146,7 @@ public:
 
     StringVectorView ids = srcDataSet.getIds();
     RealMatrix       output(srcDataSet.size(), mAlgorithm.size());
-    mAlgorithm.getDistances(srcDataSet.getData(), output);
+    mAlgorithm.transform(srcDataSet.getData(), output);
     FluidDataSet<string, double, 1> result(ids, output);
     destPtr->setDataSet(result);
     return OK();
@@ -224,7 +224,7 @@ public:
     RealMatrix dest(1, mAlgorithm.size());
     src.row(0) <<=
         BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
-    mAlgorithm.getDistances(src, dest);
+    mAlgorithm.transform(src, dest);
     outBuf.allFrames()(Slice(0, 1), Slice(0, mAlgorithm.size())) <<= dest;
     return OK();
   }

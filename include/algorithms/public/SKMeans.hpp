@@ -64,7 +64,7 @@ public:
     MatrixXd points = _impl::asEigen<Matrix>(data).transpose();
     MatrixXd embedding = (mMeans.matrix() * points).array() - alpha;
     embedding = (embedding.array() > 0).select(embedding, 0).transpose();
-    out = _impl::asFluid(embedding);
+    out <<= _impl::asFluid(embedding);
   }
 
 private:

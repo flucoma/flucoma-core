@@ -109,7 +109,7 @@ public:
     out <<= _impl::asFluid(mAssignments);
   }
 
-  void getDistances(RealMatrixView data, RealMatrixView out) const
+  void transform(RealMatrixView data, RealMatrixView out) const
   {
     Eigen::ArrayXXd points = _impl::asEigen<Eigen::Array>(data);
     Eigen::ArrayXXd D = fluid::algorithm::DistanceMatrix(points, 2);
@@ -119,7 +119,7 @@ public:
   }
 
 protected:
-  double distance(Eigen::ArrayXd v1, Eigen::ArrayXd v2) const
+  double distance(const Eigen::ArrayXd&  v1, const Eigen::ArrayXd& v2) const
   {
     return (v1 - v2).matrix().norm();
   }
