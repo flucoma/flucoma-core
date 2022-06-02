@@ -27,7 +27,7 @@ template <typename T>
 using HostVector = FluidTensorView<T, 1>;
 
 constexpr auto RunningStatsParams =
-    defineParameters(LongParam("size", "History Size", 2, Min(2)));
+    defineParameters(LongParam("history", "History Size", 2, Min(2)));
 
 class RunningStatsClient : public FluidBaseClient, public ControlIn, ControlOut
 {
