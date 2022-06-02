@@ -12,7 +12,7 @@ function(add_client)
   # Define the supported set of keywords
   set(noValues NOINSTALL)
   set(singleValues CLASS)
-  set(multiValues GROUP)
+  set(multiValues GROUP TAGS)
   # Process the arguments passed in
   include(CMakeParseArguments)
   cmake_parse_arguments(ARG
@@ -46,11 +46,21 @@ else ()
   set(group NONE)  
 endif() 
 
+if(ARG_TAGS)
+  foreach(tag ${ARG_TAGS})
+    set_property(GLOBAL PROPERTY FLUID_CORE_CLIENTS_${name}_${tag} ON)
+  endforeach()
+endif() 
+
 set_property(GLOBAL APPEND PROPERTY FLUID_CORE_CLIENTS ${name})
 set_property(GLOBAL APPEND PROPERTY FLUID_CORE_CLIENTS_${group} ${name})
 set_property(GLOBAL PROPERTY FLUID_CORE_CLIENTS_${name}_HEADER ${header})
 set_property(GLOBAL PROPERTY FLUID_CORE_CLIENTS_${name}_CLASS ${ARG_CLASS})
 set_property(GLOBAL PROPERTY FLUID_CORE_CLIENTS_${name}_INSTALL ${install})    
+endfunction() 
+
+function (add_kr_in_client) 
+  add_client(${ARGN} TAGS KR_IN)  
 endfunction() 
 
 function(get_client_group group var)
@@ -124,7 +134,7 @@ add_client(Pitch clients/rt/PitchClient.hpp CLASS RTPitchClient )
 add_client(STFTPass clients/rt/BaseSTFTClient.hpp CLASS RTSTFTPassClient NOINSTALL)
 add_client(Sines clients/rt/SinesClient.hpp CLASS RTSinesClient )
 add_client(SpectralShape clients/rt/SpectralShapeClient.hpp CLASS RTSpectralShapeClient )
-add_client(Stats clients/rt/RunningStatsClient.hpp CLASS RunningStatsClient )
+add_kr_in_client(Stats clients/rt/RunningStatsClient.hpp CLASS RunningStatsClient )
 add_client(TransientSlice clients/rt/TransientSliceClient.hpp CLASS RTTransientSliceClient )
 add_client(Transients clients/rt/TransientClient.hpp CLASS RTTransientClient )
 
