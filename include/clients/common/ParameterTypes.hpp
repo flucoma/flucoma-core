@@ -451,8 +451,8 @@ class LongRuntimeMaxParam {
 public:
   
   constexpr LongRuntimeMaxParam(index val, index max)
-    : mValue(val),mInitialValue{mValue},
-      mMax(max)
+    : mValue(val),
+      mMax(max), mInitialValue{mValue}
   {}
 
   constexpr LongRuntimeMaxParam(index val): LongRuntimeMaxParam(val,-1){}
