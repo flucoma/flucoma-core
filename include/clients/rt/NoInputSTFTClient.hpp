@@ -64,7 +64,7 @@ private:
 
 auto NoInputSTFTInterface = makeClient<NoInputSTFTParams, NoInputSTFTClient>(
     Control(&NoInputSTFTParams::fftSettings, "fftSettings",  "FFT Settings",-1, -1),
-    Control(&NoInputSTFTParams::maxFFTSize, "maxFFTSize",  "Maxiumm FFT Size", Min(4), PowerOfTwo{})
+    Control(&NoInputSTFTParams::maxFFTSize, "maxFFTSize",  "Maximum FFT Size", Min(4), PowerOfTwo{})
 );
 
 

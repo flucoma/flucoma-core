@@ -206,7 +206,7 @@ private:
     if (mags.numFrames() != phases.numFrames() ||
         mags.numChans() != phases.numChans())
       return {Result::Status::kError,
-              "Magnitdue and Phase buffer sizes don't match"};
+              "Magnitude and Phase buffer sizes don't match"};
 
     index fftSize = get<kFFT>().fftSize();
     index winSize = get<kFFT>().winSize();
