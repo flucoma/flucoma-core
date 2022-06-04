@@ -144,6 +144,7 @@ add_client(DataSetQuery clients/nrt/DataSetQueryClient.hpp CLASS NRTThreadedData
 add_client(LabelSet clients/nrt/LabelSetClient.hpp CLASS NRTThreadedLabelSetClient GROUP MANIPULATION)
 add_client(KDTree clients/nrt/KDTreeClient.hpp CLASS NRTThreadedKDTreeClient GROUP MANIPULATION)
 add_client(KMeans clients/nrt/KMeansClient.hpp CLASS NRTThreadedKMeansClient GROUP MANIPULATION)
+add_client(SKMeans clients/nrt/SKMeansClient.hpp CLASS NRTThreadedSKMeansClient GROUP MANIPULATION)
 add_client(KNNClassifier clients/nrt/KNNClassifierClient.hpp CLASS NRTThreadedKNNClassifierClient GROUP MANIPULATION)
 add_client(KNNRegressor clients/nrt/KNNRegressorClient.hpp CLASS NRTThreadedKNNRegressorClient GROUP MANIPULATION)
 add_client(Normalize clients/nrt/NormalizeClient.hpp CLASS NRTThreadedNormalizeClient GROUP MANIPULATION)
