@@ -58,7 +58,7 @@ constexpr std::initializer_list<index> HiddenLayerDefaults = {3, 3};
 
 constexpr auto MLPClassifierParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
-    LongArrayParam("hiddenlayers", "Hidden Layer Sizes", HiddenLayerDefaults),
+    LongArrayParam("hiddenLayers", "Hidden Layer Sizes", HiddenLayerDefaults),
     EnumParam("activation", "Activation Function", 2, "Identity", "Sigmoid",
               "ReLU", "Tanh"),
     LongParam("maxIter", "Maximum Number of Iterations", 1000, Min(1)),
