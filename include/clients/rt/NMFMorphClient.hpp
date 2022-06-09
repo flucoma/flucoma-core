@@ -90,7 +90,7 @@ public:
         return;
       if (sourceBuffer.numFrames() != fftParams.frameSize()) { return; }
       if (sourceBuffer.numFrames() != targetBuffer.numFrames()) { return; }
-      if (mTrackValues.changed(rank, fftParams.frameSize(), get<kAutoAssign>()))
+      if (!mNMFMorph.initialized() || mTrackValues.changed(rank, fftParams.frameSize(), get<kAutoAssign>()))
       {
         tmpSource.resize(rank, fftParams.frameSize());
         tmpTarget.resize(rank, fftParams.frameSize());
@@ -105,6 +105,7 @@ public:
                        fftParams.fftSize(), fftParams.hopSize(),
                        get<kAutoAssign>() == 1);
       }
+      if(!mNMFMorph.initialized()) return; 
       mSTFTProcessor.processOutput(
           mParams, output, c, [&](ComplexMatrixView out) {
             mNMFMorph.processFrame(out.row(0), get<kInterp>());

@@ -36,6 +36,7 @@ public:
     using namespace Eigen;
     using namespace _impl;
     using namespace std;
+    mInitialized = false;
     mW1 = asEigen<Matrix>(W1).transpose();
     mH = asEigen<Matrix>(H);
     MatrixXd tmpW2 = asEigen<Matrix>(W2).transpose();
@@ -48,6 +49,7 @@ public:
         {
           OptimalTransport tmpOT;
           tmpOT.init(mW1.col(i), tmpW2.col(j));
+          if(!tmpOT.initialized()) return;
           cost(i, j) = tmpOT.mDistance;
         }
       }
@@ -72,7 +74,10 @@ public:
     mOT = std::vector<OptimalTransport>(asUnsigned(rank));
     for (index i = 0; i < rank; i++) { mOT[asUnsigned(i)].init(mW1.col(i), mW2.col(i)); }
     mPos = 0;
+    mInitialized = true;
   }
+  
+  bool initialized() { return mInitialized; }
 
   void processFrame(ComplexVectorView v, double interpolation)
   {
@@ -103,6 +108,7 @@ private:
   RTPGHI                        mRTPGHI;
   std::vector<OptimalTransport> mOT;
   int                           mPos{0};
+  bool                          mInitialized;
 };
 } // namespace algorithm
 } // namespace fluid
