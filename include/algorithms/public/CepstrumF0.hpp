@@ -32,8 +32,11 @@ public:
 
   void init(index size)
   {
-    // avoid allocation of maxSize^2 at constructor
-    mDCT = DCT(size, size);
+    // avoid allocation of maxSize^2 at constructor, but don't reallocate if not needed
+    
+    if (mDCT.maxOutputSize() < size || mDCT.maxInputSize() < size)
+      mDCT = DCT(size, size);
+      
     mDCT.init(size, size);
 
     mCepstrum = mCepstrumStorage.segment(0, size);
