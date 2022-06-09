@@ -28,6 +28,8 @@ public:
   using MatrixXd = Eigen::MatrixXd;
 
   DCT(index maxInputSize, index maxOutputSize)
+  : mMaxInputSize(maxInputSize)
+  , mMaxOutputSize(maxOutputSize)
   {
     mTableStorage = MatrixXd::Zero(maxOutputSize, maxInputSize);
   }
@@ -36,6 +38,11 @@ public:
   {
     using namespace std;
     assert(inputSize >= outputSize);
+    assert(inputSize <= mMaxInputSize);
+    assert(outputSize <= mMaxOutputSize);
+    // Exit if already initialised
+    if (mInputSize == inputSize && mOutputSize == outputSize)
+      return;
     mInputSize = inputSize;
     mOutputSize = outputSize;
     mTable = mTableStorage.block(0, 0, mOutputSize, mInputSize);
@@ -61,8 +68,14 @@ public:
   {
     output = (mTable * input.matrix()).array();
   }
-  index    mInputSize{40};
-  index    mOutputSize{13};
+    
+  index maxInputSize() const { return mMaxInputSize; }
+  index maxOutputSize() const { return mMaxOutputSize; }
+    
+  index    mInputSize{0};
+  index    mOutputSize{0};
+  index    mMaxInputSize{0};
+  index    mMaxOutputSize{0};
   MatrixXd mTable;
   MatrixXd mTableStorage;
 };
