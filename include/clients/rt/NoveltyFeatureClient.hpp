@@ -72,7 +72,8 @@ public:
         mSTFT{get<kFFT>().winSize(), get<kFFT>().fftSize(),
               get<kFFT>().hopSize()},
         mMelBands{40, get<kFFT>().max()},
-        mChroma(12, get<kFFT>().max()), mLoudness{get<kFFT>().max()}
+        mChroma(12, get<kFFT>().max()), mYinFFT(get<kFFT>().max()),
+        mLoudness{get<kFFT>().max()}
   {
     audioChannelsIn(1);
     controlChannelsOut({1,1});

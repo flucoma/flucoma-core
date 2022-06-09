@@ -78,7 +78,7 @@ public:
 
   PitchClient(ParamSetViewType& p)
       : mParams(p), mSTFTBufferedProcess(get<kFFT>().max(), 1, 0),
-        cepstrumF0(get<kFFT>().max())
+        cepstrumF0(get<kFFT>().max()), yinFFT(get<kFFT>().max())
   {
     audioChannelsIn(1);
     controlChannelsOut({1,mMaxFeatures});
