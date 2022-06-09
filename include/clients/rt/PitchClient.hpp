@@ -150,7 +150,7 @@ public:
     return { get<kFFT>().winSize(), get<kFFT>().hopSize() }; 
   }
 
-  void  reset()
+  void reset()
   {
     mSTFTBufferedProcess.reset();
     cepstrumF0.init(get<kFFT>().frameSize());
