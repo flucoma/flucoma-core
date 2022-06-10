@@ -67,6 +67,10 @@ target_include_directories(flucoma_VERSION_LIB PRIVATE
   "${CMAKE_CURRENT_LIST_DIR}/include"
 )
 
+set_target_properties(flucoma_VERSION_LIB PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+)
+
 set_property(GLOBAL PROPERTY FLUCOMA_VERSION ${flucoma_VERSION_STRING})
 set_property(GLOBAL PROPERTY FLUCOMA_VERSION_TERSE ${flucoma_VERSION_MAJOR}.${flucoma_VERSION_MINOR}.${flucoma_VERSION_PATCH})
 set_property(GLOBAL PROPERTY FLUCOMA_VERSION_SHA ${flucoma_VERSION_STRING_SHA})

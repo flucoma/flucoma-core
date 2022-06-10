@@ -45,10 +45,15 @@ class OptimalTransport
 public:
   void init(ArrayXd A, ArrayXd B)
   {
+    mInitialized = false;
     mA = A;
     mB = B;
     mS1 = segmentSpectrum(A);
     mS2 = segmentSpectrum(B);
+    
+    if(!mS1.size() || !mS2.size())
+      return; 
+    
     mTransportMatrix = computeTransportMatrix(mS1, mS2);
     mInitialized = true;
   }

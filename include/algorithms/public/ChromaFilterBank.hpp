@@ -52,9 +52,14 @@ public:
     ArrayXXd remainder =  diffs.unaryExpr([&](const double x){
         return std::fmod(x + 10* nChroma + halfChroma, nChroma) - halfChroma;
     });
-    MatrixXd filters = (-0.5 * (2 * remainder / widths.replicate(1, nChroma).transpose()).square()).exp();
-    filters = filters.block(0, 0, nChroma, nBins);
+    MatrixXd filters = (-0.5 * (2 * remainder / widths.replicate(1, nChroma)
+    .transpose())
+    .square())
+    .exp()
+    .block(0, 0, nChroma, nBins);
+    
     filters.colwise().normalize();
+    
     mFiltersStorage.setZero();
     mFiltersStorage.block(0, 0, nChroma, nBins) = filters;
     mNChroma = nChroma;
