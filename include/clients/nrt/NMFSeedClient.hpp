@@ -131,7 +131,7 @@ public:
 } // namespace nndsvd
 
 using NRTThreadedNMFSeedClient =
-    NRTThreadingAdaptor<ClientWrapper<NMFSeed::NMFSeedClient>>;
+    NRTThreadingAdaptor<ClientWrapper<nndsvd::NMFSeedClient>>;
 
 } // namespace client
 } // namespace fluid
