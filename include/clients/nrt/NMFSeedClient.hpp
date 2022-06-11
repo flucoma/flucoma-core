@@ -24,7 +24,7 @@ namespace fluid {
 namespace client {
 namespace nndsvd {
 
-enum NNDSVDParamIndex {
+enum NMFSeedParamIndex {
   kSource,
   kFilters,
   kEnvelopes,
@@ -35,7 +35,7 @@ enum NNDSVDParamIndex {
   kFFT
 };
 
-constexpr auto NNDSVDParams =
+constexpr auto NMFSeedParams =
     defineParameters(InputBufferParam("source", "Source Buffer"),
                      BufferParam("bases", "Bases Buffer"),
                      BufferParam("activations", "Activations Buffer"),
@@ -48,10 +48,10 @@ constexpr auto NNDSVDParams =
                                "NNDSVDar", "NNDSVDa", "NNDSVD"),
                      FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
-class NNDSVDClient : public FluidBaseClient, public OfflineIn, public OfflineOut
+class NMFSeedClient : public FluidBaseClient, public OfflineIn, public OfflineOut
 {
 public:
-  using ParamDescType = decltype(NNDSVDParams);
+  using ParamDescType = decltype(NMFSeedParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   std::reference_wrapper<ParamSetViewType> mParams;
@@ -64,9 +64,9 @@ public:
     return mParams.get().template get<N>();
   }
 
-  static constexpr auto getParameterDescriptors() { return NNDSVDParams; }
+  static constexpr auto getParameterDescriptors() { return NMFSeedParams; }
 
-  NNDSVDClient(ParamSetViewType& p) : mParams{p} {}
+  NMFSeedClient(ParamSetViewType& p) : mParams{p} {}
 
   template <typename T>
   Result process(FluidContext&)
@@ -130,8 +130,8 @@ public:
 };
 } // namespace nndsvd
 
-using NRTThreadedNNDSVDClient =
-    NRTThreadingAdaptor<ClientWrapper<nndsvd::NNDSVDClient>>;
+using NRTThreadedNMFSeedClient =
+    NRTThreadingAdaptor<ClientWrapper<NMFSeed::NMFSeedClient>>;
 
 } // namespace client
 } // namespace fluid
