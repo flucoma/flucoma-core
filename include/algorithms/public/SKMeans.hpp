@@ -57,7 +57,7 @@ public:
   }
 
 
-  void transform(RealMatrixView data, RealMatrixView out,
+  void encode(RealMatrixView data, RealMatrixView out,
                  double alpha = 0.25) const
   {
     using namespace Eigen;

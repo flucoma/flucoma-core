@@ -132,7 +132,7 @@ public:
   }
 
 
-  MessageResult<void> transform(DataSetClientRef srcClient,
+  MessageResult<void> encode(DataSetClientRef srcClient,
                                 DataSetClientRef dstClient) const
   {
     auto srcPtr = srcClient.get().lock();
@@ -148,14 +148,14 @@ public:
 
     StringVectorView ids = srcDataSet.getIds();
     RealMatrix       output(srcDataSet.size(), mAlgorithm.size());
-    mAlgorithm.transform(srcDataSet.getData(), output, get<kThreshold>());
+    mAlgorithm.encode(srcDataSet.getData(), output, get<kThreshold>());
     FluidDataSet<string, double, 1> result(ids, output);
     destPtr->setDataSet(result);
     return OK();
   }
 
 
-  MessageResult<IndexVector> fitTransform(DataSetClientRef srcClient,
+  MessageResult<IndexVector> fitEncode(DataSetClientRef srcClient,
                                           DataSetClientRef dstClient)
   {
     index k = get<kNumClusters>();
@@ -171,7 +171,7 @@ public:
     mAlgorithm.train(dataSet, k, maxIter);
     IndexVector assignments(dataSet.size());
     mAlgorithm.getAssignments(assignments);
-    transform(srcClient, dstClient);
+    encode(srcClient, dstClient);
     return getCounts(assignments, k);
   }
 
@@ -214,7 +214,7 @@ public:
   }
 
 
-  MessageResult<void> transformPoint(BufferPtr in, BufferPtr out) const
+  MessageResult<void> encodePoint(BufferPtr in, BufferPtr out) const
   {
     if (!mAlgorithm.initialized()) return Error(NoDataFitted);
     InBufferCheck bufCheck(mAlgorithm.dims());
@@ -227,7 +227,7 @@ public:
     RealMatrix dest(1, mAlgorithm.size());
     src.row(0) <<=
         BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
-    mAlgorithm.transform(src, dest, get<kThreshold>());
+    mAlgorithm.encode(src, dest, get<kThreshold>());
     outBuf.allFrames()(Slice(0, 1), Slice(0, mAlgorithm.size())) <<= dest;
     return OK();
   }
@@ -237,10 +237,10 @@ public:
     return defineMessages(
         makeMessage("fit", &SKMeansClient::fit),
         makeMessage("predict", &SKMeansClient::predict),
-        makeMessage("transform", &SKMeansClient::transform),
+        makeMessage("encode", &SKMeansClient::encode),
         makeMessage("predictPoint", &SKMeansClient::predictPoint),
-        makeMessage("transformPoint", &SKMeansClient::transformPoint),
-        makeMessage("fitTransform", &SKMeansClient::fitTransform),
+        makeMessage("encodePoint", &SKMeansClient::encodePoint),
+        makeMessage("fitEncode", &SKMeansClient::fitEncode),
         makeMessage("getMeans", &SKMeansClient::getMeans),
         makeMessage("setMeans", &SKMeansClient::setMeans),
         makeMessage("fitPredict", &SKMeansClient::fitPredict),
