@@ -26,7 +26,7 @@ enum NMFFilterIndex {
   kTargetBuf,
   kActBuf,
   kAutoAssign,
-  kInterp,
+  kInterpolation,
   kFFT
 };
 
@@ -35,7 +35,7 @@ constexpr auto NMFMorphParams = defineParameters(
     InputBufferParam("target", "Target Bases"),
     InputBufferParam("activations", "Activations"),
     EnumParam("autoassign", "Automatic assign", 1, "No", "Yes"),
-    FloatParam("interp", "Interpolation", 0, Min(0.0), Max(1.0)),
+    FloatParam("interpolation", "Interpolation", 0, Min(0.0), Max(1.0)),
     FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class NMFMorphClient : public FluidBaseClient, public AudioOut
@@ -108,7 +108,7 @@ public:
       if(!mNMFMorph.initialized()) return; 
       mSTFTProcessor.processOutput(
           mParams, output, c, [&](ComplexMatrixView out) {
-            mNMFMorph.processFrame(out.row(0), get<kInterp>());
+            mNMFMorph.processFrame(out.row(0), get<kInterpolation>());
           });
     }
   }
