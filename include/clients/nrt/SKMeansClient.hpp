@@ -13,37 +13,37 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "DataSetClient.hpp"
 #include "LabelSetClient.hpp"
 #include "NRTClient.hpp"
-#include "../../algorithms/public/KMeans.hpp"
+#include "../../algorithms/public/SKMeans.hpp"
 #include <string>
 
 namespace fluid {
 namespace client {
-namespace kmeans {
+namespace skmeans {
 
-constexpr auto KMeansParams = defineParameters(
+enum { kName, kNumClusters, kThreshold, kMaxIter };
+
+constexpr auto SKMeansParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
-    LongParam("numClusters", "Number of Clusters", 4, Min(1)),
+    LongParam("numClusters", "Number of Clusters", 4, Min(0)),
+    FloatParam("encodingThreshold", "Encoding Threshold", 0.25, Min(0), Max(1)),
     LongParam("maxIter", "Max number of Iterations", 100, Min(1)));
 
-class KMeansClient : public FluidBaseClient,
-                     OfflineIn,
-                     OfflineOut,
-                     ModelObject,
-                     public DataClient<algorithm::KMeans>
+class SKMeansClient : public FluidBaseClient,
+                      OfflineIn,
+                      OfflineOut,
+                      ModelObject,
+                      public DataClient<algorithm::SKMeans>
 {
-  enum { kName, kNumClusters, kMaxIter };
 
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
-  using InputBufferPtr = std::shared_ptr<const BufferAdaptor>;
   using IndexVector = FluidTensor<index, 1>;
   using StringVector = FluidTensor<string, 1>;
   using StringVectorView = FluidTensorView<string, 1>;
   using LabelSet = FluidDataSet<string, string, 1>;
 
-  using ParamDescType = decltype(KMeansParams);
-
+  using ParamDescType = decltype(SKMeansParams);
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   std::reference_wrapper<ParamSetViewType> mParams;
 
@@ -55,9 +55,9 @@ public:
     return mParams.get().template get<N>();
   }
 
-  static constexpr auto& getParameterDescriptors() { return KMeansParams; }
+  static constexpr auto& getParameterDescriptors() { return SKMeansParams; }
 
-  KMeansClient(ParamSetViewType& p) : mParams(p)
+  SKMeansClient(ParamSetViewType& p) : mParams(p)
   {
     audioChannelsIn(1);
     controlChannelsOut({1, 1});
@@ -69,7 +69,7 @@ public:
     return {};
   }
 
-  MessageResult<IndexVector> fit(InputDataSetClientRef datasetClient)
+  MessageResult<IndexVector> fit(DataSetClientRef datasetClient)
   {
     index k = get<kNumClusters>();
     index maxIter = get<kMaxIter>();
@@ -84,7 +84,8 @@ public:
     return getCounts(assignments, k);
   }
 
-  MessageResult<IndexVector> fitPredict(InputDataSetClientRef  datasetClient,
+
+  MessageResult<IndexVector> fitPredict(DataSetClientRef  datasetClient,
                                         LabelSetClientRef labelsetClient)
   {
     index k = get<kNumClusters>();
@@ -105,7 +106,8 @@ public:
     return getCounts(assignments, k);
   }
 
-  MessageResult<IndexVector> predict(InputDataSetClientRef  datasetClient,
+
+  MessageResult<IndexVector> predict(DataSetClientRef  datasetClient,
                                      LabelSetClientRef labelClient) const
   {
     auto dataPtr = datasetClient.get().lock();
@@ -130,7 +132,7 @@ public:
   }
 
 
-  MessageResult<void> transform(InputDataSetClientRef srcClient,
+  MessageResult<void> encode(DataSetClientRef srcClient,
                                 DataSetClientRef dstClient) const
   {
     auto srcPtr = srcClient.get().lock();
@@ -146,13 +148,14 @@ public:
 
     StringVectorView ids = srcDataSet.getIds();
     RealMatrix       output(srcDataSet.size(), mAlgorithm.size());
-    mAlgorithm.transform(srcDataSet.getData(), output);
+    mAlgorithm.encode(srcDataSet.getData(), output, get<kThreshold>());
     FluidDataSet<string, double, 1> result(ids, output);
     destPtr->setDataSet(result);
     return OK();
   }
 
-  MessageResult<IndexVector> fitTransform(InputDataSetClientRef srcClient,
+
+  MessageResult<IndexVector> fitEncode(DataSetClientRef srcClient,
                                           DataSetClientRef dstClient)
   {
     index k = get<kNumClusters>();
@@ -168,11 +171,11 @@ public:
     mAlgorithm.train(dataSet, k, maxIter);
     IndexVector assignments(dataSet.size());
     mAlgorithm.getAssignments(assignments);
-    transform(srcClient, dstClient);
+    encode(srcClient, dstClient);
     return getCounts(assignments, k);
   }
 
-  MessageResult<index> predictPoint(InputBufferPtr data) const
+  MessageResult<index> predictPoint(BufferPtr data) const
   {
     if (!mAlgorithm.initialized()) return Error<index>(NoDataFitted);
     InBufferCheck bufCheck(mAlgorithm.dims());
@@ -199,7 +202,7 @@ public:
     return OK();
   }
 
-  MessageResult<void> setMeans(InputDataSetClientRef srcClient)
+  MessageResult<void> setMeans(DataSetClientRef srcClient)
   {
     auto srcPtr = srcClient.get().lock();
     if (!srcPtr) return Error(NoDataSet);
@@ -211,7 +214,7 @@ public:
   }
 
 
-  MessageResult<void> transformPoint(InputBufferPtr in, BufferPtr out) const
+  MessageResult<void> encodePoint(BufferPtr in, BufferPtr out) const
   {
     if (!mAlgorithm.initialized()) return Error(NoDataFitted);
     InBufferCheck bufCheck(mAlgorithm.dims());
@@ -224,7 +227,7 @@ public:
     RealMatrix dest(1, mAlgorithm.size());
     src.row(0) <<=
         BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
-    mAlgorithm.transform(src, dest);
+    mAlgorithm.encode(src, dest, get<kThreshold>());
     outBuf.allFrames()(Slice(0, 1), Slice(0, mAlgorithm.size())) <<= dest;
     return OK();
   }
@@ -232,22 +235,22 @@ public:
   static auto getMessageDescriptors()
   {
     return defineMessages(
-        makeMessage("fit", &KMeansClient::fit),
-        makeMessage("predict", &KMeansClient::predict),
-        makeMessage("transform", &KMeansClient::transform),
-        makeMessage("predictPoint", &KMeansClient::predictPoint),
-        makeMessage("transformPoint", &KMeansClient::transformPoint),
-        makeMessage("fitTransform", &KMeansClient::fitTransform),
-        makeMessage("getMeans", &KMeansClient::getMeans),
-        makeMessage("setMeans", &KMeansClient::setMeans),
-        makeMessage("fitPredict", &KMeansClient::fitPredict),
-        makeMessage("cols", &KMeansClient::dims),
-        makeMessage("clear", &KMeansClient::clear),
-        makeMessage("size", &KMeansClient::size),
-        makeMessage("load", &KMeansClient::load),
-        makeMessage("dump", &KMeansClient::dump),
-        makeMessage("write", &KMeansClient::write),
-        makeMessage("read", &KMeansClient::read));
+        makeMessage("fit", &SKMeansClient::fit),
+        makeMessage("predict", &SKMeansClient::predict),
+        makeMessage("encode", &SKMeansClient::encode),
+        makeMessage("predictPoint", &SKMeansClient::predictPoint),
+        makeMessage("encodePoint", &SKMeansClient::encodePoint),
+        makeMessage("fitEncode", &SKMeansClient::fitEncode),
+        makeMessage("getMeans", &SKMeansClient::getMeans),
+        makeMessage("setMeans", &SKMeansClient::setMeans),
+        makeMessage("fitPredict", &SKMeansClient::fitPredict),
+        makeMessage("cols", &SKMeansClient::dims),
+        makeMessage("clear", &SKMeansClient::clear),
+        makeMessage("size", &SKMeansClient::size),
+        makeMessage("load", &SKMeansClient::load),
+        makeMessage("dump", &SKMeansClient::dump),
+        makeMessage("write", &SKMeansClient::write),
+        makeMessage("read", &SKMeansClient::read));
   }
 
 
@@ -270,21 +273,23 @@ private:
     }
     return result;
   }
+
+  //FluidInputTrigger mTrigger;
 };
 
-using KMeansRef = SharedClientRef<const KMeansClient>;
+using SKMeansRef = SharedClientRef<SKMeansClient>;
 
-constexpr auto KMeansQueryParams =
-    defineParameters(KMeansRef::makeParam("kmeans", "Source KMeans model"),
-                     InputBufferParam("inputPointBuffer", "Input Point Buffer"),
+constexpr auto SKMeansQueryParams =
+    defineParameters(SKMeansRef::makeParam("skmeans", "Source SKMeans model"),
+                     BufferParam("inputPointBuffer", "Input Point Buffer"),
                      BufferParam("predictionBuffer", "Prediction Buffer"));
 
-class KMeansQuery : public FluidBaseClient, ControlIn, ControlOut
+class SKMeansQuery : public FluidBaseClient, ControlIn, ControlOut
 {
   enum { kModel, kInputBuffer, kOutputBuffer };
 
 public:
-  using ParamDescType = decltype(KMeansQueryParams);
+  using ParamDescType = decltype(SKMeansQueryParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   std::reference_wrapper<ParamSetViewType> mParams;
@@ -297,9 +302,12 @@ public:
     return mParams.get().template get<N>();
   }
 
-  static constexpr auto& getParameterDescriptors() { return KMeansQueryParams; }
+  static constexpr auto& getParameterDescriptors()
+  {
+    return SKMeansQueryParams;
+  }
 
-  KMeansQuery(ParamSetViewType& p) : mParams(p)
+  SKMeansQuery(ParamSetViewType& p) : mParams(p)
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});
@@ -309,7 +317,7 @@ public:
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
   {
-    output[0] <<= input[0];
+    output[0] = input[0];
     if (input[0](0) > 0)
     {
       auto kmeansPtr = get<kModel>().get().lock();
@@ -337,12 +345,11 @@ public:
 };
 
 
-} // namespace kmeans
+} // namespace skmeans
+using NRTThreadedSKMeansClient =
+    NRTThreadingAdaptor<typename skmeans::SKMeansRef::SharedType>;
 
-using NRTThreadedKMeansClient =
-    NRTThreadingAdaptor<typename kmeans::KMeansRef::SharedType>;
-
-using RTKMeansQueryClient = ClientWrapper<kmeans::KMeansQuery>;
+using RTSKMeansQueryClient = ClientWrapper<skmeans::SKMeansQuery>;
 
 } // namespace client
 } // namespace fluid

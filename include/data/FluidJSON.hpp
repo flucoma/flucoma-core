@@ -2,6 +2,7 @@
 
 #include <algorithms/public/KDTree.hpp>
 #include <algorithms/public/KMeans.hpp>
+#include <algorithms/public/SKMeans.hpp>
 #include <algorithms/public/Normalization.hpp>
 #include <algorithms/public/RobustScaling.hpp>
 #include <algorithms/public/PCA.hpp>
@@ -184,6 +185,30 @@ void from_json(const nlohmann::json &j, KMeans &kmeans) {
   RealMatrix means(rows, cols);
   j.at("means").get_to(means);
   kmeans.setMeans(means);
+}
+
+// SKMeans
+void to_json(nlohmann::json &j, const SKMeans &skmeans) {
+  RealMatrix means(skmeans.getK(), skmeans.dims());
+  skmeans.getMeans(means);
+  j["means"] = RealMatrixView(means);
+  j["rows"] = means.rows();
+  j["cols"] = means.cols();
+}
+
+bool check_json(const nlohmann::json &j, const SKMeans &) {
+  return fluid::check_json(j,
+    {"rows", "cols", "means"},
+    {JSONTypes::NUMBER, JSONTypes::NUMBER,JSONTypes::ARRAY}
+  );
+}
+
+void from_json(const nlohmann::json &j, SKMeans &skmeans) {
+  index rows = j.at("rows").get<index>();
+  index cols = j.at("cols").get<index>();
+  RealMatrix means(rows, cols);
+  j.at("means").get_to(means);
+  skmeans.setMeans(means);
 }
 
 
