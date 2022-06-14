@@ -133,8 +133,7 @@ struct EnumT : ParamTypeBase
 struct ChoicesT: ParamTypeBase
 {
   using type = std::bitset<16>; 
-
-  
+    
   template <index... N>
   constexpr ChoicesT(const char* name, const char* displayName,
                   const char (&... string)[N])
@@ -145,7 +144,7 @@ struct ChoicesT: ParamTypeBase
     static_assert(sizeof...(N) <= 16,
                   "Fluid Param: : Maximum 16 things in an choice param");
   }
-  const char* strings[16]; // unilateral descision klaxon: if you have more than
+  const char* strings[16]; // unilateral decision klaxon: if you have more than
                            // 16 things in an Enum, you need to rethink
   const index fixedSize;
   const index numOptions;
@@ -153,11 +152,10 @@ struct ChoicesT: ParamTypeBase
 
   index lookup(std::string name)
   {
-    static std::vector<std::string> lookupTable(strings, strings + numOptions);
-
-    auto pos = std::find(lookupTable.begin(), lookupTable.end(), name);
-    return pos != lookupTable.end() ? std::distance(lookupTable.begin(), pos)
-                                  : -1;
+    auto start = std::begin(strings);
+    auto end = start + numOptions;
+    auto pos = std::find(start,end, name);
+    return pos != end? std::distance(start, pos) : -1;
   }
 };
 
