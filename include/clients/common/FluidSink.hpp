@@ -154,7 +154,7 @@ private:
     {
       View buf = matrix(chans, Slice(offset, size));
       View output = buf;
-      out = output;
+      out <<= output;
       buf.fill(0);
       if (incrementTime) mCounter = offset + size;
     }

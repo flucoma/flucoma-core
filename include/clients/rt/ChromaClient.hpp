@@ -30,22 +30,16 @@ enum ChromaParamIndex {
   kNorm,
   kMinFreq,
   kMaxFreq,
-  kMaxNChroma,
-  kFFT,
-  kMaxFFTSize
+  kFFT
 };
 
 constexpr auto ChromaParams = defineParameters(
-    LongParam("numChroma", "Number of Chroma Bins per Octave", 12, Min(2),
-              UpperLimit<kMaxNChroma>()),
+    LongParamRuntimeMax<Primary>("numChroma", "Number of Chroma Bins per Octave", 12, Min(2)),
     FloatParam("ref", "Reference frequency", 440, Min(0), Max(22000)),
     EnumParam("normalize", "Normalize Frame", 0, "None", "Sum", "Max"),
     FloatParam("minFreq", "Low Frequency Bound", 0, Min(0)),
     FloatParam("maxFreq", "High Frequency Bound", -1, Min(-1)),
-    LongParam<Fixed<true>>("maxNumChroma", "Maximum Number of Chroma Bins", 120, Min(2),
-                           MaxFrameSizeUpperLimit<kMaxFFTSize>()),
-    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
+    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class ChromaClient : public FluidBaseClient, public AudioIn, public ControlOut
 {
@@ -66,12 +60,12 @@ public:
   static constexpr auto& getParameterDescriptors() { return ChromaParams; }
 
   ChromaClient(ParamSetViewType& p)
-      : mParams{p}, mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0),
-        mAlgorithm(get<kMaxNChroma>(), get<kMaxFFTSize>())
+      : mParams{p}, mSTFTBufferedProcess(get<kFFT>().max(), 1, 0),
+        mAlgorithm(get<kNChroma>().max(), get<kFFT>().max())
   {
     mChroma = FluidTensor<double, 1>(get<kNChroma>());
     audioChannelsIn(1);
-    controlChannelsOut({1,get<kMaxNChroma>()});
+    controlChannelsOut({1,get<kNChroma>(),get<kNChroma>().max()});
     setInputLabels({"audio in"});
     setOutputLabels({"energies at chroma bins"});
   }
@@ -101,8 +95,8 @@ public:
                                   get<kMaxFreq>(), get<kNorm>());
         });
 
-    output[0](Slice(0,get<kNChroma>())) = mChroma; 
-    output[0](Slice(get<kNChroma>(), get<kMaxNChroma>() - get<kNChroma>())).fill(0); 
+    output[0](Slice(0,get<kNChroma>())) <<= mChroma; 
+    output[0](Slice(get<kNChroma>(), get<kNChroma>().max() - get<kNChroma>())).fill(0); 
   }
 
   index latency() { return get<kFFT>().winSize(); }

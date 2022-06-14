@@ -32,8 +32,7 @@ enum OnsetParamIndex {
   kDebounce,
   kFilterSize,
   kFrameDelta,
-  kFFT,
-  kMaxFFTSize
+  kFFT
 };
 
 constexpr auto OnsetSliceParams = defineParameters(
@@ -46,9 +45,7 @@ constexpr auto OnsetSliceParams = defineParameters(
     LongParam("minSliceLength", "Minimum Length of Slice", 2, Min(0)),
     LongParam("filterSize", "Filter Size", 5, Min(1), Odd(), Max(101)),
     LongParam("frameDelta", "Frame Delta", 0, Min(0)),
-    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                           PowerOfTwo{}));
+    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class OnsetSliceClient : public FluidBaseClient, public AudioIn, public AudioOut
 {
@@ -69,7 +66,7 @@ public:
   static constexpr auto& getParameterDescriptors() { return OnsetSliceParams; }
 
   OnsetSliceClient(ParamSetViewType& p)
-      : mParams{p}, mAlgorithm{get<kMaxFFTSize>()}
+      : mParams{p}, mAlgorithm{get<kFFT>().max()}
   {
     audioChannelsIn(1);
     audioChannelsOut(1);
@@ -97,6 +94,7 @@ public:
       mBufferedProcess.maxSize(totalWindow, totalWindow,
                                FluidBaseClient::audioChannelsIn(),
                                FluidBaseClient::audioChannelsOut());
+      mFrameOffset = 0; 
     }
     if (mParamsTracker.changed(get<kFFT>().fftSize(), get<kFFT>().winSize()))
     {
@@ -104,7 +102,7 @@ public:
                       get<kFilterSize>());
     }
     RealMatrix in(1, hostVecSize);
-    in.row(0) = input[0];
+    in.row(0) <<= input[0];
     RealMatrix out(1, hostVecSize);
     
     mBufferedProcess.push(RealMatrixView(in));
@@ -119,7 +117,7 @@ public:
     mFrameOffset =
         mFrameOffset < hostVecSize ? mFrameOffset : mFrameOffset - hostVecSize;
 
-    output[0] = out.row(0);
+    output[0]<<= out.row(0);
   }
 
   index latency() { return static_cast<index>(get<kFFT>().hopSize()); }

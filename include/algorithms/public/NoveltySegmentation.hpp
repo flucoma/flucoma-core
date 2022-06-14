@@ -26,13 +26,14 @@ public:
   using ArrayXd = Eigen::ArrayXd;
 
   NoveltySegmentation(index maxKernelSize, index maxFilterSize)
-      : mNovelty(maxFilterSize, maxKernelSize)
+      : mNovelty(maxKernelSize, maxFilterSize)
   {}
 
   void init(index kernelSize, index filterSize, index nDims)
   {
     mNovelty.init(kernelSize, filterSize, nDims);
     mDebounceCount = 1;
+    mPeakBuffer.setZero(); 
   }
 
   double processFrame(const RealVectorView input, double threshold,

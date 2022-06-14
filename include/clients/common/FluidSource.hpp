@@ -78,8 +78,8 @@ public:
     index size =
         (offset + blocksize > bufferSize()) ? bufferSize() - offset : blocksize;
 
-    out(Slice(0), Slice(0, size)) = matrix(Slice(0), Slice(offset, size));
-    out(Slice(0), Slice(size, blocksize - size)) =
+    out(Slice(0), Slice(0, size)) <<= matrix(Slice(0), Slice(offset, size));
+    out(Slice(0), Slice(size, blocksize - size)) <<=
         matrix(Slice(0), Slice(0, blocksize - size));
   }
 
@@ -146,7 +146,7 @@ private:
   {
     if (size)
     {
-      matrix(chans, Slice(offset, size)) = input;
+      matrix(chans, Slice(offset, size)) <<= input;
       if (incrementTime) mCounter = offset + size;
     }
   }

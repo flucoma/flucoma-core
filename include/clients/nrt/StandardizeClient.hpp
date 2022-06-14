@@ -18,9 +18,8 @@ namespace fluid {
 namespace client {
 namespace standardize {
 
-constexpr auto StandardizeParams = defineParameters(
-    StringParam<Fixed<true>>("name", "Name"),
-    EnumParam("invert", "Inverse Transform", 0, "False", "True"));
+constexpr auto StandardizeParams =
+    defineParameters(StringParam<Fixed<true>>("name", "Name"));
 
 class StandardizeClient : public FluidBaseClient,
                           OfflineIn,
@@ -28,11 +27,12 @@ class StandardizeClient : public FluidBaseClient,
                           ModelObject,
                           public DataClient<algorithm::Standardization>
 {
-  enum { kName, kInvert, kInputBuffer, kOutputBuffer };
+  enum { kName };
 
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
+  using InputBufferPtr = std::shared_ptr<const BufferAdaptor>;
   using StringVector = FluidTensor<string, 1>;
 
   template <typename T>
@@ -58,7 +58,7 @@ public:
 
   StandardizeClient(ParamSetViewType& p) : mParams(p) {}
 
-  MessageResult<void> fit(DataSetClientRef datasetClient)
+  MessageResult<void> fit(InputDataSetClientRef datasetClient)
   {
     auto weakPtr = datasetClient.get();
     if (auto datasetClientPtr = weakPtr.lock())
@@ -74,31 +74,29 @@ public:
     return {};
   }
 
-  MessageResult<void> transform(DataSetClientRef sourceClient,
+  MessageResult<void> transform(InputDataSetClientRef sourceClient,
                                 DataSetClientRef destClient) const
   {
-    return _transform(sourceClient, destClient, get<kInvert>() == 1);
+    return _transform(sourceClient, destClient, false);
   }
 
-  MessageResult<void> transformPoint(BufferPtr in, BufferPtr out) const
+  MessageResult<void> transformPoint(InputBufferPtr in, BufferPtr out) const
   {
-    if (!mAlgorithm.initialized()) return Error(NoDataFitted);
-    InOutBuffersCheck bufCheck(mAlgorithm.dims());
-    if (!bufCheck.checkInputs(in.get(), out.get()))
-      return Error(bufCheck.error());
-    BufferAdaptor::Access outBuf(out.get());
-    Result                resizeResult =
-        outBuf.resize(mAlgorithm.dims(), 1, outBuf.sampleRate());
-    if (!resizeResult.ok()) return Error(BufferAlloc);
-    RealVector src(mAlgorithm.dims());
-    RealVector dest(mAlgorithm.dims());
-    src = BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
-    mAlgorithm.processFrame(src, dest, get<kInvert>() == 1);
-    outBuf.samps(0, mAlgorithm.dims(), 0) = dest;
-    return OK();
+     return _transformPoint(in,out,false);
   }
 
-  MessageResult<void> fitTransform(DataSetClientRef sourceClient,
+  MessageResult<void> inverseTransform(InputDataSetClientRef sourceClient,
+                                DataSetClientRef destClient) const
+  {
+    return _transform(sourceClient, destClient, true);
+  }
+
+  MessageResult<void> inverseTransformPoint(InputBufferPtr in, BufferPtr out) const
+  {
+    return _transformPoint(in,out,true);
+  }
+
+  MessageResult<void> fitTransform(InputDataSetClientRef sourceClient,
                                    DataSetClientRef destClient)
   {
     auto result = fit(sourceClient);
@@ -114,6 +112,9 @@ public:
         makeMessage("fitTransform", &StandardizeClient::fitTransform),
         makeMessage("transform", &StandardizeClient::transform),
         makeMessage("transformPoint", &StandardizeClient::transformPoint),
+        makeMessage("inverseTransform", &StandardizeClient::inverseTransform),
+        makeMessage("inverseTransformPoint",
+                    &StandardizeClient::inverseTransformPoint),
         makeMessage("cols", &StandardizeClient::dims),
         makeMessage("clear", &StandardizeClient::clear),
         makeMessage("size", &StandardizeClient::size),
@@ -124,7 +125,7 @@ public:
   }
 
 private:
-  MessageResult<void> _transform(DataSetClientRef sourceClient,
+  MessageResult<void> _transform(InputDataSetClientRef sourceClient,
                                  DataSetClientRef destClient, bool invert) const
   {
     using namespace std;
@@ -147,14 +148,33 @@ private:
     }
     return OK();
   }
+  
+  MessageResult<void> _transformPoint(InputBufferPtr in, BufferPtr out, bool invert) const
+  {
+    if (!mAlgorithm.initialized()) return Error(NoDataFitted);
+    InOutBuffersCheck bufCheck(mAlgorithm.dims());
+    if (!bufCheck.checkInputs(in.get(), out.get()))
+      return Error(bufCheck.error());
+    BufferAdaptor::Access outBuf(out.get());
+    Result                resizeResult =
+        outBuf.resize(mAlgorithm.dims(), 1, outBuf.sampleRate());
+    if (!resizeResult.ok()) return Error(BufferAlloc);
+    RealVector src(mAlgorithm.dims());
+    RealVector dest(mAlgorithm.dims());
+    src <<= BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
+    mAlgorithm.processFrame(src, dest, invert);
+    outBuf.samps(0, mAlgorithm.dims(), 0) <<= dest;
+    return OK();
+  }
+  
 };
 
-using StandardizeRef = SharedClientRef<StandardizeClient>;
+using StandardizeRef = SharedClientRef<const StandardizeClient>;
 
 constexpr auto StandardizeQueryParams = defineParameters(
     StandardizeRef::makeParam("model", "Source Model"),
     EnumParam("invert", "Inverse Transform", 0, "False", "True"),
-    BufferParam("inputPointBuffer", "Input Point Buffer"),
+    InputBufferParam("inputPointBuffer", "Input Point Buffer"),
     BufferParam("predictionBuffer", "Prediction Buffer"));
 
 class StandardizeQuery : public FluidBaseClient, ControlIn, ControlOut
@@ -190,7 +210,7 @@ public:
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
   {
-    output[0] = input[0];
+    output[0] <<= input[0];
     if (input[0](0) > 0)
     {
       auto stdPtr = get<kModel>().get().lock();
@@ -200,7 +220,7 @@ public:
         return;
       }
 
-      algorithm::Standardization& algorithm = stdPtr->algorithm();
+      algorithm::Standardization const& algorithm = stdPtr->algorithm();
 
       if (!algorithm.initialized()) return;
       InOutBuffersCheck bufCheck(algorithm.dims());
@@ -211,10 +231,10 @@ public:
       if (outBuf.samps(0).size() < algorithm.dims()) return;
       RealVector src(algorithm.dims());
       RealVector dest(algorithm.dims());
-      src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+      src <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                 .samps(0, algorithm.dims(), 0);
       algorithm.processFrame(src, dest, get<kInvert>() == 1);
-      outBuf.samps(0, algorithm.dims(), 0) = dest;
+      outBuf.samps(0, algorithm.dims(), 0) <<= dest;
     }
   }
 

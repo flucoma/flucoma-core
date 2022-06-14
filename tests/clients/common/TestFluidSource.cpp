@@ -40,7 +40,7 @@ TEMPLATE_TEST_CASE(
   int  hop = frameSize / overlap;
 
   FluidTensor<TestType, 1> expected(data.size() + frameSize);
-  expected(Slice(frameSize)) =
+  expected(Slice(frameSize)) <<=
       FluidTensorView<TestType, 1>(data.data(), 0, data.size());
 
   for (int i = 0, j = 0, k = 0; i < data.size() - hostSize; i += hostSize)

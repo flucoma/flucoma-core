@@ -7,11 +7,6 @@ add_subdirectory(test_signals)
 
 # a handler to catch sigabrt for us on death tests
 add_library(AbortHandler OBJECT AbortHandler.cpp)
-set_target_properties(AbortHandler PROPERTIES 
-  CXX_STANDARD 14
-  CXX_STANDARD_REQUIRED ON
-  CXX_EXTENSIONS  OFF
-)
 
 # function (add_assert_fail_test testname sourcedir)
 #   try_compile(
@@ -60,9 +55,6 @@ function (_add_one_compile_test testname sourcefile should_fail)
   set_target_properties(${testname} PROPERTIES 
       EXCLUDE_FROM_ALL true
       EXCLUDE_FROM_DEFAULT_BUILD true
-      CXX_STANDARD 14
-      CXX_STANDARD_REQUIRED ON
-      CXX_EXTENSIONS OFF
       POSITION_INDEPENDENT_CODE ON
   )                                               
   target_compile_definitions(${testname} PRIVATE ${testname})
@@ -107,16 +99,16 @@ target_link_libraries(TestUtils INTERFACE
 target_compile_definitions(TestUtils INTERFACE 
   APPROVAL_TESTS_HIDE_DEPRECATED_CODE=1
 )
-target_compile_features(TestUtils INTERFACE cxx_std_14)
+
+if(APPLE)
+  target_compile_definitions(TestUtils INTERFACE   
+    CATCH_CONFIG_NO_CPP17_UNCAUGHT_EXCEPTIONS
+  )
+endif()
 
 function(add_test_executable target_name source_file)
   add_executable(${target_name} ${source_file})
   target_link_libraries(${target_name} PUBLIC TestUtils)
-  set_target_properties(${target_name} PROPERTIES 
-    CXX_STANDARD 14
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS  OFF
-  )
 endfunction()
 
 add_test_executable(TestFluidTensor data/TestFluidTensor.cpp)

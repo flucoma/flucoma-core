@@ -34,8 +34,7 @@ enum SinesParamIndex {
   kTrackMagRange,
   kTrackFreqRange,
   kTrackProb,
-  kFFT,
-  kMaxFFTSize
+  kFFT
 };
 
 constexpr auto SineParams = defineParameters(
@@ -55,10 +54,8 @@ constexpr auto SineParams = defineParameters(
                Max(10000.)),
     FloatParam("trackProb", "Tracking Matching Probability", 0.5, Min(0.0),
                Max(1.0)),
-    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1,
-                          FrameSizeLowerLimit<kBandwidth>()),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                           PowerOfTwo{}));
+    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1,
+                          FrameSizeLowerLimit<kBandwidth>()));
 
 class SinesClient : public FluidBaseClient, public AudioIn, public AudioOut
 {
@@ -80,7 +77,7 @@ public:
   static constexpr auto& getParameterDescriptors() { return SineParams; }
 
   SinesClient(ParamSetViewType& p)
-      : mParams(p), mSTFTBufferedProcess{get<kMaxFFTSize>(), 1, 2}
+      : mParams(p), mSTFTBufferedProcess{get<kFFT>().max(), 1, 2}
   {
     audioChannelsIn(1);
     audioChannelsOut(2);
@@ -99,7 +96,7 @@ public:
                              sampleRate()))
     {
       mSinesExtractor.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
-                           get<kMaxFFTSize>());
+                           get<kFFT>().max());
     }
 
     mSTFTBufferedProcess.process(
@@ -123,7 +120,7 @@ public:
   {
     mSTFTBufferedProcess.reset();
     mSinesExtractor.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
-                         get<kMaxFFTSize>());
+                         get<kFFT>().max());
   }
 
 private:

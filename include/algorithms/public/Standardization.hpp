@@ -10,7 +10,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "../util/AlgorithmUtils.hpp"
+#include "../util/ScalerUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
@@ -34,6 +34,7 @@ public:
     mMean = input.colwise().mean();
     mStd = ((input.rowwise() - mMean.transpose()).square().colwise().mean())
                .sqrt();
+    handleZerosInScale(mStd);
     mInitialized = true;
   }
 
@@ -43,6 +44,7 @@ public:
     using namespace _impl;
     mMean = asEigen<Array>(mean);
     mStd = asEigen<Array>(std);
+    handleZerosInScale(mStd);
     mInitialized = true;
   }
 
@@ -53,12 +55,12 @@ public:
     using namespace _impl;
     ArrayXd input = asEigen<Array>(in);
     ArrayXd result;
-    if (!inverse) { result = (input - mMean) / mStd.max(epsilon); }
+    if (!inverse) { result = (input - mMean) / mStd; }
     else
     {
       result = (input * mStd) + mMean;
     }
-    out = asFluid(result);
+    out <<= asFluid(result);
   }
 
   void process(const RealMatrixView in, RealMatrixView out,
@@ -72,21 +74,21 @@ public:
     if (!inverse)
     {
       result = (input.rowwise() - mMean.transpose());
-      result = result.rowwise() / mStd.transpose().max(epsilon);
+      result = result.rowwise() / mStd.transpose();
     }
     else
     {
       result = (input.rowwise() * mStd.transpose());
       result = (result.rowwise() + mMean.transpose());
     }
-    out = asFluid(result);
+    out <<= asFluid(result);
   }
 
   bool initialized() const { return mInitialized; }
 
-  void getMean(RealVectorView out) const { out = _impl::asFluid(mMean); }
+  void getMean(RealVectorView out) const { out <<= _impl::asFluid(mMean); }
 
-  void getStd(RealVectorView out) const { out = _impl::asFluid(mStd); }
+  void getStd(RealVectorView out) const { out <<= _impl::asFluid(mStd); }
 
   index dims() const { return mMean.size(); }
   index size() const { return 1; }
@@ -102,5 +104,5 @@ public:
   ArrayXd mStd;
   bool    mInitialized{false};
 };
-}; // namespace algorithm
-}; // namespace fluid
+}// namespace algorithm
+}// namespace fluid

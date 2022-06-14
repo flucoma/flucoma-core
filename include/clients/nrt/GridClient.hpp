@@ -56,7 +56,7 @@ public:
 
   GridClient(ParamSetViewType& p) : mParams(p) {}
 
-  MessageResult<void> fitTransform(DataSetClientRef sourceClient,
+  MessageResult<void> fitTransform(InputDataSetClientRef sourceClient,
                                    DataSetClientRef destClient)
   {
     auto srcPtr = sourceClient.get().lock();

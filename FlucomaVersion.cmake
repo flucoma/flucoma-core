@@ -6,6 +6,8 @@
 # under the European Union’s Horizon 2020 research and innovation programme
 # (grant agreement No 725899).
 
+include_guard() 
+
 cmake_minimum_required (VERSION 3.11)
 
 find_package(Git REQUIRED)
@@ -13,12 +15,11 @@ find_package(Git REQUIRED)
 set(flucoma_VERSION_MAJOR 1)
 set(flucoma_VERSION_MINOR 0)
 set(flucoma_VERSION_PATCH 0)
-set(flucoma_VERSION_SUFFIX TB2.beta6)
+set(flucoma_VERSION_SUFFIX TB2.beta7)
 
 function(make_flucoma_version_string output_variable)
-  set(${output_variable}    
-      "${flucoma_VERSION_MAJOR}.${flucoma_VERSION_MINOR}.${flucoma_VERSION_PATCH}-${flucoma_VERSION_SUFFIX}"
-  PARENT_SCOPE)    
+  set(result "${flucoma_VERSION_MAJOR}.${flucoma_VERSION_MINOR}.${flucoma_VERSION_PATCH}-${flucoma_VERSION_SUFFIX}")
+  set(${output_variable} ${result} PARENT_SCOPE)    
 endfunction()
 
 function(make_flucoma_version_string_with_sha output_variable)
@@ -65,3 +66,15 @@ add_library(flucoma_VERSION_LIB STATIC
 target_include_directories(flucoma_VERSION_LIB PRIVATE  
   "${CMAKE_CURRENT_LIST_DIR}/include"
 )
+
+set_target_properties(flucoma_VERSION_LIB PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+)
+
+set_property(GLOBAL PROPERTY FLUCOMA_VERSION ${flucoma_VERSION_STRING})
+set_property(GLOBAL PROPERTY FLUCOMA_VERSION_TERSE ${flucoma_VERSION_MAJOR}.${flucoma_VERSION_MINOR}.${flucoma_VERSION_PATCH})
+set_property(GLOBAL PROPERTY FLUCOMA_VERSION_SHA ${flucoma_VERSION_STRING_SHA})
+set_property(GLOBAL PROPERTY FLUCOMA_VERSION_MAJOR ${flucoma_VERSION_MAJOR})
+set_property(GLOBAL PROPERTY FLUCOMA_VERSION_MINOR ${flucoma_VERSION_MINOR})
+set_property(GLOBAL PROPERTY FLUCOMA_VERSION_PATCH ${flucoma_VERSION_PATCH})
+set_property(GLOBAL PROPERTY FLUCOMA_VERSION_SUFFIX ${flucoma_VERSION_SUFFIX})

@@ -25,6 +25,7 @@ namespace labelset {
 
 //Note that the shared type alias is declared after the Client implementation in most other cases 
 using LabelSetClientRef = SharedClientRef<labelset::LabelSetClient>;
+using InputLabelSetClientRef = SharedClientRef<const labelset::LabelSetClient>;
 
 namespace labelset {
 
@@ -153,7 +154,7 @@ private:
     algorithm::DataSetIdSequence seq("", 0, 0);
     FluidTensor<string, 1>       newIds(mAlgorithm.size());
     FluidTensor<string, 2>       labels(mAlgorithm.size(), 1);
-    labels.col(0) = mAlgorithm.getIds();
+    labels.col(0) <<= mAlgorithm.getIds();
     seq.generate(newIds);
     return LabelSet(newIds, labels);
   }  

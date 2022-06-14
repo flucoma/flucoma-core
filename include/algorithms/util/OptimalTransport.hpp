@@ -45,10 +45,15 @@ class OptimalTransport
 public:
   void init(ArrayXd A, ArrayXd B)
   {
+    mInitialized = false;
     mA = A;
     mB = B;
     mS1 = segmentSpectrum(A);
     mS2 = segmentSpectrum(B);
+    
+    if(!mS1.size() || !mS2.size())
+      return; 
+    
     mTransportMatrix = computeTransportMatrix(mS1, mS2);
     mInitialized = true;
   }
@@ -82,7 +87,7 @@ public:
       masses.emplace_back(SpectralMass{start, center, end, mass});
       nextValley++;
     }
-    if (nextValley < valleys.size() - 1)
+    if (nextValley < asSigned(valleys.size() - 1))
     {
       index lastStart = valleys[asUnsigned(nextValley)];
       index lastSize = magnitude.size() - 1 - lastStart;

@@ -22,16 +22,13 @@ namespace fluid {
 namespace client {
 namespace nmffilter {
 
-enum NMFFilterIndex { kFilterbuf, kMaxRank, kIterations, kFFT, kMaxFFTSize };
+enum NMFFilterIndex { kFilterbuf, kMaxRank, kIterations, kFFT };
 
 constexpr auto NMFFilterParams = defineParameters(
     InputBufferParam("bases", "Bases Buffer"),
-    LongParam<Fixed<true>>("maxComponents", "Maximum Number of Components", 20,
-                           Min(1)),
+    LongParamRuntimeMax<Primary>("maxComponents", "Maximum Number of Components", 20, Min(1)),
     LongParam("iterations", "Number of Iterations", 10, Min(1)),
-    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                           PowerOfTwo{}));
+    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class NMFFilterClient : public FluidBaseClient, public AudioIn, public AudioOut
 {
@@ -53,10 +50,10 @@ public:
   static constexpr auto& getParameterDescriptors() { return NMFFilterParams; }
 
   NMFFilterClient(ParamSetViewType& p)
-      : mParams{p}, mSTFTProcessor{get<kMaxFFTSize>(), 1, get<kMaxRank>()}
+      : mParams{p}, mSTFTProcessor{get<kFFT>().max(), 1, get<kMaxRank>().max()}
   {
     audioChannelsIn(1);
-    audioChannelsOut(get<kMaxRank>());
+    audioChannelsOut(get<kMaxRank>().max());
     setInputLabels({"audio input"});
     setOutputLabels({"filtered input"});
   }
@@ -82,7 +79,7 @@ public:
 
       if (!filterBuffer.valid()) { return; }
 
-      index rank = std::min<index>(filterBuffer.numChans(), get<kMaxRank>());
+      index rank = std::min<index>(filterBuffer.numChans(), get<kMaxRank>().max());
 
       if (filterBuffer.numFrames() != fftParams.frameSize()) { return; }
 
@@ -96,7 +93,7 @@ public:
       }
 
       for (index i = 0; i < tmpFilt.rows(); ++i)
-        tmpFilt.row(i) = filterBuffer.samps(i);
+        tmpFilt.row(i) <<= filterBuffer.samps(i);
 
       //      controlTrigger(false);
       mSTFTProcessor.process(
@@ -114,6 +111,10 @@ public:
                             ComplexMatrixView{out.row(i)});
             }
           });
+      
+      
+          
+      
     }
   }
 

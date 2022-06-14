@@ -84,7 +84,7 @@ public:
     }
 
     if (logOutput) result = 20 * result.max(epsilon).log10();
-    out = _impl::asFluid(result);
+    out <<= _impl::asFluid(result);
   }
 
   double mScale1{1.0};

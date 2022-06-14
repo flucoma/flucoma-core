@@ -120,11 +120,13 @@ private:
     index  padding = FFTParams::padding(get<kFFT>(), get<kPadding>());
     double totalPadding = padding << 1;
 
-    index paddedLength = numFrames + totalPadding;
+    index paddedLength = static_cast<index>(numFrames + totalPadding);
     if (get<kPadding>() == 2)
-      paddedLength = (std::ceil(double(paddedLength) / hopSize) * hopSize);
+      paddedLength = static_cast<index>(
+          std::ceil(double(paddedLength) / hopSize) * hopSize);
 
-    index numHops = 1 + std::floor((paddedLength - winSize) / hopSize);
+    index numHops =
+        static_cast<index>(1 + std::floor((paddedLength - winSize) / hopSize));
 
     index numBins = (fftSize >> 1) + 1;
 
@@ -154,7 +156,7 @@ private:
     FluidTensor<double, 1> paddedInput(paddedLength);
 
     auto paddingSlice = Slice(padding, input.size());
-    paddedInput(paddingSlice) = input;
+    paddedInput(paddingSlice) <<= input;
 
     FluidTensor<double, 2> tmpMags(numHops, numBins);
     FluidTensor<double, 2> tmpPhase(numHops, numBins);
@@ -170,13 +172,13 @@ private:
     if (haveMag)
     {
       algorithm::STFT::magnitude(tmpComplex, tmpMags);
-      mags.allFrames().transpose() = tmpMags(Slice(0, numHops), Slice(0));
+      mags.allFrames().transpose() <<= tmpMags(Slice(0, numHops), Slice(0));
     }
 
     if (havePhase)
     {
       algorithm::STFT::phase(tmpComplex, tmpPhase);
-      phases.allFrames().transpose() = tmpPhase(Slice(0, numHops), Slice(0));
+      phases.allFrames().transpose() <<= tmpPhase(Slice(0, numHops), Slice(0));
     }
     return {};
   }
@@ -204,7 +206,7 @@ private:
     if (mags.numFrames() != phases.numFrames() ||
         mags.numChans() != phases.numChans())
       return {Result::Status::kError,
-              "Magnitdue and Phase buffer sizes don't match"};
+              "Magnitude and Phase buffer sizes don't match"};
 
     index fftSize = get<kFFT>().fftSize();
     index winSize = get<kFFT>().winSize();
@@ -268,7 +270,7 @@ private:
                      return x / std::max(y, epsilon);
                    });
 
-    resynth.samps(0) = tmpOut(Slice(padding, finalOutputSize));
+    resynth.samps(0) <<= tmpOut(Slice(padding, finalOutputSize));
 
     return {};
   }

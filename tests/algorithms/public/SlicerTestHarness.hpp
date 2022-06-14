@@ -20,7 +20,7 @@ SlicerTestHarness(FluidTensorView<const double, 1> testSignal, Params p,
   FluidTensor<double, 1> padded(p.window + halfWindow + padding +
                                 testSignal.size());
   padded.fill(0);
-  padded(Slice(halfWindow, testSignal.size())) = testSignal;
+  padded(Slice(halfWindow, testSignal.size())) <<= testSignal;
   const fluid::index nHops =
       std::floor<index>((padded.size() - p.window) / p.hop);
   auto               slicer = prepareSlicer(p);

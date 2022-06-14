@@ -26,9 +26,8 @@ enum NMFFilterIndex {
   kTargetBuf,
   kActBuf,
   kAutoAssign,
-  kInterp,
-  kFFT,
-  kMaxFFTSize
+  kInterpolation,
+  kFFT
 };
 
 constexpr auto NMFMorphParams = defineParameters(
@@ -36,10 +35,8 @@ constexpr auto NMFMorphParams = defineParameters(
     InputBufferParam("target", "Target Bases"),
     InputBufferParam("activations", "Activations"),
     EnumParam("autoassign", "Automatic assign", 1, "No", "Yes"),
-    FloatParam("interp", "Interpolation", 0, Min(0.0), Max(1.0)),
-    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                           PowerOfTwo{}));
+    FloatParam("interpolation", "Interpolation", 0, Min(0.0), Max(1.0)),
+    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class NMFMorphClient : public FluidBaseClient, public AudioOut
 {
@@ -61,7 +58,7 @@ public:
   static constexpr auto getParameterDescriptors() { return NMFMorphParams; }
 
   NMFMorphClient(ParamSetViewType& p)
-      : mParams{p}, mSTFTProcessor{get<kMaxFFTSize>(), 0, 1}
+      : mParams{p}, mSTFTProcessor{get<kFFT>().max(), 0, 1}
   {
     audioChannelsIn(0);
     audioChannelsOut(1);
@@ -93,24 +90,25 @@ public:
         return;
       if (sourceBuffer.numFrames() != fftParams.frameSize()) { return; }
       if (sourceBuffer.numFrames() != targetBuffer.numFrames()) { return; }
-      if (mTrackValues.changed(rank, fftParams.frameSize(), get<kAutoAssign>()))
+      if (!mNMFMorph.initialized() || mTrackValues.changed(rank, fftParams.frameSize(), get<kAutoAssign>()))
       {
         tmpSource.resize(rank, fftParams.frameSize());
         tmpTarget.resize(rank, fftParams.frameSize());
         tmpAct.resize(rank, actBuffer.numFrames());
         for (index i = 0; i < rank; ++i)
         {
-          tmpSource.row(i) = sourceBuffer.samps(i);
-          tmpTarget.row(i) = targetBuffer.samps(i);
-          tmpAct.row(i) = actBuffer.samps(i);
+          tmpSource.row(i) <<= sourceBuffer.samps(i);
+          tmpTarget.row(i) <<= targetBuffer.samps(i);
+          tmpAct.row(i) <<= actBuffer.samps(i);
         }
         mNMFMorph.init(tmpSource, tmpTarget, tmpAct, fftParams.winSize(),
                        fftParams.fftSize(), fftParams.hopSize(),
                        get<kAutoAssign>() == 1);
       }
+      if(!mNMFMorph.initialized()) return; 
       mSTFTProcessor.processOutput(
           mParams, output, c, [&](ComplexMatrixView out) {
-            mNMFMorph.processFrame(out.row(0), get<kInterp>());
+            mNMFMorph.processFrame(out.row(0), get<kInterpolation>());
           });
     }
   }

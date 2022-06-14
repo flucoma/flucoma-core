@@ -62,7 +62,7 @@ public:
     ArrayXd in = _impl::asEigen<Eigen::Array>(input);
     double  funcVal = 0;
     double  filteredFuncVal = 0;
-    double  detected = 0.;
+    
     if (filterSize >= 3 &&
         (!mFilter.initialized() || filterSize != mFilter.size()))
       mFilter.init(filterSize);

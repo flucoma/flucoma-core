@@ -31,25 +31,21 @@ enum MFCCParamIndex {
   kDrop0,
   kMinFreq,
   kMaxFreq,
-  kMaxNCoefs,
-  kFFT,
-  kMaxFFTSize
+  kFFT
 };
 
 constexpr auto MFCCParams = defineParameters(
-    LongParam("numCoeffs", "Number of Cepstral Coefficients", 13, Min(2),
-              UpperLimit<kNBands, kMaxNCoefs>()),
-    LongParam("numBands", "Number of Bands", 40, Min(2),
+    LongParamRuntimeMax<Primary>("numCoeffs", "Number of Cepstral Coefficients", 13,
+              Min(2),
+              UpperLimit<kNBands>()),
+    LongParam<Primary>("numBands", "Number of Bands", 40, Min(2),
               FrameSizeUpperLimit<kFFT>(), LowerLimit<kNCoefs>()),
     LongParam("startCoeff", "Output Coefficient Offset", 0, Min(0),
               Max(1)), // this needs to be programmatically changed to start+num
                        // coeffs <= numBands as discussed
     FloatParam("minFreq", "Low Frequency Bound", 20, Min(0)),
     FloatParam("maxFreq", "High Frequency Bound", 20000, Min(0)),
-    LongParam<Fixed<true>>("maxNumCoeffs", "Maximum Number of Coefficients", 40,
-                           MaxFrameSizeUpperLimit<kMaxFFTSize>(), Min(2)),
-    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384));
+    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class MFCCClient : public FluidBaseClient, public AudioIn, public ControlOut
 {
@@ -59,10 +55,14 @@ public:
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   std::reference_wrapper<ParamSetViewType> mParams;
 
-  void setParams(ParamSetViewType& p) { mParams = p; }
+  void setParams(ParamSetViewType& p)
+  {
+    mParams = p;
+    controlChannelsOut({1, get<kNCoefs>(), get<kNCoefs>().max()});
+  }
 
   template <size_t N>
-  auto& get() const
+  auto get() const -> decltype(mParams.get().template get<N>())
   {
     return mParams.get().template get<N>();
   }
@@ -70,15 +70,14 @@ public:
   static constexpr auto& getParameterDescriptors() { return MFCCParams; }
 
   MFCCClient(ParamSetViewType& p)
-      : mParams{p}, mSTFTBufferedProcess(get<kMaxFFTSize>(), 1, 0),
-        mMelBands(get<kMaxFFTSize>(), get<kMaxFFTSize>()),
-        mDCT(get<kMaxFFTSize>(),
-             get<kMaxNCoefs>() + 1) // + 1 for possibility of dropping 0th
+      : mParams{p}, mSTFTBufferedProcess(get<kFFT>().max(), 1, 0),
+        mMelBands(get<kFFT>().max(), get<kFFT>().max()),
+        mDCT(get<kFFT>().max(), get<kNCoefs>().max() + 1)
   {
     mBands = FluidTensor<double, 1>(get<kNBands>());
     mCoefficients = FluidTensor<double, 1>(get<kNCoefs>() + get<kDrop0>());
     audioChannelsIn(1);
-    controlChannelsOut({1, get<kMaxNCoefs>()});
+    controlChannelsOut({1, get<kNCoefs>(), get<kNCoefs>().max()});
     setInputLabels({"audio input"});
     setOutputLabels({"MFCCs"});
   }
@@ -107,6 +106,7 @@ public:
                      get<kFFT>().frameSize(), sampleRate(),
                      get<kFFT>().winSize());
       mDCT.init(get<kNBands>(), get<kNCoefs>() + !has0);
+      controlChannelsOut({1, get<kNCoefs>()});
     }
 
     mSTFTBufferedProcess.processInput(
@@ -116,9 +116,9 @@ public:
           mDCT.processFrame(mBands, mCoefficients);
         });
   
-      output[0](Slice(0, get<kNCoefs>())) =
+      output[0](Slice(0, get<kNCoefs>())) <<=
         mCoefficients(Slice(get<kDrop0>(), get<kNCoefs>()));
-      output[0](Slice(get<kNCoefs>(), get<kMaxNCoefs>() - get<kNCoefs>())).fill(0); 
+      output[0](Slice(get<kNCoefs>(), get<kNCoefs>().max() - get<kNCoefs>())).fill(0);
   }
 
   index latency() { return get<kFFT>().winSize(); }

@@ -32,10 +32,11 @@ class KMeansClient : public FluidBaseClient,
                      public DataClient<algorithm::KMeans>
 {
   enum { kName, kNumClusters, kMaxIter };
-
+  ParameterTrackChanges<index> mTracker; 
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
+  using InputBufferPtr = std::shared_ptr<const BufferAdaptor>;
   using IndexVector = FluidTensor<index, 1>;
   using StringVector = FluidTensor<string, 1>;
   using StringVectorView = FluidTensorView<string, 1>;
@@ -68,7 +69,7 @@ public:
     return {};
   }
 
-  MessageResult<IndexVector> fit(DataSetClientRef datasetClient)
+  MessageResult<IndexVector> fit(InputDataSetClientRef datasetClient)
   {
     index k = get<kNumClusters>();
     index maxIter = get<kMaxIter>();
@@ -77,13 +78,14 @@ public:
     auto dataSet = datasetClientPtr->getDataSet();
     if (dataSet.size() == 0) return Error<IndexVector>(EmptyDataSet);
     if (k <= 1) return Error<IndexVector>(SmallK);
+    if(mTracker.changed(k)) mAlgorithm.clear(); 
     mAlgorithm.train(dataSet, k, maxIter);
     IndexVector assignments(dataSet.size());
     mAlgorithm.getAssignments(assignments);
     return getCounts(assignments, k);
   }
 
-  MessageResult<IndexVector> fitPredict(DataSetClientRef  datasetClient,
+  MessageResult<IndexVector> fitPredict(InputDataSetClientRef  datasetClient,
                                         LabelSetClientRef labelsetClient)
   {
     index k = get<kNumClusters>();
@@ -96,6 +98,7 @@ public:
     if (!labelsetClientPtr) return Error<IndexVector>(NoLabelSet);
     if (k <= 1) return Error<IndexVector>(SmallK);
     if (maxIter <= 0) maxIter = 100;
+    if(mTracker.changed(k)) mAlgorithm.clear(); 
     mAlgorithm.train(dataSet, k, maxIter);
     IndexVector assignments(dataSet.size());
     mAlgorithm.getAssignments(assignments);
@@ -104,7 +107,7 @@ public:
     return getCounts(assignments, k);
   }
 
-  MessageResult<IndexVector> predict(DataSetClientRef  datasetClient,
+  MessageResult<IndexVector> predict(InputDataSetClientRef  datasetClient,
                                      LabelSetClientRef labelClient) const
   {
     auto dataPtr = datasetClient.get().lock();
@@ -129,7 +132,7 @@ public:
   }
 
 
-  MessageResult<void> transform(DataSetClientRef srcClient,
+  MessageResult<void> transform(InputDataSetClientRef srcClient,
                                 DataSetClientRef dstClient) const
   {
     auto srcPtr = srcClient.get().lock();
@@ -145,13 +148,13 @@ public:
 
     StringVectorView ids = srcDataSet.getIds();
     RealMatrix       output(srcDataSet.size(), mAlgorithm.size());
-    mAlgorithm.getDistances(srcDataSet.getData(), output);
+    mAlgorithm.transform(srcDataSet.getData(), output);
     FluidDataSet<string, double, 1> result(ids, output);
     destPtr->setDataSet(result);
     return OK();
   }
 
-  MessageResult<IndexVector> fitTransform(DataSetClientRef srcClient,
+  MessageResult<IndexVector> fitTransform(InputDataSetClientRef srcClient,
                                           DataSetClientRef dstClient)
   {
     index k = get<kNumClusters>();
@@ -171,14 +174,14 @@ public:
     return getCounts(assignments, k);
   }
 
-  MessageResult<index> predictPoint(BufferPtr data) const
+  MessageResult<index> predictPoint(InputBufferPtr data) const
   {
     if (!mAlgorithm.initialized()) return Error<index>(NoDataFitted);
     InBufferCheck bufCheck(mAlgorithm.dims());
     if (!bufCheck.checkInputs(data.get()))
       return Error<index>(bufCheck.error());
     RealVector point(mAlgorithm.dims());
-    point =
+    point <<=
         BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0);
     return mAlgorithm.vq(point);
   }
@@ -198,7 +201,7 @@ public:
     return OK();
   }
 
-  MessageResult<void> setMeans(DataSetClientRef srcClient)
+  MessageResult<void> setMeans(InputDataSetClientRef srcClient)
   {
     auto srcPtr = srcClient.get().lock();
     if (!srcPtr) return Error(NoDataSet);
@@ -210,7 +213,7 @@ public:
   }
 
 
-  MessageResult<void> transformPoint(BufferPtr in, BufferPtr out) const
+  MessageResult<void> transformPoint(InputBufferPtr in, BufferPtr out) const
   {
     if (!mAlgorithm.initialized()) return Error(NoDataFitted);
     InBufferCheck bufCheck(mAlgorithm.dims());
@@ -221,10 +224,10 @@ public:
     if (!resizeResult.ok()) return Error(BufferAlloc);
     RealMatrix src(1, mAlgorithm.dims());
     RealMatrix dest(1, mAlgorithm.size());
-    src.row(0) =
+    src.row(0) <<=
         BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
-    mAlgorithm.getDistances(src, dest);
-    outBuf.allFrames()(Slice(0, 1), Slice(0, mAlgorithm.size())) = dest;
+    mAlgorithm.transform(src, dest);
+    outBuf.allFrames()(Slice(0, 1), Slice(0, mAlgorithm.size())) <<= dest;
     return OK();
   }
 
@@ -271,11 +274,11 @@ private:
   }
 };
 
-using KMeansRef = SharedClientRef<KMeansClient>;
+using KMeansRef = SharedClientRef<const KMeansClient>;
 
 constexpr auto KMeansQueryParams =
     defineParameters(KMeansRef::makeParam("kmeans", "Source KMeans model"),
-                     BufferParam("inputPointBuffer", "Input Point Buffer"),
+                     InputBufferParam("inputPointBuffer", "Input Point Buffer"),
                      BufferParam("predictionBuffer", "Prediction Buffer"));
 
 class KMeansQuery : public FluidBaseClient, ControlIn, ControlOut
@@ -308,7 +311,7 @@ public:
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
   {
-    output[0] = input[0];
+    output[0] <<= input[0];
     if (input[0](0) > 0)
     {
       auto kmeansPtr = get<kModel>().get().lock();
@@ -317,18 +320,30 @@ public:
         // report error?
         return;
       }
-      if (!kmeansPtr->initialized()) return;
+      if (!kmeansPtr->initialized())
+      {
+        //report error?
+        return;
+      }
       index             dims = kmeansPtr->dims();
       InOutBuffersCheck bufCheck(dims);
       if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
                                 get<kOutputBuffer>().get()))
+      {
+        //report error?
         return;
+      }
       auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-      if (outBuf.samps(0).size() < 1) return;
+      auto outSamps = outBuf.samps(0);
+      if (outSamps.size() < 1)
+      {
+        //report error?
+        return;
+      }
       RealVector point(dims);
-      point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+      point <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                   .samps(0, dims, 0);
-      outBuf.samps(0)[0] = kmeansPtr->algorithm().vq(point);
+      outSamps[0] = kmeansPtr->algorithm().vq(point);
     }
   }
 

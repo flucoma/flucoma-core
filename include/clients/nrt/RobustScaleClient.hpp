@@ -22,8 +22,7 @@ namespace robustscale {
 constexpr auto RobustScaleParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
     FloatParam("low", "Low Percentile", 25, Min(0), Max(100)),
-    FloatParam("high", "High Percentile", 75, Min(0), Max(100)),
-    EnumParam("invert", "Inverse Transform", 0, "False", "True"));
+    FloatParam("high", "High Percentile", 75, Min(0), Max(100)));
 
 class RobustScaleClient : public FluidBaseClient,
                           OfflineIn,
@@ -31,11 +30,12 @@ class RobustScaleClient : public FluidBaseClient,
                           ModelObject,
                           public DataClient<algorithm::RobustScaling>
 {
-  enum { kName, kLow, kHigh, kInvert, kInputBuffer, kOutputBuffer };
+  enum { kName, kLow, kHigh };
 
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
+  using InputBufferPtr = std::shared_ptr<const BufferAdaptor>;
   using StringVector = FluidTensor<string, 1>;
 
   using ParamDescType = decltype(RobustScaleParams);
@@ -61,7 +61,7 @@ public:
       return{};
   }
 
-  MessageResult<void> fit(DataSetClientRef datasetClient)
+  MessageResult<void> fit(InputDataSetClientRef datasetClient)
   {
     auto weakPtr = datasetClient.get();
     if (auto datasetClientPtr = weakPtr.lock())
@@ -76,13 +76,13 @@ public:
     }
     return {};
   }
-  MessageResult<void> transform(DataSetClientRef sourceClient,
+  MessageResult<void> transform(InputDataSetClientRef sourceClient,
                                 DataSetClientRef destClient)
   {
-    return _transform(sourceClient, destClient, get<kInvert>() == 1);
+    return _transform(sourceClient, destClient, false);
   }
 
-  MessageResult<void> fitTransform(DataSetClientRef sourceClient,
+  MessageResult<void> fitTransform(InputDataSetClientRef sourceClient,
                                    DataSetClientRef destClient)
   {
     auto result = fit(sourceClient);
@@ -91,22 +91,20 @@ public:
     return result;
   }
 
-  MessageResult<void> transformPoint(BufferPtr in, BufferPtr out)
+  MessageResult<void> transformPoint(InputBufferPtr in, BufferPtr out)
   {
-    if (!mAlgorithm.initialized()) return Error(NoDataFitted);
-    InOutBuffersCheck bufCheck(mAlgorithm.dims());
-    if (!bufCheck.checkInputs(in.get(), out.get()))
-      return Error(bufCheck.error());
-    BufferAdaptor::Access outBuf(out.get());
-    Result                resizeResult =
-        outBuf.resize(mAlgorithm.dims(), 1, outBuf.sampleRate());
-    if (!resizeResult.ok()) return Error(BufferAlloc);
-    RealVector src(mAlgorithm.dims());
-    RealVector dest(mAlgorithm.dims());
-    src = BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
-    mAlgorithm.processFrame(src, dest, get<kInvert>() == 1);
-    outBuf.samps(0, mAlgorithm.dims(), 0) = dest;
-    return OK();
+    return _transformPoint(in, out, false);
+  }
+  
+  MessageResult<void> inverseTransform(InputDataSetClientRef sourceClient,
+                                DataSetClientRef destClient)
+  {
+    return _transform(sourceClient, destClient, true);
+  }
+  
+  MessageResult<void> inverseTransformPoint(InputBufferPtr in, BufferPtr out)
+  {
+    return _transformPoint(in, out, true);
   }
 
   static auto getMessageDescriptors()
@@ -116,6 +114,9 @@ public:
         makeMessage("fitTransform", &RobustScaleClient::fitTransform),
         makeMessage("transform", &RobustScaleClient::transform),
         makeMessage("transformPoint", &RobustScaleClient::transformPoint),
+        makeMessage("inverseTransform", &RobustScaleClient::inverseTransform),
+        makeMessage("inverseTransformPoint",
+                    &RobustScaleClient::inverseTransformPoint),
         makeMessage("cols", &RobustScaleClient::dims),
         makeMessage("clear", &RobustScaleClient::clear),
         makeMessage("size", &RobustScaleClient::size),
@@ -126,7 +127,7 @@ public:
   }
 
 private:
-  MessageResult<void> _transform(DataSetClientRef sourceClient,
+  MessageResult<void> _transform(InputDataSetClientRef sourceClient,
                                  DataSetClientRef destClient, bool invert)
   {
     using namespace std;
@@ -149,14 +150,33 @@ private:
     }
     return OK();
   }
+  
+  MessageResult<void> _transformPoint(InputBufferPtr in, BufferPtr out, bool invert)
+  {
+    if (!mAlgorithm.initialized()) return Error(NoDataFitted);
+    InOutBuffersCheck bufCheck(mAlgorithm.dims());
+    if (!bufCheck.checkInputs(in.get(), out.get()))
+      return Error(bufCheck.error());
+    BufferAdaptor::Access outBuf(out.get());
+    Result                resizeResult =
+        outBuf.resize(mAlgorithm.dims(), 1, outBuf.sampleRate());
+    if (!resizeResult.ok()) return Error(BufferAlloc);
+    RealVector src(mAlgorithm.dims());
+    RealVector dest(mAlgorithm.dims());
+    src <<= BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
+    mAlgorithm.processFrame(src, dest, invert);
+    outBuf.samps(0, mAlgorithm.dims(), 0) <<= dest;
+    return OK();
+  }
+  
 };
 
-using RobustScaleRef = SharedClientRef<RobustScaleClient>;
+using RobustScaleRef = SharedClientRef<const RobustScaleClient>;
 
 constexpr auto RobustScaleQueryParams = defineParameters(
     RobustScaleRef::makeParam("model", "Source Model"),
     EnumParam("invert", "Inverse Transform", 0, "False", "True"),
-    BufferParam("inputPointBuffer", "Input Point Buffer"),
+    InputBufferParam("inputPointBuffer", "Input Point Buffer"),
     BufferParam("predictionBuffer", "Prediction Buffer"));
 
 class RobustScaleQuery : public FluidBaseClient, ControlIn, ControlOut
@@ -196,7 +216,7 @@ public:
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
   {
-    output[0] = input[0];
+    output[0] <<= input[0];
     if (input[0](0) > 0)
     {
       auto robustPtr = get<kModel>().get().lock();
@@ -205,7 +225,7 @@ public:
         // report error?
         return;
       }
-      algorithm::RobustScaling& algorithm = robustPtr->algorithm();
+      algorithm::RobustScaling const& algorithm = robustPtr->algorithm();
       if (!algorithm.initialized()) return;
       InOutBuffersCheck bufCheck(algorithm.dims());
       if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
@@ -215,10 +235,10 @@ public:
       if (outBuf.samps(0).size() < algorithm.dims()) return;
       RealVector src(algorithm.dims());
       RealVector dest(algorithm.dims());
-      src = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+      src <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                 .samps(0, algorithm.dims(), 0);
       algorithm.processFrame(src, dest, get<kInvert>() == 1);
-      outBuf.samps(0, algorithm.dims(), 0) = dest;
+      outBuf.samps(0, algorithm.dims(), 0) <<= dest;
     }
   }
 

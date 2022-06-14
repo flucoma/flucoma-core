@@ -35,6 +35,7 @@ class DataSetClient : public FluidBaseClient,
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
+  using InputBufferPtr = std::shared_ptr<const BufferAdaptor>;
   using DataSet = FluidDataSet<string, double, 1>;
   using LabelSet = FluidDataSet<string, string, 1>;
 
@@ -61,11 +62,11 @@ public:
 
   DataSetClient(ParamSetViewType& p) : mParams(p) {}
 
-  MessageResult<void> addPoint(string id, BufferPtr data)
+  MessageResult<void> addPoint(string id, InputBufferPtr data)
   {
     DataSet& dataset = mAlgorithm;
     if (!data) return Error(NoBuffer);
-    BufferAdaptor::Access buf(data.get());
+    BufferAdaptor::ReadAccess buf(data.get());
     if (!buf.exists()) return Error(InvalidBuffer);
     if (buf.numFrames() == 0) return Error(EmptyBuffer);
     if (dataset.size() == 0)
@@ -75,7 +76,7 @@ public:
     else if (buf.numFrames() != dataset.dims())
       return Error(WrongPointSize);
     RealVector point(dataset.dims());
-    point = buf.samps(0, dataset.dims(), 0);
+    point <<= buf.samps(0, dataset.dims(), 0);
     return dataset.add(id, point) ? OK() : Error(DuplicateIdentifier);
   }
 
@@ -88,11 +89,11 @@ public:
     if (!resizeResult.ok())
       return {resizeResult.status(), resizeResult.message()};
     RealVector point(mAlgorithm.dims());
-    point = buf.samps(0, mAlgorithm.dims(), 0);
+    point <<= buf.samps(0, mAlgorithm.dims(), 0);
     bool result = mAlgorithm.get(id, point);
     if (result)
     {
-      buf.samps(0, mAlgorithm.dims(), 0) = point;
+      buf.samps(0, mAlgorithm.dims(), 0) <<= point;
       return OK();
     }
     else
@@ -101,27 +102,27 @@ public:
     }
   }
 
-  MessageResult<void> updatePoint(string id, BufferPtr data)
+  MessageResult<void> updatePoint(string id, InputBufferPtr data)
   {
     if (!data) return Error(NoBuffer);
-    BufferAdaptor::Access buf(data.get());
+    BufferAdaptor::ReadAccess buf(data.get());
     if (!buf.exists()) return Error(InvalidBuffer);
     if (buf.numFrames() < mAlgorithm.dims()) return Error(WrongPointSize);
     RealVector point(mAlgorithm.dims());
-    point = buf.samps(0, mAlgorithm.dims(), 0);
+    point <<= buf.samps(0, mAlgorithm.dims(), 0);
     return mAlgorithm.update(id, point) ? OK() : Error(PointNotFound);
   }
 
-  MessageResult<void> setPoint(string id, BufferPtr data)
+  MessageResult<void> setPoint(string id, InputBufferPtr data)
   {
     if (!data) return Error(NoBuffer);
 
     { // restrict buffer lock to this scope in case addPoint is called
-      BufferAdaptor::Access buf(data.get());
+      BufferAdaptor::ReadAccess buf(data.get());
       if (!buf.exists()) return Error(InvalidBuffer);
       if (buf.numFrames() < mAlgorithm.dims()) return Error(WrongPointSize);
       RealVector point(mAlgorithm.dims());
-      point = buf.samps(0, mAlgorithm.dims(), 0);
+      point <<= buf.samps(0, mAlgorithm.dims(), 0);
       bool result = mAlgorithm.update(id, point);
       if (result) return OK();
     }
@@ -133,7 +134,7 @@ public:
     return mAlgorithm.remove(id) ? OK() : Error(PointNotFound);
   }
 
-  MessageResult<void> merge(SharedClientRef<DataSetClient> datasetClient,
+  MessageResult<void> merge(SharedClientRef<const DataSetClient> datasetClient,
                             bool                           overwrite)
   {
     auto datasetClientPtr = datasetClient.get().lock();
@@ -154,11 +155,11 @@ public:
   }
 
   MessageResult<void>
-  fromBuffer(BufferPtr data, bool transpose,
-             SharedClientRef<labelset::LabelSetClient> labels)
+  fromBuffer(InputBufferPtr data, bool transpose,
+             SharedClientRef<const labelset::LabelSetClient> labels)
   {
     if (!data) return Error(NoBuffer);
-    BufferAdaptor::Access buf(data.get());
+    BufferAdaptor::ReadAccess buf(data.get());
     if (!buf.exists()) return Error(InvalidBuffer);
     auto bufView = transpose ? buf.allFrames() : buf.allFrames().transpose();
     if (auto labelsPtr = labels.get().lock())
@@ -189,7 +190,7 @@ public:
     index  nChannels = transpose ? mAlgorithm.size() : mAlgorithm.dims();
     Result resizeResult = buf.resize(nFrames, nChannels, buf.sampleRate());
     if (!resizeResult.ok()) return Error(resizeResult.message());
-    buf.allFrames() =
+    buf.allFrames() <<=
         transpose ? mAlgorithm.getData()
                   : FluidTensorView<const double, 2>(mAlgorithm.getData())
                         .transpose();
@@ -247,7 +248,7 @@ private:
     algorithm::DataSetIdSequence seq("", 0, 0);
     FluidTensor<string, 1>       newIds(mAlgorithm.size());
     FluidTensor<string, 2>       labels(mAlgorithm.size(), 1);
-    labels.col(0) = mAlgorithm.getIds();
+    labels.col(0) <<= mAlgorithm.getIds();
     seq.generate(newIds);
     return LabelSet(newIds, labels);
   };
@@ -256,6 +257,8 @@ private:
 } // namespace dataset
 
 using DataSetClientRef = SharedClientRef<dataset::DataSetClient>;
+using InputDataSetClientRef = SharedClientRef<const dataset::DataSetClient>;
+
 using NRTThreadedDataSetClient =
     NRTThreadingAdaptor<typename DataSetClientRef::SharedType>;
 

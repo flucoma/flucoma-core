@@ -30,9 +30,9 @@ public:
                double k)
   {
     index   length = input.size();
-    ArrayXi perm = ArrayXi::LinSpaced(length, 0, length - 1);
+    ArrayXidx perm = ArrayXidx::LinSpaced(length, 0, length - 1);
     std::sort(perm.data(), perm.data() + length,
-              [&](size_t i, size_t j) { return input(i) < input(j); });
+              [&](index i, index j) { return input(i) < input(j); });
     index  q1 = lrint(0.25 * (length - 1));
     index  q3 = lrint(0.75 * (length - 1));
     double margin = k * (input(perm(q3)) - input(perm(q1)));

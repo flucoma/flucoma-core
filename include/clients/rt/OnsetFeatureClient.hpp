@@ -28,8 +28,7 @@ enum OnsetParamIndex {
   kFunction,
   kFilterSize,
   kFrameDelta,
-  kFFT,
-  kMaxFFTSize
+  kFFT
 };
 
 constexpr auto OnsetFeatureParams = defineParameters(
@@ -40,9 +39,7 @@ constexpr auto OnsetFeatureParams = defineParameters(
               "Rectified Complex Domain"),
     LongParam("filterSize", "Filter Size", 5, Min(1), Odd(), Max(101)),
     LongParam("frameDelta", "Frame Delta", 0, Min(0)),
-    FFTParam<kMaxFFTSize>("fftSettings", "FFT Settings", 1024, -1, -1),
-    LongParam<Fixed<true>>("maxFFTSize", "Maxiumm FFT Size", 16384, Min(4),
-                           PowerOfTwo{}));
+    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class OnsetFeatureClient : public FluidBaseClient, public AudioIn, public ControlOut
 {
@@ -66,7 +63,7 @@ public:
   static constexpr auto& getParameterDescriptors() { return OnsetFeatureParams; }
 
   OnsetFeatureClient(ParamSetViewType& p)
-      : mParams{p}, mAlgorithm{get<kMaxFFTSize>()}
+      : mParams{p}, mAlgorithm{get<kFFT>().max()}
   {
     audioChannelsIn(1);
     controlChannelsOut({1,1});
@@ -100,7 +97,7 @@ public:
                       get<kFilterSize>());
     }
     RealMatrix in(1, hostVecSize);
-    in.row(0) = input[0];
+    in.row(0) <<= input[0];
     
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.processInput(
@@ -109,7 +106,7 @@ public:
               in.row(0), get<kFunction>(), get<kFilterSize>(), get<kFrameDelta>());
         });
 
-    output[0](0) = mDescriptor;
+    output[0](0) = static_cast<T>(mDescriptor);
   }
 
   index latency() { return static_cast<index>(get<kFFT>().hopSize()); }
