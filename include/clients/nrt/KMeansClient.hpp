@@ -32,7 +32,7 @@ class KMeansClient : public FluidBaseClient,
                      public DataClient<algorithm::KMeans>
 {
   enum { kName, kNumClusters, kMaxIter };
-
+  ParameterTrackChanges<index> mTracker; 
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
@@ -78,6 +78,7 @@ public:
     auto dataSet = datasetClientPtr->getDataSet();
     if (dataSet.size() == 0) return Error<IndexVector>(EmptyDataSet);
     if (k <= 1) return Error<IndexVector>(SmallK);
+    if(mTracker.changed(k)) mAlgorithm.clear(); 
     mAlgorithm.train(dataSet, k, maxIter);
     IndexVector assignments(dataSet.size());
     mAlgorithm.getAssignments(assignments);
@@ -97,6 +98,7 @@ public:
     if (!labelsetClientPtr) return Error<IndexVector>(NoLabelSet);
     if (k <= 1) return Error<IndexVector>(SmallK);
     if (maxIter <= 0) maxIter = 100;
+    if(mTracker.changed(k)) mAlgorithm.clear(); 
     mAlgorithm.train(dataSet, k, maxIter);
     IndexVector assignments(dataSet.size());
     mAlgorithm.getAssignments(assignments);
