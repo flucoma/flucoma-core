@@ -320,18 +320,30 @@ public:
         // report error?
         return;
       }
-      if (!kmeansPtr->initialized()) return;
+      if (!kmeansPtr->initialized())
+      {
+        //report error?
+        return;
+      }
       index             dims = kmeansPtr->dims();
       InOutBuffersCheck bufCheck(dims);
       if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
                                 get<kOutputBuffer>().get()))
+      {
+        //report error?
         return;
+      }
       auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-      if (outBuf.samps(0).size() < 1) return;
+      auto outSamps = outBuf.samps(0);
+      if (outSamps.size() < 1)
+      {
+        //report error?
+        return;
+      }
       RealVector point(dims);
       point <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                   .samps(0, dims, 0);
-      outBuf.samps(0)[0] = kmeansPtr->algorithm().vq(point);
+      outSamps[0] = kmeansPtr->algorithm().vq(point);
     }
   }
 
