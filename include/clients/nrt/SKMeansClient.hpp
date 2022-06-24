@@ -336,11 +336,12 @@ public:
                                 get<kOutputBuffer>().get()))
         return;
       auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-      if (outBuf.samps(0).size() < 1) return;
+      auto outSamps = outBuf.samps(0);
+      if (outSamps.size() < 1) return;
       RealVector point(dims);
       point <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                   .samps(0, dims, 0);
-      outBuf.samps(0)[0] = kmeansPtr->algorithm().vq(point);
+      outSamps[0] = kmeansPtr->algorithm().vq(point);
     }
   }
 
