@@ -56,6 +56,10 @@ public:
   NMFMatchClient(ParamSetViewType& p)
       : mParams(p), mSTFTProcessor(get<kFFT>().max(), 1, 0)
   {
+    mMagnitude = FluidTensor<double,2>(1, get<kFFT>().maxFrameSize());
+    mFilter = FluidTensor<double,2>(get<kMaxRank>().max(),get<kFFT>().maxFrameSize());
+    mActivations = FluidTensor<double,1>(get<kMaxRank>().max());
+    
     audioChannelsIn(1);
     controlChannelsOut({1, get<kMaxRank>(),get<kMaxRank>().max()});
     setInputLabels({"audio input"});
@@ -84,29 +88,28 @@ public:
       if (!filterBuffer.valid()) { return; }
 
       index rank = std::min<index>(filterBuffer.numChans(), get<kMaxRank>());
+      index frameSize = fftParams.frameSize();
 
-      if (filterBuffer.numFrames() != fftParams.frameSize()) { return; }
-
-      if (mTrackValues.changed(rank, fftParams.frameSize()))
+      if (filterBuffer.numFrames() != frameSize) { return; }
+      
+      if (mTrackValues.changed(rank, frameSize))
       {
-        tmpFilt.resize(rank, fftParams.frameSize());
-        tmpMagnitude.resize(1, fftParams.frameSize());
-        tmpOut.resize(rank);
+        controlChannelsOut({1, rank});
       }
 
-      for (index i = 0; i < tmpFilt.rows(); ++i)
-        tmpFilt.row(i) <<= filterBuffer.samps(i);
+      auto mags = mMagnitude(Slice(0),Slice(0,frameSize));
+      auto filter = mFilter(Slice(0,rank),Slice(0,frameSize));
+      auto activations = mActivations(Slice(0,rank));
+      
+      for (index i = 0; i < filter.rows(); ++i)
+        filter.row(i) <<= filterBuffer.samps(i);
 
-      //      controlTrigger(false);
       mSTFTProcessor.processInput(mParams, input, c, [&](ComplexMatrixView in) {
-        algorithm::STFT::magnitude(in, tmpMagnitude);
-        mNMF.processFrame(tmpMagnitude.row(0), tmpFilt, tmpOut);
-        //          controlTrigger(true);
+        algorithm::STFT::magnitude(in, mags);
+        mNMF.processFrame(mags.row(0), filter, activations);
       });
 
-      // for (index i = 0; i < rank; ++i)
-      //   output[asUnsigned(i)](0) = static_cast<T>(tmpOut(i));
-      output[0](Slice(0,rank)) <<= tmpOut;
+      output[0](Slice(0,rank)) <<= activations;
       output[0](Slice(rank,get<kMaxRank>().max() - rank)).fill(0);
     }
   }
@@ -114,9 +117,9 @@ public:
 private:
   ParameterTrackChanges<index, index> mTrackValues;
   algorithm::NMF                      mNMF;
-  FluidTensor<double, 2>              tmpFilt;
-  FluidTensor<double, 2>              tmpMagnitude;
-  FluidTensor<double, 1>              tmpOut;
+  FluidTensor<double, 2>              mFilter;
+  FluidTensor<double, 2>              mMagnitude;
+  FluidTensor<double, 1>              mActivations;
 
   STFTBufferedProcess<ParamSetViewType, kFFT, false> mSTFTProcessor;
 };

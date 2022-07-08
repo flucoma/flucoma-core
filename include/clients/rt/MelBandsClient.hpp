@@ -64,7 +64,9 @@ public:
       : mParams{p}, mSTFTBufferedProcess(get<kFFT>().max(), 1, 0),
         mMelBands(get<kNBands>().max(), get<kFFT>().max())
   {
-    mBands = FluidTensor<double, 1>(get<kNBands>());
+    mBands = FluidTensor<double, 1>(get<kNBands>().max());
+    mMagnitude = FluidTensor<double,1>(get<kFFT>().maxFrameSize());
+    
     audioChannelsIn(1);
     controlChannelsOut({1,get<kNBands>(),get<kNBands>().max()});
     setInputLabels({"audio in"});
@@ -81,27 +83,33 @@ public:
     assert(controlChannelsOut().size && "No control channels");
     assert(output[0].size() >= controlChannelsOut().size &&
            "Too few output channels");
-    if (mTracker.changed(get<kFFT>().winSize(), get<kFFT>().frameSize(),
-                         get<kNBands>(), get<kNormalize>(), get<kMinFreq>(),
+           
+    index nBands = get<kNBands>();
+    index winSize = get<kFFT>().winSize();
+    index frameSize = get<kFFT>().frameSize();
+           
+    if (mTracker.changed(winSize,frameSize, nBands,
+                         get<kNormalize>(), get<kMinFreq>(),
                          get<kMaxFreq>(), sampleRate()))
     {
-      mMagnitude.resize(get<kFFT>().frameSize());
-      mBands.resize(get<kNBands>());
-      mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
-                     get<kFFT>().frameSize(), sampleRate(),
-                     get<kFFT>().winSize());
+      mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), nBands,
+                     frameSize, sampleRate(),winSize);
+      controlChannelsOut({1, nBands});
     }
-
+    
+    auto mags = mMagnitude(Slice(0,frameSize));
+    auto bands = mBands(Slice(0,nBands));
+    
     mSTFTBufferedProcess.processInput(
         mParams, input, c, [&](ComplexMatrixView in) {
-          algorithm::STFT::magnitude(in.row(0), mMagnitude);
-          mMelBands.processFrame(mMagnitude, mBands, get<kNormalize>() == 1,
+          algorithm::STFT::magnitude(in.row(0), mags);
+          mMelBands.processFrame(mags, bands, get<kNormalize>() == 1,
                                  false, get<kScale>() == 1);
         });
     // for (index i = 0; i < get<kNBands>(); ++i)
     //   output[asUnsigned(i)](0) = static_cast<T>(mBands(i));
-    output[0](Slice(0,get<kNBands>())) <<= mBands; 
-    output[0](Slice(get<kNBands>(), get<kNBands>().max() - get<kNBands>())).fill(0);
+    output[0](Slice(0,nBands)) <<= bands;
+    output[0](Slice(nBands, get<kNBands>().max() - nBands)).fill(0);
   }
 
   index latency() { return get<kFFT>().winSize(); }
