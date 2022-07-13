@@ -307,8 +307,10 @@ public:
   {
     return mHopSize > 0 ? mHopSize : mWindowSize >> 1;
   }
+  
   intptr_t frameSize() const { return (fftSize() >> 1) + 1; }
-
+  intptr_t maxFrameSize() const { return (max() >> 1) + 1; }
+  
   static index padding(const FFTParams& settings, index option)
   {
     using Op = index (*)(const FFTParams&);
