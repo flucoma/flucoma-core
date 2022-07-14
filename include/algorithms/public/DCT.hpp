@@ -49,7 +49,7 @@ public:
     }
   }
 
-  void processFrame(const RealVector in, RealVectorView out)
+  void processFrame(const RealVectorView in, RealVectorView out)
   {
     assert(in.size() == mInputSize);
     ArrayXd frame = _impl::asEigen<Eigen::Array>(in);
