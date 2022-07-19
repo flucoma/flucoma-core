@@ -11,59 +11,75 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "../../data/FluidIndex.hpp"
+#include "../../data/FluidMemory.hpp"
 #include <Eigen/Core>
 #include <HISSTools_FFT/HISSTools_FFT.h>
 
 namespace fluid {
 namespace algorithm {
 
+namespace impl {
+class FFTSetup
+{
+public:
+  FFTSetup(index maxSize) : mMaxSize{maxSize}
+  {
+    assert(maxSize > 0 && "FFT Max Size must be > 0!");
+    hisstools_create_setup(&mSetup,
+                           asUnsigned(static_cast<index>(std::log2(maxSize))));
+  }
+
+  ~FFTSetup()
+  {
+    hisstools_destroy_setup(mSetup);
+    mSetup = 0;
+  }
+
+  FFTSetup(FFTSetup const&) = delete;
+  FFTSetup& operator=(FFTSetup const&) = delete;
+
+  FFTSetup(FFTSetup&& other) { *this = std::move(other); };
+  FFTSetup& operator=(FFTSetup&& other)
+  {
+    using std::swap;
+    swap(mMaxSize, other.mMaxSize);
+    swap(mSetup, other.mSetup);
+    return *this;
+  }
+
+  FFT_SETUP_D operator()() const noexcept { return mSetup; }
+  index maxSize() const noexcept { return mMaxSize; }
+private:
+  FFT_SETUP_D mSetup{nullptr};
+  index       mMaxSize;
+};
+} // namespace impl
+
 class FFT
 {
 
 public:
-  using ArrayXcd = Eigen::ArrayXcd;
-  using ArrayXcdRef = Eigen::Ref<ArrayXcd>;
-  using ArrayXd = Eigen::ArrayXd;
-  using ArrayXdRef = Eigen::Ref<const ArrayXd>;
+  using MapXcd = Eigen::Map<Eigen::ArrayXcd>;
+
+  static void setup() { getFFTSetup(); }
 
   FFT() = delete;
 
-  FFT(index size)
+  FFT(index size, Allocator& alloc)
+  noexcept
       : mMaxSize(size), mSize(size), mFrameSize(size / 2 + 1),
-        mLog2Size(static_cast<index>(std::log2(size))),
-        mOutputBuffer(mFrameSize), mRealBuffer(mFrameSize),
-        mImagBuffer(mFrameSize)
-  {
-    hisstools_create_setup(&mSetup, asUnsigned(mLog2Size));
-    mSplit.realp = mRealBuffer.data();
-    mSplit.imagp = mImagBuffer.data();
-  }
-
-  ~FFT() { hisstools_destroy_setup(mSetup); }
+        mLog2Size(static_cast<index>(std::log2(size))), mSetup(getFFTSetup()),
+        mRealBuffer(mFrameSize, alloc), mImagBuffer(mFrameSize, alloc),
+        mOutputBuffer(mFrameSize, alloc)
+  {}
 
   FFT(const FFT& other) = delete;
-
-  FFT(FFT&& other) { *this = std::move(other); }
+  FFT(FFT&& other) noexcept  = default; 
 
   FFT& operator=(const FFT&) = delete;
+  FFT& operator=(FFT&& other) noexcept = default;
 
-  FFT& operator=(FFT&& other)
-  {
-    using std::swap;
-    mMaxSize = other.mMaxSize;
-    mSize = other.mSize;
-    mFrameSize = other.mFrameSize;
-    mLog2Size = other.mLog2Size;
-    swap(mOutputBuffer, other.mOutputBuffer);
-    swap(mRealBuffer, other.mRealBuffer);
-    swap(mImagBuffer, other.mImagBuffer);
-    swap(mSplit, other.mSplit);
-    swap(mSetup, other.mSetup);
-    other.mSetup = nullptr;
-    return *this;
-  }
-
-  void resize(index newSize)
+  void resize(index newSize) noexcept
   {
     assert(newSize <= mMaxSize);
     mFrameSize = newSize / 2 + 1;
@@ -71,22 +87,31 @@ public:
     mSize = newSize;
   }
 
-  Eigen::Ref<ArrayXcd> process(const ArrayXdRef& input)
+  MapXcd process(const Eigen::Ref<const Eigen::ArrayXd>& input)
   {
-    hisstools_rfft(mSetup, input.data(), &mSplit, asUnsigned(input.size()),
-                   asUnsigned(mLog2Size));
+
+    mSplit.realp = mRealBuffer.data();
+    mSplit.imagp = mImagBuffer.data();
+    hisstools_rfft(mSetup, input.derived().data(), &mSplit,
+                   asUnsigned(input.size()), asUnsigned(mLog2Size));
     mSplit.realp[mFrameSize - 1] = mSplit.imagp[0];
     mSplit.imagp[mFrameSize - 1] = 0;
     mSplit.imagp[0] = 0;
     for (index i = 0; i < mFrameSize; i++)
     {
-      mOutputBuffer(i) =
+      mOutputBuffer[asUnsigned(i)] =
           0.5 * std::complex<double>(mSplit.realp[i], mSplit.imagp[i]);
     }
-    return mOutputBuffer.segment(0, mFrameSize);
+    return {mOutputBuffer.data(), mFrameSize};
   }
 
 protected:
+  static FFT_SETUP_D getFFTSetup()
+  {
+    static const impl::FFTSetup static_setup(65536);
+    return static_setup();
+  }
+
   index mMaxSize{16384};
   index mSize{1024};
   index mFrameSize{513};
@@ -94,37 +119,42 @@ protected:
 
   FFT_SETUP_D         mSetup;
   FFT_SPLIT_COMPLEX_D mSplit;
-
+  RTVector<double> mRealBuffer;
+  RTVector<double> mImagBuffer;
+  
 private:
-  ArrayXcd mOutputBuffer;
-  ArrayXd  mRealBuffer;
-  ArrayXd  mImagBuffer;
+  RTVector<std::complex<double>> mOutputBuffer;
 };
 
 class IFFT : public FFT
 {
 
 public:
-  IFFT(index size) : FFT(size), mOutputBuffer(size) {}
+  IFFT(index size, Allocator& alloc)
+      : FFT(size, alloc), mOutputBuffer(size, alloc)
+  {}
 
-  using ArrayXcdRef = Eigen::Ref<const ArrayXcd>;
-  using ArrayXdRef = Eigen::Ref<ArrayXd>;
+  using MapXd = Eigen::Map<Eigen::ArrayXd>;
 
-  Eigen::Ref<ArrayXd> process(const Eigen::Ref<const ArrayXcd>& input)
+  MapXd process(const Eigen::Ref<const Eigen::ArrayXcd>& input)
   {
+    assert(input.size() == mFrameSize);
+
+    mSplit.realp = mRealBuffer.data();
+    mSplit.imagp = mImagBuffer.data();
     for (index i = 0; i < input.size(); i++)
     {
-      mSplit.realp[i] = input[i].real();
-      mSplit.imagp[i] = input[i].imag();
+      mSplit.realp[i] = input(i).real();
+      mSplit.imagp[i] = input(i).imag();
     }
     mSplit.imagp[0] = mSplit.realp[mFrameSize - 1];
     hisstools_rifft(mSetup, &mSplit, mOutputBuffer.data(),
                     asUnsigned(mLog2Size));
-    return mOutputBuffer.segment(0, mSize);
+    return {mOutputBuffer.data(), mSize};
   }
 
 private:
-  ArrayXd mOutputBuffer;
+  RTVector<double> mOutputBuffer;
 };
 } // namespace algorithm
 } // namespace fluid

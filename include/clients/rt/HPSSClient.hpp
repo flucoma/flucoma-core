@@ -66,14 +66,22 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return HPSSParams; }
 
-  HPSSClient(ParamSetViewType& p)
-      : mParams{p}, mSTFTBufferedProcess{get<kFFT>().max(), 1, 3},
-        mHPSS{get<kFFT>().max(), get<kHSize>().max()}
+  HPSSClient(ParamSetViewType& p, FluidContext const& c)
+      : mParams{p}, mSTFTBufferedProcess{get<kFFT>().max(),
+                                         get<kFFT>().max() >> 1,
+                                         get<kFFT>().max(),
+                                         1,
+                                         3,
+                                         c.hostVectorSize(),
+                                         c.allocator()},
+        mHPSS{get<kFFT>().max(), get<kHSize>().max(), c.allocator()}
   {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::audioChannelsOut(3);
     FluidBaseClient::setInputLabels({"audio input"});
-    FluidBaseClient::setOutputLabels({"harmonic component", "percussive compoennt", "residual (in modes 1 & 2)"});
+    FluidBaseClient::setOutputLabels({"harmonic component",
+                                      "percussive compoennt",
+                                      "residual (in modes 1 & 2)"});
   }
 
   index latency()

@@ -15,6 +15,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/FFT.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/FluidMemory.hpp"
 #include "../../data/FluidTensor.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
@@ -29,15 +30,30 @@ class STFT
   using ArrayXXd = Eigen::ArrayXXd;
   using ArrayXcd = Eigen::ArrayXcd;
   using ArrayXXcd = Eigen::ArrayXXcd;
+  using ArrayXdMap = Eigen::Map<Eigen::ArrayXd>;
 
 public:
-  STFT(index windowSize, index fftSize, index hopSize, index windowType = 0)
+  STFT(index windowSize, index fftSize, index hopSize, index windowType,
+       Allocator& alloc)
       : mWindowSize(windowSize), mHopSize(hopSize), mFrameSize(fftSize / 2 + 1),
-        mFFT(fftSize)
+        mMaxWindowSize(windowSize), mWindowBuffer(windowSize, alloc),
+        mWindowedFrameBuffer(windowSize, alloc), mFFT(fftSize, alloc)
   {
-    mWindow = ArrayXd::Zero(mWindowSize);
+    ArrayXdMap window(mWindowBuffer.data(), mWindowSize);
     auto windowTypeIndex = static_cast<WindowFuncs::WindowTypes>(windowType);
-    WindowFuncs::map()[windowTypeIndex](mWindowSize, mWindow);
+    WindowFuncs::map()[windowTypeIndex](mWindowSize, window);
+  }
+
+  void resize(index windowSize, index fftSize, index hopSize)
+  {
+    assert(windowSize <= mMaxWindowSize &&
+           "STFT: Window Size greater than Max");
+    mWindowSize = windowSize;
+    mHopSize = hopSize;
+    mFrameSize = fftSize / 2 + 1;
+    ArrayXdMap window(mWindowBuffer.data(), mWindowSize);
+    WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](mWindowSize, window);
+    mFFT.resize(fftSize);
   }
 
   static void magnitude(const FluidTensorView<std::complex<double>, 2> in,
@@ -72,6 +88,7 @@ public:
   void process(const RealVectorView audio, ComplexMatrixView spectrogram)
   {
     index   halfWindow = mWindowSize / 2;
+    ArrayXdMap window(mWindowBuffer.data(),mWindowSize);
     ArrayXd padded(audio.size() + mWindowSize + mHopSize);
     padded.fill(0);
     padded.segment(halfWindow, audio.size()) =
@@ -83,7 +100,7 @@ public:
     for (index i = 0; i < nFrames; i++)
     {
       result.row(i) =
-          mFFT.process(padded.segment(i * mHopSize, mWindowSize) * mWindow);
+          mFFT.process(padded.segment(i * mHopSize, mWindowSize) * window);
     }
     spectrogram <<= _impl::asFluid(result);
   }
@@ -91,28 +108,35 @@ public:
   void processFrame(const RealVectorView frame, ComplexVectorView out)
   {
     assert(frame.size() == mWindowSize);
-    ArrayXcd spectrum =
-        mFFT.process(_impl::asEigen<Eigen::Array>(frame) * mWindow);
-    out <<= _impl::asFluid(spectrum);
+    ArrayXdMap window(mWindowBuffer.data(), mWindowSize);
+    ArrayXdMap windowedFrame(mWindowedFrameBuffer.data(), mWindowSize);
+    windowedFrame = _impl::asEigen<Eigen::Array>(frame);
+    windowedFrame *= window;
+    _impl::asEigen<Eigen::Array>(out) = mFFT.process(windowedFrame);
   }
-
+  
   void processFrame(Eigen::Ref<ArrayXd> frame, Eigen::Ref<ArrayXcd> out)
   {
     assert(frame.size() == mWindowSize);
-    out = mFFT.process(frame * mWindow);
+    ArrayXdMap window(mWindowBuffer.data(), mWindowSize);
+    ArrayXdMap windowedFrame(mWindowedFrameBuffer.data(), mWindowSize);
+    windowedFrame = frame;
+    windowedFrame *= window;
+    out = mFFT.process(windowedFrame);
   }
-
 
   RealVectorView window()
   {
-    return RealVectorView(mWindow.data(), 0, mWindowSize);
+    return RealVectorView(mWindowBuffer.data(), 0, mWindowSize);
   }
 
 private:
   index   mWindowSize;
   index   mHopSize;
   index   mFrameSize;
-  ArrayXd mWindow;
+  index   mMaxWindowSize;
+  RTVector<double> mWindowBuffer;
+  RTVector<double> mWindowedFrameBuffer;
   FFT     mFFT;
 };
 
@@ -121,67 +145,81 @@ class ISTFT
   using ArrayXd = Eigen::ArrayXd;
   using ArrayXcd = Eigen::ArrayXcd;
   using ArrayXXcd = Eigen::ArrayXXcd;
+  using ArrayXdMap = Eigen::Map<Eigen::ArrayXd>;
 
 public:
-  ISTFT(index windowSize, index fftSize, index hopSize, index windowType = 0)
-      : mWindowSize(windowSize), mHopSize(hopSize), mScale(1 / double(fftSize)),
-        mIFFT(fftSize), mBuffer(mWindowSize)
+  ISTFT(index windowSize, index fftSize, index hopSize, index windowType,
+        Allocator& alloc)
+      : mWindowSize(windowSize), mMaxWindowSize(windowSize), mHopSize(hopSize),
+        mScale(1 / double(fftSize)), mIFFT(fftSize, alloc),
+        mBuffer(mWindowSize, alloc), mWindowBuffer(mWindowSize, alloc)
   {
-    mWindow = ArrayXd::Zero(mWindowSize);
+    ArrayXdMap window(mWindowBuffer.data(), mWindowSize);
     auto windowTypeIndex = static_cast<WindowFuncs::WindowTypes>(windowType);
-    WindowFuncs::map()[windowTypeIndex](mWindowSize, mWindow);
-    mWindowSquared = mWindow * mWindow;
+    WindowFuncs::map()[windowTypeIndex](mWindowSize, window);
+  }
+
+  void resize(index windowSize, index fftSize, index hopSize)
+  {
+    assert(windowSize <= mMaxWindowSize &&
+           "STFT: Window Size greater than Max");
+    mWindowSize = windowSize;
+    mHopSize = hopSize;
+    mScale = 1 / double(fftSize);
+    mIFFT.resize(fftSize);
   }
 
   void process(const ComplexMatrixView spectrogram, RealVectorView audio)
   {
     const auto& epsilon = std::numeric_limits<double>::epsilon;
-
-    index halfWindow = mWindowSize / 2;
-    index nFrames = spectrogram.rows();
-    index outputSize = mWindowSize + (nFrames - 1) * mHopSize;
+    index       halfWindow = mWindowSize / 2;
+    index       nFrames = spectrogram.rows();
+    index       outputSize = mWindowSize + (nFrames - 1) * mHopSize;
     outputSize += mWindowSize + mHopSize;
-    ArrayXXcd specData = _impl::asEigen<Eigen::Array>(spectrogram);
-    ArrayXd   outputPadded = ArrayXd::Zero(outputSize);
-    ArrayXd   norm = ArrayXd::Zero(outputSize);
+    ArrayXdMap window(mWindowBuffer.data(), mWindowSize);
+    ArrayXXcd  specData = _impl::asEigen<Eigen::Array>(spectrogram);
+    ArrayXd    outputPadded = ArrayXd::Zero(outputSize);
+    ArrayXd    norm = ArrayXd::Zero(outputSize);
     for (index i = 0; i < nFrames; i++)
     {
       ArrayXd frame = mIFFT.process(specData.row(i)).segment(0, mWindowSize);
       outputPadded.segment(i * mHopSize, mWindowSize) +=
-          frame * mScale * mWindow;
-      norm.segment(i * mHopSize, mWindowSize) += mWindow * mWindow;
+          frame * mScale * window;
+      norm.segment(i * mHopSize, mWindowSize) += window * window;
     }
     outputPadded = outputPadded / norm.max(epsilon());
     ArrayXd trimmed = outputPadded.segment(halfWindow, audio.size());
     audio <<= _impl::asFluid(trimmed);
   }
 
-  void processFrame(const ComplexVectorView frame, RealVectorView audio)
+  void processFrame(ComplexVectorView frame, RealVectorView audio)
   {
-    mBuffer = mIFFT.process(_impl::asEigen<Eigen::Array>(frame))
-                  .segment(0, mWindowSize) *
-              mWindow * mScale;
-    audio <<= _impl::asFluid(mBuffer);
+    ArrayXdMap           window(mWindowBuffer.data(), mWindowSize);
+    Eigen::Map<ArrayXcd> frameMap(mBuffer.data(), frame.size());
+    frameMap = _impl::asEigen<Eigen::Array>(frame);
+    _impl::asEigen<Eigen::Array>(audio) =
+        mIFFT.process(frameMap) * window * mScale;
   }
 
   void processFrame(Eigen::Ref<ArrayXcd> frame, Eigen::Ref<ArrayXd> audio)
   {
-    audio = mIFFT.process(frame).segment(0, mWindowSize) * mWindow * mScale;
+    ArrayXdMap window(mWindowBuffer.data(), mWindowSize);
+    audio = mIFFT.process(frame).segment(0, mWindowSize) * window * mScale;
   }
 
   RealVectorView window()
   {
-    return RealVectorView(mWindow.data(), 0, mWindowSize);
+    return RealVectorView(mWindowBuffer.data(), 0, mWindowSize);
   }
 
 private:
   index   mWindowSize{1024};
+  index   mMaxWindowSize;
   index   mHopSize{512};
-  ArrayXd mWindow;
-  ArrayXd mWindowSquared;
   double  mScale{1};
   IFFT    mIFFT;
-  ArrayXd mBuffer;
+  RTVector<std::complex<double>> mBuffer;
+  RTVector<double> mWindowBuffer;
 };
 
 } // namespace algorithm

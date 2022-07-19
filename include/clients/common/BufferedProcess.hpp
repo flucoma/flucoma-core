@@ -18,6 +18,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../algorithms/public/STFT.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/FluidTensor.hpp"
+#include "../../data/FluidMemory.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <memory>
 
@@ -34,6 +35,15 @@ class BufferedProcess
 {
 
 public:
+
+  BufferedProcess(index maxFramesIn,index maxFramesOut,index maxChannelsIn, index maxChannelsOut, index hostSize, Allocator& alloc):
+      mSource(maxFramesIn, maxChannelsIn, hostSize, alloc),
+      mSink  (maxFramesOut,maxChannelsOut, hostSize, alloc),
+      mHostSize(hostSize), mMaxHostSize(hostSize),
+      mFrameIn(maxChannelsIn, maxFramesIn),
+      mFrameOut(maxChannelsOut, maxFramesOut) 
+  {}
+
   template <typename F>
   void process(index windowSizeIn, index windowSizeOut, index hopSize,
                FluidContext& c, F processFunc)
@@ -101,33 +111,18 @@ public:
   }
 
   index hostSize() const noexcept { return mHostSize; }
+
   void  hostSize(index size) noexcept
   {
+    assert(size <= mMaxHostSize);
     mHostSize = size;
     mSource.setHostBufferSize(size);
     mSink.setHostBufferSize(size);
-    mSource.reset();
-    mSink.reset();
+    reset();
   }
 
   index maxWindowSizeIn() const noexcept { return mFrameIn.cols(); }
   index maxWindowSizeOut() const noexcept { return mFrameOut.cols(); }
-
-  void maxSize(index framesIn, index framesOut, index channelsIn,
-               index channelsOut)
-  {
-    mSource.setSize(framesIn);
-    mSource.reset(channelsIn);
-    mSink.setSize(framesOut);
-    mSink.reset(channelsOut);
-
-    if (channelsIn > mFrameIn.rows() || framesIn > mFrameIn.cols())
-      mFrameIn.resize(channelsIn, framesIn);
-    if (channelsOut > mFrameOut.rows() || framesOut > mFrameOut.cols())
-      mFrameOut.resize(channelsOut, framesOut);
-
-    mFrameTime = 0;
-  }
 
   template <typename T>
   void push(HostMatrix<T> in)
@@ -164,6 +159,7 @@ private:
   RealMatrix          mFrameOut;
   FluidSource<double> mSource;
   FluidSink<double>   mSink;
+  index               mMaxHostSize;
 };
 
 template <typename Params, index FFTParamsIndex, bool Normalise = true>
@@ -171,11 +167,14 @@ class STFTBufferedProcess
 {
 
 public:
-  STFTBufferedProcess(index maxFFTSize, index channelsIn, index channelsOut)
-  {
-    mBufferedProcess.maxSize(maxFFTSize, maxFFTSize, channelsIn,
-                             channelsOut + Normalise);
-  }
+  STFTBufferedProcess(index maxWindowSize, index hopSize, index maxFFTSize,
+                      index channelsIn, index channelsOut, index hostVectorSize,
+                      Allocator& alloc)
+      : mBufferedProcess(maxFFTSize, maxFFTSize, channelsIn,
+                         channelsOut + Normalise, hostVectorSize, alloc),
+        mSTFT(maxFFTSize, maxFFTSize, hopSize, 0, alloc),
+        mISTFT(maxFFTSize, maxFFTSize, hopSize, 0, alloc)
+  {}
 
 
   template <typename T, typename F>
@@ -200,14 +199,14 @@ public:
         [this, &processFunc, chansIn, chansOut](RealMatrixView in,
                                                 RealMatrixView out) {
           for (index i = 0; i < chansIn; ++i)
-            mSTFT->processFrame(in.row(i), mSpectrumIn.row(i));
+            mSTFT.processFrame(in.row(i), mSpectrumIn.row(i));
           processFunc(mSpectrumIn, mSpectrumOut(Slice(0, chansOut), Slice(0)));
           for (index i = 0; i < chansOut; ++i)
-            mISTFT->processFrame(mSpectrumOut.row(i), out.row(i));
+            mISTFT.processFrame(mSpectrumOut.row(i), out.row(i));
           if (Normalise)
           {
-            out.row(chansOut) <<= mSTFT->window();
-            out.row(chansOut).apply(mISTFT->window(),
+            out.row(chansOut) <<= mSTFT.window();
+            out.row(chansOut).apply(mISTFT.window(),
                                     [](double& x, double& y) { x *= y; });
           }
         });
@@ -243,7 +242,7 @@ public:
         fftParams.winSize(), fftParams.hopSize(), c,
         [this, &processFunc, chansIn](RealMatrixView in) {
           for (index i = 0; i < chansIn; ++i)
-            mSTFT->processFrame(in.row(i), mSpectrumIn.row(i));
+            mSTFT.processFrame(in.row(i), mSpectrumIn.row(i));
           processFunc(mSpectrumIn);
         });
   }
@@ -263,12 +262,14 @@ public:
         [this, &processFunc, chansOut](RealMatrixView out) {
           processFunc(mSpectrumOut(Slice(0, chansOut), Slice(0)));
           for (index i = 0; i < chansOut; ++i)
-          { mISTFT->processFrame(mSpectrumOut.row(i), out.row(i)); }
+          {
+            mISTFT.processFrame(mSpectrumOut.row(i), out.row(i));
+          }
 
           if (Normalise)
           {
-            out.row(chansOut) <<= mSTFT->window();
-            out.row(chansOut).apply(mISTFT->window(),
+            out.row(chansOut) <<= mSTFT.window();
+            out.row(chansOut).apply(mISTFT.window(),
                                     [](double& x, double& y) { x *= y; });
           }
         });
@@ -295,16 +296,15 @@ private:
   {
     FFTParams fftParams = p.template get<FFTParamsIndex>();
     bool      newParams = mTrackValues.changed(
-        fftParams.winSize(), fftParams.hopSize(), fftParams.fftSize());
-    if (mTrackHostVS.changed(hostBufferSize))
-      mBufferedProcess.hostSize(hostBufferSize);
+             fftParams.winSize(), fftParams.hopSize(), fftParams.fftSize());
 
-    if (!mSTFT.get() || newParams)
-      mSTFT.reset(new algorithm::STFT(fftParams.winSize(), fftParams.fftSize(),
-                                      fftParams.hopSize()));
-    if (!mISTFT.get() || newParams)
-      mISTFT.reset(new algorithm::ISTFT(
-          fftParams.winSize(), fftParams.fftSize(), fftParams.hopSize()));
+    if (newParams)
+    {
+      mSTFT.resize(fftParams.winSize(), fftParams.fftSize(),
+                   fftParams.hopSize());
+      mISTFT.resize(fftParams.winSize(), fftParams.fftSize(),
+                    fftParams.hopSize());
+    }
 
     index chansIn = mBufferedProcess.channelsIn();
     index chansOut = mBufferedProcess.channelsOut();
@@ -323,14 +323,12 @@ private:
     return fftParams;
   }
 
-
   ParameterTrackChanges<index, index, index> mTrackValues;
-  ParameterTrackChanges<index>               mTrackHostVS;
   RealMatrix                                 mFrameAndWindow;
   ComplexMatrix                              mSpectrumIn;
-  ComplexMatrix                              mSpectrumOut;
-  std::unique_ptr<algorithm::STFT>           mSTFT;
-  std::unique_ptr<algorithm::ISTFT>          mISTFT;
+  ComplexMatrix                              mSpectrumOut;  
+  algorithm::STFT          mSTFT;
+  algorithm::ISTFT         mISTFT;
   BufferedProcess                            mBufferedProcess;
 };
 
