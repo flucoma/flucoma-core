@@ -11,6 +11,10 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #include "../common/FluidTask.hpp"
 #include "../common/Result.hpp"
+#include "../../data/FluidIndex.hpp"
+#include "../../data/FluidMemory.hpp"
+
+#include "../../algorithms/util/FFT.hpp"
 
 namespace fluid {
 namespace client {
@@ -18,18 +22,30 @@ namespace client {
 
 class FluidContext
 {
-
 public:
   //  addError()
-
-  FluidContext(FluidTask& t) : mTask{&t} {}
   FluidContext() = default;
-
+  FluidContext(FluidTask& t) : mTask{&t} {}
+  FluidContext(index vectorSize, Allocator& alloc):
+      mVectorSize{vectorSize},  mAllocator{&alloc}
+  {};
+  
   FluidTask* task() { return mTask; }
   void       task(FluidTask* t) { mTask = t; }
-
-private:
+  
+  Allocator& allocator() const noexcept
+  {
+    return mAllocator ? *mAllocator : FluidDefaultAllocator();
+  }
+  
+  index hostVectorSize() const noexcept {
+    return mVectorSize;
+  }
+  
+private:  
   FluidTask*  mTask{nullptr};
+  index mVectorSize{0};
+  Allocator*  mAllocator{nullptr};
   MessageList mMessages;
 };
 
