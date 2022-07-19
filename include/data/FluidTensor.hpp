@@ -21,6 +21,11 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include <numeric>
 #include <vector>
 
+#include <memory/namespace_alias.hpp>
+#include <memory/container.hpp>
+#include <memory/allocator_storage.hpp>
+#include <memory/heap_allocator.hpp>
+
 namespace fluid {
 /// FluidTensor is the main container class.
 template <typename T, size_t N>
@@ -61,7 +66,17 @@ class FluidTensor //: public FluidTensorBase<T,N>
 {
   // embed this so we can change our mind
   using Container =
-      std::vector<std::remove_const_t<std::remove_reference_t<T>>>;
+//      std::vector<std::remove_const_t<std::remove_reference_t<T>>>;
+        memory::vector<std::remove_const_t<std::remove_reference_t<T>>,
+        memory::any_allocator_reference
+        >;
+
+
+  static auto& default_allocator()
+  {
+    static auto alloc = memory::make_any_allocator_reference(memory::heap_allocator());
+    return alloc;
+  }
 
 public:
   static constexpr size_t order = N;
@@ -71,7 +86,10 @@ public:
   using const_iterator = typename Container::const_iterator;
 
   // Default constructor / destructor
-  explicit FluidTensor() = default;
+  FluidTensor():
+    mContainer(default_allocator())
+    {}
+    
   ~FluidTensor() = default;
 
   // Move
@@ -79,7 +97,10 @@ public:
   FluidTensor& operator=(FluidTensor&&) noexcept = default;
 
   // Copy
-  FluidTensor(const FluidTensor& x) noexcept { *this = x; }
+  FluidTensor(const FluidTensor& x):
+    mContainer(x.mContainer),mDesc(x.mDesc)
+    { }
+  
   FluidTensor& operator=(const FluidTensor& x) noexcept
   {
     mContainer = x.mContainer;
@@ -90,7 +111,8 @@ public:
   /// Conversion constructors
   template <typename U, size_t M>
   explicit FluidTensor(const FluidTensor<U, M>& x)
-      : mContainer(x.size()), mDesc(x.descriptor())
+      : mContainer(x.size(), 0, default_allocator()),
+        mDesc(x.descriptor())
   {
     static_assert(std::is_convertible<U, T>::value,
                   "Cannot convert between container value types");
@@ -99,7 +121,8 @@ public:
 
   template <typename U, size_t M>
   explicit FluidTensor(FluidTensorView<U, M> x)
-      : mContainer(asUnsigned(x.size())), mDesc(0, x.descriptor().extents)
+      : mContainer(asUnsigned(x.size()), 0, default_allocator()),
+        mDesc(0, x.descriptor().extents)
   {
     static_assert(std::is_convertible<U, T>::value,
                   "Cannot convert between container value types");
@@ -121,7 +144,7 @@ public:
   /// Construct from list of extents
   template <typename... Dims,
             typename = std::enable_if_t<isIndexSequence<Dims...>()>>
-  FluidTensor(Dims... dims) : mDesc(dims...)
+  FluidTensor(Dims... dims) : mContainer(default_allocator()), mDesc(dims...)
   {
     static_assert(sizeof...(dims) == N, "Number of dimensions doesn't match");
     mContainer.resize(asUnsigned(mDesc.size));
@@ -129,7 +152,7 @@ public:
 
   /// Construct/assign from nested initializer_list of elements
   FluidTensor(FluidTensorInitializer<T, N> init)
-      : mDesc(0, impl::deriveExtents<N>(init))
+      : mContainer(default_allocator()), mDesc(0, impl::deriveExtents<N>(init))
   {
     mContainer.reserve(asUnsigned(this->mDesc.size));
     impl::insertFlat(init, mContainer);
@@ -138,7 +161,7 @@ public:
 
   template <typename U>
   FluidTensor(FluidTensorInitializer<U, N> init)
-      : mDesc(0, impl::deriveExtents<N>(init))
+      : mContainer(default_allocator()), mDesc(0, impl::deriveExtents<N>(init))
   {
     mContainer.reserve(this->mDesc.size);
     impl::insertFlat(init, mContainer);
@@ -194,7 +217,7 @@ public:
   /// 1D copy from T*
   template <typename U = T, size_t D = N, typename = std::enable_if_t<D == 1>()>
   FluidTensor(T* input, index dim, index stride = 1)
-      : mContainer(dim), mDesc(0, {dim})
+      : mContainer(dim, 0, default_allocator()), mDesc(0, {dim})
   {
     for (index i = 0, j = 0; i < dim; ++i, j += stride)
       mContainer[asUnsigned(i)] = input[asUnsigned(j)];
@@ -203,12 +226,12 @@ public:
   /// 1D copy from std::vector
   template <typename U = T, size_t D = N, typename = std::enable_if_t<D == 1>()>
   FluidTensor(Container&& input)
-      : mContainer(input), mDesc(0, {asSigned(input.size())})
+      : mContainer(input, 0, default_allocator()), mDesc(0, {asSigned(input.size())})
   {}
 
   template <typename U = T, size_t D = N, typename = std::enable_if_t<D == 1>()>
   FluidTensor(Container& input)
-      : mContainer(input), mDesc(0, {asSigned(input.size())})
+      : mContainer(input, 0, default_allocator()), mDesc(0, {asSigned(input.size())})
   {}
 
 
