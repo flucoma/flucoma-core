@@ -63,7 +63,8 @@ public:
       : mParams{p}, mSTFTBufferedProcess(get<kFFT>().max(), 1, 0),
         mAlgorithm(get<kNChroma>().max(), get<kFFT>().max())
   {
-    mChroma = FluidTensor<double, 1>(get<kNChroma>());
+    mMagnitude = FluidTensor<double, 1>(get<kFFT>().maxFrameSize());
+    mChroma = FluidTensor<double, 1>(get<kNChroma>().max());
     audioChannelsIn(1);
     controlChannelsOut({1,get<kNChroma>(),get<kNChroma>().max()});
     setInputLabels({"audio in"});
@@ -79,24 +80,28 @@ public:
     assert(controlChannelsOut().size && "No control channels");
     assert(output[0].size() >= controlChannelsOut().size &&
            "Too few output channels");
-    if (mTracker.changed(get<kFFT>().frameSize(), get<kNChroma>(), get<kRef>(),
-                         sampleRate()))
+           
+    index frameSize = get<kFFT>().frameSize();
+    index nChroma = get<kNChroma>();
+           
+    if (mTracker.changed(frameSize, nChroma, get<kRef>(), sampleRate()))
     {
-      mMagnitude.resize(get<kFFT>().frameSize());
-      mChroma.resize(get<kNChroma>());
-      mAlgorithm.init(get<kNChroma>(), get<kFFT>().frameSize(), get<kRef>(),
-                      sampleRate());
+      mAlgorithm.init(nChroma, frameSize, get<kRef>(), sampleRate());
+      controlChannelsOut({1, nChroma});
     }
+    
+    auto mags = mMagnitude(Slice(0,frameSize));
+    auto chroma = mChroma(Slice(0,nChroma));
 
     mSTFTBufferedProcess.processInput(
         mParams, input, c, [&](ComplexMatrixView in) {
-          algorithm::STFT::magnitude(in.row(0), mMagnitude);
-          mAlgorithm.processFrame(mMagnitude, mChroma, get<kMinFreq>(),
+          algorithm::STFT::magnitude(in.row(0), mags);
+          mAlgorithm.processFrame(mags, chroma, get<kMinFreq>(),
                                   get<kMaxFreq>(), get<kNorm>());
         });
 
-    output[0](Slice(0,get<kNChroma>())) <<= mChroma; 
-    output[0](Slice(get<kNChroma>(), get<kNChroma>().max() - get<kNChroma>())).fill(0); 
+    output[0](Slice(0,nChroma)) <<= chroma;
+    output[0](Slice(nChroma, get<kNChroma>().max() - nChroma)).fill(0);
   }
 
   index latency() { return get<kFFT>().winSize(); }

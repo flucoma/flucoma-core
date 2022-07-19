@@ -38,7 +38,7 @@ constexpr auto MFCCParams = defineParameters(
     LongParamRuntimeMax<Primary>("numCoeffs", "Number of Cepstral Coefficients", 13,
               Min(2),
               UpperLimit<kNBands>()),
-    LongParam<Primary>("numBands", "Number of Bands", 40, Min(2),
+    LongParamRuntimeMax<Primary>("numBands", "Number of Bands", 40, Min(2),
               FrameSizeUpperLimit<kFFT>(), LowerLimit<kNCoefs>()),
     LongParam("startCoeff", "Output Coefficient Offset", 0, Min(0),
               Max(1)), // this needs to be programmatically changed to start+num
@@ -74,8 +74,9 @@ public:
         mMelBands(get<kFFT>().max(), get<kFFT>().max()),
         mDCT(get<kFFT>().max(), get<kNCoefs>().max() + 1)
   {
-    mBands = FluidTensor<double, 1>(get<kNBands>());
-    mCoefficients = FluidTensor<double, 1>(get<kNCoefs>() + get<kDrop0>());
+    mMagnitude = FluidTensor<double, 1>(get<kFFT>().maxFrameSize());
+    mBands = FluidTensor<double, 1>(get<kNBands>().max());
+    mCoefficients = FluidTensor<double, 1>(get<kNCoefs>().max() + get<kDrop0>());
     audioChannelsIn(1);
     controlChannelsOut({1, get<kNCoefs>(), get<kNCoefs>().max()});
     setInputLabels({"audio input"});
@@ -94,31 +95,34 @@ public:
            "Too few output channels");
 
     bool has0 = !get<kDrop0>();
+    index nCoefs = get<kNCoefs>();
+    index nBands = get<kNBands>();
+    index frameSize = get<kFFT>().frameSize();
 
-    if (mTracker.changed(get<kFFT>().frameSize(), get<kNCoefs>() + !has0,
-                         get<kNBands>(), get<kMinFreq>(), get<kMaxFreq>(),
+    if (mTracker.changed(frameSize, nCoefs + !has0,
+                         nBands, get<kMinFreq>(), get<kMaxFreq>(),
                          sampleRate()))
     {
-      mMagnitude.resize(get<kFFT>().frameSize());
-      mBands.resize(get<kNBands>());
-      mCoefficients.resize(get<kNCoefs>() + !has0);
       mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
                      get<kFFT>().frameSize(), sampleRate(),
                      get<kFFT>().winSize());
-      mDCT.init(get<kNBands>(), get<kNCoefs>() + !has0);
-      controlChannelsOut({1, get<kNCoefs>()});
+      mDCT.init(get<kNBands>(), nCoefs + !has0);
+      controlChannelsOut({1, nCoefs});
     }
+
+    auto mags  = mMagnitude(Slice(0,frameSize));
+    auto bands = mBands(Slice(0,nBands));
+    auto coefs = mCoefficients(Slice(get<kDrop0>(), nCoefs));
 
     mSTFTBufferedProcess.processInput(
         mParams, input, c, [&](ComplexMatrixView in) {
-          algorithm::STFT::magnitude(in.row(0), mMagnitude);
-          mMelBands.processFrame(mMagnitude, mBands, false, false, true);
-          mDCT.processFrame(mBands, mCoefficients);
+          algorithm::STFT::magnitude(in.row(0), mags);
+          mMelBands.processFrame(mags, bands, false, false, true);
+          mDCT.processFrame(bands, coefs);
         });
   
-      output[0](Slice(0, get<kNCoefs>())) <<=
-        mCoefficients(Slice(get<kDrop0>(), get<kNCoefs>()));
-      output[0](Slice(get<kNCoefs>(), get<kNCoefs>().max() - get<kNCoefs>())).fill(0);
+      output[0](Slice(0, nCoefs)) <<= coefs;
+      output[0](Slice(nCoefs, get<kNCoefs>().max() - nCoefs)).fill(0);
   }
 
   index latency() { return get<kFFT>().winSize(); }
@@ -128,7 +132,7 @@ public:
     mSTFTBufferedProcess.reset();
     mMagnitude.resize(get<kFFT>().frameSize());
     mBands.resize(get<kNBands>());
-    mCoefficients.resize(get<kNCoefs>() + get<kDrop0>());
+    mCoefficients.resize(get<kNCoefs>().max() + get<kDrop0>());
     mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
                    get<kFFT>().frameSize(), sampleRate(),
                    get<kFFT>().winSize());
