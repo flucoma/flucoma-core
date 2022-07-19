@@ -91,6 +91,14 @@ FetchContent_Declare(
 )
 set(JSON_SystemInclude ON CACHE BOOL "")
 
+FetchContent_Declare(
+  Memory
+  GIT_SHALLOW TRUE  
+  GIT_REPOSITORY https://github.com/foonathan/memory.git
+  GIT_PROGRESS TRUE
+  GIT_TAG main
+)
+
 if(HISS_PATH) #if hiss path is set, this will stop it downloading
   get_filename_component(FETCHCONTENT_SOURCE_DIR_HISSTOOLS ${HISS_PATH} ABSOLUTE)
 endif()
@@ -138,6 +146,8 @@ endif()
 
 add_subdirectory(${json_SOURCE_DIR} ${json_BINARY_DIR} EXCLUDE_FROM_ALL)
 
+FetchContent_MakeAvailable(Memory)
+
 # HISSTools FFT target
 add_library(
   HISSTools_FFT STATIC "${hisstools_SOURCE_DIR}/HISSTools_FFT/HISSTools_FFT.cpp"
@@ -183,6 +193,7 @@ target_include_directories(
   "${eigen_SOURCE_DIR}"
   "${spectra_SOURCE_DIR}/include"
   "${hisstools_SOURCE_DIR}"
+  "${memory_SOURCE_DIR}/include/foonathan"
 )
 target_link_libraries(
   FLUID_DECOMPOSITION INTERFACE 
@@ -190,6 +201,7 @@ target_link_libraries(
   flucoma_VERSION_LIB 
   tl::optional
   nlohmann_json::nlohmann_json
+  foonathan_memory
 )
 target_sources(
   FLUID_DECOMPOSITION INTERFACE ${HEADERS}
