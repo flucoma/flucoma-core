@@ -12,6 +12,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #include "BufferAdaptor.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/FluidMemory.hpp"
 #include <memory>
 
 namespace fluid {
@@ -21,7 +22,7 @@ class MemoryBufferAdaptor : public BufferAdaptor
 {
 public:
   MemoryBufferAdaptor(index chans, index frames, double /*sampleRate*/)
-      : mData(frames, chans)
+      : mData(FluidDefaultAllocator(),frames, chans)
   {}
 
   MemoryBufferAdaptor(std::shared_ptr<BufferAdaptor>& other) { *this = other; }
