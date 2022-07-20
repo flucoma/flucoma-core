@@ -204,14 +204,14 @@ public:
       : mParams{p},
         mRealTimeParams{RTClient::getParameterDescriptors(),
                         mParams.get().template subset<ParamOffset>()},
-        mClient{mRealTimeParams}
+        mClient{mRealTimeParams, FluidContext()}
   {}
 
   NRTClientWrapper(const NRTClientWrapper& x)
       : mParams{x.mParams},
         mRealTimeParams{RTClient::getParameterDescriptors(),
                         mParams.get().template subset<ParamOffset>()},
-        mClient{mRealTimeParams}
+        mClient{mRealTimeParams,FluidContext()}
   {}
 
 
