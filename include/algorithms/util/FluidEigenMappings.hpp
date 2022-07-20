@@ -18,7 +18,6 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 namespace algorithm {
-namespace _impl {
 
 using Eigen::Map;
 using Eigen::PlainObjectBase;
@@ -29,6 +28,7 @@ using Eigen::ColMajor;
 using Eigen::Dynamic;
 using Eigen::RowMajor;
 
+namespace _impl {
 
 /// Eigen Matrix<T>/Array<T> -> FluidTensorView<T>
 template <typename Derived>
@@ -201,7 +201,11 @@ auto asEigen(const FluidTensorView<const T, N>&&
   return asEigen<EigenType>(a);
 }
 
-
 } // namespace _impl
+
+template<template <typename, int, int, int, int, int> class EigenType>
+using FluidEigenMap = Eigen::Map<EigenType<double, Dynamic, Dynamic, RowMajor, Dynamic, Dynamic>,
+           Eigen::AlignmentType::Unaligned, Stride<Dynamic, Dynamic>>;
+
 } // namespace algorithm
 } // namespace fluid
