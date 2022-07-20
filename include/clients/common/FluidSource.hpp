@@ -24,7 +24,7 @@ class FluidSource
   using Matrix = FluidTensor<T, 2>;
   using View = FluidTensorView<T, 2>;
   
-  using Container = RTVector<T>;
+  using Container = rt::vector<T>;
 
 public:
   FluidSource(const FluidSource&) = delete;

@@ -135,8 +135,8 @@ private:
   index   mHopSize;
   index   mFrameSize;
   index   mMaxWindowSize;
-  RTVector<double> mWindowBuffer;
-  RTVector<double> mWindowedFrameBuffer;
+  rt::vector<double> mWindowBuffer;
+  rt::vector<double> mWindowedFrameBuffer;
   FFT     mFFT;
 };
 
@@ -218,8 +218,8 @@ private:
   index   mHopSize{512};
   double  mScale{1};
   IFFT    mIFFT;
-  RTVector<std::complex<double>> mBuffer;
-  RTVector<double> mWindowBuffer;
+  rt::vector<std::complex<double>> mBuffer;
+  rt::vector<double> mWindowBuffer;
 };
 
 } // namespace algorithm

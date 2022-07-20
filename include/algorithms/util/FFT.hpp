@@ -119,11 +119,11 @@ protected:
 
   FFT_SETUP_D         mSetup;
   FFT_SPLIT_COMPLEX_D mSplit;
-  RTVector<double> mRealBuffer;
-  RTVector<double> mImagBuffer;
+  rt::vector<double> mRealBuffer;
+  rt::vector<double> mImagBuffer;
   
 private:
-  RTVector<std::complex<double>> mOutputBuffer;
+  rt::vector<std::complex<double>> mOutputBuffer;
 };
 
 class IFFT : public FFT
@@ -154,7 +154,7 @@ public:
   }
 
 private:
-  RTVector<double> mOutputBuffer;
+  rt::vector<double> mOutputBuffer;
 };
 } // namespace algorithm
 } // namespace fluid

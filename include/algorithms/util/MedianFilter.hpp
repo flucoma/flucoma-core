@@ -65,8 +65,8 @@ private:
   std::size_t mMiddle{0};
   bool        mInitialized{false};
 
-  RTVector<double> mUnsorted;
-  RTVector<double> mSorted;
+  rt::vector<double> mUnsorted;
+  rt::vector<double> mSorted;
 };
 
 } // namespace algorithm

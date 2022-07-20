@@ -39,7 +39,7 @@ auto asFluid(PlainObjectBase<Derived>& a)
 {
   constexpr size_t N = PlainObjectBase<Derived>::IsVectorAtCompileTime ? 1 : 2;
 
-  if (N == 2)
+  if constexpr (N == 2)
   {
     if (static_cast<int>(a.Options) == static_cast<int>(ColMajor))
     {

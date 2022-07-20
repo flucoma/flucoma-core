@@ -21,7 +21,7 @@ namespace fluid {
 template <typename T>
 class FluidSink
 {
-  using Container = RTVector<T>;
+  using Container = rt::vector<T>;
 //  using Matrix = FluidTensor<T, 2>;
   using View = FluidTensorView<T, 2>;
   using const_view_type = const FluidTensorView<T, 2>;

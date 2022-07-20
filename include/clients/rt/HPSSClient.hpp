@@ -67,9 +67,7 @@ public:
   static constexpr auto& getParameterDescriptors() { return HPSSParams; }
 
   HPSSClient(ParamSetViewType& p, FluidContext const& c)
-      : mParams{p}, mSTFTBufferedProcess{get<kFFT>().max(),
-                                         get<kFFT>().max() >> 1,
-                                         get<kFFT>().max(),
+      : mParams{p}, mSTFTBufferedProcess{get<kFFT>(),
                                          1,
                                          3,
                                          c.hostVectorSize(),
@@ -108,7 +106,7 @@ public:
     { mHPSS.init(nBins, get<kHSize>()); }
 
     mSTFTBufferedProcess.process(
-        mParams, input, output, c,
+        get<kFFT>(), input, output, c,
         [&](ComplexMatrixView in, ComplexMatrixView out) {
           mHPSS.processFrame(
               in.row(0), out.transpose(), get<kPSize>(), get<kHSize>(),
@@ -121,9 +119,9 @@ public:
   }
 
 private:
-  STFTBufferedProcess<ParamSetViewType, kFFT, true> mSTFTBufferedProcess;
-  ParameterTrackChanges<index, index>               mTrackChanges;
-  algorithm::HPSS                                   mHPSS;
+  STFTBufferedProcess<true>             mSTFTBufferedProcess;
+  ParameterTrackChanges<index, index>   mTrackChanges;
+  algorithm::HPSS                       mHPSS;
 };
 } // namespace hpss
 using RTHPSSClient = ClientWrapper<hpss::HPSSClient>;

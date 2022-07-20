@@ -458,7 +458,9 @@ public:
             typename = std::enable_if_t<isIndexSequence<Dims...>()>>
   FluidTensorView(T* p, index start, Dims... dims)
       : mDesc(start, {static_cast<index>(dims)...}), mRef(p)
-  {}
+  {
+    static_assert(sizeof...(dims) == N, "Supplied dimension count must equal View's order"); 
+  }
 
 
   // Convert to a larger dim by adding single size dim, like numpy newaxis

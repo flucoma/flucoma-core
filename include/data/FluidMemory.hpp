@@ -6,24 +6,25 @@
 #include <memory/heap_allocator.hpp>
 
 namespace fluid {
+  using Allocator  = foonathan::memory::any_allocator_reference;
 
-    
-    // using MappedMatrix = Eigen::Map<MatrixXXd>; 
-    // using MappedArray = Eigen::Map<MatrixXXd>; 
-
-    
-    using Allocator  = foonathan::memory::any_allocator_reference;    
+  namespace rt {
+    template<typename T>
+    using vector = foonathan::memory::vector<T,Allocator>;
 
     template<typename T>
-    using RTVector = foonathan::memory::vector<T,Allocator>;
-
-    template<typename T>
-    using RTDeque = foonathan::memory::deque<T,Allocator>;
-
-    Allocator& FluidDefaultAllocator() 
-    {
-        static Allocator def = foonathan::memory::make_allocator_reference(foonathan::memory::heap_allocator()); 
-        return def; 
-    }
-
+    using deque = foonathan::memory::deque<T,Allocator>;
+  }
+  
+  Allocator& FluidDefaultAllocator()
+  {
+      static Allocator def = foonathan::memory::make_allocator_reference(foonathan::memory::heap_allocator());
+      return def;
+  }
+  
+  using ArrayXMap = Eigen::Map<Eigen::ArrayXd>;
+  using ArrayXXMap = Eigen::Map<Eigen::ArrayXXd>;
+  using ArrayXcMap = Eigen::Map<Eigen::ArrayXcd>;
+  using ArrayXXcMap = Eigen::Map<Eigen::ArrayXXcd>;
+  
 }

@@ -24,10 +24,10 @@ namespace algorithm {
 class HPSS
 {
 public:
-  using ArrayXMap = Eigen::Map<Eigen::ArrayXd>;
-  using ArrayXXMap = Eigen::Map<Eigen::ArrayXXd>;
-  using ArrayXXcMap = Eigen::Map<Eigen::ArrayXXcd>;
-
+  
+  template<typename T>
+  using Container = rt::vector<T>;
+  
   enum HPSSMode { kClassic, kCoupled, kAdvanced };
 
   HPSS(index maxFFTSize, index maxHSize,Allocator& alloc)
@@ -175,17 +175,17 @@ private:
 
   index                          mMaxBins;
   index                          mMaxHSize;
-  RTVector<double>               mHBuf;
-  RTVector<double>               mVBuf;
-  RTVector<std::complex<double>> mFrameBuf;
-  RTVector<double>               mPaddedBuf;
-  RTVector<MedianFilter>         mHFilters;
+  Container<double>               mHBuf;
+  Container<double>               mVBuf;
+  Container<std::complex<double>> mFrameBuf;
+  Container<double>               mPaddedBuf;
+  Container<MedianFilter>         mHFilters;
   MedianFilter                   mVFilter;
-  RTVector<double>               mHarmMaskBuf;
-  RTVector<double>               mPercMaskBuf;
-  RTVector<double>               mResMaskBuf;
-  RTVector<double>               mMaskNormBuf;
-  RTVector<double>               mMaskThreshBuf;
+  Container<double>               mHarmMaskBuf;
+  Container<double>               mPercMaskBuf;
+  Container<double>               mResMaskBuf;
+  Container<double>               mMaskNormBuf;
+  Container<double>               mMaskThreshBuf;
   bool                           mInitialized{false};
 };
 } // namespace algorithm
