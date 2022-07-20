@@ -40,8 +40,8 @@ public:
       mSource(maxFramesIn, maxChannelsIn, hostSize, alloc),
       mSink  (maxFramesOut,maxChannelsOut, hostSize, alloc),
       mHostSize(hostSize), mMaxHostSize(hostSize),
-      mFrameIn(maxChannelsIn, maxFramesIn),
-      mFrameOut(maxChannelsOut, maxFramesOut) 
+      mFrameIn(maxChannelsIn *  maxFramesIn, alloc),
+      mFrameOut(maxChannelsOut * maxFramesOut, alloc)
   {}
 
   template <typename F>
@@ -54,8 +54,10 @@ public:
            "Window out bigger than maximum");
     for (; mFrameTime < mHostSize; mFrameTime += hopSize)
     {
-      RealMatrixView windowIn = mFrameIn(Slice(0), Slice(0, windowSizeIn));
-      RealMatrixView windowOut = mFrameOut(Slice(0), Slice(0, windowSizeOut));
+//      RealMatrixView windowIn = mFrameIn(Slice(0), Slice(0, windowSizeIn));
+//      RealMatrixView windowOut = mFrameOut(Slice(0), Slice(0, windowSizeOut));
+      RealMatrixView windowIn{mFrameIn.data(), 0, channelsIn(), windowSizeIn};
+      RealMatrixView windowOut{mFrameOut.data(), 0, channelsOut(), windowSizeOut};
       mSource.pull(windowIn, mFrameTime);
       processFunc(windowIn, windowOut);
       mSink.push(windowOut, mFrameTime);
@@ -76,7 +78,8 @@ public:
     assert(windowSize <= maxWindowSizeIn() && "Window bigger than maximum");
     for (; mFrameTime < mHostSize; mFrameTime += hopSize)
     {
-      RealMatrixView windowIn = mFrameIn(Slice(0), Slice(0, windowSize));
+//      RealMatrixView windowIn = mFrameIn(Slice(0), Slice(0, windowSize));
+      RealMatrixView windowIn{mFrameIn.data(), 0, channelsIn(), windowSize};
       mSource.pull(windowIn, mFrameTime);
       processFunc(windowIn);
 
@@ -97,7 +100,8 @@ public:
            "Window out bigger than maximum");
     for (; mFrameTime < mHostSize; mFrameTime += hopSize)
     {
-      RealMatrixView windowOut = mFrameOut(Slice(0), Slice(0, windowSizeOut));
+//      RealMatrixView windowOut = mFrameOut(Slice(0), Slice(0, windowSizeOut));
+      RealMatrixView windowOut{mFrameOut.data(), 0, channelsOut(), windowSizeOut};
       processFunc(windowOut);
       mSink.push(windowOut, mFrameTime);
 
@@ -121,8 +125,8 @@ public:
     reset();
   }
 
-  index maxWindowSizeIn() const noexcept { return mFrameIn.cols(); }
-  index maxWindowSizeOut() const noexcept { return mFrameOut.cols(); }
+  index maxWindowSizeIn() const noexcept { return mSource.size(); }
+  index maxWindowSizeOut() const noexcept { return mSink.size(); }
 
   template <typename T>
   void push(HostMatrix<T> in)
@@ -155,30 +159,33 @@ public:
 private:
   index               mFrameTime = 0;
   index               mHostSize;
-  RealMatrix          mFrameIn;
-  RealMatrix          mFrameOut;
+  rt::vector<double>  mFrameIn;
+  rt::vector<double>  mFrameOut;
   FluidSource<double> mSource;
   FluidSink<double>   mSink;
   index               mMaxHostSize;
 };
 
-template <typename Params, index FFTParamsIndex, bool Normalise = true>
+template <bool Normalise = true>
 class STFTBufferedProcess
 {
 
 public:
-  STFTBufferedProcess(index maxWindowSize, index hopSize, index maxFFTSize,
+  STFTBufferedProcess(FFTParams fftParams,
                       index channelsIn, index channelsOut, index hostVectorSize,
                       Allocator& alloc)
-      : mBufferedProcess(maxFFTSize, maxFFTSize, channelsIn,
+      : mBufferedProcess(fftParams.max(), fftParams.max(), channelsIn,
                          channelsOut + Normalise, hostVectorSize, alloc),
-        mSTFT(maxFFTSize, maxFFTSize, hopSize, 0, alloc),
-        mISTFT(maxFFTSize, maxFFTSize, hopSize, 0, alloc)
+        mSpectrumIn(channelsIn * fftParams.maxFrameSize(), alloc),
+        mSpectrumOut(channelsOut * fftParams.maxFrameSize(), alloc),
+        mFrameAndWindow((Normalise + channelsOut) * fftParams.max(), alloc),
+        mSTFT(fftParams.max(), fftParams.max(), fftParams.hopSize(), 0, alloc),
+        mISTFT(fftParams.max(), fftParams.max(), fftParams.hopSize(), 0, alloc)
   {}
 
 
   template <typename T, typename F>
-  void process(Params& p, const std::vector<HostVector<T>>& input,
+  void process(FFTParams p, const std::vector<HostVector<T>>& input,
                std::vector<HostVector<T>>& output, FluidContext& c,
                F&& processFunc)
   {
@@ -194,15 +201,22 @@ public:
 
     mBufferedProcess.push(input);
 
+    ComplexMatrixView spectrumIn{mSpectrumIn.data(), 0,  chansIn,fftParams.frameSize()};
+    ComplexMatrixView spectrumOut{mSpectrumOut.data(), 0, chansOut,fftParams.frameSize()};
+
+
     mBufferedProcess.process(
         fftParams.winSize(), fftParams.winSize(), fftParams.hopSize(), c,
-        [this, &processFunc, chansIn, chansOut](RealMatrixView in,
+        [this,spectrumIn, spectrumOut, &processFunc, chansIn, chansOut](RealMatrixView in,
                                                 RealMatrixView out) {
+          
+          
           for (index i = 0; i < chansIn; ++i)
-            mSTFT.processFrame(in.row(i), mSpectrumIn.row(i));
-          processFunc(mSpectrumIn, mSpectrumOut(Slice(0, chansOut), Slice(0)));
+            mSTFT.processFrame(in.row(i), spectrumIn.row(i));
+          processFunc(spectrumIn, spectrumOut(Slice(0, chansOut), Slice(0)));
           for (index i = 0; i < chansOut; ++i)
-            mISTFT.processFrame(mSpectrumOut.row(i), out.row(i));
+            mISTFT.processFrame(spectrumOut.row(i), out.row(i));
+            
           if (Normalise)
           {
             out.row(chansOut) <<= mSTFT.window();
@@ -211,8 +225,8 @@ public:
           }
         });
 
-    RealMatrixView unnormalisedFrame =
-        mFrameAndWindow(Slice(0), Slice(0, input[0].size()));
+    RealMatrixView unnormalisedFrame{mFrameAndWindow.data(), 0, Normalise + chansOut, input[0].size()};
+//        mFrameAndWindow(Slice(0), Slice(0, input[0].size()));
     mBufferedProcess.pull(unnormalisedFrame);
     for (index i = 0; i < chansOut; ++i)
     {
@@ -227,7 +241,7 @@ public:
   }
 
   template <typename T, typename F>
-  void processInput(Params& p, const std::vector<HostVector<T>>& input,
+  void processInput(FFTParams p, const std::vector<HostVector<T>>& input,
                     FluidContext& c, F&& processFunc)
   {
 
@@ -237,33 +251,36 @@ public:
     FFTParams fftParams = setup(p, input[0].size());
 
     mBufferedProcess.push(input);
-
+    ComplexMatrixView spectrumIn{mSpectrumIn.data(),0, chansIn, fftParams.frameSize()};
+    
     mBufferedProcess.processInput(
         fftParams.winSize(), fftParams.hopSize(), c,
-        [this, &processFunc, chansIn](RealMatrixView in) {
+        [this, spectrumIn, &processFunc, chansIn](RealMatrixView in) {
           for (index i = 0; i < chansIn; ++i)
-            mSTFT.processFrame(in.row(i), mSpectrumIn.row(i));
-          processFunc(mSpectrumIn);
+            mSTFT.processFrame(in.row(i), spectrumIn.row(i));
+          processFunc(spectrumIn);
         });
   }
 
 
   template <typename T, typename F>
-  void processOutput(Params& p, std::vector<HostVector<T>>& output,
+  void processOutput(FFTParams p, std::vector<HostVector<T>>& output,
                      FluidContext& c, F&& processFunc)
   {
     assert(mBufferedProcess.channelsOut() ==
            asSigned(output.size() + Normalise));
     FFTParams fftParams = setup(p, output[0].size());
     index     chansOut = mBufferedProcess.channelsOut() - Normalise;
-
+    
+    ComplexMatrixView spectrumOut{mSpectrumIn.data(), 0, chansOut + Normalise,fftParams.frameSize()};
+    
     mBufferedProcess.processOutput(
         fftParams.winSize(), fftParams.hopSize(), c,
-        [this, &processFunc, chansOut](RealMatrixView out) {
+        [this, spectrumOut, &processFunc, chansOut](RealMatrixView out) {
           processFunc(mSpectrumOut(Slice(0, chansOut), Slice(0)));
           for (index i = 0; i < chansOut; ++i)
           {
-            mISTFT.processFrame(mSpectrumOut.row(i), out.row(i));
+            mISTFT.processFrame(spectrumOut.row(i), out.row(i));
           }
 
           if (Normalise)
@@ -292,9 +309,9 @@ public:
   void reset() { mBufferedProcess.reset(); }
 
 private:
-  FFTParams setup(Params& p, index hostBufferSize)
+  FFTParams setup(FFTParams fftParams, index hostBufferSize)
   {
-    FFTParams fftParams = p.template get<FFTParamsIndex>();
+    
     bool      newParams = mTrackValues.changed(
              fftParams.winSize(), fftParams.hopSize(), fftParams.fftSize());
 
@@ -305,31 +322,17 @@ private:
       mISTFT.resize(fftParams.winSize(), fftParams.fftSize(),
                     fftParams.hopSize());
     }
-
-    index chansIn = mBufferedProcess.channelsIn();
-    index chansOut = mBufferedProcess.channelsOut();
-
-    if (fftParams.frameSize() != mSpectrumIn.cols())
-      mSpectrumIn.resize(chansIn, fftParams.frameSize());
-
-    if (fftParams.frameSize() != mSpectrumOut.cols())
-      mSpectrumOut.resize(chansOut, fftParams.frameSize());
-
-    if (std::max(mBufferedProcess.maxWindowSizeIn(), hostBufferSize) >
-        mFrameAndWindow.cols())
-      mFrameAndWindow.resize(
-          chansOut,
-          std::max(mBufferedProcess.maxWindowSizeIn(), hostBufferSize));
+    
     return fftParams;
   }
 
   ParameterTrackChanges<index, index, index> mTrackValues;
-  RealMatrix                                 mFrameAndWindow;
-  ComplexMatrix                              mSpectrumIn;
-  ComplexMatrix                              mSpectrumOut;  
-  algorithm::STFT          mSTFT;
-  algorithm::ISTFT         mISTFT;
-  BufferedProcess                            mBufferedProcess;
+  BufferedProcess                  mBufferedProcess;
+  rt::vector<std::complex<double>> mSpectrumIn;
+  rt::vector<std::complex<double>> mSpectrumOut;
+  rt::vector<double>               mFrameAndWindow;
+  algorithm::STFT                  mSTFT;
+  algorithm::ISTFT                 mISTFT;
 };
 
 } // namespace client
