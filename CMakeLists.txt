@@ -236,9 +236,14 @@ if(DEFINED FLUID_ARCH)
 endif()
 
 #Examples
+
+option(BUILD_EXAMPLES "Build C++ example code (off by default)")
+
+if(BUILD_EXAMPLES)
 add_subdirectory(
    "${CMAKE_CURRENT_SOURCE_DIR}/examples"
 )
+endif() 
 
 enable_testing()
 
