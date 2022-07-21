@@ -66,7 +66,11 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return TransientParams; }
 
-  TransientClient(ParamSetViewType& p) : mParams(p)
+  TransientClient(ParamSetViewType& p, FluidContext const& c)
+    : mParams(p), maxWindowIn{2 * get<kBlockSize>() + get<kPadding>()},
+      maxWindowOut{get<kBlockSize>()},
+      mBufferedProcess{maxWindowIn, maxWindowOut, 1, 2, c.hostVectorSize(), c.allocator()},
+      mExtractor{get<kOrder>(), get<kBlockSize>(), get<kPadding>(), c.allocator()}
   {
     audioChannelsIn(1);
     audioChannelsOut(2);
@@ -84,17 +88,17 @@ public:
     index blockSize = get<kBlockSize>();
     index padding = get<kPadding>();
     index hostVecSize = input[0].size();
-    index maxWinIn = 2 * blockSize + padding;
-    index maxWinOut = blockSize - order;
+//    index maxWinIn = 2 * blockSize + padding;
+//    index maxWinOut = blockSize - order;
 
     if (mTrackValues.changed(order, blockSize, padding, hostVecSize) ||
         !mExtractor.initialized())
     {
       mExtractor.init(order, blockSize, padding);
-      mBufferedProcess.hostSize(hostVecSize);
-      mBufferedProcess.maxSize(maxWinIn, maxWinOut,
-                               FluidBaseClient::audioChannelsIn(),
-                               FluidBaseClient::audioChannelsOut());
+//      mBufferedProcess.hostSize(hostVecSize);
+//      mBufferedProcess.maxSize(maxWinIn, maxWinOut,
+//                               FluidBaseClient::audioChannelsIn(),
+//                               FluidBaseClient::audioChannelsOut());
     }
 
     double skew = pow(2, get<kSkew>());
@@ -106,18 +110,18 @@ public:
     mExtractor.setDetectionParameters(skew, threshFwd, thresBack, halfWindow,
                                       debounce);
 
-    RealMatrix in(1, hostVecSize);
+    RealMatrix in(c.allocator(), 1, hostVecSize);
 
     in.row(0) <<= input[0]; // need to convert float->double in some hosts
     mBufferedProcess.push(RealMatrixView(in));
 
     mBufferedProcess.process(
         mExtractor.inputSize(), mExtractor.hopSize(), mExtractor.hopSize(), c,
-        [this](RealMatrixView in, RealMatrixView out) {
-          mExtractor.process(in.row(0), out.row(0), out.row(1));
+        [&](RealMatrixView in, RealMatrixView out) {
+          mExtractor.process(in.row(0), out.row(0), out.row(1), c.allocator());
         });
 
-    RealMatrix out(2, hostVecSize);
+    RealMatrix out(c.allocator(), 2, hostVecSize);
     mBufferedProcess.pull(RealMatrixView(out));
 
     if (output[0].data()) output[0] <<= out.row(0);
@@ -133,8 +137,11 @@ public:
 
 private:
   ParameterTrackChanges<index, index, index, index> mTrackValues;
-  algorithm::TransientExtraction                    mExtractor;
-  BufferedProcess                                   mBufferedProcess;
+  
+  index                          maxWindowIn;
+  index                          maxWindowOut;
+  BufferedProcess                mBufferedProcess;
+  algorithm::TransientExtraction mExtractor;
 };
 } // namespace transient
 
