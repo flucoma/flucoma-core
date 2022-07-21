@@ -16,6 +16,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/MedianFilter.hpp"
 #include "../util/OnsetDetectionFuncs.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/FluidMemory.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Eigen>
 #include <algorithm>
@@ -31,15 +32,20 @@ class OnsetDetectionFunctions
   using WindowTypes = WindowFuncs::WindowTypes;
 
 public:
-  OnsetDetectionFunctions(index maxSize)
-      : mFFT(maxSize), mWindowStorage(maxSize)
+  OnsetDetectionFunctions(index maxSize, index maxFilterSize, Allocator& alloc)
+      : mFFT(maxSize, alloc), mWindowStorage(asUnsigned(maxSize), alloc),
+        mPrevFrameStorage(asUnsigned(maxSize / 2 + 1), 0, alloc),
+        mPrevPrevFrameStorage(asUnsigned(maxSize / 2 + 1), 0, alloc),
+        mFilter(maxFilterSize, alloc)
   {}
 
   void init(index windowSize, index fftSize, index filterSize)
   {
+    assert(windowSize <= asSigned(mWindowStorage.size()));
     makeWindow(windowSize);
-    prevFrame = ArrayXcd::Zero(fftSize / 2 + 1);
-    prevPrevFrame = ArrayXcd::Zero(fftSize / 2 + 1);
+
+    std::fill(mPrevFrameStorage.begin(), mPrevFrameStorage.end(), 0);
+    std::fill(mPrevPrevFrameStorage.begin(), mPrevPrevFrameStorage.end(), 0);
     mFilter.init(filterSize);
     mFFT.resize(fftSize);
     mDebounceCount = 1;
@@ -49,30 +55,44 @@ public:
 
   void makeWindow(index windowSize)
   {
-    mWindowStorage.setZero();
-    WindowFuncs::map()[mWindowType](windowSize, mWindowStorage);
-    mWindow = mWindowStorage.segment(0, windowSize);
+    std::fill(mWindowStorage.begin(), mWindowStorage.end(), 0);
+    Eigen::Map<Eigen::ArrayXd> window(mWindowStorage.data(), windowSize);
+    WindowFuncs::map()[mWindowType](windowSize, window);
     mWindowSize = windowSize;
   }
 
+  /// input window isn't necessarily a single framre because it should encompass
+  /// `frameDelta`'s worth of history
   double processFrame(RealVectorView input, index function, index filterSize,
-                      index frameDelta = 0)
+                      index frameDelta, Allocator& alloc)
   {
     assert(mInitialized);
-    ArrayXd in = _impl::asEigen<Eigen::Array>(input);
-    double  funcVal = 0;
-    double  filteredFuncVal = 0;
-    
+    FluidEigenMap<Eigen::Array> in = _impl::asEigen<Eigen::Array>(input);
+    double                      funcVal = 0;
+    double                      filteredFuncVal = 0;
+
+    index frameSize = mWindowSize / 2 + 1;
+
     if (filterSize >= 3 &&
         (!mFilter.initialized() || filterSize != mFilter.size()))
       mFilter.init(filterSize);
 
-    ArrayXcd frame = mFFT.process(in.segment(0, mWindowSize) * mWindow);
-    auto     odf = static_cast<OnsetDetectionFuncs::ODF>(function);
+    rt::vector<std::complex<double>> frameBuffer(asUnsigned(frameSize), alloc);
+    Eigen::Map<ArrayXcd>             frame(frameBuffer.data(), frameSize);
+    Eigen::Map<Eigen::ArrayXd>       window(mWindowStorage.data(), mWindowSize);
+    frame = mFFT.process(in.col(0).segment(0, mWindowSize) * window);
+
+    Eigen::Map<ArrayXcd> prevFrame(mPrevFrameStorage.data(), frameSize);
+    Eigen::Map<ArrayXcd> prevPrevFrame(mPrevPrevFrameStorage.data(), frameSize);
+
+    auto odf = static_cast<OnsetDetectionFuncs::ODF>(function);
     if (function > 1 && function < 5 && frameDelta != 0)
     {
-      ArrayXcd frame2 =
-          mFFT.process(in.segment(frameDelta, mWindowSize) * mWindow);
+      rt::vector<std::complex<double>> frameBuffer2(asUnsigned(frameSize),
+                                                    alloc);
+      Eigen::Map<ArrayXcd>             frame2(frameBuffer2.data(), frameSize);
+      frame2 =
+          mFFT.process(in.col(0).segment(frameDelta, mWindowSize) * window);
       funcVal = OnsetDetectionFuncs::map()[odf](frame2, frame, frame);
     }
     else
@@ -92,17 +112,17 @@ public:
   }
 
 private:
-  FFT          mFFT{1024};
-  ArrayXd      mWindowStorage;
-  ArrayXd      mWindow;
-  index        mWindowSize{1024};
-  index        mDebounceCount{1};
-  ArrayXcd     prevFrame;
-  ArrayXcd     prevPrevFrame;
-  double       mPrevFuncVal{0.0};
-  WindowTypes  mWindowType{WindowTypes::kHann};
-  MedianFilter mFilter;
-  bool         mInitialized{false};
+  FFT                              mFFT;
+  rt::vector<double>               mWindowStorage;
+  ArrayXd                          mWindow;
+  index                            mWindowSize{1024};
+  index                            mDebounceCount{1};
+  rt::vector<std::complex<double>> mPrevFrameStorage;
+  rt::vector<std::complex<double>> mPrevPrevFrameStorage;
+  double                           mPrevFuncVal{0.0};
+  WindowTypes                      mWindowType{WindowTypes::kHann};
+  MedianFilter                     mFilter;
+  bool                             mInitialized{false};
 };
 
 } // namespace algorithm

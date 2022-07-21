@@ -31,7 +31,9 @@ public:
   using ArrayXd = Eigen::ArrayXd;
   using ArrayXcd = Eigen::ArrayXcd;
 
-  OnsetSegmentation(index maxSize) : mODF{maxSize} {}
+  OnsetSegmentation(index maxSize, index maxFilterSize, Allocator& alloc)
+      : mODF{maxSize, maxFilterSize, alloc}
+  {}
 
   void init(index windowSize, index fftSize, index filterSize)
   {
@@ -39,12 +41,14 @@ public:
     mDebounceCount = 1;
   }
 
+  /// input window isn't necessarily a single framre because it should encompass
+  /// `frameDelta`'s worth of history
   double processFrame(RealVectorView input, index function, index filterSize,
-                      double threshold, index debounce = 0,
-                      index frameDelta = 0)
+                      double threshold, index debounce, index frameDelta,
+                      Allocator& alloc)
   {
     double filteredFuncVal =
-        mODF.processFrame(input, function, filterSize, frameDelta);
+        mODF.processFrame(input, function, filterSize, frameDelta, alloc);
     double detected{0};
 
     if (filteredFuncVal > threshold && mPrevFuncVal < threshold &&
