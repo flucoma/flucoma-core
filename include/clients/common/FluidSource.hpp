@@ -11,8 +11,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "../../data/FluidIndex.hpp"
-#include "../../data/FluidTensor.hpp"
 #include "../../data/FluidMemory.hpp"
+#include "../../data/FluidTensor.hpp"
 #include <cassert>
 
 namespace fluid {
@@ -23,7 +23,7 @@ class FluidSource
 {
   using Matrix = FluidTensor<T, 2>;
   using View = FluidTensorView<T, 2>;
-  
+
   using Container = rt::vector<T>;
 
 public:
@@ -32,12 +32,12 @@ public:
   FluidSource(FluidSource&&) noexcept = default;
   FluidSource& operator=(FluidSource&&) noexcept = default;
 
-  FluidSource(const index size, const index channels,index maxHostBufferSize,Allocator& alloc)
-      : mSize(size), mChannels(channels),
-        mHostBufferSize(maxHostBufferSize),
+  FluidSource(const index size, const index channels, index maxHostBufferSize,
+              Allocator& alloc)
+      : mSize(size), mChannels(channels), mHostBufferSize(maxHostBufferSize),
         mMaxHostBufferSize(maxHostBufferSize),
-        mContainer(channels * bufferSize(), 0, alloc),
-        matrix(mContainer.data(), 0, channels, bufferSize()) 
+        mContainer(asUnsigned(channels * bufferSize()), 0, alloc),
+        matrix(mContainer.data(), 0, channels, bufferSize())
   {}
 
   FluidSource() : FluidSource(0, 1, 0, FluidDefaultAllocator()){};
@@ -97,12 +97,9 @@ public:
 
   /// Reset the buffer, resizing if the desired
   /// size and / or host buffer size have changed
-  void reset(index channels = 0)
+  void reset()
   {
-
-    std::fill(mContainer.begin(),mContainer.end(),0);
-    
-//    mContainer.fill(0);
+    std::fill(mContainer.begin(), mContainer.end(), 0);
     mCounter = 0;
   }
 
@@ -157,13 +154,13 @@ private:
       if (incrementTime) mCounter = offset + size;
     }
   }
-  
-  index  mCounter = 0;
-  index  mSize;
-  index  mChannels;
-  index  mHostBufferSize = 0;
-  index  mMaxHostBufferSize = 0;
+
+  index     mCounter = 0;
+  index     mSize;
+  index     mChannels;
+  index     mHostBufferSize = 0;
+  index     mMaxHostBufferSize = 0;
   Container mContainer;
-  View   matrix;
+  View      matrix;
 };
 } // namespace fluid

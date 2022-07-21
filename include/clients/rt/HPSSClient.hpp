@@ -67,11 +67,8 @@ public:
   static constexpr auto& getParameterDescriptors() { return HPSSParams; }
 
   HPSSClient(ParamSetViewType& p, FluidContext const& c)
-      : mParams{p}, mSTFTBufferedProcess{get<kFFT>(),
-                                         1,
-                                         3,
-                                         c.hostVectorSize(),
-                                         c.allocator()},
+      : mParams{p}, mSTFTBufferedProcess{get<kFFT>(), 1, 3,
+                                         c.hostVectorSize(), c.allocator()},
         mHPSS{get<kFFT>().max(), get<kHSize>().max(), c.allocator()}
   {
     FluidBaseClient::audioChannelsIn(1);

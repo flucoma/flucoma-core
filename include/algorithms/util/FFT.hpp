@@ -48,7 +48,8 @@ public:
   }
 
   FFT_SETUP_D operator()() const noexcept { return mSetup; }
-  index maxSize() const noexcept { return mMaxSize; }
+  index       maxSize() const noexcept { return mMaxSize; }
+
 private:
   FFT_SETUP_D mSetup{nullptr};
   index       mMaxSize;
@@ -69,12 +70,13 @@ public:
   noexcept
       : mMaxSize(size), mSize(size), mFrameSize(size / 2 + 1),
         mLog2Size(static_cast<index>(std::log2(size))), mSetup(getFFTSetup()),
-        mRealBuffer(mFrameSize, alloc), mImagBuffer(mFrameSize, alloc),
-        mOutputBuffer(mFrameSize, alloc)
+        mRealBuffer(asUnsigned(mFrameSize), alloc),
+        mImagBuffer(asUnsigned(mFrameSize), alloc),
+        mOutputBuffer(asUnsigned(mFrameSize), alloc)
   {}
 
   FFT(const FFT& other) = delete;
-  FFT(FFT&& other) noexcept  = default; 
+  FFT(FFT&& other) noexcept = default;
 
   FFT& operator=(const FFT&) = delete;
   FFT& operator=(FFT&& other) noexcept = default;
@@ -119,9 +121,9 @@ protected:
 
   FFT_SETUP_D         mSetup;
   FFT_SPLIT_COMPLEX_D mSplit;
-  rt::vector<double> mRealBuffer;
-  rt::vector<double> mImagBuffer;
-  
+  rt::vector<double>  mRealBuffer;
+  rt::vector<double>  mImagBuffer;
+
 private:
   rt::vector<std::complex<double>> mOutputBuffer;
 };
@@ -131,7 +133,7 @@ class IFFT : public FFT
 
 public:
   IFFT(index size, Allocator& alloc)
-      : FFT(size, alloc), mOutputBuffer(size, alloc)
+      : FFT(size, alloc), mOutputBuffer(asUnsigned(size), alloc)
   {}
 
   using MapXd = Eigen::Map<Eigen::ArrayXd>;

@@ -10,8 +10,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "../../data/FluidIndex.hpp"
-#include "../../data/FluidTensor.hpp"
 #include "../../data/FluidMemory.hpp"
+#include "../../data/FluidTensor.hpp"
 #include <cassert>
 #include <functional>
 
@@ -22,7 +22,6 @@ template <typename T>
 class FluidSink
 {
   using Container = rt::vector<T>;
-//  using Matrix = FluidTensor<T, 2>;
   using View = FluidTensorView<T, 2>;
   using const_view_type = const FluidTensorView<T, 2>;
 
@@ -34,14 +33,13 @@ public:
   FluidSink(FluidSink&&) noexcept = default;
   FluidSink& operator=(FluidSink&&) noexcept = default;
 
-  FluidSink(const index size, const index channels, index maxHostVectorSize,Allocator& alloc)
+  FluidSink(const index size, const index channels, index maxHostVectorSize,
+            Allocator& alloc)
       : mSize(size), mChannels(channels), mHostBufferSize(maxHostVectorSize),
         mMaxHostBufferSize(maxHostVectorSize),
-        mContainer(channels * bufferSize(), 0, alloc),
+        mContainer(asUnsigned(channels * bufferSize()), 0, alloc),
         matrix(mContainer.data(), 0, channels, bufferSize())
   {}
-
-//  Matrix& data() { return matrix; }
 
   /// Accumulate data into the buffer, optionally moving
   /// the write head on by a custom amount.
@@ -165,12 +163,12 @@ private:
 
   index bufferSize() const { return mSize + mHostBufferSize; }
 
-  index  mSize;
-  index  mChannels;
-  index  mCounter = 0;
-  index  mHostBufferSize = 0;
-  index  mMaxHostBufferSize = 0;
+  index     mSize;
+  index     mChannels;
+  index     mCounter = 0;
+  index     mHostBufferSize = 0;
+  index     mMaxHostBufferSize = 0;
   Container mContainer;
-  View matrix;
+  View      matrix;
 };
 } // namespace fluid
