@@ -246,7 +246,7 @@ public:
     if (!input[0].data()) return;
     assert(mBufferedProcess.channelsIn() == asSigned(input.size()));
     index     chansIn = mBufferedProcess.channelsIn();
-    FFTParams fftParams = setup(p, input[0].size());
+    FFTParams fftParams = setup(p);
 
     mBufferedProcess.push(input);
     ComplexMatrixView spectrumIn{mSpectrumIn.data(), 0, chansIn,
