@@ -28,8 +28,7 @@ class ChromaFilterBank
 {
 public:
   ChromaFilterBank(index maxBins, index maxFFT, Allocator& alloc)
-      : mFiltersStorage(maxBins * (maxFFT / 2 + 1), alloc),
-        mMaxChroma(maxBins), mMaxFFT(maxFFT)
+        : mMaxChroma(maxBins), mMaxFFT(maxFFT), mFilters(maxBins, maxFFT/2 + 1, alloc)
   {}
 
 
@@ -41,46 +40,37 @@ public:
     assert(fftSize <= mMaxFFT);
     assert(nChroma <= mMaxChroma);
     
-    rt::vector<double> freqsBuf(fftSize,alloc);
-    ArrayXMap freqs(freqsBuf.data(),fftSize);
-//    ArrayXd freqs = ArrayXd::LinSpaced(fftSize, 0, sampleRate);
+    ScopedEigenMap<Eigen::ArrayXd> freqs(fftSize, alloc);
     freqs = ArrayXd::LinSpaced(fftSize, 0, sampleRate);
     freqs = nChroma * (freqs / (ref / 16)).log() * log2E;
     freqs[0] = freqs[1] - 1.5 * nChroma;
 
-    rt::vector<double> widthsBuf(fftSize,alloc);
-    ArrayXMap widths(widthsBuf.data(),fftSize);
+    ScopedEigenMap<Eigen::ArrayXd> widths(fftSize, alloc);
     widths =  ArrayXd::Ones(fftSize);
     widths.segment(0, fftSize - 1) =
         freqs.segment(1, fftSize - 1) -
         freqs.segment(0, fftSize - 1);
     widths = widths.max(1.0);
     
-    rt::vector<double> diffsBuf(nChroma * fftSize,alloc);
-    ArrayXXMap diffs(diffsBuf.data(), nChroma, fftSize);
+    ScopedEigenMap<Eigen::ArrayXXd> diffs(nChroma, fftSize, alloc);
     diffs =
       freqs.replicate(1, nChroma).transpose() -
       ArrayXd::LinSpaced(nChroma, 0, nChroma - 1).transpose().replicate(fftSize, 1).transpose();
     index halfChroma = std::lrint(nChroma / 2);
     
-    rt::vector<double> remainderBuf(nChroma * fftSize,alloc);
-    ArrayXXMap remainder(remainderBuf.data(), nChroma, fftSize);
+    ScopedEigenMap<ArrayXXd> remainder(nChroma, fftSize, alloc);
     remainder =  diffs.unaryExpr([&](const double x){
         return std::fmod(x + 10* nChroma + halfChroma, nChroma) - halfChroma;
     });
     
-    Eigen::Map<MatrixXd> filters(mFiltersStorage.data(), nChroma, nBins);
-    filters = (-0.5 * (2 * remainder / widths.replicate(1, nChroma)
+    mFilters.bottomLeftCorner(nChroma,nBins) = (-0.5 * (2 * remainder / widths.replicate(1, nChroma)
     .transpose())
     .square())
     .exp()
     .block(0, 0, nChroma, nBins);
     
-    filters.colwise().normalize();
+    mFilters.bottomLeftCorner(nChroma,nBins).colwise().normalize();
     
-//    mFiltersStorage.setZero();
-//    mFiltersStorage.block(0, 0, nChroma, nBins) = filters;
-
     mNChroma = nChroma;
     mNBins = nBins;
     mScale = 2.0 / (fftSize * mNChroma);
@@ -94,8 +84,6 @@ public:
     using namespace std;
     
     FluidEigenMap<Eigen::Array> frame = _impl::asEigen<Eigen::Array>(in);
-//    Eigen::Ref<Eigen::MatrixXd> filters = mFiltersStorage.block(0, 0, mNChroma, mNBins);
-    Eigen::Map<MatrixXd> filters(mFiltersStorage.data(), mNChroma, mNBins);
     
     if(minFreq != 0 || maxFreq != -1){
         maxFreq = (maxFreq == -1) ? (mSampleRate / 2) : min(maxFreq, mSampleRate / 2);
@@ -109,28 +97,25 @@ public:
           using Eigen::seqN;
           frame(seq(0,minBin),seqN(0,1)).setZero();
           frame(seqN(maxBin, frame.size() - maxBin), seqN(0,1)).setZero(); 
-//        frame.segment(0, minBin).setZero();
-//        frame.segment(maxBin, frame.size() - maxBin).setZero();
     }
 
     FluidEigenMap<Eigen::Array> result = _impl::asEigen<Eigen::Array>(out);
     
-    result = mScale * (filters * frame.square().matrix()).array();
+    result = mScale * (mFilters.bottomLeftCorner(mNChroma,mNBins) * frame.square().matrix()).array();
 
     if (normalize > 0) {
       double norm = normalize == 1? result.sum() : result.maxCoeff();
       result = result / std::max(norm, epsilon);
     }
-//    out <<= _impl::asFluid(result);
   }
 
   index mNChroma;
   index mNBins;
   double mScale;
   double mSampleRate;
-  double mMaxFFT;
-  double mMaxChroma;
-  rt::vector<double> mFiltersStorage;
+  index mMaxChroma;
+  index mMaxFFT;
+  ScopedEigenMap<Eigen::MatrixXd> mFilters;
 };
 } // namespace algorithm
 } // namespace fluid
