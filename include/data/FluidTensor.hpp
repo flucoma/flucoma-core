@@ -144,13 +144,31 @@ public:
   }
 
   /// Construct from list of extents
-  template <typename... Dims,
-            typename = std::enable_if_t<isIndexSequence<Dims...>()>>
-  FluidTensor(Allocator& alloc, Dims... dims) : mContainer(alloc), mDesc(dims...)
-  {
-    static_assert(sizeof...(dims) == N, "Number of dimensions doesn't match");
-    mContainer.resize(asUnsigned(mDesc.size));
-  }
+//  template <typename... Dims,
+//            typename = std::enable_if_t<isIndexSequence<Dims...>()>>
+//  FluidTensor(Allocator& alloc, Dims... dims) : mContainer(alloc), mDesc(dims...)
+//  {
+//    static_assert(sizeof...(dims) == N, "Number of dimensions doesn't match");
+//    mContainer.resize(asUnsigned(mDesc.size));
+//  }
+  
+  template <size_t Order = N,
+            typename = std::enable_if_t<Order == 1>>
+  FluidTensor(index size, Allocator& alloc = FluidDefaultAllocator())
+  : mContainer(size, alloc), mDesc(size)
+  { }
+  
+  template <size_t Order = N,
+            typename = std::enable_if_t<Order == 2>>
+  FluidTensor(index rows, index cols,  Allocator& alloc = FluidDefaultAllocator())
+  : mContainer(rows * cols, alloc), mDesc(rows, cols)
+  { }
+
+  template <size_t Order = N,
+            typename = std::enable_if_t<Order == 3>>
+  FluidTensor(index rows, index cols, index slices,  Allocator& alloc = FluidDefaultAllocator())
+  : mContainer(rows * cols * slices, alloc), mDesc(rows, cols, slices)
+  { }
 
   /// Construct/assign from nested initializer_list of elements
   FluidTensor(FluidTensorInitializer<T, N> init)
