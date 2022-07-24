@@ -64,8 +64,8 @@ public:
         mSTFTBufferedProcess(get<kFFT>(), 1, 0, c.hostVectorSize(), c.allocator()),
         mAlgorithm(get<kNChroma>().max(), get<kFFT>().max(), c.allocator())
   {
-    mMagnitude = FluidTensor<double, 1>(c.allocator(), get<kFFT>().maxFrameSize());
-    mChroma = FluidTensor<double, 1>(c.allocator(), get<kNChroma>().max());
+    mMagnitude = FluidTensor<double, 1>(get<kFFT>().maxFrameSize(), c.allocator());
+    mChroma = FluidTensor<double, 1>(get<kNChroma>().max(), c.allocator());
     audioChannelsIn(1);
     controlChannelsOut({1,get<kNChroma>(),get<kNChroma>().max()});
     setInputLabels({"audio in"});
