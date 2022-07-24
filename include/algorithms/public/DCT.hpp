@@ -14,6 +14,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
+#include "../../data/FluidMemory.hpp"
 #include <Eigen/Core>
 #include <cassert>
 #include <cmath>
@@ -27,44 +28,57 @@ public:
   using ArrayXd = Eigen::ArrayXd;
   using MatrixXd = Eigen::MatrixXd;
 
-  DCT(index maxInputSize, index maxOutputSize)
+  DCT(index maxInputSize, index maxOutputSize, Allocator& alloc):
+    mTable{maxOutputSize, maxInputSize, alloc}
   {
-    mTableStorage = MatrixXd::Zero(maxOutputSize, maxInputSize);
   }
 
-  void init(index inputSize, index outputSize)
+  void init(index inputSize, index outputSize, Allocator& alloc)
   {
     using namespace std;
     assert(inputSize >= outputSize);
+    assert(inputSize <= mTable.cols());
+    assert(outputSize <= mTable.rows());
+    
     mInputSize = inputSize;
     mOutputSize = outputSize;
-    mTable = mTableStorage.block(0, 0, mOutputSize, mInputSize);
     mTable.setZero();
+    
+    ScopedEigenMap<ArrayXd> freqs(inputSize, alloc);
     for (index i = 0; i < mOutputSize; i++)
     {
       double  scale = i == 0 ? 1.0 / sqrt(inputSize) : sqrt(2.0 / inputSize);
-      ArrayXd freqs = ((pi / inputSize) * i) *
+      freqs = ((pi / inputSize) * i) *
                       ArrayXd::LinSpaced(inputSize, 0.5, inputSize - 0.5);
-      mTable.row(i) = freqs.cos() * scale;
+      mTable.topLeftCorner(outputSize, inputSize).row(i) = freqs.cos() * scale;
     }
+    mInitialized = true;
   }
 
   void processFrame(const RealVectorView in, RealVectorView out)
   {
-    assert(in.size() == mInputSize);
-    ArrayXd frame = _impl::asEigen<Eigen::Array>(in);
-    ArrayXd result = (mTable * frame.matrix()).array();
-    out <<= _impl::asFluid(result);
+    assert(mInitialized && "DCT: processFrame() called before init()");
+    assert(in.size() == mInputSize && "DCT: actual input size doesn't match expected size");
+    assert(out.size() == mOutputSize && "DCT: actual output size doesn't maatch expected size"); 
+//    ArrayXd frame = _impl::asEigen<Eigen::Array>(in);
+//    ArrayXd result = (mTable * frame.matrix()).array();
+//    out <<= _impl::asFluid(result);
+    
+    FluidEigenMap<Eigen::Matrix> frame = _impl::asEigen<Eigen::Matrix>(in);
+    _impl::asEigen<Eigen::Array>(out)
+            = (mTable.topLeftCorner(mOutputSize, mInputSize) * frame).array();
   }
 
   void processFrame(Eigen::Ref<const ArrayXd> input, Eigen::Ref<ArrayXd> output)
   {
-    output = (mTable * input.matrix()).array();
+    output = (mTable.topLeftCorner(mOutputSize, mInputSize) * input.matrix()).array();
   }
+  
+private:
   index    mInputSize{40};
   index    mOutputSize{13};
-  MatrixXd mTable;
-  MatrixXd mTableStorage;
+  bool     mInitialized{false};
+  ScopedEigenMap<MatrixXd> mTable;
 };
 } // namespace algorithm
 } // namespace fluid

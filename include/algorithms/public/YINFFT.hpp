@@ -15,6 +15,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/PeakDetection.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
+#include "../../data/FluidMemory.hpp"
 #include <Eigen/Core>
 
 namespace fluid {
@@ -25,20 +26,26 @@ class YINFFT
 
 public:
   void processFrame(const RealVectorView& input, RealVectorView output,
-                    double minFreq, double maxFreq, double sampleRate)
+                    double minFreq, double maxFreq, double sampleRate, Allocator& alloc)
   {
     using namespace Eigen;
     PeakDetection pd;
-    ArrayXd       mag = _impl::asEigen<Array>(input);
-    ArrayXd       squareMag = mag.square();
-    index         nBins = mag.size();
-    FFT           fft(2 * (mag.size() - 1));
+//    ScopedEigenMap<ArrayXd>  mag = _;
+    ScopedEigenMap<ArrayXd> squareMag(input.size(), alloc);
+    squareMag = _impl::asEigen<Array>(input).square();
+    
+    index         nBins = input.size();
+    FFT           fft(2 * (input.size() - 1));
     double        squareMagSum = 2 * squareMag.sum();
-    ArrayXd       squareMagSym(2 * (nBins - 1));
+    
+    ScopedEigenMap<ArrayXd> squareMagSym(2 * (nBins - 1), alloc);
     squareMagSym << squareMag[0], squareMag.segment(1, nBins - 1),
         squareMag.segment(1, nBins - 2).reverse();
-    ArrayXcd squareMagFFT = fft.process(squareMagSym);
-    ArrayXd  yin = squareMagSum - squareMagFFT.real();
+    
+    Eigen::Map<ArrayXcd> squareMagFFT = fft.process(squareMagSym);
+    ScopedEigenMap<ArrayXd> yin(squareMagFFT.size(), alloc);
+    yin = squareMagSum - squareMagFFT.real();
+    
     if (maxFreq == 0) maxFreq = 1;
     if (minFreq == 0) minFreq = 1;
     yin(0) = 1;
@@ -52,7 +59,8 @@ public:
     double pitchConfidence = 0;
     if (tmpSum > 0)
     {
-      ArrayXd yinFlip = -yin;
+      ScopedEigenMap<ArrayXd> yinFlip(yin.size(), alloc);
+      yinFlip = -yin;
       // segment from max to min freq
       index minBin = std::lrint(sampleRate / maxFreq);
       index maxBin = std::lrint(sampleRate / minFreq);
@@ -61,9 +69,9 @@ public:
         maxBin = yinFlip.size() - minBin - 1;
       if (maxBin > minBin)
       {
-        yinFlip = yinFlip.segment(minBin, maxBin - minBin).eval();
-
-        auto vec = pd.process(yinFlip, 1, yinFlip.minCoeff());
+//        yinFlip = yinFlip.segment(minBin, maxBin - minBin).eval();
+        auto yinSeg = yinFlip.segment(minBin, maxBin - minBin);
+        auto vec = pd.process(yinSeg, 1, yinSeg.minCoeff(), true, true, alloc);
         if (vec.size() > 0)
         {
           pitch = sampleRate / (minBin + vec[0].first);

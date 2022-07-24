@@ -76,9 +76,11 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return PitchParams; }
 
-  PitchClient(ParamSetViewType& p)
-      : mParams(p), mSTFTBufferedProcess(get<kFFT>().max(), 1, 0),
-        cepstrumF0(get<kFFT>().max())
+  PitchClient(ParamSetViewType& p, FluidContext& c)
+      : mParams(p), mSTFTBufferedProcess(get<kFFT>(), 1, 0, c.hostVectorSize(), c.allocator()),
+        cepstrumF0(get<kFFT>().maxFrameSize(), c.allocator()),
+        mMagnitude(get<kFFT>().maxFrameSize(), c.allocator()),
+        mDescriptors(2, c.allocator())
   {
     audioChannelsIn(1);
     controlChannelsOut({1,mMaxFeatures});
@@ -98,26 +100,28 @@ public:
 
     if (mParamTracker.changed(get<kFFT>().frameSize(), sampleRate()))
     {
-      cepstrumF0.init(get<kFFT>().frameSize());
-      mMagnitude.resize(get<kFFT>().frameSize());
+      cepstrumF0.init(get<kFFT>().frameSize(), c.allocator());
+//      mMagnitude.resize(get<kFFT>().frameSize());
     }
-
+    
+    FluidTensorView<double, 1> mags = mMagnitude(Slice(0,get<kFFT>().frameSize()));
+    
     mSTFTBufferedProcess.processInput(
-        mParams, input, c, [&](ComplexMatrixView in) {
-          algorithm::STFT::magnitude(in.row(0), mMagnitude);
+        get<kFFT>(), input, c, [&](ComplexMatrixView in) {
+          algorithm::STFT::magnitude(in.row(0), mags);
           switch (get<kAlgorithm>())
           {
           case 0:
-            cepstrumF0.processFrame(mMagnitude, mDescriptors, get<kMinFreq>(),
-                                    get<kMaxFreq>(), sampleRate());
+            cepstrumF0.processFrame(mags, mDescriptors, get<kMinFreq>(),
+                                    get<kMaxFreq>(), sampleRate(),c.allocator());
             break;
           case 1:
-            hps.processFrame(mMagnitude, mDescriptors, 4, get<kMinFreq>(),
-                             get<kMaxFreq>(), sampleRate());
+            hps.processFrame(mags, mDescriptors, 4, get<kMinFreq>(),
+                             get<kMaxFreq>(), sampleRate(), c.allocator());
             break;
           case 2:
-            yinFFT.processFrame(mMagnitude, mDescriptors, get<kMinFreq>(),
-                                get<kMaxFreq>(), sampleRate());
+            yinFFT.processFrame(mags, mDescriptors, get<kMinFreq>(),
+                                get<kMaxFreq>(), sampleRate(), c.allocator());
             break;
           }
         });
@@ -134,7 +138,7 @@ public:
     if (selection[0])
     {
       output[0](i++) =
-          static_cast<T>(setPitchUnits[get<kUnit>()](mDescriptors(0)));
+          static_cast<T>(setPitchUnits[asUnsigned(get<kUnit>())](mDescriptors(0)));
     }
 
     // pitch confidence
@@ -150,16 +154,16 @@ public:
     return { get<kFFT>().winSize(), get<kFFT>().hopSize() }; 
   }
 
-  void  reset()
+  void  reset(Allocator& alloc)
   {
     mSTFTBufferedProcess.reset();
-    cepstrumF0.init(get<kFFT>().frameSize());
-    mMagnitude.resize(get<kFFT>().frameSize());
+    cepstrumF0.init(get<kFFT>().frameSize(), alloc);
+//    mMagnitude.resize(get<kFFT>().frameSize());
   }
 
 private:
   ParameterTrackChanges<index, double>        mParamTracker;
-  STFTBufferedProcess<ParamSetViewType, kFFT> mSTFTBufferedProcess;
+  STFTBufferedProcess<> mSTFTBufferedProcess;
 
   CepstrumF0             cepstrumF0;
   HPS                    hps;
