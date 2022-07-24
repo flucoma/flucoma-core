@@ -71,7 +71,11 @@ public:
     return TransientSliceParams;
   }
 
-  TransientSliceClient(ParamSetViewType& p) : mParams{p}
+  TransientSliceClient(ParamSetViewType& p, FluidContext& c)
+    : mParams{p},mMaxWindowIn{2 * get<kBlockSize>() + get<kPadding>()},
+      mMaxWindowOut{get<kBlockSize>()},
+      mBufferedProcess{mMaxWindowIn, mMaxWindowOut, 1, 1, c.hostVectorSize(), c.allocator()},
+      mExtractor{get<kOrder>(), get<kBlockSize>(), get<kPadding>(), c.allocator()}
   {
     audioChannelsIn(1);
     audioChannelsOut(1);
@@ -98,10 +102,6 @@ public:
         !mExtractor.initialized())
     {
       mExtractor.init(order, blockSize, padding);
-      mBufferedProcess.hostSize(hostVecSize);
-      mBufferedProcess.maxSize(maxWinIn, maxWinOut,
-                               FluidBaseClient::audioChannelsIn(),
-                               FluidBaseClient::audioChannelsOut());
     }
 
     double skew = pow(2, get<kSkew>());
@@ -114,18 +114,18 @@ public:
     mExtractor.setDetectionParameters(skew, threshFwd, thresBack, halfWindow,
                                       debounce, minSeg);
 
-    RealMatrix in(1, hostVecSize);
+    RealMatrix in(1, hostVecSize, c.allocator());
 
     in.row(0) <<= input[0]; // need to convert float->double in some hosts
     mBufferedProcess.push(RealMatrixView(in));
 
     mBufferedProcess.process(mExtractor.inputSize(), mExtractor.hopSize(),
                              mExtractor.hopSize(), c,
-                             [this](RealMatrixView in, RealMatrixView out) {
-                               mExtractor.process(in.row(0), out.row(0));
+                             [&](RealMatrixView in, RealMatrixView out) {
+                               mExtractor.process(in.row(0), out.row(0), c.allocator());
                              });
 
-    RealMatrix out(1, hostVecSize);
+    RealMatrix out(1, hostVecSize, c.allocator());
     mBufferedProcess.pull(RealMatrixView(out));
 
     if (output[0].data()) output[0] <<= out.row(0);
@@ -143,6 +143,8 @@ public:
   }
 
 private:
+  index mMaxWindowIn;
+  index mMaxWindowOut;
   ParameterTrackChanges<index, index, index, index> mTrackValues;
   algorithm::TransientSegmentation                  mExtractor;
 
