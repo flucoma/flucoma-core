@@ -22,7 +22,7 @@ class MemoryBufferAdaptor : public BufferAdaptor
 {
 public:
   MemoryBufferAdaptor(index chans, index frames, double /*sampleRate*/)
-      : mData(FluidDefaultAllocator(),frames, chans)
+      : mData(frames, chans)
   {}
 
   MemoryBufferAdaptor(std::shared_ptr<BufferAdaptor>& other) { *this = other; }
