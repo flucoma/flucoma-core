@@ -110,7 +110,7 @@ public:
     mExtractor.setDetectionParameters(skew, threshFwd, thresBack, halfWindow,
                                       debounce);
 
-    RealMatrix in(c.allocator(), 1, hostVecSize);
+    RealMatrix in(1, hostVecSize, c.allocator());
 
     in.row(0) <<= input[0]; // need to convert float->double in some hosts
     mBufferedProcess.push(RealMatrixView(in));
@@ -121,7 +121,7 @@ public:
           mExtractor.process(in.row(0), out.row(0), out.row(1), c.allocator());
         });
 
-    RealMatrix out(c.allocator(), 2, hostVecSize);
+    RealMatrix out(2, hostVecSize, c.allocator());
     mBufferedProcess.pull(RealMatrixView(out));
 
     if (output[0].data()) output[0] <<= out.row(0);
