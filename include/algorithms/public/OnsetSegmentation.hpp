@@ -31,7 +31,7 @@ public:
   using ArrayXd = Eigen::ArrayXd;
   using ArrayXcd = Eigen::ArrayXcd;
 
-  OnsetSegmentation(index maxSize, index maxFilterSize, Allocator& alloc)
+  OnsetSegmentation(index maxSize, index maxFilterSize, Allocator& alloc = FluidDefaultAllocator())
       : mODF{maxSize, maxFilterSize, alloc}
   {}
 
@@ -45,7 +45,7 @@ public:
   /// `frameDelta`'s worth of history
   double processFrame(RealVectorView input, index function, index filterSize,
                       double threshold, index debounce, index frameDelta,
-                      Allocator& alloc)
+                      Allocator& alloc = fluid::FluidDefaultAllocator())
   {
     double filteredFuncVal =
         mODF.processFrame(input, function, filterSize, frameDelta, alloc);

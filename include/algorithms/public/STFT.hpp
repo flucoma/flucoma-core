@@ -33,8 +33,8 @@ class STFT
   using ArrayXdMap = Eigen::Map<Eigen::ArrayXd>;
 
 public:
-  STFT(index windowSize, index fftSize, index hopSize, index windowType,
-       Allocator& alloc)
+  STFT(index windowSize, index fftSize, index hopSize, index windowType = 0,
+       Allocator& alloc = FluidDefaultAllocator())
       : mWindowSize(windowSize), mHopSize(hopSize), mFrameSize(fftSize / 2 + 1),
         mMaxWindowSize(windowSize),
         mWindowBuffer(asUnsigned(windowSize), alloc),
@@ -150,8 +150,8 @@ class ISTFT
   using ArrayXdMap = Eigen::Map<Eigen::ArrayXd>;
 
 public:
-  ISTFT(index windowSize, index fftSize, index hopSize, index windowType,
-        Allocator& alloc)
+  ISTFT(index windowSize, index fftSize, index hopSize, index windowType = 0,
+        Allocator& alloc = FluidDefaultAllocator())
       : mWindowSize(windowSize), mMaxWindowSize(windowSize), mHopSize(hopSize),
         mScale(1 / double(fftSize)), mIFFT(fftSize, alloc),
         mBuffer(asUnsigned(mWindowSize), alloc),

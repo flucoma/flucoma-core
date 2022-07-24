@@ -66,7 +66,7 @@ public:
 
   FFT() = delete;
 
-  FFT(index size, Allocator& alloc)
+  FFT(index size, Allocator& alloc = FluidDefaultAllocator())
   noexcept
       : mMaxSize(size), mSize(size), mFrameSize(size / 2 + 1),
         mLog2Size(static_cast<index>(std::log2(size))), mSetup(getFFTSetup()),
@@ -132,7 +132,7 @@ class IFFT : public FFT
 {
 
 public:
-  IFFT(index size, Allocator& alloc)
+  IFFT(index size, Allocator& alloc = FluidDefaultAllocator())
       : FFT(size, alloc), mOutputBuffer(asUnsigned(size), alloc)
   {}
 
