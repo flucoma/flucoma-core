@@ -63,13 +63,13 @@ public:
         return std::fmod(x + 10* nChroma + halfChroma, nChroma) - halfChroma;
     });
     
-    mFilters.bottomLeftCorner(nChroma,nBins) = (-0.5 * (2 * remainder / widths.replicate(1, nChroma)
+    mFilters.topLeftCorner(nChroma,nBins) = (-0.5 * (2 * remainder / widths.replicate(1, nChroma)
     .transpose())
     .square())
     .exp()
     .block(0, 0, nChroma, nBins);
     
-    mFilters.bottomLeftCorner(nChroma,nBins).colwise().normalize();
+    mFilters.topLeftCorner(nChroma,nBins).colwise().normalize();
     
     mNChroma = nChroma;
     mNBins = nBins;
@@ -101,7 +101,7 @@ public:
 
     FluidEigenMap<Eigen::Array> result = _impl::asEigen<Eigen::Array>(out);
     
-    result = mScale * (mFilters.bottomLeftCorner(mNChroma,mNBins) * frame.square().matrix()).array();
+    result = mScale * (mFilters.topLeftCorner(mNChroma,mNBins) * frame.square().matrix()).array();
 
     if (normalize > 0) {
       double norm = normalize == 1? result.sum() : result.maxCoeff();
