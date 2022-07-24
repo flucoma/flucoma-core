@@ -21,6 +21,11 @@ namespace fluid {
       static Allocator def = foonathan::memory::make_allocator_reference(foonathan::memory::heap_allocator());
       return def;
   }
+  // Avoiding duplicate symbol, but it sucks
+  // auto FluidDefaultAllocator = []()->Allocator&{
+  //     static Allocator def = foonathan::memory::make_allocator_reference(foonathan::memory::heap_allocator());
+  //     return def;     
+  // }; 
   
   using ArrayXMap = Eigen::Map<Eigen::ArrayXd>;
   using ArrayXXMap = Eigen::Map<Eigen::ArrayXXd>;
@@ -30,7 +35,9 @@ namespace fluid {
   template<typename EigenType>
   class ScopedEigenMap: public Eigen::Map<EigenType>
   {
-      using Parent = Eigen::Map<EigenType>;
+    protected:
+       using Eigen::Map<EigenType>::m_data;
+
     public:
       using Scalar = typename EigenType::Scalar;
             
@@ -38,25 +45,27 @@ namespace fluid {
         : Eigen::Map<EigenType>(nullptr, size),
           mStorage(asUnsigned(size), alloc)
           {
-            Eigen::Map<EigenType>::m_data = mStorage.data();
+              this->m_data = mStorage.data();
           }
         
       ScopedEigenMap(index rows, index cols, Allocator& alloc)
         : Eigen::Map<EigenType>(nullptr, rows, cols), mStorage(asUnsigned(rows * cols), alloc)
         {
-          Eigen::Map<EigenType>::m_data = mStorage.data();
+          this->m_data = mStorage.data();
         }
       
       ScopedEigenMap(ScopedEigenMap&& other) noexcept:
-          mStorage(std::move(other.mStorage)),
-           Eigen::Map<EigenType>::m_data(mStorage.data())
-      {}
+          Eigen::Map<EigenType> {std::move(other)},
+          mStorage(std::move(other.mStorage))            
+      {
+        this->m_data = mStorage.data();
+      }
       
       ScopedEigenMap(const ScopedEigenMap& other):
           Eigen::Map<EigenType>(other),
-          mStorage(other.mStorage),
-          Eigen::Map<EigenType>::m_data(mStorage.data())
+          mStorage(other.mStorage)
       {
+        this->m_data = mStorage.data();
       }
       
       ScopedEigenMap& operator=(const ScopedEigenMap& other){
@@ -66,10 +75,13 @@ namespace fluid {
       }
       
       ScopedEigenMap& operator=(ScopedEigenMap&& other) noexcept {
-         Eigen::Map<EigenType>::operator=(std::move(other));
          using std::swap;
          swap(mStorage,other.mStorage);
-         Eigen::Map<EigenType>::m_data(mStorage.data());
+         this->m_data = mStorage.data();
+         if constexpr  (Eigen::Map<EigenType>::NumDimensions == 1)
+          new (static_cast<Eigen::Map<EigenType>*>(this)) Eigen::Map<EigenType>{mStorage.data(),other.rows()};
+         else
+          new (static_cast<Eigen::Map<EigenType>*>(this)) Eigen::Map<EigenType>{mStorage.data(),other.rows(), other.cols()};
          return *this;
       }
 
