@@ -23,9 +23,6 @@ namespace algorithm {
 
 class Envelope
 {
-
-  using ArrayXd = Eigen::ArrayXd;
-
 public:
   void init(double floor, double hiPassFreq)
   {

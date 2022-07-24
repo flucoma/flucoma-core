@@ -24,21 +24,13 @@ namespace algorithm {
 
 class EnvelopeSegmentation
 {
-
-  using ArrayXd = Eigen::ArrayXd;
-
 public:
   void init(double floor, double hiPassFreq)
   {
-    // mFastSlide.init(floor);
-    // mSlowSlide.init(floor);
-    mEnvelope.init(floor,hiPassFreq); 
+    mEnvelope.init(floor,hiPassFreq);
     mDebounceCount = 1;
-    // initFilters(hiPassFreq);
-    // mHiPassFreq = hiPassFreq;
     mPrevValue = 0;
     mState = false;
-    // mInitialized = true;
   }
 
   double processSample(const double in, double onThreshold, double offThreshold,
@@ -46,27 +38,6 @@ public:
                        index fastRampDownTime, index slowRampDownTime,
                        double hiPassFreq, index debounce)
   {
-    // using namespace std;
-    // assert(mInitialized);
-    // mFastSlide.updateCoeffs(fastRampUpTime, fastRampDownTime);
-    // mSlowSlide.updateCoeffs(slowRampUpTime, slowRampDownTime);
-    // double filtered = in;
-    // if (hiPassFreq != mHiPassFreq)
-    // {
-    //   initFilters(hiPassFreq);
-    //   mHiPassFreq = hiPassFreq;
-    // }
-    // if (mHiPassFreq > 0){
-    //   filtered = mHiPass2.processSample(mHiPass1.processSample(in));
-    // }
-    // double rectified = abs(filtered);
-    // double dB = 20 * log10(rectified);
-    // double clipped = max(dB, floor);
-    // double fast = mFastSlide.processSample(clipped);
-    // double slow = mSlowSlide.processSample(clipped);
-    // double value = fast - slow;
-
-
     double value =
         mEnvelope.processSample(in, floor, fastRampUpTime, slowRampUpTime,
                                 fastRampDownTime, slowRampDownTime, hiPassFreq);
@@ -91,23 +62,10 @@ public:
   bool initialized() { return mEnvelope.initialized(); }
 
 private:
-//  void initFilters(double cutoff)
-//  {
-//    mHiPass1.init(cutoff);
-//    mHiPass2.init(cutoff);
-//  }
-  
-  Envelope mEnvelope; 
-  // double mHiPassFreq{0};
+  Envelope mEnvelope;
   index  mDebounceCount{1};
   double mPrevValue{0};
-  // bool   mInitialized{false};
   bool   mState{false};
-
-  // ButterworthHPFilter mHiPass1;
-  // ButterworthHPFilter mHiPass2;
-  // SlideUDFilter       mFastSlide;
-  // SlideUDFilter       mSlowSlide;
 };
 } // namespace algorithm
 } // namespace fluid
