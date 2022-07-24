@@ -105,9 +105,9 @@ public:
       mAlgorithm.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
                       get<kFilterSize>());
     }
-    RealMatrix in(c.allocator(), 1, hostVecSize);
+    RealMatrix in(1, hostVecSize, c.allocator());
     in.row(0) <<= input[0];
-    RealMatrix out(c.allocator(), 1, hostVecSize);
+    RealMatrix out(1, hostVecSize, c.allocator());
     
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.processInput(
