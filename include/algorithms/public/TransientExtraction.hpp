@@ -14,6 +14,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
+#include "../../data/FluidMemory.hpp"
 #include <Eigen/Core>
 #include <algorithm>
 #include <cmath>
@@ -132,7 +133,7 @@ public:
     frame(input.data(), inSize);
     analyze(alloc);
     detection();
-    interpolate(transients.data(), residual.data());
+    interpolate(transients.data(), residual.data(), alloc);
   }
 
   void process(const RealVectorView input, const RealVectorView unknowns,
@@ -148,7 +149,7 @@ public:
       if (mDetect[asUnsigned(i)] != 0) mCount++;
     frame(input.data(), inSize);
     if (mCount) analyze(alloc);
-    interpolate(transients.data(), residual.data());
+    interpolate(transients.data(), residual.data(), alloc);
   }
 
   bool initialized() { return mInitialized; }
@@ -177,7 +178,7 @@ private:
 
   void detection()
   {
-    const double* input = mInput.data() + modelOrder() + padSize();
+//    const double* input = mInput.data() + modelOrder() + padSize();
 
     // Forward and backward error
     const double normFactor = 1.0 / sqrt(mModel.variance());
@@ -283,7 +284,7 @@ private:
     return Method(view);
   }
 
-  void interpolate(double* transients, double* residual)
+  void interpolate(double* transients, double* residual, Allocator& alloc)
   {
     const double* input = mInput.data() + padSize() + modelOrder();
     const double* parameters = mModel.getParameters();
@@ -298,10 +299,15 @@ private:
     }
 
     // Declare matrices
-    MatrixXd A = MatrixXd::Zero(size - order, size);
-    MatrixXd U = MatrixXd::Zero(size, mCount);
-    MatrixXd K = MatrixXd::Zero(size, size - mCount);
-    VectorXd xK(size - mCount);
+    ScopedEigenMap<MatrixXd> A(size - order, size, alloc);
+    ScopedEigenMap<MatrixXd> U(size, mCount, alloc);
+    ScopedEigenMap<MatrixXd> K(size, size - mCount, alloc);
+    ScopedEigenMap<VectorXd> xK(size - mCount, alloc);
+
+    A.setZero();
+    U.setZero();
+    K.setZero();
+    xK.setZero();
 
     // Form data
     for (index i = 0; i < size - order; i++)
@@ -324,9 +330,14 @@ private:
     }
 
     // Solve
-    MatrixXd Au = A * U;
-    MatrixXd M = -(Au.transpose() * Au);
-    MatrixXd u = M.fullPivLu().solve(Au.transpose() * (A * K) * xK);
+    ScopedEigenMap<MatrixXd> Au(size - order, mCount, alloc);
+    Au = A * U;
+    
+    ScopedEigenMap<MatrixXd> M(mCount, mCount, alloc);
+    M = -(Au.transpose() * Au);
+    
+    ScopedEigenMap<VectorXd> u(mCount, alloc);
+    u = M.fullPivLu().solve(Au.transpose() * (A * K) * xK);
 
     // Write the output
     for (index i = 0, uCount = 0; i < (size - order); i++)
@@ -337,7 +348,7 @@ private:
         residual[i] = input[i + order];
     }
 
-    if (mRefine) refine(FluidTensorView<double, 1>(residual, 0, size), Au, u);
+    //if (mRefine) refine(FluidTensorView<double, 1>(residual, 0, size), Au, u);
 
     for (index i = 0; i < (size - order); i++)
       transients[i] = input[i + order] - residual[i];

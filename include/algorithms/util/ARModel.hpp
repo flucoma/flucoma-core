@@ -229,7 +229,7 @@ private:
   void robustEstimate(FluidTensorView<const double, 1> input, index nIterations,
                       double robustFactor, Allocator& alloc)
   {
-    FluidTensor<double, 1> estimates(alloc, input.size() + mParameters.size());
+    FluidTensor<double, 1> estimates(input.size() + mParameters.size(), alloc);
 
     // Calculate an initial estimate of parameters
     directEstimate(input, true, alloc);
