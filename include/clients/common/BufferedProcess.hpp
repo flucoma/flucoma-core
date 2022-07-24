@@ -36,7 +36,7 @@ class BufferedProcess
 
 public:
   BufferedProcess(index maxFramesIn, index maxFramesOut, index maxChannelsIn,
-                  index maxChannelsOut, index hostSize, Allocator& alloc)
+                  index maxChannelsOut, index hostSize, Allocator& alloc = FluidDefaultAllocator())
       : mHostSize(hostSize), mMaxHostSize(hostSize),
         mSource(maxFramesIn, maxChannelsIn, hostSize, alloc),
         mSink(maxFramesOut, maxChannelsOut, hostSize, alloc),
@@ -192,7 +192,7 @@ public:
     assert(mBufferedProcess.channelsOut() ==
            asSigned(output.size() + Normalise));
 
-    FFTParams fftParams = setup(p, input[0].size());
+    FFTParams fftParams = setup(p);
     index     chansIn = mBufferedProcess.channelsIn();
     index     chansOut = mBufferedProcess.channelsOut() - Normalise;
 
@@ -268,7 +268,7 @@ public:
   {
     assert(mBufferedProcess.channelsOut() ==
            asSigned(output.size() + Normalise));
-    FFTParams fftParams = setup(p, output[0].size());
+    FFTParams fftParams = setup(p);
     index     chansOut = mBufferedProcess.channelsOut() - Normalise;
 
     ComplexMatrixView spectrumOut{mSpectrumIn.data(), 0, chansOut + Normalise,
