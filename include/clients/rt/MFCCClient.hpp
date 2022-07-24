@@ -69,14 +69,14 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return MFCCParams; }
 
-  MFCCClient(ParamSetViewType& p)
-      : mParams{p}, mSTFTBufferedProcess(get<kFFT>().max(), 1, 0),
-        mMelBands(get<kFFT>().max(), get<kFFT>().max()),
-        mDCT(get<kFFT>().max(), get<kNCoefs>().max() + 1)
+  MFCCClient(ParamSetViewType& p, FluidContext& c)
+      : mParams{p}, mSTFTBufferedProcess(get<kFFT>(), 1, 0, c.hostVectorSize(), c.allocator()),
+        mMelBands(get<kFFT>().max(), get<kFFT>().max(), c.allocator()),
+        mDCT(get<kFFT>().max(), get<kNCoefs>().max() + 1, c.allocator()),
+        mMagnitude(get<kFFT>().maxFrameSize(), c.allocator()),
+        mBands(get<kNBands>().max(), c.allocator()),
+        mCoefficients(get<kNCoefs>().max() + 1, c.allocator())
   {
-    mMagnitude = FluidTensor<double, 1>(get<kFFT>().maxFrameSize());
-    mBands = FluidTensor<double, 1>(get<kNBands>().max());
-    mCoefficients = FluidTensor<double, 1>(get<kNCoefs>().max() + get<kDrop0>());
     audioChannelsIn(1);
     controlChannelsOut({1, get<kNCoefs>(), get<kNCoefs>().max()});
     setInputLabels({"audio input"});
@@ -105,29 +105,29 @@ public:
     {
       mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
                      get<kFFT>().frameSize(), sampleRate(),
-                     get<kFFT>().winSize());
-      mDCT.init(get<kNBands>(), nCoefs + !has0);
+                     get<kFFT>().winSize(), c.allocator());
+      mDCT.init(get<kNBands>(), nCoefs + !has0, c.allocator());
       controlChannelsOut({1, nCoefs});
     }
 
     auto mags  = mMagnitude(Slice(0,frameSize));
     auto bands = mBands(Slice(0,nBands));
-    auto coefs = mCoefficients(Slice(get<kDrop0>(), nCoefs));
-
+    auto coefs = mCoefficients(Slice(0, nCoefs + !has0));
+    
     mSTFTBufferedProcess.processInput(
-        mParams, input, c, [&](ComplexMatrixView in) {
+        get<kFFT>(), input, c, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mags);
-          mMelBands.processFrame(mags, bands, false, false, true);
+          mMelBands.processFrame(mags, bands, false, false, true, c.allocator());
           mDCT.processFrame(bands, coefs);
         });
   
-      output[0](Slice(0, nCoefs)) <<= coefs;
+      output[0](Slice(0, nCoefs)) <<= coefs(Slice(get<kDrop0>(), nCoefs));
       output[0](Slice(nCoefs, get<kNCoefs>().max() - nCoefs)).fill(0);
   }
 
   index latency() { return get<kFFT>().winSize(); }
 
-  void reset()
+  void reset(FluidContext& c)
   {
     mSTFTBufferedProcess.reset();
     mMagnitude.resize(get<kFFT>().frameSize());
@@ -135,8 +135,8 @@ public:
     mCoefficients.resize(get<kNCoefs>().max() + get<kDrop0>());
     mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
                    get<kFFT>().frameSize(), sampleRate(),
-                   get<kFFT>().winSize());
-    mDCT.init(get<kNBands>(), get<kNCoefs>() + get<kDrop0>());
+                   get<kFFT>().winSize(), c.allocator());
+    mDCT.init(get<kNBands>(), get<kNCoefs>() + get<kDrop0>(), c.allocator());
   }
 
   AnalysisSize analysisSettings()
@@ -147,7 +147,7 @@ public:
 
 private:
   ParameterTrackChanges<index, index, index, double, double, double> mTracker;
-  STFTBufferedProcess<ParamSetViewType, kFFT, false> mSTFTBufferedProcess;
+  STFTBufferedProcess<false> mSTFTBufferedProcess;
 
   algorithm::MelBands    mMelBands;
   algorithm::DCT         mDCT;
