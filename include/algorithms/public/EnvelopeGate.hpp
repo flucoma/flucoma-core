@@ -15,6 +15,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/SlideUDFilter.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
+#include "../../data/FluidMemory.hpp"
 #include <Eigen/Core>
 #include <cmath>
 
@@ -27,18 +28,16 @@ class EnvelopeGate
   using ArrayXd = Eigen::ArrayXd;
 
 public:
-  EnvelopeGate(index maxSize)
-  {
-    mInputStorage = ArrayXd(maxSize);
-    mOutputStorage = ArrayXd(maxSize);
-  }
+  EnvelopeGate(index maxSize, Allocator& alloc)
+    : mInputBuffer(maxSize, alloc), mOutputBuffer(maxSize, alloc)
+  {}
 
   void init(double onThreshold, double offThreshold, double hiPassFreq,
             index minTimeAboveThreshold, index upwardLookupTime,
             index minTimeBelowThreshold, index downwardLookupTime)
   {
     using namespace std;
-
+  
     mMinTimeAboveThreshold = minTimeAboveThreshold;
     mUpwardLookupTime = upwardLookupTime;
     mMinTimeBelowThreshold = minTimeBelowThreshold,
@@ -47,6 +46,7 @@ public:
     mLatency = max<index>(mMinTimeAboveThreshold + mUpwardLookupTime,
                           mDownwardLatency);
     if (mLatency < 0) mLatency = 1;
+    assert(mLatency <= mInputBuffer.size());
     mHiPassFreq = hiPassFreq;
     initFilters(mHiPassFreq);
     double initVal = min(onThreshold, offThreshold) - 1;
@@ -166,10 +166,12 @@ public:
     
     if (mFillCount < mLatency) mFillCount++;
     double result = mOutputBuffer(mReadHead); 
-    mWriteHead++;     
-    mWriteHead = mWriteHead % mOutputBuffer.size(); 
-    mReadHead++; 
-    mReadHead = mReadHead % mOutputBuffer.size(); 
+
+    if (++mWriteHead >=  max<index>(mLatency, 1))
+        mWriteHead = 0;
+    if (++mReadHead >=  max<index>(mLatency, 1))
+        mReadHead = 0;
+
     return result;     
 }
   index getLatency() { return mLatency; }
@@ -180,14 +182,13 @@ private:
   void initBuffers(double initialValue)
   {
     using namespace std;
-    mInputBuffer = mInputStorage.segment(0, max<index>(mLatency, 1))
+    mInputBuffer.segment(0, max<index>(mLatency, 1))
                        .setConstant(initialValue);
-    mOutputBuffer =
-        mOutputStorage.segment(0, max<index>(mLatency, 1)).setZero();
+    mOutputBuffer.segment(0, max<index>(mLatency, 1)).setZero();
     mInputState = false;
     mOutputState = false;
     mFillCount = max<index>(mLatency, 1);
-    mWriteHead = mOutputBuffer.size() - 1;
+    mWriteHead = max<index>(mLatency, 1) - 1;
     mReadHead = 0;
   }
 
@@ -269,10 +270,9 @@ private:
   index mMinTimeBelowThreshold{10};
   index mUpwardLookupTime{24};
 
-  ArrayXd mInputBuffer;
-  ArrayXd mOutputBuffer;
-  ArrayXd mInputStorage;
-  ArrayXd mOutputStorage;
+  ScopedEigenMap<ArrayXd> mInputBuffer;
+  ScopedEigenMap<ArrayXd> mOutputBuffer;
+
   index   mWriteHead;
   index   mReadHead;
 
