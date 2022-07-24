@@ -40,7 +40,7 @@ constexpr auto LoudnessParams = defineParameters(
     LongParam("windowSize", "Window Size", 1024, UpperLimit<kMaxWindowSize>()),
     LongParam("hopSize", "Hop Size", 512, Min(1)),
     LongParam<Fixed<true>>("maxWindowSize", "Max Window Size", 16384, Min(4),
-                           PowerOfTwo{}) // 17640 next power of two
+                           PowerOfTwo{}, Max(32768)) // 17640 next power of two
 );
 
 class LoudnessClient : public FluidBaseClient, public AudioIn, public ControlOut
@@ -62,8 +62,9 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return LoudnessParams; }
 
-  LoudnessClient(ParamSetViewType& p)
-      : mParams(p), mAlgorithm{get<kMaxWindowSize>()}
+  LoudnessClient(ParamSetViewType& p, FluidContext& c)
+      : mParams(p), mAlgorithm{get<kMaxWindowSize>(), c.allocator()},
+      mBufferedProcess{get<kMaxWindowSize>(), 0, 1, 0, c.hostVectorSize(), c.allocator()}
   {
     audioChannelsIn(1);
     controlChannelsOut({1,mMaxFeatures});
@@ -84,20 +85,20 @@ public:
     if (mBufferParamsTracker.changed(hostVecSize, get<kWindowSize>(),
                                      get<kHopSize>(), sampleRate()))
     {
-      mBufferedProcess.hostSize(hostVecSize);
-      mBufferedProcess.maxSize(get<kWindowSize>(), get<kWindowSize>(),
-                               FluidBaseClient::audioChannelsIn(),
-                               FluidBaseClient::controlChannelsOut().size);
-      mAlgorithm.init(get<kWindowSize>(), sampleRate());
+//      mBufferedProcess.hostSize(hostVecSize);
+//      mBufferedProcess.maxSize(get<kWindowSize>(), get<kWindowSize>(),
+//                               FluidBaseClient::audioChannelsIn(),
+//                               FluidBaseClient::controlChannelsOut().size);
+      mAlgorithm.init(get<kWindowSize>(), sampleRate(), c.allocator());
     }
-    RealMatrix in(1, hostVecSize);
+    RealMatrix in(1, hostVecSize, c.allocator());
     in.row(0) <<= input[0];
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.processInput(
         get<kWindowSize>(), get<kHopSize>(), c, [&](RealMatrixView frame) {
           mAlgorithm.processFrame(frame.row(0), mDescriptors,
                                   get<kKWeighting>() == 1,
-                                  get<kTruePeak>() == 1);
+                                  get<kTruePeak>() == 1, c.allocator());
         });
     
     auto selection = get<kSelect>();
@@ -114,10 +115,10 @@ public:
 
   index latency() { return get<kWindowSize>(); }
 
-  void reset()
+  void reset(Allocator& alloc)
   {
     mBufferedProcess.reset();
-    mAlgorithm.init(get<kWindowSize>(), sampleRate());
+    mAlgorithm.init(get<kWindowSize>(), sampleRate(), alloc);
   }
 
   AnalysisSize analysisSettings()

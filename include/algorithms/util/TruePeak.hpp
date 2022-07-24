@@ -14,6 +14,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "FluidEigenMappings.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
+#include "../../data/FluidMemory.hpp"
 #include <Eigen/Eigen>
 #include <cmath>
 
@@ -26,9 +27,12 @@ class TruePeak
   using ArrayXcd = Eigen::ArrayXcd;
 
 public:
-  TruePeak(index maxSize) : mFFT(maxSize), mIFFT(maxSize * 4) {}
+  TruePeak(index maxSize, Allocator& alloc)
+    : mFFT(maxSize, alloc), mIFFT(maxSize * 4, alloc),
+      mBuffer(0,alloc)
+    {}
 
-  void init(index size, double sampleRate)
+  void init(index size, double sampleRate, Allocator& alloc)
   {
     using namespace std;
     mSampleRate = sampleRate;
@@ -36,23 +40,26 @@ public:
     mFactor = sampleRate < 96000 ? 4 : 2;
     mFFT.resize(mFFTSize);
     mIFFT.resize(mFFTSize * mFactor);
-    mBuffer = ArrayXcd::Zero((mFFTSize * mFactor / 2) + 1);
+    mBuffer = ScopedEigenMap<ArrayXcd>((mFFTSize * mFactor / 2) + 1,alloc);
   }
 
-  double processFrame(const RealVectorView& input)
+  double processFrame(const RealVectorView& input, Allocator& alloc)
   {
     using namespace Eigen;
-    ArrayXd in = _impl::asEigen<Array>(input);
-    if (mSampleRate >= 192000) { return in.abs().maxCoeff(); }
+    if (mSampleRate >= 192000)
+    {
+      return _impl::asEigen<Array>(input).abs().maxCoeff();
+    }
     else
     {
-      double   peak;
-      ArrayXcd transform = mFFT.process(in);
+      ScopedEigenMap<ArrayXd> in(input.size(), alloc);
+      in = _impl::asEigen<Array>(input);
+      Eigen::Map<ArrayXcd> transform = mFFT.process(in);
       mBuffer.setZero();
       mBuffer.segment(0, transform.size()) = transform;
-      ArrayXd result = mIFFT.process(mBuffer);
-      ArrayXd scaled = result / mFFTSize;
-      peak = scaled.abs().maxCoeff();
+      Eigen::Map<ArrayXd> result = mIFFT.process(mBuffer);
+//      ArrayXd scaled = result / mFFTSize;
+      double peak = (result / mFFTSize).abs().maxCoeff();
       return peak;
     }
   }
@@ -60,10 +67,11 @@ public:
 private:
   FFT      mFFT;
   IFFT     mIFFT;
-  ArrayXcd mBuffer;
+  
   double   mSampleRate{44100.0};
   index    mFactor{4};
   index    mFFTSize{1024};
+  ScopedEigenMap<ArrayXcd> mBuffer;
 };
 } // namespace algorithm
 } // namespace fluid
