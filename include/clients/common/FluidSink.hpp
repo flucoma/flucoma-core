@@ -21,12 +21,13 @@ namespace fluid {
 template <typename T>
 class FluidSink
 {
-  using Container = rt::vector<T>;
+//  using Container = rt::vector<T>;
+  using Matrix = FluidTensor<T, 2>;
   using View = FluidTensorView<T, 2>;
   using const_view_type = const FluidTensorView<T, 2>;
 
 public:
-  FluidSink() : FluidSink(0, 1, 0, FluidDefaultAllocator()) {}
+  FluidSink() : FluidSink(0, 1, 0) {}
 
   FluidSink(const FluidSink&) = delete;
   FluidSink& operator=(const FluidSink&) = delete;
@@ -34,11 +35,10 @@ public:
   FluidSink& operator=(FluidSink&&) noexcept = default;
 
   FluidSink(const index size, const index channels, index maxHostVectorSize,
-            Allocator& alloc)
+            Allocator& alloc = FluidDefaultAllocator())
       : mSize(size), mChannels(channels), mHostBufferSize(maxHostVectorSize),
         mMaxHostBufferSize(maxHostVectorSize),
-        mContainer(asUnsigned(channels * bufferSize()), 0, alloc),
-        matrix(mContainer.data(), 0, channels, bufferSize())
+        matrix(channels, bufferSize(), alloc)
   {}
 
   /// Accumulate data into the buffer, optionally moving
@@ -91,7 +91,7 @@ public:
   /// or user buffer size have changed.
   void reset()
   {
-    std::fill(mContainer.begin(), mContainer.end(), 0);
+    std::fill(matrix.begin(), matrix.end(), 0);
     mCounter = 0;
   }
 
@@ -168,7 +168,6 @@ private:
   index     mCounter = 0;
   index     mHostBufferSize = 0;
   index     mMaxHostBufferSize = 0;
-  Container mContainer;
-  View      matrix;
+  Matrix      matrix;
 };
 } // namespace fluid

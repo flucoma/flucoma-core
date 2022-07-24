@@ -24,7 +24,7 @@ class FluidSource
   using Matrix = FluidTensor<T, 2>;
   using View = FluidTensorView<T, 2>;
 
-  using Container = rt::vector<T>;
+//  using Container = rt::vector<T>;
 
 public:
   FluidSource(const FluidSource&) = delete;
@@ -33,11 +33,10 @@ public:
   FluidSource& operator=(FluidSource&&) noexcept = default;
 
   FluidSource(const index size, const index channels, index maxHostBufferSize,
-              Allocator& alloc)
+              Allocator& alloc = FluidDefaultAllocator())
       : mSize(size), mChannels(channels), mHostBufferSize(maxHostBufferSize),
         mMaxHostBufferSize(maxHostBufferSize),
-        mContainer(asUnsigned(channels * bufferSize()), 0, alloc),
-        matrix(mContainer.data(), 0, channels, bufferSize())
+        matrix(channels, bufferSize(), alloc)
   {}
 
   FluidSource() : FluidSource(0, 1, 0, FluidDefaultAllocator()){};
@@ -99,7 +98,7 @@ public:
   /// size and / or host buffer size have changed
   void reset()
   {
-    std::fill(mContainer.begin(), mContainer.end(), 0);
+    std::fill(matrix.begin(), matrix.end(), 0);
     mCounter = 0;
   }
 
@@ -160,7 +159,6 @@ private:
   index     mChannels;
   index     mHostBufferSize = 0;
   index     mMaxHostBufferSize = 0;
-  Container mContainer;
-  View      matrix;
+  Matrix    matrix;
 };
 } // namespace fluid
