@@ -14,6 +14,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
+#include "../../data/FluidMemory.hpp"
 #include <Eigen/Core>
 #include <vector>
 
@@ -42,39 +43,47 @@ public:
 
   // processFrame computes activations of a dictionary W in a given frame
   void processFrame(const RealVectorView x, const RealMatrixView W0,
-                    RealVectorView out, index nIterations = 10,
-                    RealVectorView v = RealVectorView(nullptr, 0, 0))
+                    RealVectorView out, index nIterations,
+                    RealVectorView v, Allocator& alloc)
   {
     using namespace Eigen;
     using namespace _impl;
     index    rank = W0.extent(0);
-    MatrixXd W = asEigen<Matrix>(W0).transpose();
-    VectorXd h =
-        MatrixXd::Random(rank, 1) * 0.5 + MatrixXd::Constant(rank, 1, 0.5);
-    VectorXd v0 = asEigen<Matrix>(x);
+    FluidEigenMap<Matrix> W = asEigen<Matrix>(W0);
+    
+    ScopedEigenMap<VectorXd> h(rank, alloc);
+    h = VectorXd::Random(rank) * 0.5 + VectorXd::Constant(rank, 0.5);
+    
+    ScopedEigenMap<VectorXd> v0(x.size(), alloc);
+    v0 = asEigen<Matrix>(x);
     W = W.array().max(epsilon).matrix();
     h = h.array().max(epsilon).matrix();
     v0 = v0.array().max(epsilon).matrix();
 
-    MatrixXd WT = W.transpose();
-    W.colwise().normalize();
-    VectorXd ones = VectorXd::Ones(x.extent(0));
+//    MatrixXd WT = W.transpose();
+    W.rowwise().normalize();
+    index nBins = x.extent(0);
+    VectorXd ones = VectorXd::Ones(nBins);
+    
+    ScopedEigenMap<ArrayXd> v1{nBins, alloc};
+    ScopedEigenMap<ArrayXd> hNum{rank, alloc};
+    ScopedEigenMap<ArrayXd> hDen{rank, alloc};
     while (nIterations--)
     {
-      ArrayXd  v1 = (W * h).array().max(epsilon);
-      ArrayXXd hNum = (WT * (v0.array() / v1).matrix()).array();
-      ArrayXXd hDen = (WT * ones).array();
+      v1 = (W.transpose() * h).array().max(epsilon);
+      hNum = (W * (v0.array() / v1).matrix()).array();
+      hDen = (W * ones).array();
       h = (h.array() * hNum / hDen.max(epsilon)).matrix();
       // VectorXd r = W * h;
       // double divergence = (v.cwiseProduct(v.cwiseQuotient(r)) - v + r).sum();
       // std::cout<<"Divergence "<<divergence<<std::endl;
     }
-    out <<= asFluid(h);
-    if (v.extent(0) > 0)
-    {
-      ArrayXd v2 = (W * h).array();
-      v <<= asFluid(v2);
-    }
+    
+    if(out.data())
+      _impl::asEigen<Array>(out) =  h;
+    
+    if (v.data())
+      _impl::asEigen<Array>(v) = (W.transpose() * h).array();;
   }
 
   void process(const RealMatrixView X, RealMatrixView W1, RealMatrixView H1,

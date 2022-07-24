@@ -49,8 +49,9 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return NMFFilterParams; }
 
-  NMFFilterClient(ParamSetViewType& p)
-      : mParams{p}, mSTFTProcessor{get<kFFT>().max(), 1, get<kMaxRank>().max()}
+  NMFFilterClient(ParamSetViewType& p, FluidContext& c)
+      : mParams{p}, mSTFTProcessor{get<kFFT>(), 1, get<kMaxRank>().max(), c.hostVectorSize(), c.allocator()}
+      
   {
     audioChannelsIn(1);
     audioChannelsOut(get<kMaxRank>().max());
@@ -97,11 +98,11 @@ public:
 
       //      controlTrigger(false);
       mSTFTProcessor.process(
-          mParams, input, output, c,
+          get<kFFT>(), input, output, c,
           [&](ComplexMatrixView in, ComplexMatrixView out) {
             algorithm::STFT::magnitude(in, tmpMagnitude);
             mNMF.processFrame(tmpMagnitude.row(0), tmpFilt, tmpOut,
-                              get<kIterations>(), tmpEstimate.row(0));
+                              get<kIterations>(), tmpEstimate.row(0), c.allocator());
             mMask.init(tmpEstimate);
             for (index i = 0; i < rank; ++i)
             {
@@ -120,7 +121,7 @@ public:
 
 private:
   ParameterTrackChanges<index, index>               mTrackValues;
-  STFTBufferedProcess<ParamSetViewType, kFFT, true> mSTFTProcessor;
+  STFTBufferedProcess<true> mSTFTProcessor;
 
   algorithm::NMF       mNMF;
   algorithm::RatioMask mMask;
