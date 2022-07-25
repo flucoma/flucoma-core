@@ -61,22 +61,22 @@ public:
   static void magnitude(const FluidTensorView<std::complex<double>, 2> in,
                         FluidTensorView<double, 2>                     out)
   {
-    ArrayXXd mag = _impl::asEigen<Eigen::Array>(in).abs().real();
-    out <<= _impl::asFluid(mag);
+    _impl::asEigen<Eigen::Array>(out) =
+        _impl::asEigen<Eigen::Array>(in).abs().real();
   }
 
   static void magnitude(const FluidTensorView<std::complex<double>, 1> in,
                         FluidTensorView<double, 1>                     out)
   {
-    ArrayXd mag = _impl::asEigen<Eigen::Array>(in).abs().real();
-    out <<= _impl::asFluid(mag);
+    _impl::asEigen<Eigen::Array>(out) =
+        _impl::asEigen<Eigen::Array>(in).abs().real();
   }
 
   static void phase(const FluidTensorView<std::complex<double>, 2> in,
                     FluidTensorView<double, 2>                     out)
   {
-    ArrayXXd phase = _impl::asEigen<Eigen::Array>(in).arg().real();
-    out <<= _impl::asFluid(phase);
+    _impl::asEigen<Eigen::Array>(out) =
+        _impl::asEigen<Eigen::Array>(in).arg().real();
   }
 
   static void phase(const FluidTensorView<std::complex<double>, 1> in,

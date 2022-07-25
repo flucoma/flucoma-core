@@ -13,6 +13,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/Novelty.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/FluidMemory.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 
@@ -25,38 +26,43 @@ class NoveltyFeature
 public:
   using ArrayXd = Eigen::ArrayXd;
 
-  NoveltyFeature(index maxKernelSize, index maxFilterSize)
-      : mFilterBufferStorage(maxFilterSize), mNovelty(maxKernelSize)
+  NoveltyFeature(index maxKernelSize, index maxDims, index maxFilterSize,
+                 Allocator& alloc)
+      : mFilterBuffer(maxFilterSize, alloc),
+        mNovelty(maxKernelSize, maxDims, alloc)
   {}
 
-  void init(index kernelSize, index filterSize, index nDims)
+  void init(index kernelSize, index filterSize, index nDims, Allocator& alloc)
   {
     assert(kernelSize % 2);
-    mNovelty.init(kernelSize, nDims);
-    mFilterBuffer = mFilterBufferStorage.segment(0, filterSize);
-    mFilterBuffer.setZero();
+    mNovelty.init(kernelSize, nDims, alloc);
+    mFilterBuffer.head(filterSize).setZero();
+    mFilterSize = filterSize;
+    mInitialized = true;
   }
 
-  double processFrame(const RealVectorView input)
+  double processFrame(const RealVectorView input, Allocator& alloc)
   {
-    double novelty = mNovelty.processFrame(_impl::asEigen<Eigen::Array>(input));
-    index  filterSize = mFilterBuffer.size();
+    assert(mInitialized);
+    double novelty =
+        mNovelty.processFrame(_impl::asEigen<Eigen::Array>(input), alloc);
 
-    if (filterSize > 1)
+    if (mFilterSize > 1)
     {
-      mFilterBuffer.segment(0, filterSize - 1) =
-          mFilterBuffer.segment(1, filterSize - 1);
+      mFilterBuffer.segment(0, mFilterSize - 1) =
+          mFilterBuffer.segment(1, mFilterSize - 1);
     }
 
-    mFilterBuffer(filterSize - 1) = novelty;
+    mFilterBuffer(mFilterSize - 1) = novelty;
 
-    return mFilterBuffer.mean();
+    return mFilterBuffer.head(mFilterSize).mean();
   }
 
 private:
-  ArrayXd mFilterBuffer;
-  ArrayXd mFilterBufferStorage;
-  Novelty mNovelty;
+  bool                    mInitialized;
+  ScopedEigenMap<ArrayXd> mFilterBuffer;
+  Novelty                 mNovelty;
+  index                   mFilterSize;
 };
 } // namespace algorithm
 } // namespace fluid
