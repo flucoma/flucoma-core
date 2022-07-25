@@ -12,8 +12,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #include "FluidEigenMappings.hpp"
 #include "../../data/FluidIndex.hpp"
-#include "../../data/FluidTensor.hpp"
 #include "../../data/FluidMemory.hpp"
+#include "../../data/FluidTensor.hpp"
 #include <Eigen/Core>
 #include <limits>
 
@@ -29,11 +29,12 @@ class PeakDetection
 public:
   pairs_vector process(const Eigen::Ref<ArrayXd>& input, index numPeaks = 0,
                        double minHeight = 0, bool interpolate = true,
-                       bool sort = true, Allocator& alloc = FluidDefaultAllocator())
+                       bool       sort = true,
+                       Allocator& alloc = FluidDefaultAllocator())
   {
     using std::make_pair;
     pairs_vector peaks(asUnsigned(input.size()), alloc);
-    peaks.resize(0); 
+    peaks.resize(0);
     for (index i = 1; i < input.size() - 1; i++)
     {
       double current = input(i);
@@ -62,7 +63,9 @@ public:
       });
     }
     if (numPeaks > 0 && peaks.size() > 0)
-    { return pairs_vector(peaks.begin(), peaks.begin() + numPeaks, alloc); }
+    {
+      return pairs_vector(peaks.begin(), peaks.begin() + numPeaks, alloc);
+    }
     else
       return peaks;
   }

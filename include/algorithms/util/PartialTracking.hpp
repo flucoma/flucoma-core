@@ -34,13 +34,15 @@ struct SinePeak
 
 struct SineTrack
 {
-  
-  SineTrack(Allocator& alloc):peaks(alloc){}
-  
-  SineTrack(rt::vector<SinePeak>&& p, index s, index e, bool a, bool ass, index t)
-    : peaks{p}, startFrame{s}, endFrame{e}, active{a}, assigned{ass}, trackId{t}
+
+  SineTrack(Allocator& alloc) : peaks(alloc) {}
+
+  SineTrack(rt::vector<SinePeak>&& p, index s, index e, bool a, bool ass,
+            index t)
+      : peaks{p}, startFrame{s}, endFrame{e}, active{a}, assigned{ass}, trackId{
+                                                                            t}
   {}
-  
+
   rt::vector<SinePeak> peaks;
 
   index startFrame;
@@ -58,9 +60,9 @@ class PartialTracking
 
 public:
   PartialTracking(Allocator& alloc)
-    : mTracks(alloc), mPrevPeaks(0, alloc), mPrevTracks(0, alloc)
+      : mTracks(alloc), mPrevPeaks(0, alloc), mPrevTracks(0, alloc)
   {}
-  
+
   void init()
   {
     using namespace std;
@@ -79,9 +81,10 @@ public:
 
   index minTrackLength() { return mMinTrackLength; }
 
-  void processFrame(vector<SinePeak>& peaks, double maxAmp, index minTrackLength,
-                    double birthLowThreshold, double birthHighThreshold,
-                    index method, double zetaA, double zetaF, double delta, Allocator& alloc)
+  void processFrame(vector<SinePeak>& peaks, double maxAmp,
+                    index minTrackLength, double birthLowThreshold,
+                    double birthHighThreshold, index method, double zetaA,
+                    double zetaF, double delta, Allocator& alloc)
   {
     assert(mInitialized);
     mMinTrackLength = minTrackLength;
@@ -139,7 +142,8 @@ private:
     mVarF = -pow(mZetaF, 2) * log((mDelta - 1) / (mDelta - 2));
   }
 
-  void assignMunkres(vector<SinePeak>& sinePeaks, double maxAmp, Allocator& alloc)
+  void assignMunkres(vector<SinePeak>& sinePeaks, double maxAmp,
+                     Allocator& alloc)
   {
     using namespace Eigen;
     using namespace std;
@@ -154,13 +158,13 @@ private:
       return;
     }
 
-    index                         N = asSigned(mPrevPeaks.size());
-    index                         M = asSigned(sinePeaks.size());
-    ScopedEigenMap<ArrayXd>       peakFreqs(M, alloc);
-    ScopedEigenMap<ArrayXd>       peakAmps(M, alloc);
-    ScopedEigenMap<ArrayXd>       prevFreqs(N, alloc);
-    ScopedEigenMap<ArrayXd>       prevAmps(N, alloc);
-    vector<index>                 trackAssignment(asUnsigned(M), -1, alloc);
+    index                   N = asSigned(mPrevPeaks.size());
+    index                   M = asSigned(sinePeaks.size());
+    ScopedEigenMap<ArrayXd> peakFreqs(M, alloc);
+    ScopedEigenMap<ArrayXd> peakAmps(M, alloc);
+    ScopedEigenMap<ArrayXd> prevFreqs(N, alloc);
+    ScopedEigenMap<ArrayXd> prevAmps(N, alloc);
+    vector<index>           trackAssignment(asUnsigned(M), -1, alloc);
     if (sinePeaks.size() > 0)
     {
       for (index i = 0; i < M; i++)
@@ -206,8 +210,7 @@ private:
         }
       }
       ScopedEigenMap<ArrayXi> assignment(N, alloc);
-      Munkres munkres(N,M, alloc);
-//      mMunkres.init(N, M);
+      Munkres                 munkres(N, M, alloc);
       munkres.process(cost, assignment, alloc);
       for (index i = 0; i < N; i++)
       {
@@ -248,7 +251,7 @@ private:
         }
       }
     }
-    // diying tracks
+    // dying tracks
     for (auto&& track : mTracks)
     {
       if (track.active && !track.assigned)
@@ -268,7 +271,8 @@ private:
            mBirthRange * std::pow(0.0075, peak.freq / 20000.0);
   }
 
-  void assignGreedy(vector<SinePeak>& sinePeaks, double maxAmp, Allocator& alloc)
+  void assignGreedy(vector<SinePeak>& sinePeaks, double maxAmp,
+                    Allocator& alloc)
   {
     using namespace std;
     rt::vector<tuple<double, SineTrack*, SinePeak*>> distances(0, alloc);
@@ -314,7 +318,6 @@ private:
         mTracks.push_back(SineTrack{vector<SinePeak>(1, peak, alloc),
                                     static_cast<int>(mCurrentFrame), -1, true,
                                     true, mLastTrackId++});
-                                    
       }
     }
     // diying tracks
@@ -335,17 +338,17 @@ private:
   bool              mInitialized{false};
   vector<SinePeak>  mPrevPeaks;
   vector<index>     mPrevTracks;
-//  Munkres           mMunkres;
-  double            mZetaA{0};
-  double            mVarA{0};
-  double            mZetaF{0};
-  double            mVarF{0};
-  double            mDelta{0};
-  double            mPrevMaxAmp{0};
-  index             mLastTrackId{1};
-  double            mBirthLowThreshold{-24.};
-  double            mBirthHighThreshold{-60.};
-  double            mBirthRange{36.};
+  //  Munkres           mMunkres;
+  double mZetaA{0};
+  double mVarA{0};
+  double mZetaF{0};
+  double mVarF{0};
+  double mDelta{0};
+  double mPrevMaxAmp{0};
+  index  mLastTrackId{1};
+  double mBirthLowThreshold{-24.};
+  double mBirthHighThreshold{-60.};
+  double mBirthRange{36.};
 };
 } // namespace algorithm
 } // namespace fluid

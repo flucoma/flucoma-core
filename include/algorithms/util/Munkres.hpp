@@ -26,29 +26,27 @@ class Munkres
 {
 public:
   using intPair = std::pair<int, int>;
-  
+
   Munkres(index rows, index cols, Allocator& alloc)
-     : mN{std::max(rows, cols)},
-      mCost{mN, mN, alloc}, mRowMin{mN, alloc},
-      mColMin{mN, alloc}, mMask{mN, mN, alloc},
-      mPath{2 * mN + 1, 2, alloc},
-      mRowCover{mN, alloc}, mColCover{mN, alloc}
+      : mN{std::max(rows, cols)}, mCost{mN, mN, alloc}, mRowMin{mN, alloc},
+        mColMin{mN, alloc}, mMask{mN, mN, alloc}, mPath{2 * mN + 1, 2, alloc},
+        mRowCover{mN, alloc}, mColCover{mN, alloc}
   {
-//    reset();
+    //    reset();
   }
-  
-//  void init(index rows, index cols)
-//  {
-//    using namespace Eigen;
-//    index N = std::max(rows, cols);
-//    mCost = ArrayXXd::Zero(N, N);
-//    mRowMin = ArrayXd::Zero(N);
-//    mColMin = ArrayXd::Zero(N);
-//    mMask = ArrayXXi::Zero(N, N);
-//    mRowCover = ArrayXi::Zero(N);
-//    mColCover = ArrayXi::Zero(N);
-//    mPath = ArrayXXi::Zero(2 * N + 1, 2);
-//  }
+
+  //  void init(index rows, index cols)
+  //  {
+  //    using namespace Eigen;
+  //    index N = std::max(rows, cols);
+  //    mCost = ArrayXXd::Zero(N, N);
+  //    mRowMin = ArrayXd::Zero(N);
+  //    mColMin = ArrayXd::Zero(N);
+  //    mMask = ArrayXXi::Zero(N, N);
+  //    mRowCover = ArrayXi::Zero(N);
+  //    mColCover = ArrayXi::Zero(N);
+  //    mPath = ArrayXXi::Zero(2 * N + 1, 2);
+  //  }
 
   void reset()
   {
@@ -62,7 +60,7 @@ public:
   }
 
   void process(Eigen::Ref<const Eigen::ArrayXXd> costMatrix,
-               Eigen::Ref<Eigen::ArrayXi>        result, Allocator& alloc)
+               Eigen::Ref<Eigen::ArrayXi> result, Allocator& alloc)
   {
     bool done;
     reset();
@@ -85,7 +83,9 @@ public:
       done = step3();
     }
     for (int i = 0; i < result.size(); i++)
-    { mMask.row(i).maxCoeff(&result(i)); }
+    {
+      mMask.row(i).maxCoeff(&result(i));
+    }
   }
 
   void step1()
@@ -132,9 +132,9 @@ public:
 
   intPair step4(Allocator& alloc)
   {
-    int     row = -1, col = -1;
-    intPair result = std::make_pair(row, col);
-    ScopedEigenMap<Eigen::ArrayXi> r(mMask.cols(),alloc);
+    int                            row = -1, col = -1;
+    intPair                        result = std::make_pair(row, col);
+    ScopedEigenMap<Eigen::ArrayXi> r(mMask.cols(), alloc);
     while (true)
     {
       intPair pos = findZero();
@@ -170,7 +170,7 @@ public:
     ScopedEigenMap<Eigen::ArrayXi> r(mMask.cols(), alloc);
     while (true)
     {
-      int            tmp = mPath(pathCount, 1);
+      int tmp = mPath(pathCount, 1);
       tmpCol = mMask.col(tmp);
       row = findValue(tmpCol, 1);
       if (row == -1) break;
@@ -260,7 +260,7 @@ public:
   }
 
 private:
-  index mN;
+  index                           mN;
   ScopedEigenMap<Eigen::ArrayXXd> mCost;
   ScopedEigenMap<Eigen::ArrayXd>  mRowMin;
   ScopedEigenMap<Eigen::ArrayXd>  mColMin;
