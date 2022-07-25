@@ -155,13 +155,13 @@ public:
   template <size_t Order = N,
             typename = std::enable_if_t<Order == 1>>
   FluidTensor(index size, Allocator& alloc = FluidDefaultAllocator())
-  : mContainer(size, alloc), mDesc(size)
+  : mContainer(asUnsigned(size), alloc), mDesc(size)
   { }
   
   template <size_t Order = N,
             typename = std::enable_if_t<Order == 2>>
   FluidTensor(index rows, index cols,  Allocator& alloc = FluidDefaultAllocator())
-  : mContainer(rows * cols, alloc), mDesc(rows, cols)
+  : mContainer(asUnsigned(rows * cols), alloc), mDesc(rows, cols)
   { }
 
   template <size_t Order = N,

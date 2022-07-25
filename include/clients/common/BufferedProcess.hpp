@@ -36,7 +36,8 @@ class BufferedProcess
 
 public:
   BufferedProcess(index maxFramesIn, index maxFramesOut, index maxChannelsIn,
-                  index maxChannelsOut, index hostSize, Allocator& alloc = FluidDefaultAllocator())
+                  index maxChannelsOut, index hostSize,
+                  Allocator& alloc = FluidDefaultAllocator())
       : mHostSize(hostSize), mMaxHostSize(hostSize),
         mSource(maxFramesIn, maxChannelsIn, hostSize, alloc),
         mSink(maxFramesOut, maxChannelsOut, hostSize, alloc),
@@ -271,13 +272,13 @@ public:
     FFTParams fftParams = setup(p);
     index     chansOut = mBufferedProcess.channelsOut() - Normalise;
 
-    ComplexMatrixView spectrumOut{mSpectrumIn.data(), 0, chansOut + Normalise,
+    ComplexMatrixView spectrumOut{mSpectrumOut.data(), 0, chansOut + Normalise,
                                   fftParams.frameSize()};
 
     mBufferedProcess.processOutput(
         fftParams.winSize(), fftParams.hopSize(), c,
         [this, spectrumOut, &processFunc, chansOut](RealMatrixView out) {
-          processFunc(mSpectrumOut(Slice(0, chansOut), Slice(0)));
+          processFunc(spectrumOut(Slice(0, chansOut), Slice(0)));
           for (index i = 0; i < chansOut; ++i)
           {
             mISTFT.processFrame(spectrumOut.row(i), out.row(i));
@@ -291,8 +292,8 @@ public:
           }
         });
 
-    RealMatrixView unnormalisedFrame =
-        mFrameAndWindow(Slice(0), Slice(0, output[0].size()));
+    RealMatrixView unnormalisedFrame{mFrameAndWindow.data(), 0,
+                                     Normalise + chansOut, output[0].size()};
     mBufferedProcess.pull(unnormalisedFrame);
     for (index i = 0; i < chansOut; ++i)
     {

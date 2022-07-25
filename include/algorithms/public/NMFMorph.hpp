@@ -16,6 +16,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/Munkres.hpp"
 #include "../util/OptimalTransport.hpp"
 #include "../util/RTPGHI.hpp"
+#include "../../data/FluidMemory.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -30,39 +31,56 @@ class NMFMorph
 public:
   using MatrixXd = Eigen::MatrixXd;
 
+  NMFMorph(index maxFFTSize, Allocator& alloc)
+      : mW1(0, 0, alloc), mW2(0, 0, alloc), mH(0, 0, alloc),
+        mRTPGHI(maxFFTSize, alloc), mOT(alloc)
+  {}
+
   void init(RealMatrixView W1, RealMatrixView W2, RealMatrixView H,
-            index winSize, index fftSize, index hopSize, bool assign)
+            index winSize, index fftSize, index hopSize, bool assign,
+            Allocator& alloc)
   {
     using namespace Eigen;
     using namespace _impl;
     using namespace std;
     mInitialized = false;
+    index maxSize = std::max(W1.cols(), W2.cols());
+    mW1 = ScopedEigenMap<MatrixXd>(W1.cols(), W1.rows(), alloc);
     mW1 = asEigen<Matrix>(W1).transpose();
+
+    mH = ScopedEigenMap<MatrixXd>(H.rows(), H.cols(), alloc);
     mH = asEigen<Matrix>(H);
-    MatrixXd tmpW2 = asEigen<Matrix>(W2).transpose();
-    ArrayXXd cost = ArrayXXd::Zero(mW1.cols(), tmpW2.cols());
+
     if (assign)
     {
+      ScopedEigenMap<MatrixXd> tmpW2(W2.cols(), W2.rows(), alloc);
+      tmpW2 = asEigen<Matrix>(W2).transpose();
+      ScopedEigenMap<ArrayXXd> cost(mW1.cols(), tmpW2.cols(), alloc);
+      cost.setZero();
+      OptimalTransport tmpOT(maxSize, alloc);
       for (index i = 0; i < mW1.cols(); i++)
       {
         for (index j = 0; j < tmpW2.cols(); j++)
         {
-          OptimalTransport tmpOT;
-          tmpOT.init(mW1.col(i), tmpW2.col(j));
-          if(!tmpOT.initialized()) return;
+          tmpOT.init(mW1.col(i), tmpW2.col(j), alloc);
+          if (!tmpOT.initialized()) return;
           cost(i, j) = tmpOT.mDistance;
         }
       }
-      Munkres munk;
-      munk.init(mW1.cols(), tmpW2.cols());
-      ArrayXi result = ArrayXi::Zero(mW1.cols());
-      munk.process(cost, result);
-      mW2 = MatrixXd::Zero(tmpW2.rows(), tmpW2.cols());
+      Munkres munk(mW1.cols(), tmpW2.cols(), alloc);
+      ScopedEigenMap<ArrayXi> result(mW1.cols(), alloc);
+      result.setZero();
+      munk.process(cost, result, alloc);
+      mW2 = ScopedEigenMap<MatrixXd>(tmpW2.rows(), tmpW2.cols(), alloc);
+      mW2.setZero();
       for (index i = 0; i < result.size(); i++)
-      { mW2.col(i) = tmpW2.col(result(i)); }
+      {
+        mW2.col(i) = tmpW2.col(result(i));
+      }
     }
     else
     {
+      mW2 = ScopedEigenMap<MatrixXd>(W2.cols(), W2.rows(), alloc);
       mW2 = asEigen<Matrix>(W2).transpose();
     }
     mWindowSize = winSize;
@@ -71,44 +89,52 @@ public:
     mRTPGHI.init(fftSize);
 
     index rank = mW1.cols();
-    mOT = std::vector<OptimalTransport>(asUnsigned(rank));
-    for (index i = 0; i < rank; i++) { mOT[asUnsigned(i)].init(mW1.col(i), mW2.col(i)); }
+    mOT = rt::vector<OptimalTransport>(alloc);
+    mOT.reserve(asUnsigned(rank));
+    for (index i = 0; i < rank; i++)
+    {
+      mOT.emplace_back(maxSize, alloc);
+      mOT.back().init(mW1.col(i), mW2.col(i), alloc);
+    }
     mPos = 0;
     mInitialized = true;
   }
-  
+
   bool initialized() { return mInitialized; }
 
-  void processFrame(ComplexVectorView v, double interpolation)
+  void processFrame(ComplexVectorView v, double interpolation, Allocator& alloc)
   {
     using namespace Eigen;
     using namespace _impl;
-    MatrixXd W = MatrixXd::Zero(mW1.rows(), mW1.cols());
+    ScopedEigenMap<MatrixXd> W(mW1.rows(), mW1.cols(), alloc);
+    W.setZero();
+    ScopedEigenMap<ArrayXd> out(mW2.rows(), alloc);
     for (int i = 0; i < W.cols(); i++)
     {
-      ArrayXd out = ArrayXd::Zero(mW2.rows());
+      out.setZero();
       mOT[asUnsigned(i)].interpolate(interpolation, out);
       W.col(i) = out;
     }
-
-    VectorXd       hFrame = mH.col(mPos);
-    VectorXd       frame = W * hFrame;
+    ScopedEigenMap<VectorXd> hFrame(mH.rows(), alloc);
+    hFrame = mH.col(mPos);
+    ScopedEigenMap<VectorXd> frame(W.rows(), alloc);
+    frame = W * hFrame;
     RealVectorView mag1 = asFluid(frame);
-    mRTPGHI.processFrame(mag1, v, mWindowSize, mFFTSize, mHopSize, 1e-6);
+    mRTPGHI.processFrame(mag1, v, mWindowSize, mFFTSize, mHopSize, 1e-6, alloc);
     mPos = (mPos + 1) % mH.cols();
   }
 
 private:
-  MatrixXd                      mW1;
-  MatrixXd                      mW2;
-  MatrixXd                      mH;
-  index                         mWindowSize;
-  index                         mHopSize;
-  index                         mFFTSize;
-  RTPGHI                        mRTPGHI;
-  std::vector<OptimalTransport> mOT;
-  int                           mPos{0};
-  bool                          mInitialized;
+  ScopedEigenMap<MatrixXd>     mW1;
+  ScopedEigenMap<MatrixXd>     mW2;
+  ScopedEigenMap<MatrixXd>     mH;
+  index                        mWindowSize;
+  index                        mHopSize;
+  index                        mFFTSize;
+  RTPGHI                       mRTPGHI;
+  rt::vector<OptimalTransport> mOT;
+  int                          mPos{0};
+  bool                         mInitialized;
 };
 } // namespace algorithm
 } // namespace fluid
