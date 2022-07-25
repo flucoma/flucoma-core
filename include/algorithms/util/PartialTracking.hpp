@@ -17,6 +17,7 @@ Capability through Linear Programming". Proceedings of DAFx-2018.
 
 #include "Munkres.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/FluidMemory.hpp"
 #include <Eigen/Core>
 #include <cmath>
 #include <queue>
@@ -33,7 +34,14 @@ struct SinePeak
 
 struct SineTrack
 {
-  std::vector<SinePeak> peaks;
+  
+  SineTrack(Allocator& alloc):peaks(alloc){}
+  
+  SineTrack(rt::vector<SinePeak>&& p, index s, index e, bool a, bool ass, index t)
+    : peaks{p}, startFrame{s}, endFrame{e}, active{a}, assigned{ass}, trackId{t}
+  {}
+  
+  rt::vector<SinePeak> peaks;
 
   index startFrame;
   index endFrame;
@@ -46,17 +54,21 @@ class PartialTracking
 {
   using ArrayXd = Eigen::ArrayXd;
   template <typename T>
-  using vector = std::vector<T>;
+  using vector = rt::vector<T>;
 
 public:
+  PartialTracking(Allocator& alloc)
+    : mTracks(alloc), mPrevPeaks(0, alloc), mPrevTracks(0, alloc)
+  {}
+  
   void init()
   {
     using namespace std;
 
     mCurrentFrame = 0;
-    mTracks = vector<SineTrack>();
-    mPrevPeaks = vector<SinePeak>();
-    mPrevTracks = vector<index>();
+    mTracks.clear();
+    mPrevPeaks.clear();
+    mPrevTracks.clear();
     mZetaA = 0;
     mZetaF = 0;
     mDelta = 0;
@@ -67,9 +79,9 @@ public:
 
   index minTrackLength() { return mMinTrackLength; }
 
-  void processFrame(vector<SinePeak> peaks, double maxAmp, index minTrackLength,
+  void processFrame(vector<SinePeak>& peaks, double maxAmp, index minTrackLength,
                     double birthLowThreshold, double birthHighThreshold,
-                    index method, double zetaA, double zetaF, double delta)
+                    index method, double zetaA, double zetaF, double delta, Allocator& alloc)
   {
     assert(mInitialized);
     mMinTrackLength = minTrackLength;
@@ -84,9 +96,9 @@ public:
       updateVariances();
     }
     if (method == 0)
-      assignGreedy(peaks, maxAmp);
+      assignGreedy(peaks, maxAmp, alloc);
     else
-      assignMunkres(peaks, maxAmp);
+      assignMunkres(peaks, maxAmp, alloc);
     mCurrentFrame++;
   }
 
@@ -101,9 +113,9 @@ public:
   }
 
 
-  vector<SinePeak> getActivePeaks()
+  vector<SinePeak> getActivePeaks(Allocator& alloc)
   {
-    vector<SinePeak> sinePeaks;
+    vector<SinePeak> sinePeaks(0, alloc);
     index            latencyFrame = mCurrentFrame - mMinTrackLength;
     if (latencyFrame < 0) return sinePeaks;
     for (auto&& track : mTracks)
@@ -127,28 +139,28 @@ private:
     mVarF = -pow(mZetaF, 2) * log((mDelta - 1) / (mDelta - 2));
   }
 
-  void assignMunkres(vector<SinePeak> sinePeaks, double maxAmp)
+  void assignMunkres(vector<SinePeak>& sinePeaks, double maxAmp, Allocator& alloc)
   {
     using namespace Eigen;
     using namespace std;
 
-    typedef Array<bool, Dynamic, Dynamic> ArrayXXb;
+    typedef Array<int, Dynamic, Dynamic> ArrayXXb;
     for (auto&& track : mTracks) { track.assigned = false; }
 
     if (mPrevPeaks.empty())
     {
       mPrevPeaks = sinePeaks;
-      mPrevTracks = vector<index>(sinePeaks.size(), 0);
+      mPrevTracks = vector<index>(sinePeaks.size(), 0, alloc);
       return;
     }
 
-    index         N = asSigned(mPrevPeaks.size());
-    index         M = asSigned(sinePeaks.size());
-    ArrayXd       peakFreqs(M);
-    ArrayXd       peakAmps(M);
-    ArrayXd       prevFreqs(N);
-    ArrayXd       prevAmps(N);
-    vector<index> trackAssignment(asUnsigned(M), -1);
+    index                         N = asSigned(mPrevPeaks.size());
+    index                         M = asSigned(sinePeaks.size());
+    ScopedEigenMap<ArrayXd>       peakFreqs(M, alloc);
+    ScopedEigenMap<ArrayXd>       peakAmps(M, alloc);
+    ScopedEigenMap<ArrayXd>       prevFreqs(N, alloc);
+    ScopedEigenMap<ArrayXd>       prevAmps(N, alloc);
+    vector<index>                 trackAssignment(asUnsigned(M), -1, alloc);
     if (sinePeaks.size() > 0)
     {
       for (index i = 0; i < M; i++)
@@ -161,18 +173,22 @@ private:
         prevFreqs(i) = mPrevPeaks[asUnsigned(i)].freq;
         prevAmps(i) = mPrevPeaks[asUnsigned(i)].logMag;
       }
-      ArrayXXd deltaF = ArrayXXd::Zero(N, M);
+      ScopedEigenMap<ArrayXXd> deltaF(N, M, alloc);
+      deltaF.setZero();
       deltaF.colwise() = prevFreqs;
       for (index i = 0; i < N; i++) { deltaF.row(i) -= peakFreqs; }
-      ArrayXXd deltaA = ArrayXXd::Zero(N, M);
+      ScopedEigenMap<ArrayXXd> deltaA(N, M, alloc);
+      deltaA.setZero();
       deltaA.colwise() = prevAmps;
       for (index i = 0; i < N; i++) { deltaA.row(i) -= peakAmps; }
 
-      ArrayXXd usefulCost =
+      ScopedEigenMap<ArrayXXd> usefulCost(N, M, alloc);
+      usefulCost =
           1 - (-deltaF.square() / mVarF - deltaA.square() / mVarA).exp();
-      ArrayXXd spuriousCost = 1 - (1 - mDelta) * usefulCost;
-      ArrayXXd cost(N, M);
-      ArrayXXb useful(N, M);
+      ScopedEigenMap<ArrayXXd> spuriousCost(N, M, alloc);
+      spuriousCost = 1 - (1 - mDelta) * usefulCost;
+      ScopedEigenMap<ArrayXXd> cost(N, M, alloc);
+      ScopedEigenMap<ArrayXXb> useful(N, M, alloc);
       for (index i = 0; i < N; i++)
       {
         for (index j = 0; j < M; j++)
@@ -189,9 +205,10 @@ private:
           }
         }
       }
-      ArrayXi assignment(N);
-      mMunkres.init(N, M);
-      mMunkres.process(cost, assignment);
+      ScopedEigenMap<ArrayXi> assignment(N, alloc);
+      Munkres munkres(N,M, alloc);
+//      mMunkres.init(N, M);
+      munkres.process(cost, assignment, alloc);
       for (index i = 0; i < N; i++)
       {
         index p = assignment(i);
@@ -217,13 +234,14 @@ private:
                  !mPrevPeaks[asUnsigned(i)].assigned)
         {
           mLastTrackId = mLastTrackId + 1;
-          auto newTrack = SineTrack{vector<SinePeak>{mPrevPeaks[asUnsigned(i)],
-                                                     sinePeaks[asUnsigned(p)]},
+          auto newTrack = SineTrack{vector<SinePeak>(2, alloc),
                                     mCurrentFrame - 1,
                                     -1,
                                     true,
                                     true,
                                     mLastTrackId};
+          newTrack.peaks[0] = mPrevPeaks[asUnsigned(i)];
+          newTrack.peaks[1] = sinePeaks[asUnsigned(p)];
           mTracks.push_back(newTrack);
           sinePeaks[asUnsigned(p)].assigned = true;
           trackAssignment[asUnsigned(p)] = newTrack.trackId;
@@ -250,10 +268,10 @@ private:
            mBirthRange * std::pow(0.0075, peak.freq / 20000.0);
   }
 
-  void assignGreedy(vector<SinePeak> sinePeaks, double maxAmp)
+  void assignGreedy(vector<SinePeak>& sinePeaks, double maxAmp, Allocator& alloc)
   {
     using namespace std;
-    vector<tuple<double, SineTrack*, SinePeak*>> distances;
+    rt::vector<tuple<double, SineTrack*, SinePeak*>> distances(0, alloc);
     for (auto&& track : mTracks) { track.assigned = false; }
     for (auto& track : mTracks)
     {
@@ -293,9 +311,10 @@ private:
       if (!peak.assigned && peak.logMag > birthThreshold(peak, maxAmp))
       {
         nBorn++;
-        mTracks.push_back(SineTrack{vector<SinePeak>{peak},
+        mTracks.push_back(SineTrack{vector<SinePeak>(1, peak, alloc),
                                     static_cast<int>(mCurrentFrame), -1, true,
                                     true, mLastTrackId++});
+                                    
       }
     }
     // diying tracks
@@ -316,7 +335,7 @@ private:
   bool              mInitialized{false};
   vector<SinePeak>  mPrevPeaks;
   vector<index>     mPrevTracks;
-  Munkres           mMunkres;
+//  Munkres           mMunkres;
   double            mZetaA{0};
   double            mVarA{0};
   double            mZetaF{0};

@@ -14,6 +14,9 @@ namespace fluid {
 
     template<typename T>
     using deque = foonathan::memory::deque<T,Allocator>;
+    
+    template<typename T>
+    using queue = foonathan::memory::queue<T,Allocator>;
   }
   
   Allocator& FluidDefaultAllocator()

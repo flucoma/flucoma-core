@@ -76,8 +76,10 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return SineParams; }
 
-  SinesClient(ParamSetViewType& p)
-      : mParams(p), mSTFTBufferedProcess{get<kFFT>().max(), 1, 2}
+  SinesClient(ParamSetViewType& p, FluidContext& c)
+      : mParams(p),
+        mSTFTBufferedProcess{get<kFFT>(), 1, 2, c.hostVectorSize(), c.allocator()},
+        mSinesExtractor{c.allocator()}
   {
     audioChannelsIn(1);
     audioChannelsOut(2);
@@ -100,14 +102,14 @@ public:
     }
 
     mSTFTBufferedProcess.process(
-        mParams, input, output, c,
-        [this](ComplexMatrixView in, ComplexMatrixView out) {
+        get<kFFT>(), input, output, c,
+        [&](ComplexMatrixView in, ComplexMatrixView out) {
           mSinesExtractor.processFrame(
               in.row(0), out.transpose(), sampleRate(),
               get<kDetectionThreshold>(), get<kMinTrackLen>(),
               get<kBirthLowThreshold>(), get<kBirthHighThreshold>(),
               get<kTrackingMethod>(), get<kTrackMagRange>(),
-              get<kTrackFreqRange>(), get<kTrackProb>(), get<kBandwidth>());
+              get<kTrackFreqRange>(), get<kTrackProb>(), get<kBandwidth>(), c.allocator());
         });
   }
 
@@ -124,7 +126,7 @@ public:
   }
 
 private:
-  STFTBufferedProcess<ParamSetViewType, kFFT> mSTFTBufferedProcess;
+  STFTBufferedProcess<> mSTFTBufferedProcess;
   algorithm::SineExtraction                   mSinesExtractor;
   ParameterTrackChanges<index, index, double> mTrackValues;
 };

@@ -201,7 +201,7 @@ public:
     Eigen::Map<ArrayXcd> frameMap(mBuffer.data(), frame.size());
     frameMap = _impl::asEigen<Eigen::Array>(frame);
     _impl::asEigen<Eigen::Array>(audio) =
-        mIFFT.process(frameMap) * window * mScale;
+        mIFFT.process(frameMap).head(window.size()) * window * mScale;
   }
 
   void processFrame(Eigen::Ref<ArrayXcd> frame, Eigen::Ref<ArrayXd> audio)
