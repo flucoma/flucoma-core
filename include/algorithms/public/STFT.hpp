@@ -37,13 +37,13 @@ public:
        Allocator& alloc = FluidDefaultAllocator())
       : mWindowSize(windowSize), mHopSize(hopSize), mFrameSize(fftSize / 2 + 1),
         mMaxWindowSize(windowSize),
+        mWindowType(static_cast<WindowFuncs::WindowTypes>(windowType)),
         mWindowBuffer(asUnsigned(windowSize), alloc),
         mWindowedFrameBuffer(asUnsigned(windowSize), alloc),
         mFFT(fftSize, alloc)
   {
     ArrayXdMap window(mWindowBuffer.data(), mWindowSize);
-    auto windowTypeIndex = static_cast<WindowFuncs::WindowTypes>(windowType);
-    WindowFuncs::map()[windowTypeIndex](mWindowSize, window);
+    WindowFuncs::map()[mWindowType](mWindowSize, window);
   }
 
   void resize(index windowSize, index fftSize, index hopSize)
@@ -54,7 +54,7 @@ public:
     mHopSize = hopSize;
     mFrameSize = fftSize / 2 + 1;
     ArrayXdMap window(mWindowBuffer.data(), mWindowSize);
-    WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](mWindowSize, window);
+    WindowFuncs::map()[mWindowType](mWindowSize, window);
     mFFT.resize(fftSize);
   }
 
@@ -133,13 +133,14 @@ public:
   }
 
 private:
-  index              mWindowSize;
-  index              mHopSize;
-  index              mFrameSize;
-  index              mMaxWindowSize;
-  rt::vector<double> mWindowBuffer;
-  rt::vector<double> mWindowedFrameBuffer;
-  FFT                mFFT;
+  index                    mWindowSize;
+  index                    mHopSize;
+  index                    mFrameSize;
+  index                    mMaxWindowSize;
+  WindowFuncs::WindowTypes mWindowType;
+  rt::vector<double>       mWindowBuffer;
+  rt::vector<double>       mWindowedFrameBuffer;
+  FFT                      mFFT;
 };
 
 class ISTFT
@@ -153,13 +154,13 @@ public:
   ISTFT(index windowSize, index fftSize, index hopSize, index windowType = 0,
         Allocator& alloc = FluidDefaultAllocator())
       : mWindowSize(windowSize), mMaxWindowSize(windowSize), mHopSize(hopSize),
-        mScale(1 / double(fftSize)), mIFFT(fftSize, alloc),
-        mBuffer(asUnsigned(mWindowSize), alloc),
+        mScale(1 / double(fftSize)),
+        mWindowType(static_cast<WindowFuncs::WindowTypes>(windowType)),
+        mIFFT(fftSize, alloc), mBuffer(asUnsigned(mWindowSize), alloc),
         mWindowBuffer(asUnsigned(mWindowSize), alloc)
   {
     ArrayXdMap window(mWindowBuffer.data(), mWindowSize);
-    auto windowTypeIndex = static_cast<WindowFuncs::WindowTypes>(windowType);
-    WindowFuncs::map()[windowTypeIndex](mWindowSize, window);
+    WindowFuncs::map()[mWindowType](mWindowSize, window);
   }
 
   void resize(index windowSize, index fftSize, index hopSize)
@@ -170,6 +171,8 @@ public:
     mHopSize = hopSize;
     mScale = 1 / double(fftSize);
     mIFFT.resize(fftSize);
+    ArrayXdMap window(mWindowBuffer.data(), mWindowSize);
+    WindowFuncs::map()[mWindowType](mWindowSize, window);
   }
 
   void process(const ComplexMatrixView spectrogram, RealVectorView audio)
@@ -220,6 +223,7 @@ private:
   index                            mMaxWindowSize;
   index                            mHopSize{512};
   double                           mScale{1};
+  WindowFuncs::WindowTypes         mWindowType;
   IFFT                             mIFFT;
   rt::vector<std::complex<double>> mBuffer;
   rt::vector<double>               mWindowBuffer;
