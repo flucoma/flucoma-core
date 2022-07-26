@@ -60,7 +60,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return AmpFeatureParams; }
 
-  AmpFeatureClient(ParamSetViewType& p) : mParams(p)
+  AmpFeatureClient(ParamSetViewType& p, FluidContext& c) : mParams(p)
   {
     audioChannelsIn(1);
     audioChannelsOut(1);
@@ -70,7 +70,7 @@ public:
 
   template <typename T>
   void process(std::vector<HostVector<T>>& input,
-               std::vector<HostVector<T>>& output, FluidContext&)
+      std::vector<HostVector<T>>&          output, FluidContext&)
   {
 
     if (!input[0].data() || !output[0].data()) return;
@@ -81,18 +81,18 @@ public:
     {
       mAlgorithm.init(get<kSilenceThreshold>(), hiPassFreq);
     }
-    
+
     for (index i = 0; i < input[0].size(); i++)
     {
-      output[0](i) = static_cast<T>(mAlgorithm.processSample(
-          input[0](i), get<kSilenceThreshold>(), get<kFastRampUpTime>(),
-          get<kSlowRampUpTime>(), get<kFastRampDownTime>(),
-          get<kSlowRampDownTime>(), hiPassFreq));
+      output[0](i) = static_cast<T>(
+          mAlgorithm.processSample(input[0](i), get<kSilenceThreshold>(),
+              get<kFastRampUpTime>(), get<kSlowRampUpTime>(),
+              get<kFastRampDownTime>(), get<kSlowRampDownTime>(), hiPassFreq));
     }
   }
   index latency() { return 0; }
 
-  void reset()
+  void reset(FluidContext&)
   {
     double hiPassFreq = std::min(get<kHiPassFreq>() / sampleRate(), 0.5);
     mAlgorithm.init(get<kSilenceThreshold>(), hiPassFreq);
@@ -105,13 +105,13 @@ private:
 
 using RTAmpFeatureClient = ClientWrapper<ampfeature::AmpFeatureClient>;
 
-auto constexpr NRTAmpFeatureParams = makeNRTParams<ampfeature::AmpFeatureClient>(
-    InputBufferParam("source", "Source Buffer"),
-    BufferParam("features", "Feature Buffer"));
+auto constexpr NRTAmpFeatureParams =
+    makeNRTParams<ampfeature::AmpFeatureClient>(
+        InputBufferParam("source", "Source Buffer"),
+        BufferParam("features", "Feature Buffer"));
 
-using NRTAmpFeatureClient =
-    NRTStreamAdaptor<ampfeature::AmpFeatureClient, decltype(NRTAmpFeatureParams),
-                    NRTAmpFeatureParams, 1, 1>;
+using NRTAmpFeatureClient = NRTStreamAdaptor<ampfeature::AmpFeatureClient,
+    decltype(NRTAmpFeatureParams), NRTAmpFeatureParams, 1, 1>;
 
 using NRTThreadedAmpFeatureClient = NRTThreadingAdaptor<NRTAmpFeatureClient>;
 
