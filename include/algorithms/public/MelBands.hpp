@@ -24,7 +24,8 @@ namespace algorithm {
 class MelBands
 {
 public:
-  MelBands(index maxBands, index maxFFT, Allocator& alloc)
+  MelBands(
+      index maxBands, index maxFFT, Allocator& alloc = FluidDefaultAllocator())
       : mFilters(maxBands, maxFFT / 2 + 1, alloc)
   {}
 
@@ -38,7 +39,7 @@ public:
   }
 
   void init(double lo, double hi, index nBands, index nBins, double sampleRate,
-            index windowSize, Allocator& alloc)
+      index windowSize, Allocator& alloc = FluidDefaultAllocator())
   {
 
     using namespace Eigen;
@@ -47,23 +48,22 @@ public:
     assert(nBins <= mFilters.cols());
     mScale1 = 1.0 / (windowSize / 4.0); // scale to original amplitude
     index fftSize = 2 * (nBins - 1);
-    
+
     mScale2 = 1.0 / (2.0 * double(fftSize) / windowSize);
     ScopedEigenMap<ArrayXd> melFreqs(nBands + 2, alloc);
     melFreqs = ArrayXd::LinSpaced(nBands + 2, hz2mel(lo), hz2mel(hi));
     melFreqs = 700.0 * ((melFreqs / 1127.01048).exp() - 1.0);
-//    mFilters = mFiltersStorage.block(0, 0, nBands, nBins);
+    //    mFilters = mFiltersStorage.block(0, 0, nBands, nBins);
     mFilters.topLeftCorner(nBands, nBins).setZero();
     ScopedEigenMap<ArrayXd> fftFreqs(nBins, alloc);
     fftFreqs = ArrayXd::LinSpaced(nBins, 0, sampleRate / 2.0);
     ScopedEigenMap<ArrayXd> melD(nBands + 1, alloc);
-    melD =
-        (melFreqs.segment(0, nBands + 1) - melFreqs.segment(1, nBands + 1))
-            .abs();
+    melD = (melFreqs.segment(0, nBands + 1) - melFreqs.segment(1, nBands + 1))
+               .abs();
     ScopedEigenMap<ArrayXXd> ramps(melFreqs.rows(), nBins, alloc);
     ramps = melFreqs.replicate(1, nBins);
     ramps.rowwise() -= fftFreqs.transpose();
-    
+
     ScopedEigenMap<ArrayXd> lower(nBins, alloc);
     ScopedEigenMap<ArrayXd> upper(nBins, alloc);
     for (index i = 0; i < nBands; i++)
@@ -77,7 +77,7 @@ public:
   }
 
   void processFrame(const RealVectorView in, RealVectorView out, bool magNorm,
-                    bool usePower, bool logOutput, Allocator& alloc)
+      bool usePower, bool logOutput, Allocator& alloc = FluidDefaultAllocator())
   {
     using namespace Eigen;
 
@@ -85,10 +85,16 @@ public:
     frame = _impl::asEigen<Eigen::Array>(in);
     if (magNorm) frame = frame * mScale1;
     ScopedEigenMap<ArrayXd> result(mNBands, alloc);
-    if (usePower) { result = (mFilters.topLeftCorner(mNBands, mNBins) * frame.square().matrix()).array(); }
+    if (usePower)
+    {
+      result =
+          (mFilters.topLeftCorner(mNBands, mNBins) * frame.square().matrix())
+              .array();
+    }
     else
     {
-      result = (mFilters.topLeftCorner(mNBands, mNBins) * frame.matrix()).array();
+      result =
+          (mFilters.topLeftCorner(mNBands, mNBins) * frame.matrix()).array();
     }
     if (magNorm)
     {
@@ -105,9 +111,9 @@ public:
 
 private:
   ScopedEigenMap<Eigen::MatrixXd> mFilters;
-  index mNBands;
-  index mNBins;
-//  Eigen::MatrixXd mFiltersStorage;
+  index                           mNBands;
+  index                           mNBins;
+  //  Eigen::MatrixXd mFiltersStorage;
 };
 } // namespace algorithm
 } // namespace fluid

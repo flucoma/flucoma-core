@@ -113,7 +113,7 @@ public:
   /// Conversion constructors
   template <typename U, size_t M>
   explicit FluidTensor(const FluidTensor<U, M>& x, Allocator& alloc = FluidDefaultAllocator())
-      : mContainer(x.size(), 0, alloc),
+      : mContainer(x.size(), alloc),
         mDesc(x.descriptor())
   {
     static_assert(std::is_convertible<U, T>::value,
@@ -123,7 +123,7 @@ public:
 
   template <typename U, size_t M>
   explicit FluidTensor(FluidTensorView<U, M> x, Allocator& alloc = FluidDefaultAllocator())
-      : mContainer(asUnsigned(x.size()), 0, alloc),
+      : mContainer(asUnsigned(x.size()), alloc),
         mDesc(0, x.descriptor().extents)
   {
     static_assert(std::is_convertible<U, T>::value,

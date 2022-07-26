@@ -12,8 +12,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #include "TransientExtraction.hpp"
 #include "../../data/FluidIndex.hpp"
-#include "../../data/TensorTypes.hpp"
 #include "../../data/FluidMemory.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <cmath>
 
 namespace fluid {
@@ -21,17 +21,15 @@ namespace algorithm {
 
 class TransientSegmentation : public algorithm::TransientExtraction
 {
-  
-public:
 
-  using TransientExtraction::TransientExtraction; 
+public:
+  using TransientExtraction::TransientExtraction;
 
   void setDetectionParameters(double power, double threshHi, double threshLo,
-                              index halfWindow = 7, index hold = 25,
-                              index minSegment = 50)
+      index halfWindow = 7, index hold = 25, index minSegment = 50)
   {
-    TransientExtraction::setDetectionParameters(power, threshHi, threshLo,
-                                                halfWindow, hold);
+    TransientExtraction::setDetectionParameters(
+        power, threshHi, threshLo, halfWindow, hold);
     mMinSegment = minSegment;
   }
 
@@ -42,7 +40,8 @@ public:
     mDebounce = 0;
   }
 
-  void process(const RealVectorView input, RealVectorView output, Allocator& alloc)
+  void process(const RealVectorView input, RealVectorView output,
+      Allocator& alloc = FluidDefaultAllocator())
   {
     detect(input.data(), input.extent(0), alloc);
     const double* transientDetection = getDetect();

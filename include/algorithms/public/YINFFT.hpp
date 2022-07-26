@@ -14,8 +14,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/PeakDetection.hpp"
 #include "../../data/FluidIndex.hpp"
-#include "../../data/TensorTypes.hpp"
 #include "../../data/FluidMemory.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 
 namespace fluid {
@@ -26,26 +26,27 @@ class YINFFT
 
 public:
   void processFrame(const RealVectorView& input, RealVectorView output,
-                    double minFreq, double maxFreq, double sampleRate, Allocator& alloc)
+      double minFreq, double maxFreq, double sampleRate,
+      Allocator& alloc = FluidDefaultAllocator())
   {
     using namespace Eigen;
     PeakDetection pd;
-//    ScopedEigenMap<ArrayXd>  mag = _;
+    //    ScopedEigenMap<ArrayXd>  mag = _;
     ScopedEigenMap<ArrayXd> squareMag(input.size(), alloc);
     squareMag = _impl::asEigen<Array>(input).square();
-    
-    index         nBins = input.size();
-    FFT           fft(2 * (input.size() - 1));
-    double        squareMagSum = 2 * squareMag.sum();
-    
+
+    index  nBins = input.size();
+    FFT    fft(2 * (input.size() - 1));
+    double squareMagSum = 2 * squareMag.sum();
+
     ScopedEigenMap<ArrayXd> squareMagSym(2 * (nBins - 1), alloc);
     squareMagSym << squareMag[0], squareMag.segment(1, nBins - 1),
         squareMag.segment(1, nBins - 2).reverse();
-    
-    Eigen::Map<ArrayXcd> squareMagFFT = fft.process(squareMagSym);
+
+    Eigen::Map<ArrayXcd>    squareMagFFT = fft.process(squareMagSym);
     ScopedEigenMap<ArrayXd> yin(squareMagFFT.size(), alloc);
     yin = squareMagSum - squareMagFFT.real();
-    
+
     if (maxFreq == 0) maxFreq = 1;
     if (minFreq == 0) minFreq = 1;
     yin(0) = 1;
@@ -69,7 +70,7 @@ public:
         maxBin = yinFlip.size() - minBin - 1;
       if (maxBin > minBin)
       {
-//        yinFlip = yinFlip.segment(minBin, maxBin - minBin).eval();
+        //        yinFlip = yinFlip.segment(minBin, maxBin - minBin).eval();
         auto yinSeg = yinFlip.segment(minBin, maxBin - minBin);
         auto vec = pd.process(yinSeg, 1, yinSeg.minCoeff(), true, true, alloc);
         if (vec.size() > 0)

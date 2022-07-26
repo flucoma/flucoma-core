@@ -27,12 +27,13 @@ public:
   using ArrayXd = Eigen::ArrayXd;
 
   NoveltySegmentation(index maxKernelSize, index maxDims, index maxFilterSize,
-                      Allocator& alloc)
+      Allocator& alloc = FluidDefaultAllocator())
       : mNovelty(maxKernelSize, maxDims, maxFilterSize, alloc),
         mPeakBuffer(3, alloc)
   {}
 
-  void init(index kernelSize, index filterSize, index nDims, Allocator& alloc)
+  void init(index kernelSize, index filterSize, index nDims,
+      Allocator& alloc = FluidDefaultAllocator())
   {
     mNovelty.init(kernelSize, filterSize, nDims, alloc);
     mDebounceCount = 1;
@@ -40,7 +41,7 @@ public:
   }
 
   double processFrame(const RealVectorView input, double threshold,
-                      index minSliceLength, Allocator& alloc)
+      index minSliceLength, Allocator& alloc = FluidDefaultAllocator())
   {
     double detected = 0.;
 

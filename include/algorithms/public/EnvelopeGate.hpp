@@ -14,8 +14,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/SlideUDFilter.hpp"
 #include "../../data/FluidIndex.hpp"
-#include "../../data/TensorTypes.hpp"
 #include "../../data/FluidMemory.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <cmath>
 
@@ -28,23 +28,24 @@ class EnvelopeGate
   using ArrayXd = Eigen::ArrayXd;
 
 public:
-  EnvelopeGate(index maxSize, Allocator& alloc)
-    : mInputBuffer(maxSize, alloc), mOutputBuffer(maxSize, alloc)
+  EnvelopeGate(index maxSize, Allocator& alloc = FluidDefaultAllocator())
+      : mInputBuffer(maxSize, alloc),
+        mOutputBuffer(maxSize, alloc)
   {}
 
   void init(double onThreshold, double offThreshold, double hiPassFreq,
-            index minTimeAboveThreshold, index upwardLookupTime,
-            index minTimeBelowThreshold, index downwardLookupTime)
+      index minTimeAboveThreshold, index upwardLookupTime,
+      index minTimeBelowThreshold, index downwardLookupTime)
   {
     using namespace std;
-  
+
     mMinTimeAboveThreshold = minTimeAboveThreshold;
     mUpwardLookupTime = upwardLookupTime;
     mMinTimeBelowThreshold = minTimeBelowThreshold,
     mDownwardLookupTime = downwardLookupTime;
     mDownwardLatency = max<index>(minTimeBelowThreshold, mDownwardLookupTime);
-    mLatency = max<index>(mMinTimeAboveThreshold + mUpwardLookupTime,
-                          mDownwardLatency);
+    mLatency = max<index>(
+        mMinTimeAboveThreshold + mUpwardLookupTime, mDownwardLatency);
     if (mLatency < 0) mLatency = 1;
     assert(mLatency <= mInputBuffer.size());
     mHiPassFreq = hiPassFreq;
@@ -62,8 +63,8 @@ public:
   }
 
   double processSample(const double in, double onThreshold, double offThreshold,
-                       index rampUpTime, index rampDownTime, double hiPassFreq,
-                       index minEventDuration, index minSilenceDuration)
+      index rampUpTime, index rampDownTime, double hiPassFreq,
+      index minEventDuration, index minSilenceDuration)
   {
     using namespace std;
     assert(mInitialized);
@@ -121,7 +122,7 @@ public:
       {
         index onsetIndex =
             refineStart(mWriteHead - mMinTimeAboveThreshold - mUpwardLookupTime,
-                        mUpwardLookupTime);
+                mUpwardLookupTime);
 
         index blockSize = mWriteHead > onsetIndex
                               ? mWriteHead - onsetIndex
@@ -158,22 +159,20 @@ public:
       }
 
       mOutputBuffer(mWriteHead) = mOutputState ? 1 : 0;
-      
+
       mInputState = nextState;
     }
 
     mInputBuffer(mWriteHead) = smoothed;
-    
+
     if (mFillCount < mLatency) mFillCount++;
-    double result = mOutputBuffer(mReadHead); 
+    double result = mOutputBuffer(mReadHead);
 
-    if (++mWriteHead >=  max<index>(mLatency, 1))
-        mWriteHead = 0;
-    if (++mReadHead >=  max<index>(mLatency, 1))
-        mReadHead = 0;
+    if (++mWriteHead >= max<index>(mLatency, 1)) mWriteHead = 0;
+    if (++mReadHead >= max<index>(mLatency, 1)) mReadHead = 0;
 
-    return result;     
-}
+    return result;
+  }
   index getLatency() { return mLatency; }
   bool  initialized() { return mInitialized; }
 
@@ -182,8 +181,7 @@ private:
   void initBuffers(double initialValue)
   {
     using namespace std;
-    mInputBuffer.segment(0, max<index>(mLatency, 1))
-                       .setConstant(initialValue);
+    mInputBuffer.segment(0, max<index>(mLatency, 1)).setConstant(initialValue);
     mOutputBuffer.segment(0, max<index>(mLatency, 1)).setZero();
     mInputState = false;
     mOutputState = false;
@@ -273,8 +271,8 @@ private:
   ScopedEigenMap<ArrayXd> mInputBuffer;
   ScopedEigenMap<ArrayXd> mOutputBuffer;
 
-  index   mWriteHead;
-  index   mReadHead;
+  index mWriteHead;
+  index mReadHead;
 
   bool mInputState{false};
   bool mOutputState{false};

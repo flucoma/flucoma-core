@@ -15,8 +15,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/KWeightingFilter.hpp"
 #include "../util/TruePeak.hpp"
 #include "../../data/FluidIndex.hpp"
-#include "../../data/TensorTypes.hpp"
 #include "../../data/FluidMemory.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <cmath>
 
@@ -27,9 +27,12 @@ class Loudness
 {
 
 public:
-  Loudness(index maxSize, Allocator& alloc) : mTP(maxSize, alloc) {}
+  Loudness(index maxSize, Allocator& alloc = FluidDefaultAllocator())
+      : mTP(maxSize, alloc)
+  {}
 
-  void init(index size, double sampleRate, Allocator& alloc)
+  void init(
+      index size, double sampleRate, Allocator& alloc = FluidDefaultAllocator())
   {
     mFilter.init(sampleRate);
     mTP.init(size, sampleRate, alloc);
@@ -38,7 +41,7 @@ public:
   }
 
   void processFrame(const RealVectorView& input, RealVectorView output,
-                    bool weighting, bool truePeak, Allocator& alloc)
+      bool weighting, bool truePeak, Allocator& alloc = FluidDefaultAllocator())
   {
     using namespace Eigen;
     using namespace std;
@@ -46,11 +49,12 @@ public:
     assert(output.size() == 2);
     assert(input.size() == mSize);
     FluidEigenMap<Eigen::Array> in = _impl::asEigen<Array>(input);
-    ScopedEigenMap<ArrayXd> filtered(mSize, alloc);
+    ScopedEigenMap<ArrayXd>     filtered(mSize, alloc);
     for (index i = 0; i < mSize; i++)
       filtered(i) = weighting ? mFilter.processSample(input(i)) : input(i);
     double loudness = -0.691 + 10 * log10(filtered.square().mean() + epsilon);
-    double peak = truePeak ? mTP.processFrame(input, alloc) : in.abs().maxCoeff();
+    double peak =
+        truePeak ? mTP.processFrame(input, alloc) : in.abs().maxCoeff();
     peak = 20 * log10(peak + epsilon);
     output(0) = loudness;
     output(1) = peak;

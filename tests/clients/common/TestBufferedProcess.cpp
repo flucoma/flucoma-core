@@ -19,17 +19,15 @@ using fluid::client::FluidContext;
 
 TEST_CASE("BufferedProcess will reconstruct windowed input properly under COLA conditions","[BufferedProcess]"){
     
-    BufferedProcess processor; 
-    
     constexpr int hostSize = 64;
     FluidContext c;
     
     auto frameSize = GENERATE(32, 64, 256, 1024, 8192);
     
     auto hop = frameSize / 2; 
-    
-    processor.maxSize(frameSize, frameSize, 1,1 ); 
-    processor.hostSize(hostSize); // sigh, FIXME
+    BufferedProcess processor(frameSize, frameSize, 1, 1, hostSize); 
+    // processor.maxSize(); 
+    // processor.hostSize(hostSize); // sigh, FIXME
     
     FluidTensor<double,2> input(1,128 * frameSize);
     

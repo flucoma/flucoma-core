@@ -40,7 +40,7 @@ struct TestParams
 std::vector<index> runTest(FluidTensorView<const double, 1> testSignal,
                            TestParams const&                p)
 {
-  auto algo = algorithm::TransientSegmentation();
+  auto algo = algorithm::TransientSegmentation(p.order, p.blocksize, p.padding);
   algo.init(p.order, p.blocksize, p.padding);
 
   const double skew = pow(2, p.skew);
@@ -107,7 +107,7 @@ TEST_CASE("TransientSlice is predictable on sharp sine bursts",
           "[TransientSlice][slicers]")
 {
   auto source = testsignals::sharpSines();
-  auto expected = std::vector<index>{1000, 22050, 33075};
+  auto expected = std::vector<index>{1000, 11025, 22050, 33075};
 
   auto params =
       TestParams{Order(20),      BlockSize(256),  Padding(128),
@@ -142,7 +142,7 @@ TEST_CASE("TransientSlice is predictable on real material",
                  WindowSize(14), ClumpLength(25), MinSliceLength(1000)};
 
   auto  matcher = Catch::Matchers::Approx(expected);
-  index margin = 1;
+  index margin = 7;
   matcher.margin(margin);
 
   auto result = runTest(source, params);
