@@ -24,24 +24,21 @@ namespace fluid {
 namespace client {
 namespace onsetfeature {
 
-enum OnsetParamIndex {
-  kFunction,
-  kFilterSize,
-  kFrameDelta,
-  kFFT
-};
+enum OnsetParamIndex { kFunction, kFilterSize, kFrameDelta, kFFT };
 
-constexpr auto OnsetFeatureParams = defineParameters(
-    EnumParam("metric", "Spectral Change Metric", 0, "Energy",
-              "High Frequency Content", "Spectral Flux",
-              "Modified Kullback-Leibler", "Itakura-Saito", "Cosine",
-              "Phase Deviation", "Weighted Phase Deviation", "Complex Domain",
-              "Rectified Complex Domain"),
-    LongParam("filterSize", "Filter Size", 5, Min(1), Odd(), Max(101)),
-    LongParam("frameDelta", "Frame Delta", 0, Min(0)),
-    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
+constexpr auto OnsetFeatureParams =
+    defineParameters(EnumParam("metric", "Spectral Change Metric", 0, "Energy",
+                         "High Frequency Content", "Spectral Flux",
+                         "Modified Kullback-Leibler", "Itakura-Saito", "Cosine",
+                         "Phase Deviation", "Weighted Phase Deviation",
+                         "Complex Domain", "Rectified Complex Domain"),
+        LongParam("filterSize", "Filter Size", 5, Min(1), Odd(), Max(101)),
+        LongParam("frameDelta", "Frame Delta", 0, Min(0), Max(8192)),
+        FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
-class OnsetFeatureClient : public FluidBaseClient, public AudioIn, public ControlOut
+class OnsetFeatureClient : public FluidBaseClient,
+                           public AudioIn,
+                           public ControlOut
 {
 
   using OnsetDetectionFunctions = algorithm::OnsetDetectionFunctions;
@@ -60,50 +57,44 @@ public:
     return mParams.get().template get<N>();
   }
 
-  static constexpr auto& getParameterDescriptors() { return OnsetFeatureParams; }
+  static constexpr auto& getParameterDescriptors()
+  {
+    return OnsetFeatureParams;
+  }
 
-  OnsetFeatureClient(ParamSetViewType& p)
-      : mParams{p}, mAlgorithm{get<kFFT>().max()}
+  OnsetFeatureClient(ParamSetViewType& p, FluidContext& c)
+      : mParams{p},
+        mAlgorithm{get<kFFT>().max(), 101, c.allocator()},
+        mBufferedProcess{get<kFFT>().max() + 8192, 0, 1, 0, c.hostVectorSize(),
+            c.allocator()}
   {
     audioChannelsIn(1);
-    controlChannelsOut({1,1});
+    controlChannelsOut({1, 1});
     setInputLabels({"audio input"});
     setOutputLabels({"1 when slice detected, 0 otherwise"});
   }
 
   template <typename T>
   void process(std::vector<HostVector<T>>& input,
-               std::vector<HostVector<T>>& output, FluidContext& c)
+      std::vector<HostVector<T>>& output, FluidContext& c)
   {
-    using std::size_t;
-
     if (!input[0].data() || !output[0].data()) return;
 
-    index hostVecSize = input[0].size();
     index totalWindow = get<kFFT>().winSize();
     if (get<kFunction>() > 1 && get<kFunction>() < 5)
       totalWindow += get<kFrameDelta>();
-    if (mBufferParamsTracker.changed(hostVecSize, get<kFFT>().winSize(),
-                                     get<kFrameDelta>()))
-    {
-      mBufferedProcess.hostSize(hostVecSize);
-      mBufferedProcess.maxSize(totalWindow, totalWindow,
-                               FluidBaseClient::audioChannelsIn(),
-                               FluidBaseClient::audioChannelsOut());
-    }
+
     if (mParamsTracker.changed(get<kFFT>().fftSize(), get<kFFT>().winSize()))
     {
-      mAlgorithm.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
-                      get<kFilterSize>());
+      mAlgorithm.init(
+          get<kFFT>().winSize(), get<kFFT>().fftSize(), get<kFilterSize>());
     }
-    RealMatrix in(1, hostVecSize);
-    in.row(0) <<= input[0];
-    
-    mBufferedProcess.push(RealMatrixView(in));
+
+    mBufferedProcess.push(FluidTensorView<T, 2>(input[0]));
     mBufferedProcess.processInput(
-        totalWindow, get<kFFT>().hopSize(), c, [&, this](RealMatrixView in) {
-          mDescriptor = mAlgorithm.processFrame(
-              in.row(0), get<kFunction>(), get<kFilterSize>(), get<kFrameDelta>());
+        totalWindow, get<kFFT>().hopSize(), c, [&](RealMatrixView in) {
+          mDescriptor = mAlgorithm.processFrame(in.row(0), get<kFunction>(),
+              get<kFilterSize>(), get<kFrameDelta>(), c.allocator());
         });
 
     output[0](0) = static_cast<T>(mDescriptor);
@@ -117,10 +108,10 @@ public:
   }
 
   void reset()
-  {    
+  {
     mBufferedProcess.reset();
-    mAlgorithm.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
-                    get<kFilterSize>());
+    mAlgorithm.init(
+        get<kFFT>().winSize(), get<kFFT>().fftSize(), get<kFilterSize>());
   }
 
 private:
@@ -141,11 +132,12 @@ auto constexpr NRTOnsetFeatureParams =
 
 
 using NRTOnsetFeatureClient =
-    NRTControlAdaptor<onsetfeature::OnsetFeatureClient, decltype(NRTOnsetFeatureParams),
-                    NRTOnsetFeatureParams, 1, 1>;
+    NRTControlAdaptor<onsetfeature::OnsetFeatureClient,
+        decltype(NRTOnsetFeatureParams), NRTOnsetFeatureParams, 1, 1>;
 
 
-using NRTThreadedOnsetFeatureClient = NRTThreadingAdaptor<NRTOnsetFeatureClient>;
+using NRTThreadedOnsetFeatureClient =
+    NRTThreadingAdaptor<NRTOnsetFeatureClient>;
 
 } // namespace client
 } // namespace fluid
