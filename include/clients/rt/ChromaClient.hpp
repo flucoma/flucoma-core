@@ -91,6 +91,9 @@ public:
       controlChannelsOut({1, nChroma});
     }
     
+    if(mHostVSTracker.changed(c.hostVectorSize()))
+        mSTFTBufferedProcess = STFTBufferedProcess<false>(get<kFFT>(), 1, 0, c.hostVectorSize(), c.allocator()); 
+    
     auto mags = mMagnitude(Slice(0,frameSize));
     auto chroma = mChroma(Slice(0,nChroma));
 
@@ -121,6 +124,7 @@ public:
 
   private:
     ParameterTrackChanges<index, index, double, double> mTracker;
+    ParameterTrackChanges<index> mHostVSTracker;
     STFTBufferedProcess<false>  mSTFTBufferedProcess;
 
     algorithm::ChromaFilterBank mAlgorithm;

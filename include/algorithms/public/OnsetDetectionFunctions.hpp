@@ -61,46 +61,54 @@ public:
     mWindowSize = windowSize;
   }
 
+  index nextPower2(index n)
+  {
+    return static_cast<index>(std::pow(2, std::ceil(std::log2(n))));
+  }
+
   /// input window isn't necessarily a single framre because it should encompass
   /// `frameDelta`'s worth of history
   double processFrame(RealVectorView input, index function, index filterSize,
                       index frameDelta, Allocator& alloc)
   {
-    assert(mInitialized);
-    FluidEigenMap<Eigen::Array> in = _impl::asEigen<Eigen::Array>(input);
+    assert(mInitialized);    
+//    FluidEigenMap<Eigen::Array> in = _impl::asEigen<Eigen::Array>(input);
     double                      funcVal = 0;
     double                      filteredFuncVal = 0;
 
-    index frameSize = mWindowSize / 2 + 1;
+    index frameSize = nextPower2(mWindowSize) / 2 + 1;
 
     if (filterSize >= 3 &&
         (!mFilter.initialized() || filterSize != mFilter.size()))
       mFilter.init(filterSize);
-
+    
+    ScopedEigenMap<ArrayXd> in(mWindowSize, alloc);
+    in = _impl::asEigen<Eigen::Array>(input).col(0).head(mWindowSize)* mWindow.head(mWindowSize);
+    
     ScopedEigenMap<ArrayXcd>  frame(frameSize, alloc);
-    frame = mFFT.process(in.col(0).segment(0, mWindowSize) * mWindow);
+    frame = mFFT.process(in);
 
     auto odf = static_cast<OnsetDetectionFuncs::ODF>(function);
     if (function > 1 && function < 5 && frameDelta != 0)
     {
       ScopedEigenMap<ArrayXcd>  frame2(frameSize, alloc);
       frame2 =
-          mFFT.process(in.col(0).segment(frameDelta, mWindowSize) * mWindow);
+          mFFT.process(in.segment(frameDelta, mWindowSize) * mWindow.head(mWindowSize));
       funcVal = OnsetDetectionFuncs::map()[odf](frame2, frame, frame);
     }
     else
     {
       funcVal =
-          OnsetDetectionFuncs::map()[odf](frame, mPrevFrame, mPrevPrevFrame);
+          OnsetDetectionFuncs::map()[odf](frame, mPrevFrame.head(frameSize), mPrevPrevFrame.head(frameSize));
     }
     if (filterSize >= 3)
       filteredFuncVal = funcVal - mFilter.processSample(funcVal);
     else
       filteredFuncVal = funcVal - mPrevFuncVal;
 
-    mPrevPrevFrame = mPrevFrame;
-    mPrevFrame = frame;
-
+    mPrevPrevFrame.head(frameSize) = mPrevFrame.head(frameSize);
+    mPrevFrame.head(frameSize) = frame;
+    mPrevFuncVal = filteredFuncVal;
     return filteredFuncVal;
   }
 

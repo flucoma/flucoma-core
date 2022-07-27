@@ -81,6 +81,7 @@ public:
     assert(FluidBaseClient::controlChannelsOut().size && "No control channels");
     assert(output[0].size() >= FluidBaseClient::controlChannelsOut().size &&
            "Too few output channels");
+    assert(input[0].size() == c.hostVectorSize());
     index hostVecSize = input[0].size();
     if (mBufferParamsTracker.changed(hostVecSize, get<kWindowSize>(),
                                      get<kHopSize>(), sampleRate()))
@@ -90,7 +91,9 @@ public:
 //                               FluidBaseClient::audioChannelsIn(),
 //                               FluidBaseClient::controlChannelsOut().size);
       mAlgorithm.init(get<kWindowSize>(), sampleRate(), c.allocator());
+      mBufferedProcess = BufferedProcess{get<kMaxWindowSize>(), 0, 1, 0, c.hostVectorSize(), c.allocator()};
     }
+    
     RealMatrix in(1, hostVecSize, c.allocator());
     in.row(0) <<= input[0];
     mBufferedProcess.push(RealMatrixView(in));
@@ -115,10 +118,10 @@ public:
 
   index latency() { return get<kWindowSize>(); }
 
-  void reset(Allocator& alloc)
+  void reset(FluidContext& c)
   {
     mBufferedProcess.reset();
-    mAlgorithm.init(get<kWindowSize>(), sampleRate(), alloc);
+    mAlgorithm.init(get<kWindowSize>(), sampleRate(), c.allocator());
   }
 
   AnalysisSize analysisSettings()

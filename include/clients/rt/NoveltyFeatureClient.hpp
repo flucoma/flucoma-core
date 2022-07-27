@@ -68,7 +68,7 @@ public:
       : mParams{p},
         mNovelty{get<kKernelSize>().max(), get<kFFT>().maxFrameSize(),
             get<kFilterSize>().max(), c.allocator()},
-        mBufferedProcess{get<kFFT>().max(), get<kFFT>().max(), 1, 1,
+        mBufferedProcess{get<kFFT>().max(), 0, 1, 0,
             c.hostVectorSize(), c.allocator()},
         mSTFT{get<kFFT>().max(), get<kFFT>().max(), get<kFFT>().hopSize(), 0,
             c.allocator()},
@@ -127,6 +127,7 @@ public:
     if (!input[0].data() || !output[0].data()) return;
 
     index hostVecSize = input[0].size();
+    assert(hostVecSize == c.hostVectorSize());
     index windowSize = get<kFFT>().winSize();
     index frameSize = get<kFFT>().frameSize();
     index featureIdx = get<kFeature>();
@@ -134,6 +135,8 @@ public:
             get<kFilterSize>(), windowSize, sampleRate()))
     {
       initAlgorithms(featureIdx, windowSize, c);
+      mBufferedProcess = BufferedProcess{get<kFFT>().max(), 0, 1, 0,
+            c.hostVectorSize(), c.allocator()};
     }
 
     auto spectrum = mSpectrum(Slice(0, frameSize));

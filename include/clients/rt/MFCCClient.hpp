@@ -110,6 +110,11 @@ public:
       controlChannelsOut({1, nCoefs});
     }
 
+    if (mHostSizeTracker.changed(c.hostVectorSize()))
+    {
+      mSTFTBufferedProcess =    STFTBufferedProcess<false>(get<kFFT>(),1,0,c.hostVectorSize(),c.allocator());
+    }
+
     auto mags  = mMagnitude(Slice(0,frameSize));
     auto bands = mBands(Slice(0,nBands));
     auto coefs = mCoefficients(Slice(0, nCoefs + !has0));
@@ -147,6 +152,8 @@ public:
 
 private:
   ParameterTrackChanges<index, index, index, double, double, double> mTracker;
+  ParameterTrackChanges<index> mHostSizeTracker;
+  
   STFTBufferedProcess<false> mSTFTBufferedProcess;
 
   algorithm::MelBands    mMelBands;

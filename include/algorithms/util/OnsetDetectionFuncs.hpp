@@ -40,7 +40,7 @@ public:
   using ArrayXcd = Eigen::ArrayXcd;
   using ArrayXd = Eigen::ArrayXd;
   using ODFMap =
-      std::map<ODF, std::function<double(ArrayXcd, ArrayXcd, ArrayXcd)>>;
+      std::map<ODF, std::function<double(Eigen::Ref<ArrayXcd>, Eigen::Ref<ArrayXcd>, Eigen::Ref<ArrayXcd>)>>;
 
   static ArrayXd wrapPhase(ArrayXd phase)
   {
@@ -56,35 +56,35 @@ public:
     static ODFMap _funcs = {
 
         {ODF::kEnergy,
-         [](ArrayXcd cur, ArrayXcd /*prev*/, ArrayXcd /*prevprev*/) {
+         [](Eigen::Ref<ArrayXcd> cur, Eigen::Ref<ArrayXcd> /*prev*/, Eigen::Ref<ArrayXcd> /*prevprev*/) {
            return cur.abs().real().square().mean();
          }},
         {ODF::kHFC,
-         [](ArrayXcd cur, ArrayXcd /*prev*/, ArrayXcd /*prevprev*/) {
+         [](Eigen::Ref<ArrayXcd> cur, Eigen::Ref<ArrayXcd> /*prev*/, Eigen::Ref<ArrayXcd> /*prevprev*/) {
            index   n = cur.size();
            ArrayXd space = ArrayXd(n);
            space.setLinSpaced(0, n);
            return (space * cur.abs().real().square()).mean();
          }},
         {ODF::kSpectralFlux,
-         [](ArrayXcd cur, ArrayXcd prev, ArrayXcd /*prevprev*/) {
+         [](Eigen::Ref<ArrayXcd> cur, Eigen::Ref<ArrayXcd> prev, Eigen::Ref<ArrayXcd> /*prevprev*/) {
            return (cur.abs().real() - prev.abs().real()).max(0.0).mean();
          }},
         {ODF::kMKL,
-         [](ArrayXcd cur, ArrayXcd prev, ArrayXcd /*prevprev*/) {
+         [](Eigen::Ref<ArrayXcd> cur, Eigen::Ref<ArrayXcd> prev, Eigen::Ref<ArrayXcd> /*prevprev*/) {
            ArrayXd mag1 = cur.abs().real().max(epsilon);
            ArrayXd mag2 = prev.abs().real().max(epsilon);
            return (mag1 / mag2).max(epsilon).log().mean();
          }},
         {ODF::kIS,
-         [](ArrayXcd cur, ArrayXcd prev, ArrayXcd /*prevprev*/) {
+         [](Eigen::Ref<ArrayXcd> cur, Eigen::Ref<ArrayXcd> prev, Eigen::Ref<ArrayXcd> /*prevprev*/) {
            ArrayXd mag1 = cur.abs().real().max(epsilon);
            ArrayXd mag2 = prev.abs().real().max(epsilon);
            ArrayXd ratio = (mag1 / mag2).square().max(epsilon);
            return (ratio - ratio.log() - 1).mean();
          }},
         {ODF::kCosine,
-         [](ArrayXcd cur, ArrayXcd prev, ArrayXcd /*prevprev*/) {
+         [](Eigen::Ref<ArrayXcd> cur, Eigen::Ref<ArrayXcd> prev, Eigen::Ref<ArrayXcd> /*prevprev*/) {
            ArrayXd mag1 = cur.abs().real().max(epsilon);
            ArrayXd mag2 = prev.abs().real().max(epsilon);
            double  norm = mag1.matrix().norm() * mag2.matrix().norm();
@@ -92,20 +92,20 @@ public:
            return 1 - dot / norm;
          }},
         {ODF::kPhaseDev,
-         [](ArrayXcd cur, ArrayXcd prev, ArrayXcd prevprev) {
+         [](Eigen::Ref<ArrayXcd> cur, Eigen::Ref<ArrayXcd> prev, Eigen::Ref<ArrayXcd> prevprev) {
            ArrayXd phaseAcc = (cur.atan().real() - prev.atan().real()) -
                               (prev.atan().real() - prevprev.atan().real());
            return wrapPhase(phaseAcc).mean();
          }},
         {ODF::kWPhaseDev,
-         [](ArrayXcd cur, ArrayXcd prev, ArrayXcd prevprev) {
+         [](Eigen::Ref<ArrayXcd> cur, Eigen::Ref<ArrayXcd> prev, Eigen::Ref<ArrayXcd> prevprev) {
            ArrayXd mag1 = cur.abs().real().max(epsilon);
            ArrayXd phaseAcc = (cur.atan().real() - prev.atan().real()) -
                               (prev.atan().real() - prevprev.atan().real());
            return wrapPhase(mag1 * phaseAcc).mean();
          }},
         {ODF::kComplexDev,
-         [](ArrayXcd cur, ArrayXcd prev, ArrayXcd prevprev) {
+         [](Eigen::Ref<ArrayXcd> cur, Eigen::Ref<ArrayXcd> prev, Eigen::Ref<ArrayXcd> prevprev) {
            ArrayXcd target(cur.size());
            ArrayXd  prevMag = prev.abs().real().max(epsilon);
            ArrayXd  prevPhase = prev.atan().real();
@@ -116,7 +116,7 @@ public:
            return (target - cur).abs().real().mean();
          }},
         {ODF::kRComplexDev,
-         [](ArrayXcd cur, ArrayXcd prev, ArrayXcd prevprev) {
+         [](Eigen::Ref<ArrayXcd> cur, Eigen::Ref<ArrayXcd> prev, Eigen::Ref<ArrayXcd> prevprev) {
            ArrayXcd target(cur.size());
            ArrayXd  prevMag = prev.abs().real().max(epsilon);
            ArrayXd  prevPhase = prev.atan().real();

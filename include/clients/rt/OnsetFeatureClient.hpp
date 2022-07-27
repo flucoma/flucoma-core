@@ -89,6 +89,12 @@ public:
       mAlgorithm.init(
           get<kFFT>().winSize(), get<kFFT>().fftSize(), get<kFilterSize>());
     }
+    
+    if (mHostSizeTracker.changed(c.hostVectorSize()))
+    {
+      mBufferedProcess = BufferedProcess{get<kFFT>().max() + 8192, 0, 1, 0, c.hostVectorSize(),
+            c.allocator()};
+    }
 
     mBufferedProcess.push(FluidTensorView<T, 2>(input[0]));
     mBufferedProcess.processInput(
@@ -107,7 +113,7 @@ public:
     return {get<kFFT>().winSize(), get<kFFT>().hopSize()};
   }
 
-  void reset()
+  void reset(FluidContext&)
   {
     mBufferedProcess.reset();
     mAlgorithm.init(
@@ -117,8 +123,8 @@ public:
 private:
   OnsetDetectionFunctions                    mAlgorithm;
   double                                     mDescriptor;
-  ParameterTrackChanges<index, index, index> mBufferParamsTracker;
   ParameterTrackChanges<index, index>        mParamsTracker;
+  ParameterTrackChanges<index>               mHostSizeTracker;
   BufferedProcess                            mBufferedProcess;
 };
 } // namespace onsetfeature

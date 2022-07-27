@@ -74,8 +74,9 @@ public:
   SpectralShapeClient(ParamSetViewType& p, FluidContext& c)
       : mParams(p), mSTFTBufferedProcess(get<kFFT>(), 1, 0, c.hostVectorSize(),
                                          c.allocator()),
+        mAlgorithm{c.allocator()},
         mMagnitude(get<kFFT>().maxFrameSize(), c.allocator()),
-        mDescriptors(7, c.allocator()), mAlgorithm{c.allocator()}
+        mDescriptors(7, c.allocator())
   {
     audioChannelsIn(1);
     controlChannelsOut({1, asSigned(get<kSelect>().count()), mMaxOutputSize});
@@ -95,8 +96,11 @@ public:
     assert(output[0].size() >= controlChannelsOut().size &&
            "Too few output channels");
 
-    //    if (mTracker.changed(get<kFFT>().frameSize(), sampleRate()))
-    //    { mMagnitude.resize(get<kFFT>().frameSize()); }
+    if (mHostSizeTracker.changed(c.hostVectorSize()))
+    {
+      mSTFTBufferedProcess = STFTBufferedProcess<>(get<kFFT>(), 1, 0, c.hostVectorSize(),
+                                         c.allocator());
+    }
 
     mSTFTBufferedProcess.processInput(
         get<kFFT>(), input, c, [&](ComplexMatrixView in) {
@@ -132,7 +136,7 @@ public:
   }
 
 private:
-  ParameterTrackChanges<index, double> mTracker;
+  ParameterTrackChanges<index>         mHostSizeTracker;
   STFTBufferedProcess<>                mSTFTBufferedProcess;
 
   SpectralShape          mAlgorithm;

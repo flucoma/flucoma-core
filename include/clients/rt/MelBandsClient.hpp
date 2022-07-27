@@ -65,8 +65,8 @@ public:
       : mParams{p},
         mSTFTBufferedProcess(get<kFFT>(),1,0,c.hostVectorSize(),c.allocator()),
         mMelBands(get<kNBands>().max(), get<kFFT>().max(),c.allocator()),
-        mBands{get<kNBands>().max(), c.allocator()},
-        mMagnitude{get<kFFT>().maxFrameSize(), c.allocator()}
+        mMagnitude{get<kFFT>().maxFrameSize(), c.allocator()},
+        mBands{get<kNBands>().max(), c.allocator()}
   {
     audioChannelsIn(1);
     controlChannelsOut({1,get<kNBands>(),get<kNBands>().max()});
@@ -96,6 +96,11 @@ public:
       mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), nBands,
                      frameSize, sampleRate(),winSize, c.allocator());
       controlChannelsOut({1, nBands});
+    }
+    
+    if (mHostSizeTracker.changed(c.hostVectorSize()))
+    {
+      mSTFTBufferedProcess =    STFTBufferedProcess<false>(get<kFFT>(),1,0,c.hostVectorSize(),c.allocator()); 
     }
     
     auto mags = mMagnitude(Slice(0,frameSize));
@@ -132,6 +137,7 @@ public:
 private:
   ParameterTrackChanges<index, index, index, index, double, double, double>
                                                      mTracker;
+  ParameterTrackChanges<index> mHostSizeTracker;
   STFTBufferedProcess<false> mSTFTBufferedProcess;
 
   algorithm::MelBands    mMelBands;

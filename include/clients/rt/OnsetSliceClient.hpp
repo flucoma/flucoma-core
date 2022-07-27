@@ -67,7 +67,7 @@ public:
 
   OnsetSliceClient(ParamSetViewType& p, FluidContext const& c)
       : mParams{p},
-        mAlgorithm{get<kFFT>().max(), get<kFilterSize>(),c.allocator()},
+        mAlgorithm{get<kFFT>().max(), 101,c.allocator()},
         mBufferedProcess{get<kFFT>().max() + 8192 /*max frame delta*/, 0, 1, 0, c.hostVectorSize(), c.allocator()}
   {
     audioChannelsIn(1);
@@ -84,7 +84,7 @@ public:
     using std::size_t;
 
     if (!input[0].data() || !output[0].data()) return;
-
+    assert(input[0].size() == c.hostVectorSize());
     index hostVecSize = input[0].size();
     index totalWindow = get<kFFT>().winSize();
     if (get<kFunction>() > 1 && get<kFunction>() < 5)
@@ -93,7 +93,8 @@ public:
                                      get<kFrameDelta>()))
     {
     
-      mBufferedProcess.reset();
+//      mBufferedProcess.reset();
+          mBufferedProcess = BufferedProcess {get<kFFT>().max() + 8192 /*max frame delta*/, 0, 1, 0, c.hostVectorSize(), c.allocator()};
 //      mBufferedProcess.hostSize(hostVecSize);
 //      mBufferedProcess.maxSize(totalWindow, totalWindow,
 //                               FluidBaseClient::audioChannelsIn(),
@@ -126,9 +127,9 @@ public:
 
   index latency() { return static_cast<index>(get<kFFT>().hopSize()); }
 
-  void reset(FluidContext const&)
+  void reset(FluidContext& c)
   {    
-    mBufferedProcess.reset();
+    mBufferedProcess = BufferedProcess {get<kFFT>().max() + 8192 /*max frame delta*/, 0, 1, 0, c.hostVectorSize(), c.allocator()};
     mFrameOffset = 0;
     mAlgorithm.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
                     get<kFilterSize>());

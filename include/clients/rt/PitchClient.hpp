@@ -86,7 +86,6 @@ public:
     controlChannelsOut({1,mMaxFeatures});
     setInputLabels({"audio input"});
     setOutputLabels({"pitch (hz or MIDI), pitch confidence (0-1)"});
-    mDescriptors = FluidTensor<double, 1>(2);
   }
 
   template <typename T>
@@ -98,14 +97,15 @@ public:
     assert(output[0].size() >= controlChannelsOut().size &&
            "Too few output channels");
 
-    if (mParamTracker.changed(get<kFFT>().frameSize(), sampleRate()))
+    if (mParamTracker.changed(get<kFFT>().frameSize(), sampleRate(), c.hostVectorSize()))
     {
       cepstrumF0.init(get<kFFT>().frameSize(), c.allocator());
+      mSTFTBufferedProcess = STFTBufferedProcess(get<kFFT>(), 1, 0, c.hostVectorSize(), c.allocator());
 //      mMagnitude.resize(get<kFFT>().frameSize());
     }
     
     FluidTensorView<double, 1> mags = mMagnitude(Slice(0,get<kFFT>().frameSize()));
-    
+            
     mSTFTBufferedProcess.processInput(
         get<kFFT>(), input, c, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mags);
@@ -154,15 +154,16 @@ public:
     return { get<kFFT>().winSize(), get<kFFT>().hopSize() }; 
   }
 
-  void  reset(Allocator& alloc)
+  void  reset(FluidContext& c)
   {
     mSTFTBufferedProcess.reset();
-    cepstrumF0.init(get<kFFT>().frameSize(), alloc);
+    cepstrumF0.init(get<kFFT>().frameSize(), c.allocator());
 //    mMagnitude.resize(get<kFFT>().frameSize());
   }
 
 private:
-  ParameterTrackChanges<index, double>        mParamTracker;
+  ParameterTrackChanges<index, double, index>        mParamTracker;
+  
   STFTBufferedProcess<> mSTFTBufferedProcess;
 
   CepstrumF0             cepstrumF0;
