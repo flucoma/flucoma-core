@@ -38,8 +38,8 @@ public:
       : mWindowSize(windowSize), mHopSize(hopSize), mFrameSize(fftSize / 2 + 1),
         mMaxWindowSize(windowSize),
         mWindowType(static_cast<WindowFuncs::WindowTypes>(windowType)),
-        mWindowBuffer(asUnsigned(windowSize), alloc),
-        mWindowedFrameBuffer(asUnsigned(windowSize), alloc),
+        mWindowBuffer(asUnsigned(mMaxWindowSize), alloc),
+        mWindowedFrameBuffer(asUnsigned(mMaxWindowSize), alloc),
         mFFT(fftSize, alloc)
   {
     ArrayXdMap window(mWindowBuffer.data(), mWindowSize);
@@ -156,8 +156,8 @@ public:
       : mWindowSize(windowSize), mMaxWindowSize(windowSize), mHopSize(hopSize),
         mScale(1 / double(fftSize)),
         mWindowType(static_cast<WindowFuncs::WindowTypes>(windowType)),
-        mIFFT(fftSize, alloc), mBuffer(asUnsigned(mWindowSize), alloc),
-        mWindowBuffer(asUnsigned(mWindowSize), alloc)
+        mIFFT(fftSize, alloc), mBuffer(asUnsigned(mMaxWindowSize), alloc),
+        mWindowBuffer(asUnsigned(mMaxWindowSize), alloc)
   {
     ArrayXdMap window(mWindowBuffer.data(), mWindowSize);
     WindowFuncs::map()[mWindowType](mWindowSize, window);

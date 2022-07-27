@@ -54,7 +54,7 @@ public:
 
   static constexpr auto getParameterDescriptors() { return GridParams; }
 
-  GridClient(ParamSetViewType& p) : mParams(p) {}
+  GridClient(ParamSetViewType& p, FluidContext&) : mParams(p) {}
 
   MessageResult<void> fitTransform(InputDataSetClientRef sourceClient,
                                    DataSetClientRef destClient)

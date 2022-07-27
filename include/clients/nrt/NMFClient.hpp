@@ -85,7 +85,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return BufNMFParams; }
 
-  NMFClient(ParamSetViewType& p) : mParams{p} {}
+  NMFClient(ParamSetViewType& p, FluidContext&) : mParams{p} {}
 
   /***
    Take some data, NMF it

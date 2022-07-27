@@ -32,23 +32,6 @@ class TransientExtraction
   using VectorXd = Eigen::VectorXd;
 
 public:
-  //  void resizeStorage()
-  //  {
-  //    mInput.resize(asUnsigned(analysisSize() + modelOrder()), 0.0);
-  //    mDetect.resize(asUnsigned(hopSize()), 0.0);
-  //    mForwardError.resize(asUnsigned(mBlockSize + modelOrder()), 0.0);
-  //    mBackwardError.resize(asUnsigned(mBlockSize + modelOrder()), 0.0);
-  //    mForwardWindowedError.resize(asUnsigned(hopSize()), 0.0);
-  //    mBackwardWindowedError.resize(asUnsigned(hopSize()), 0.0);
-  //  }
-
-
-  //  index modelOrder() const { return static_cast<index>(mModel.order()); }
-  //  index blockSize() const { return mBlockSize; }
-  //  index hopSize() const { return mBlockSize - modelOrder(); }
-  //  index padSize() const { return mPadSize; }
-  //  index inputSize() const { return hopSize() + mPadSize; }
-  //  index analysisSize() const { return mBlockSize + mPadSize + mPadSize; }
 
   TransientExtraction(index maxOrder, index maxBlockSize, index maxPadSize,
       Allocator& alloc = FluidDefaultAllocator())
@@ -389,7 +372,7 @@ private:
       // Write the output
       for (index i = 0, uCount = 0; i < (size - order); i++)
       {
-        if (mDetect[asUnsigned(i)] != 0) io[asUnsigned(i)] = u(uCount++);
+        if (mDetect[asUnsigned(i)] != 0) io[i] = u(uCount++);
       }
     }
   }
@@ -472,10 +455,10 @@ private:
 
   std::mt19937_64 mRandomGenerator{std::random_device()()};
 
-  index  mBlockSize{0};
-  index  mPadSize{0};
-  index  mCount{0};
-  bool   mRefine{false};
+  index mBlockSize{0};
+  index mPadSize{0};
+  index mCount{0};
+  //  bool   mRefine{false};
   index  mDetectHalfWindow{1};
   index  mDetectHold{25};
   double mDetectPowerFactor{1.4};

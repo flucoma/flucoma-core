@@ -32,17 +32,17 @@ public:
 
   HPSS(index maxFFTSize, index maxHSize,Allocator& alloc)
       : mMaxBins(maxFFTSize / 2 + 1),mMaxHSize(maxHSize),
-        mHBuf(mMaxBins *  maxHSize, 0, alloc),
-        mVBuf(mMaxBins *  maxHSize, 0, alloc),
-        mFrameBuf(mMaxBins * maxHSize, 0,  alloc),
-        mPaddedBuf(mMaxBins * 3, 0, alloc),
-        mHFilters(mMaxBins,MedianFilter(mMaxHSize, alloc), alloc),
+        mHBuf(asUnsigned(mMaxBins *  maxHSize), 0, alloc),
+        mVBuf(asUnsigned(mMaxBins *  maxHSize), 0, alloc),
+        mFrameBuf(asUnsigned(mMaxBins * maxHSize), 0,  alloc),
+        mPaddedBuf(asUnsigned(mMaxBins * 3), 0, alloc),
+        mHFilters(asUnsigned(mMaxBins),MedianFilter(mMaxHSize, alloc), alloc),
         mVFilter(mMaxBins, alloc),
-        mHarmMaskBuf(mMaxBins,alloc),
-        mPercMaskBuf(mMaxBins,alloc),
-        mResMaskBuf(mMaxBins,alloc),
-        mMaskNormBuf(mMaxBins,alloc),
-        mMaskThreshBuf(mMaxBins,alloc)
+        mHarmMaskBuf(asUnsigned(mMaxBins),alloc),
+        mPercMaskBuf(asUnsigned(mMaxBins),alloc),
+        mResMaskBuf(asUnsigned(mMaxBins),alloc),
+        mMaskNormBuf(asUnsigned(mMaxBins),alloc),
+        mMaskThreshBuf(asUnsigned(mMaxBins),alloc)
   {}
 
   void init(index nBins, index hSize)

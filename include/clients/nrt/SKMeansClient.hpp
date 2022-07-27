@@ -57,7 +57,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return SKMeansParams; }
 
-  SKMeansClient(ParamSetViewType& p) : mParams(p)
+  SKMeansClient(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     audioChannelsIn(1);
     controlChannelsOut({1, 1});
@@ -310,7 +310,7 @@ public:
     return SKMeansQueryParams;
   }
 
-  SKMeansQuery(ParamSetViewType& p) : mParams(p)
+  SKMeansQuery(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});

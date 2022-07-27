@@ -50,7 +50,7 @@ public:
     return DataSetQueryParams;
   }
 
-  DataSetQueryClient(ParamSetViewType& p) : mParams(p) {}
+  DataSetQueryClient(ParamSetViewType& p,  FluidContext&) : mParams(p) {}
 
   MessageResult<void> addColumn(index column)
   {

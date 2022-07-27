@@ -57,7 +57,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return KMeansParams; }
 
-  KMeansClient(ParamSetViewType& p) : mParams(p)
+  KMeansClient(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     audioChannelsIn(1);
     controlChannelsOut({1, 1});
@@ -301,7 +301,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return KMeansQueryParams; }
 
-  KMeansQuery(ParamSetViewType& p) : mParams(p)
+  KMeansQuery(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});

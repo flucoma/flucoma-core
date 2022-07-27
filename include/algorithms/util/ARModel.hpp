@@ -15,8 +15,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "Toeplitz.hpp"
 #include "../public/WindowFuncs.hpp"
 #include "../../data/FluidIndex.hpp"
-#include "../../data/FluidTensor.hpp"
 #include "../../data/FluidMemory.hpp"
+#include "../../data/FluidTensor.hpp"
 #include <Eigen/Eigen>
 #include <algorithm>
 #include <cmath>
@@ -31,30 +31,27 @@ class ARModel
   using MatrixXd = Eigen::MatrixXd;
   using ArrayXd = Eigen::ArrayXd;
   using VectorXd = Eigen::VectorXd;
-  using ArrayXcd = Eigen::ArrayXcd; 
+  using ArrayXcd = Eigen::ArrayXcd;
 
 public:
   ARModel(index maxOrder, index maxBlockSize, Allocator& alloc)
-    : mParameters(maxOrder, alloc),
-      mWindow(maxBlockSize + maxOrder, alloc),
-      mSpectralIn(nextPower2(2 * maxBlockSize),alloc),
-      mSpectralOut(nextPower2(2 * maxBlockSize),alloc),
-      mFFT(nextPower2(2 * maxBlockSize),alloc),
-      mIFFT(nextPower2(2 * maxBlockSize),alloc)
+      : mParameters(maxOrder, alloc),
+        mWindow(maxBlockSize + maxOrder, alloc),
+        mSpectralIn(nextPower2(2 * maxBlockSize), alloc),
+        mSpectralOut(nextPower2(2 * maxBlockSize), alloc),
+        mFFT(nextPower2(2 * maxBlockSize), alloc),
+        mIFFT(nextPower2(2 * maxBlockSize), alloc)
   {}
-  
-  void init(index order)
-  {
-  
-  }
-  
-  
+
+  void init(index order) { mParameters.head(order).setZero(); }
+
+
   const double* getParameters() const { return mParameters.data(); }
   double        variance() const { return mVariance; }
   index         order() const { return mParameters.size(); }
 
   void estimate(FluidTensorView<const double, 1> input, index nIterations,
-                double robustFactor, Allocator& alloc)
+      double robustFactor, Allocator& alloc)
   {
     if (nIterations > 0)
       robustEstimate(input, nIterations, robustFactor, alloc);
@@ -66,7 +63,7 @@ public:
   {
     double prediction;
     modelPredict(input, FluidTensorView<double, 1>(&prediction, 0, 1),
-                 std::negate<index>{}, Predict{});
+        std::negate<index>{}, Predict{});
     return prediction;
   }
 
@@ -74,7 +71,7 @@ public:
   {
     double prediction;
     modelPredict(input, FluidTensorView<double, 1>(&prediction, 0, 1),
-                 Identity{}, Predict{});
+        Identity{}, Predict{});
     return prediction;
   }
 
@@ -92,14 +89,14 @@ public:
     return error;
   }
 
-  void forwardErrorArray(FluidTensorView<const double, 1> input,
-                         FluidTensorView<double, 1>       errors)
+  void forwardErrorArray(
+      FluidTensorView<const double, 1> input, FluidTensorView<double, 1> errors)
   {
     modelPredict(input, errors, std::negate<index>{}, Error{});
   }
 
-  void backwardErrorArray(FluidTensorView<const double, 1> input,
-                          FluidTensorView<double, 1>       errors)
+  void backwardErrorArray(
+      FluidTensorView<const double, 1> input, FluidTensorView<double, 1> errors)
   {
     modelPredict(input, errors, Identity{}, Error{});
   }
@@ -127,8 +124,7 @@ private:
 
   template <typename Indexer, typename OutputFn>
   void modelPredict(FluidTensorView<const double, 1> input,
-                    FluidTensorView<double, 1> output, Indexer fIdx,
-                    OutputFn fOut)
+      FluidTensorView<double, 1> output, Indexer fIdx, OutputFn fOut)
   {
     index numPredictions = output.size();
 
@@ -162,55 +158,55 @@ private:
   }
 
   void directEstimate(FluidTensorView<const double, 1> input,
-                      bool                             updateVariance,
-                      Allocator& alloc)
+      bool updateVariance, Allocator& alloc)
   {
     index size = input.size();
 
     // copy input to a 32 byte aligned block (otherwise risk segfaults on Linux)
-//    FluidEigenMap<const Eigen::Matrix> frame =
+    //    FluidEigenMap<const Eigen::Matrix> frame =
     ScopedEigenMap<VectorXd> frame(size, alloc);
     frame = _impl::asEigen<Eigen::Matrix>(input);
-    
+
     if (mUseWindow)
     {
       if (mWindow.size() != size)
       {
-        mWindow.setZero();// = ArrayXd::Zero(size);
-        WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](size, mWindow.head(size));
+        mWindow.setZero(); // = ArrayXd::Zero(size);
+        WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](
+            size, mWindow.head(size));
       }
 
       frame.array() *= mWindow.head(size);
     }
 
-//    VectorXd autocorrelation(size);
+    //    VectorXd autocorrelation(size);
     ScopedEigenMap<VectorXd> autocorrelation(size, alloc);
     autocorrelate(frame, autocorrelation);
-//    algorithm::autocorrelateReal(autocorrelation.data(), frame.data(),
+    //    algorithm::autocorrelateReal(autocorrelation.data(), frame.data(),
 
-//                                 asUnsigned(size));
+    //                                 asUnsigned(size));
 
     // Resize to the desired order (only keep coefficients for up to the order
     // we need)
     double pN = mParameters.size() < size ? autocorrelation(mParameters.size())
                                           : autocorrelation(0);
-//    autocorrelation.conservativeResize(mParameters.size());
+    //    autocorrelation.conservativeResize(mParameters.size());
 
     // Form a toeplitz matrix
-//    MatrixXd mat = toeplitz(autocorrelation);
-    ScopedEigenMap<MatrixXd> mat(mParameters.size(),mParameters.size(),alloc);
-    mat = MatrixXd::NullaryExpr(mParameters.size(),mParameters.size(),
-      [&autocorrelation, n = mParameters.size()](Eigen::Index row, Eigen::Index col)
-      {
+    //    MatrixXd mat = toeplitz(autocorrelation);
+    ScopedEigenMap<MatrixXd> mat(mParameters.size(), mParameters.size(), alloc);
+    mat = MatrixXd::NullaryExpr(mParameters.size(), mParameters.size(),
+        [&autocorrelation, n = mParameters.size()](
+            Eigen::Index row, Eigen::Index col) {
           index idx = row - col;
-          if(idx < 0) idx += n;
+          if (idx < 0) idx += n;
           return autocorrelation(idx);
-      });
+        });
 
     // Yule Walker
     autocorrelation(0) = pN;
     std::rotate(autocorrelation.data(), autocorrelation.data() + 1,
-                autocorrelation.data() + mParameters.size());
+        autocorrelation.data() + mParameters.size());
     mParameters = mat.llt().solve(autocorrelation.head(mParameters.size()));
 
     if (updateVariance)
@@ -221,13 +217,13 @@ private:
       for (index i = 0; i < mParameters.size() - 1; i++)
         variance -= mParameters(i) * mat(0, i + 1);
 
-      setVariance((variance - (mParameters(mParameters.size() - 1) * pN)) /
-                  size);
+      setVariance(
+          (variance - (mParameters(mParameters.size() - 1) * pN)) / size);
     }
   }
 
   void robustEstimate(FluidTensorView<const double, 1> input, index nIterations,
-                      double robustFactor, Allocator& alloc)
+      double robustFactor, Allocator& alloc)
   {
     FluidTensor<double, 1> estimates(input.size() + mParameters.size(), alloc);
 
@@ -246,8 +242,8 @@ private:
 
     // Iterate
     for (index iterations = nIterations; iterations--;)
-      robustIteration(estimates(Slice(mParameters.size())), input,
-                      robustFactor, alloc);
+      robustIteration(
+          estimates(Slice(mParameters.size())), input, robustFactor, alloc);
   }
 
   double robustResidual(double input, double prediction, double cs)
@@ -255,9 +251,8 @@ private:
     return cs * psiFunction((input - prediction) / cs);
   }
 
-  void robustVariance(FluidTensorView<double, 1>       estimates,
-                      FluidTensorView<const double, 1> input,
-                      double                           robustFactor)
+  void robustVariance(FluidTensorView<double, 1> estimates,
+      FluidTensorView<const double, 1> input, double robustFactor)
   {
     double residualSqSum = 0.0;
 
@@ -266,25 +261,23 @@ private:
     {
       const double residual =
           robustResidual(input[i], fowardPrediction(estimates(Slice(i))),
-                         robustFactor * sqrt(mVariance));
+              robustFactor * sqrt(mVariance));
       residualSqSum += residual * residual;
     }
 
     setVariance(residualSqSum / input.size());
   }
 
-  void robustIteration(FluidTensorView<double, 1>       estimates,
-                       FluidTensorView<const double, 1> input,
-                       double                           robustFactor,
-                       Allocator&                       alloc)
+  void robustIteration(FluidTensorView<double, 1> estimates,
+      FluidTensorView<const double, 1> input, double robustFactor,
+      Allocator& alloc)
   {
     // Iterate to find new filtered input
     for (index i = 0; i < input.size(); i++)
     {
       const double prediction = fowardPrediction(estimates(Slice(i)));
-      estimates[i] =
-          prediction +
-          robustResidual(input[i], prediction, robustFactor * sqrt(mVariance));
+      estimates[i] = prediction + robustResidual(input[i], prediction,
+                                      robustFactor * sqrt(mVariance));
     }
 
     // New parameters
@@ -303,44 +296,42 @@ private:
   {
     return fabs(x) > 1 ? std::copysign(1.0, x) : x;
   }
-  
-  template<typename DerivedA, typename DerivedB>
-  void autocorrelate(const Eigen::DenseBase<DerivedA>& in, Eigen::DenseBase<DerivedB>& out)
+
+  template <typename DerivedA, typename DerivedB>
+  void autocorrelate(
+      const Eigen::DenseBase<DerivedA>& in, Eigen::DenseBase<DerivedB>& out)
   {
-      mSpectralIn.head(in.size()) = in;
+    mSpectralIn.head(in.size()) = in;
 
-      index fftSize = nextPower2(in.size() * 2);
-      mFFT.resize(fftSize);
-      mIFFT.resize(fftSize);
+    index fftSize = nextPower2(in.size() * 2);
+    mFFT.resize(fftSize);
+    mIFFT.resize(fftSize);
 
-      mSpectralIn.head(in.size()) = in;
-      
-      auto spec = mFFT.process(mSpectralIn.head(in.size()));
-      
-      mSpectralOut.head(spec.size()) = spec * spec.conjugate();
-     
-      out.head(in.size()) = mIFFT.process(mSpectralOut.head(spec.size())).head(in.size());
-      out.head(in.size()) /= (fftSize * in.size());
+    mSpectralIn.head(in.size()) = in;
+
+    auto spec = mFFT.process(mSpectralIn.head(in.size()));
+
+    mSpectralOut.head(spec.size()) = spec * spec.conjugate();
+
+    out.head(in.size()) =
+        mIFFT.process(mSpectralOut.head(spec.size())).head(in.size());
+    out.head(in.size()) /= (fftSize * in.size());
   }
-  
+
   index nextPower2(index n)
   {
-    return static_cast<index>(std::pow(2,
-      std::ceil(
-        std::log2(n)
-      )
-    ));
+    return static_cast<index>(std::pow(2, std::ceil(std::log2(n))));
   }
 
   ScopedEigenMap<VectorXd> mParameters;
-  double   mVariance{0.0};
+  double                   mVariance{0.0};
   ScopedEigenMap<ArrayXd>  mWindow;
-  ScopedEigenMap<ArrayXd> mSpectralIn;
+  ScopedEigenMap<ArrayXd>  mSpectralIn;
   ScopedEigenMap<ArrayXcd> mSpectralOut;
-  FFT      mFFT;
-  IFFT     mIFFT;
-  bool     mUseWindow{true};
-  double   mMinVariance{0.0};
+  FFT                      mFFT;
+  IFFT                     mIFFT;
+  bool                     mUseWindow{true};
+  double                   mMinVariance{0.0};
 };
 
 } // namespace algorithm

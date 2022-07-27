@@ -45,8 +45,11 @@ class OptimalTransport
 
 public:
   OptimalTransport(index maxSize, Allocator& alloc)
-      : mA(maxSize, alloc), mB(maxSize, alloc), mS1(alloc), mS2(alloc),
-        mTransportMatrix(alloc)
+      : mTransportMatrix(alloc),
+        mA(maxSize, alloc),
+        mB(maxSize, alloc),
+        mS1(alloc),
+        mS2(alloc)
   {}
 
   void init(Ref<ArrayXd> A, Ref<ArrayXd> B, Allocator& alloc)
@@ -67,8 +70,8 @@ public:
 
   bool initialized() const { return mInitialized; }
 
-  vector<SpectralMass> segmentSpectrum(const Ref<ArrayXd> magnitude,
-                                       Allocator&         alloc)
+  vector<SpectralMass> segmentSpectrum(
+      const Ref<ArrayXd> magnitude, Allocator& alloc)
   {
     constexpr auto          epsilon = std::numeric_limits<double>::epsilon();
     vector<SpectralMass>    masses(alloc);
@@ -107,15 +110,13 @@ public:
       double lastMass = magnitude.segment(lastStart, lastSize).sum();
       lastMass /= totalMass;
       masses.push_back(SpectralMass{valleys.at(asUnsigned(nextValley)),
-                                    peaks.at(peaks.size() - 1),
-                                    magnitude.size() - 1, lastMass});
+          peaks.at(peaks.size() - 1), magnitude.size() - 1, lastMass});
     }
     return masses;
   }
 
-  TransportMatrix computeTransportMatrix(vector<SpectralMass>& m1,
-                                         vector<SpectralMass>& m2,
-                                         Allocator&            alloc)
+  TransportMatrix computeTransportMatrix(
+      vector<SpectralMass>& m1, vector<SpectralMass>& m2, Allocator& alloc)
   {
     TransportMatrix matrix(alloc);
     index           index1 = 0, index2 = 0;
@@ -147,7 +148,7 @@ public:
   }
 
   void placeMass(const SpectralMass mass, index bin, double scale,
-                 Ref<ArrayXd> input, Ref<ArrayXd> output)
+      Ref<ArrayXd> input, Ref<ArrayXd> output)
   {
     for (index i = mass.startBin; i < mass.endBin; i++)
     {
@@ -164,8 +165,8 @@ public:
     {
       SpectralMass m1 = mS1[asUnsigned(std::get<0>(t))];
       SpectralMass m2 = mS2[asUnsigned(std::get<1>(t))];
-      index  interpolatedBin = std::lrint((1 - interpolation) * m1.centerBin +
-                                          interpolation * m2.centerBin);
+      index        interpolatedBin = std::lrint(
+                 (1 - interpolation) * m1.centerBin + interpolation * m2.centerBin);
       double interpolationFactor = interpolation;
       if (m1.centerBin != m2.centerBin)
       {
@@ -174,9 +175,9 @@ public:
             ((double) m2.centerBin - (double) m1.centerBin);
       }
       placeMass(m1, interpolatedBin,
-                (1 - interpolation) * std::get<2>(t) / m1.mass, mA, out);
+          (1 - interpolation) * std::get<2>(t) / m1.mass, mA, out);
       placeMass(m2, interpolatedBin, interpolation * std::get<2>(t) / m2.mass,
-                mB, out);
+          mB, out);
     }
   }
 

@@ -56,7 +56,7 @@ public:
 
   static constexpr auto getParameterDescriptors() { return StandardizeParams; }
 
-  StandardizeClient(ParamSetViewType& p) : mParams(p) {}
+  StandardizeClient(ParamSetViewType& p, FluidContext&) : mParams(p) {}
 
   MessageResult<void> fit(InputDataSetClientRef datasetClient)
   {
@@ -200,7 +200,7 @@ public:
     return StandardizeQueryParams;
   }
 
-  StandardizeQuery(ParamSetViewType& p) : mParams(p)
+  StandardizeQuery(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});

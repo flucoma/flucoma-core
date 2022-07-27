@@ -60,7 +60,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return DataSetParams; }
 
-  DataSetClient(ParamSetViewType& p) : mParams(p) {}
+  DataSetClient(ParamSetViewType& p, FluidContext&) : mParams(p) {}
 
   MessageResult<void> addPoint(string id, InputBufferPtr data)
   {

@@ -133,7 +133,7 @@ public:
     return get<kPadding>() + get<kBlockSize>() - get<kOrder>();
   }
 
-  void reset() { mBufferedProcess.reset(); }
+  void reset(FluidContext&) { mBufferedProcess.reset(); }
 
 private:
   ParameterTrackChanges<index, index, index, index> mTrackValues;

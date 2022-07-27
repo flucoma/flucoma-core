@@ -47,7 +47,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return ThreadTestParams; }
 
-  ThreadTestClient(ParamSetViewType& p) : mParams{p} {}
+  ThreadTestClient(ParamSetViewType& p, FluidContext&) : mParams{p} {}
 
   template <typename T>
   Result process(FluidContext& c)

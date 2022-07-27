@@ -71,7 +71,7 @@ public:
 
   index latency() { return get<kFFT>().winSize(); }
 
-  void reset() { mSTFTProcessor.reset(); }
+  void reset(FluidContext&) { mSTFTProcessor.reset(); }
 
   template <typename T>
   void process(std::vector<HostVector<T>>&, std::vector<HostVector<T>>& output,

@@ -42,6 +42,8 @@ public:
     return mVectorSize;
   }
   
+  void hostVectorSize(index vs) { mVectorSize = vs; };
+  
 private:  
   FluidTask*  mTask{nullptr};
   index mVectorSize{0};

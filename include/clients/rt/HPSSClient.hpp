@@ -83,7 +83,7 @@ public:
            get<kFFT>().winSize();
   }
 
-  void reset()
+  void reset(FluidContext&)
   {
     mSTFTBufferedProcess.reset();
     mHPSS.init(get<kFFT>().frameSize(), get<kHSize>());

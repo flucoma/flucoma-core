@@ -41,7 +41,7 @@ public:
 
   index latency() { return params.fftSettings.winSize(); }
 
-  void reset() { mSTFTBufferedProcess.reset(); }
+  void reset(FluidContext&) { mSTFTBufferedProcess.reset(); }
 
   template <typename T>
   void process(std::vector<HostVector<T>>&,

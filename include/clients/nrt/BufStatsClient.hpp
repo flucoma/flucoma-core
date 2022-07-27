@@ -76,7 +76,7 @@ public:
   static constexpr auto& getParameterDescriptors() { return BufStatsParams; }
 
 
-  BufferStatsClient(ParamSetViewType& p) : mParams(p) {}
+  BufferStatsClient(ParamSetViewType& p, FluidContext&) : mParams(p) {}
 
   template <typename T>
   Result process(FluidContext&)
@@ -126,7 +126,7 @@ public:
     if (numFrames <= get<kNumDerivatives>())
       return {Result::Status::kError, "Not enough frames"};
 
-    index  outputSize = get<kSelect>().count() * (get<kNumDerivatives>() + 1);
+    index  outputSize = asSigned(get<kSelect>().count()) * (get<kNumDerivatives>() + 1);
     index  processorOutputSize = processor.numStats() * (get<kNumDerivatives>() + 1);
     
     Result resizeResult =
@@ -180,7 +180,7 @@ public:
       for(index j = 0, k = 0; j < processorOutputSize; ++j)
       {
          if(selection[j % 7])
-          outputChannel(k++) = resultChannel(j); 
+          outputChannel(k++) = static_cast<T>(resultChannel(j));
       }
     }
     

@@ -157,6 +157,12 @@ public:
     return results;
   }
 
+  template<size_t N> 
+  typename ParamType<N>::type applyConstraintsTo(typename ParamType<N>::type x)
+  {
+      return mParams->template applyConstraintsTo<N>(x); 
+  }
+
   template <template <size_t N, typename T> class Func, typename... Args>
   std::array<Result, sizeof...(Ts)> setMutableParameterValues(bool reportage,
                                                               Args&&... args)
@@ -318,14 +324,14 @@ public:
     return ParamDescType::template NumOf<BufferT>();
   }
 
-  NRTSharedInstanceAdaptor(ParamSetType& p) : mParams{p}
+  NRTSharedInstanceAdaptor(ParamSetType& p, FluidContext c) : mParams{p}
   {
     // Not using the nifty operator[] of unordered map, because it deault
     // constructs the value object, giving us shared_ptr<nullptr>
     std::string name = p.template get<0>();
     if (!mClientTable.count(name)) // key not already in table
     {
-      mClient = std::make_shared<SharedClient>(p.instance());
+      mClient = std::make_shared<SharedClient>(p.instance(), c);
       mClientTable.emplace(name, mClient);
     }
     else

@@ -60,7 +60,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return AmpFeatureParams; }
 
-  AmpFeatureClient(ParamSetViewType& p, FluidContext& c) : mParams(p)
+  AmpFeatureClient(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     audioChannelsIn(1);
     audioChannelsOut(1);

@@ -86,7 +86,7 @@ public:
     return MLPRegressorParams;
   }
 
-  MLPRegressorClient(ParamSetViewType& p) : mParams(p) {}
+  MLPRegressorClient(ParamSetViewType& p, FluidContext&) : mParams(p) {}
 
   template <typename T>
   Result process(FluidContext&)
@@ -279,7 +279,7 @@ public:
     return MLPRegressorQueryParams;
   }
 
-  MLPRegressorQuery(ParamSetViewType& p) : mParams(p)
+  MLPRegressorQuery(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});

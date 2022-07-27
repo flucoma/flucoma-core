@@ -114,7 +114,7 @@ public:
     return MLPClassifierParams;
   }
 
-  MLPClassifierClient(ParamSetViewType& p) : mParams(p) {}
+  MLPClassifierClient(ParamSetViewType& p, FluidContext&) : mParams(p) {}
 
   template <typename T>
   Result process(FluidContext&)
@@ -293,7 +293,7 @@ public:
     return MLPClassifierQueryParams;
   }
 
-  MLPClassifierQuery(ParamSetViewType& p) : mParams(p)
+  MLPClassifierQuery(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});

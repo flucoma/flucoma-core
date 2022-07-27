@@ -50,11 +50,11 @@ public:
     return RunningStatsParams;
   }
 
-  RunningStatsClient(ParamSetViewType& p) : mParams(p)
+  RunningStatsClient(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     controlChannelsIn(1);
     controlChannelsOut({2, -1});
-    setInputLabels({"list input"});
+    setInputLabels({"input stream"});
     setOutputLabels({"mean", "sample standard deviation"});
   }
 

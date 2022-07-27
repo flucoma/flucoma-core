@@ -295,6 +295,13 @@ public:
     return results;
   }
 
+  template<size_t N> 
+  typename ParamType<N>::type applyConstraintsTo(typename ParamType<N>::type x){
+    const index offset = std::get<N>(std::make_tuple(Os...));
+    auto&       constraints = constraint<N>();
+    return  constrain<offset, N, kAll>(x, constraints, nullptr); 
+  }
+
   std::array<Result, sizeof...(Ts)> constrainParameterValues()
   {
     return constrainParameterValuesImpl(IndexList(), IndexList());

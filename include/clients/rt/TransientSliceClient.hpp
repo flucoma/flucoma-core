@@ -74,8 +74,8 @@ public:
   TransientSliceClient(ParamSetViewType& p, FluidContext& c)
     : mParams{p},mMaxWindowIn{2 * get<kBlockSize>() + get<kPadding>()},
       mMaxWindowOut{get<kBlockSize>()},
-      mBufferedProcess{mMaxWindowIn, mMaxWindowOut, 1, 1, c.hostVectorSize(), c.allocator()},
-      mExtractor{get<kOrder>(), get<kBlockSize>(), get<kPadding>(), c.allocator()}
+      mExtractor{get<kOrder>(), get<kBlockSize>(), get<kPadding>(), c.allocator()},
+      mBufferedProcess{mMaxWindowIn, mMaxWindowOut, 1, 1, c.hostVectorSize(), c.allocator()}
   {
     audioChannelsIn(1);
     audioChannelsOut(1);
@@ -95,8 +95,6 @@ public:
     index blockSize = get<kBlockSize>();
     index padding = get<kPadding>();
     index hostVecSize = input[0].size();
-    index maxWinIn = 2 * blockSize + padding;
-    index maxWinOut = maxWinIn; // blockSize - padding;
 
     if (mTrackValues.changed(order, blockSize, padding, hostVecSize) ||
         !mExtractor.initialized())
@@ -136,7 +134,7 @@ public:
     return get<kPadding>() + get<kBlockSize>() - get<kOrder>();
   }
 
-  void reset()
+  void reset(FluidContext&)
   {
     mBufferedProcess.reset();
     mExtractor.init(get<kOrder>(), get<kBlockSize>(), get<kPadding>());

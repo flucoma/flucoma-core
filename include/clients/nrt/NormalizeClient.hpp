@@ -52,7 +52,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return NormalizeParams; }
 
-  NormalizeClient(ParamSetViewType& p) : mParams(p) {}
+  NormalizeClient(ParamSetViewType& p, FluidContext&) : mParams(p) {}
 
   template <typename T>
   Result process(FluidContext&)
@@ -207,7 +207,7 @@ public:
     return NormalizeQueryParams;
   }
 
-  NormalizeQuery(ParamSetViewType& p) : mParams(p)
+  NormalizeQuery(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});

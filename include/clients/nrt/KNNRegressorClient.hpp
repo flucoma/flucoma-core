@@ -89,7 +89,7 @@ public:
     return KNNRegressorParams;
   }
 
-  KNNRegressorClient(ParamSetViewType& p) : mParams(p)
+  KNNRegressorClient(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     audioChannelsIn(1);
     controlChannelsOut({1, 1});
@@ -218,7 +218,7 @@ public:
     return KNNRegressorQueryParams;
   }
 
-  KNNRegressorQuery(ParamSetViewType& p) : mParams(p)
+  KNNRegressorQuery(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});

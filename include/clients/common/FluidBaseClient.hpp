@@ -187,7 +187,7 @@ public:
 
   const Client& client() const { return mClient; }
 
-  void reset() { mClient.reset(); }
+  void reset(FluidContext& c) { mClient.reset(c); }
 
   template <typename T, typename Context>
   Result process(Context& c)

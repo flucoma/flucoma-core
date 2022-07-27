@@ -51,7 +51,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return PCAParams; }
 
-  PCAClient(ParamSetViewType& p) : mParams(p) {}
+  PCAClient(ParamSetViewType& p, FluidContext&) : mParams(p) {}
 
   template <typename T>
   Result process(FluidContext&)
@@ -231,7 +231,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return PCAQueryParams; }
 
-  PCAQuery(ParamSetViewType& p) : mParams(p)
+  PCAQuery(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});

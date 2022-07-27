@@ -45,9 +45,10 @@ public:
   }
 
   AudioTransportClient(ParamSetViewType& p, FluidContext& c)
-      : mParams{p}, mAlgorithm(get<kFFT>().max(), c.allocator()),
+      : mParams{p},
         mBufferedProcess(get<kFFT>().max(), get<kFFT>().max(), 2, 2,
-                         c.hostVectorSize(), c.allocator())
+                         c.hostVectorSize(), c.allocator()),
+        mAlgorithm(get<kFFT>().max(), c.allocator())                    
   {
     audioChannelsIn(2);
     audioChannelsOut(1);
@@ -89,7 +90,7 @@ public:
   }
 
   index latency() { return get<kFFT>().winSize(); }
-  void  reset() { mBufferedProcess.reset(); }
+  void  reset(FluidContext&) { mBufferedProcess.reset(); }
 
 private:
   BufferedProcess                            mBufferedProcess;

@@ -91,7 +91,7 @@ public:
     return KNNClassifierParams;
   }
 
-  KNNClassifierClient(ParamSetViewType& p) : mParams(p) {}
+  KNNClassifierClient(ParamSetViewType& p, FluidContext&) : mParams(p) {}
 
 
   template <typename T>
@@ -227,7 +227,7 @@ public:
     return KNNClassifierQueryParams;
   }
 
-  KNNClassifierQuery(ParamSetViewType& p) : mParams(p)
+  KNNClassifierQuery(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});

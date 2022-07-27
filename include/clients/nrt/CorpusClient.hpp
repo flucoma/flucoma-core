@@ -64,7 +64,7 @@ public:
 
   using CorpusDataSet = FluidDataSet<string, Entry, 1>;
 
-  CorpusClient(ParamSetViewType& p) : mParams(p), mTmp(1) {}
+  CorpusClient(ParamSetViewType& p, FluidContext&) : mParams(p), mTmp(1) {}
 
   template <typename T>
   Result process(FluidContext&)

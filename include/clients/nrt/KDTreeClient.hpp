@@ -52,7 +52,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return KDTreeParams; }
 
-  KDTreeClient(ParamSetViewType& p) : mParams(p)
+  KDTreeClient(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     audioChannelsIn(1);
     controlChannelsOut({1, 1});
@@ -168,7 +168,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return KDTreeQueryParams; }
 
-  KDTreeQuery(ParamSetViewType& p) : mParams(p)
+  KDTreeQuery(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});

@@ -68,7 +68,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return LabelSetParams; }
 
-  LabelSetClient(ParamSetViewType& p) : mParams(p) {}
+  LabelSetClient(ParamSetViewType& p, FluidContext&) : mParams(p) {}
 
   MessageResult<void> addLabel(string id, string label)
   {

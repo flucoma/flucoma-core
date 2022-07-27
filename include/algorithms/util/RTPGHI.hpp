@@ -34,10 +34,14 @@ public:
   using ArrayXcd = Eigen::ArrayXcd;
 
   RTPGHI(index maxFFTSize, Allocator& alloc)
-      : mMaxBins(maxFFTSize / 2 + 1), mPrevMag(mMaxBins, alloc),
-        mPrevLogMag(mMaxBins, alloc), mBinIndices(mMaxBins, alloc),
-        mPrevPrevLogMag(mMaxBins, alloc), mPrevPhase(mMaxBins, alloc),
-        mPrevPrevPhase(mMaxBins, alloc), mPrevPhaseDeltaT(mMaxBins, alloc)
+      : mMaxBins(maxFFTSize / 2 + 1),
+        mBinIndices(mMaxBins, alloc),
+        mPrevMag(mMaxBins, alloc),
+        mPrevLogMag(mMaxBins, alloc),
+        mPrevPrevLogMag(mMaxBins, alloc),
+        mPrevPhase(mMaxBins, alloc),
+        mPrevPrevPhase(mMaxBins, alloc),
+        mPrevPhaseDeltaT(mMaxBins, alloc)
   {}
 
 
@@ -55,8 +59,7 @@ public:
   }
 
   void processFrame(RealVectorView in, ComplexVectorView out, index winSize,
-                    index fftSize, index hopSize, double tolerance,
-                    Allocator& alloc)
+      index fftSize, index hopSize, double tolerance, Allocator& alloc)
   {
     using namespace Eigen;
     using namespace _impl;
@@ -152,8 +155,7 @@ public:
 
 private:
   ScopedEigenMap<ArrayXd> getPhaseDeltaT(Eigen::Ref<ArrayXd> logMag,
-                                         double gamma, index fftSize,
-                                         index hopSize, Allocator& alloc)
+      double gamma, index fftSize, index hopSize, Allocator& alloc)
   {
     ScopedEigenMap<ArrayXd> deltaT(mBins, alloc);
     deltaT.setZero();
@@ -165,9 +167,8 @@ private:
   }
 
   ScopedEigenMap<ArrayXd> getPhaseDeltaF(Eigen::Ref<ArrayXd> prevLogMag,
-                                         Eigen::Ref<ArrayXd> nextLogMag,
-                                         double gamma, index fftSize,
-                                         index hopSize, Allocator& alloc)
+      Eigen::Ref<ArrayXd> nextLogMag, double gamma, index fftSize,
+      index hopSize, Allocator& alloc)
   {
     ScopedEigenMap<ArrayXd> result(prevLogMag.size(), alloc);
     result = 0.5 * (nextLogMag - prevLogMag) * (-gamma / (hopSize * fftSize));
@@ -181,8 +182,8 @@ private:
   ScopedEigenMap<ArrayXd> mPrevLogMag;
   ScopedEigenMap<ArrayXd> mPrevPrevLogMag;
   ScopedEigenMap<ArrayXd> mPrevPhase;
-  ScopedEigenMap<ArrayXd> mPrevPhaseDeltaT;
   ScopedEigenMap<ArrayXd> mPrevPrevPhase;
+  ScopedEigenMap<ArrayXd> mPrevPhaseDeltaT;
 };
 } // namespace algorithm
 } // namespace fluid

@@ -54,7 +54,7 @@ public:
   static constexpr auto& getParameterDescriptors() { return BufFlattenParams; }
 
 
-  BufFlattenClient(ParamSetViewType& p) : mParams{p} {}
+  BufFlattenClient(ParamSetViewType& p,FluidContext&) : mParams{p} {}
 
   template <typename T>
   Result process(FluidContext&)

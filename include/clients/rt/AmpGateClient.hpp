@@ -111,7 +111,7 @@ public:
     }
   }
 
-  void reset()
+  void reset(FluidContext&)
   {
     double hiPassFreq = std::min(get<kHiPassFreq>() / sampleRate(), 0.5);
     mAlgorithm.init(get<kOnThreshold>(), get<kOffThreshold>(), hiPassFreq,

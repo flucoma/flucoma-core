@@ -119,7 +119,7 @@ public:
     return get<kFFT>().winSize() +
            (get<kFFT>().hopSize() * get<kMinTrackLen>());
   }
-  void reset()
+  void reset(FluidContext&)
   {
     mSTFTBufferedProcess.reset();
     mSinesExtractor.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
