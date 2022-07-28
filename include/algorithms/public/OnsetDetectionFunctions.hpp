@@ -33,11 +33,9 @@ class OnsetDetectionFunctions
 
 public:
   OnsetDetectionFunctions(index maxSize, index maxFilterSize, Allocator& alloc)
-      : mFFT(maxSize, alloc),
-        mWindow(maxSize, alloc),
-        mPrevFrame(maxSize / 2 + 1,  alloc),
-        mPrevPrevFrame(maxSize / 2 + 1,  alloc),
-        mFilter(maxFilterSize, alloc)
+      : mFFT(maxSize, alloc), mWindow(maxSize, alloc),
+        mPrevFrame(maxSize / 2 + 1, alloc),
+        mPrevPrevFrame(maxSize / 2 + 1, alloc), mFilter(maxFilterSize, alloc)
   {}
 
   void init(index windowSize, index fftSize, index filterSize)
@@ -47,7 +45,7 @@ public:
 
     mPrevFrame.setZero();
     mPrevPrevFrame.setZero();
-    mFilter.init(filterSize);
+    mFilter.init(std::max<index>(filterSize, 3));
     mFFT.resize(fftSize);
     mDebounceCount = 1;
     mPrevFuncVal = 0;
@@ -71,35 +69,34 @@ public:
   double processFrame(RealVectorView input, index function, index filterSize,
                       index frameDelta, Allocator& alloc)
   {
-    assert(mInitialized);    
-//    FluidEigenMap<Eigen::Array> in = _impl::asEigen<Eigen::Array>(input);
-    double                      funcVal = 0;
-    double                      filteredFuncVal = 0;
-
+    assert(mInitialized);
+    double funcVal = 0;
+    double filteredFuncVal = 0;
     index frameSize = nextPower2(mWindowSize) / 2 + 1;
 
     if (filterSize >= 3 &&
         (!mFilter.initialized() || filterSize != mFilter.size()))
       mFilter.init(filterSize);
-    
+
     ScopedEigenMap<ArrayXd> in(mWindowSize, alloc);
-    in = _impl::asEigen<Eigen::Array>(input).col(0).head(mWindowSize)* mWindow.head(mWindowSize);
-    
-    ScopedEigenMap<ArrayXcd>  frame(frameSize, alloc);
+    in = _impl::asEigen<Eigen::Array>(input).col(0).head(mWindowSize) *
+         mWindow.head(mWindowSize);
+
+    ScopedEigenMap<ArrayXcd> frame(frameSize, alloc);
     frame = mFFT.process(in);
 
-    auto odf = static_cast<OnsetDetectionFuncs::ODF>(function);
     if (function > 1 && function < 5 && frameDelta != 0)
     {
-      ScopedEigenMap<ArrayXcd>  frame2(frameSize, alloc);
-      frame2 =
-          mFFT.process(in.segment(frameDelta, mWindowSize) * mWindow.head(mWindowSize));
-      funcVal = OnsetDetectionFuncs::map()[odf](frame2, frame, frame);
+      ScopedEigenMap<ArrayXcd> frame2(frameSize, alloc);
+      frame2 = mFFT.process(in.segment(frameDelta, mWindowSize) *
+                            mWindow.head(mWindowSize));
+      funcVal = OnsetDetectionFuncs::map(function)(frame2, frame, frame, alloc);
     }
     else
     {
-      funcVal =
-          OnsetDetectionFuncs::map()[odf](frame, mPrevFrame.head(frameSize), mPrevPrevFrame.head(frameSize));
+      funcVal = OnsetDetectionFuncs::map(function)(
+          frame, mPrevFrame.head(frameSize), mPrevPrevFrame.head(frameSize),
+          alloc);
     }
     if (filterSize >= 3)
       filteredFuncVal = funcVal - mFilter.processSample(funcVal);
@@ -108,21 +105,20 @@ public:
 
     mPrevPrevFrame.head(frameSize) = mPrevFrame.head(frameSize);
     mPrevFrame.head(frameSize) = frame;
-    mPrevFuncVal = filteredFuncVal;
     return filteredFuncVal;
   }
 
 private:
-  FFT                              mFFT;
-  ScopedEigenMap<ArrayXd>          mWindow;
-  index                            mWindowSize{1024};
-  index                            mDebounceCount{1};
-  ScopedEigenMap<ArrayXcd>         mPrevFrame;
-  ScopedEigenMap<ArrayXcd>         mPrevPrevFrame;
-  double                           mPrevFuncVal{0.0};
-  WindowTypes                      mWindowType{WindowTypes::kHann};
-  MedianFilter                     mFilter;
-  bool                             mInitialized{false};
+  FFT                      mFFT;
+  ScopedEigenMap<ArrayXd>  mWindow;
+  index                    mWindowSize{1024};
+  index                    mDebounceCount{1};
+  ScopedEigenMap<ArrayXcd> mPrevFrame;
+  ScopedEigenMap<ArrayXcd> mPrevPrevFrame;
+  double                   mPrevFuncVal{0.0};
+  WindowTypes              mWindowType{WindowTypes::kHann};
+  MedianFilter             mFilter;
+  bool                     mInitialized{false};
 };
 
 } // namespace algorithm
