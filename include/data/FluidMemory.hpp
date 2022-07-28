@@ -40,7 +40,14 @@ protected:
 
 public:
   using Scalar = typename EigenType::Scalar;
-
+  
+  template <typename Derived>
+  ScopedEigenMap(const Eigen::EigenBase<Derived>& expr, Allocator& alloc):
+    ScopedEigenMap(expr.rows() * expr.cols(), alloc)
+  {
+    *this = expr; 
+  }
+  
   ScopedEigenMap(index size, Allocator& alloc)
       : Eigen::Map<EigenType>(nullptr, size),
         mStorage(asUnsigned(size), alloc)
