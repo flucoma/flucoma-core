@@ -46,8 +46,10 @@ public:
     mInitialized = true;
   }
 
-  double processFrame(const ArrayXd& input, Allocator& alloc)
+  template<typename EigenThing>
+  double processFrame(const EigenThing& input, Allocator& alloc)
   {
+    assert(mInitialized);
     mBufer.block(0, 0, mKernelSize - 1, mNDims) =
         mBufer.block(1, 0, mKernelSize - 1, mNDims);
     ScopedEigenMap<ArrayXXd> x(1, mNDims, alloc);
