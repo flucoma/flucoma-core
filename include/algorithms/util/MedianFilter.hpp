@@ -24,9 +24,10 @@ class MedianFilter
 
 public:
   MedianFilter(index maxSize, Allocator& alloc)
-      : mUnsorted(asUnsigned(maxSize), alloc),
-        mSorted(asUnsigned(maxSize), alloc)
+      : mUnsorted(alloc), mSorted(alloc)
   {
+    mUnsorted.reserve(asUnsigned(maxSize));
+    mSorted.reserve(asUnsigned(maxSize));
     init(maxSize);
   }
 
@@ -34,9 +35,8 @@ public:
   {
     assert(size >= 3);
     assert(size % 2);
-    assert(asUnsigned(size) <= mUnsorted.size());
+    assert(asUnsigned(size) <= mUnsorted.capacity());
     mFilterSize = asUnsigned(size);
-    mMiddle = (mFilterSize - 1) / 2;
     mUnsorted.resize(mFilterSize, 0);
     mSorted.resize(mFilterSize, 0);
     std::fill(mUnsorted.begin(), mUnsorted.end(), 0);
@@ -50,10 +50,9 @@ public:
     double old = mUnsorted.front();
     std::rotate(mUnsorted.begin(), mUnsorted.begin() + 1, mUnsorted.end());
     mUnsorted[mFilterSize - 1] = val;
-    mSorted.erase(std::lower_bound(mSorted.begin(), mSorted.end() - 1, old));
-    mSorted.insert(std::upper_bound(mSorted.begin(), mSorted.end() - 1, val),
-                   val);
-    return mSorted[mMiddle];
+    mSorted.erase(std::lower_bound(mSorted.begin(), mSorted.end(), old));
+    mSorted.insert(std::upper_bound(mSorted.begin(), mSorted.end(), val), val);
+    return mSorted[size_t(mSorted.size() / 2)];
   }
 
   index size() { return asSigned(mFilterSize); }
@@ -62,7 +61,6 @@ public:
 
 private:
   std::size_t mFilterSize{0};
-  std::size_t mMiddle{0};
   bool        mInitialized{false};
 
   rt::vector<double> mUnsorted;
