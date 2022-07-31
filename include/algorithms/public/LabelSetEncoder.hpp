@@ -53,6 +53,7 @@ public:
       return -1;
   }
 
+  //todo: is this ever used? Will it be?
   std::string decodeIndex(index in) const
   {
     if (in < mLabels.size())
@@ -71,7 +72,7 @@ public:
     if (pos != mLabelsMap.end()) out(pos->second) = 1.0;
   }
 
-  std::string decodeOneHot(RealVectorView in) const
+  std::string const& decodeOneHot(RealVectorView in) const
   {
     double maxVal = 0;
     index  maxIndex = 0;
@@ -83,15 +84,16 @@ public:
         maxVal = in(i);
       }
     }
+    assert(maxIndex < mLabels.size());
     return mLabels(maxIndex);
   }
   index numLabels() const { return mNumLabels; }
 
   // from JSON: expecting unique labels, as opposed to fit
-  void init(FluidTensor<string, 1> labels)
+  void init(FluidTensorView<string, 1> labels)
   {
     mLabelsMap.clear();
-    mLabels = labels;
+    mLabels <<= labels;
     for (index i = 0; i < mLabels.size(); i++) { mLabelsMap[mLabels(i)] = i; }
     mNumLabels = mLabels.size();
     mInitialized = true;
