@@ -239,7 +239,7 @@ public:
 
   template <typename T>
   void process(std::vector<FluidTensorView<T, 1>>& input,
-               std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
+               std::vector<FluidTensorView<T, 1>>& output, FluidContext& c)
   {
     output[0] <<= input[0];
     if (input[0](0) > 0)
@@ -250,7 +250,7 @@ public:
         // report error?
         return;
       }
-      algorithm::PCA algorithm = PCAPtr->algorithm();
+      algorithm::PCA const& algorithm = PCAPtr->algorithm();
       if (!algorithm.initialized()) return;
       index k = get<kNumDimensions>();
       if (k <= 0 || k > algorithm.dims()) return;
@@ -260,10 +260,10 @@ public:
         return;
       auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
       if (outBuf.samps(0).size() < k) return;
-      RealVector src(algorithm.dims());
-      RealVector dest(k);
+      RealVector src(algorithm.dims(), c.allocator());
+      RealVector dest(k, c.allocator());
       src <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
-                .samps(0, algorithm.dims(), 0);
+                  .samps(0, algorithm.dims(), 0);
       algorithm.processFrame(src, dest, k, get<kWhiten>() == 1);
       outBuf.samps(0, k, 0) <<= dest;
     }
