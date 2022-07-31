@@ -186,7 +186,7 @@ public:
         makeMessage("read", &KNNClassifierClient::read));
   }
 
-  index encodeIndex(std::string label) const 
+  index encodeIndex(std::string const& label) const 
   {
     return mLabelSetEncoder.encodeIndex(label);
   }
@@ -235,7 +235,7 @@ public:
 
   template <typename T>
   void process(std::vector<FluidTensorView<T, 1>>& input,
-               std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
+               std::vector<FluidTensorView<T, 1>>& output, FluidContext& c)
   {
     output[0] <<= input[0];
     if (input[0](0) > 0)
@@ -260,9 +260,9 @@ public:
       algorithm::KNNClassifier classifier;
       RealVector               point(algorithm.tree.dims());
       point <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
-                  .samps(0, algorithm.tree.dims(), 0);
-      std::string result = classifier.predict(algorithm.tree, point,
-                                              algorithm.labels, k, weight);
+                    .samps(0, algorithm.tree.dims(), 0);
+      std::string const& result = classifier.predict(
+          algorithm.tree, point, algorithm.labels, k, weight, c.allocator());
       outBuf.samps(0)[0] = static_cast<double>(knnPtr->encodeIndex(result));
     }
   }

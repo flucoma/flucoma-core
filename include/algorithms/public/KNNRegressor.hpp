@@ -17,6 +17,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../data/FluidIndex.hpp"
 #include "../../data/FluidTensor.hpp"
 #include "../../data/TensorTypes.hpp"
+#include "../../data/FluidMemory.hpp"
 #include <string>
 
 namespace fluid {
@@ -28,46 +29,43 @@ class KNNRegressor
 public:
   using DataSet = FluidDataSet<std::string, double, 1>;
 
-  double predict(KDTree tree, DataSet targets, RealVectorView point, index k,
-                 bool weighted) const
+  double predict(KDTree const& tree, DataSet const& targets,
+                 RealVectorView point, index k, bool weighted,
+                 Allocator& alloc = FluidDefaultAllocator()) const
   {
     using namespace std;
-    auto                nearest = tree.kNearest(point, k);
-    double              prediction = 0;
-    auto                ids = nearest.getIds();
-    auto                distances = nearest.getData();
-    double              uniformWeight = 1.0 / k;
-    std::vector<double> weights;
-    double              sum = 0;
+    double prediction = 0;
+    auto [distances, ids] = tree.kNearest(point, k);
+    double             uniformWeight = 1.0 / k;
+    rt::vector<double> weights(asUnsigned(k), weighted ? 0 : uniformWeight,
+                               alloc);
+    double             sum = 0;
     if (weighted)
     {
-      weights = std::vector<double>(asUnsigned(k), 0);
       bool binaryWeights = false;
-      for (index i = 0; i < k; i++)
+      for (size_t i = 0; i < asUnsigned(k); i++)
       {
-        if (distances(i, 0) < epsilon)
+        if (distances[i] < epsilon)
         {
           binaryWeights = true;
-          weights[asUnsigned(i)] = 1;
+          weights[i] = 1;
         }
         else
-          sum += (1.0 / distances(i, 0));
+          sum += (1.0 / distances[i]);
       }
       if (!binaryWeights)
       {
-        for (index i = 0; i < k; i++)
-        { weights[asUnsigned(i)] = (1.0 / distances(i, 0)) / sum; }
+        for (size_t i = 0; i < asUnsigned(k); i++)
+        {
+          weights[i] = (1.0 / distances[i]) / sum;
+        }
       }
     }
-    else
+
+    for (size_t i = 0; i < asUnsigned(k); i++)
     {
-      weights = std::vector<double>(asUnsigned(k), uniformWeight);
-    }
-    for (index i = 0; i < k; i++)
-    {
-      auto point = FluidTensor<double, 1>(1);
-      targets.get(ids(i), point);
-      prediction += (weights[asUnsigned(i)] * point(0));
+      auto point = targets.get(*ids[i]);
+      prediction += (weights[i] * point(0));
     }
     return prediction;
   }

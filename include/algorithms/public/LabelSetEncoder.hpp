@@ -44,7 +44,7 @@ public:
     mInitialized = true;
   }
 
-  index encodeIndex(string label) const
+  index encodeIndex(string const& label) const
   {
     auto pos = mLabelsMap.find(label);
     if (pos != mLabelsMap.end())
@@ -61,7 +61,7 @@ public:
       return "";
   }
 
-  void encodeOneHot(string label, RealVectorView out) const
+  void encodeOneHot(string const& label, RealVectorView out) const
   {
     assert(out.size() == mNumLabels);
     RealVector result(mNumLabels);
