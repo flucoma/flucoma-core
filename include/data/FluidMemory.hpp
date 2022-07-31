@@ -10,6 +10,9 @@ namespace fluid {
 using Allocator = foonathan::memory::any_allocator_reference;
 
 namespace rt {
+
+using string = foonathan::memory::string<Allocator>;
+
 template <typename T>
 using vector = foonathan::memory::vector<T, Allocator>;
 
@@ -45,9 +48,16 @@ public:
   ScopedEigenMap(const Eigen::EigenBase<Derived>& expr, Allocator& alloc):
     ScopedEigenMap(expr.rows() * expr.cols(), alloc)
   {
-    *this = expr; 
+    *this = expr;
   }
-  
+
+  template <typename Derived>
+  ScopedEigenMap(const Eigen::MatrixBase<Derived>& expr, Allocator& alloc)
+      : ScopedEigenMap(expr.rows() * expr.cols(), alloc)
+  {
+    (*this).noalias() = expr;
+  }
+
   ScopedEigenMap(index size, Allocator& alloc)
       : Eigen::Map<EigenType>(nullptr, size),
         mStorage(asUnsigned(size), alloc)
