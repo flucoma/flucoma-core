@@ -35,7 +35,7 @@ public:
   {
     using namespace std;
     unordered_map<string*, double> labelsMap;
-    auto [distances, ids] = tree.kNearest(point, k);
+    auto [distances, ids] = tree.kNearest(point, k, 0, alloc);
 
     double             uniformWeight = 1.0 / k;
     rt::vector<double> weights(asUnsigned(k), weighted ? 0 : uniformWeight,
