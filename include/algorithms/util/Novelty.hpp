@@ -58,13 +58,13 @@ public:
     in1 = input.matrix();
     mBufer.block(mKernelSize - 1, 0, 1, mNDims) = in1.transpose();
     ScopedEigenMap<VectorXd> tmp(mKernelSize, alloc);
-    tmp = mBufer.topLeftCorner(mKernelSize, mNDims) * input.matrix();
+    tmp.noalias() = mBufer.topLeftCorner(mKernelSize, mNDims) * input.matrix();
     ScopedEigenMap<VectorXd> norm(mKernelSize, alloc);
-    norm = mBufer.topLeftCorner(mKernelSize, mNDims)
-               .rowwise()
-               .norm()
-               .cwiseMax(epsilon) *
-           input.matrix().norm();
+    norm.noalias() = mBufer.topLeftCorner(mKernelSize, mNDims)
+                         .rowwise()
+                         .norm()
+                         .cwiseMax(epsilon) *
+                     input.matrix().norm();
     norm = norm.cwiseMax(epsilon);
     tmp = (tmp.array() / norm.array()).matrix();
     mSimilarity.block(0, 0, mKernelSize - 1, mKernelSize - 1) =
@@ -88,7 +88,7 @@ private:
     WindowFuncs::map()[WindowFuncs::WindowTypes::kGaussian](mKernelSize,
                                                             gaussian);
     ScopedEigenMap<MatrixXd> tmp(mKernelSize, mKernelSize, alloc);
-    tmp = gaussian.matrix() * gaussian.matrix().transpose();
+    tmp.noalias() = gaussian.matrix() * gaussian.matrix().transpose();
     tmp.block(h, 0, h + 1, h) *= -1;
     tmp.block(0, h, h, h + 1) *= -1;
     mKernel.topLeftCorner(mKernelSize, mKernelSize) = tmp.array();

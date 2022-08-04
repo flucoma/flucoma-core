@@ -35,10 +35,9 @@ public:
     using namespace Eigen;
     using namespace _impl;
 
-    MatrixXd W1 = asEigen<Matrix>(W).transpose();
-    MatrixXd H1 = asEigen<Matrix>(H).transpose();
-    MatrixXd result = (W1.col(idx) * H1.row(idx)).transpose();
-    V <<= asFluid(result);
+    auto W1 = asEigen<Matrix>(W).transpose();
+    auto H1 = asEigen<Matrix>(H).transpose();
+    asEigen<Matrix>(V).transpose().noalias() = (W1.col(idx) * H1.row(idx));
   }
 
   // processFrame computes activations of a dictionary W in a given frame
@@ -61,18 +60,22 @@ public:
     v0 = v0.array().max(epsilon).matrix();
 
 //    MatrixXd WT = W.transpose();
-    W.rowwise().normalize();
+    ScopedEigenMap<VectorXd> norm(W.rowwise().norm(), alloc);
+    W.array().colwise() /= norm.array();
     index nBins = x.extent(0);
-    VectorXd ones = VectorXd::Ones(nBins);
-    
+
     ScopedEigenMap<ArrayXd> v1{nBins, alloc};
+    ScopedEigenMap<ArrayXd> vRatio{nBins, alloc};
     ScopedEigenMap<ArrayXd> hNum{rank, alloc};
     ScopedEigenMap<ArrayXd> hDen{rank, alloc};
+    auto ones = VectorXd::Ones(nBins);
     while (nIterations--)
     {
-      v1 = (W.transpose() * h).array().max(epsilon);
-      hNum = (W * (v0.array() / v1).matrix()).array();
-      hDen = (W * ones).array();
+      v1.matrix().noalias() = (W.transpose() * h);
+      v1 = v1.max(epsilon);
+      vRatio = v0.array() / v1;
+      hNum.matrix().noalias() = W * vRatio.matrix();
+      hDen.matrix().noalias() = W * ones;
       h = (h.array() * hNum / hDen.max(epsilon)).matrix();
       // VectorXd r = W * h;
       // double divergence = (v.cwiseProduct(v.cwiseQuotient(r)) - v + r).sum();
@@ -81,9 +84,8 @@ public:
     
     if(out.data())
       _impl::asEigen<Array>(out) =  h;
-    
-    if (v.data())
-      _impl::asEigen<Array>(v) = (W.transpose() * h).array();;
+
+    if (v.data()) _impl::asEigen<Matrix>(v).noalias() = (W.transpose() * h);
   }
 
   void process(const RealMatrixView X, RealMatrixView W1, RealMatrixView H1,

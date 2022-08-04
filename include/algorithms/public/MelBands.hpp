@@ -81,29 +81,19 @@ public:
   {
     using namespace Eigen;
 
-    ScopedEigenMap<ArrayXd> frame(in.size(), alloc);
-    frame = _impl::asEigen<Eigen::Array>(in);
+    FluidEigenMap<Array> frame = _impl::asEigen<Array>(in);
+    FluidEigenMap<Array> result = _impl::asEigen<Array>(out);
+
     if (magNorm) frame = frame * mScale1;
-    ScopedEigenMap<ArrayXd> result(mNBands, alloc);
-    if (usePower)
-    {
-      result =
-          (mFilters.topLeftCorner(mNBands, mNBins) * frame.square().matrix())
-              .array();
-    }
-    else
-    {
-      result =
-          (mFilters.topLeftCorner(mNBands, mNBins) * frame.matrix()).array();
-    }
-    if (magNorm)
-    {
-      double energy = frame.sum() * mScale2;
-      result = result * energy / std::max(epsilon, result.sum());
-    }
+    double energy = frame.sum() * mScale2;
+    if (usePower) frame = frame.square();
+
+    result.matrix().noalias() =
+        (mFilters.topLeftCorner(mNBands, mNBins) * frame.matrix());
+
+    if (magNorm) { result = result * energy / std::max(epsilon, result.sum()); }
 
     if (logOutput) result = 20 * result.max(epsilon).log10();
-    _impl::asEigen<Eigen::Array>(out) = result;
   }
 
   double mScale1{1.0};
@@ -113,7 +103,6 @@ private:
   ScopedEigenMap<Eigen::MatrixXd> mFilters;
   index                           mNBands;
   index                           mNBins;
-  //  Eigen::MatrixXd mFiltersStorage;
 };
 } // namespace algorithm
 } // namespace fluid

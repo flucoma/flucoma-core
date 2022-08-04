@@ -45,17 +45,18 @@ class SineExtraction
 
 
 public:
-  SineExtraction(Allocator& alloc)
-      : mTracking(alloc), mBuf{makeEmptyQueue(alloc)}
+  SineExtraction(index maxFFT, Allocator& alloc)
+      : mTracking(alloc), mBuf{makeEmptyQueue(alloc)},
+        mWindowTransform(maxFFT, alloc)
   {}
 
-  void init(index windowSize, index fftSize, index transformSize)
+  void init(index windowSize, index fftSize, index transformSize, Allocator& alloc)
   {
     mBins = fftSize / 2 + 1;
     mCurrentFrame = 0;
     //    mBuf = std::queue<ArrayXcd>();
     mScale = 1.0 / (windowSize / 4.0); // scale to original amplitude
-    computeWindowTransform(windowSize, transformSize);
+    computeWindowTransform(windowSize, transformSize, alloc);
     mTracking.init();
     mWindowBinIncr = mWindowTransform.size() / (mBins - 1) / 2;
     mInvWindowBinIncr = 1.0 / mWindowBinIncr;
@@ -146,15 +147,16 @@ public:
   bool initialized() { return mInitialized; }
 
 private:
-  void computeWindowTransform(index windowSize, index transformSize)
+  void computeWindowTransform(index windowSize, index transformSize,
+                              Allocator& alloc)
   {
     index halfBW = transformSize / 2;
-    mWindowTransform = ArrayXd::Zero(transformSize);
-    ArrayXd window = ArrayXd::Zero(windowSize);
-    FFT     fft(transformSize);
+    mWindowTransform.head(transformSize) = ArrayXd::Zero(transformSize);
+    ScopedEigenMap<ArrayXd> window(ArrayXd::Zero(windowSize), alloc);
+    FFT                     fft(transformSize);
     WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](windowSize, window);
-    ArrayXcd transform =
-        fft.process(Eigen::Map<ArrayXd>(window.data(), windowSize));
+    ScopedEigenMap<ArrayXcd> transform(transformSize / 2 + 1, alloc);
+    transform = fft.process(Eigen::Map<ArrayXd>(window.data(), windowSize));
     for (index i = 0; i < halfBW; i++)
     {
       mWindowTransform(halfBW + i) = mWindowTransform(halfBW - i) =
@@ -201,16 +203,16 @@ private:
     return sine;
   }
 
-  PeakDetection   mPeakDetection;
-  PartialTracking mTracking;
-  index           mBins{513};
-  index           mCurrentFrame{0};
-  Queue           mBuf;
-  ArrayXd         mWindowTransform;
-  double          mScale{1.0};
-  bool            mInitialized{false};
-  double          mWindowBinIncr;
-  double          mInvWindowBinIncr;
+  PeakDetection           mPeakDetection;
+  PartialTracking         mTracking;
+  index                   mBins{513};
+  index                   mCurrentFrame{0};
+  Queue                   mBuf;
+  ScopedEigenMap<ArrayXd> mWindowTransform;
+  double                  mScale{1.0};
+  bool                    mInitialized{false};
+  double                  mWindowBinIncr;
+  double                  mInvWindowBinIncr;
 };
 } // namespace algorithm
 } // namespace fluid

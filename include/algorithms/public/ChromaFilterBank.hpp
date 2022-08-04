@@ -68,9 +68,12 @@ public:
     .square())
     .exp()
     .block(0, 0, nChroma, nBins);
-    
-    mFilters.topLeftCorner(nChroma,nBins).colwise().normalize();
-    
+
+    ScopedEigenMap<ArrayXd> colNorms(nBins, alloc);
+    colNorms = mFilters.topLeftCorner(nChroma, nBins).colwise().norm();
+    mFilters.topLeftCorner(nChroma, nBins).array().rowwise() /=
+        colNorms.transpose();
+
     mNChroma = nChroma;
     mNBins = nBins;
     mScale = 2.0 / (fftSize * mNChroma);
@@ -98,10 +101,12 @@ public:
           frame(seq(0,minBin),seqN(0,1)).setZero();
           frame(seqN(maxBin, frame.size() - maxBin), seqN(0,1)).setZero(); 
     }
+    frame = frame.square();
 
     FluidEigenMap<Eigen::Array> result = _impl::asEigen<Eigen::Array>(out);
-    
-    result = mScale * (mFilters.topLeftCorner(mNChroma,mNBins) * frame.square().matrix()).array();
+    result.matrix().noalias() =
+        mFilters.topLeftCorner(mNChroma, mNBins) * frame.matrix();
+    result *= mScale;
 
     if (normalize > 0) {
       double norm = normalize == 1? result.sum() : result.maxCoeff();

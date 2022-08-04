@@ -50,8 +50,9 @@ public:
   static constexpr auto& getParameterDescriptors() { return NMFFilterParams; }
 
   NMFFilterClient(ParamSetViewType& p, FluidContext& c)
-      : mParams{p}, mSTFTProcessor{get<kFFT>(), 1, get<kMaxRank>().max(), c.hostVectorSize(), c.allocator()}
-      
+      : mParams{p}, mSTFTProcessor{get<kFFT>(), 1, get<kMaxRank>().max(),
+                                   c.hostVectorSize(), c.allocator()},
+        mMask{get<kMaxRank>().max(), get<kFFT>().maxFrameSize(), c.allocator()}
   {
     audioChannelsIn(1);
     audioChannelsOut(get<kMaxRank>().max());
@@ -112,10 +113,6 @@ public:
                             ComplexMatrixView{out.row(i)});
             }
           });
-      
-      
-          
-      
     }
   }
 

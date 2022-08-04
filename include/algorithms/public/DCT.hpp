@@ -65,14 +65,14 @@ public:
            "DCT: actual output size doesn't maatch expected size");
 
     FluidEigenMap<Eigen::Matrix> frame = _impl::asEigen<Eigen::Matrix>(in);
-    _impl::asEigen<Eigen::Array>(out) =
-        (mTable.topLeftCorner(mOutputSize, mInputSize) * frame).array();
+    _impl::asEigen<Eigen::Matrix>(out).noalias() =
+        (mTable.topLeftCorner(mOutputSize, mInputSize) * frame);
   }
 
   void processFrame(Eigen::Ref<const ArrayXd> input, Eigen::Ref<ArrayXd> output)
   {
-    output = (mTable.topLeftCorner(mOutputSize, mInputSize) * input.matrix())
-                 .array();
+    output.matrix().noalias() =
+        (mTable.topLeftCorner(mOutputSize, mInputSize) * input.matrix());
   }
 
 private:

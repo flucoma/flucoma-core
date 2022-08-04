@@ -49,20 +49,16 @@ public:
     for (index i = 2; i < nHarmonics; i++)
     {
       index   hBins = nBins / i;
-//      ArrayXd h = ArrayXd::Zero(hBins);
-//      h.head(hBins).setZero();
       for (index j = 0; j < hBins; j++) h.head(hBins)(j) = mag(j * i);
-//      ArrayXd hp = ArrayXd::Zero(nBins);
       hp.setZero();
-      hp.head(hBins) = h;
+      hp.head(hBins) = h.head(hBins);
       hps = hps * hp;
     }
     hpsSum = hps.sum();
 
     if (maxBin > minBin &&  hpsSum > 0)
     {
-      hps = hps.segment(minBin, maxBin - minBin);
-      double maxVal = hps.maxCoeff(&maxIndex);
+      double maxVal = hps.segment(minBin, maxBin - minBin).maxCoeff(&maxIndex);
       confidence = maxVal / hpsSum;
       f0 = (minBin + maxIndex) * binHz;
     }

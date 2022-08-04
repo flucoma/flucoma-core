@@ -79,7 +79,7 @@ public:
   SinesClient(ParamSetViewType& p, FluidContext& c)
       : mParams(p), mSTFTBufferedProcess{get<kFFT>(), 1, 2, c.hostVectorSize(),
                                          c.allocator()},
-        mSinesExtractor{c.allocator()}
+        mSinesExtractor{get<kFFT>().max(), c.allocator()}
   {
     audioChannelsIn(1);
     audioChannelsOut(2);
@@ -98,7 +98,7 @@ public:
                              sampleRate()))
     {
       mSinesExtractor.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
-                           get<kFFT>().max());
+                           get<kFFT>().max(), c.allocator());
     }
 
     mSTFTBufferedProcess.process(
@@ -119,11 +119,11 @@ public:
     return get<kFFT>().winSize() +
            (get<kFFT>().hopSize() * get<kMinTrackLen>());
   }
-  void reset(FluidContext&)
+  void reset(FluidContext& c)
   {
     mSTFTBufferedProcess.reset();
     mSinesExtractor.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
-                         get<kFFT>().max());
+                         get<kFFT>().max(), c.allocator());
   }
 
 private:
