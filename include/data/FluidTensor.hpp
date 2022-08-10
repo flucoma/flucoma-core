@@ -66,20 +66,7 @@ template <typename T, size_t N>
 class FluidTensor //: public FluidTensorBase<T,N>
 {
   // embed this so we can change our mind
-  using Container = rt::vector<T>;
-//      std::vector<std::remove_const_t<std::remove_reference_t<T>>>;
-//        memory::vector<std::remove_const_t<std::remove_reference_t<T>>,
-//        memory::any_allocator_reference
-//        >;
-  
-  
-
-//  static auto& default_allocator()
-//  {
-//    static auto alloc = memory::make_any_allocator_reference(memory::heap_allocator());
-//    return alloc;
-//  }
-
+  using Container = rt::vector<std::remove_const_t<std::remove_reference_t<T>>>;
 public:
   static constexpr size_t order = N;
   using type = std::remove_reference_t<T>;
