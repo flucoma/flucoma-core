@@ -36,7 +36,7 @@ public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
   using InputBufferPtr = std::shared_ptr<const BufferAdaptor>;
-  using StringVector = FluidTensor<string, 1>;
+  using StringVector = FluidTensor<rt::string, 1>;
   using ParamDescType = decltype(KDTreeParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
@@ -92,10 +92,10 @@ public:
         BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0);
     auto [dists, ids] =  mAlgorithm.kNearest(point, k, get<kRadius>());
     StringVector result(asSigned(ids.size()));
-    std::transform(ids.cbegin(), ids.cend(),result.begin(),
-    [](const std::string* x)->std::string{
-       return {*x};
-    });    
+    std::transform(ids.cbegin(), ids.cend(), result.begin(),
+                   [](const std::string* x) {
+                     return rt::string{*x, FluidDefaultAllocator()};
+                   });
     return result;
   }
 

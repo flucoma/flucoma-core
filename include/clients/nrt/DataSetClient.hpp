@@ -212,9 +212,10 @@ public:
     mAlgorithm = DataSet(0);
     return OK();
   }
+  
   MessageResult<string> print()
   {
-    return "DataSet " + get<kName>() + ": " + mAlgorithm.print();
+    return "DataSet " + std::string(get<kName>()) + ": " + mAlgorithm.print();
   }
 
   const DataSet getDataSet() const { return mAlgorithm; }

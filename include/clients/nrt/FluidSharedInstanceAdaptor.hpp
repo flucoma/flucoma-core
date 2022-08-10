@@ -17,6 +17,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../data/FluidIndex.hpp"
 #include "../../data/FluidTensor.hpp"
 #include "../../data/TensorTypes.hpp"
+#include "../../data/FluidMemory.hpp"
 #include <functional>
 #include <string>
 #include <unordered_map>
@@ -41,7 +42,8 @@ class ParamAliasAdaptor<NRTClient, std::tuple<Ts...>>
   {
     using std::enable_shared_from_this<ListeningParams>::shared_from_this;
 
-    ParamSetType   params{ClientWrapper<NRTClient>::getParameterDescriptors()};
+    ParamSetType   params{ClientWrapper<NRTClient>::getParameterDescriptors(),
+                        FluidDefaultAllocator()};
     ListenersArray listeners;
 
     std::shared_ptr<ListeningParams> getShared() { return shared_from_this(); };
@@ -49,7 +51,7 @@ class ParamAliasAdaptor<NRTClient, std::tuple<Ts...>>
 
   using ParamsPointer = std::shared_ptr<ListeningParams>;
   using ParamsWeakPointer = std::weak_ptr<ListeningParams>;
-  using LookupTable = std::unordered_map<std::string, ParamsWeakPointer>;
+  using LookupTable = std::unordered_map<rt::string, ParamsWeakPointer>;
 
   template <size_t N>
   using ParamType =
@@ -58,7 +60,7 @@ class ParamAliasAdaptor<NRTClient, std::tuple<Ts...>>
 public:
   using ValueTuple = typename ParamSetType::ValueTuple;
 
-  ParamAliasAdaptor(typename NRTClient::ParamDescType&)
+  ParamAliasAdaptor(typename NRTClient::ParamDescType&, Allocator&)
       : mParams{std::make_shared<ListeningParams>()}
   {}
 
@@ -108,14 +110,14 @@ public:
   }
 
 
-  Result lookup(std::string name)
+  Result lookup(rt::string name)
   {
     return mParamsTable.count(name)
                ? Result{}
                : Result{Result::Status::kWarning, name, " not found"};
   }
 
-  Result refer(std::string name)
+  Result refer(rt::string name)
   {
     if (mParamsTable.count(name))
     {
@@ -296,7 +298,7 @@ public:
   using isModelObject = typename WrappedClient::isModelObject;
 
   using LookupTable =
-      std::unordered_map<std::string, std::weak_ptr<SharedClient>>;
+      std::unordered_map<rt::string, std::weak_ptr<SharedClient>>;
   using ParamSetType =
       ParamAliasAdaptor<NRTClient, typename ParamDescType::ValueTuple>;
 
@@ -328,7 +330,7 @@ public:
   {
     // Not using the nifty operator[] of unordered map, because it deault
     // constructs the value object, giving us shared_ptr<nullptr>
-    std::string name = p.template get<0>();
+    rt::string name = p.template get<0>();
     if (!mClientTable.count(name)) // key not already in table
     {
       mClient = std::make_shared<SharedClient>(p.instance(), c);
@@ -356,7 +358,7 @@ public:
           mParams.template get<0>()); // then remove it from the universe
   }
 
-  static ClientPointer lookup(std::string name)
+  static ClientPointer lookup(rt::string name)
   {
     return mClientTable.count(name) ? mClientTable[name].lock()->shared()
                                     : ClientPointer{};
@@ -386,7 +388,7 @@ private:
   ParamSetType                         mParams;
   ClientPointer                        mClient;
   typename WrappedClient::ParamSetType mProcessParams{
-      NRTClient::getParameterDescriptors()};
+      NRTClient::getParameterDescriptors(), FluidDefaultAllocator()};
   static LookupTable mClientTable;
 };
 

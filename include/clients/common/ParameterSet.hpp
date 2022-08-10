@@ -14,6 +14,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "ParameterTypes.hpp"
 #include "TupleUtilities.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/FluidMemory.hpp"
 #include <functional>
 #include <tuple>
 #include <type_traits>
@@ -186,9 +187,17 @@ public:
 
 
   template <size_t N>
+  std::enable_if_t<std::is_same<typename ParamType<N>::type, rt::string>::value,
+                   typename ParamType<N>::type>
+  makeValue(Allocator& alloc)
+  {
+    return rt::string{alloc};
+  }
+
+  template <size_t N>
   std::enable_if_t<isDetected<DefaultValue, ParamType<N>>::value,
                    typename ParamType<N>::type>
-  makeValue() const
+  makeValue(Allocator&) const
   {
     return std::get<0>(std::get<N>(mDescriptors)).defaultValue;
   }
@@ -196,7 +205,7 @@ public:
   template <size_t N>
   std::enable_if_t<!isDetected<DefaultValue, ParamType<N>>::value,
                    typename ParamType<N>::type>
-  makeValue() const
+  makeValue(Allocator&) const
   {
     return typename ParamType<N>::type{};
   }
@@ -443,7 +452,7 @@ public:
   }
 
   template <typename... Us>
-  void fromTuple(std::tuple<Us...> vals)
+  void fromTuple(std::tuple<Us...> const& vals)
   {
     static_assert(sizeof...(Ts) >= sizeof...(Us), "Value tuple too big");
     // fill from back, because this might be a padded parameter set via NRT
@@ -454,8 +463,8 @@ public:
     });
   }
 
-  ValueTuple toTuple() { return {mParams}; }
-  
+  ValueTuple toTuple() { return toTupleImpl(IndexList()); }
+
   template<typename T>
   static constexpr index NumOfType()
   {
@@ -636,6 +645,13 @@ private:
     mParams = ValueRefTuple{std::get<Is>(p)...};
   }
 
+  template <size_t... Is>
+  ValueTuple toTupleImpl(std::index_sequence<Is...>)
+  {
+    return {std::allocator_arg_t{}, FluidDefaultAllocator(),
+            std::get<Is>(mParams).get()...};
+  }
+
   ValueRefTuple mParams;
 };
 
@@ -659,9 +675,9 @@ public:
 
   using ValueTuple = typename DescriptorSetType::ValueTuple;
 
-  ParameterSet(const DescriptorSetType& d)
-      : ViewType(d, createRefTuple(IndexList())), mParams{
-                                                      create(d, IndexList())}
+  ParameterSet(const DescriptorSetType& d, Allocator& alloc)
+      : ViewType(d, createRefTuple(IndexList())), mParams{create(d, IndexList(),
+                                                                 alloc)}
   {}
 
   // Copy construct / assign
@@ -702,9 +718,10 @@ public:
 
 private:
   template <size_t... Is>
-  auto create(const DescriptorSetType& d, std::index_sequence<Is...>) const
+  auto create(const DescriptorSetType& d, std::index_sequence<Is...>,
+              Allocator&               alloc) const
   {
-    return std::make_tuple(d.template makeValue<Is>()...);
+    return std::make_tuple(d.template makeValue<Is>(alloc)...);
   }
 
   template <size_t... Is>

@@ -7,7 +7,33 @@
 #include <memory/heap_allocator.hpp>
 
 namespace fluid {
-using Allocator = foonathan::memory::any_allocator_reference;
+
+struct FallbackAllocator
+{
+  using is_stateful = std::false_type;
+  
+  template<typename RawAlloc>
+  FallbackAllocator(RawAlloc&& r):mAlloc{r} {}
+  
+  FallbackAllocator():mAlloc{foonathan::memory::heap_allocator()} {}
+
+  void* allocate_node(std::size_t size, std::size_t x)
+  {
+      return mAlloc.allocate_node(size, x);
+  }
+  
+  void deallocate_node(void* node, std::size_t size, std::size_t x) noexcept
+  {
+    mAlloc.deallocate_node(node,size,x);
+  }
+private:
+  foonathan::memory::any_allocator_reference mAlloc;
+};
+
+//using Allocator = foonathan::memory::any_allocator_reference;
+
+using Allocator = FallbackAllocator; //foonathan::memory::any_allocator_reference;
+
 
 namespace rt {
 
@@ -25,8 +51,7 @@ using queue = foonathan::memory::queue<T, Allocator>;
 
 inline Allocator& FluidDefaultAllocator()
 {
-  static Allocator def = foonathan::memory::make_allocator_reference(
-      foonathan::memory::heap_allocator());
+  static FallbackAllocator def;
   return def;
 }
 
@@ -51,9 +76,16 @@ public:
     *this = expr;
   }
 
-  template <typename Derived>
-  ScopedEigenMap(const Eigen::MatrixBase<Derived>& expr, Allocator& alloc)
+  template <typename Derived,size_t N = Derived::NumDimensions>
+  ScopedEigenMap(const Eigen::MatrixBase<Derived>& expr, Allocator& alloc,std::enable_if_t<N==1,void*> = 0)
       : ScopedEigenMap(expr.rows() * expr.cols(), alloc)
+  {
+    (*this).noalias() = expr;
+  }
+  
+  template <typename Derived,size_t N = Derived::NumDimensions>
+  ScopedEigenMap(const Eigen::MatrixBase<Derived>& expr, Allocator& alloc,std::enable_if_t<N==2,void*> = 0)
+      : ScopedEigenMap(expr.rows(), expr.cols(), alloc)
   {
     (*this).noalias() = expr;
   }
