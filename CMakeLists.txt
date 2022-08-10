@@ -99,6 +99,14 @@ FetchContent_Declare(
   GIT_TAG main
 )
 
+FetchContent_Declare(
+  fmt
+  GIT_SHALLOW TRUE  
+  GIT_REPOSITORY https://github.com/fmtlib/fmt
+  GIT_PROGRESS TRUE
+  GIT_TAG master 
+)
+
 if(HISS_PATH) #if hiss path is set, this will stop it downloading
   get_filename_component(FETCHCONTENT_SOURCE_DIR_HISSTOOLS ${HISS_PATH} ABSOLUTE)
 endif()
@@ -147,6 +155,7 @@ endif()
 add_subdirectory(${json_SOURCE_DIR} ${json_BINARY_DIR} EXCLUDE_FROM_ALL)
 
 FetchContent_MakeAvailable(Memory)
+FetchContent_MakeAvailable(fmt)
 
 # HISSTools FFT target
 add_library(
@@ -194,6 +203,7 @@ target_include_directories(
   "${spectra_SOURCE_DIR}/include"
   "${hisstools_SOURCE_DIR}"
   "${memory_SOURCE_DIR}/include/foonathan"
+  "${fmt_SOURCE_DIR}/include"
 )
 target_link_libraries(
   FLUID_DECOMPOSITION INTERFACE 
@@ -202,6 +212,7 @@ target_link_libraries(
   tl::optional
   nlohmann_json::nlohmann_json
   foonathan_memory
+  fmt::fmt
 )
 target_sources(
   FLUID_DECOMPOSITION INTERFACE ${HEADERS}
