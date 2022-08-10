@@ -19,6 +19,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../algorithms/public/RatioMask.hpp"
 #include "../../algorithms/public/STFT.hpp"
 #include "../../data/FluidTensor.hpp"
+#include "../../data/FluidMemory.hpp"
 #include <algorithm> //for max_element
 #include <cassert>
 #include <sstream> //for ostringstream
@@ -297,7 +298,8 @@ public:
 
       if (shouldResynth && hasResynth)
       {
-        auto mask = algorithm::RatioMask();
+        auto mask =
+            algorithm::RatioMask(nWindows, nBins, FluidDefaultAllocator());
         mask.init(outputMags);
         auto resynthMags = FluidTensor<double, 2>(nWindows, nBins);
         auto resynthSpectrum =
