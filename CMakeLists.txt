@@ -91,6 +91,7 @@ FetchContent_Declare(
 )
 set(JSON_SystemInclude ON CACHE BOOL "")
 
+set(FOONATHAN_MEMORY_BUILD_TOOLS OFF CACHE BOOL "")
 FetchContent_Declare(
   Memory
   GIT_SHALLOW TRUE  
@@ -154,7 +155,12 @@ endif()
 
 add_subdirectory(${json_SOURCE_DIR} ${json_BINARY_DIR} EXCLUDE_FROM_ALL)
 
-FetchContent_MakeAvailable(Memory)
+FetchContent_GetProperties(Memory)
+if(NOT memory_POPULATED)
+  FetchContent_Populate(Memory)
+endif()
+add_subdirectory(${memory_SOURCE_DIR} ${memory_BINARY_DIR} EXCLUDE_FROM_ALL)
+
 FetchContent_MakeAvailable(fmt)
 
 # HISSTools FFT target
