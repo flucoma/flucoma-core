@@ -51,7 +51,7 @@ class ParamAliasAdaptor<NRTClient, std::tuple<Ts...>>
 
   using ParamsPointer = std::shared_ptr<ListeningParams>;
   using ParamsWeakPointer = std::weak_ptr<ListeningParams>;
-  using LookupTable = std::unordered_map<rt::string, ParamsWeakPointer>;
+  using LookupTable = std::unordered_map<rt::string, ParamsWeakPointer, std::hash<std::string_view>>;
 
   template <size_t N>
   using ParamType =
@@ -279,7 +279,7 @@ typename ParamAliasAdaptor<NRTClient, std::tuple<Ts...>>::LookupTable
 template <typename NRTClient>
 class NRTSharedInstanceAdaptor : public OfflineIn, public OfflineOut
 {
-
+  
 public:
   using WrappedClient = ClientWrapper<NRTClient>;
 
@@ -298,7 +298,7 @@ public:
   using isModelObject = typename WrappedClient::isModelObject;
 
   using LookupTable =
-      std::unordered_map<rt::string, std::weak_ptr<SharedClient>>;
+      std::unordered_map<rt::string, std::weak_ptr<SharedClient>, std::hash<std::string_view>>;
   using ParamSetType =
       ParamAliasAdaptor<NRTClient, typename ParamDescType::ValueTuple>;
 
