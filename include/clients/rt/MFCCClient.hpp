@@ -103,10 +103,10 @@ public:
                          nBands, get<kMinFreq>(), get<kMaxFreq>(),
                          sampleRate()))
     {
-      mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
+      mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), nBands,
                      get<kFFT>().frameSize(), sampleRate(),
                      get<kFFT>().winSize());
-      mDCT.init(get<kNBands>(), nCoefs + !has0);
+      mDCT.init(nBands, fmin(nCoefs + !has0, nBands)); //making sure that we don't ask for more than nBands coeff in case of has0
       controlChannelsOut({1, nCoefs});
     }
 
@@ -129,14 +129,16 @@ public:
 
   void reset()
   {
+    index nBands = get<kNBands>();
+
     mSTFTBufferedProcess.reset();
     mMagnitude.resize(get<kFFT>().frameSize());
-    mBands.resize(get<kNBands>());
+    mBands.resize(nBands);
     mCoefficients.resize(get<kNCoefs>().max() + 1); //same as line 79
-    mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
+    mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), nBands,
                    get<kFFT>().frameSize(), sampleRate(),
                    get<kFFT>().winSize());
-    mDCT.init(get<kNBands>(), get<kNCoefs>() + get<kDrop0>());
+    mDCT.init(nBands, fmin((get<kNCoefs>() + get<kDrop0>()), nBands)); //making sure that we don't ask for more than nBands coeff in case of has0
   }
 
   AnalysisSize analysisSettings()
