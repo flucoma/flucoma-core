@@ -76,7 +76,7 @@ public:
   {
     mMagnitude = FluidTensor<double, 1>(get<kFFT>().maxFrameSize());
     mBands = FluidTensor<double, 1>(get<kNBands>().max());
-    mCoefficients = FluidTensor<double, 1>(get<kNCoefs>().max() + get<kDrop0>());
+    mCoefficients = FluidTensor<double, 1>(get<kNCoefs>().max() + 1); //adding a spare item to the allocation to pad for has0
     audioChannelsIn(1);
     controlChannelsOut({1, get<kNCoefs>(), get<kNCoefs>().max()});
     setInputLabels({"audio input"});
@@ -103,16 +103,16 @@ public:
                          nBands, get<kMinFreq>(), get<kMaxFreq>(),
                          sampleRate()))
     {
-      mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
+      mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), nBands,
                      get<kFFT>().frameSize(), sampleRate(),
                      get<kFFT>().winSize());
-      mDCT.init(get<kNBands>(), nCoefs + !has0);
+      mDCT.init(nBands, fmin(nCoefs + !has0, nBands)); //making sure that we don't ask for more than nBands coeff in case of has0
       controlChannelsOut({1, nCoefs});
     }
 
     auto mags  = mMagnitude(Slice(0,frameSize));
     auto bands = mBands(Slice(0,nBands));
-    auto coefs = mCoefficients(Slice(get<kDrop0>(), nCoefs));
+    auto coefs = mCoefficients(Slice(0, fmin(nCoefs + !has0, nBands))); //making sure that we don't ask for more than nBands coeff in case of has0
 
     mSTFTBufferedProcess.processInput(
         mParams, input, c, [&](ComplexMatrixView in) {
@@ -121,7 +121,7 @@ public:
           mDCT.processFrame(bands, coefs);
         });
   
-      output[0](Slice(0, nCoefs)) <<= coefs;
+      output[0](Slice(0, nCoefs)) <<= mCoefficients(Slice(get<kDrop0>(), nCoefs)); // copying from has0 for nCoefs
       output[0](Slice(nCoefs, get<kNCoefs>().max() - nCoefs)).fill(0);
   }
 
@@ -129,14 +129,16 @@ public:
 
   void reset()
   {
+    index nBands = get<kNBands>();
+
     mSTFTBufferedProcess.reset();
     mMagnitude.resize(get<kFFT>().frameSize());
-    mBands.resize(get<kNBands>());
-    mCoefficients.resize(get<kNCoefs>().max() + get<kDrop0>());
-    mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
+    mBands.resize(nBands);
+    mCoefficients.resize(get<kNCoefs>().max() + 1); //same as line 79
+    mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), nBands,
                    get<kFFT>().frameSize(), sampleRate(),
                    get<kFFT>().winSize());
-    mDCT.init(get<kNBands>(), get<kNCoefs>() + get<kDrop0>());
+    mDCT.init(nBands, fmin((get<kNCoefs>() + get<kDrop0>()), nBands)); //making sure that we don't ask for more than nBands coeff in case of has0
   }
 
   AnalysisSize analysisSettings()
