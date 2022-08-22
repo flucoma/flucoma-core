@@ -106,13 +106,13 @@ public:
       mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), nBands,
                      get<kFFT>().frameSize(), sampleRate(),
                      get<kFFT>().winSize());
-      mDCT.init(nBands, fmin(nCoefs + !has0, nBands)); //making sure that we don't ask for more than nBands coeff in case of has0
+      mDCT.init(nBands, std::min(nCoefs + !has0, nBands)); //making sure that we don't ask for more than nBands coeff in case of has0
       controlChannelsOut({1, nCoefs});
     }
 
     auto mags  = mMagnitude(Slice(0,frameSize));
     auto bands = mBands(Slice(0,nBands));
-    auto coefs = mCoefficients(Slice(0, fmin(nCoefs + !has0, nBands))); //making sure that we don't ask for more than nBands coeff in case of has0
+    auto coefs = mCoefficients(Slice(0, std::min(nCoefs + !has0, nBands))); //making sure that we don't ask for more than nBands coeff in case of has0
 
     mSTFTBufferedProcess.processInput(
         mParams, input, c, [&](ComplexMatrixView in) {
@@ -138,7 +138,7 @@ public:
     mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), nBands,
                    get<kFFT>().frameSize(), sampleRate(),
                    get<kFFT>().winSize());
-    mDCT.init(nBands, fmin((get<kNCoefs>() + get<kDrop0>()), nBands)); //making sure that we don't ask for more than nBands coeff in case of has0
+    mDCT.init(nBands, std::min((get<kNCoefs>() + get<kDrop0>()), nBands)); //making sure that we don't ask for more than nBands coeff in case of has0
   }
 
   AnalysisSize analysisSettings()
