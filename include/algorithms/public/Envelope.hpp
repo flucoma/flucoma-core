@@ -17,6 +17,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <cmath>
+#include <tuple>
 
 namespace fluid {
 namespace algorithm {
@@ -36,7 +37,38 @@ public:
     mInitialized = true;
   }
 
-  double processSample(const double in, 
+  double processSample(const double in,
+                       double floor, index fastRampUpTime, index slowRampUpTime,
+                       index fastRampDownTime, index slowRampDownTime,
+                       double hiPassFreq)
+  {
+    double clipped = processSampleCommon(in, floor, fastRampUpTime, slowRampUpTime, fastRampDownTime, slowRampDownTime, hiPassFreq);
+    double fast = mFastSlide.processSample(clipped);
+    double slow = mSlowSlide.processSample(clipped);
+    return fast - slow;
+  }
+
+  std::tuple<double,double> processSampleSeparate(const double in,
+                       double floor, index fastRampUpTime, index slowRampUpTime,
+                       index fastRampDownTime, index slowRampDownTime,
+                       double hiPassFreq)
+  {
+    double clipped = processSampleCommon(in, floor, fastRampUpTime, slowRampUpTime, fastRampDownTime, slowRampDownTime, hiPassFreq);
+    double fast = mFastSlide.processSample(clipped);
+    double slow = mSlowSlide.processSample(clipped);
+    return std::make_tuple(fast, slow);
+  }
+
+  bool initialized() { return mInitialized; }
+
+private:
+  void initFilters(double cutoff)
+  {
+    mHiPass1.init(cutoff);
+    mHiPass2.init(cutoff);
+  }
+
+  double processSampleCommon(const double in,
                        double floor, index fastRampUpTime, index slowRampUpTime,
                        index fastRampDownTime, index slowRampDownTime,
                        double hiPassFreq)
@@ -57,18 +89,7 @@ public:
     double rectified = abs(filtered);
     double dB = 20 * log10(rectified);
     double clipped = max(dB, floor);
-    double fast = mFastSlide.processSample(clipped);
-    double slow = mSlowSlide.processSample(clipped);
-    return fast - slow;
-  }
-
-  bool initialized() { return mInitialized; }
-
-private:
-  void initFilters(double cutoff)
-  {
-    mHiPass1.init(cutoff);
-    mHiPass2.init(cutoff);
+    return clipped;
   }
 
   double mHiPassFreq{0};
