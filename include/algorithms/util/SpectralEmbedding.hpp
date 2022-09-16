@@ -1,4 +1,5 @@
 #pragma once
+#include "data/FluidIndex.hpp"
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 #include <Spectra/MatOp/SparseSymMatProd.h>
@@ -27,16 +28,16 @@ public:
     for (index i = 0; i < D.rows(); i++) { D.insert(i, i) = diagData(i); }
     SparseMatrixXd I = SparseMatrixXd(D.rows(), D.cols());
     I.setIdentity();
-    SparseMatrixXd           L = I - (D * (graph * D));
-    int                      k = static_cast<int>(dims + 1);
-    index                    ncv = max(2 * k + 1, int(round(sqrt(L.rows()))));
-    VectorXd                 initV = VectorXd::Ones(L.rows());
+    SparseMatrixXd L = I - (D * (graph * D));
+    int            k = static_cast<int>(dims + 1);
+    index          ncv = max(2 * k + 1, int(round(sqrt(L.rows()))));
+    VectorXd       initV = VectorXd::Ones(L.rows());
+
     SparseSymMatProd<double> op(L);
-    SymEigsSolver<double, SMALLEST_MAGN, SparseSymMatProd<double>> eig(&op, k,
-                                                                       ncv);
+    SymEigsSolver<SparseSymMatProd<double>> eig(op, k, ncv);    
     eig.init(initV.data());
-    /*auto nConverged = */eig.compute(
-        D.cols(), 1e-4, SMALLEST_MAGN); // TODO: failback if not converging
+    eig.compute(Spectra::SortRule::SmallestMagn, 1000, 1e-4); 
+    // TODO: failback if not converging
     mEigenVectors = eig.eigenvectors();
     mEigenValues = eig.eigenvalues();
     ArrayXXd Y = mEigenVectors.block(0, 1, mEigenVectors.rows(), dims).array();
