@@ -13,7 +13,7 @@ struct FallbackAllocator
   using is_stateful = std::false_type;
   
   template<typename RawAlloc>
-  FallbackAllocator(RawAlloc&& r):mAlloc{r} {}
+  FallbackAllocator(RawAlloc&& r):mAlloc{std::forward<RawAlloc>(r)} {}
   
   FallbackAllocator():mAlloc{foonathan::memory::heap_allocator()} {}
 
