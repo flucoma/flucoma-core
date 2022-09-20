@@ -50,7 +50,8 @@ public:
     return RunningStatsParams;
   }
 
-  RunningStatsClient(ParamSetViewType& p) : mParams(p), mInputSize{0}, mSizeTracker{0}
+  RunningStatsClient(ParamSetViewType& p)
+      : mParams(p), mInputSize{0}, mSizeTracker{0}
   {
     controlChannelsIn(1);
     controlChannelsOut({2, -1});
