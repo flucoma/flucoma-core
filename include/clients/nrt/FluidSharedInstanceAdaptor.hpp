@@ -140,7 +140,7 @@ public:
     auto results = mParams->params.template setFixedParameterValues<Func>(
         reportage, std::forward<Args>(args)...);
 
-    std::string name = mParams->params.template get<0>();
+    rt::string name = mParams->params.template get<0>();
 
     if (!name.size())
     {
@@ -227,7 +227,7 @@ public:
   }
   
   template <typename Tuple>
-  void fromTuple(Tuple vals)
+  void fromTuple(Tuple const& vals)
   {
     mParams->params.fromTuple(vals);
 
