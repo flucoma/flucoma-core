@@ -91,6 +91,7 @@ public:
   MessageResult() = default;
   operator T() const { return mData; }
   T& value() { return mData; }
+  const T& value() const { return mData; }
 private:
   T    mData;
   bool hasData;
