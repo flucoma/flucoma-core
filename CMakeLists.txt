@@ -81,15 +81,8 @@ FetchContent_Declare(
   GIT_PROGRESS TRUE
 )
 
-FetchContent_Declare(
-  json 
-  GIT_SHALLOW TRUE
-  # GIT_REPOSITORY https://github.com/nlohmann/json.git
-  # advice on nlohmann repo is to use this mirror unless we really want ~150 meg of test data as well as headers:
-  GIT_REPOSITORY https://github.com/ArthurSonzogni/nlohmann_json_cmake_fetchcontent
-  GIT_PROGRESS TRUE
-  GIT_TAG v3.10.5
-)
+#see https://json.nlohmann.me/integration/cmake/#fetchcontent
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz)
 set(JSON_SystemInclude ON CACHE BOOL "")
 
 FetchContent_Declare(
