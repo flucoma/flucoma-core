@@ -67,10 +67,11 @@ FetchContent_Declare(
 
 FetchContent_Declare(
   Spectra
+  GIT_SHALLOW TRUE
   GIT_REPOSITORY https://github.com/yixuan/spectra
   GIT_PROGRESS TRUE
   GIT_BRANCH "master"
-  GIT_TAG "v0.9.0"
+  GIT_TAG "v1.0.1"
 )
 
 FetchContent_Declare(

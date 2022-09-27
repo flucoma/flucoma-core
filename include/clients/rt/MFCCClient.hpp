@@ -103,10 +103,10 @@ public:
                          nBands, get<kMinFreq>(), get<kMaxFreq>(),
                          sampleRate()))
     {
-      mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
+      mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), nBands,
                      get<kFFT>().frameSize(), sampleRate(),
                      get<kFFT>().winSize(), c.allocator());
-      mDCT.init(get<kNBands>(), nCoefs + !has0, c.allocator());
+      mDCT.init(get<kNBands>(), std::min(nCoefs + !has0, nBands), c.allocator());
       controlChannelsOut({1, nCoefs});
     }
 
@@ -117,8 +117,8 @@ public:
 
     auto mags  = mMagnitude(Slice(0,frameSize));
     auto bands = mBands(Slice(0,nBands));
-    auto coefs = mCoefficients(Slice(0, nCoefs + !has0));
-    
+    auto coefs = mCoefficients(Slice(0, std::min(nCoefs + !has0, nBands))); //making sure that we don't ask for more than nBands coeff in case of has0
+
     mSTFTBufferedProcess.processInput(
         get<kFFT>(), input, c, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mags);
@@ -126,7 +126,7 @@ public:
           mDCT.processFrame(bands, coefs);
         });
   
-      output[0](Slice(0, nCoefs)) <<= coefs(Slice(get<kDrop0>(), nCoefs));
+      output[0](Slice(0, nCoefs)) <<= mCoefficients(Slice(get<kDrop0>(), nCoefs)); // copying from has0 for nCoefs
       output[0](Slice(nCoefs, get<kNCoefs>().max() - nCoefs)).fill(0);
   }
 
@@ -134,14 +134,16 @@ public:
 
   void reset(FluidContext& c)
   {
+    index nBands = get<kNBands>();
+
     mSTFTBufferedProcess.reset();
     mMagnitude.resize(get<kFFT>().frameSize());
-    mBands.resize(get<kNBands>());
-    mCoefficients.resize(get<kNCoefs>().max() + get<kDrop0>());
-    mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
+    mBands.resize(nBands);
+    mCoefficients.resize(get<kNCoefs>().max() + 1); //same as line 79
+    mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), nBands,
                    get<kFFT>().frameSize(), sampleRate(),
                    get<kFFT>().winSize(), c.allocator());
-    mDCT.init(get<kNBands>(), get<kNCoefs>() + get<kDrop0>(), c.allocator());
+    mDCT.init(nBands, std::min((get<kNCoefs>() + get<kDrop0>()), nBands)); //making sure that we don't ask for more than nBands coeff in case of has0
   }
 
   AnalysisSize analysisSettings()
