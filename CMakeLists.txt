@@ -91,7 +91,6 @@ FetchContent_Declare(
 )
 set(JSON_SystemInclude ON CACHE BOOL "")
 
-set(FOONATHAN_MEMORY_BUILD_TOOLS OFF CACHE BOOL "")
 FetchContent_Declare(
   Memory
   GIT_SHALLOW TRUE  
@@ -154,6 +153,10 @@ if(NOT json_POPULATED)
 endif()
 
 add_subdirectory(${json_SOURCE_DIR} ${json_BINARY_DIR} EXCLUDE_FROM_ALL)
+
+set(FOONATHAN_MEMORY_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+set(FOONATHAN_MEMORY_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(FOONATHAN_MEMORY_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 
 FetchContent_GetProperties(Memory)
 if(NOT memory_POPULATED)
@@ -254,7 +257,7 @@ endif()
 
 #Examples
 
-option(BUILD_EXAMPLES "Build C++ example code (off by default)")
+option(BUILD_EXAMPLES "Build C++ example code (off by default)" OFF)
 
 if(BUILD_EXAMPLES)
 add_subdirectory(
