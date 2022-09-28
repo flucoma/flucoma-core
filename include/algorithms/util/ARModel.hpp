@@ -127,7 +127,6 @@ private:
       FluidTensorView<double, 1> output, Indexer fIdx, OutputFn fOut)
   {
     index numPredictions = output.size();
-
     assert(fIdx(1) >= -input.descriptor().start &&
            "array bounds error in AR model prediction: input too short");
     assert(fIdx(1) < input.size() &&
@@ -248,6 +247,7 @@ private:
 
   double robustResidual(double input, double prediction, double cs)
   {
+    assert(cs > 0); 
     return cs * psiFunction((input - prediction) / cs);
   }
 
@@ -287,8 +287,9 @@ private:
 
   void setVariance(double variance)
   {
-    if (variance > 0) variance = std::max(mMinVariance, variance);
+    variance = std::max(mMinVariance, variance);
     mVariance = variance;
+    assert(mVariance >= 0); 
   }
 
   // Huber PSI function
@@ -331,7 +332,7 @@ private:
   FFT                      mFFT;
   IFFT                     mIFFT;
   bool                     mUseWindow{true};
-  double                   mMinVariance{0.0};
+  double                   mMinVariance{1e-5};
 };
 
 } // namespace algorithm
