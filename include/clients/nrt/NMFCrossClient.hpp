@@ -66,7 +66,7 @@ public:
 
   static constexpr auto getParameterDescriptors() { return NMFCrossParams; }
 
-  NMFCrossClient(ParamSetViewType& p) : mParams(p) {}
+  NMFCrossClient(ParamSetViewType& p, FluidContext&) : mParams(p) {}
 
   Result checkTask(FluidContext& c, index count, double total)
   {

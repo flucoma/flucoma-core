@@ -56,7 +56,7 @@ public:
 
   static constexpr auto getParameterDescriptors() { return MDSParams; }
 
-  MDSClient(ParamSetViewType& p) : mParams(p) {}
+  MDSClient(ParamSetViewType& p, FluidContext&) : mParams(p) {}
 
   MessageResult<void> fitTransform(InputDataSetClientRef sourceClient,
                                    DataSetClientRef destClient)

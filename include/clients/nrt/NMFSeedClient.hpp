@@ -66,7 +66,7 @@ public:
 
   static constexpr auto getParameterDescriptors() { return NMFSeedParams; }
 
-  NMFSeedClient(ParamSetViewType& p) : mParams{p} {}
+  NMFSeedClient(ParamSetViewType& p, FluidContext&) : mParams{p} {}
 
   template <typename T>
   Result process(FluidContext&)

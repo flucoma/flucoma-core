@@ -22,9 +22,7 @@ TEMPLATE_TEST_CASE(
   constexpr int hostSize = 64;
   constexpr int maxFrameSize = 1024;
 
-  FluidSource<TestType> framer(maxFrameSize, 1);
-  framer.setHostBufferSize(hostSize);
-  framer.reset(1); // sigh, FIXME
+  FluidSource<TestType> framer(maxFrameSize, 1, hostSize);
 
   std::array<TestType, 2 * maxFrameSize> data;
   std::array<TestType, maxFrameSize>     output;

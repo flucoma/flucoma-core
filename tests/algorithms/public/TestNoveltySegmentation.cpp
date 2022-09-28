@@ -61,7 +61,7 @@ std::vector<index> NoveltyTestHarness(FluidTensorView<const double, 1> testSigna
   const fluid::index nHops =
       std::floor<index>((padded.size() - p.window) / p.hop);
 
-  auto slicer = NoveltySegmentation(p.kernel, p.filter);
+  auto slicer = NoveltySegmentation(p.kernel, p.fft / 2 + 1, p.filter);
   slicer.init(p.kernel, p.filter, p.dims); // sigh
 
   std::vector<index> spikePositions;
@@ -162,7 +162,7 @@ NoveltyLoudnessTest(fluid::FluidTensorView<const double, 1> testSignal, Params p
 {
   FluidTensor<double, 1> loudnessFrame(2);
 
-  auto loudness = fluid::algorithm::Loudness(p.fft);
+  auto loudness = fluid::algorithm::Loudness{p.fft};
   loudness.init(p.window, 44100);
 
   auto makeInput = [&loudness, &loudnessFrame](auto source) {

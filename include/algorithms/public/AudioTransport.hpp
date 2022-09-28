@@ -19,6 +19,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/FFT.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/FluidMemory.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <cmath>
@@ -41,77 +42,88 @@ class AudioTransport
   using ArrayXcd = Eigen::ArrayXcd;
   template <typename T>
   using Ref = Eigen::Ref<T>;
-  using TransportMatrix = std::vector<std::tuple<index, index, double>>;
+  using TransportMatrix = rt::vector<std::tuple<index, index, double>>;
   template <typename T>
-  using vector = std::vector<T>;
+  using vector = rt::vector<T>;
 
 public:
-  AudioTransport(index maxFFTSize)
+  AudioTransport(index maxFFTSize, Allocator& alloc)
       : mWindowSize(maxFFTSize), mFFTSize(maxFFTSize),
         mBins(maxFFTSize / 2 + 1), mFFT(maxFFTSize),
         mSTFT(maxFFTSize, maxFFTSize, maxFFTSize / 2),
         mISTFT(maxFFTSize, maxFFTSize, maxFFTSize / 2),
-        mReassignSTFT(maxFFTSize, maxFFTSize, maxFFTSize / 2)
+        mReassignSTFT(maxFFTSize, maxFFTSize, maxFFTSize / 2,
+                      static_cast<index>(WindowFuncs::WindowTypes::kHannD)),
+        mBinFreqs(maxFFTSize / 2 + 1, alloc), mWindow(maxFFTSize, alloc),
+        mWindowSquared(maxFFTSize, alloc), mPhase(maxFFTSize / 2 + 1, alloc),
+        mPhaseDiff(maxFFTSize / 2 + 1, alloc),
+        mChanged(maxFFTSize / 2 + 1, alloc)
   {}
 
   void init(index windowSize, index fftSize, index hopSize)
   {
     mWindowSize = windowSize;
-    mWindow = ArrayXd::Zero(mWindowSize);
-    WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](mWindowSize, mWindow);
+    mWindow.head(mWindowSize).setZero();
+    WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](
+        mWindowSize, mWindow.head(mWindowSize));
     mWindowSquared = mWindow * mWindow;
     mFFTSize = fftSize;
     mHopSize = hopSize;
     mBins = fftSize / 2 + 1;
-    mPhase = ArrayXd::Zero(mBins);
-    mChanged = ArrayXi::Zero(mBins);
-    mBinFreqs = ArrayXd::LinSpaced(mBins, 0, mBins - 1) * (2 * pi) / mFFTSize;
-    mPhaseDiff = mBinFreqs * mHopSize;
-    mSTFT = STFT(windowSize, fftSize, hopSize);
-    mISTFT = ISTFT(windowSize, fftSize, hopSize);
-    mReassignSTFT = STFT(windowSize, fftSize, hopSize,
-                         static_cast<index>(WindowFuncs::WindowTypes::kHannD));
+    mPhase.setZero();
+    mChanged.setZero();
+    mBinFreqs.head(mBins) =
+        ArrayXd::LinSpaced(mBins, 0, mBins - 1) * (2 * pi) / mFFTSize;
+    mPhaseDiff.head(mBins) = mBinFreqs * mHopSize;
+    mSTFT.resize(windowSize, fftSize, hopSize);
+    mISTFT.resize(windowSize, fftSize, hopSize);
+    mReassignSTFT.resize(windowSize, fftSize, hopSize);
+    mFFT.resize(fftSize);
     mInitialized = true;
   }
 
   bool initialized() const { return mInitialized; }
 
   void processFrame(RealVectorView in1, RealVectorView in2, double weight,
-                    RealMatrixView out)
+                    RealMatrixView out, Allocator& alloc)
   {
     using namespace _impl;
     using namespace Eigen;
     assert(mInitialized);
-    ArrayXd  frame1 = asEigen<Array>(in1);
-    ArrayXd  frame2 = asEigen<Array>(in2);
-    ArrayXcd spectrum1(mBins);
-    ArrayXcd spectrum1Dh(mBins);
-    ArrayXcd spectrum2(mBins);
-    ArrayXcd spectrum2Dh(mBins);
-    ArrayXd  output(frame1.size());
+    ScopedEigenMap<ArrayXd> frame1(in1.size(), alloc);
+    frame1 = asEigen<Array>(in1);
+    ScopedEigenMap<ArrayXd> frame2(in2.size(), alloc);
+    frame2 = asEigen<Array>(in2);
+    ScopedEigenMap<ArrayXcd> spectrum1(mBins, alloc);
+    ScopedEigenMap<ArrayXcd> spectrum1Dh(mBins, alloc);
+    ScopedEigenMap<ArrayXcd> spectrum2(mBins, alloc);
+    ScopedEigenMap<ArrayXcd> spectrum2Dh(mBins, alloc);
+    ScopedEigenMap<ArrayXd>  output(frame1.size(), alloc);
     mSTFT.processFrame(frame1, spectrum1);
     mReassignSTFT.processFrame(frame1, spectrum1Dh);
     mSTFT.processFrame(frame2, spectrum2);
     mReassignSTFT.processFrame(frame2, spectrum2Dh);
-    ArrayXcd result =
-        interpolate(spectrum1, spectrum1Dh, spectrum2, spectrum2Dh, weight);
+    ScopedEigenMap<ArrayXcd> result = interpolate(
+        spectrum1, spectrum1Dh, spectrum2, spectrum2Dh, weight, alloc);
     mISTFT.processFrame(result, output);
-    out.row(0) <<= asFluid(output);
-    out.row(1) <<= asFluid(mWindowSquared);
+    _impl::asEigen<Array>(out.row(0)) = output;
+    _impl::asEigen<Array>(out.row(1)) = mWindowSquared.head(mWindowSize);
   }
 
   vector<SpetralMass> segmentSpectrum(const Ref<ArrayXd> mag,
-                                      const Ref<ArrayXd> reasignedFreq)
+                                      const Ref<ArrayXd> reasignedFreq,
+                                      Allocator&         alloc)
   {
 
-    vector<SpetralMass> masses;
-    double              totalMass = mag.sum() + epsilon;
-    ArrayXi             sign = (reasignedFreq > mBinFreqs).cast<int>();
+    vector<SpetralMass>     masses(alloc);
+    double                  totalMass = mag.sum() + epsilon;
+    ScopedEigenMap<ArrayXi> sign(reasignedFreq.size(), alloc);
+    sign = (reasignedFreq > mBinFreqs.head(reasignedFreq.size())).cast<int>();
     mChanged.setZero();
     mChanged.segment(1, mBins - 1) =
         sign.segment(1, mBins - 1) - sign.segment(0, mBins - 1);
     SpetralMass currentMass{0, 0, 0, 0};
-    for (index i = 1; i < mChanged.size(); i++)
+    for (index i = 1; i < mBins; i++)
     {
       if (mChanged(i) == -1)
       {
@@ -137,10 +149,11 @@ public:
     return masses;
   }
 
-  TransportMatrix computeTransportMatrix(std::vector<SpetralMass> m1,
-                                         std::vector<SpetralMass> m2)
+  TransportMatrix computeTransportMatrix(rt::vector<SpetralMass>& m1,
+                                         rt::vector<SpetralMass>& m2,
+                                         Allocator&               alloc)
   {
-    TransportMatrix matrix;
+    TransportMatrix matrix(alloc);
     index           index1 = 0, index2 = 0;
     double          mass1 = m1[0].mass;
     double          mass2 = m2[0].mass;
@@ -186,41 +199,52 @@ public:
     }
   }
 
-  ArrayXcd interpolate(Ref<ArrayXcd> in1, Ref<ArrayXcd> in1Dh,
-                       Ref<ArrayXcd> in2, Ref<ArrayXcd> in2Dh,
-                       double interpolation)
+  ScopedEigenMap<ArrayXcd> interpolate(Ref<ArrayXcd> in1, Ref<ArrayXcd> in1Dh,
+                                       Ref<ArrayXcd> in2, Ref<ArrayXcd> in2Dh,
+                                       double interpolation, Allocator& alloc)
   {
-    ArrayXd  mag1 = in1.abs().real();
-    ArrayXd  mag2 = in2.abs().real();
-    ArrayXcd result = ArrayXcd::Zero(mBins);
-    double   mag1Sum = mag1.sum();
-    double   mag2Sum = mag2.sum();
+    ScopedEigenMap<ArrayXd> mag1(in1.size(), alloc);
+    mag1 = in1.abs().real();
+    ScopedEigenMap<ArrayXd> mag2(in2.size(), alloc);
+    mag2 = in2.abs().real();
+    ScopedEigenMap<ArrayXcd> result(mBins, alloc);
+    result.setZero();
+    double mag1Sum = mag1.sum();
+    double mag2Sum = mag2.sum();
     if (mag1Sum <= 0 && mag2Sum <= 0) { return result; }
     else if (mag1Sum > 0 && mag2Sum <= 0)
     {
-      return in1;
+      result = in1;
+      return result;
     }
     else if (mag1Sum <= 0 && mag2Sum > 0)
     {
-      return in2;
+      result = in2;
+      return result;
     }
-    ArrayXd                  phase1 = in1.arg().real();
-    ArrayXd                  phase2 = in2.arg().real();
-    ArrayXd                  reasignedW1 = mBinFreqs - (in1Dh / in1).imag();
-    ArrayXd                  reasignedW2 = mBinFreqs - (in2Dh / in2).imag();
-    ArrayXd                  newAmplitudes = ArrayXd::Zero(mBins);
-    ArrayXd                  newPhases = ArrayXd::Zero(mBins);
-    std::vector<SpetralMass> s1 = segmentSpectrum(mag1, reasignedW1);
-    std::vector<SpetralMass> s2 = segmentSpectrum(mag2, reasignedW2);
+    ScopedEigenMap<ArrayXd> phase1(in1.size(), alloc);
+    phase1 = in1.arg().real();
+    ScopedEigenMap<ArrayXd> phase2(in2.size(), alloc);
+    phase2 = in2.arg().real();
+    ScopedEigenMap<ArrayXd> reasignedW1(in1.size(), alloc);
+    reasignedW1 = mBinFreqs.head(in1.size()) - (in1Dh / in1).imag();
+    ScopedEigenMap<ArrayXd> reasignedW2(in2.size(), alloc);
+    reasignedW2 = mBinFreqs.head(in2.size()) - (in2Dh / in2).imag();
+    ScopedEigenMap<ArrayXd> newAmplitudes(mBins, alloc);
+    newAmplitudes.setZero();
+    ScopedEigenMap<ArrayXd> newPhases(mBins, alloc);
+    newPhases.setZero();
+    rt::vector<SpetralMass> s1 = segmentSpectrum(mag1, reasignedW1, alloc);
+    rt::vector<SpetralMass> s2 = segmentSpectrum(mag2, reasignedW2, alloc);
     if (s1.size() == 0 || s2.size() == 0) { return result; }
 
-    TransportMatrix matrix = computeTransportMatrix(s1, s2);
+    TransportMatrix matrix = computeTransportMatrix(s1, s2, alloc);
     for (auto t : matrix)
     {
       SpetralMass m1 = s1[asUnsigned(std::get<0>(t))];
       SpetralMass m2 = s2[asUnsigned(std::get<1>(t))];
       index  interpolatedBin = std::lrint((1 - interpolation) * m1.centerBin +
-                                         interpolation * m2.centerBin);
+                                          interpolation * m2.centerBin);
       double interpolationFactor = interpolation;
       if (m1.centerBin != m2.centerBin)
       {
@@ -243,21 +267,21 @@ public:
     return result;
   }
 
-  index   mWindowSize{1024};
-  index   mHopSize{512};
-  ArrayXd mBinFreqs;
-  ArrayXd mWindow;
-  ArrayXd mWindowSquared;
-  index   mFFTSize{1024};
-  index   mBins{513};
-  FFT     mFFT;
-  bool    mInitialized{false};
-  ArrayXd mPhase;
-  ArrayXd mPhaseDiff;
-  ArrayXi mChanged;
-  STFT    mSTFT;
-  ISTFT   mISTFT;
-  STFT    mReassignSTFT;
+  index                   mWindowSize{1024};
+  index                   mHopSize{512};
+  index                   mFFTSize{1024};
+  index                   mBins{513};
+  FFT                     mFFT;
+  STFT                    mSTFT;
+  ISTFT                   mISTFT;
+  STFT                    mReassignSTFT;
+  bool                    mInitialized{false};
+  ScopedEigenMap<ArrayXd> mBinFreqs;
+  ScopedEigenMap<ArrayXd> mWindow;
+  ScopedEigenMap<ArrayXd> mWindowSquared;
+  ScopedEigenMap<ArrayXd> mPhase;
+  ScopedEigenMap<ArrayXd> mPhaseDiff;
+  ScopedEigenMap<ArrayXi> mChanged;
 };
 } // namespace algorithm
 } // namespace fluid

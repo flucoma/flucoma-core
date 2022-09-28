@@ -16,6 +16,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../data/FluidIndex.hpp"
 #include "../../data/FluidTensor.hpp"
 #include "../../data/TensorTypes.hpp"
+#include "../../data/FluidMemory.hpp"
 #include <Eigen/Core>
 #include <queue>
 #include <string>
@@ -82,7 +83,8 @@ public:
   index vq(RealVectorView point) const
   {
     assert(point.size() == mDims);
-    return assignPoint(_impl::asEigen<Eigen::Array>(point));
+    // transpose() allows us to avoid a temporary further down the call stack
+    return assignPoint(_impl::asEigen<Eigen::Array>(point).transpose());
   }
 
   void getMeans(RealMatrixView out) const
@@ -119,12 +121,15 @@ public:
   }
 
 protected:
-  double distance(const Eigen::ArrayXd&  v1, const Eigen::ArrayXd& v2) const
+  template <typename DerivedA, typename DerivedB>
+  double distance(const Eigen::ArrayBase<DerivedA>& v1,
+                  const Eigen::ArrayBase<DerivedB>& v2) const
   {
     return (v1 - v2).matrix().norm();
   }
 
-  index assignPoint(Eigen::ArrayXd point) const
+  template <typename Derived>
+  index assignPoint(const Eigen::ArrayBase<Derived>& point) const
   {
     double minDistance = std::numeric_limits<double>::infinity();
     index  minK;
@@ -140,15 +145,17 @@ protected:
     return minK;
   }
 
-  Eigen::VectorXi assignClusters(Eigen::ArrayXXd dataPoints) const
+  Eigen::VectorXi assignClusters(const Eigen::ArrayXXd& dataPoints) const
   {
     Eigen::VectorXi assignments = Eigen::VectorXi::Zero(dataPoints.rows());
     for (index i = 0; i < dataPoints.rows(); i++)
-    { assignments(i) = static_cast<int>(assignPoint(dataPoints.row(i))); }
+    {
+      assignments(i) = static_cast<int>(assignPoint(dataPoints.row(i)));
+    }
     return assignments;
   }
 
-  void computeMeans(Eigen::ArrayXXd dataPoints)
+  void computeMeans(const Eigen::ArrayXXd& dataPoints)
   {
     using namespace Eigen;
     for (index k = 0; k < mK; k++)
@@ -168,13 +175,15 @@ protected:
       ArrayXXd clusterPoints =
           ArrayXXd::Zero(asSigned(kAssignment.size()), mDims);
       for (index i = 0; asUnsigned(i) < kAssignment.size(); i++)
-      { clusterPoints.row(i) = dataPoints.row(kAssignment[asUnsigned(i)]); }
+      {
+        clusterPoints.row(i) = dataPoints.row(kAssignment[asUnsigned(i)]);
+      }
       ArrayXd mean = clusterPoints.colwise().mean();
       mMeans.row(k) = mean;
     }
   }
 
-  bool changed(Eigen::VectorXi newAssignments) const
+  bool changed(const Eigen::VectorXi& newAssignments) const
   {
     auto dif = (newAssignments - mAssignments).cwiseAbs().sum();
     return dif > 0;

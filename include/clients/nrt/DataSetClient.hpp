@@ -60,7 +60,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return DataSetParams; }
 
-  DataSetClient(ParamSetViewType& p) : mParams(p) {}
+  DataSetClient(ParamSetViewType& p, FluidContext&) : mParams(p) {}
 
   MessageResult<void> addPoint(string id, InputBufferPtr data)
   {
@@ -212,9 +212,10 @@ public:
     mAlgorithm = DataSet(0);
     return OK();
   }
+  
   MessageResult<string> print()
   {
-    return "DataSet " + get<kName>() + ": " + mAlgorithm.print();
+    return "DataSet " + std::string(get<kName>()) + ": " + mAlgorithm.print();
   }
 
   const DataSet getDataSet() const { return mAlgorithm; }

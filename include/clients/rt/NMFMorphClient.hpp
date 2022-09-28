@@ -57,8 +57,12 @@ public:
 
   static constexpr auto getParameterDescriptors() { return NMFMorphParams; }
 
-  NMFMorphClient(ParamSetViewType& p)
-      : mParams{p}, mSTFTProcessor{get<kFFT>().max(), 0, 1}
+  NMFMorphClient(ParamSetViewType& p, FluidContext& c)
+      : mParams{p}, mSTFTProcessor{get<kFFT>(), 0, 1, c.hostVectorSize(),
+                                   c.allocator()},
+        mNMFMorph{get<kFFT>().max(), c.allocator()}, tmpSource{0, 0,
+                                                               c.allocator()},
+        tmpTarget{0, 0, c.allocator()}, tmpAct{0, 0, c.allocator()}
   {
     audioChannelsIn(0);
     audioChannelsOut(1);
@@ -67,7 +71,7 @@ public:
 
   index latency() { return get<kFFT>().winSize(); }
 
-  void reset() { mSTFTProcessor.reset(); }
+  void reset(FluidContext&) { mSTFTProcessor.reset(); }
 
   template <typename T>
   void process(std::vector<HostVector<T>>&, std::vector<HostVector<T>>& output,
@@ -84,13 +88,16 @@ public:
       auto  targetBuffer = BufferAdaptor::ReadAccess(get<kTargetBuf>().get());
       auto  actBuffer = BufferAdaptor::ReadAccess(get<kActBuf>().get());
       if (!sourceBuffer.valid() || !targetBuffer.valid() || !actBuffer.valid())
-      { return; }
+      {
+        return;
+      }
       index rank = sourceBuffer.numChans();
       if (targetBuffer.numChans() != rank || actBuffer.numChans() != rank)
         return;
       if (sourceBuffer.numFrames() != fftParams.frameSize()) { return; }
       if (sourceBuffer.numFrames() != targetBuffer.numFrames()) { return; }
-      if (!mNMFMorph.initialized() || mTrackValues.changed(rank, fftParams.frameSize(), get<kAutoAssign>()))
+      if (!mNMFMorph.initialized() ||
+          mTrackValues.changed(rank, fftParams.frameSize(), get<kAutoAssign>()))
       {
         tmpSource.resize(rank, fftParams.frameSize());
         tmpTarget.resize(rank, fftParams.frameSize());
@@ -103,23 +110,24 @@ public:
         }
         mNMFMorph.init(tmpSource, tmpTarget, tmpAct, fftParams.winSize(),
                        fftParams.fftSize(), fftParams.hopSize(),
-                       get<kAutoAssign>() == 1);
+                       get<kAutoAssign>() == 1, c.allocator());
       }
-      if(!mNMFMorph.initialized()) return; 
+      if (!mNMFMorph.initialized()) return;
       mSTFTProcessor.processOutput(
-          mParams, output, c, [&](ComplexMatrixView out) {
-            mNMFMorph.processFrame(out.row(0), get<kInterpolation>());
+          get<kFFT>(), output, c, [&](ComplexMatrixView out) {
+            mNMFMorph.processFrame(out.row(0), get<kInterpolation>(),
+                                   c.allocator());
           });
     }
   }
 
 private:
-  ParameterTrackChanges<index, index, index>        mTrackValues;
-  STFTBufferedProcess<ParamSetViewType, kFFT, true> mSTFTProcessor;
-  algorithm::NMFMorph                               mNMFMorph;
-  RealMatrix                                        tmpSource;
-  RealMatrix                                        tmpTarget;
-  RealMatrix                                        tmpAct;
+  ParameterTrackChanges<index, index, index> mTrackValues;
+  STFTBufferedProcess<true>                  mSTFTProcessor;
+  algorithm::NMFMorph                        mNMFMorph;
+  RealMatrix                                 tmpSource;
+  RealMatrix                                 tmpTarget;
+  RealMatrix                                 tmpAct;
 };
 } // namespace nmfmorph
 

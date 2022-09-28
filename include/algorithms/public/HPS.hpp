@@ -24,15 +24,18 @@ class HPS
 public:
   void processFrame(const RealVectorView& input, RealVectorView output,
                     index nHarmonics, double minFreq, double maxFreq,
-                    double sampleRate)
+                    double sampleRate, Allocator& alloc)
   {
     using namespace Eigen;
     using namespace std;
 
     ArrayXd::Index maxIndex;
 
-    ArrayXd mag = _impl::asEigen<Array>(input);
-    ArrayXd hps = mag;
+    ScopedEigenMap<ArrayXd> mag(input.size(), alloc);
+    mag = _impl::asEigen<Array>(input);
+    
+    ScopedEigenMap<ArrayXd> hps(mag.size(), alloc);
+    hps = mag;
     index   nBins = mag.size();
     double  binHz = sampleRate / ((nBins - 1) * 2);
     index   minBin = lrint(minFreq / binHz);
@@ -41,21 +44,21 @@ public:
     double  confidence = 0;
     double hpsSum = 0;
 
+    ScopedEigenMap<ArrayXd> h(nBins, alloc);
+    ScopedEigenMap<ArrayXd> hp(nBins, alloc);
     for (index i = 2; i < nHarmonics; i++)
     {
       index   hBins = nBins / i;
-      ArrayXd h = ArrayXd::Zero(hBins);
-      for (index j = 0; j < hBins; j++) h(j) = mag(j * i);
-      ArrayXd hp = ArrayXd::Zero(nBins);
-      hp.segment(0, hBins) = h;
+      for (index j = 0; j < hBins; j++) h.head(hBins)(j) = mag(j * i);
+      hp.setZero();
+      hp.head(hBins) = h.head(hBins);
       hps = hps * hp;
     }
     hpsSum = hps.sum();
 
     if (maxBin > minBin &&  hpsSum > 0)
     {
-      hps = hps.segment(minBin, maxBin - minBin);
-      double maxVal = hps.maxCoeff(&maxIndex);
+      double maxVal = hps.segment(minBin, maxBin - minBin).maxCoeff(&maxIndex);
       confidence = maxVal / hpsSum;
       f0 = (minBin + maxIndex) * binHz;
     }

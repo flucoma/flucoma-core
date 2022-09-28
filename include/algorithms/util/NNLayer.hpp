@@ -12,6 +12,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #include "NNFuncs.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/FluidMemory.hpp"
 #include <Eigen/Core>
 
 namespace fluid {
@@ -71,12 +72,22 @@ public:
   void forward(Eigen::Ref<MatrixXd> in, Eigen::Ref<MatrixXd> out) const
   {
     mInput = in;
-    MatrixXd WT = mWeights.transpose();
-    MatrixXd IT = mInput.transpose();
+    auto WT = mWeights.transpose();
+    auto IT = mInput.transpose();
     MatrixXd Z = ((WT * IT).colwise() + mBiases).transpose();
     mOutput = MatrixXd::Zero(out.rows(), out.cols());
     NNActivations::activation()[mActivation](Z, mOutput);
     out = mOutput;
+  }
+
+  void forwardFrame(Eigen::Ref<VectorXd> in, Eigen::Ref<VectorXd> out,
+                    Allocator& alloc = FluidDefaultAllocator()) const
+  {
+    auto WT = mWeights.transpose();
+    // avoid Eigen temporary with lazyProduct here (ScopedEigenMap will use
+    // noalias())
+    ScopedEigenMap<VectorXd> Z(WT.lazyProduct(in) + mBiases, alloc);
+    NNActivations::activation()[mActivation](Z, out);
   }
 
   void backward(Eigen::Ref<MatrixXd> outGrad, Eigen::Ref<MatrixXd> inGrad)

@@ -14,6 +14,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "FluidEigenMappings.hpp"
 #include "../public/WindowFuncs.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/FluidMemory.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <cmath>
@@ -38,37 +39,49 @@ class OptimalTransport
   using ArrayXcd = Eigen::ArrayXcd;
   template <typename T>
   using Ref = Eigen::Ref<T>;
-  using TransportMatrix = std::vector<std::tuple<index, index, double>>;
+  using TransportMatrix = rt::vector<std::tuple<index, index, double>>;
   template <typename T>
-  using vector = std::vector<T>;
+  using vector = rt::vector<T>;
 
 public:
-  void init(ArrayXd A, ArrayXd B)
+  OptimalTransport(index maxSize, Allocator& alloc)
+      : mTransportMatrix(alloc),
+        mA(maxSize, alloc),
+        mB(maxSize, alloc),
+        mS1(alloc),
+        mS2(alloc)
+  {}
+
+  void init(Ref<ArrayXd> A, Ref<ArrayXd> B, Allocator& alloc)
   {
+    assert(A.size() <= mA.size());
+    assert(B.size() <= mB.size());
     mInitialized = false;
-    mA = A;
-    mB = B;
-    mS1 = segmentSpectrum(A);
-    mS2 = segmentSpectrum(B);
-    
-    if(!mS1.size() || !mS2.size())
-      return; 
-    
-    mTransportMatrix = computeTransportMatrix(mS1, mS2);
+    mA.head(A.size()) = A;
+    mB.head(B.size()) = B;
+    mS1 = segmentSpectrum(A, alloc);
+    mS2 = segmentSpectrum(B, alloc);
+
+    if (!mS1.size() || !mS2.size()) return;
+
+    mTransportMatrix = computeTransportMatrix(mS1, mS2, alloc);
     mInitialized = true;
   }
 
   bool initialized() const { return mInitialized; }
 
-  vector<SpectralMass> segmentSpectrum(const Ref<ArrayXd> magnitude)
+  vector<SpectralMass> segmentSpectrum(
+      const Ref<ArrayXd> magnitude, Allocator& alloc)
   {
-    const auto&          epsilon = std::numeric_limits<double>::epsilon();
-    vector<SpectralMass> masses;
-    ArrayXd              mag = magnitude;
-    double               totalMass = mag.sum() + epsilon;
-    ArrayXd              invMag = mag * (-1);
-    vector<index>        peaks = findPeaks(mag);
-    vector<index>        valleys = findPeaks(invMag);
+    constexpr auto          epsilon = std::numeric_limits<double>::epsilon();
+    vector<SpectralMass>    masses(alloc);
+    ScopedEigenMap<ArrayXd> mag(magnitude.size(), alloc);
+    mag = magnitude;
+    double                  totalMass = mag.sum() + epsilon;
+    ScopedEigenMap<ArrayXd> invMag(mag.size(), alloc);
+    invMag = mag * (-1);
+    vector<index> peaks = findPeaks(mag, alloc);
+    vector<index> valleys = findPeaks(invMag, alloc);
     if (peaks.size() == 0 || valleys.size() == 0) return masses;
     index        nextValley = valleys[0] > peaks[0] ? 0 : 1;
     SpectralMass firstMass{0, peaks[0], valleys[asUnsigned(nextValley)], 0};
@@ -97,16 +110,15 @@ public:
       double lastMass = magnitude.segment(lastStart, lastSize).sum();
       lastMass /= totalMass;
       masses.push_back(SpectralMass{valleys.at(asUnsigned(nextValley)),
-                                    peaks.at(peaks.size() - 1),
-                                    magnitude.size() - 1, lastMass});
+          peaks.at(peaks.size() - 1), magnitude.size() - 1, lastMass});
     }
     return masses;
   }
 
-  TransportMatrix computeTransportMatrix(std::vector<SpectralMass> m1,
-                                         std::vector<SpectralMass> m2)
+  TransportMatrix computeTransportMatrix(
+      vector<SpectralMass>& m1, vector<SpectralMass>& m2, Allocator& alloc)
   {
-    TransportMatrix matrix;
+    TransportMatrix matrix(alloc);
     index           index1 = 0, index2 = 0;
     double          mass1 = m1[0].mass;
     double          mass2 = m2[0].mass;
@@ -136,7 +148,7 @@ public:
   }
 
   void placeMass(const SpectralMass mass, index bin, double scale,
-                 Ref<ArrayXd> input, Ref<ArrayXd> output)
+      Ref<ArrayXd> input, Ref<ArrayXd> output)
   {
     for (index i = mass.startBin; i < mass.endBin; i++)
     {
@@ -153,8 +165,8 @@ public:
     {
       SpectralMass m1 = mS1[asUnsigned(std::get<0>(t))];
       SpectralMass m2 = mS2[asUnsigned(std::get<1>(t))];
-      index  interpolatedBin = std::lrint((1 - interpolation) * m1.centerBin +
-                                         interpolation * m2.centerBin);
+      index        interpolatedBin = std::lrint(
+                 (1 - interpolation) * m1.centerBin + interpolation * m2.centerBin);
       double interpolationFactor = interpolation;
       if (m1.centerBin != m2.centerBin)
       {
@@ -163,31 +175,33 @@ public:
             ((double) m2.centerBin - (double) m1.centerBin);
       }
       placeMass(m1, interpolatedBin,
-                (1 - interpolation) * std::get<2>(t) / m1.mass, mA, out);
+          (1 - interpolation) * std::get<2>(t) / m1.mass, mA, out);
       placeMass(m2, interpolatedBin, interpolation * std::get<2>(t) / m2.mass,
-                mB, out);
+          mB, out);
     }
   }
 
-  std::vector<index> findPeaks(const Ref<ArrayXd> correlation)
+  vector<index> findPeaks(const Ref<ArrayXd> correlation, Allocator& alloc)
   {
-    std::vector<index> peaks;
+    vector<index> peaks(alloc);
     for (index i = 1; i < correlation.size() - 1; i++)
     {
       if (correlation(i) > correlation(i - 1) &&
           correlation(i) > correlation(i + 1))
-      { peaks.push_back(i); }
+      {
+        peaks.push_back(i);
+      }
     }
     return peaks;
   }
 
-  bool                      mInitialized{false};
-  TransportMatrix           mTransportMatrix;
-  ArrayXd                   mA;
-  ArrayXd                   mB;
-  std::vector<SpectralMass> mS1;
-  std::vector<SpectralMass> mS2;
-  double                    mDistance{0};
+  bool                    mInitialized{false};
+  TransportMatrix         mTransportMatrix;
+  ScopedEigenMap<ArrayXd> mA;
+  ScopedEigenMap<ArrayXd> mB;
+  vector<SpectralMass>    mS1;
+  vector<SpectralMass>    mS2;
+  double                  mDistance{0};
 };
 } // namespace algorithm
 } // namespace fluid

@@ -66,9 +66,10 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return HPSSParams; }
 
-  HPSSClient(ParamSetViewType& p)
-      : mParams{p}, mSTFTBufferedProcess{get<kFFT>().max(), 1, 3},
-        mHPSS{get<kFFT>().max(), get<kHSize>().max()}
+  HPSSClient(ParamSetViewType& p, FluidContext const& c)
+      : mParams{p}, mSTFTBufferedProcess{get<kFFT>(), 1, 3,
+                                         c.hostVectorSize(), c.allocator()},
+        mHPSS{get<kFFT>().max(), get<kHSize>().max(), c.allocator()}
   {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::audioChannelsOut(3);
@@ -82,7 +83,7 @@ public:
            get<kFFT>().winSize();
   }
 
-  void reset()
+  void reset(FluidContext&)
   {
     mSTFTBufferedProcess.reset();
     mHPSS.init(get<kFFT>().frameSize(), get<kHSize>());
@@ -102,7 +103,7 @@ public:
     { mHPSS.init(nBins, get<kHSize>()); }
 
     mSTFTBufferedProcess.process(
-        mParams, input, output, c,
+        get<kFFT>(), input, output, c,
         [&](ComplexMatrixView in, ComplexMatrixView out) {
           mHPSS.processFrame(
               in.row(0), out.transpose(), get<kPSize>(), get<kHSize>(),
@@ -115,9 +116,9 @@ public:
   }
 
 private:
-  STFTBufferedProcess<ParamSetViewType, kFFT, true> mSTFTBufferedProcess;
-  ParameterTrackChanges<index, index>               mTrackChanges;
-  algorithm::HPSS                                   mHPSS;
+  STFTBufferedProcess<true>             mSTFTBufferedProcess;
+  ParameterTrackChanges<index, index>   mTrackChanges;
+  algorithm::HPSS                       mHPSS;
 };
 } // namespace hpss
 using RTHPSSClient = ClientWrapper<hpss::HPSSClient>;

@@ -43,10 +43,12 @@ template <typename B>
 auto constexpr makeWrapperInputs(B b1, B b2)
 {
   return defineParameters(
-      std::forward<B>(b1), LongParam("startFrameA", "Source A Offset", 0, Min(0)),
+      std::forward<B>(b1),
+      LongParam("startFrameA", "Source A Offset", 0, Min(0)),
       LongParam("numFramesA", "Source A Number of Frames", -1),
       LongParam("startChanA", "Source A Start Channel", 0, Min(0)),
-      LongParam("numChansA", "Source A Number of Channels", -1), std::forward<B>(b2),
+      LongParam("numChansA", "Source A Number of Channels", -1),
+      std::forward<B>(b2),
       LongParam("startFrameB", "Source B Offset", 0, Min(0)),
       LongParam("numFramesB", "Source B Number of Frames", -1),
       LongParam("startChanB", "Source B Start Channel", 0, Min(0)),
@@ -126,10 +128,10 @@ struct AddPadding
   static constexpr bool HasControlOut = IsControlOut<RTClient>::value;
   //  static constexpr size_t value = HasControlOut? 2 : 1;
 
-  static constexpr size_t value =
-      HasFFT && HasControlOut
-          ? 2
-          : HasFFT && !HasControlOut ? 1 : !HasFFT && HasControlOut ? 3 : 0;
+  static constexpr size_t value = HasFFT && HasControlOut    ? 2
+                                  : HasFFT && !HasControlOut ? 1
+                                  : !HasFFT && HasControlOut ? 3
+                                                             : 0;
 
 
   //  static constexpr size_t value = std::conditional_t<HasFFT,
@@ -191,6 +193,8 @@ public:
   static constexpr size_t ParamOffset =
       ParamsSize<ParamDescType>::value - ParamsSize<RTParamDescType>::value;
 
+  static constexpr index VectorSize = 64;
+
   using WrappedClient = RTClient;
 
   using isModelObject = typename RTClient::isModelObject;
@@ -200,23 +204,24 @@ public:
     return RTClient::getMessageDescriptors();
   }
 
-  NRTClientWrapper(ParamSetViewType& p)
-      : mParams{p},
+  NRTClientWrapper(ParamSetViewType& p, FluidContext)
+      : mParams{p}, mNRTContext{VectorSize, FluidDefaultAllocator()},
         mRealTimeParams{RTClient::getParameterDescriptors(),
                         mParams.get().template subset<ParamOffset>()},
-        mClient{mRealTimeParams}
+        mClient{mRealTimeParams, mNRTContext}
   {}
 
   NRTClientWrapper(const NRTClientWrapper& x)
-      : mParams{x.mParams},
+      : mParams{x.mParams}, mNRTContext{x.mNRTContext},
         mRealTimeParams{RTClient::getParameterDescriptors(),
                         mParams.get().template subset<ParamOffset>()},
-        mClient{mRealTimeParams}
+        mClient{mRealTimeParams, mNRTContext}
   {}
 
 
   NRTClientWrapper(NRTClientWrapper&& x)
-      : mParams{std::move(x.mParams)}, mClient{std::move(x.mClient)}
+      : mParams{std::move(x.mParams)},
+        mNRTContext{std::move(x.mNRTContext)}, mClient{std::move(x.mClient)}
   {
     mRealTimeParams =
         RTParamSetViewType(RTClient::getParameterDescriptors(),
@@ -228,6 +233,7 @@ public:
   {
     mParams = x.mParams;
     mClient = x.mClient;
+    mNRTContext = x.mNRTContext;
     mRealTimeParams =
         RTParamSetViewType(RTClient::getParameterDescriptors(),
                            mParams.get().template subset<ParamOffset>());
@@ -240,6 +246,7 @@ public:
     using std::swap;
     swap(mClient, x.mClient);
     swap(mParams, x.mParams);
+    swap(mNRTContext, x.mNRTContext);
     mRealTimeParams =
         RTParamSetViewType(RTClient::getParameterDescriptors(),
                            mParams.get().template subset<ParamOffset>());
@@ -256,10 +263,10 @@ public:
   //  template <std::size_t N> bool changed() noexcept { return mParams.template
   //  changed<N>(); }
 
-  index audioChannelsIn() const noexcept { return 0; }
-  index audioChannelsOut() const noexcept { return 0; }
-  index controlChannelsIn() const noexcept { return 0; }
-  ControlChannel controlChannelsOut() const noexcept { return {0,0}; }
+  index          audioChannelsIn() const noexcept { return 0; }
+  index          audioChannelsOut() const noexcept { return 0; }
+  index          controlChannelsIn() const noexcept { return 0; }
+  ControlChannel controlChannelsOut() const noexcept { return {0, 0}; }
   /// Map delegate audio / control channels to audio buffers
   index audioBuffersIn() const noexcept { return mClient.audioChannelsIn(); }
   index audioBuffersOut() const noexcept
@@ -343,9 +350,11 @@ public:
     index numFrames = *std::min_element(inFrames.begin(), inFrames.end());
     index numChannels = *std::min_element(inChans.begin(), inChans.end());
 
+    mNRTContext.task(c.task());
+
     Result processResult = AdaptorType<HostMatrix, HostVectorView>::process(
         mClient, inputBuffers, outputBuffers, numFrames, numChannels,
-        userPadding<>(), c);
+        userPadding<>(), mNRTContext);
 
     if (!processResult.ok())
     {
@@ -394,7 +403,9 @@ public:
     constexpr size_t WinOffset = 3;
     constexpr size_t HopOffset = 4;
 
-    assert((mParams.get().template descriptorAt<ParamOffset + WinOffset>()).name == "windowSize");
+    assert(
+        (mParams.get().template descriptorAt<ParamOffset + WinOffset>()).name ==
+        "windowSize");
 
     index winSize = get<ParamOffset + WinOffset>();
     index hopSize = get<ParamOffset + HopOffset>();
@@ -424,14 +435,14 @@ private:
 
   template <size_t... Is>
   std::array<BufferProcessSpec, sizeof...(Is)>
-      fetchInputBuffers(std::index_sequence<Is...>)
+  fetchInputBuffers(std::index_sequence<Is...>)
   {
     return {{fetchInputBuffer<Is * 5>()...}};
   }
 
   template <size_t... Is>
   std::array<BufferAdaptor*, sizeof...(Is)>
-      fetchOutputBuffers(std::index_sequence<Is...>)
+  fetchOutputBuffers(std::index_sequence<Is...>)
   {
     return {{get<Is + (Ins * 5)>().get()...}};
   }
@@ -447,6 +458,7 @@ private:
   }
 
   std::reference_wrapper<ParamSetViewType> mParams;
+  FluidContext                             mNRTContext;
   RTParamSetViewType                       mRealTimeParams;
   WrappedClient                            mClient;
 };
@@ -462,45 +474,63 @@ struct Streaming
     // To account for process latency we need to copy the buffers with padding
     std::vector<HostMatrix> outputData;
     std::vector<HostMatrix> inputData;
-
+    index VectorSize = c.hostVectorSize(); // todo sort this aht
     outputData.reserve(outputBuffers.size());
     inputData.reserve(inputBuffers.size());
 
     index startPadding = client.latency() + userPadding.first;
     index totalPadding = startPadding + userPadding.first;
 
+    // store a whole multiple of VectorSize's worth of data to get padding at
+    // far end
+    index nHops = static_cast<index>(
+        std::ceil(double(nFrames + totalPadding) / VectorSize));
+
     std::fill_n(std::back_inserter(outputData), outputBuffers.size(),
-                HostMatrix(nChans, nFrames + totalPadding));
+                HostMatrix(nChans, VectorSize * nHops));
     std::fill_n(std::back_inserter(inputData), inputBuffers.size(),
-                HostMatrix(nChans, nFrames + totalPadding));
+                HostMatrix(nChans, VectorSize * nHops));
 
     double sampleRate{0};
 
+    // copy input data
     for (index i = 0; i < nChans; ++i)
     {
-      std::vector<HostVectorView> inputs;
-      inputs.reserve(inputBuffers.size());
       for (index j = 0; j < asSigned(inputBuffers.size()); ++j)
       {
         BufferAdaptor::ReadAccess thisInput(inputBuffers[asUnsigned(j)].buffer);
-        if (i == 0 && j == 0) sampleRate = thisInput.sampleRate();
         inputData[asUnsigned(j)].row(i)(Slice(userPadding.first, nFrames)) <<=
             thisInput.samps(inputBuffers[asUnsigned(j)].startFrame, nFrames,
                             inputBuffers[asUnsigned(j)].startChan + i);
-        inputs.emplace_back(inputData[asUnsigned(j)].row(i));
+        if (i == 0 && j == 0) sampleRate = thisInput.sampleRate();
       }
+    }
 
-      std::vector<HostVectorView> outputs;
-      outputs.reserve(outputBuffers.size());
-      for (index j = 0; j < asSigned(outputBuffers.size()); ++j)
-        outputs.emplace_back(outputData[asUnsigned(j)].row(i));
+    std::vector<HostVectorView> inputs(inputBuffers.size(), {nullptr, 0, 0});
+    std::vector<HostVectorView> outputs(outputBuffers.size(), {nullptr, 0, 0});
+    //    inputs.reserve(inputBuffers.size());
 
+    for (index i = 0; i < nChans; ++i)
+    {
       if (c.task())
         c.task()->iterationUpdate(static_cast<double>(i),
                                   static_cast<double>(nChans));
 
-      client.reset();
-      client.process(inputs, outputs, c);
+      client.reset(c);
+
+      for (index j = 0; j < nHops; ++j)
+      {
+        for (std::size_t k = 0; k < inputBuffers.size(); ++k)
+          inputs[k] = inputData[k].row(i)(Slice(j * VectorSize, VectorSize));
+        for (std::size_t k = 0; k < outputBuffers.size(); ++k)
+          outputs[k] = outputData[k].row(i)(Slice(j * VectorSize, VectorSize));
+        client.process(inputs, outputs, c);
+
+        if (c.task() &&
+            !c.task()->processUpdate(static_cast<double>(j + 1 + (nHops * i)),
+                                     static_cast<double>(nHops * nChans)))
+          break;
+      }
     }
 
     for (index i = 0; i < asSigned(outputBuffers.size()); ++i)
@@ -529,7 +559,7 @@ struct StreamingControl
     // To account for process latency we need to copy the buffers with padding
     std::vector<HostMatrix> inputData;
     index                   maxFeatures = client.maxControlChannelsOut();
-    //      outputData.reserve(nFeatures);
+
     inputData.reserve(inputBuffers.size());
 
     index startPadding = client.latency() + userPadding.first;
@@ -542,22 +572,17 @@ struct StreamingControl
     //    for descriptors in full padding mode, round analysis length up to a
     //    whole number of hops to ensure that last frame gets a fair showing
     if (userPadding.second == 2)
-      paddedLength =
-          static_cast<index>(std::ceil(double(paddedLength) / controlRate) * controlRate);
+      paddedLength = static_cast<index>(
+          std::ceil(double(paddedLength) / controlRate) * controlRate);
 
     index windowSize = client.analysisSettings().window;
-    index nHops = static_cast<index>(
+    index nAnalysisFrames = static_cast<index>(
         1 + std::floor((paddedLength - windowSize) / controlRate));
-
-    // in contrast to the plain streaming case, we're going to call process()
-    // iteratively with a vector size = the control vector size, so we get KR
-    // where expected
-    // TODO make this whole mess less baroque and opaque
-
+    c.hostVectorSize(controlRate);
     std::fill_n(std::back_inserter(inputData), inputBuffers.size(),
-                HostMatrix(nChans, nFrames + totalPadding));
+                HostMatrix(nChans, paddedLength));
 
-    HostMatrix outputData(nChans * maxFeatures, nHops);
+    HostMatrix outputData(nChans * maxFeatures, nAnalysisFrames);
     double     sampleRate{0};
     // Copy input data
     for (index i = 0; i < nChans; ++i)
@@ -571,41 +596,42 @@ struct StreamingControl
                             inputBuffers[asUnsigned(j)].startChan + i);
       }
     }
-    FluidTask*   task = c.task();
-    FluidContext dummyContext;
+    FluidTask* task = c.task();
+
     for (index i = 0; i < nChans; ++i)
     {
-      client.reset();
-      for (index j = 0; j < nHops; ++j)
+      client.reset(c);
+      for (index j = 0; j < nAnalysisFrames; ++j)
       {
-        index t = j * controlRate;
+        index t = j * c.hostVectorSize();
 
         std::vector<HostVectorView> inputs;
         inputs.reserve(inputBuffers.size());
         std::vector<HostVectorView> outputs;
         outputs.reserve(outputBuffers.size());
-        
+
         for (index k = 0; k < asSigned(inputBuffers.size()); ++k)
+        {
           inputs.emplace_back(
               inputData[asUnsigned(k)].row(i)(Slice(t, controlRate)));
+        }
 
-        // for (index k = 0; k < nFeatures; ++k)
-        //   outputs.emplace_back(outputData.row(k + i * nFeatures)(Slice(j, 1)));
-        outputs.push_back(outputData.col(j)(Slice(i * maxFeatures, maxFeatures)));
+        outputs.push_back(
+            outputData.col(j)(Slice(i * maxFeatures, maxFeatures)));
 
-        client.process(inputs, outputs, dummyContext);
+        client.process(inputs, outputs, c);
 
-        if (task &&
-            !task->processUpdate(static_cast<double>(j + 1 + (nHops * i)),
-                                 static_cast<double>(nHops * nChans)))
+        if (task && !task->processUpdate(
+                        static_cast<double>(j + 1 + (nAnalysisFrames * i)),
+                        static_cast<double>(nAnalysisFrames * nChans)))
           break;
       }
     }
 
     BufferAdaptor::Access thisOutput(outputBuffers[0]);
-    index nFeatures = client.controlChannelsOut().size;
-    index latencyHops = client.latency() / controlRate;
-    index keepHops = nHops - latencyHops;
+    index                 nFeatures = client.controlChannelsOut().size;
+    index                 latencyHops = client.latency() / controlRate;
+    index                 keepHops = nAnalysisFrames - latencyHops;
 
     Result resizeResult = thisOutput.resize(keepHops, nChans * nFeatures,
                                             sampleRate / controlRate);
@@ -632,7 +658,8 @@ struct Slicing
   template <typename Client, typename InputList, typename OutputList>
   static Result process(Client& client, InputList& inputBuffers,
                         OutputList& outputBuffers, index nFrames, index nChans,
-                        std::pair<index, index> /*userPadding*/, FluidContext& c)
+                        std::pair<index, index> /*userPadding*/,
+                        FluidContext& c)
   {
 
     assert(inputBuffers.size() == 1);
@@ -640,24 +667,37 @@ struct Slicing
 
     index startPadding = client.latency();
     index totalPadding = startPadding;
+    index VectorSize = c.hostVectorSize();
+    index nHops = static_cast<index>(
+        std::ceil(double(nFrames + totalPadding) / VectorSize));
 
-    HostMatrix monoSource(1, nFrames + totalPadding);
+    HostMatrix monoSource(1, nHops * VectorSize);
 
     BufferAdaptor::ReadAccess src(inputBuffers[0].buffer);
     // Make a mono sum;
     for (index i = inputBuffers[0].startChan;
          i < nChans + inputBuffers[0].startChan; ++i)
+    {
       monoSource.row(0)(Slice(0, nFrames))
           .apply(src.samps(inputBuffers[0].startFrame, nFrames, i),
                  [](float& x, float y) { x += y; });
+    }
 
-    HostMatrix onsetPoints(1, nFrames + totalPadding);
+    HostMatrix onsetPoints(1, nHops * VectorSize);
 
-    std::vector<HostVectorView> input{monoSource.row(0)};
-    std::vector<HostVectorView> output{onsetPoints.row(0)};
+    std::vector<HostVectorView> input{{nullptr, 0, 0}};
+    std::vector<HostVectorView> output{{nullptr, 0, 0}};
+    client.reset(c);
+    for (index i = 0, N = nHops; i < N; ++i)
+    {
+      input[0] = monoSource.row(0)(Slice(i * VectorSize, VectorSize));
+      output[0] = onsetPoints.row(0)(Slice(i * VectorSize, VectorSize));
 
-    client.reset();
-    client.process(input, output, c);
+      client.process(input, output, c);
+      if (c.task() && !c.task()->processUpdate(static_cast<double>(i),
+                                               static_cast<double>(N)))
+        break;
+    }
 
     if (startPadding)
     {
@@ -759,11 +799,11 @@ public:
     return NRTClient::getMessageDescriptors();
   }
 
-  index audioChannelsIn() const noexcept { return 0; }
-  index audioChannelsOut() const noexcept { return 0; }
-  index controlChannelsIn() const noexcept { return 0; }
-  ControlChannel controlChannelsOut() const noexcept { return {0,0}; }
-  index audioBuffersIn() const noexcept
+  index          audioChannelsIn() const noexcept { return 0; }
+  index          audioChannelsOut() const noexcept { return 0; }
+  index          controlChannelsIn() const noexcept { return 0; }
+  ControlChannel controlChannelsOut() const noexcept { return {0, 0}; }
+  index          audioBuffersIn() const noexcept
   {
     return ParamDescType::template NumOf<InputBufferT>();
   }
@@ -778,8 +818,8 @@ public:
     mClient->setParams(mHostParams);
   }
 
-  NRTThreadingAdaptor(ParamSetType& p)
-      : mHostParams{p}, mClient{new NRTClient{mHostParams}}
+  NRTThreadingAdaptor(ParamSetType& p, FluidContext c)
+      : mHostParams{p}, mClient{new NRTClient{mHostParams, c}}
   {}
 
   NRTThreadingAdaptor(NRTThreadingAdaptor&& x) : mHostParams{x.mHostParams}
@@ -1071,6 +1111,7 @@ private:
     std::function<void()> mCallback;
   };
 
+  FluidContext                  mNRTContext;
   ParamSetType                  mHostParams;
   std::deque<NRTJob>            mQueue;
   bool                          mSynchronous = false;

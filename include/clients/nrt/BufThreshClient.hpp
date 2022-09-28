@@ -62,7 +62,7 @@ public:
   static constexpr auto& getParameterDescriptors() { return BufThreshParams; }
 
 
-  BufThreshClient(ParamSetViewType& p) : mParams(p) {}
+  BufThreshClient(ParamSetViewType& p, FluidContext&) : mParams(p) {}
 
   template <typename T>
   Result process(FluidContext&)

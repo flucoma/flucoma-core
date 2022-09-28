@@ -66,7 +66,7 @@ public:
   static constexpr auto& getParameterDescriptors() { return BufSTFTParams; }
 
 
-  BufferSTFTClient(ParamSetViewType& p) : mParams(p) {}
+  BufferSTFTClient(ParamSetViewType& p, FluidContext&) : mParams(p) {}
 
   template <typename T>
   Result process(FluidContext& c)

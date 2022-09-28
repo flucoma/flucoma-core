@@ -1,8 +1,10 @@
+#define APPROVALS_CATCH
 #define CATCH_CONFIG_MAIN
 
 #include "SlicerTestHarness.hpp"
 #include <algorithms/public/TransientSegmentation.hpp>
-#include <catch2/catch.hpp>
+#include <ApprovalTests.hpp>
+// #include <catch2/catch.hpp>
 #include <data/FluidIndex.hpp>
 #include <data/FluidTensor.hpp>
 #include <Signals.hpp>
@@ -11,6 +13,10 @@
 #include <functional>
 #include <string>
 #include <vector>
+
+//use a subdir for approval test results 
+auto directoryDisposer =
+    ApprovalTests::Approvals::useApprovalsSubdirectory("approval_tests");
 
 namespace fluid {
 
@@ -40,7 +46,7 @@ struct TestParams
 std::vector<index> runTest(FluidTensorView<const double, 1> testSignal,
                            TestParams const&                p)
 {
-  auto algo = algorithm::TransientSegmentation();
+  auto algo = algorithm::TransientSegmentation(p.order, p.blocksize, p.padding);
   algo.init(p.order, p.blocksize, p.padding);
 
   const double skew = pow(2, p.skew);
@@ -107,7 +113,7 @@ TEST_CASE("TransientSlice is predictable on sharp sine bursts",
           "[TransientSlice][slicers]")
 {
   auto source = testsignals::sharpSines();
-  auto expected = std::vector<index>{1000, 22050, 33075};
+  auto expected = std::vector<index>{1000, 11025, 22050, 33075};
 
   auto params =
       TestParams{Order(20),      BlockSize(256),  Padding(128),
@@ -128,48 +134,29 @@ TEST_CASE("TransientSlice is predictable on real material",
           "[TransientSlice][slicers]")
 {
   auto source = testsignals::monoEurorackSynth();
-  auto expected = std::vector<index>{
-      144,    19188,  34706,  47223,  49465,  58299,  68185,  86942,  105689,
-      106751, 117438, 139521, 152879, 161525, 167573, 179045, 186295, 205049,
-      223795, 248985, 250356, 256304, 263609, 280169, 297483, 306502, 310674,
-      312505, 319114, 327659, 335217, 346778, 364673, 368356, 384718, 400937,
-      431226, 433295, 434501, 435764, 439536, 441625, 444028, 445795, 452031,
-      453392, 465467, 481514, 494518, 496119, 505754, 512477, 514270};
 
   auto params =
       TestParams{Order(20),      BlockSize(256),  Padding(128),
                  Skew(0),        ThreshFwd(2),    ThreshBack(1.1),
                  WindowSize(14), ClumpLength(25), MinSliceLength(1000)};
 
-  auto  matcher = Catch::Matchers::Approx(expected);
-  index margin = 1;
-  matcher.margin(margin);
-
   auto result = runTest(source, params);
-
-  CHECK_THAT(result, matcher);
-}
+  ApprovalTests::Approvals::verifyAll("slice points",result); 
+} 
 
 TEST_CASE("TransientSlice is predictable on real material with heavy settings",
           "[TransientSlice][slicers]")
 {
   auto source = testsignals::monoEurorackSynth();
-  auto expected = std::vector<index>{
-      140,    19182,  34704,  47217,  58297,  68182,  86941,  105688, 117356,
-      122134, 139498, 150485, 161516, 167571, 179043, 186293, 205047, 220493};
 
   auto params =
       TestParams{Order(200),     BlockSize(2048), Padding(1024),
                  Skew(1),        ThreshFwd(3),    ThreshBack(1),
                  WindowSize(15), ClumpLength(30), MinSliceLength(4410)};
 
-  auto  matcher = Catch::Matchers::Approx(expected);
-  index margin = 1;
-  matcher.margin(margin);
 
   auto result = runTest(source(Slice(0, 220500)), params);
-
-  CHECK_THAT(result, matcher);
+  ApprovalTests::Approvals::verifyAll("slice points", result); 
 }
 
 

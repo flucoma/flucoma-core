@@ -4,8 +4,9 @@
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/SpectralEmbedding.hpp"
 #include "../../data/TensorTypes.hpp"
+#include "../../data/FluidMemory.hpp"
 #include <Eigen/Core>
-#include <Eigen/Sparse>
+#include <Eigen/SparseCore>
 #include <cassert>
 #include <cmath>
 #include <random>
@@ -158,38 +159,54 @@ public:
   }
 
 
-  void transformPoint(RealVectorView in, RealVectorView out) const
+  void transformPoint(RealVectorView in, RealVectorView out,
+                      Allocator& alloc = FluidDefaultAllocator()) const
   {
     if (!mInitialized) return;
-    SparseMatrixXd knnGraph(1, mEmbedding.rows());
-    ArrayXXd       dists = ArrayXXd::Zero(1, mK);
-    knnGraph.reserve(mK);
-    auto nearest = mTree.kNearest(in, mK);
-    auto nearestIds = nearest.getIds();
-    auto distances = nearest.getData().col(0);
-    for (index j = 0; j < mK; j++)
+
+    auto [distances, nearestIds] = mTree.kNearest(in, mK, 0, alloc);
+    using SparseMap = Eigen::Map<Eigen::SparseMatrix<double, Eigen::RowMajor>>;
+
+    rt::vector<double> data(alloc);
+    rt::vector<int>    inner(alloc);
+    data.reserve(asUnsigned(mK));
+    inner.reserve(asUnsigned(mK));
+
+    rt::vector<int> outer(2, 0, alloc);
+    outer[1] = static_cast<int>(mK);
+
+    ScopedEigenMap<ArrayXXd> dists(1, mK, alloc);
+    for (size_t j = 0; j < asUnsigned(mK); j++)
     {
-      index neighborIndex = stoi(nearestIds(j));
-      dists(0, j) = distances(j);
-      knnGraph.insert(0, neighborIndex) = distances(j);
+      int neighborIndex = stoi(*nearestIds[j]);
+      dists(0, asSigned(j)) = distances[j];
+      data.push_back(distances[j]);
+      inner.push_back(neighborIndex);
     }
-    knnGraph.makeCompressed();
-    ArrayXd sigma = findSigma(mK, dists);
+    int       maxIndex = *std::max_element(inner.cbegin(), inner.cend());
+    SparseMap knnGraph(1, maxIndex, mK, outer.data(), inner.data(),
+                       data.data());
+    ScopedEigenMap<ArrayXd> sigma = findSigma(mK, dists, 64, 1e-5, alloc);
     computeHighDimProb(dists, sigma, knnGraph);
-    normalizeRows(knnGraph);
-    ArrayXXd embedding = initTransformEmbedding(knnGraph, mEmbedding, 1);
-    ArrayXd  result = embedding.row(0);
-    out <<= _impl::asFluid(result);
+    normalizeRows(knnGraph, alloc);
+    ScopedEigenMap<ArrayXXd> embedding =
+        initTransformEmbedding(knnGraph, mEmbedding, 1, alloc);
+    _impl::asEigen<Eigen::Array>(out) = embedding.row(0).transpose();
   }
 
 
 private:
-  template <typename F>
-  void traverseGraph(const SparseMatrixXd& graph, F func) const
+  template <typename F, typename Derived>
+  void traverseGraph(Eigen::SparseCompressedBase<Derived>& graph, F func) const
   {
     for (index i = 0; i < graph.outerSize(); i++)
     {
-      for (SparseMatrixXd::InnerIterator it(graph, i); it; ++it) { func(it); }
+      for (typename Eigen::SparseCompressedBase<Derived>::InnerIterator it(
+               graph, i);
+           it; ++it)
+      {
+        func(it);
+      }
     }
   }
 
@@ -203,12 +220,15 @@ private:
     return CE.sum();
   }
 
-  ArrayXd findSigma(index k, Ref<ArrayXXd> dists, index maxIter = 64,
-                    double tolerance = 1e-5) const
+  ScopedEigenMap<ArrayXd>
+  findSigma(index k, Ref<ArrayXXd> dists, index maxIter = 64,
+            double     tolerance = 1e-5,
+            Allocator& alloc = FluidDefaultAllocator()) const
   {
     using namespace std;
-    double  target = log2(k);
-    ArrayXd result = ArrayXd::Zero(dists.rows());
+    double                  target = log2(k);
+    ScopedEigenMap<ArrayXd> result(dists.rows(), alloc);
+    result.setZero();
     for (index i = 0; i < dists.rows(); i++)
     {
       index  iter = maxIter;
@@ -241,8 +261,9 @@ private:
     return result;
   }
 
+  template <typename Derived>
   void computeHighDimProb(const Ref<ArrayXXd>& dists, const Ref<ArrayXd>& sigma,
-                          SparseMatrixXd& graph) const
+                          Eigen::SparseCompressedBase<Derived>& graph) const
   {
     traverseGraph(graph, [&](auto it) {
       it.valueRef() =
@@ -269,15 +290,15 @@ private:
     auto data = in.getData();
     for (index i = 0; i < in.size(); i++)
     {
-      auto nearest = mTree.kNearest(data.row(i), discardFirst ? k + 1 : k);
-      auto nearestIds = nearest.getIds();
-      auto distances = nearest.getData().col(0);
-      for (index j = 0; j < k; j++)
+      auto [distances, nearestIds] =
+          mTree.kNearest(data.row(i), discardFirst ? k + 1 : k);
+
+      for (size_t j = 0; j < asUnsigned(k); j++)
       {
-        index pos = discardFirst ? j + 1 : j;
-        index neighborIndex = stoi(nearestIds(pos));
-        dists(i, j) = distances(pos);
-        graph.insert(i, neighborIndex) = distances(pos);
+        size_t pos = discardFirst ? j + 1 : j;
+        index  neighborIndex = stoi(*nearestIds[pos]);
+        dists(i, asSigned(j)) = distances[pos];
+        graph.insert(i, neighborIndex) = distances[pos];
       }
     }
   }
@@ -297,8 +318,9 @@ private:
     return 10.0 * result;
   }
 
-  void getGraphIndices(const SparseMatrixXd& graph, Ref<ArrayXi> rowIndices,
-                       Ref<ArrayXi> colIndices) const
+  template <typename Derived>
+  void getGraphIndices(Eigen::SparseCompressedBase<Derived>& graph,
+                       Ref<ArrayXi> rowIndices, Ref<ArrayXi> colIndices) const
   {
     index p = 0;
     traverseGraph(graph, [&](auto it) {
@@ -308,8 +330,9 @@ private:
     });
   }
 
-  void computeEpochsPerSample(const SparseMatrixXd& graph,
-                              Ref<ArrayXd>          epochsPerSample) const
+  template <typename Derived>
+  void computeEpochsPerSample(Eigen::SparseCompressedBase<Derived>& graph,
+                              Ref<ArrayXd> epochsPerSample) const
   {
     index  p = 0;
     double maxVal = graph.coeffs().maxCoeff();
@@ -384,19 +407,25 @@ private:
     }
   }
 
-  ArrayXXd initTransformEmbedding(const SparseMatrixXd& graph,
-                                  Ref<const ArrayXXd> reference, index N) const
+  template <typename Derived>
+  ScopedEigenMap<ArrayXXd>
+  initTransformEmbedding(Eigen::SparseCompressedBase<Derived>& graph,
+                         Ref<const ArrayXXd> reference, index N,
+                         Allocator& alloc = FluidDefaultAllocator()) const
   {
-    ArrayXXd embedding = ArrayXXd::Zero(N, reference.cols());
+    ScopedEigenMap<ArrayXXd> embedding(N, reference.cols(), alloc);
+    embedding.setZero(); // todo: sort out 2D expression constructor?
     traverseGraph(graph, [&](auto it) {
       embedding.row(it.row()) += (reference.row(it.col()) * it.value());
     });
     return embedding;
   }
 
-  void normalizeRows(const SparseMatrixXd& graph) const
+  template <typename Derived>
+  void normalizeRows(Eigen::SparseCompressedBase<Derived>& graph,
+                     Allocator& alloc = FluidDefaultAllocator()) const
   {
-    ArrayXd sums = ArrayXd::Zero(graph.innerSize());
+    ScopedEigenMap<ArrayXd> sums(ArrayXd::Zero(graph.innerSize()), alloc);
     traverseGraph(graph, [&](auto it) { sums(it.row()) += it.value(); });
     traverseGraph(
         graph, [&](auto it) { it.valueRef() = it.value() / sums(it.row()); });

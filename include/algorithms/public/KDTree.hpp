@@ -15,6 +15,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../data/FluidIndex.hpp"
 #include "../../data/FluidTensor.hpp"
 #include "../../data/TensorTypes.hpp"
+#include "../../data/FluidMemory.hpp"
 #include <Eigen/Core>
 #include <queue>
 #include <memory>
@@ -34,8 +35,9 @@ public:
   struct Node;
   using NodePtr = std::shared_ptr<Node>;
   using knnCandidate = std::pair<double, const Node*>;
-  using knnQueue = std::priority_queue<knnCandidate, std::vector<knnCandidate>,
-                                       std::less<knnCandidate>>;
+  using knnQueue = rt::vector<knnCandidate>;
+  using KNNResult =
+      std::pair<rt::vector<double>, rt::vector<const std::string*>>;
   using iterator = const std::vector<index>::iterator;
 
   struct Node
@@ -76,26 +78,25 @@ public:
     mNPoints++;
   }
 
-  DataSet kNearest(ConstRealVectorView data, index k = 1,
-                   double radius = 0) const
+  KNNResult kNearest(ConstRealVectorView data, index k = 1, double radius = 0,
+                     Allocator& alloc = FluidDefaultAllocator()) const
   {
     assert(data.size() == mDims);
-    knnQueue queue;
-    auto     result = DataSet(1);
+    rt::vector<knnCandidate> queue(alloc);
+    if (k > 0) queue.reserve(asUnsigned(k));
+
     kNearest(mRoot.get(), data, queue, k, radius, 0);
-    index                     numFound = asSigned(queue.size());
-    std::vector<knnCandidate> sorted(asUnsigned(numFound));
-    for (index i = numFound - 1; i >= 0; i--)
-    {
-      sorted[asUnsigned(i)] = queue.top();
-      queue.pop();
-    }
-    for (index i = 0; i < numFound; i++)
-    {
-      auto dist = FluidTensor<double, 1>{sorted[asUnsigned(i)].first};
-      auto id = sorted[asUnsigned(i)].second->id;
-      result.add(id, dist);
-    }
+    std::sort_heap(queue.begin(), queue.end());
+
+    KNNResult result =
+        std::make_pair(rt::vector<double>(queue.size(), alloc),
+                       rt::vector<const std::string*>(queue.size(), alloc));
+
+    std::for_each(queue.begin(), queue.end(),
+                  [&result, i = 0u](knnCandidate const& x) mutable {
+                    result.first[i] = x.first;
+                    result.second[i++] = &(x.second->id);
+                  });
     return result;
   }
 
@@ -205,11 +206,15 @@ private:
     const double currentDist = distance(current->data, data);
     bool         withinRadius = radius > 0 ? currentDist < radius : true;
     if (withinRadius && (knn.size() < asUnsigned(k) || k == 0))
-    { knn.push(std::make_pair(currentDist, current)); }
-    else if (withinRadius && currentDist < knn.top().first)
     {
-      knn.pop();
-      knn.push(std::make_pair(currentDist, current));
+      knn.push_back(std::make_pair(currentDist, current));
+      std::push_heap(knn.begin(), knn.end());
+    }
+    else if (withinRadius && currentDist < knn.front().first)
+    {
+      std::pop_heap(knn.begin(), knn.end());
+      knn.back() = std::make_pair(currentDist, current);
+      std::push_heap(knn.begin(), knn.end());
     }
     const index  d = depth % mDims;
     const double dimDif = current->data(d) - data(d);
@@ -222,10 +227,12 @@ private:
     }
     kNearest(firstBranch, data, knn, k, radius, depth + 1);
     if (k == 0 || knn.size() < asUnsigned(k) ||
-        dimDif < knn.top().first) // ball centered at query with diametre
-                                  // kthDist intersects with current partition
-                                  // (or need to get more neighbors)
-    { kNearest(secondBranch, data, knn, k, radius, depth + 1); }
+        dimDif < knn.front().first) // ball centered at query with diametre
+                                    // kthDist intersects with current partition
+                                    // (or need to get more neighbors)
+    {
+      kNearest(secondBranch, data, knn, k, radius, depth + 1);
+    }
   }
 
   index flatten(index nodeId, const Node* current, FlatData& store) const

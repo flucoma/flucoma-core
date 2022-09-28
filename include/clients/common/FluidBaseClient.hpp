@@ -168,7 +168,7 @@ public:
     return NoMessages;
   }
 
-  ClientWrapper(ParamSetViewType& p) : mParams{p}, mClient{p} {}
+  ClientWrapper(ParamSetViewType& p, FluidContext c) : mParams{p}, mClient{p, c} {}
 
   ClientWrapper(ClientWrapper&& x)
       : mParams{x.mParams}, mClient{std::move(x.mClient)}
@@ -187,7 +187,7 @@ public:
 
   const Client& client() const { return mClient; }
 
-  void reset() { mClient.reset(); }
+  void reset(FluidContext& c) { mClient.reset(c); }
 
   template <typename T, typename Context>
   Result process(Context& c)

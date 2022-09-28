@@ -53,7 +53,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return RobustScaleParams; }
 
-  RobustScaleClient(ParamSetViewType& p) : mParams(p) {}
+  RobustScaleClient(ParamSetViewType& p, FluidContext&) : mParams(p) {}
 
   template <typename T>
   Result process(FluidContext&)
@@ -206,7 +206,7 @@ public:
     return RobustScaleQueryParams;
   }
 
-  RobustScaleQuery(ParamSetViewType& p) : mParams(p)
+  RobustScaleQuery(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});

@@ -11,6 +11,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "../../data/FluidIndex.hpp"
+#include "../../data/FluidMemory.hpp"
 #include "../../data/FluidTensor.hpp"
 #include <cassert>
 #include <deque>
@@ -22,14 +23,22 @@ class MedianFilter
 {
 
 public:
+  MedianFilter(index maxSize, Allocator& alloc)
+      : mUnsorted(alloc), mSorted(alloc)
+  {
+    mUnsorted.reserve(asUnsigned(maxSize));
+    mSorted.reserve(asUnsigned(maxSize));
+    init(maxSize);
+  }
+
   void init(index size)
   {
     assert(size >= 3);
     assert(size % 2);
-    mFilterSize = size;
-    mMiddle = (mFilterSize - 1) / 2;
-    mUnsorted.resize(asUnsigned(mFilterSize), 0);
-    mSorted.resize(asUnsigned(mFilterSize), 0);
+    assert(asUnsigned(size) <= mUnsorted.capacity());
+    mFilterSize = asUnsigned(size);
+    mUnsorted.resize(mFilterSize, 0);
+    mSorted.resize(mFilterSize, 0);
     std::fill(mUnsorted.begin(), mUnsorted.end(), 0);
     std::fill(mSorted.begin(), mSorted.end(), 0);
     mInitialized = true;
@@ -38,43 +47,25 @@ public:
   double processSample(double val)
   {
     assert(mInitialized);
-    mUnsorted.push_back(val);
     double old = mUnsorted.front();
-    mUnsorted.pop_front();
-    for (auto it = mSorted.begin(); it != mSorted.end(); ++it)
-    {
-      if ((*it) == old)
-      {
-        it = mSorted.erase(it);
-        break;
-      }
-    }
-    if (val <= mSorted.front())
-      mSorted.push_front(val);
-    else if (val >= mSorted.back())
-      mSorted.push_back(val);
-    else
-    {
-      auto it = mSorted.begin();
-      while (*it < val) it++;
-      mSorted.insert(it, val);
-    }
-    auto it = mSorted.begin();
-    std::advance(it, mMiddle);
-    return *it;
+    std::rotate(mUnsorted.begin(), mUnsorted.begin() + 1, mUnsorted.end());
+    mUnsorted[mFilterSize - 1] = val;
+    mSorted.erase(std::lower_bound(mSorted.begin(), mSorted.end(), old));
+    mSorted.insert(std::upper_bound(mSorted.begin(), mSorted.end(), val), val);
+    return mSorted[size_t(mSorted.size() / 2)];
   }
 
-  index size() { return mFilterSize; }
+  index size() { return asSigned(mFilterSize); }
 
   bool initialized() { return mInitialized; }
 
 private:
-  index mFilterSize{0};
-  index mMiddle{0};
-  bool  mInitialized{false};
+  std::size_t mFilterSize{0};
+  bool        mInitialized{false};
 
-  std::deque<double> mUnsorted;
-  std::deque<double> mSorted;
+  rt::vector<double> mUnsorted;
+  rt::vector<double> mSorted;
 };
+
 } // namespace algorithm
 } // namespace fluid

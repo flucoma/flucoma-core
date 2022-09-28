@@ -14,6 +14,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "AlgorithmUtils.hpp"
 #include "FluidEigenMappings.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/FluidMemory.hpp"
 #include <Eigen/Core>
 #include <cassert>
 #include <cmath>
@@ -25,18 +26,27 @@ class Munkres
 {
 public:
   using intPair = std::pair<int, int>;
-  void init(index rows, index cols)
+
+  Munkres(index rows, index cols, Allocator& alloc)
+      : mN{std::max(rows, cols)}, mCost{mN, mN, alloc}, mRowMin{mN, alloc},
+        mColMin{mN, alloc}, mMask{mN, mN, alloc}, mPath{2 * mN + 1, 2, alloc},
+        mRowCover{mN, alloc}, mColCover{mN, alloc}
   {
-    using namespace Eigen;
-    index N = std::max(rows, cols);
-    mCost = ArrayXXd::Zero(N, N);
-    mRowMin = ArrayXd::Zero(N);
-    mColMin = ArrayXd::Zero(N);
-    mMask = ArrayXXi::Zero(N, N);
-    mRowCover = ArrayXi::Zero(N);
-    mColCover = ArrayXi::Zero(N);
-    mPath = ArrayXXi::Zero(2 * N + 1, 2);
+    //    reset();
   }
+
+  //  void init(index rows, index cols)
+  //  {
+  //    using namespace Eigen;
+  //    index N = std::max(rows, cols);
+  //    mCost = ArrayXXd::Zero(N, N);
+  //    mRowMin = ArrayXd::Zero(N);
+  //    mColMin = ArrayXd::Zero(N);
+  //    mMask = ArrayXXi::Zero(N, N);
+  //    mRowCover = ArrayXi::Zero(N);
+  //    mColCover = ArrayXi::Zero(N);
+  //    mPath = ArrayXXi::Zero(2 * N + 1, 2);
+  //  }
 
   void reset()
   {
@@ -50,7 +60,7 @@ public:
   }
 
   void process(Eigen::Ref<const Eigen::ArrayXXd> costMatrix,
-               Eigen::Ref<Eigen::ArrayXi>        result)
+               Eigen::Ref<Eigen::ArrayXi> result, Allocator& alloc)
   {
     bool done;
     reset();
@@ -63,17 +73,19 @@ public:
     done = step3();
     while (!done)
     {
-      intPair Z = step4();
+      intPair Z = step4(alloc);
       while (Z.first < 0)
       {
         step6();
-        Z = step4();
+        Z = step4(alloc);
       }
-      step5(Z);
+      step5(Z, alloc);
       done = step3();
     }
     for (int i = 0; i < result.size(); i++)
-    { mMask.row(i).maxCoeff(&result(i)); }
+    {
+      mMask.row(i).maxCoeff(&result(i));
+    }
   }
 
   void step1()
@@ -118,10 +130,11 @@ public:
     return nCovered >= mMask.rows() || nCovered >= mMask.cols();
   }
 
-  intPair step4()
+  intPair step4(Allocator& alloc)
   {
-    int     row = -1, col = -1;
-    intPair result = std::make_pair(row, col);
+    int                            row = -1, col = -1;
+    intPair                        result = std::make_pair(row, col);
+    ScopedEigenMap<Eigen::ArrayXi> r(mMask.cols(), alloc);
     while (true)
     {
       intPair pos = findZero();
@@ -129,8 +142,8 @@ public:
       col = pos.second;
       if (row < 0) { break; }
       mMask(row, col) = 2;
-      Eigen::ArrayXi r = mMask.row(row);
-      int            colStar = findValue(r, 1);
+      r = mMask.row(row);
+      int colStar = findValue(r, 1);
       if (colStar >= 0)
       {
         col = colStar;
@@ -147,22 +160,24 @@ public:
   }
 
 
-  void step5(const intPair Z)
+  void step5(const intPair Z, Allocator& alloc)
   {
     int row = -1, col = -1;
     int pathCount = 0;
     mPath(pathCount, 0) = Z.first;
     mPath(pathCount, 1) = Z.second;
+    ScopedEigenMap<Eigen::ArrayXi> tmpCol(mMask.rows(), alloc);
+    ScopedEigenMap<Eigen::ArrayXi> r(mMask.cols(), alloc);
     while (true)
     {
-      int            tmp = mPath(pathCount, 1);
-      Eigen::ArrayXi tmpCol = mMask.col(tmp);
+      int tmp = mPath(pathCount, 1);
+      tmpCol = mMask.col(tmp);
       row = findValue(tmpCol, 1);
       if (row == -1) break;
       pathCount++;
       mPath(pathCount, 0) = row;
       mPath(pathCount, 1) = mPath(pathCount - 1, 1);
-      Eigen::ArrayXi r = mMask.row(mPath(pathCount, 0));
+      r = mMask.row(mPath(pathCount, 0));
       col = findValue(r, 2);
       pathCount++;
       mPath(pathCount, 0) = mPath(pathCount - 1, 0);
@@ -245,13 +260,14 @@ public:
   }
 
 private:
-  Eigen::ArrayXXd mCost;
-  Eigen::ArrayXd  mRowMin;
-  Eigen::ArrayXd  mColMin;
-  Eigen::ArrayXXi mMask;
-  Eigen::ArrayXXi mPath;
-  Eigen::ArrayXi  mRowCover;
-  Eigen::ArrayXi  mColCover;
+  index                           mN;
+  ScopedEigenMap<Eigen::ArrayXXd> mCost;
+  ScopedEigenMap<Eigen::ArrayXd>  mRowMin;
+  ScopedEigenMap<Eigen::ArrayXd>  mColMin;
+  ScopedEigenMap<Eigen::ArrayXXi> mMask;
+  ScopedEigenMap<Eigen::ArrayXXi> mPath;
+  ScopedEigenMap<Eigen::ArrayXi>  mRowCover;
+  ScopedEigenMap<Eigen::ArrayXi>  mColCover;
 };
 } // namespace algorithm
 } // namespace fluid

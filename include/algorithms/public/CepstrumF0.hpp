@@ -16,6 +16,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/PeakDetection.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
+#include "../../data/FluidMemory.hpp"
 #include <Eigen/Eigen>
 #include <cmath>
 
@@ -28,31 +29,33 @@ class CepstrumF0
 public:
   using ArrayXd = Eigen::ArrayXd;
 
-  CepstrumF0(index maxSize) : mCepstrumStorage(maxSize) {}
+  CepstrumF0(index maxSize, Allocator& alloc)
+    : mDCT{maxSize, maxSize, alloc}, mCepstrum(maxSize, alloc) {}
 
-  void init(index size)
+  void init(index size, Allocator& alloc)
   {
     // avoid allocation of maxSize^2 at constructor
-    mDCT = DCT(size, size);
-    mDCT.init(size, size);
-
-    mCepstrum = mCepstrumStorage.segment(0, size);
+//    mDCT = DCT(size, size);
+    mDCT.init(size, size, alloc);
+//    mCepstrum = mCepstrumStorage.segment(0, size);
     mCepstrum.setZero();
   }
 
   void processFrame(const RealVectorView& input, RealVectorView output,
-                    double minFreq, double maxFreq, double sampleRate)
+                    double minFreq, double maxFreq, double sampleRate, Allocator& alloc)
   {
     using namespace Eigen;
     using namespace std;
     PeakDetection pd;
 
-    ArrayXd mag = _impl::asEigen<Array>(input);
-    ArrayXd logMag = mag.max(epsilon).log();
+//    ArrayXd mag = _impl::asEigen<Array>(input);
+    ScopedEigenMap<ArrayXd> logMag(input.size(), alloc);
+    logMag = _impl::asEigen<Array>(input).max(epsilon).log();
+    
     double  pitch = 0;
     double  confidence = 0;
-    index   minBin = min<index>(lrint(sampleRate / maxFreq), mag.size());
-    index   maxBin = min<index>(lrint(sampleRate / minFreq), mag.size());
+    index   minBin = min<index>(lrint(sampleRate / maxFreq), logMag.size());
+    index   maxBin = min<index>(lrint(sampleRate / minFreq), logMag.size());
 
     mDCT.processFrame(logMag, mCepstrum);
 
@@ -60,7 +63,7 @@ public:
     {
       auto seg = mCepstrum.segment(minBin, maxBin - minBin);
       auto vec = pd.process(mCepstrum.segment(minBin, maxBin - minBin), 1,
-                            seg.minCoeff());
+                            seg.minCoeff(), true, true, alloc);
       if (vec.size() > 0)
       {
         pitch = sampleRate / (vec[0].first + minBin);
@@ -72,9 +75,8 @@ public:
   }
 
 private:
-  DCT     mDCT{0, 0};
-  ArrayXd mCepstrumStorage;
-  ArrayXd mCepstrum;
+  DCT     mDCT;
+  ScopedEigenMap<ArrayXd> mCepstrum;
 };
 } // namespace algorithm
 } // namespace fluid

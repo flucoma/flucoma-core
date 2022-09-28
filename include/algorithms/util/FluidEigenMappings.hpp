@@ -10,6 +10,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
+#include "../../data/FluidMemory.hpp"
 #include "../../data/FluidTensor.hpp"
 #include <Eigen/Core>
 #include <algorithm>
@@ -18,7 +19,6 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 namespace algorithm {
-namespace _impl {
 
 using Eigen::Map;
 using Eigen::PlainObjectBase;
@@ -29,6 +29,29 @@ using Eigen::ColMajor;
 using Eigen::Dynamic;
 using Eigen::RowMajor;
 
+namespace _impl {
+
+
+template <typename EigenType>
+auto asFluid(ScopedEigenMap<EigenType>& a)
+    -> FluidTensorView<typename EigenType::Scalar,
+                       (EigenType::IsVectorAtCompileTime ? 1 : 2)>
+{
+  constexpr size_t N = EigenType::IsVectorAtCompileTime ? 1 : 2;
+
+  if constexpr (N == 2)
+  {
+    if (static_cast<int>(a.Options) == static_cast<int>(ColMajor))
+    {
+      // Respect the colmajorness of an eigen type
+      auto slice = FluidTensorSlice<N>(0, {a.cols(), a.rows()});
+      return {slice.transpose(), a.data()};
+    }
+    return {a.data(), 0, a.rows(), a.cols()};
+  }
+  else
+    return {a.data(), 0, a.rows()};
+}
 
 /// Eigen Matrix<T>/Array<T> -> FluidTensorView<T>
 template <typename Derived>
@@ -39,7 +62,7 @@ auto asFluid(PlainObjectBase<Derived>& a)
 {
   constexpr size_t N = PlainObjectBase<Derived>::IsVectorAtCompileTime ? 1 : 2;
 
-  if (N == 2)
+  if constexpr (N == 2)
   {
     if (static_cast<int>(a.Options) == static_cast<int>(ColMajor))
     {
@@ -62,7 +85,7 @@ auto asFluid(const PlainObjectBase<Derived>& a)
 {
   constexpr size_t N = PlainObjectBase<Derived>::IsVectorAtCompileTime ? 1 : 2;
 
-  if (N == 2)
+  if constexpr (N == 2)
   {
     if (static_cast<int>(a.Options) == static_cast<int>(ColMajor))
     {
@@ -201,7 +224,12 @@ auto asEigen(const FluidTensorView<const T, N>&&
   return asEigen<EigenType>(a);
 }
 
-
 } // namespace _impl
+
+template <template <typename, int, int, int, int, int> class EigenType>
+using FluidEigenMap =
+    Eigen::Map<EigenType<double, Dynamic, Dynamic, RowMajor, Dynamic, Dynamic>,
+               Eigen::AlignmentType::Unaligned, Stride<Dynamic, Dynamic>>;
+
 } // namespace algorithm
 } // namespace fluid

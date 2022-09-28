@@ -13,6 +13,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/AlgorithmUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/FluidMemory.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Eigen>
 #include <cmath>
@@ -26,19 +27,20 @@ class SpectralShape
   using ArrayXd = Eigen::ArrayXd;
 
 public:
-  SpectralShape() {}
+  SpectralShape(Allocator& alloc) : mOutputBuffer(7, alloc) {}
 
   void processFrame(Eigen::Ref<ArrayXd> in, double sampleRate, double minFreq,
                     double maxFreq, double rolloffTarget, bool logFreq,
-                    bool usePower)
+                    bool usePower, Allocator& alloc)
   {
     using namespace std;
     maxFreq = (maxFreq == -1) ? (sampleRate / 2) : min(maxFreq, sampleRate / 2);
-    ArrayXd mag = in.max(epsilon);
-    index   nBins = mag.size();
-    double  binHz = sampleRate / ((nBins - 1) * 2.);
-    index   minBin = static_cast<index>(ceil(minFreq / binHz));
-    index   maxBin =
+    ScopedEigenMap<ArrayXd> mag(in.size(), alloc);
+    mag = in.max(epsilon);
+    index  nBins = mag.size();
+    double binHz = sampleRate / ((nBins - 1) * 2.);
+    index  minBin = static_cast<index>(ceil(minFreq / binHz));
+    index  maxBin =
         min(static_cast<index>(floorl(maxFreq / binHz)), (nBins - 1));
     if (maxBin <= minBin)
     {
@@ -51,14 +53,20 @@ public:
       minBin = 1;
       mag(1) += mag(0);
     }
-    ArrayXd amp = usePower ? mag.square() : mag; 
-    amp = amp.segment(minBin, maxBin - minBin).eval(); 
-    
-    double  ampSum = amp.sum();
-    ArrayXd freqs =
-        ArrayXd::LinSpaced(maxBin - minBin, minBin * binHz, maxBin * binHz);
+
+    index size = maxBin - minBin;
+
+    ScopedEigenMap<ArrayXd> amp(size, alloc);
+    amp = mag.segment(minBin, size);
+    if (usePower) amp = amp.square();
+
+    double                  ampSum = amp.sum();
+    ScopedEigenMap<ArrayXd> freqs(size, alloc);
+    freqs = ArrayXd::LinSpaced(size, minBin * binHz, maxBin * binHz);
     if (logFreq)
-    { freqs = 69 + (12 * (freqs / 440).log() * log2E); } // MIDI cents
+    {
+      freqs = 69 + (12 * (freqs / 440).log() * log2E);
+    } // MIDI cents
 
     double centroid = (amp * freqs).sum() / ampSum;
     double spread = (amp * (freqs - centroid).square()).sum() / ampSum;
@@ -93,20 +101,21 @@ public:
     mOutputBuffer(6) = 20 * log10(max(crest, epsilon));
   }
 
-  void processFrame(const RealVector& input, RealVectorView output,
-                    double sampleRate, double minFreq = 0, double maxFreq = -1,
-                    double rolloffTarget = 0.95, bool logFreq = false,
-                    bool usePower = false)
+  void processFrame(const RealVectorView input, RealVectorView output,
+                    double sampleRate, double minFreq, double maxFreq,
+                    double rolloffTarget, bool logFreq, bool usePower,
+                    Allocator& alloc)
   {
     assert(output.size() == 7);
-    ArrayXd in = _impl::asEigen<Eigen::Array>(input);
+    ScopedEigenMap<ArrayXd> in(input.size(), alloc);
+    in = _impl::asEigen<Eigen::Array>(input);
     processFrame(in, sampleRate, minFreq, maxFreq, rolloffTarget, logFreq,
-                 usePower);
-    output <<= _impl::asFluid(mOutputBuffer);
+                 usePower, alloc);
+    _impl::asEigen<Eigen::Array>(output) = mOutputBuffer;
   }
 
 private:
-  ArrayXd mOutputBuffer{7};
+  ScopedEigenMap<ArrayXd> mOutputBuffer;
 };
 
 } // namespace algorithm
