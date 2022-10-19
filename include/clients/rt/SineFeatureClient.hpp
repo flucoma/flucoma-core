@@ -112,7 +112,7 @@ public:
   {
     return get<kFFT>().winSize();
   }
-  void reset()
+  void reset(FluidContext& c)
   {
     mSTFTBufferedProcess.reset();
     mSineFeatureExtractor.init(get<kFFT>().winSize(), get<kFFT>().fftSize());

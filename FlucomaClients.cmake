@@ -110,6 +110,7 @@ add_client(BufSTFT clients/nrt/BufSTFTClient.hpp CLASS NRTThreadedBufferSTFTClie
 add_client(BufScale clients/nrt/BufScaleClient.hpp CLASS NRTThreadedBufferScaleClient )
 add_client(BufSelect clients/nrt/BufSelectClient.hpp CLASS NRTThreadingSelectClient )
 add_client(BufSelectEvery clients/nrt/BufSelectEveryClient.hpp CLASS NRTThreadingSelectEveryClient )
+add_client(BufSineFeature clients/rt/SineFeatureClient.hpp CLASS NRTThreadedSineFeatureClient )
 add_client(BufSines clients/rt/SinesClient.hpp CLASS NRTThreadedSinesClient )
 add_client(BufSpectralShape clients/rt/SpectralShapeClient.hpp CLASS NRTThreadedSpectralShapeClient )
 add_client(BufStats clients/nrt/BufStatsClient.hpp CLASS NRTThreadedBufferStatsClient )
