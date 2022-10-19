@@ -25,41 +25,20 @@ namespace client {
 namespace sinefeature {
 
 enum SineFeatureParamIndex {
-  kBandwidth,
   kNPeaks,
   kDetectionThreshold,
-  kBirthLowThreshold,
-  kBirthHighThreshold,
-  kMinTrackLen,
-  kTrackingMethod,
-  kTrackMagRange,
-  kTrackFreqRange,
-  kTrackProb,
+  kSortBy,
   kFFT
 };
 
 constexpr auto SineFeatureParams = defineParameters(
-    LongParam("bandwidth", "Bandwidth", 76, Min(1),
-              FrameSizeUpperLimit<kFFT>()),
     LongParamRuntimeMax<Primary>("numPeaks", "Number of Sinusoidal Peaks", 10,
                         Min(1),
                         FrameSizeUpperLimit<kFFT>()),
     FloatParam("detectionThreshold", "Peak Detection Threshold", -96, Min(-144),
                Max(0)),
-    FloatParam("birthLowThreshold", "Track Birth Low Frequency Threshold", -24,
-               Min(-144), Max(0)),
-    FloatParam("birthHighThreshold", "Track Birth High Frequency Threshold",
-               -60, Min(-144), Max(0)),
-    LongParam("minTrackLen", "Minimum Track Length", 15, Min(1)),
-    EnumParam("trackingMethod", "Tracking Method", 0, "Greedy", "Hungarian"),
-    FloatParam("trackMagRange", "Tracking Magnitude Range (dB)", 15., Min(1.),
-               Max(200.)),
-    FloatParam("trackFreqRange", "Tracking Frequency Range (Hz)", 50., Min(1.),
-               Max(10000.)),
-    FloatParam("trackProb", "Tracking Matching Probability", 0.5, Min(0.0),
-               Max(1.0)),
-    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1,
-             FrameSizeLowerLimit<kBandwidth>()));
+    EnumParam("sortBy", "Sort Peaks Output", 0, "Nothing", "Frequencies", "Amplitudes"),
+    FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class SineFeatureClient : public FluidBaseClient, public AudioIn, public ControlOut
 {
@@ -87,13 +66,13 @@ public:
   SineFeatureClient(ParamSetViewType& p, FluidContext& c)
       : mParams(p), mSTFTBufferedProcess{get<kFFT>(), 1, 2, c.hostVectorSize(),
                                          c.allocator()},
-        mSineFeatureExtractor{get<kFFT>().max(), c.allocator()},
+        mSineFeatureExtractor{},
         mPeaks(get<kNPeaks>().max(), c.allocator())
   {
     audioChannelsIn(1);
     controlChannelsOut({1, get<kNPeaks>(), get<kNPeaks>().max()});
-    setInputLabels({"audio input"});
-    setOutputLabels({"Sinusoidal Peaks"});
+    setInputLabels({"Audio Input"});
+    setOutputLabels({"Peak Frequencies"});
   }
 
   template <typename T>
@@ -105,8 +84,7 @@ public:
         mTrackValues.changed(get<kFFT>().winSize(), get<kFFT>().fftSize(),
                              sampleRate()))
     {
-      mSineFeatureExtractor.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
-                           get<kFFT>().max(), c.allocator());
+      mSineFeatureExtractor.init(get<kFFT>().winSize(), get<kFFT>().fftSize());
     }
 
     index nPeaks = get<kNPeaks>();
@@ -115,35 +93,30 @@ public:
     mSTFTBufferedProcess.processInput(
         get<kFFT>(), input, c,
         [&](ComplexMatrixView in) { mSineFeatureExtractor.processFrame(
-              in.row(0), peaks, sampleRate(), get<kNPeaks>(),
-              get<kDetectionThreshold>(), get<kMinTrackLen>(),
-              get<kBirthLowThreshold>(), get<kBirthHighThreshold>(),
-              get<kTrackingMethod>(), get<kTrackMagRange>(),
-              get<kTrackFreqRange>(), get<kTrackProb>(), get<kBandwidth>(),
+              in.row(0), peaks, sampleRate(),
+              get<kDetectionThreshold>(), get<kSortBy>(),
               c.allocator());
         });
         
     // std::cout << mPeaks << "\n";
     
     output[0](Slice(0, nPeaks)) <<= peaks;
-    output[0](Slice(0, get<kNPeaks>().max() - nPeaks)).fill(0);
+    output[0](Slice(nPeaks, get<kNPeaks>().max() - nPeaks)).fill(0);
   }
 
   index latency()
   {
-    return get<kFFT>().winSize() +
-           (get<kFFT>().hopSize() * get<kMinTrackLen>());
+    return get<kFFT>().winSize();
   }
-  void reset(FluidContext& c)
+  void reset()
   {
     mSTFTBufferedProcess.reset();
-    mSineFeatureExtractor.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
-                         get<kFFT>().max(), c.allocator());
+    mSineFeatureExtractor.init(get<kFFT>().winSize(), get<kFFT>().fftSize());
   }
 
 private:
   STFTBufferedProcess<>                       mSTFTBufferedProcess;
-  algorithm::SineFeatureExtraction                   mSineFeatureExtractor;
+  algorithm::SineFeatureExtraction            mSineFeatureExtractor;
   ParameterTrackChanges<index, index, double> mTrackValues;
   FluidTensor<double, 1>                      mPeaks;
 };
@@ -153,8 +126,8 @@ using RTSineFeatureClient = ClientWrapper<sinefeature::SineFeatureClient>;
 
 auto constexpr NRTSineFeatureParams = makeNRTParams<sinefeature::SineFeatureClient>(
     InputBufferParam("source", "Source Buffer"),
-    BufferParam("sines", "Sines Buffer"),
-    BufferParam("residual", "Residual Buffer"));
+    BufferParam("frequencies", "Peak Frequencies Buffer"),
+    BufferParam("magnitudes", "Peak Magnitudes Buffer"));
 
 using NRTSineFeatureClient =
     NRTStreamAdaptor<sinefeature::SineFeatureClient, decltype(NRTSineFeatureParams), NRTSineFeatureParams,
