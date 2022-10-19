@@ -46,8 +46,8 @@ public:
     mInitialized = true;
   }
 
-  void processFrame(const ComplexVectorView in, RealVectorView out,
-                    double sampleRate, double detectionThreshold,
+  void processFrame(const ComplexVectorView in, RealVectorView freqOut,
+                    RealVectorView magOut, double sampleRate, double detectionThreshold,
                     index sortBy, Allocator& alloc)
   {
     assert(mInitialized);
@@ -64,12 +64,13 @@ public:
 
     auto tmpPeaks = mPeakDetection.process(logMag, 0, detectionThreshold, true, sortBy);
     
-    index top = std::min<index>(out.size(),tmpPeaks.size());
+    index top = std::min<index>(freqOut.size(),tmpPeaks.size());
     double ratio = sampleRate / fftSize;
-    std::transform(tmpPeaks.begin(),tmpPeaks.begin()+top,out.begin(),[ratio](auto peak){return peak.first * ratio;});
+    std::transform(tmpPeaks.begin(),tmpPeaks.begin()+top,freqOut.begin(),[ratio](auto peak){return peak.first * ratio;});
+    std::transform(tmpPeaks.begin(),tmpPeaks.begin()+top,magOut.begin(),[](auto peak){return peak.second;}); //TODO: there must be a better way than iterating twice (maybe even in the shape of freqOut and magOut)
 
-    out(Slice(top, out.size() - top)).fill(0);//pad the size with 0;
-
+    freqOut(Slice(top, freqOut.size() - top)).fill(0);//pad the size with 0;
+    magOut(Slice(top, freqOut.size() - top)).fill(0);//pad the size with 0;
   }
 
   bool initialized() { return mInitialized; }

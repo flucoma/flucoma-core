@@ -67,12 +67,13 @@ public:
       : mParams(p), mSTFTBufferedProcess{get<kFFT>(), 1, 2, c.hostVectorSize(),
                                          c.allocator()},
         mSineFeatureExtractor{},
-        mPeaks(get<kNPeaks>().max(), c.allocator())
+        mPeaks(get<kNPeaks>().max(), c.allocator()),
+        mMags(get<kNPeaks>().max(), c.allocator())
   {
     audioChannelsIn(1);
-    controlChannelsOut({1, get<kNPeaks>(), get<kNPeaks>().max()});
+    controlChannelsOut({2, get<kNPeaks>(), get<kNPeaks>().max()});
     setInputLabels({"Audio Input"});
-    setOutputLabels({"Peak Frequencies"});
+    setOutputLabels({"Peak Frequencies", "Peak Magnitudes"});
   }
 
   template <typename T>
@@ -89,11 +90,12 @@ public:
 
     index nPeaks = get<kNPeaks>();
     auto peaks = mPeaks(Slice(0,nPeaks));
+    auto mags = mMags(Slice(0,nPeaks));
 
     mSTFTBufferedProcess.processInput(
         get<kFFT>(), input, c,
         [&](ComplexMatrixView in) { mSineFeatureExtractor.processFrame(
-              in.row(0), peaks, sampleRate(),
+              in.row(0), peaks, mags, sampleRate(),
               get<kDetectionThreshold>(), get<kSortBy>(),
               c.allocator());
         });
@@ -102,8 +104,10 @@ public:
     
     output[0](Slice(0, nPeaks)) <<= peaks;
     output[0](Slice(nPeaks, get<kNPeaks>().max() - nPeaks)).fill(0);
+    output[1](Slice(0, nPeaks)) <<= mags;
+    output[1](Slice(nPeaks, get<kNPeaks>().max() - nPeaks)).fill(0);
   }
-
+ 
   index latency()
   {
     return get<kFFT>().winSize();
@@ -119,6 +123,7 @@ private:
   algorithm::SineFeatureExtraction            mSineFeatureExtractor;
   ParameterTrackChanges<index, index, double> mTrackValues;
   FluidTensor<double, 1>                      mPeaks;
+  FluidTensor<double, 1>                      mMags;
 };
 
 } // namespace sinefeature
