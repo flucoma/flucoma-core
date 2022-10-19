@@ -132,6 +132,7 @@ add_client(OnsetFeature clients/rt/OnsetFeatureClient.hpp CLASS RTOnsetFeatureCl
 add_client(OnsetSlice clients/rt/OnsetSliceClient.hpp CLASS RTOnsetSliceClient )
 add_client(Pitch clients/rt/PitchClient.hpp CLASS RTPitchClient )
 add_client(STFTPass clients/rt/BaseSTFTClient.hpp CLASS RTSTFTPassClient NOINSTALL)
+add_client(SineFeature clients/rt/SineFeatureClient.hpp CLASS RTSineFeatureClient )
 add_client(Sines clients/rt/SinesClient.hpp CLASS RTSinesClient )
 add_client(SpectralShape clients/rt/SpectralShapeClient.hpp CLASS RTSpectralShapeClient )
 add_kr_in_client(Stats clients/rt/RunningStatsClient.hpp CLASS RunningStatsClient )

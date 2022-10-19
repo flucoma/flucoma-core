@@ -27,7 +27,7 @@ namespace fluid {
 namespace algorithm {
 
 
-class SineExtraction
+class SineFeatureExtraction 
 {
   using ArrayXd = Eigen::ArrayXd;
   using VectorXd = Eigen::VectorXd;
@@ -44,7 +44,7 @@ class SineExtraction
 
 
 public:
-  SineExtraction(index maxFFT, Allocator& alloc)
+  SineFeatureExtraction(index maxFFT, Allocator& alloc)
       : mTracking(alloc), mBuf{makeEmptyQueue(alloc)},
         mWindowTransform(maxFFT, alloc)
   {}
@@ -62,8 +62,8 @@ public:
     mInitialized = true;
   }
 
-  void processFrame(const ComplexVectorView in, ComplexMatrixView out,
-                    double sampleRate, double detectionThreshold,
+  void processFrame(const ComplexVectorView in, RealVectorView out,
+                    double sampleRate, index nPeaks, double detectionThreshold,
                     index minTrackLength, double birthLowThreshold,
                     double birthHighThreshold, index trackMethod, double zetaA,
                     double zetaF, double delta, index bandwidth,
@@ -87,58 +87,67 @@ public:
     ScopedEigenMap<ArrayXd> logMag(in.size(), alloc);
     logMag = 20 * mag.max(epsilon).log10();
 
-    vector<SinePeak> peaks(0, alloc);
-    auto tmpPeaks = mPeakDetection.process(logMag, 0, -infinity, true, 0);
-    for (auto p : tmpPeaks)
-    {
-      if (p.second > detectionThreshold)
-      {
-        double hz = sampleRate * p.first / fftSize;
-        peaks.push_back({hz, p.second, false});
-      }
-    }
+    // vector<SinePeak> peaks(0, alloc);
+    // FluidEigenMap<Array> result = _impl::asEigen<Array>(out);
 
-    double maxAmp = 20 * std::log10(mag.maxCoeff());
-    mTracking.processFrame(peaks, maxAmp, minTrackLength, birthLowThreshold,
-                           birthHighThreshold, trackMethod, zetaA, zetaF, delta,
-                           alloc);
-    vector<SinePeak>        sinePeaks = mTracking.getActivePeaks(alloc);
-    ScopedEigenMap<ArrayXd> frameSines(mBins, alloc);
-    frameSines.setZero();
-    for (auto& p : sinePeaks)
-    {
-      frameSines += synthesizePeak(p, sampleRate, bandwidth, alloc);
-    }
-    ScopedEigenMap<ArrayXXcd> result(mBins, 2, alloc);
-    if (asSigned(mBuf.size()) <= mTracking.minTrackLength())
-    {
-      result.col(0).setZero();
-      result.col(1).setZero();
-    }
-    else
-    {
-      ScopedEigenMap<ArrayXcd>& resultFrame = mBuf.front();
-      ScopedEigenMap<ArrayXd>   resultMag(resultFrame.size(), alloc);
-      resultMag = resultFrame.abs().real();
-      for (index i = 0; i < mBins; i++)
-      {
-        if (frameSines(i) >= resultMag(i))
-        {
-          result(i, 0) = resultFrame(i);
-          result(i, 1) = 0;
-        }
-        else
-        {
-          double sineWeight = frameSines(i) / resultMag(i);
-          result(i, 0) = resultFrame(i) * sineWeight;
-          result(i, 1) = resultFrame(i) * (1 - sineWeight);
-        }
-      }
-      mBuf.pop();
-    }
-    mTracking.prune();
-    _impl::asEigen<Array>(out) = result;
-    mCurrentFrame++;
+    auto tmpPeaks = mPeakDetection.process(logMag, 0, -infinity, true, 1);
+    
+    index top = std::min<index>(out.size(),tmpPeaks.size());
+
+    std::transform(tmpPeaks.begin(),tmpPeaks.begin()+top,out.begin(),[fftSize,sampleRate](auto peak){return sampleRate * peak.first / fftSize;});
+    
+    // std::transform(tmpPeaks.begin(),tmpPeaks.begin()+top,out.begin(),[fftSize,sampleRate](auto peak){std::cout << peak.first << " " << peak.second << " " << sampleRate << " " << fftSize << "\n"; return sampleRate * peak.first / fftSize;});
+    
+    // for (auto p : tmpPeaks)
+    // {
+    //   if (p.second > detectionThreshold)
+    //   {
+    //     double hz = sampleRate * p.first / fftSize;
+    //     peaks.push_back({hz, p.second, false});
+    //   }
+    // }
+    // 
+    // double maxAmp = 20 * std::log10(mag.maxCoeff());
+    // mTracking.processFrame(peaks, maxAmp, minTrackLength, birthLowThreshold,
+    //                        birthHighThreshold, trackMethod, zetaA, zetaF, delta,
+    //                        alloc);
+    // vector<SinePeak>        sinePeaks = mTracking.getActivePeaks(alloc);
+    // ScopedEigenMap<ArrayXd> frameSines(mBins, alloc);
+    // frameSines.setZero();
+    // for (auto& p : sinePeaks)
+    // {
+    //   frameSines += synthesizePeak(p, sampleRate, bandwidth, alloc);
+    // }
+    // ScopedEigenMap<ArrayXXcd> result(mBins, 2, alloc);
+    // if (asSigned(mBuf.size()) <= mTracking.minTrackLength())
+    // {
+    //   result.col(0).setZero();
+    //   result.col(1).setZero();
+    // }
+    // else
+    // {
+    //   ScopedEigenMap<ArrayXcd>& resultFrame = mBuf.front();
+    //   ScopedEigenMap<ArrayXd>   resultMag(resultFrame.size(), alloc);
+    //   resultMag = resultFrame.abs().real();
+    //   for (index i = 0; i < mBins; i++)
+    //   {
+    //     if (frameSines(i) >= resultMag(i))
+    //     {
+    //       result(i, 0) = resultFrame(i);
+    //       result(i, 1) = 0;
+    //     }
+    //     else
+    //     {
+    //       double sineWeight = frameSines(i) / resultMag(i);
+    //       result(i, 0) = resultFrame(i) * sineWeight;
+    //       result(i, 1) = resultFrame(i) * (1 - sineWeight);
+    //     }
+    //   }
+    //   mBuf.pop();
+    // }
+    // mTracking.prune();
+    // _impl::asEigen<Array>(out) = result;
+    // mCurrentFrame++;
   }
 
   void reset() { mCurrentFrame = 0; }

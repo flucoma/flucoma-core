@@ -72,7 +72,7 @@ public:
       {
         //        yinFlip = yinFlip.segment(minBin, maxBin - minBin).eval();
         auto yinSeg = yinFlip.segment(minBin, maxBin - minBin);
-        auto vec = pd.process(yinSeg, 1, yinSeg.minCoeff(), true, true, alloc);
+        auto vec = pd.process(yinSeg, 1, yinSeg.minCoeff(), true, 2, alloc);
         if (vec.size() > 0)
         {
           pitch = sampleRate / (minBin + vec[0].first);
