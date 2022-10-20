@@ -81,6 +81,7 @@ public:
                std::vector<HostVector<T>>& output, FluidContext& c)
   {
     if (!input[0].data() || !output[0].data()) return;
+    
     if (!mSineFeatureExtractor.initialized() ||
         mTrackValues.changed(get<kFFT>().winSize(), get<kFFT>().fftSize(),
                              sampleRate()))
@@ -88,6 +89,11 @@ public:
       mSineFeatureExtractor.init(get<kFFT>().winSize(), get<kFFT>().fftSize());
     }
 
+    if (mHostSizeTracker.changed(c.hostVectorSize()))
+    {
+      mSTFTBufferedProcess =    STFTBufferedProcess<false>(get<kFFT>(),1,0,c.hostVectorSize(),c.allocator()); 
+    }
+    
     index nPeaks = get<kNPeaks>();
     auto peaks = mPeaks(Slice(0,nPeaks));
     auto mags = mMags(Slice(0,nPeaks));
@@ -118,10 +124,16 @@ public:
     mSineFeatureExtractor.init(get<kFFT>().winSize(), get<kFFT>().fftSize());
   }
 
+  AnalysisSize analysisSettings()
+  {
+    return { get<kFFT>().winSize(), get<kFFT>().hopSize() }; 
+  }
+  
 private:
-  STFTBufferedProcess<>                       mSTFTBufferedProcess;
+  STFTBufferedProcess<false>                       mSTFTBufferedProcess;
   algorithm::SineFeatureExtraction            mSineFeatureExtractor;
   ParameterTrackChanges<index, index, double> mTrackValues;
+  ParameterTrackChanges<index>                mHostSizeTracker;
   FluidTensor<double, 1>                      mPeaks;
   FluidTensor<double, 1>                      mMags;
 };
@@ -135,7 +147,7 @@ auto constexpr NRTSineFeatureParams = makeNRTParams<sinefeature::SineFeatureClie
     BufferParam("magnitudes", "Peak Magnitudes Buffer"));
 
 using NRTSineFeatureClient =
-    NRTStreamAdaptor<sinefeature::SineFeatureClient, decltype(NRTSineFeatureParams), NRTSineFeatureParams,
+    NRTControlAdaptor<sinefeature::SineFeatureClient, decltype(NRTSineFeatureParams), NRTSineFeatureParams,
                      1, 2>;
 
 using NRTThreadedSineFeatureClient = NRTThreadingAdaptor<NRTSineFeatureClient>;
