@@ -169,8 +169,7 @@ public:
   static constexpr auto isControl =
       std::is_same<AdaptorType<HostMatrix, HostVectorView>,
                    StreamingControl<HostMatrix, HostVectorView>>();
-  static constexpr auto decideOuts = isControl ? 1 : Outs;
-
+  
   using ParamDescType = ParamType;
   using ParamSetType = ParameterSet<ParamDescType>;
   using ParamSetViewType = ParameterSetView<ParamDescType>;
@@ -293,7 +292,7 @@ public:
   Result process(FluidContext& c)
   {
     auto constexpr inputCounter = std::make_index_sequence<Ins>();
-    auto constexpr outputCounter = std::make_index_sequence<decideOuts>();
+    auto constexpr outputCounter = std::make_index_sequence<Outs>();
 
     auto inputBuffers = fetchInputBuffers(inputCounter);
     auto outputBuffers = fetchOutputBuffers(outputCounter);
@@ -582,7 +581,11 @@ struct StreamingControl
     std::fill_n(std::back_inserter(inputData), inputBuffers.size(),
                 HostMatrix(nChans, paddedLength));
 
-    HostMatrix outputData(nChans * maxFeatures, nAnalysisFrames);
+    std::vector<HostMatrix> outputData; 
+    outputData.reserve(outputBuffers.size());
+    std::fill_n(std::back_inserter(outputData), outputBuffers.size(),
+                HostMatrix(nChans * maxFeatures, nAnalysisFrames));
+
     double     sampleRate{0};
     // Copy input data
     for (index i = 0; i < nChans; ++i)
@@ -616,8 +619,11 @@ struct StreamingControl
               inputData[asUnsigned(k)].row(i)(Slice(t, controlRate)));
         }
 
-        outputs.push_back(
-            outputData.col(j)(Slice(i * maxFeatures, maxFeatures)));
+        for(auto& out: outputData)
+        {
+          outputs.push_back(
+            out.col(j)(Slice(i * maxFeatures, maxFeatures)));
+        }
 
         client.process(inputs, outputs, c);
 
@@ -628,24 +634,27 @@ struct StreamingControl
       }
     }
 
-    BufferAdaptor::Access thisOutput(outputBuffers[0]);
-    index                 nFeatures = client.controlChannelsOut().size;
-    index                 latencyHops = client.latency() / controlRate;
-    index                 keepHops = nAnalysisFrames - latencyHops;
-
-    Result resizeResult = thisOutput.resize(keepHops, nChans * nFeatures,
-                                            sampleRate / controlRate);
-
-    if (!resizeResult.ok()) return resizeResult;
-
-
-    for (index i = 0; i < nFeatures; ++i)
+    for (auto outs = std::pair{outputBuffers.begin(), outputData.begin()};
+         outs.first != outputBuffers.end(); ++outs.first, ++outs.second)
     {
-      for (index j = 0; j < nChans; ++j)
-        thisOutput.samps(i + j * nFeatures) <<=
-            outputData.row(i + j * maxFeatures)(Slice(latencyHops, keepHops));
-    }
+      if (!outs.first) continue;
+      BufferAdaptor::Access thisOutput(*outs.first);
+      index                 nFeatures = client.controlChannelsOut().size;
+      index                 latencyHops = client.latency() / controlRate;
+      index                 keepHops = nAnalysisFrames - latencyHops;
 
+      Result resizeResult = thisOutput.resize(keepHops, nChans * nFeatures,
+                                              sampleRate / controlRate);
+
+      if (!resizeResult.ok()) return resizeResult;
+      for (index i = 0; i < nFeatures; ++i)
+      {
+        for (index j = 0; j < nChans; ++j)
+          thisOutput.samps(i + j * nFeatures) <<=
+              outs.second->row(i + j * maxFeatures)(Slice(latencyHops, keepHops));
+      }
+    }
+    
     return {};
   }
 };
