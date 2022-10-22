@@ -37,7 +37,7 @@ constexpr auto SineFeatureParams = defineParameters(
                         FrameSizeUpperLimit<kFFT>()),
     FloatParam("detectionThreshold", "Peak Detection Threshold", -96, Min(-144),
                Max(0)),
-    EnumParam("sortBy", "Sort Peaks Output", 0, "Nothing", "Frequencies", "Amplitudes"),
+    EnumParam("sortBy", "Sort Peaks Output", 0, "Frequencies", "Amplitudes"),
     FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class SineFeatureClient : public FluidBaseClient, public AudioIn, public ControlOut
@@ -111,7 +111,7 @@ public:
     output[0](Slice(0, nPeaks)) <<= peaks;
     output[0](Slice(nPeaks, get<kNPeaks>().max() - nPeaks)).fill(0);
     output[1](Slice(0, nPeaks)) <<= mags;
-    output[1](Slice(nPeaks, get<kNPeaks>().max() - nPeaks)).fill(0);
+    output[1](Slice(nPeaks, get<kNPeaks>().max() - nPeaks)).fill(-144);
   }
  
   index latency()

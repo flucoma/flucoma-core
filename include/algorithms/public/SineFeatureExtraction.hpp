@@ -69,8 +69,8 @@ public:
     std::transform(tmpPeaks.begin(),tmpPeaks.begin()+top,freqOut.begin(),[ratio](auto peak){return peak.first * ratio;});
     std::transform(tmpPeaks.begin(),tmpPeaks.begin()+top,magOut.begin(),[](auto peak){return peak.second;}); //TODO: there must be a better way than iterating twice (maybe even in the shape of freqOut and magOut)
 
-    freqOut(Slice(top, freqOut.size() - top)).fill(0);//pad the size with 0;
-    magOut(Slice(top, freqOut.size() - top)).fill(0);//pad the size with 0;
+    freqOut(Slice(top, freqOut.size() - top)).fill(0);//pad the size with "no-pitch" (0Hz);
+    magOut(Slice(top, freqOut.size() - top)).fill(-144);//pad the size with 'silence';
   }
 
   bool initialized() { return mInitialized; }
