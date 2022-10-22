@@ -88,7 +88,7 @@ public:
     logMag = 20 * mag.max(epsilon).log10();
 
     vector<SinePeak> peaks(0, alloc);
-    auto tmpPeaks = mPeakDetection.process(logMag, 0, -infinity, true, 0);
+    auto tmpPeaks = mPeakDetection.process(logMag, 0, -infinity, true, false);
     for (auto p : tmpPeaks)
     {
       if (p.second > detectionThreshold)

@@ -63,7 +63,7 @@ public:
     {
       auto seg = mCepstrum.segment(minBin, maxBin - minBin);
       auto vec = pd.process(mCepstrum.segment(minBin, maxBin - minBin), 1,
-                            seg.minCoeff(), true, 2, alloc);
+                            seg.minCoeff(), true, true, alloc);
       if (vec.size() > 0)
       {
         pitch = sampleRate / (vec[0].first + minBin);

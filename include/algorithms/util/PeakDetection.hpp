@@ -29,7 +29,7 @@ class PeakDetection
 public:
   pairs_vector process(const Eigen::Ref<ArrayXd>& input, index numPeaks = 0,
                        double minHeight = 0, bool interpolate = true,
-                       index       sort = 0,
+                       bool sortByMag = false, 
                        Allocator& alloc = FluidDefaultAllocator())
   {
     using std::make_pair;
@@ -56,20 +56,11 @@ public:
         }
       }
     }
-    switch (sort)
+    if (sortByMag)
     {
-      case 1: 
-        std::sort(peaks.begin(), peaks.end(), [](auto& left, auto& right) {
-          return left.first < right.first;
-        });
-        break;
-      case 2:
         std::sort(peaks.begin(), peaks.end(), [](auto& left, auto& right) {
         return left.second > right.second;
         });
-        break;
-      default:
-        break;
     }
     if (numPeaks > 0 && peaks.size() > 0)
     {
