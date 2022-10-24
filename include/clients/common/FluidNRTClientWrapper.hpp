@@ -637,7 +637,7 @@ struct StreamingControl
     for (auto outs = std::pair{outputBuffers.begin(), outputData.begin()};
          outs.first != outputBuffers.end(); ++outs.first, ++outs.second)
     {
-      if (!outs.first) continue;
+      if (!(*outs.first)) continue;
       BufferAdaptor::Access thisOutput(*outs.first);
       index                 nFeatures = client.controlChannelsOut().size;
       index                 latencyHops = client.latency() / controlRate;
