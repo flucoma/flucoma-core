@@ -154,8 +154,8 @@ using RTSineFeatureClient = ClientWrapper<sinefeature::SineFeatureClient>;
 
 auto constexpr NRTSineFeatureParams = makeNRTParams<sinefeature::SineFeatureClient>(
     InputBufferParam("source", "Source Buffer"),
-    BufferParam("frequencies", "Peak Frequencies Buffer"),
-    BufferParam("magnitudes", "Peak Magnitudes Buffer"));
+    BufferParam("frequency", "Peak Frequencies Buffer"),
+    BufferParam("magnitude", "Peak Magnitudes Buffer"));
 
 using NRTSineFeatureClient =
     NRTControlAdaptor<sinefeature::SineFeatureClient, decltype(NRTSineFeatureParams), NRTSineFeatureParams,
