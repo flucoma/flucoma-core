@@ -28,6 +28,8 @@ enum SineFeatureParamIndex {
   kNPeaks,
   kDetectionThreshold,
   kSortBy,
+  kLogFreq,
+  kLogMag,
   kFFT
 };
 
@@ -38,6 +40,8 @@ constexpr auto SineFeatureParams = defineParameters(
     FloatParam("detectionThreshold", "Peak Detection Threshold", -96, Min(-144),
                Max(0)),
     EnumParam("sortBy", "Sort Peaks Output", 0, "Frequencies", "Amplitudes"),
+    EnumParam("freqUnit", "Units for Frequencies", 0, "Hz", "MIDI"),
+    EnumParam("magUnit", "Units for Magnitudes", 0, "Amp", "dB"),
     FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class SineFeatureClient : public FluidBaseClient, public AudioIn, public ControlOut
@@ -66,7 +70,7 @@ public:
   SineFeatureClient(ParamSetViewType& p, FluidContext& c)
       : mParams(p), mSTFTBufferedProcess{get<kFFT>(), 1, 2, c.hostVectorSize(),
                                          c.allocator()},
-        mSineFeatureExtractor{},
+        mSineFeatureExtractor{c.allocator()},
         mPeaks(get<kNPeaks>().max(), c.allocator()),
         mMags(get<kNPeaks>().max(), c.allocator())
   {
@@ -101,17 +105,24 @@ public:
     mSTFTBufferedProcess.processInput(
         get<kFFT>(), input, c,
         [&](ComplexMatrixView in) { mSineFeatureExtractor.processFrame(
-              in.row(0), peaks, mags, sampleRate(),
-              get<kDetectionThreshold>(), get<kSortBy>(),
+              in.row(0), peaks, mags, get<kLogFreq>(), get<kLogMag>(), 
+              sampleRate(), get<kDetectionThreshold>(), get<kSortBy>(),
               c.allocator());
         });
         
-    // std::cout << mPeaks << "\n";
-    
     output[0](Slice(0, nPeaks)) <<= peaks;
-    output[0](Slice(nPeaks, get<kNPeaks>().max() - nPeaks)).fill(0);
+    if (get<kLogFreq>()) {
+      output[0](Slice(nPeaks, get<kNPeaks>().max() - nPeaks)).fill(-999);
+    } else {
+      output[0](Slice(nPeaks, get<kNPeaks>().max() - nPeaks)).fill(0);      
+    }
+
     output[1](Slice(0, nPeaks)) <<= mags;
-    output[1](Slice(nPeaks, get<kNPeaks>().max() - nPeaks)).fill(-144);
+    if (get<kLogFreq>()) {
+      output[1](Slice(nPeaks, get<kNPeaks>().max() - nPeaks)).fill(-144);
+    } else {
+      output[1](Slice(nPeaks, get<kNPeaks>().max() - nPeaks)).fill(0);    
+    }    
   }
  
   index latency()
@@ -130,7 +141,7 @@ public:
   }
   
 private:
-  STFTBufferedProcess<false>                       mSTFTBufferedProcess;
+  STFTBufferedProcess<false>                  mSTFTBufferedProcess;
   algorithm::SineFeatureExtraction            mSineFeatureExtractor;
   ParameterTrackChanges<index, index, double> mTrackValues;
   ParameterTrackChanges<index>                mHostSizeTracker;

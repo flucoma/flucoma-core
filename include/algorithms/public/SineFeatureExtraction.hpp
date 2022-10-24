@@ -36,7 +36,7 @@ class SineFeatureExtraction
   using vector = rt::vector<T>;
 
 public:
-  SineFeatureExtraction() //TODO: is this constructor still needed?
+  SineFeatureExtraction(Allocator& alloc)
   {}
 
   void init(index windowSize, index fftSize)
@@ -47,7 +47,8 @@ public:
   }
 
   void processFrame(const ComplexVectorView in, RealVectorView freqOut,
-                    RealVectorView magOut, double sampleRate, double detectionThreshold,
+                    RealVectorView magOut, index logFreq, index logMag,
+                    double sampleRate, double detectionThreshold,
                     index sortBy, Allocator& alloc)
   {
     assert(mInitialized);
@@ -59,18 +60,30 @@ public:
     ScopedEigenMap<ArrayXd> mag(in.size(), alloc);
     mag = frame.abs().real();
     mag = mag * mScale;
-    ScopedEigenMap<ArrayXd> logMag(in.size(), alloc);
-    logMag = 20 * mag.max(epsilon).log10();
+    ScopedEigenMap<ArrayXd> logMagIn(in.size(), alloc);
+    logMagIn = 20 * mag.max(epsilon).log10();
 
-    auto tmpPeaks = mPeakDetection.process(logMag, 0, detectionThreshold, true, sortBy);
+    auto tmpPeaks = mPeakDetection.process(logMagIn, 0, detectionThreshold, true, sortBy);
     
-    index top = std::min<index>(freqOut.size(),tmpPeaks.size());
+    index maxNumOut = std::min<index>(freqOut.size(),tmpPeaks.size());
+    
     double ratio = sampleRate / fftSize;
-    std::transform(tmpPeaks.begin(),tmpPeaks.begin()+top,freqOut.begin(),[ratio](auto peak){return peak.first * ratio;});
-    std::transform(tmpPeaks.begin(),tmpPeaks.begin()+top,magOut.begin(),[](auto peak){return peak.second;}); //TODO: there must be a better way than iterating twice (maybe even in the shape of freqOut and magOut)
-
-    freqOut(Slice(top, freqOut.size() - top)).fill(0);//pad the size with "no-pitch" (0Hz);
-    magOut(Slice(top, freqOut.size() - top)).fill(-144);//pad the size with 'silence';
+    if (logFreq){
+      ratio = ratio / 440.0;
+      std::transform(tmpPeaks.begin(), tmpPeaks.begin() + maxNumOut, freqOut.begin(), [ratio](auto peak){return 69 + (12 * std::log2(peak.first * ratio));});
+      freqOut(Slice(maxNumOut, freqOut.size() - maxNumOut)).fill(-999);//pad the size with "no-pitch" in MIDI;            
+    } else {
+      std::transform(tmpPeaks.begin(), tmpPeaks.begin() + maxNumOut, freqOut.begin(), [ratio](auto peak){return peak.first * ratio;});
+      freqOut(Slice(maxNumOut, freqOut.size() - maxNumOut)).fill(0);//pad the size with "no-pitch" (0Hz);      
+    }
+    
+    if (logMag) {
+      std::transform(tmpPeaks.begin(),tmpPeaks.begin()+maxNumOut,magOut.begin(),[](auto peak){return peak.second;});
+      magOut(Slice(maxNumOut, freqOut.size() - maxNumOut)).fill(-144);//pad the size with 'silence' in dB;
+    } else {
+      std::transform(tmpPeaks.begin(),tmpPeaks.begin()+maxNumOut,magOut.begin(),[](auto peak){return std::pow(10, (peak.second / 20));});
+      magOut(Slice(maxNumOut, freqOut.size() - maxNumOut)).fill(0);//pad the size with silence;    
+    }
   }
 
   bool initialized() { return mInitialized; }
