@@ -17,7 +17,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTrackChanges.hpp"
 #include "../common/ParameterTypes.hpp"
-#include "../../algorithms/public/SineFeatureExtraction.hpp"
+#include "../../algorithms/public/SineFeature.hpp"
 #include <tuple>
 
 namespace fluid {
@@ -39,7 +39,7 @@ constexpr auto SineFeatureParams = defineParameters(
                         FrameSizeUpperLimit<kFFT>()),
     FloatParam("detectionThreshold", "Peak Detection Threshold", -96, Min(-144),
                Max(0)),
-    EnumParam("sortBy", "Sort Peaks Output", 0, "Frequencies", "Amplitudes"),
+    EnumParam("order", "Sort Peaks Output", 0, "Frequencies", "Amplitudes"),
     EnumParam("freqUnit", "Units for Frequencies", 0, "Hz", "MIDI"),
     EnumParam("magUnit", "Units for Magnitudes", 0, "Amp", "dB"),
     FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
@@ -118,7 +118,7 @@ public:
     }
 
     output[1](Slice(0, nPeaks)) <<= mags;
-    if (get<kLogFreq>()) {
+    if (get<kLogMag>()) {
       output[1](Slice(nPeaks, get<kNPeaks>().max() - nPeaks)).fill(-144);
     } else {
       output[1](Slice(nPeaks, get<kNPeaks>().max() - nPeaks)).fill(0);    
