@@ -27,7 +27,7 @@ namespace fluid {
 namespace algorithm {
 
 
-class SineFeatureExtraction 
+class SineFeature 
 {
   using ArrayXd = Eigen::ArrayXd;
   using VectorXd = Eigen::VectorXd;

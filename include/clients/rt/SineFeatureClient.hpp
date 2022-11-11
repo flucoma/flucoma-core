@@ -70,7 +70,7 @@ public:
   SineFeatureClient(ParamSetViewType& p, FluidContext& c)
       : mParams(p), mSTFTBufferedProcess{get<kFFT>(), 1, 2, c.hostVectorSize(),
                                          c.allocator()},
-        mSineFeatureExtractor{c.allocator()},
+        mSineFeature{c.allocator()},
         mPeaks(get<kNPeaks>().max(), c.allocator()),
         mMags(get<kNPeaks>().max(), c.allocator())
   {
@@ -86,11 +86,11 @@ public:
   {
     if (!input[0].data() || !output[0].data()) return;
     
-    if (!mSineFeatureExtractor.initialized() ||
+    if (!mSineFeature.initialized() ||
         mTrackValues.changed(get<kFFT>().winSize(), get<kFFT>().fftSize(),
                              sampleRate()))
     {
-      mSineFeatureExtractor.init(get<kFFT>().winSize(), get<kFFT>().fftSize());
+      mSineFeature.init(get<kFFT>().winSize(), get<kFFT>().fftSize());
     }
 
     if (mHostSizeTracker.changed(c.hostVectorSize()))
@@ -104,7 +104,7 @@ public:
 
     mSTFTBufferedProcess.processInput(
         get<kFFT>(), input, c,
-        [&](ComplexMatrixView in) { mSineFeatureExtractor.processFrame(
+        [&](ComplexMatrixView in) { mSineFeature.processFrame(
               in.row(0), peaks, mags, get<kLogFreq>(), get<kLogMag>(), 
               sampleRate(), get<kDetectionThreshold>(), get<kSortBy>(),
               c.allocator());
@@ -132,7 +132,7 @@ public:
   void reset(FluidContext& c)
   {
     mSTFTBufferedProcess.reset();
-    mSineFeatureExtractor.init(get<kFFT>().winSize(), get<kFFT>().fftSize());
+    mSineFeature.init(get<kFFT>().winSize(), get<kFFT>().fftSize());
   }
 
   AnalysisSize analysisSettings()
@@ -142,7 +142,7 @@ public:
   
 private:
   STFTBufferedProcess<false>                  mSTFTBufferedProcess;
-  algorithm::SineFeatureExtraction            mSineFeatureExtractor;
+  algorithm::SineFeature                      mSineFeature;
   ParameterTrackChanges<index, index, double> mTrackValues;
   ParameterTrackChanges<index>                mHostSizeTracker;
   FluidTensor<double, 1>                      mPeaks;
