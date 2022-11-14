@@ -27,7 +27,7 @@ namespace fluid {
 namespace algorithm {
 
 
-class SineFeature 
+class SineFeature
 {
   using ArrayXd = Eigen::ArrayXd;
   using VectorXd = Eigen::VectorXd;
@@ -36,8 +36,7 @@ class SineFeature
   using vector = rt::vector<T>;
 
 public:
-  SineFeature(Allocator& alloc)
-  {}
+  SineFeature(Allocator& alloc) {}
 
   void init(index windowSize, index fftSize)
   {
@@ -47,9 +46,8 @@ public:
   }
 
   index processFrame(const ComplexVectorView in, RealVectorView freqOut,
-                    RealVectorView magOut, double sampleRate, 
-                    double detectionThreshold,
-                    index sortBy, Allocator& alloc)
+                     RealVectorView magOut, double sampleRate,
+                     double detectionThreshold, index sortBy, Allocator& alloc)
   {
     assert(mInitialized);
     using namespace Eigen;
@@ -63,25 +61,29 @@ public:
     ScopedEigenMap<ArrayXd> logMagIn(in.size(), alloc);
     logMagIn = 20 * mag.max(epsilon).log10();
 
-    auto tmpPeaks = mPeakDetection.process(logMagIn, 0, detectionThreshold, true, sortBy);
-    
-    index maxNumOut = std::min<index>(freqOut.size(),tmpPeaks.size());
-    
-    double ratio = sampleRate / fftSize;
-    std::transform(tmpPeaks.begin(), tmpPeaks.begin() + maxNumOut, freqOut.begin(), [ratio](auto peak){return peak.first * ratio;});
+    auto tmpPeaks =
+        mPeakDetection.process(logMagIn, 0, detectionThreshold, true, sortBy);
 
-    std::transform(tmpPeaks.begin(), tmpPeaks.begin() + maxNumOut, magOut.begin(),[](auto peak){return peak.second;});
-    
+    index maxNumOut = std::min<index>(freqOut.size(), tmpPeaks.size());
+
+    double ratio = sampleRate / fftSize;
+    std::transform(tmpPeaks.begin(), tmpPeaks.begin() + maxNumOut,
+                   freqOut.begin(),
+                   [ratio](auto peak) { return peak.first * ratio; });
+
+    std::transform(tmpPeaks.begin(), tmpPeaks.begin() + maxNumOut,
+                   magOut.begin(), [](auto peak) { return peak.second; });
+
     return maxNumOut;
   }
 
   bool initialized() { return mInitialized; }
 
 private:
-  PeakDetection           mPeakDetection;
-  index                   mBins{513};
-  double                  mScale{1.0};
-  bool                    mInitialized{false};
+  PeakDetection mPeakDetection;
+  index         mBins{513};
+  double        mScale{1.0};
+  bool          mInitialized{false};
 };
 } // namespace algorithm
 } // namespace fluid

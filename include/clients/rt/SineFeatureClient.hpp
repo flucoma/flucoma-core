@@ -35,8 +35,7 @@ enum SineFeatureParamIndex {
 
 constexpr auto SineFeatureParams = defineParameters(
     LongParamRuntimeMax<Primary>("numPeaks", "Number of Sinusoidal Peaks", 10,
-                        Min(1),
-                        FrameSizeUpperLimit<kFFT>()),
+                                 Min(1), FrameSizeUpperLimit<kFFT>()),
     FloatParam("detectionThreshold", "Peak Detection Threshold", -96, Min(-144),
                Max(0)),
     EnumParam("order", "Sort Peaks Output", 0, "Frequencies", "Amplitudes"),
@@ -44,7 +43,9 @@ constexpr auto SineFeatureParams = defineParameters(
     EnumParam("magUnit", "Units for Magnitudes", 0, "Amp", "dB"),
     FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
-class SineFeatureClient : public FluidBaseClient, public AudioIn, public ControlOut
+class SineFeatureClient : public FluidBaseClient,
+                          public AudioIn,
+                          public ControlOut
 {
 
 public:
@@ -53,15 +54,15 @@ public:
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   std::reference_wrapper<ParamSetViewType> mParams;
 
-  template <size_t N> 
+  template <size_t N>
   auto& get() const
   {
     return mParams.get().template get<N>();
   }
 
-  void setParams(ParamSetViewType& p) 
-  { 
-    mParams = p; 
+  void setParams(ParamSetViewType& p)
+  {
+    mParams = p;
     controlChannelsOut({1, get<kNPeaks>(), get<kNPeaks>().max()});
   }
 
@@ -85,7 +86,7 @@ public:
                std::vector<HostVector<T>>& output, FluidContext& c)
   {
     if (!input[0].data() || !output[0].data()) return;
-    
+
     if (!mSineFeature.initialized() ||
         mTrackValues.changed(get<kFFT>().winSize(), get<kFFT>().fftSize(),
                              sampleRate()))
@@ -95,47 +96,54 @@ public:
 
     if (mHostSizeTracker.changed(c.hostVectorSize()))
     {
-      mSTFTBufferedProcess =    STFTBufferedProcess<false>(get<kFFT>(),1,0,c.hostVectorSize(),c.allocator()); 
+      mSTFTBufferedProcess = STFTBufferedProcess<false>(
+          get<kFFT>(), 1, 0, c.hostVectorSize(), c.allocator());
     }
-    
-    auto peaks = mPeaks(Slice(0,get<kNPeaks>()));
-    auto mags = mMags(Slice(0,get<kNPeaks>()));
+
+    auto peaks = mPeaks(Slice(0, get<kNPeaks>()));
+    auto mags = mMags(Slice(0, get<kNPeaks>()));
 
     mSTFTBufferedProcess.processInput(
-        get<kFFT>(), input, c,
-        [&](ComplexMatrixView in) { 
-              mNumPeaks = mSineFeature.processFrame(
-              in.row(0), peaks, mags, sampleRate(), 
-              get<kDetectionThreshold>(),
+        get<kFFT>(), input, c, [&](ComplexMatrixView in) {
+          mNumPeaks = mSineFeature.processFrame(
+              in.row(0), peaks, mags, sampleRate(), get<kDetectionThreshold>(),
               get<kSortBy>(), c.allocator());
         });
 
-    auto validPeaks = mPeaks(Slice(0,mNumPeaks));
-    auto validMags = mMags(Slice(0,mNumPeaks));
-        
-    if (get<kLogFreq>()) {
+    auto validPeaks = mPeaks(Slice(0, mNumPeaks));
+    auto validMags = mMags(Slice(0, mNumPeaks));
+
+    if (get<kLogFreq>())
+    {
       auto ratio = 1 / 440.0;
-      std::transform(validPeaks.begin(), validPeaks.end(), validPeaks.begin(), [ratio](auto peak){return peak == 0 ? -999 : 69 + (12 * std::log2(peak * ratio));});
+      std::transform(validPeaks.begin(), validPeaks.end(), validPeaks.begin(),
+                     [ratio](auto peak) {
+                       return peak == 0 ? -999
+                                        : 69 + (12 * std::log2(peak * ratio));
+                     });
       output[0](Slice(mNumPeaks, get<kNPeaks>().max() - mNumPeaks)).fill(-999);
-    } else {
-      output[0](Slice(mNumPeaks, get<kNPeaks>().max() - mNumPeaks)).fill(0);      
+    }
+    else
+    {
+      output[0](Slice(mNumPeaks, get<kNPeaks>().max() - mNumPeaks)).fill(0);
     }
     output[0](Slice(0, mNumPeaks)) <<= validPeaks;
 
-    if (get<kLogMag>()) {
+    if (get<kLogMag>())
+    {
       output[1](Slice(mNumPeaks, get<kNPeaks>().max() - mNumPeaks)).fill(-144);
-    } else {
-      std::transform(validMags.begin(), validMags.end(), validMags.begin(), [](auto peak){return std::pow(10, (peak / 20));});
-      output[1](Slice(mNumPeaks, get<kNPeaks>().max() - mNumPeaks)).fill(0);    
-    }    
+    }
+    else
+    {
+      std::transform(validMags.begin(), validMags.end(), validMags.begin(),
+                     [](auto peak) { return std::pow(10, (peak / 20)); });
+      output[1](Slice(mNumPeaks, get<kNPeaks>().max() - mNumPeaks)).fill(0);
+    }
     output[1](Slice(0, mNumPeaks)) <<= validMags;
   }
- 
-  index latency()
-  {
-    return get<kFFT>().winSize();
-  }
-  void reset(FluidContext& c)
+
+  index latency() { return get<kFFT>().winSize(); }
+  void  reset(FluidContext& c)
   {
     mSTFTBufferedProcess.reset();
     mSineFeature.init(get<kFFT>().winSize(), get<kFFT>().fftSize());
@@ -143,9 +151,9 @@ public:
 
   AnalysisSize analysisSettings()
   {
-    return { get<kFFT>().winSize(), get<kFFT>().hopSize() }; 
+    return {get<kFFT>().winSize(), get<kFFT>().hopSize()};
   }
-  
+
 private:
   STFTBufferedProcess<false>                  mSTFTBufferedProcess;
   algorithm::SineFeature                      mSineFeature;
@@ -159,14 +167,15 @@ private:
 } // namespace sinefeature
 using RTSineFeatureClient = ClientWrapper<sinefeature::SineFeatureClient>;
 
-auto constexpr NRTSineFeatureParams = makeNRTParams<sinefeature::SineFeatureClient>(
-    InputBufferParam("source", "Source Buffer"),
-    BufferParam("frequency", "Peak Frequencies Buffer"),
-    BufferParam("magnitude", "Peak Magnitudes Buffer"));
+auto constexpr NRTSineFeatureParams =
+    makeNRTParams<sinefeature::SineFeatureClient>(
+        InputBufferParam("source", "Source Buffer"),
+        BufferParam("frequency", "Peak Frequencies Buffer"),
+        BufferParam("magnitude", "Peak Magnitudes Buffer"));
 
-using NRTSineFeatureClient =
-    NRTControlAdaptor<sinefeature::SineFeatureClient, decltype(NRTSineFeatureParams), NRTSineFeatureParams,
-                     1, 2>;
+using NRTSineFeatureClient = NRTControlAdaptor<sinefeature::SineFeatureClient,
+                                               decltype(NRTSineFeatureParams),
+                                               NRTSineFeatureParams, 1, 2>;
 
 using NRTThreadedSineFeatureClient = NRTThreadingAdaptor<NRTSineFeatureClient>;
 
