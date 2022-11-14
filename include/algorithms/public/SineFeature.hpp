@@ -46,9 +46,9 @@ public:
     mInitialized = true;
   }
 
-  void processFrame(const ComplexVectorView in, RealVectorView freqOut,
-                    RealVectorView magOut, index logFreq, index logMag,
-                    double sampleRate, double detectionThreshold,
+  index processFrame(const ComplexVectorView in, RealVectorView freqOut,
+                    RealVectorView magOut, double sampleRate, 
+                    double detectionThreshold,
                     index sortBy, Allocator& alloc)
   {
     assert(mInitialized);
@@ -68,22 +68,11 @@ public:
     index maxNumOut = std::min<index>(freqOut.size(),tmpPeaks.size());
     
     double ratio = sampleRate / fftSize;
-    if (logFreq){
-      ratio = ratio / 440.0;
-      std::transform(tmpPeaks.begin(), tmpPeaks.begin() + maxNumOut, freqOut.begin(), [ratio](auto peak){return 69 + (12 * std::log2(peak.first * ratio));});
-      freqOut(Slice(maxNumOut, freqOut.size() - maxNumOut)).fill(-999);//pad the size with "no-pitch" in MIDI;            
-    } else {
-      std::transform(tmpPeaks.begin(), tmpPeaks.begin() + maxNumOut, freqOut.begin(), [ratio](auto peak){return peak.first * ratio;});
-      freqOut(Slice(maxNumOut, freqOut.size() - maxNumOut)).fill(0);//pad the size with "no-pitch" (0Hz);      
-    }
+    std::transform(tmpPeaks.begin(), tmpPeaks.begin() + maxNumOut, freqOut.begin(), [ratio](auto peak){return peak.first * ratio;});
+
+    std::transform(tmpPeaks.begin(), tmpPeaks.begin() + maxNumOut, magOut.begin(),[](auto peak){return peak.second;});
     
-    if (logMag) {
-      std::transform(tmpPeaks.begin(),tmpPeaks.begin()+maxNumOut,magOut.begin(),[](auto peak){return peak.second;});
-      magOut(Slice(maxNumOut, freqOut.size() - maxNumOut)).fill(-144);//pad the size with 'silence' in dB;
-    } else {
-      std::transform(tmpPeaks.begin(),tmpPeaks.begin()+maxNumOut,magOut.begin(),[](auto peak){return std::pow(10, (peak.second / 20));});
-      magOut(Slice(maxNumOut, freqOut.size() - maxNumOut)).fill(0);//pad the size with silence;    
-    }
+    return maxNumOut;
   }
 
   bool initialized() { return mInitialized; }

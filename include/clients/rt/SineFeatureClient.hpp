@@ -98,31 +98,37 @@ public:
       mSTFTBufferedProcess =    STFTBufferedProcess<false>(get<kFFT>(),1,0,c.hostVectorSize(),c.allocator()); 
     }
     
-    index nPeaks = get<kNPeaks>();
-    auto peaks = mPeaks(Slice(0,nPeaks));
-    auto mags = mMags(Slice(0,nPeaks));
+    auto peaks = mPeaks(Slice(0,get<kNPeaks>()));
+    auto mags = mMags(Slice(0,get<kNPeaks>()));
 
     mSTFTBufferedProcess.processInput(
         get<kFFT>(), input, c,
-        [&](ComplexMatrixView in) { mSineFeature.processFrame(
-              in.row(0), peaks, mags, get<kLogFreq>(), get<kLogMag>(), 
-              sampleRate(), get<kDetectionThreshold>(), get<kSortBy>(),
-              c.allocator());
+        [&](ComplexMatrixView in) { 
+              mNumPeaks = mSineFeature.processFrame(
+              in.row(0), peaks, mags, sampleRate(), 
+              get<kDetectionThreshold>(),
+              get<kSortBy>(), c.allocator());
         });
-        
-    output[0](Slice(0, nPeaks)) <<= peaks;
-    if (get<kLogFreq>()) {
-      output[0](Slice(nPeaks, get<kNPeaks>().max() - nPeaks)).fill(-999);
-    } else {
-      output[0](Slice(nPeaks, get<kNPeaks>().max() - nPeaks)).fill(0);      
-    }
 
-    output[1](Slice(0, nPeaks)) <<= mags;
-    if (get<kLogMag>()) {
-      output[1](Slice(nPeaks, get<kNPeaks>().max() - nPeaks)).fill(-144);
+    auto validPeaks = mPeaks(Slice(0,mNumPeaks));
+    auto validMags = mMags(Slice(0,mNumPeaks));
+        
+    if (get<kLogFreq>()) {
+      auto ratio = 1 / 440.0;
+      std::transform(validPeaks.begin(), validPeaks.end(), validPeaks.begin(), [ratio](auto peak){return peak == 0 ? -999 : 69 + (12 * std::log2(peak * ratio));});
+      output[0](Slice(mNumPeaks, get<kNPeaks>().max() - mNumPeaks)).fill(-999);
     } else {
-      output[1](Slice(nPeaks, get<kNPeaks>().max() - nPeaks)).fill(0);    
+      output[0](Slice(mNumPeaks, get<kNPeaks>().max() - mNumPeaks)).fill(0);      
+    }
+    output[0](Slice(0, mNumPeaks)) <<= validPeaks;
+
+    if (get<kLogMag>()) {
+      output[1](Slice(mNumPeaks, get<kNPeaks>().max() - mNumPeaks)).fill(-144);
+    } else {
+      std::transform(validMags.begin(), validMags.end(), validMags.begin(), [](auto peak){return std::pow(10, (peak / 20));});
+      output[1](Slice(mNumPeaks, get<kNPeaks>().max() - mNumPeaks)).fill(0);    
     }    
+    output[1](Slice(0, mNumPeaks)) <<= validMags;
   }
  
   index latency()
@@ -147,6 +153,7 @@ private:
   ParameterTrackChanges<index>                mHostSizeTracker;
   FluidTensor<double, 1>                      mPeaks;
   FluidTensor<double, 1>                      mMags;
+  index                                       mNumPeaks;
 };
 
 } // namespace sinefeature
