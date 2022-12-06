@@ -63,7 +63,7 @@ public:
   void setParams(ParamSetViewType& p)
   {
     mParams = p;
-    controlChannelsOut({1, get<kNPeaks>(), get<kNPeaks>().max()});
+    controlChannelsOut({2, get<kNPeaks>(), get<kNPeaks>().max()});
   }
 
   static constexpr auto& getParameterDescriptors() { return SineFeatureParams; }
