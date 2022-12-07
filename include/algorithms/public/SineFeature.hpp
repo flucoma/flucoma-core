@@ -36,7 +36,7 @@ class SineFeature
   using vector = rt::vector<T>;
 
 public:
-  SineFeature(Allocator& alloc) {}
+  SineFeature(Allocator&) {}
 
   void init(index windowSize, index fftSize)
   {
@@ -64,7 +64,7 @@ public:
     auto tmpPeaks =
         mPeakDetection.process(logMagIn, 0, detectionThreshold, true, sortBy);
 
-    index maxNumOut = std::min<index>(freqOut.size(), tmpPeaks.size());
+    index maxNumOut = std::min<index>(freqOut.size(), asSigned(tmpPeaks.size()));
 
     double ratio = sampleRate / fftSize;
     std::transform(tmpPeaks.begin(), tmpPeaks.begin() + maxNumOut,

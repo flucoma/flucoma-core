@@ -143,7 +143,8 @@ public:
   }
 
   index latency() { return get<kFFT>().winSize(); }
-  void  reset(FluidContext& c)
+  
+  void  reset(FluidContext&)
   {
     mSTFTBufferedProcess.reset();
     mSineFeature.init(get<kFFT>().winSize(), get<kFFT>().fftSize());
