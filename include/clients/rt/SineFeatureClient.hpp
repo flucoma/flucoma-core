@@ -115,9 +115,9 @@ public:
 
     if (get<kLogFreq>())
     {
-      auto ratio = 1 / 440.0;
-      std::transform(validPeaks.begin(), validPeaks.end(), validPeaks.begin(),
-                     [ratio](auto peak) {
+      std::transform(validPeaks.begin(), validPeaks.end(), output[0].begin(),
+                     [](auto peak) {
+                       constexpr auto ratio = 1 / 440.0;
                        return peak == 0 ? -999
                                         : 69 + (12 * std::log2(peak * ratio));
                      });
@@ -125,21 +125,21 @@ public:
     }
     else
     {
+      output[0](Slice(0, mNumPeaks)) <<= validPeaks;
       output[0](Slice(mNumPeaks, get<kNPeaks>().max() - mNumPeaks)).fill(0);
     }
-    output[0](Slice(0, mNumPeaks)) <<= validPeaks;
-
+    
     if (get<kLogMag>())
     {
+      output[1](Slice(0, mNumPeaks)) <<= validMags;
       output[1](Slice(mNumPeaks, get<kNPeaks>().max() - mNumPeaks)).fill(-144);
     }
     else
     {
-      std::transform(validMags.begin(), validMags.end(), validMags.begin(),
+      std::transform(validMags.begin(), validMags.end(), output[1].begin(),
                      [](auto peak) { return std::pow(10, (peak / 20)); });
       output[1](Slice(mNumPeaks, get<kNPeaks>().max() - mNumPeaks)).fill(0);
     }
-    output[1](Slice(0, mNumPeaks)) <<= validMags;
   }
 
   index latency() { return get<kFFT>().winSize(); }
