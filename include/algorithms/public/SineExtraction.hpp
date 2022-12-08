@@ -49,7 +49,8 @@ public:
         mWindowTransform(maxFFT, alloc)
   {}
 
-  void init(index windowSize, index fftSize, index transformSize, Allocator& alloc)
+  void init(index windowSize, index fftSize, index transformSize,
+            Allocator& alloc)
   {
     mBins = fftSize / 2 + 1;
     mCurrentFrame = 0;
