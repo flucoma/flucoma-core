@@ -86,12 +86,15 @@ public:
                std::vector<HostVector<T>>& output, FluidContext& c)
   {
     if (!input[0].data() || !output[0].data()) return;
+    
+    index nPeaks = get<kNPeaks>();
 
     if (!mSineFeature.initialized() ||
         mTrackValues.changed(get<kFFT>().winSize(), get<kFFT>().fftSize(),
-                             sampleRate()))
+                             nPeaks, sampleRate()))
     {
       mSineFeature.init(get<kFFT>().winSize(), get<kFFT>().fftSize());
+      controlChannelsOut({2, nPeaks});
     }
 
     if (mHostSizeTracker.changed(c.hostVectorSize()))
@@ -100,8 +103,8 @@ public:
           get<kFFT>(), 1, 0, c.hostVectorSize(), c.allocator());
     }
 
-    auto peaks = mPeaks(Slice(0, get<kNPeaks>()));
-    auto mags = mMags(Slice(0, get<kNPeaks>()));
+    auto peaks = mPeaks(Slice(0, nPeaks));
+    auto mags = mMags(Slice(0, nPeaks));
 
     mSTFTBufferedProcess.processInput(
         get<kFFT>(), input, c, [&](ComplexMatrixView in) {
@@ -158,7 +161,7 @@ public:
 private:
   STFTBufferedProcess<false>                  mSTFTBufferedProcess;
   algorithm::SineFeature                      mSineFeature;
-  ParameterTrackChanges<index, index, double> mTrackValues;
+  ParameterTrackChanges<index, index, index, double> mTrackValues;
   ParameterTrackChanges<index>                mHostSizeTracker;
   FluidTensor<double, 1>                      mPeaks;
   FluidTensor<double, 1>                      mMags;
