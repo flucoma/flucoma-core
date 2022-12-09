@@ -10,68 +10,177 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
+#include "AlgorithmUtils.hpp"
 #include "FFT.hpp"
 #include "FluidEigenMappings.hpp"
 #include "../../data/FluidIndex.hpp"
-#include "../../data/TensorTypes.hpp"
 #include "../../data/FluidMemory.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Eigen>
 #include <cmath>
 
 namespace fluid {
 namespace algorithm {
 
-class TruePeak
+namespace impl {
+// Based on https://github.com/jiixyj/libebur128/blob/master/ebur128/ebur128.c
+class Interpolator
 {
 
-  using ArrayXcd = Eigen::ArrayXcd;
+  struct filter
+  {
+    unsigned int  count; /* Number of coefficients in this subfilter */
+    unsigned int* index; /* Delay index of corresponding filter coeff */
+    double*       coeff; /* List of subfilter coefficients */
+  };
+
+public:
+  Interpolator(index maxtaps, index maxfactor, Allocator& alloc)
+      : mMaxTaps{maxtaps}, mMaxFactor{maxfactor},
+        mMaxLatency{(mMaxTaps + mMaxFactor - 1) / mMaxFactor},
+        mBuffer(mMaxLatency, alloc), mCount(mMaxFactor, alloc),
+        mFilters(mMaxFactor, mMaxLatency, alloc),
+        mIndex(mMaxFactor, mMaxLatency, alloc)
+  {}
+
+  void init(index taps, index factor)
+  {
+    assert(taps <= mMaxTaps);
+    assert(factor <= mMaxFactor);
+    assert(factor > 0);
+    assert(taps > 0);
+
+    mTaps = taps;
+    mFactor = factor;
+    mLatency = (taps + factor - 1) / factor;
+
+    constexpr double almostZero = 1e-6;
+    mHead = 0;
+    std::fill(mBuffer.begin(), mBuffer.end(), 0.0);
+    std::fill(mCount.begin(), mCount.end(), 0);
+
+    mIndex.fill(0);
+    mFilters.fill(0);
+
+    for (index i = 0; i < taps; ++i)
+    {
+      double m = i - (taps - 1) / 2.0;
+      double c = 1.0;
+
+      if (std::abs(m) > almostZero)
+      {
+        c = sin(m * pi / factor) / (m * pi / factor);
+      }
+      c *= 0.5 * (1 - cos(twoPi * i / (taps - 1)));
+
+      if (std::abs(c) > almostZero)
+      {
+        index f = i % factor;
+        index t = mCount[f]++;
+        mFilters(f, t) = c;
+        mIndex(f, t) = i / factor;
+      }
+    }
+
+    mInitialized = true;
+  }
+
+  void processFrame(FluidTensorView<const double, 1> in,
+                    FluidTensorView<double, 1>       out)
+  {
+    assert(mInitialized);
+    assert(in.size());
+    assert(out.size() >= mFactor * in.size());
+
+    auto outP = out.begin();
+
+    for (auto& x : in)
+    {
+
+      mBuffer[mHead] = x;
+      for (index i = 0; i < mFactor; ++i)
+      {
+        double acc = 0;
+        for (index j = 0, count = mCount[i]; j < count; ++j)
+        {
+          index offset = mHead - mIndex(i, j);
+          if (offset < 0) { offset += mLatency; }
+          double c = mFilters(i, j);
+          acc += mBuffer[offset] * c;
+        }
+        *outP = acc;
+        std::advance(outP, 1);
+      }
+      mHead++;
+      if (mHead == mLatency) { mHead = 0; }
+    }
+  }
+
+private:
+  bool mInitialized{false};
+
+  index mMaxTaps;
+  index mMaxFactor;
+  index mMaxLatency;
+
+  index mTaps;
+  index mFactor;
+  index mLatency;
+
+  rt::vector<double>     mBuffer;
+  rt::vector<index>      mCount;
+  FluidTensor<double, 2> mFilters;
+  FluidTensor<index, 2>  mIndex;
+  index                  mHead;
+};
+
+
+} // namespace impl
+
+
+class TruePeak
+{
+  static constexpr index nTaps = 49;
+  static constexpr index maxFactor = 4;
 
 public:
   TruePeak(index maxSize, Allocator& alloc)
-    : mFFT(maxSize, alloc), mIFFT(maxSize * 4, alloc),
-      mBuffer(0,alloc)
-    {}
+      : mInterpolator(nTaps, maxFactor, alloc), mBuffer{maxFactor * maxSize,
+                                                        alloc}
+  {}
 
-  void init(index size, double sampleRate, Allocator& alloc)
+  void init(index size, double sampleRate, Allocator&)
   {
-    using namespace std;
     mSampleRate = sampleRate;
-    mFFTSize = static_cast<index>(pow(2, ceil(log(size) / log(2))));
-    mFactor = sampleRate < 96000 ? 4 : 2;
-    mFFT.resize(mFFTSize);
-    mIFFT.resize(mFFTSize * mFactor);
-    mBuffer = ScopedEigenMap<ArrayXcd>((mFFTSize * mFactor / 2) + 1,alloc);
+    mFactor = sampleRate < (2 * 44100) ? 4 : 2;
+    mInterpolator.init(nTaps, mFactor);
   }
 
-  double processFrame(const RealVectorView& input, Allocator& alloc)
+  double processFrame(const RealVectorView& input, Allocator&)
   {
     using namespace Eigen;
-    if (mSampleRate >= 192000)
+
+    index outSize = input.size() * mFactor;
+    assert(outSize <= mBuffer.size());
+
+    if (mSampleRate >= (4 * 44100))
     {
       return _impl::asEigen<Array>(input).abs().maxCoeff();
     }
     else
     {
-      ScopedEigenMap<ArrayXd> in(input.size(), alloc);
-      in = _impl::asEigen<Array>(input);
-      Eigen::Map<ArrayXcd> transform = mFFT.process(in);
-      mBuffer.setZero();
-      mBuffer.segment(0, transform.size()) = transform;
-      Eigen::Map<ArrayXd> result = mIFFT.process(mBuffer);
-//      ArrayXd scaled = result / mFFTSize;
-      double peak = (result / mFFTSize).abs().maxCoeff();
-      return peak;
+      auto output = mBuffer(Slice(0, outSize));
+      output.fill(0);
+      mInterpolator.processFrame(input, output);
+      return _impl::asEigen<Array>(output).abs().maxCoeff();
     }
   }
 
 private:
-  FFT      mFFT;
-  IFFT     mIFFT;
-  
-  double   mSampleRate{44100.0};
-  index    mFactor{4};
-  index    mFFTSize{1024};
-  ScopedEigenMap<ArrayXcd> mBuffer;
+  impl::Interpolator     mInterpolator;
+  double                 mSampleRate{44100.0};
+  index                  mFactor{4};
+  FluidTensor<double, 1> mBuffer;
 };
 } // namespace algorithm
 } // namespace fluid
