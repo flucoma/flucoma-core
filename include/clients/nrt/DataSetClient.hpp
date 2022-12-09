@@ -206,6 +206,43 @@ public:
     destPtr->setLabelSet(getIdsLabelSet());
     return OK();
   }
+  
+  MessageResult<FluidTensor<rt::string, 1>> kNearest(InputBufferPtr data, index nNeighbours) const
+  {
+    // check for nNeighbours > 0 and < size of DS
+    if (nNeighbours > mAlgorithm.size()) return Error<FluidTensor<rt::string, 1>>(SmallDataSet);
+    if (nNeighbours <= 0) return Error<FluidTensor<rt::string, 1>>(SmallK);
+    
+    InBufferCheck bufCheck(mAlgorithm.dims());
+    
+    if (!bufCheck.checkInputs(data.get()))
+      return Error<FluidTensor<rt::string, 1>>(bufCheck.error());
+      
+    FluidTensor<const double, 1> point(BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0));
+        
+    std::vector<index> indices(mAlgorithm.size()); 
+    std::iota(indices.begin(), indices.end(), 0); 
+    std::vector<double> distances(mAlgorithm.size()); 
+
+    auto ds = mAlgorithm.getData(); 
+
+    std::transform(indices.begin(), indices.end(), distances.begin(),[&point, &ds, this](index i){
+      return distance(point,ds.row(i)); 
+    }); 
+
+    std::sort(indices.begin(), indices.end(),[&distances](int a, int b){
+      return distances[a] < distances[b]; 
+    }); 
+
+    FluidTensor<rt::string, 1> labels(nNeighbours); 
+
+    std::transform(indices.begin(), indices.begin() + nNeighbours, labels.begin(), [this](index i){
+      std::string& id = mAlgorithm.getIds()[i];
+      return rt::string{id, 0, id.size(), FluidDefaultAllocator()};
+    }); 
+            
+    return labels;
+  }
 
   MessageResult<void> clear()
   {
@@ -240,7 +277,8 @@ public:
         makeMessage("read", &DataSetClient::read),
         makeMessage("fromBuffer", &DataSetClient::fromBuffer),
         makeMessage("toBuffer", &DataSetClient::toBuffer),
-        makeMessage("getIds", &DataSetClient::getIds));
+        makeMessage("getIds", &DataSetClient::getIds),
+        makeMessage("kNearest", &DataSetClient::kNearest));
   }
 
 private:
@@ -252,6 +290,13 @@ private:
     labels.col(0) <<= mAlgorithm.getIds();
     seq.generate(newIds);
     return LabelSet(newIds, labels);
+  };
+  
+  double distance(FluidTensorView<const double, 1> point1, FluidTensorView<const double, 1> point2) const
+  {    
+    return std::transform_reduce(point1.begin(), point1.end(), point2.begin(), 0.0, std::plus{}, [](double v1, double v2){
+      return (v1-v2) * (v1-v2);
+    });
   };
 };
 
