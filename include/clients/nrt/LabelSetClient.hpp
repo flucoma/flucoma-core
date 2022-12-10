@@ -124,7 +124,10 @@ public:
     return OK();
   }
 
-  MessageResult<string> print() { return mAlgorithm.print(); }
+  MessageResult<string> print() 
+  { 
+    return "LabelSet " + std::string(get<kName>()) + ": " + mAlgorithm.print();
+  }
 
   static auto getMessageDescriptors()
   {
