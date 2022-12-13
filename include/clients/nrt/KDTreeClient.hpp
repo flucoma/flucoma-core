@@ -99,10 +99,10 @@ public:
     return result;
   }
 
-  MessageResult<RealVector> kNearestDist(InputBufferPtr data) const
+  MessageResult<RealVector> kNearestDist(InputBufferPtr data, Optional<index> nNeighbours) const
   {
     // TODO: refactor with kNearest
-    index k = get<kNumNeighbors>();
+    index k = nNeighbours ? nNeighbours.value() : get<kNumNeighbors>();
     if (k > mAlgorithm.size()) return Error<RealVector>(SmallDataSet);
     // if (k <= 0 && get<kRadius>() <= 0) return Error<RealVector>(SmallK);
     if (!mAlgorithm.initialized()) return Error<RealVector>(NoDataFitted);
