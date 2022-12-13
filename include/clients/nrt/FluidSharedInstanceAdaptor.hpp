@@ -165,6 +165,13 @@ public:
       return mParams->template applyConstraintsTo<N>(x); 
   }
 
+  template <size_t N>
+  typename ParamType<N>::type
+  applyConstraintToMax(typename ParamType<N>::type x)
+  {
+    return mParams->template applyConstraintToMax(x);
+  }
+
   template <template <size_t N, typename T> class Func, typename... Args>
   std::array<Result, sizeof...(Ts)> setMutableParameterValues(bool reportage,
                                                               Args&&... args)

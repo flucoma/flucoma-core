@@ -304,11 +304,30 @@ public:
     return results;
   }
 
-  template<size_t N> 
-  typename ParamType<N>::type applyConstraintsTo(typename ParamType<N>::type x){
+  template <size_t N>
+  typename ParamType<N>::type applyConstraintsTo(typename ParamType<N>::type x)
+  {
     const index offset = std::get<N>(std::make_tuple(Os...));
     auto&       constraints = constraint<N>();
-    return  constrain<offset, N, kAll>(x, constraints, nullptr); 
+    return constrain<offset, N, kAll>(x, constraints, nullptr);
+  }
+
+  template <size_t N>
+  auto applyConstraintToMax(index x) -> std::enable_if_t<
+      std::is_same_v<typename ParamType<N>::type, LongRuntimeMaxParam>, index>
+  {
+    const auto constraints = GetIncreasingConstraints(constraint<N>());
+    if constexpr (std::tuple_size<decltype(constraints)>::value)
+    {
+      const index offset = std::get<N>(std::make_tuple(Os...));
+      std::apply(
+          [&x, offset, this](auto f) {
+            f.template clamp<offset, N>(x, mParams, mDescriptors.get(),
+                                        nullptr);
+          },
+          constraints);
+    }
+    return x;
   }
 
   std::array<Result, sizeof...(Ts)> constrainParameterValues()
@@ -472,7 +491,6 @@ public:
         typename impl::FilterTupleIndices<IsParamType<T>, DescriptorType, IndexList>::size();
 
   }
-
 
 private:
 
