@@ -30,7 +30,7 @@ enum SinesParamIndex {
   kBirthLowThreshold,
   kBirthHighThreshold,
   kMinTrackLen,
-  kTrackingMethod,
+  kTrackMethod,
   kTrackMagRange,
   kTrackFreqRange,
   kTrackProb,
@@ -47,7 +47,7 @@ constexpr auto SineParams = defineParameters(
     FloatParam("birthHighThreshold", "Track Birth High Frequency Threshold",
                -60, Min(-144), Max(0)),
     LongParam("minTrackLen", "Minimum Track Length", 15, Min(1)),
-    EnumParam("trackingMethod", "Tracking Method", 0, "Greedy", "Hungarian"),
+    EnumParam("trackMethod", "Tracking Method", 0, "Greedy", "Hungarian"),
     FloatParam("trackMagRange", "Tracking Magnitude Range (dB)", 15., Min(1.),
                Max(200.)),
     FloatParam("trackFreqRange", "Tracking Frequency Range (Hz)", 50., Min(1.),
@@ -108,7 +108,7 @@ public:
               in.row(0), out.transpose(), sampleRate(),
               get<kDetectionThreshold>(), get<kMinTrackLen>(),
               get<kBirthLowThreshold>(), get<kBirthHighThreshold>(),
-              get<kTrackingMethod>(), get<kTrackMagRange>(),
+              get<kTrackMethod>(), get<kTrackMagRange>(),
               get<kTrackFreqRange>(), get<kTrackProb>(), get<kBandwidth>(),
               c.allocator());
         });
