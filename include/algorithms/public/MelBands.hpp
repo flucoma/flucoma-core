@@ -77,7 +77,7 @@ public:
   }
 
   void processFrame(const RealVectorView in, RealVectorView out, bool magNorm,
-      bool usePower, bool logOutput, Allocator& alloc = FluidDefaultAllocator())
+                    bool usePower, bool logOutput, Allocator&)
   {
     using namespace Eigen;
 

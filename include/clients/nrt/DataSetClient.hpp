@@ -206,41 +206,46 @@ public:
     destPtr->setLabelSet(getIdsLabelSet());
     return OK();
   }
-  
-  MessageResult<FluidTensor<rt::string, 1>> kNearest(InputBufferPtr data, index nNeighbours) const
+
+  MessageResult<FluidTensor<rt::string, 1>> kNearest(InputBufferPtr data,
+                                                     index nNeighbours) const
   {
     // check for nNeighbours > 0 and < size of DS
-    if (nNeighbours > mAlgorithm.size()) return Error<FluidTensor<rt::string, 1>>(SmallDataSet);
+    if (nNeighbours > mAlgorithm.size())
+      return Error<FluidTensor<rt::string, 1>>(SmallDataSet);
     if (nNeighbours <= 0) return Error<FluidTensor<rt::string, 1>>(SmallK);
-    
+
     InBufferCheck bufCheck(mAlgorithm.dims());
-    
+
     if (!bufCheck.checkInputs(data.get()))
       return Error<FluidTensor<rt::string, 1>>(bufCheck.error());
-      
-    FluidTensor<const double, 1> point(BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0));
-        
-    std::vector<index> indices(mAlgorithm.size()); 
-    std::iota(indices.begin(), indices.end(), 0); 
-    std::vector<double> distances(mAlgorithm.size()); 
 
-    auto ds = mAlgorithm.getData(); 
+    FluidTensor<const double, 1> point(
+        BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0));
 
-    std::transform(indices.begin(), indices.end(), distances.begin(),[&point, &ds, this](index i){
-      return distance(point,ds.row(i)); 
-    }); 
+    std::vector<index> indices(asUnsigned(mAlgorithm.size()));
+    std::iota(indices.begin(), indices.end(), 0);
+    std::vector<double> distances(asUnsigned(mAlgorithm.size()));
 
-    std::sort(indices.begin(), indices.end(),[&distances](int a, int b){
-      return distances[a] < distances[b]; 
-    }); 
+    auto ds = mAlgorithm.getData();
 
-    FluidTensor<rt::string, 1> labels(nNeighbours); 
+    std::transform(
+        indices.begin(), indices.end(), distances.begin(),
+        [&point, &ds, this](index i) { return distance(point, ds.row(i)); });
 
-    std::transform(indices.begin(), indices.begin() + nNeighbours, labels.begin(), [this](index i){
-      std::string& id = mAlgorithm.getIds()[i];
-      return rt::string{id, 0, id.size(), FluidDefaultAllocator()};
-    }); 
-            
+    std::sort(indices.begin(), indices.end(), [&distances](index a, index b) {
+      return distances[asUnsigned(a)] < distances[asUnsigned(b)];
+    });
+
+    FluidTensor<rt::string, 1> labels(nNeighbours);
+
+    std::transform(
+        indices.begin(), indices.begin() + nNeighbours, labels.begin(),
+        [this](index i) {
+          std::string& id = mAlgorithm.getIds()[i];
+          return rt::string{id, 0, id.size(), FluidDefaultAllocator()};
+        });
+
     return labels;
   }
 

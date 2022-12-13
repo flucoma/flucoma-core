@@ -38,7 +38,7 @@ public:
   Interpolator(index maxtaps, index maxfactor, Allocator& alloc)
       : mMaxTaps{maxtaps}, mMaxFactor{maxfactor},
         mMaxLatency{(mMaxTaps + mMaxFactor - 1) / mMaxFactor},
-        mBuffer(mMaxLatency, alloc), mCount(mMaxFactor, alloc),
+        mBuffer(asUnsigned(mMaxLatency), alloc), mCount(asUnsigned(mMaxFactor), alloc),
         mFilters(mMaxFactor, mMaxLatency, alloc),
         mIndex(mMaxFactor, mMaxLatency, alloc)
   {}
@@ -76,7 +76,7 @@ public:
       if (std::abs(c) > almostZero)
       {
         index f = i % factor;
-        index t = mCount[f]++;
+        index t = mCount[asUnsigned(f)]++;
         mFilters(f, t) = c;
         mIndex(f, t) = i / factor;
       }
@@ -97,16 +97,16 @@ public:
     for (auto& x : in)
     {
 
-      mBuffer[mHead] = x;
+      mBuffer[asUnsigned(mHead)] = x;
       for (index i = 0; i < mFactor; ++i)
       {
         double acc = 0;
-        for (index j = 0, count = mCount[i]; j < count; ++j)
+        for (index j = 0, count = mCount[asUnsigned(i)]; j < count; ++j)
         {
           index offset = mHead - mIndex(i, j);
           if (offset < 0) { offset += mLatency; }
           double c = mFilters(i, j);
-          acc += mBuffer[offset] * c;
+          acc += mBuffer[asUnsigned(offset)] * c;
         }
         *outP = acc;
         std::advance(outP, 1);
@@ -149,7 +149,7 @@ public:
                                                         alloc}
   {}
 
-  void init(index size, double sampleRate, Allocator&)
+  void init(index /*size*/, double sampleRate, Allocator&)
   {
     mSampleRate = sampleRate;
     mFactor = sampleRate < (2 * 44100) ? 4 : 2;
