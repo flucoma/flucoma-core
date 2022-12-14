@@ -319,9 +319,9 @@ public:
     const auto constraints = GetIncreasingConstraints(constraint<N>());
     if constexpr (std::tuple_size<decltype(constraints)>::value)
     {
-      const index offset = std::get<N>(std::make_tuple(Os...));
+      static constexpr index offset = std::get<N>(std::make_tuple(Os...));
       std::apply(
-          [&x, offset, this](auto f) {
+          [&x, this](auto f) {
             f.template clamp<offset, N>(x, mParams, mDescriptors.get(),
                                         nullptr);
           },
