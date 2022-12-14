@@ -344,28 +344,28 @@ TEST_CASE("NoveltySegmentation works with pitch feature","[Novelty][slicers]"){
   REQUIRE_THAT(spikePositions, Catch::Matchers::Equals(expected));
 }
 
-TEST_CASE("NoveltySegmentation works with loudness feature","[Novelty][slicers]"){
+// TEST_CASE("NoveltySegmentation works with loudness feature","[Novelty][slicers]"){
   
-  using fluid::index;
+//   using fluid::index;
 
-  std::vector<index> expected{0,      19008,  24640,  34624,  58240,  117696,
-                              122048, 179392, 229376, 256832, 260288, 265536,
-                              287488, 306752, 335616, 401280, 413888, 464896,
-                              471936, 477184, 483456, 488064, 493376, 513664};
+//   std::vector<index> expected{0,      19008,  24640,  34624,  58240,  117696,
+//                               122048, 179392, 229376, 256832, 260288, 265536,
+//                               287488, 306752, 335616, 401280, 413888, 464896,
+//                               471936, 477184, 483456, 488064, 493376, 513664};
 
-  Params p;
-  p.window = 2048;
-  p.fft = 2048;
-  p.hop = 64;
-  p.threshold = 0.0145;
-  p.minSlice = 50;
-  p.kernel = 17;
-  p.filter = 5;
-  p.dims = 2;
+//   Params p;
+//   p.window = 2048;
+//   p.fft = 2048;
+//   p.hop = 64;
+//   p.threshold = 0.0145;
+//   p.minSlice = 50;
+//   p.kernel = 17;
+//   p.filter = 5;
+//   p.dims = 2;
 
-  const auto testSignal = fluid::testsignals::eurorackSynth();
+//   const auto testSignal = fluid::testsignals::eurorackSynth();
 
-  const std::vector<index> spikePositions = NoveltyLoudnessTest(testSignal.row(0), p);
-  CHECK(spikePositions.size() == expected.size());
-  REQUIRE_THAT(spikePositions, Catch::Matchers::Equals(expected));
-}
+//   const std::vector<index> spikePositions = NoveltyLoudnessTest(testSignal.row(0), p);
+//   CHECK(spikePositions.size() == expected.size());
+//   REQUIRE_THAT(spikePositions, Catch::Matchers::Equals(expected));
+// }

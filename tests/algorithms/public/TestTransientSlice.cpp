@@ -130,34 +130,34 @@ TEST_CASE("TransientSlice is predictable on sharp sine bursts",
 }
 
 
-TEST_CASE("TransientSlice is predictable on real material",
-          "[TransientSlice][slicers]")
-{
-  auto source = testsignals::monoEurorackSynth();
+// TEST_CASE("TransientSlice is predictable on real material",
+//           "[TransientSlice][slicers]")
+// {
+//   auto source = testsignals::monoEurorackSynth();
 
-  auto params =
-      TestParams{Order(20),      BlockSize(256),  Padding(128),
-                 Skew(0),        ThreshFwd(2),    ThreshBack(1.1),
-                 WindowSize(14), ClumpLength(25), MinSliceLength(1000)};
+//   auto params =
+//       TestParams{Order(20),      BlockSize(256),  Padding(128),
+//                  Skew(0),        ThreshFwd(2),    ThreshBack(1.1),
+//                  WindowSize(14), ClumpLength(25), MinSliceLength(1000)};
 
-  auto result = runTest(source, params);
-  ApprovalTests::Approvals::verifyAll("slice points",result); 
-} 
+//   auto result = runTest(source, params);
+//   ApprovalTests::Approvals::verifyAll("slice points",result); 
+// } 
 
-TEST_CASE("TransientSlice is predictable on real material with heavy settings",
-          "[TransientSlice][slicers]")
-{
-  auto source = testsignals::monoEurorackSynth();
+// TEST_CASE("TransientSlice is predictable on real material with heavy settings",
+//           "[TransientSlice][slicers]")
+// {
+//   auto source = testsignals::monoEurorackSynth();
 
-  auto params =
-      TestParams{Order(200),     BlockSize(2048), Padding(1024),
-                 Skew(1),        ThreshFwd(3),    ThreshBack(1),
-                 WindowSize(15), ClumpLength(30), MinSliceLength(4410)};
+//   auto params =
+//       TestParams{Order(200),     BlockSize(2048), Padding(1024),
+//                  Skew(1),        ThreshFwd(3),    ThreshBack(1),
+//                  WindowSize(15), ClumpLength(30), MinSliceLength(4410)};
 
 
-  auto result = runTest(source(Slice(0, 220500)), params);
-  ApprovalTests::Approvals::verifyAll("slice points", result); 
-}
+//   auto result = runTest(source(Slice(0, 220500)), params);
+//   ApprovalTests::Approvals::verifyAll("slice points", result); 
+// }
 
 
 } // namespace fluid
