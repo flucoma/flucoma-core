@@ -128,7 +128,7 @@ NoveltyMFCCTest(fluid::FluidTensorView<const double, 1> testSignal, Params p)
                     &mfccFrame](auto source) {
     stft.processFrame(source, stftFrame);
     stft.magnitude(stftFrame, magnitudes);
-    mels.processFrame(magnitudes, melFrame, false, false, true);
+    mels.processFrame(magnitudes, melFrame, false, false, true, fluid::FluidDefaultAllocator());
     dct.processFrame(melFrame, mfccFrame);
     return fluid::FluidTensorView<double, 1>(mfccFrame);
   };
