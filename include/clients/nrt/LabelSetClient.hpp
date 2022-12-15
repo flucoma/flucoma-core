@@ -68,7 +68,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return LabelSetParams; }
 
-  LabelSetClient(ParamSetViewType& p) : mParams(p) {}
+  LabelSetClient(ParamSetViewType& p, FluidContext&) : mParams(p) {}
 
   MessageResult<void> addLabel(string id, string label)
   {
@@ -124,7 +124,10 @@ public:
     return OK();
   }
 
-  MessageResult<string> print() { return mAlgorithm.print(); }
+  MessageResult<string> print() 
+  { 
+    return "LabelSet " + std::string(get<kName>()) + ": " + mAlgorithm.print();
+  }
 
   static auto getMessageDescriptors()
   {

@@ -68,7 +68,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return BufScaleParams; }
 
-  BufScaleClient(ParamSetViewType& p) : mParams(p) {}
+  BufScaleClient(ParamSetViewType& p, FluidContext&) : mParams(p) {}
 
   template <typename T>
   Result process(FluidContext&)

@@ -62,7 +62,7 @@ public:
 
   static constexpr auto getParameterDescriptors() { return UMAPParams; }
 
-  UMAPClient(ParamSetViewType& p) : mParams(p) {}
+  UMAPClient(ParamSetViewType& p, FluidContext&) : mParams(p) {}
 
   template <typename T>
   Result process(FluidContext&)
@@ -82,9 +82,16 @@ public:
     if (get<kNumNeighbors>() > src.size())
       return Error("Number of Neighbours is larger than dataset");
     FluidDataSet<string, double, 1> result;
-    result = mAlgorithm.train(src, get<kNumNeighbors>(), get<kNumDimensions>(),
-                              get<kMinDistance>(), get<kNumIter>(),
-                              get<kLearningRate>());
+    try
+    {
+      result = mAlgorithm.train(src, get<kNumNeighbors>(), get<kNumDimensions>(),
+                                get<kMinDistance>(), get<kNumIter>(),
+                                get<kLearningRate>());
+    }
+    catch (const std::runtime_error& e) //spectra library will throw if eigen decomp fails
+    {
+      return {Result::Status::kError, e.what()};
+    }
     destPtr->setDataSet(result);
     return OK();
   }
@@ -190,7 +197,7 @@ public:
 
   static constexpr auto getParameterDescriptors() { return UMAPQueryParams; }
 
-  UMAPQuery(ParamSetViewType& p) : mParams(p)
+  UMAPQuery(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});

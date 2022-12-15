@@ -14,6 +14,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
+#include "../../data/FluidMemory.hpp"
 #include <Eigen/Core>
 
 namespace fluid {
@@ -25,29 +26,41 @@ class RatioMask
   using ArrayXXd = Eigen::ArrayXXd;
 
 public:
+  RatioMask(index maxRows, index maxCols, Allocator& alloc)
+      : mMultiplier(maxRows, maxCols, alloc)
+  {}
+
   void init(RealMatrixView denominator)
   {
     using namespace _impl;
     using namespace Eigen;
-    mMultiplier = (1 / asEigen<Array>(denominator).max(epsilon));
+    mRows = denominator.rows();
+    mCols = denominator.cols();
+    mMultiplier.topLeftCorner(mRows, mCols) =
+        (1 / asEigen<Array>(denominator).max(epsilon));
+    mInitialized = true;
   }
 
   void process(const ComplexMatrixView& mixture, RealMatrixView targetMag,
-               index exponent, ComplexMatrixView result)
+               index exponent, ComplexMatrixView out)
   {
     using namespace _impl;
     using namespace Eigen;
+    assert(mInitialized);
     assert(mixture.cols() == targetMag.cols());
     assert(mixture.rows() == targetMag.rows());
-    ArrayXXcd tmp =
+    asEigen<Array>(out) =
         asEigen<Array>(mixture) *
-        (asEigen<Array>(targetMag).pow(exponent) * mMultiplier.pow(exponent))
+        (asEigen<Array>(targetMag).pow(exponent) *
+         mMultiplier.topLeftCorner(mRows, mCols).pow(exponent))
             .min(1.0);
-    result <<= asFluid(tmp);
   }
 
 private:
-  ArrayXXd mMultiplier;
+  ScopedEigenMap<ArrayXXd> mMultiplier;
+  bool                     mInitialized{false};
+  index                    mRows;
+  index                    mCols;
 };
 
 } // namespace algorithm

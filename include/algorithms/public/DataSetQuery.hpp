@@ -70,8 +70,8 @@ public:
 
   index maxColumn() { return mColumns.empty() ? 0 : *mColumns.rbegin(); }
 
-  bool addCondition(index column, string comparison, double value,
-                    bool conjunction)
+  bool addCondition(
+      index column, string comparison, double value, bool conjunction)
   {
     auto pos = std::find(mComparisons.begin(), mComparisons.end(), comparison);
     if (pos == mComparisons.end()) return false;
@@ -87,7 +87,7 @@ public:
   {
     auto data = input.getData();
     auto ids = input.getIds();
-    mTmpPoint = RealVector(asUnsigned(current.pointSize()) + mColumns.size());
+    mTmpPoint = RealVector(current.pointSize() + asSigned(mColumns.size()));
     index limit = mLimit == 0 ? input.size() : mLimit;
     index count = 0;
     for (index i = 0; i < input.size() && count < limit; i++)
@@ -128,8 +128,8 @@ public:
   }
 
 private:
-  void addRow(string id, RealVectorView point, const DataSet& current,
-              DataSet& out)
+  void addRow(
+      string id, RealVectorView point, const DataSet& current, DataSet& out)
   {
     mTmpPoint.fill(0);
     index currentSize = current.pointSize();

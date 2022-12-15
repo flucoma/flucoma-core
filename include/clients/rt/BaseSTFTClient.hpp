@@ -46,8 +46,8 @@ public:
   static constexpr auto& getParameterDescriptors() { return STFTPassParams; }
 
 
-  BaseSTFTClient(ParamSetViewType& p)
-      : mParams(p), mSTFTBufferedProcess{get<kFFT>().max(), 1, 1}
+  BaseSTFTClient(ParamSetViewType& p, FluidContext& c)
+      : mParams(p), mSTFTBufferedProcess{get<kFFT>(), 1, 1, c.hostVectorSize(), c.allocator()}
   {
     audioChannelsIn(1);
     audioChannelsOut(1);
@@ -55,7 +55,7 @@ public:
 
   index latency() { return get<kFFT>().winSize(); }
 
-  void reset() { mSTFTBufferedProcess.reset(); }
+  void reset(FluidContext&) { mSTFTBufferedProcess.reset(); }
 
   template <typename T>
   void process(std::vector<HostVector<T>>& input,
@@ -65,12 +65,12 @@ public:
     if (!input[0].data() || !output[0].data()) return;
     // Here we do an STFT and its inverse
     mSTFTBufferedProcess.process(
-        mParams, input, output, c,
+        get<kFFT>(), input, output, c,
         [](ComplexMatrixView in, ComplexMatrixView out) { out <<= in; });
   }
 
 private:
-  STFTBufferedProcess<ParamSetViewType, kFFT, true> mSTFTBufferedProcess;
+  STFTBufferedProcess<true> mSTFTBufferedProcess;
 };
 } // namespace stftpass
 

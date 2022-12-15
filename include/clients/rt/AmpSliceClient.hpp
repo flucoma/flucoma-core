@@ -66,7 +66,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return AmpSliceParams; }
 
-  AmpSliceClient(ParamSetViewType& p) : mParams(p)
+  AmpSliceClient(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     audioChannelsIn(1);
     audioChannelsOut(1);
@@ -96,7 +96,7 @@ public:
   }
   index latency() { return 0; }
 
-  void reset()
+  void reset(FluidContext&)
   {
     double hiPassFreq = std::min(get<kHiPassFreq>() / sampleRate(), 0.5);
     mAlgorithm.init(get<kSilenceThreshold>(), hiPassFreq);

@@ -30,7 +30,7 @@ enum SinesParamIndex {
   kBirthLowThreshold,
   kBirthHighThreshold,
   kMinTrackLen,
-  kTrackingMethod,
+  kTrackMethod,
   kTrackMagRange,
   kTrackFreqRange,
   kTrackProb,
@@ -47,7 +47,7 @@ constexpr auto SineParams = defineParameters(
     FloatParam("birthHighThreshold", "Track Birth High Frequency Threshold",
                -60, Min(-144), Max(0)),
     LongParam("minTrackLen", "Minimum Track Length", 15, Min(1)),
-    EnumParam("trackingMethod", "Tracking Method", 0, "Greedy", "Hungarian"),
+    EnumParam("trackMethod", "Tracking Method", 0, "Greedy", "Hungarian"),
     FloatParam("trackMagRange", "Tracking Magnitude Range (dB)", 15., Min(1.),
                Max(200.)),
     FloatParam("trackFreqRange", "Tracking Frequency Range (Hz)", 50., Min(1.),
@@ -55,7 +55,7 @@ constexpr auto SineParams = defineParameters(
     FloatParam("trackProb", "Tracking Matching Probability", 0.5, Min(0.0),
                Max(1.0)),
     FFTParam("fftSettings", "FFT Settings", 1024, -1, -1,
-                          FrameSizeLowerLimit<kBandwidth>()));
+             FrameSizeLowerLimit<kBandwidth>()));
 
 class SinesClient : public FluidBaseClient, public AudioIn, public AudioOut
 {
@@ -76,13 +76,15 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return SineParams; }
 
-  SinesClient(ParamSetViewType& p)
-      : mParams(p), mSTFTBufferedProcess{get<kFFT>().max(), 1, 2}
+  SinesClient(ParamSetViewType& p, FluidContext& c)
+      : mParams(p), mSTFTBufferedProcess{get<kFFT>(), 1, 2, c.hostVectorSize(),
+                                         c.allocator()},
+        mSinesExtractor{get<kFFT>().max(), c.allocator()}
   {
     audioChannelsIn(1);
     audioChannelsOut(2);
     setInputLabels({"audio input"});
-    setOutputLabels({"sinusoidal components","residual"});
+    setOutputLabels({"sinusoidal components", "residual"});
   }
 
   template <typename T>
@@ -96,18 +98,19 @@ public:
                              sampleRate()))
     {
       mSinesExtractor.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
-                           get<kFFT>().max());
+                           get<kFFT>().max(), c.allocator());
     }
 
     mSTFTBufferedProcess.process(
-        mParams, input, output, c,
-        [this](ComplexMatrixView in, ComplexMatrixView out) {
+        get<kFFT>(), input, output, c,
+        [&](ComplexMatrixView in, ComplexMatrixView out) {
           mSinesExtractor.processFrame(
               in.row(0), out.transpose(), sampleRate(),
               get<kDetectionThreshold>(), get<kMinTrackLen>(),
               get<kBirthLowThreshold>(), get<kBirthHighThreshold>(),
-              get<kTrackingMethod>(), get<kTrackMagRange>(),
-              get<kTrackFreqRange>(), get<kTrackProb>(), get<kBandwidth>());
+              get<kTrackMethod>(), get<kTrackMagRange>(),
+              get<kTrackFreqRange>(), get<kTrackProb>(), get<kBandwidth>(),
+              c.allocator());
         });
   }
 
@@ -116,15 +119,15 @@ public:
     return get<kFFT>().winSize() +
            (get<kFFT>().hopSize() * get<kMinTrackLen>());
   }
-  void reset()
+  void reset(FluidContext& c)
   {
     mSTFTBufferedProcess.reset();
     mSinesExtractor.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
-                         get<kFFT>().max());
+                         get<kFFT>().max(), c.allocator());
   }
 
 private:
-  STFTBufferedProcess<ParamSetViewType, kFFT> mSTFTBufferedProcess;
+  STFTBufferedProcess<>                       mSTFTBufferedProcess;
   algorithm::SineExtraction                   mSinesExtractor;
   ParameterTrackChanges<index, index, double> mTrackValues;
 };

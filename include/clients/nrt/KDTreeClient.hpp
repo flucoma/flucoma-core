@@ -36,7 +36,7 @@ public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
   using InputBufferPtr = std::shared_ptr<const BufferAdaptor>;
-  using StringVector = FluidTensor<string, 1>;
+  using StringVector = FluidTensor<rt::string, 1>;
   using ParamDescType = decltype(KDTreeParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
@@ -52,7 +52,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return KDTreeParams; }
 
-  KDTreeClient(ParamSetViewType& p) : mParams(p)
+  KDTreeClient(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     audioChannelsIn(1);
     controlChannelsOut({1, 1});
@@ -90,16 +90,19 @@ public:
     RealVector point(mAlgorithm.dims());
     point <<=
         BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0);
-    FluidDataSet<std::string, double, 1> nearest =
-        mAlgorithm.kNearest(point, k, get<kRadius>());
-    StringVector result{nearest.getIds()};
+    auto [dists, ids] =  mAlgorithm.kNearest(point, k, get<kRadius>());
+    StringVector result(asSigned(ids.size()));
+    std::transform(ids.cbegin(), ids.cend(), result.begin(),
+                   [](const std::string* x) {
+                     return rt::string{*x, FluidDefaultAllocator()};
+                   });
     return result;
   }
 
-  MessageResult<RealVector> kNearestDist(InputBufferPtr data) const
+  MessageResult<RealVector> kNearestDist(InputBufferPtr data, Optional<index> nNeighbours) const
   {
     // TODO: refactor with kNearest
-    index k = get<kNumNeighbors>();
+    index k = nNeighbours ? nNeighbours.value() : get<kNumNeighbors>();
     if (k > mAlgorithm.size()) return Error<RealVector>(SmallDataSet);
     // if (k <= 0 && get<kRadius>() <= 0) return Error<RealVector>(SmallK);
     if (!mAlgorithm.initialized()) return Error<RealVector>(NoDataFitted);
@@ -109,10 +112,8 @@ public:
     RealVector point(mAlgorithm.dims());
     point <<=
         BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0);
-    FluidDataSet<std::string, double, 1> nearest =
-        mAlgorithm.kNearest(point, k, get<kRadius>());
-    RealVector result{nearest.getData().col(0)};
-    return result;
+    auto [dist, ids] = mAlgorithm.kNearest(point, k, get<kRadius>());
+    return {dist};
   }
 
   static auto getMessageDescriptors()
@@ -168,7 +169,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return KDTreeQueryParams; }
 
-  KDTreeQuery(ParamSetViewType& p) : mParams(p)
+  KDTreeQuery(ParamSetViewType& p, FluidContext& c) : mParams(p), mRTBuffer(c.allocator()) 
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});
@@ -178,7 +179,7 @@ public:
 
   template <typename T>
   void process(std::vector<FluidTensorView<T, 1>>& input,
-               std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
+               std::vector<FluidTensorView<T, 1>>& output, FluidContext& c)
   {
     output[0] <<= input[0];
 
@@ -221,19 +222,22 @@ public:
       index outputSize = k * pointSize;
       if (outBuf.samps(0).size() < outputSize) return;
 
-      RealVector point(dims);
+      RealVector point(dims, c.allocator());
       point <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
-                  .samps(0, dims, 0);
+                    .samps(0, dims, 0);
       if (mRTBuffer.size() != outputSize)
       {
-        mRTBuffer = RealVector(outputSize);
+        mRTBuffer = RealVector(outputSize, c.allocator());
         mRTBuffer.fill(0);
       }
-      auto nearest = kdtreeptr->algorithm().kNearest(point, k);
-      auto ids = nearest.getIds();
+
+      auto [dists, ids] =
+          kdtreeptr->algorithm().kNearest(point, k, 0, c.allocator());
+
       for (index i = 0; i < k; i++)
       {
-        dataset.get(ids(i), mRTBuffer(Slice(i * pointSize, pointSize)));
+        dataset.get(*ids[asUnsigned(i)],
+                    mRTBuffer(Slice(i * pointSize, pointSize)));
       }
       outBuf.samps(0, outputSize, 0) <<= mRTBuffer;
     }

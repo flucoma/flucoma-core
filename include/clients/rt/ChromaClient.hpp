@@ -59,12 +59,13 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return ChromaParams; }
 
-  ChromaClient(ParamSetViewType& p)
-      : mParams{p}, mSTFTBufferedProcess(get<kFFT>().max(), 1, 0),
-        mAlgorithm(get<kNChroma>().max(), get<kFFT>().max())
+  ChromaClient(ParamSetViewType& p, FluidContext const& c)
+      : mParams{p},
+        mSTFTBufferedProcess(get<kFFT>(), 1, 0, c.hostVectorSize(), c.allocator()),
+        mAlgorithm(get<kNChroma>().max(), get<kFFT>().max(), c.allocator())
   {
-    mMagnitude = FluidTensor<double, 1>(get<kFFT>().maxFrameSize());
-    mChroma = FluidTensor<double, 1>(get<kNChroma>().max());
+    mMagnitude = FluidTensor<double, 1>(get<kFFT>().maxFrameSize(), c.allocator());
+    mChroma = FluidTensor<double, 1>(get<kNChroma>().max(), c.allocator());
     audioChannelsIn(1);
     controlChannelsOut({1,get<kNChroma>(),get<kNChroma>().max()});
     setInputLabels({"audio in"});
@@ -86,15 +87,18 @@ public:
            
     if (mTracker.changed(frameSize, nChroma, get<kRef>(), sampleRate()))
     {
-      mAlgorithm.init(nChroma, frameSize, get<kRef>(), sampleRate());
+      mAlgorithm.init(nChroma, frameSize, get<kRef>(), sampleRate(), c.allocator());
       controlChannelsOut({1, nChroma});
     }
+    
+    if(mHostVSTracker.changed(c.hostVectorSize()))
+        mSTFTBufferedProcess = STFTBufferedProcess<false>(get<kFFT>(), 1, 0, c.hostVectorSize(), c.allocator()); 
     
     auto mags = mMagnitude(Slice(0,frameSize));
     auto chroma = mChroma(Slice(0,nChroma));
 
     mSTFTBufferedProcess.processInput(
-        mParams, input, c, [&](ComplexMatrixView in) {
+        get<kFFT>(), input, c, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mags);
           mAlgorithm.processFrame(mags, chroma, get<kMinFreq>(),
                                   get<kMaxFreq>(), get<kNorm>());
@@ -106,11 +110,11 @@ public:
 
   index latency() { return get<kFFT>().winSize(); }
 
-  void reset()
+  void reset(FluidContext const& c)
   {
     mSTFTBufferedProcess.reset();
     mAlgorithm.init(get<kNChroma>(), get<kFFT>().frameSize(), get<kRef>(),
-                    sampleRate());
+                    sampleRate(), c.allocator());
   }
 
   AnalysisSize analysisSettings()
@@ -120,7 +124,8 @@ public:
 
   private:
     ParameterTrackChanges<index, index, double, double> mTracker;
-    STFTBufferedProcess<ParamSetViewType, kFFT, false>  mSTFTBufferedProcess;
+    ParameterTrackChanges<index> mHostVSTracker;
+    STFTBufferedProcess<false>  mSTFTBufferedProcess;
 
     algorithm::ChromaFilterBank mAlgorithm;
     FluidTensor<double, 1>      mMagnitude;

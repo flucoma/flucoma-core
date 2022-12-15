@@ -64,7 +64,7 @@ public:
     }
   }
 
-  bool add(idType id, FluidTensorView<dataType, N> point)
+  bool add(idType const& id, FluidTensorView<dataType, N> point)
   {
     assert(sameExtents(mDim, point.descriptor()));
     index pos = mData.rows();
@@ -77,7 +77,7 @@ public:
     return true;
   }
 
-  bool get(idType id, FluidTensorView<dataType, N> point) const
+  bool get(idType const& id, FluidTensorView<dataType, N> point) const
   {
     auto pos = mIndex.find(id);
     if (pos == mIndex.end()) return false;
@@ -85,7 +85,14 @@ public:
     return true;
   }
 
-  index getIndex(idType id) const
+  FluidTensorView<dataType, N> get(idType const& id) const
+  {
+    auto pos = mIndex.find(id);
+    return pos != mIndex.end() ? mData.row(pos->second)
+                               : FluidTensorView<dataType, N>{nullptr, 0, 0};
+  }
+
+  index getIndex(idType const& id) const
   {
     auto pos = mIndex.find(id);
     if (pos == mIndex.end())
@@ -94,7 +101,7 @@ public:
       return pos->second;
   }
 
-  bool update(idType id, FluidTensorView<dataType, N> point)
+  bool update(idType const& id, FluidTensorView<dataType, N> point)
   {
     auto pos = mIndex.find(id);
     if (pos == mIndex.end())
@@ -104,7 +111,7 @@ public:
     return true;
   }
 
-  bool remove(idType id)
+  bool remove(idType const& id)
   {
     auto pos = mIndex.find(id);
     if (pos == mIndex.end()) { return false; }
@@ -134,15 +141,21 @@ public:
     if (row.size() < maxCols)
     {
       for (index c = 0; c < row.size(); c++)
-      { result << setw(10) << setprecision(5) << row(c); }
+      {
+        result << setw(10) << setprecision(5) << row(c);
+      }
     }
     else
     {
       for (index c = 0; c < maxCols / 2; c++)
-      { result << setw(10) << setprecision(5) << row(c); }
+      {
+        result << setw(10) << setprecision(5) << row(c);
+      }
       result << setw(10) << "...";
       for (index c = maxCols / 2; c > 0; c--)
-      { result << setw(10) << setprecision(5) << row(row.size() - c); }
+      {
+        result << setw(10) << setprecision(5) << row(row.size() - c);
+      }
     }
     return result.str();
   }

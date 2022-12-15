@@ -14,6 +14,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "ParameterTrackChanges.hpp"
 #include "Result.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/FluidMemory.hpp"
 #include <memory>
 #include <bitset> 
 #include <string>
@@ -30,7 +31,7 @@ using LongUnderlyingType = index; // signed int equal to pointer size, k thx
 using EnumUnderlyingType = index;
 using BufferUnderlyingType = std::shared_ptr<BufferAdaptor>;
 using InputBufferUnderlyingType = std::shared_ptr<const BufferAdaptor>;
-using StringUnderlyingType = std::string;
+using StringUnderlyingType = rt::string;
 using FloatArrayUnderlyingType = std::vector<FloatUnderlyingType>;
 using LongArrayUnderlyingType = FluidTensor<LongUnderlyingType, 1>;
 using BufferArrayUnderlyingType = std::vector<BufferUnderlyingType>;

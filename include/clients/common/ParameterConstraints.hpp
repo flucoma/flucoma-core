@@ -292,21 +292,33 @@ struct PowerOfTwo
 struct Odd
 {
   template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
-  constexpr void clamp(LongUnderlyingType& x, Tuple& /*params*/, Descriptor&,
-                       Result*) const
+  constexpr void clamp(LongUnderlyingType& x, Tuple& /*params*/, Descriptor& d,
+                       Result* r) const
   {
-    x = x % 2 ? x : x + 1;
+    LongUnderlyingType val = x % 2 ? x : x + 1;
+    if (r && val != x)
+    {
+      r->set(Result::Status::kWarning);
+      r->addMessage(d.template get<N>().name, " value (", x,
+                    ") adjusted to next odd number (", val, ')');
+    }
+    x = val;
   }
-  
+
   template <size_t Offset, size_t N, typename Tuple, typename Descriptor>
-  constexpr void clamp(LongRuntimeMaxParam& x, Tuple& /*params*/, Descriptor&,
-                       Result*) const
+  constexpr void clamp(LongRuntimeMaxParam& x, Tuple& /*params*/, Descriptor& d,
+                       Result* r) const
   {
     index val = x();
-    val = val % 2 ? val : val + 1;    
+    val = val % 2 ? val : val + 1;
+    if (r && val != x())
+    {
+      r->set(Result::Status::kWarning);
+      r->addMessage(d.template get<N>().name, " value (", x(),
+                    ") adjusted to next odd number (", val, ')');
+    }
     x.set(val);
   }
-  
 };
 
 template <int FFTIndex>
@@ -327,6 +339,29 @@ auto constexpr FrameSizeLowerLimit()
   return impl::FrameSizeLowerLimitImpl<Lower>{};
 }
 
+template <typename Constraint>
+struct CanIncreaseValue : std::false_type
+{};
+
+template <>
+struct CanIncreaseValue<Odd> : std::true_type
+{};
+
+template <>
+struct CanIncreaseValue<PowerOfTwo> : std::true_type
+{};
+
+template <typename... Ts>
+constexpr auto GetIncreasingConstraints(const std::tuple<Ts...> constraints)
+{
+  return std::apply(
+      [](Ts...) {
+        return std::tuple_cat(
+            std::conditional_t<CanIncreaseValue<Ts>::value, std::tuple<Ts>,
+                               std::tuple<>>{}...);
+      },
+      constraints);
+}
 
 } // namespace client
 } // namespace fluid

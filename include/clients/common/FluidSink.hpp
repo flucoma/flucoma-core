@@ -10,6 +10,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "../../data/FluidIndex.hpp"
+#include "../../data/FluidMemory.hpp"
 #include "../../data/FluidTensor.hpp"
 #include <cassert>
 #include <functional>
@@ -20,23 +21,25 @@ namespace fluid {
 template <typename T>
 class FluidSink
 {
+//  using Container = rt::vector<T>;
   using Matrix = FluidTensor<T, 2>;
   using View = FluidTensorView<T, 2>;
   using const_view_type = const FluidTensorView<T, 2>;
 
 public:
-  FluidSink() : FluidSink(0, 1) {}
+  FluidSink() : FluidSink(0, 1, 0) {}
 
   FluidSink(const FluidSink&) = delete;
   FluidSink& operator=(const FluidSink&) = delete;
   FluidSink(FluidSink&&) noexcept = default;
   FluidSink& operator=(FluidSink&&) noexcept = default;
 
-  FluidSink(const index size, const index channels = 1)
-      : matrix(channels, size), mSize(size), mChannels(channels)
+  FluidSink(const index size, const index channels, index maxHostVectorSize,
+            Allocator& alloc = FluidDefaultAllocator())
+      : mSize(size), mChannels(channels), mHostBufferSize(maxHostVectorSize),
+        mMaxHostBufferSize(maxHostVectorSize),
+        matrix(channels, bufferSize(), alloc)
   {}
-
-  Matrix& data() { return matrix; }
 
   /// Accumulate data into the buffer, optionally moving
   /// the write head on by a custom amount.
@@ -86,19 +89,17 @@ public:
 
   /// Reset the buffer, resizing if the host buffer size
   /// or user buffer size have changed.
-  void reset(index channels = 0)
+  void reset()
   {
-    if (channels) mChannels = channels;
-
-    if (matrix.cols() != bufferSize() || matrix.rows() != channels)
-    { matrix.resize(mChannels, bufferSize()); }
-    matrix.fill(0);
+    std::fill(matrix.begin(), matrix.end(), 0);
     mCounter = 0;
   }
 
-  void setSize(index n) { mSize = n; }
-
-  void setHostBufferSize(index n) { mHostBufferSize = n; }
+  void setHostBufferSize(index size)
+  {
+    assert(size <= mMaxHostBufferSize);
+    mHostBufferSize = size;
+  }
 
   index channels() const noexcept { return mChannels; }
   index size() const noexcept { return mSize; }
@@ -162,10 +163,11 @@ private:
 
   index bufferSize() const { return mSize + mHostBufferSize; }
 
-  Matrix matrix;
-  index  mSize;
-  index  mChannels;
-  index  mCounter = 0;
-  index  mHostBufferSize = 0;
+  index     mSize;
+  index     mChannels;
+  index     mCounter = 0;
+  index     mHostBufferSize = 0;
+  index     mMaxHostBufferSize = 0;
+  Matrix      matrix;
 };
 } // namespace fluid

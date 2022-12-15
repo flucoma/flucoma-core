@@ -114,7 +114,7 @@ public:
     return MLPClassifierParams;
   }
 
-  MLPClassifierClient(ParamSetViewType& p) : mParams(p) {}
+  MLPClassifierClient(ParamSetViewType& p, FluidContext&) : mParams(p) {}
 
   template <typename T>
   Result process(FluidContext&)
@@ -222,7 +222,7 @@ public:
     RealVector dest(mAlgorithm.mlp.outputSize(layer));
     src <<= inBuf.samps(0, mAlgorithm.mlp.dims(), 0);
     mAlgorithm.mlp.processFrame(src, dest, 0, layer);
-    auto label = mAlgorithm.encoder.decodeOneHot(dest);
+    auto& label = mAlgorithm.encoder.decodeOneHot(dest);
     return label;
   }
 
@@ -293,7 +293,7 @@ public:
     return MLPClassifierQueryParams;
   }
 
-  MLPClassifierQuery(ParamSetViewType& p) : mParams(p)
+  MLPClassifierQuery(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});
@@ -330,7 +330,7 @@ public:
       src <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                 .samps(0, dims, 0);
       algorithm.mlp.processFrame(src, dest, 0, layer);
-      auto label = algorithm.encoder.decodeOneHot(dest);
+      auto& label = algorithm.encoder.decodeOneHot(dest);
       outBuf.samps(0)[0] =
           static_cast<double>(algorithm.encoder.encodeIndex(label));
     }

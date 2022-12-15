@@ -69,14 +69,14 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return MFCCParams; }
 
-  MFCCClient(ParamSetViewType& p)
-      : mParams{p}, mSTFTBufferedProcess(get<kFFT>().max(), 1, 0),
-        mMelBands(get<kFFT>().max(), get<kFFT>().max()),
-        mDCT(get<kFFT>().max(), get<kNCoefs>().max() + 1)
+  MFCCClient(ParamSetViewType& p, FluidContext& c)
+      : mParams{p}, mSTFTBufferedProcess(get<kFFT>(), 1, 0, c.hostVectorSize(), c.allocator()),
+        mMelBands(get<kFFT>().max(), get<kFFT>().max(), c.allocator()),
+        mDCT(get<kFFT>().max(), get<kNCoefs>().max() + 1, c.allocator()),
+        mMagnitude(get<kFFT>().maxFrameSize(), c.allocator()),
+        mBands(get<kNBands>().max(), c.allocator()),
+        mCoefficients(get<kNCoefs>().max() + 1, c.allocator())
   {
-    mMagnitude = FluidTensor<double, 1>(get<kFFT>().maxFrameSize());
-    mBands = FluidTensor<double, 1>(get<kNBands>().max());
-    mCoefficients = FluidTensor<double, 1>(get<kNCoefs>().max() + 1); //adding a spare item to the allocation to pad for has0
     audioChannelsIn(1);
     controlChannelsOut({1, get<kNCoefs>(), get<kNCoefs>().max()});
     setInputLabels({"audio input"});
@@ -105,19 +105,24 @@ public:
     {
       mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), nBands,
                      get<kFFT>().frameSize(), sampleRate(),
-                     get<kFFT>().winSize());
-      mDCT.init(nBands, fmin(nCoefs + !has0, nBands)); //making sure that we don't ask for more than nBands coeff in case of has0
+                     get<kFFT>().winSize(), c.allocator());
+      mDCT.init(get<kNBands>(), std::min(nCoefs + !has0, nBands), c.allocator());
       controlChannelsOut({1, nCoefs});
+    }
+
+    if (mHostSizeTracker.changed(c.hostVectorSize()))
+    {
+      mSTFTBufferedProcess =    STFTBufferedProcess<false>(get<kFFT>(),1,0,c.hostVectorSize(),c.allocator());
     }
 
     auto mags  = mMagnitude(Slice(0,frameSize));
     auto bands = mBands(Slice(0,nBands));
-    auto coefs = mCoefficients(Slice(0, fmin(nCoefs + !has0, nBands))); //making sure that we don't ask for more than nBands coeff in case of has0
+    auto coefs = mCoefficients(Slice(0, std::min(nCoefs + !has0, nBands))); //making sure that we don't ask for more than nBands coeff in case of has0
 
     mSTFTBufferedProcess.processInput(
-        mParams, input, c, [&](ComplexMatrixView in) {
+        get<kFFT>(), input, c, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mags);
-          mMelBands.processFrame(mags, bands, false, false, true);
+          mMelBands.processFrame(mags, bands, false, false, true, c.allocator());
           mDCT.processFrame(bands, coefs);
         });
   
@@ -127,7 +132,7 @@ public:
 
   index latency() { return get<kFFT>().winSize(); }
 
-  void reset()
+  void reset(FluidContext& c)
   {
     index nBands = get<kNBands>();
 
@@ -137,8 +142,8 @@ public:
     mCoefficients.resize(get<kNCoefs>().max() + 1); //same as line 79
     mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), nBands,
                    get<kFFT>().frameSize(), sampleRate(),
-                   get<kFFT>().winSize());
-    mDCT.init(nBands, fmin((get<kNCoefs>() + get<kDrop0>()), nBands)); //making sure that we don't ask for more than nBands coeff in case of has0
+                   get<kFFT>().winSize(), c.allocator());
+    mDCT.init(nBands, std::min((get<kNCoefs>() + get<kDrop0>()), nBands)); //making sure that we don't ask for more than nBands coeff in case of has0
   }
 
   AnalysisSize analysisSettings()
@@ -149,7 +154,9 @@ public:
 
 private:
   ParameterTrackChanges<index, index, index, double, double, double> mTracker;
-  STFTBufferedProcess<ParamSetViewType, kFFT, false> mSTFTBufferedProcess;
+  ParameterTrackChanges<index> mHostSizeTracker;
+  
+  STFTBufferedProcess<false> mSTFTBufferedProcess;
 
   algorithm::MelBands    mMelBands;
   algorithm::DCT         mDCT;

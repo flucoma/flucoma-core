@@ -37,7 +37,8 @@ enum SpectralShapeParamIndex {
 };
 
 constexpr auto SpectralShapeParams = defineParameters(
-    ChoicesParam("select","Selection of Features","centroid","spread","skew","kurtosis","rolloff","flatness","crest"),
+    ChoicesParam("select", "Selection of Features", "centroid", "spread",
+                 "skew", "kurtosis", "rolloff", "flatness", "crest"),
     FloatParam("minFreq", "Low Frequency Bound", 0, Min(0)),
     FloatParam("maxFreq", "High Frequency Bound", -1, Min(-1)),
     FloatParam("rolloffPercent", "Rolloff Percent", 95, Min(0), Max(100)),
@@ -50,6 +51,7 @@ class SpectralShapeClient : public FluidBaseClient,
                             public ControlOut
 {
   static constexpr index mMaxOutputSize = 7;
+
 public:
   using ParamDescType = decltype(SpectralShapeParams);
 
@@ -69,9 +71,12 @@ public:
     return SpectralShapeParams;
   }
 
-  SpectralShapeClient(ParamSetViewType& p)
-      : mParams(p), mSTFTBufferedProcess(get<kFFT>().max(), 1, 0)
-        //mMaxOutputSize{asSigned(get<kSelect>().count())}
+  SpectralShapeClient(ParamSetViewType& p, FluidContext& c)
+      : mParams(p), mSTFTBufferedProcess(get<kFFT>(), 1, 0, c.hostVectorSize(),
+                                         c.allocator()),
+        mAlgorithm{c.allocator()},
+        mMagnitude(get<kFFT>().maxFrameSize(), c.allocator()),
+        mDescriptors(7, c.allocator())
   {
     audioChannelsIn(1);
     controlChannelsOut({1, asSigned(get<kSelect>().count()), mMaxOutputSize});
@@ -91,44 +96,48 @@ public:
     assert(output[0].size() >= controlChannelsOut().size &&
            "Too few output channels");
 
-    if (mTracker.changed(get<kFFT>().frameSize(), sampleRate()))
-    { mMagnitude.resize(get<kFFT>().frameSize()); }
+    if (mHostSizeTracker.changed(c.hostVectorSize()))
+    {
+      mSTFTBufferedProcess = STFTBufferedProcess<>(get<kFFT>(), 1, 0, c.hostVectorSize(),
+                                         c.allocator());
+    }
 
     mSTFTBufferedProcess.processInput(
-        mParams, input, c, [&](ComplexMatrixView in) {
-          algorithm::STFT::magnitude(in.row(0), mMagnitude);
+        get<kFFT>(), input, c, [&](ComplexMatrixView in) {
+          algorithm::STFT::magnitude(in.row(0),
+                                     mMagnitude(Slice(0, in.size())));
           mAlgorithm.processFrame(
-              mMagnitude, mDescriptors, sampleRate(), get<kMinFreq>(),
-              get<kMaxFreq>(), get<kRollOffPercent>(), get<kFreqUnits>() == 1,
-              get<kAmpMeasure>() == 1);
+              mMagnitude(Slice(0, in.size())), mDescriptors, sampleRate(),
+              get<kMinFreq>(), get<kMaxFreq>(), get<kRollOffPercent>(),
+              get<kFreqUnits>() == 1, get<kAmpMeasure>() == 1, c.allocator());
         });
-    
-    auto selection = get<kSelect>();
+
+    auto  selection = get<kSelect>();
     index numSelected = asSigned(selection.count());
-    index numOuts = std::min<index>(mMaxOutputSize,numSelected);
+    index numOuts = std::min<index>(mMaxOutputSize, numSelected);
     controlChannelsOut({1, numOuts, mMaxOutputSize});
-    
+
     for (index i = 0, j = 0; i < mMaxOutputSize && j < numOuts; ++i)
     {
       if (selection[asUnsigned(i)])
         output[0](j++) = static_cast<T>(mDescriptors(i));
     }
-    
-    output[0](Slice(numOuts, mMaxOutputSize - numOuts)).fill(0); 
+
+    output[0](Slice(numOuts, mMaxOutputSize - numOuts)).fill(0);
   }
 
   index latency() { return get<kFFT>().winSize(); }
 
-  void reset() { mSTFTBufferedProcess.reset(); }
+  void reset(FluidContext&) { mSTFTBufferedProcess.reset(); }
 
   AnalysisSize analysisSettings()
   {
-    return { get<kFFT>().winSize(), get<kFFT>().hopSize() }; 
+    return {get<kFFT>().winSize(), get<kFFT>().hopSize()};
   }
 
 private:
-  ParameterTrackChanges<index, double>        mTracker;
-  STFTBufferedProcess<ParamSetViewType, kFFT> mSTFTBufferedProcess;
+  ParameterTrackChanges<index>         mHostSizeTracker;
+  STFTBufferedProcess<>                mSTFTBufferedProcess;
 
   SpectralShape          mAlgorithm;
   FluidTensor<double, 1> mMagnitude;

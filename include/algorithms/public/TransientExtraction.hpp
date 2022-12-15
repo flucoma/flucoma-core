@@ -13,6 +13,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/ARModel.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/FluidMemory.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <algorithm>
@@ -31,15 +32,27 @@ class TransientExtraction
   using VectorXd = Eigen::VectorXd;
 
 public:
+
+  TransientExtraction(index maxOrder, index maxBlockSize, index maxPadSize,
+      Allocator& alloc = FluidDefaultAllocator())
+      : mModel(maxOrder, maxBlockSize + (2 * maxPadSize), alloc),
+        mInput(asUnsigned(maxBlockSize + (2 * maxPadSize) + maxOrder), alloc),
+        mDetect(asUnsigned(maxBlockSize), alloc),
+        mForwardError(asUnsigned(maxBlockSize + maxOrder), alloc),
+        mBackwardError(asUnsigned(maxBlockSize + maxOrder), alloc),
+        mForwardWindowedError(asUnsigned(maxBlockSize), alloc),
+        mBackwardWindowedError(asUnsigned(maxBlockSize), alloc)
+  {}
+
   void init(index order, index blockSize, index padSize)
   {
-    mModel = ARModel(order);
+    mModel.init(order);
     prepareStream(blockSize, padSize);
     mInitialized = true;
   }
 
   void setDetectionParameters(double power, double threshHi, double threshLo,
-                              index halfWindow = 7, index hold = 25)
+      index halfWindow = 7, index hold = 25)
   {
     mDetectPowerFactor = power;
     mDetectThreshHi = threshHi;
@@ -80,36 +93,46 @@ public:
     return mBackwardWindowedError.data();
   }
 
-  index detect(const double* input, index inSize)
+  index detect(const double* input, index inSize,
+      Allocator& alloc = FluidDefaultAllocator())
   {
+    assert(mInitialized && "Call init() before processing");
+    assert(modelOrder() >= mDetectHalfWindow &&
+           "model order needs to be >= half filter size");
     frame(input, inSize);
-    analyze();
+    analyze(alloc);
     detection();
     return mCount;
   }
 
   void process(const RealVectorView input, RealVectorView transients,
-               RealVectorView residual)
+      RealVectorView residual, Allocator& alloc = FluidDefaultAllocator())
   {
-    assert(mInitialized);
-    index inSize = input.extent(0);
+    assert(mInitialized && "Call init() before processing");
+    assert(modelOrder() >= mDetectHalfWindow &&
+           "model order needs to be >= half filter size");
+    index inSize = input.size();
     frame(input.data(), inSize);
-    analyze();
+    analyze(alloc);
     detection();
-    interpolate(transients.data(), residual.data());
+    interpolate(transients.data(), residual.data(), alloc);
   }
 
   void process(const RealVectorView input, const RealVectorView unknowns,
-               RealVectorView transients, RealVectorView residual)
+      RealVectorView transients, RealVectorView residual,
+      Allocator& alloc = FluidDefaultAllocator())
   {
-    index inSize = input.extent(0);
+    assert(mInitialized && "Call init() before processing");
+    assert(modelOrder() >= mDetectHalfWindow &&
+           "model order needs to be >= half filter size");
+    index inSize = input.size();
     std::copy(unknowns.data(), unknowns.data() + hopSize(), mDetect.data());
     mCount = 0;
     for (index i = 0, size = hopSize(); i < size; i++)
       if (mDetect[asUnsigned(i)] != 0) mCount++;
     frame(input.data(), inSize);
-    if (mCount) analyze();
-    interpolate(transients.data(), residual.data());
+    if (mCount) analyze(alloc);
+    interpolate(transients.data(), residual.data(), alloc);
   }
 
   bool initialized() { return mInitialized; }
@@ -120,37 +143,49 @@ private:
     using namespace std;
     inSize = std::min(inSize, inputSize());
     copy(mInput.data() + hopSize(),
-         mInput.data() + modelOrder() + padSize() + blockSize(), mInput.data());
+        mInput.data() + modelOrder() + padSize() + blockSize(), mInput.data());
     copy(input, input + inSize,
-         mInput.data() + modelOrder() + padSize() + modelOrder());
+        mInput.data() + modelOrder() + padSize() + modelOrder());
     fill(mInput.data() + modelOrder() + padSize() + modelOrder() + inSize,
-         mInput.data() + modelOrder() + analysisSize(), 0.0);
+        mInput.data() + modelOrder() + analysisSize(), 0.0);
   }
 
-  void analyze()
+  void analyze(Allocator& alloc)
   {
     mModel.setMinVariance(0.0000001);
-    mModel.estimate(mInput.data() + modelOrder(), analysisSize());
+    mModel.estimate(FluidTensorView<const double, 1>(
+                        mInput.data(), modelOrder(), analysisSize()),
+        3, 3.0, alloc);
   }
 
   void detection()
   {
-    const double* input = mInput.data() + modelOrder() + padSize();
+    //    const double* input = mInput.data() + modelOrder() + padSize();
 
     // Forward and backward error
     const double normFactor = 1.0 / sqrt(mModel.variance());
+
+    auto inputView = FluidTensorView<const double, 1>(mInput.data(),
+        modelOrder() + padSize(),
+        blockSize() + modelOrder() + mDetectHalfWindow);
+    auto fwdError = FluidTensorView<double, 1>(
+        mForwardError.data(), 0, blockSize() + mDetectHalfWindow);
+    auto backError = FluidTensorView<double, 1>(
+        mBackwardError.data(), 0, blockSize() + mDetectHalfWindow);
+
     errorCalculation<&ARModel::forwardErrorArray>(
-        mForwardError.data(), input, blockSize() + mDetectHalfWindow + 1,
-        normFactor);
+        inputView, fwdError, normFactor);
     errorCalculation<&ARModel::backwardErrorArray>(
-        mBackwardError.data(), input, blockSize() + mDetectHalfWindow + 1,
-        normFactor);
+        inputView, backError, normFactor);
 
     // Window error functions (brute force convolution)
-    windowError(mForwardWindowedError.data(),
-                mForwardError.data() + modelOrder(), hopSize());
-    windowError(mBackwardWindowedError.data(),
-                mBackwardError.data() + modelOrder(), hopSize());
+    auto fwdWindowedError =
+        FluidTensorView<double, 1>(mForwardWindowedError.data(), 0, hopSize());
+    auto backWindowedError =
+        FluidTensorView<double, 1>(mBackwardWindowedError.data(), 0, hopSize());
+
+    windowError(fwdError(Slice(modelOrder())), fwdWindowedError);
+    windowError(backError(Slice(modelOrder())), backWindowedError);
 
     // Detection
     index        count = 0;
@@ -164,7 +199,9 @@ private:
     {
       if (!click && (mBackwardWindowedError[asUnsigned(i)] > loThresh) &&
           (mForwardWindowedError[asUnsigned(i)] > hiThresh))
-      { click = true; }
+      {
+        click = true;
+      }
       else if (click && (mBackwardWindowedError[asUnsigned(i)] < loThresh))
       {
         click = false;
@@ -230,7 +267,7 @@ private:
     return Method(view);
   }
 
-  void interpolate(double* transients, double* residual)
+  void interpolate(double* transients, double* residual, Allocator& alloc)
   {
     const double* input = mInput.data() + padSize() + modelOrder();
     const double* parameters = mModel.getParameters();
@@ -245,10 +282,15 @@ private:
     }
 
     // Declare matrices
-    MatrixXd A = MatrixXd::Zero(size - order, size);
-    MatrixXd U = MatrixXd::Zero(size, mCount);
-    MatrixXd K = MatrixXd::Zero(size, size - mCount);
-    VectorXd xK(size - mCount);
+    ScopedEigenMap<MatrixXd> A(size - order, size, alloc);
+    ScopedEigenMap<MatrixXd> U(size, mCount, alloc);
+    ScopedEigenMap<MatrixXd> K(size, size - mCount, alloc);
+    ScopedEigenMap<VectorXd> xK(size - mCount, alloc);
+
+    A.setZero();
+    U.setZero();
+    K.setZero();
+    xK.setZero();
 
     // Form data
     for (index i = 0; i < size - order; i++)
@@ -271,9 +313,14 @@ private:
     }
 
     // Solve
-    MatrixXd Au = A * U;
-    MatrixXd M = -(Au.transpose() * Au);
-    MatrixXd u = M.fullPivLu().solve(Au.transpose() * (A * K) * xK);
+    ScopedEigenMap<MatrixXd> Au(size - order, mCount, alloc);
+    Au = A * U;
+
+    ScopedEigenMap<MatrixXd> M(mCount, mCount, alloc);
+    M = -(Au.transpose() * Au);
+
+    ScopedEigenMap<VectorXd> u(mCount, alloc);
+    u = M.fullPivLu().solve(Au.transpose() * (A * K) * xK);
 
     // Write the output
     for (index i = 0, uCount = 0; i < (size - order); i++)
@@ -284,27 +331,30 @@ private:
         residual[i] = input[i + order];
     }
 
-    if (mRefine) refine(residual, size, Au, u);
+    // if (mRefine) refine(FluidTensorView<double, 1>(residual, 0, size), Au,
+    // u);
 
     for (index i = 0; i < (size - order); i++)
       transients[i] = input[i + order] - residual[i];
 
     // Copy the residual indexo the correct place
     std::copy(residual, residual + (size - order),
-              mInput.data() + padSize() + order + order);
+        mInput.data() + padSize() + order + order);
   }
 
-  void refine(double* io, index size, Eigen::MatrixXd& Au, Eigen::MatrixXd& ls)
+  void refine(
+      FluidTensorView<double, 1> io, Eigen::MatrixXd& Au, Eigen::MatrixXd& ls)
   {
     const double energy = mModel.variance() * mCount;
     double       energyLS = 0.0;
     index        order = modelOrder();
+    index        size = io.size();
 
     for (index i = 0; i < (size - order); i++)
     {
       if (mDetect[asUnsigned(i)] != 0)
       {
-        const double error = mModel.forwardError(io + i);
+        const double error = mModel.forwardError(io(Slice(i)));
         energyLS += error * error;
       }
     }
@@ -312,8 +362,8 @@ private:
     if (energyLS < energy)
     {
       // Create the square matrix and solve
-      Eigen::LLT<Eigen::MatrixXd> M(Au.transpose() *
-                                    Au); // Cholesky decomposition
+      Eigen::LLT<Eigen::MatrixXd> M(
+          Au.transpose() * Au); // Cholesky decomposition
 
       Eigen::VectorXd u(mCount);
 
@@ -322,7 +372,7 @@ private:
       // Write the output
       for (index i = 0, uCount = 0; i < (size - order); i++)
       {
-        if (mDetect[asUnsigned(i)] != 0) io[asUnsigned(i)] = u(uCount++);
+        if (mDetect[asUnsigned(i)] != 0) io[i] = u(uCount++);
       }
     }
   }
@@ -341,44 +391,50 @@ private:
     return sum;
   }
 
-  template <void (ARModel::*Method)(double*, const double*, index)>
-  void errorCalculation(double* error, const double* input, index size,
-                        double normFactor)
+  template <void (ARModel::*Method)(
+      FluidTensorView<const double, 1>, FluidTensorView<double, 1>)>
+  void errorCalculation(FluidTensorView<const double, 1> input,
+      FluidTensorView<double, 1> error, double normFactor)
   {
-    (mModel.*Method)(error, input, size);
+    (mModel.*Method)(input, error);
 
     // Take absolutes and normalise
-    for (index i = 0; i < size; i++)
+    for (index i = 0; i < error.size(); i++)
       error[i] = std::fabs(error[i]) * normFactor;
   }
 
   // Triangle window
   double calcWindow(double norm) { return std::min(norm, 1.0 - norm); }
 
-  void windowError(double* errorWindowed, const double* error, index size)
+  void windowError(FluidTensorView<const double, 1> error,
+      FluidTensorView<double, 1>                    errorWindowed)
   {
-    const index  windowSize = mDetectHalfWindow * 2 + 1;
-    const index  windowOffset = mDetectHalfWindow;
+    assert(error.descriptor().start >= mDetectHalfWindow &&
+           "insufficient offset for filter size");
+    assert(error.size() > errorWindowed.size() - 1 + (mDetectHalfWindow) &&
+           "insufficient input for filter size");
+
+    const index  windowSize = mDetectHalfWindow * 2 + 3;
+    const index  windowOffset = mDetectHalfWindow + 1;
     const double powFactor = mDetectPowerFactor;
 
     // Calculate window normalisation factor
     double windowNormFactor = 0.0;
 
     for (index j = 0; j < windowSize; j++)
-      windowNormFactor += calcWindow((double) j / windowSize);
+      windowNormFactor += calcWindow((double) j / (windowSize - 1));
 
     windowNormFactor = 1.0 / windowNormFactor;
 
     // Do window processing
-    for (index i = 0; i < size; i++)
+    for (index i = 0; i < errorWindowed.size(); i++)
     {
       double windowed = 0.0;
 
-      for (index j = 1; j < windowSize; j++)
+      for (index j = 1; j < windowSize - 1; j++)
       {
         const double value = pow(fabs(error[i - windowOffset + j]), powFactor);
-        windowed += value * calcWindow((double) j / windowSize);
-        ;
+        windowed += value * calcWindow((double) j / (windowSize - 1));
       }
 
       errorWindowed[i] = pow((windowed * windowNormFactor), 1.0 / powFactor);
@@ -395,27 +451,27 @@ private:
     mBackwardWindowedError.resize(asUnsigned(hopSize()), 0.0);
   }
 
-  ARModel mModel{20};
+  ARModel mModel;
 
   std::mt19937_64 mRandomGenerator{std::random_device()()};
 
-  index  mBlockSize{0};
-  index  mPadSize{0};
-  index  mCount{0};
-  bool   mRefine{false};
+  index mBlockSize{0};
+  index mPadSize{0};
+  index mCount{0};
+  //  bool   mRefine{false};
   index  mDetectHalfWindow{1};
   index  mDetectHold{25};
   double mDetectPowerFactor{1.4};
   double mDetectThreshHi{1.5};
   double mDetectThreshLo{3.0};
 
-  std::vector<double> mInput;
-  std::vector<double> mDetect;
-  std::vector<double> mForwardError;
-  std::vector<double> mBackwardError;
-  std::vector<double> mForwardWindowedError;
-  std::vector<double> mBackwardWindowedError;
-  bool                mInitialized{false};
+  rt::vector<double> mInput;
+  rt::vector<double> mDetect;
+  rt::vector<double> mForwardError;
+  rt::vector<double> mBackwardError;
+  rt::vector<double> mForwardWindowedError;
+  rt::vector<double> mBackwardWindowedError;
+  bool               mInitialized{false};
 };
 
 } // namespace algorithm

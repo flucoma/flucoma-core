@@ -12,6 +12,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #include "AlgorithmUtils.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/FluidMemory.hpp"
 #include <Eigen/Core>
 #include <cassert>
 #include <cmath>
@@ -22,6 +23,109 @@ namespace algorithm {
 
 class OnsetDetectionFuncs
 {
+
+  using ArrayXcd = Eigen::ArrayXcd;
+  using ArrayXd = Eigen::ArrayXd;
+  using Ref = Eigen::Ref<ArrayXcd>;
+
+  static auto wrapPhase()
+  {
+    return [=](const double p) {
+      return p > (-pi) && p > pi
+                 ? p
+                 : p + (twoPi) * (1.0 + floor((-pi - p) / twoPi));
+    };
+  }
+
+  static double energy(Ref cur, Ref /*prev*/, Ref /*prevprev*/, Allocator&)
+  {
+    return cur.abs().real().square().mean();
+  }
+
+  static double HFC(Ref cur, Ref /*prev*/, Ref /*prevprev*/, Allocator&)
+  {
+    index n = cur.size();
+    auto  space = ArrayXd::LinSpaced(n, 0, n);
+    return (space * cur.abs().real().square()).mean();
+  }
+
+  static double spectralFlux(Ref cur, Ref prev, Ref /*prevprev*/, Allocator&)
+  {
+    return (cur.abs().real() - prev.abs().real()).max(0.0).mean();
+  }
+
+  static double MKL(Ref cur, Ref prev, Ref /*prevprev*/, Allocator&)
+  {
+    auto mag1 = cur.abs().real().max(epsilon);
+    auto mag2 = prev.abs().real().max(epsilon);
+    return (mag1 / mag2).max(epsilon).log().mean();
+  }
+
+  static double IS(Ref cur, Ref prev, Ref /*prevprev*/, Allocator& alloc)
+  {
+    auto                    mag1 = cur.abs().real().max(epsilon);
+    auto                    mag2 = prev.abs().real().max(epsilon);
+    ScopedEigenMap<ArrayXd> ratio(cur.size(), alloc);
+    ratio = (mag1 / mag2).square().max(epsilon);
+    return (ratio - ratio.log() - 1).mean();
+  }
+
+  static double cosine(Ref cur, Ref prev, Ref /*prevprev*/, Allocator& alloc)
+  {
+    ScopedEigenMap<ArrayXd> mag1(cur.abs().real().max(epsilon), alloc);
+    ScopedEigenMap<ArrayXd> mag2(prev.abs().real().max(epsilon), alloc);
+    double                  norm = mag1.matrix().norm() * mag2.matrix().norm();
+    double                  dot = mag1.matrix().dot(mag2.matrix());
+    return 1 - dot / norm;
+  }
+
+  static double phaseDev(Ref cur, Ref prev, Ref prevprev, Allocator& alloc)
+  {
+    ScopedEigenMap<ArrayXd> phaseAcc{
+        (cur.atan().real() - prev.atan().real()) -
+            (prev.atan().real() - prevprev.atan().real()),
+        alloc};
+    phaseAcc = phaseAcc.unaryExpr(wrapPhase());
+    return phaseAcc.mean();
+  }
+
+  static double wPhaseDev(Ref cur, Ref prev, Ref prevprev, Allocator& alloc)
+  {
+    ScopedEigenMap<ArrayXd> mag1(cur.abs().real().max(epsilon), alloc);
+    ScopedEigenMap<ArrayXd> phaseAcc(
+        (cur.atan().real() - prev.atan().real()) -
+            (prev.atan().real() - prevprev.atan().real()),
+        alloc);
+    phaseAcc = phaseAcc * mag1;
+    phaseAcc = phaseAcc.unaryExpr(wrapPhase());
+    return phaseAcc.mean();
+  }
+
+  static double complexDev(Ref cur, Ref prev, Ref prevprev, Allocator& alloc)
+  {
+    ScopedEigenMap<ArrayXcd> target(cur.size(), alloc);
+    ScopedEigenMap<ArrayXd>  prevMag(prev.abs().real().max(epsilon), alloc);
+    ScopedEigenMap<ArrayXd>  prevPhase(prev.atan().real(), alloc);
+    ScopedEigenMap<ArrayXd>  phaseEst(
+         prevPhase + (prev.atan().real() - prevprev.atan().real()), alloc);
+    phaseEst = phaseEst.unaryExpr(wrapPhase());
+    target.real() = prevMag * phaseEst.cos();
+    target.imag() = prevMag * phaseEst.sin();
+    return (target - cur).abs().real().mean();
+  }
+
+  static double rComplexDev(Ref cur, Ref prev, Ref prevprev, Allocator& alloc)
+  {
+    ScopedEigenMap<ArrayXcd> target(cur.size(), alloc);
+    ScopedEigenMap<ArrayXd>  prevMag(prev.abs().real().max(epsilon), alloc);
+    ScopedEigenMap<ArrayXd>  prevPhase(prev.atan().real(), alloc);
+    ScopedEigenMap<ArrayXd>  phaseEst(
+         prevPhase + (prev.atan().real() - prevprev.atan().real()), alloc);
+    phaseEst = phaseEst.unaryExpr(wrapPhase());
+    target.real() = prevMag * phaseEst.cos();
+    target.imag() = prevMag * phaseEst.sin();
+    return (target - cur).abs().real().max(0.0).mean();
+  }
 
 public:
   enum class ODF {
@@ -37,98 +141,19 @@ public:
     kRComplexDev
   };
 
-  using ArrayXcd = Eigen::ArrayXcd;
-  using ArrayXd = Eigen::ArrayXd;
-  using ODFMap =
-      std::map<ODF, std::function<double(ArrayXcd, ArrayXcd, ArrayXcd)>>;
-
-  static ArrayXd wrapPhase(ArrayXd phase)
+  static auto& map(index functionIndex)
   {
-    return phase.unaryExpr([=](const double p) {
-      return p > (-pi) && p > pi
-                 ? p
-                 : p + (twoPi) * (1.0 + floor((-pi - p) / twoPi));
-    });
+    using ODFTable = std::array<double (*)(Ref, Ref, Ref, Allocator&), 10>;
+    static ODFTable _funcs{energy,     HFC,        spectralFlux, MKL,
+                           IS,         cosine,     phaseDev,     wPhaseDev,
+                           complexDev, rComplexDev};
+
+    assert(functionIndex < asSigned(_funcs.size()));
+
+    return _funcs[asUnsigned(functionIndex)];
   }
 
-  static ODFMap& map()
-  {
-    static ODFMap _funcs = {
-
-        {ODF::kEnergy,
-         [](ArrayXcd cur, ArrayXcd /*prev*/, ArrayXcd /*prevprev*/) {
-           return cur.abs().real().square().mean();
-         }},
-        {ODF::kHFC,
-         [](ArrayXcd cur, ArrayXcd /*prev*/, ArrayXcd /*prevprev*/) {
-           index   n = cur.size();
-           ArrayXd space = ArrayXd(n);
-           space.setLinSpaced(0, n);
-           return (space * cur.abs().real().square()).mean();
-         }},
-        {ODF::kSpectralFlux,
-         [](ArrayXcd cur, ArrayXcd prev, ArrayXcd /*prevprev*/) {
-           return (cur.abs().real() - prev.abs().real()).max(0.0).mean();
-         }},
-        {ODF::kMKL,
-         [](ArrayXcd cur, ArrayXcd prev, ArrayXcd /*prevprev*/) {
-           ArrayXd mag1 = cur.abs().real().max(epsilon);
-           ArrayXd mag2 = prev.abs().real().max(epsilon);
-           return (mag1 / mag2).max(epsilon).log().mean();
-         }},
-        {ODF::kIS,
-         [](ArrayXcd cur, ArrayXcd prev, ArrayXcd /*prevprev*/) {
-           ArrayXd mag1 = cur.abs().real().max(epsilon);
-           ArrayXd mag2 = prev.abs().real().max(epsilon);
-           ArrayXd ratio = (mag1 / mag2).square().max(epsilon);
-           return (ratio - ratio.log() - 1).mean();
-         }},
-        {ODF::kCosine,
-         [](ArrayXcd cur, ArrayXcd prev, ArrayXcd /*prevprev*/) {
-           ArrayXd mag1 = cur.abs().real().max(epsilon);
-           ArrayXd mag2 = prev.abs().real().max(epsilon);
-           double  norm = mag1.matrix().norm() * mag2.matrix().norm();
-           double  dot = mag1.matrix().dot(mag2.matrix());
-           return 1 - dot / norm;
-         }},
-        {ODF::kPhaseDev,
-         [](ArrayXcd cur, ArrayXcd prev, ArrayXcd prevprev) {
-           ArrayXd phaseAcc = (cur.atan().real() - prev.atan().real()) -
-                              (prev.atan().real() - prevprev.atan().real());
-           return wrapPhase(phaseAcc).mean();
-         }},
-        {ODF::kWPhaseDev,
-         [](ArrayXcd cur, ArrayXcd prev, ArrayXcd prevprev) {
-           ArrayXd mag1 = cur.abs().real().max(epsilon);
-           ArrayXd phaseAcc = (cur.atan().real() - prev.atan().real()) -
-                              (prev.atan().real() - prevprev.atan().real());
-           return wrapPhase(mag1 * phaseAcc).mean();
-         }},
-        {ODF::kComplexDev,
-         [](ArrayXcd cur, ArrayXcd prev, ArrayXcd prevprev) {
-           ArrayXcd target(cur.size());
-           ArrayXd  prevMag = prev.abs().real().max(epsilon);
-           ArrayXd  prevPhase = prev.atan().real();
-           ArrayXd  phaseEst = wrapPhase(
-               prevPhase + (prev.atan().real() - prevprev.atan().real()));
-           target.real() = prevMag * phaseEst.cos();
-           target.imag() = prevMag * phaseEst.sin();
-           return (target - cur).abs().real().mean();
-         }},
-        {ODF::kRComplexDev,
-         [](ArrayXcd cur, ArrayXcd prev, ArrayXcd prevprev) {
-           ArrayXcd target(cur.size());
-           ArrayXd  prevMag = prev.abs().real().max(epsilon);
-           ArrayXd  prevPhase = prev.atan().real();
-           ArrayXd  phaseEst = wrapPhase(
-               prevPhase + (prev.atan().real() - prevprev.atan().real()));
-           target.real() = prevMag * phaseEst.cos();
-           target.imag() = prevMag * phaseEst.sin();
-           return (target - cur).abs().real().max(0.0).mean();
-         }},
-    };
-    return _funcs;
-  }
+  static auto& map(ODF function) { return map(static_cast<index>(function)); }
 };
 } // namespace algorithm
 } // namespace fluid

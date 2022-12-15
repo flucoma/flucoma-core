@@ -50,11 +50,12 @@ public:
     return RunningStatsParams;
   }
 
-  RunningStatsClient(ParamSetViewType& p) : mParams(p)
+  RunningStatsClient(ParamSetViewType& p, FluidContext&)
+      : mParams(p), mInputSize{0}, mSizeTracker{0}
   {
     controlChannelsIn(1);
     controlChannelsOut({2, -1});
-    setInputLabels({"list input"});
+    setInputLabels({"input stream"});
     setOutputLabels({"mean", "sample standard deviation"});
   }
 
@@ -63,13 +64,13 @@ public:
                std::vector<HostVector<T>>& output, FluidContext&)
   {
 
-    bool inputSizeChanged = inputSize != input[0].size() ;
+    bool inputSizeChanged = mInputSize != input[0].size() ;
     bool sizeParamChanged = mSizeTracker.changed(get<0>());
 
     if(inputSizeChanged|| sizeParamChanged)
     {
-      inputSize = input[0].size();
-      mAlgorithm.init(get<0>(),inputSize);
+      mInputSize = input[0].size();
+      mAlgorithm.init(get<0>(),mInputSize);
     }
 
     mAlgorithm.process(input[0],output[0],output[1]);
@@ -77,7 +78,7 @@ public:
 
   MessageResult<void> clear()
   {     
-    mAlgorithm.init(get<0>(),inputSize);
+    mAlgorithm.init(get<0>(),mInputSize);
     return {};
   }
 
@@ -90,7 +91,7 @@ public:
 
 private:
   algorithm::RunningStats mAlgorithm;
-  index inputSize{0};
+  index mInputSize;
   ParameterTrackChanges<index> mSizeTracker;
 };
 

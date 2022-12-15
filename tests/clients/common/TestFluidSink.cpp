@@ -22,10 +22,8 @@ TEMPLATE_TEST_CASE("FluidSink can overlap-add a varitety of window sizes and hop
   constexpr int hostSize = 64;
   constexpr int maxFrameSize = 1024;
 
-  FluidSink<TestType> olaBuffer(maxFrameSize, 1);
-  olaBuffer.setHostBufferSize(hostSize);
-  olaBuffer.reset(1); // sigh, FIXME
-
+  FluidSink<TestType> olaBuffer(maxFrameSize, 1, hostSize);
+  
   std::array<TestType, 2 * maxFrameSize> data;
   data.fill(1); 
   

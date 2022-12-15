@@ -43,7 +43,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return GainParams; }
 
-  GainClient(ParamSetViewType& p) : mParams(p)
+  GainClient(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     audioChannelsIn(2);
     audioChannelsOut(1);

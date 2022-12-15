@@ -73,14 +73,13 @@ public:
   {
     using namespace Eigen;
     using namespace _impl;
-    ArrayXd input = asEigen<Array>(in);
-    ArrayXd result;
+    FluidEigenMap<Array> input = asEigen<Array>(in);
+    FluidEigenMap<Array> result = asEigen<Array>(out);
     if (!inverse) { result = (input - mMedian) / mRange; }
     else
     {
       result = (input * mRange) + mMedian;
     }
-    out <<= asFluid(result);
   }
 
   void process(const RealMatrixView in, RealMatrixView out,

@@ -57,7 +57,7 @@ struct TestParams
 std::vector<index> runOneTest(const TestParams& params)
 {
   auto makeSlicer = [](const TestParams& p) {
-    auto res = algorithm::OnsetSegmentation(p.fft);
+    auto res = algorithm::OnsetSegmentation(p.fft, p.filterSize);
     res.init(p.window, p.fft, p.filterSize);
     return res;
   };

@@ -17,6 +17,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../data/FluidIndex.hpp"
 #include "../../data/FluidTensor.hpp"
 #include "../../data/TensorTypes.hpp"
+#include "../../data/FluidMemory.hpp"
 #include <Eigen/Core>
 #include <random>
 
@@ -44,6 +45,7 @@ public:
       activations.push_back(hiddenAct);
     }
     sizes.push_back(outputSize);
+    mMaxLayerSize = *std::max_element(sizes.begin(), sizes.end());
     activations.push_back(outputAct);
     for (index i = 0; i < asSigned(sizes.size() - 1); i++)
     {
@@ -100,17 +102,16 @@ public:
   }
 
   void processFrame(RealVectorView in, RealVectorView out, index startLayer,
-                    index endLayer) const
+                    index      endLayer,
+                    Allocator& alloc = FluidDefaultAllocator()) const
   {
     using namespace _impl;
     using namespace Eigen;
-    ArrayXd  tmpIn = asEigen<Eigen::Array>(in);
-    ArrayXXd input(1, tmpIn.size());
-    input.row(0) = tmpIn;
-    ArrayXXd output = ArrayXXd::Zero(1, out.size());
-    forward(input, output, startLayer, endLayer);
-    ArrayXd tmpOut = output.row(0);
-    out <<= asFluid(tmpOut);
+    ScopedEigenMap<ArrayXd> input(in.size(), alloc);
+    input = asEigen<Eigen::Array>(in);
+    ScopedEigenMap<ArrayXd> output(out.size(), alloc);
+    forwardFrame(input, output, startLayer, endLayer, alloc);
+    asEigen<Array>(out) = output;
   }
 
   void forward(Eigen::Ref<ArrayXXd> in, Eigen::Ref<ArrayXXd> out) const
@@ -135,6 +136,31 @@ public:
       input = output;
     }
     out = output;
+  }
+
+  void forwardFrame(Eigen::Ref<ArrayXd> in, Eigen::Ref<ArrayXd> out,
+                    index startLayer, index endLayer,
+                    Allocator& alloc = FluidDefaultAllocator()) const
+  {
+    if (startLayer >= asSigned(mLayers.size()) ||
+        endLayer > asSigned(mLayers.size()))
+      return;
+    if (startLayer < 0 || endLayer <= 0) return;
+    ScopedEigenMap<ArrayXd> input(mMaxLayerSize, alloc);
+    input.head(in.size()) = in;
+    ScopedEigenMap<ArrayXd> output(mMaxLayerSize, alloc);
+    index                   inSize = in.size();
+    for (index i = startLayer; i < endLayer; i++)
+    {
+      auto& l = mLayers[asUnsigned(i)];
+      auto  inputBlock = input.head(inSize);
+      auto  outputBlock = output.head(l.outputSize());
+      outputBlock.setZero();
+      l.forwardFrame(inputBlock, outputBlock, alloc);
+      input.head(l.outputSize()) = outputBlock;
+      inSize = l.outputSize();
+    }
+    out = output.head(out.size());
   }
 
   void backward(Eigen::Ref<ArrayXXd> out) 
@@ -192,6 +218,7 @@ public:
   std::vector<NNLayer> mLayers;
   bool                 mInitialized{false};
   bool                 mTrained{false};
+  index mMaxLayerSize;
 };
 } // namespace algorithm
 } // namespace fluid

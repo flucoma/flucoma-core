@@ -69,7 +69,7 @@ public:
   }
 
 
-  BufSelectEveryClient(ParamSetViewType& p) : mParams{p} {}
+  BufSelectEveryClient(ParamSetViewType& p, FluidContext&) : mParams{p} {}
 
   template <typename T>
   Result process(FluidContext&)

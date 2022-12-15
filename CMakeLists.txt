@@ -12,6 +12,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
+  cmake_policy(SET CMP0135 NEW)
+endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/script")
 
@@ -53,7 +56,7 @@ FetchContent_Declare(
   HISSTools
   GIT_REPOSITORY https://github.com/AlexHarker/HISSTools_Library
   GIT_PROGRESS TRUE
-  GIT_TAG 5dd8530
+  GIT_TAG 559b5c8
 )
 
 FetchContent_Declare(
@@ -67,10 +70,11 @@ FetchContent_Declare(
 
 FetchContent_Declare(
   Spectra
+  GIT_SHALLOW TRUE
   GIT_REPOSITORY https://github.com/yixuan/spectra
   GIT_PROGRESS TRUE
   GIT_BRANCH "master"
-  GIT_TAG "v0.9.0"
+  GIT_TAG "v1.0.1"
 )
 
 FetchContent_Declare(
@@ -80,16 +84,25 @@ FetchContent_Declare(
   GIT_PROGRESS TRUE
 )
 
-FetchContent_Declare(
-  json 
-  GIT_SHALLOW TRUE
-  # GIT_REPOSITORY https://github.com/nlohmann/json.git
-  # advice on nlohmann repo is to use this mirror unless we really want ~150 meg of test data as well as headers:
-  GIT_REPOSITORY https://github.com/ArthurSonzogni/nlohmann_json_cmake_fetchcontent
-  GIT_PROGRESS TRUE
-  GIT_TAG v3.10.5
-)
+#see https://json.nlohmann.me/integration/cmake/#fetchcontent
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz)
 set(JSON_SystemInclude ON CACHE BOOL "")
+
+FetchContent_Declare(
+  Memory
+  GIT_SHALLOW TRUE  
+  GIT_REPOSITORY https://github.com/foonathan/memory.git
+  GIT_PROGRESS TRUE
+  GIT_TAG main
+)
+
+FetchContent_Declare(
+  fmt
+  GIT_SHALLOW TRUE  
+  GIT_REPOSITORY https://github.com/fmtlib/fmt
+  GIT_PROGRESS TRUE
+  GIT_TAG master 
+)
 
 if(HISS_PATH) #if hiss path is set, this will stop it downloading
   get_filename_component(FETCHCONTENT_SOURCE_DIR_HISSTOOLS ${HISS_PATH} ABSOLUTE)
@@ -138,6 +151,18 @@ endif()
 
 add_subdirectory(${json_SOURCE_DIR} ${json_BINARY_DIR} EXCLUDE_FROM_ALL)
 
+set(FOONATHAN_MEMORY_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+set(FOONATHAN_MEMORY_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(FOONATHAN_MEMORY_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+
+FetchContent_GetProperties(Memory)
+if(NOT memory_POPULATED)
+  FetchContent_Populate(Memory)
+endif()
+add_subdirectory(${memory_SOURCE_DIR} ${memory_BINARY_DIR} EXCLUDE_FROM_ALL)
+
+FetchContent_MakeAvailable(fmt)
+
 # HISSTools FFT target
 add_library(
   HISSTools_FFT STATIC "${hisstools_SOURCE_DIR}/HISSTools_FFT/HISSTools_FFT.cpp"
@@ -183,6 +208,8 @@ target_include_directories(
   "${eigen_SOURCE_DIR}"
   "${spectra_SOURCE_DIR}/include"
   "${hisstools_SOURCE_DIR}"
+  "${memory_SOURCE_DIR}/include/foonathan"
+  "${fmt_SOURCE_DIR}/include"
 )
 target_link_libraries(
   FLUID_DECOMPOSITION INTERFACE 
@@ -190,6 +217,8 @@ target_link_libraries(
   flucoma_VERSION_LIB 
   tl::optional
   nlohmann_json::nlohmann_json
+  foonathan_memory
+  fmt::fmt
 )
 target_sources(
   FLUID_DECOMPOSITION INTERFACE ${HEADERS}
@@ -224,9 +253,14 @@ if(DEFINED FLUID_ARCH)
 endif()
 
 #Examples
+
+option(BUILD_EXAMPLES "Build C++ example code (off by default)" OFF)
+
+if(BUILD_EXAMPLES)
 add_subdirectory(
    "${CMAKE_CURRENT_SOURCE_DIR}/examples"
 )
+endif() 
 
 enable_testing()
 

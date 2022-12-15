@@ -41,11 +41,12 @@ enum NoveltyParamIndex {
 };
 
 constexpr auto NoveltySliceParams = defineParameters(
-    EnumParam("algorithm", "Algorithm for Feature Extraction", 0, "Spectrum", "MFCC", "Chroma", "Pitch",
-              "Loudness"),
+    EnumParam("algorithm", "Algorithm for Feature Extraction", 0, "Spectrum",
+              "MFCC", "Chroma", "Pitch", "Loudness"),
     LongParamRuntimeMax<Primary>("kernelSize", "KernelSize", 3, Min(3), Odd()),
     FloatParam("threshold", "Threshold", 0.5, Min(0)),
-    LongParamRuntimeMax<Primary>("filterSize", "Smoothing Filter Size", 1, Min(1)),
+    LongParamRuntimeMax<Primary>("filterSize", "Smoothing Filter Size", 1,
+                                 Min(1)),
     LongParam("minSliceLength", "Minimum Length of Slice", 2, Min(0)),
     FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
@@ -72,12 +73,24 @@ public:
     return NoveltySliceParams;
   }
 
-  NoveltySliceClient(ParamSetViewType& p)
-      : mParams{p}, mNovelty{get<kKernelSize>().max(), get<kFilterSize>().max()},
-        mSTFT{get<kFFT>().winSize(), get<kFFT>().fftSize(),
-              get<kFFT>().hopSize()},
-        mMelBands{40, get<kFFT>().max()},
-        mChroma(12, get<kFFT>().max()), mLoudness{get<kFFT>().max()}
+  NoveltySliceClient(ParamSetViewType& p, FluidContext& c)
+      : mParams{p}, mNovelty{get<kKernelSize>().max(),
+                             get<kFFT>().maxFrameSize(),
+                             get<kFilterSize>().max(), c.allocator()},
+        mBufferedProcess{get<kFFT>().max(),  get<kFFT>().max(), 1, 1,
+                         c.hostVectorSize(), c.allocator()},
+        mSTFT{get<kFFT>().max(), get<kFFT>().max(), get<kFFT>().hopSize(), 0,
+              c.allocator()},
+        mSpectrum{get<kFFT>().maxFrameSize(), c.allocator()},
+        mMagnitude{get<kFFT>().maxFrameSize(), c.allocator()},
+        mBands{40, c.allocator()}, mFeature{get<kFFT>().maxFrameSize(),
+                                            c.allocator()},
+        mMelBands{40, get<kFFT>().max(), c.allocator()}, mDCT{40, 13,
+                                                              c.allocator()},
+        mChroma{12, get<kFFT>().max(), c.allocator()}, mLoudness{
+                                                           get<kFFT>().max(),
+                                                           c.allocator()}
+
   {
     audioChannelsIn(1);
     audioChannelsOut(1);
@@ -86,37 +99,34 @@ public:
   }
 
 
-  void initAlgorithms(index feature, index windowSize)
+  void initAlgorithms(index feature, index windowSize, FluidContext& c)
   {
-    index nDims = 2;
+    nDims = 2;
     if (feature < 4)
     {
-      mSpectrum.resize(get<kFFT>().frameSize());
-      mMagnitude.resize(get<kFFT>().frameSize());
-      mSTFT = algorithm::STFT(get<kFFT>().winSize(), get<kFFT>().fftSize(),
-                              get<kFFT>().hopSize());
+      mSTFT.resize(get<kFFT>().winSize(), get<kFFT>().fftSize(),
+                   get<kFFT>().hopSize());
     }
     if (feature == 0) { nDims = get<kFFT>().frameSize(); }
     else if (feature == 1)
     {
-      mBands.resize(40);
       mMelBands.init(20, 20e3, 40, get<kFFT>().frameSize(), sampleRate(),
-                     get<kFFT>().winSize());
-      mDCT.init(40, 13);
+                     get<kFFT>().winSize(), c.allocator());
+      mDCT.init(40, 13, c.allocator());
       nDims = 13;
     }
     else if (feature == 2)
     {
-      mChroma.init(12, get<kFFT>().frameSize(), 440,  sampleRate());
+      mChroma.init(12, get<kFFT>().frameSize(), 440, sampleRate(),
+                   c.allocator());
       nDims = 12;
     }
     else if (feature == 4)
     {
-      mLoudness.init(windowSize, sampleRate());
+      mLoudness.init(windowSize, sampleRate(), c.allocator());
     }
-    mFeature.resize(nDims);
-    mFrameOffset = 0; 
-    mNovelty.init(get<kKernelSize>(), get<kFilterSize>(), nDims);
+    mFrameOffset = 0;
+    mNovelty.init(get<kKernelSize>(), get<kFilterSize>(), nDims, c.allocator());
   }
 
   template <typename T>
@@ -130,53 +140,57 @@ public:
 
     index hostVecSize = input[0].size();
     index windowSize = get<kFFT>().winSize();
-    index feature = get<kFeature>();
+    index frameSize = get<kFFT>().frameSize();
+    index featureIdx = get<kFeature>();
     if (mParamsTracker.changed(hostVecSize, get<kFeature>(), get<kKernelSize>(),
                                get<kFilterSize>(), windowSize, sampleRate()))
     {
-      mBufferedProcess.hostSize(hostVecSize);
-      mBufferedProcess.maxSize(windowSize, windowSize,
-                               FluidBaseClient::audioChannelsIn(),
-                               FluidBaseClient::audioChannelsOut());
-      initAlgorithms(feature, windowSize);
+      initAlgorithms(featureIdx, windowSize, c);
     }
-    RealMatrix in(1, hostVecSize);
+    RealMatrix in(1, hostVecSize, c.allocator());
     in.row(0) <<= input[0];
-    RealMatrix out(1, hostVecSize);
-    
+    RealMatrix out(1, hostVecSize, c.allocator());
+
+    auto spectrum = mSpectrum(Slice(0, frameSize));
+    auto magnitude = mMagnitude(Slice(0, frameSize));
+    auto feature = mFeature(Slice(0, nDims));
+
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.process(
         windowSize, windowSize, get<kFFT>().hopSize(), c,
         [&, this](RealMatrixView in, RealMatrixView) {
-          switch (feature)
+          switch (featureIdx)
           {
           case 0:
-            mSTFT.processFrame(in.row(0), mSpectrum);
-            mSTFT.magnitude(mSpectrum, mFeature);
+            mSTFT.processFrame(in.row(0), spectrum);
+            mSTFT.magnitude(spectrum, feature);
             break;
           case 1:
-            mSTFT.processFrame(in.row(0), mSpectrum);
-            mSTFT.magnitude(mSpectrum, mMagnitude);
-            mMelBands.processFrame(mMagnitude, mBands, false, false, true);
-            mDCT.processFrame(mBands, mFeature);
+            mSTFT.processFrame(in.row(0), spectrum);
+            mSTFT.magnitude(spectrum, magnitude);
+            mMelBands.processFrame(magnitude, mBands, false, false, true,
+                                   c.allocator());
+            mDCT.processFrame(mBands, feature);
             break;
           case 2:
-            mSTFT.processFrame(in.row(0), mSpectrum);
-            mSTFT.magnitude(mSpectrum, mMagnitude);
-            mChroma.processFrame(mMagnitude, mFeature, 20, 5000);
+            mSTFT.processFrame(in.row(0), spectrum);
+            mSTFT.magnitude(spectrum, magnitude);
+            mChroma.processFrame(magnitude, feature, 20, 5000);
             break;
           case 3:
-            mSTFT.processFrame(in.row(0), mSpectrum);
-            mSTFT.magnitude(mSpectrum, mMagnitude);
-            mYinFFT.processFrame(mMagnitude, mFeature, 20, 5000, sampleRate());
+            mSTFT.processFrame(in.row(0), spectrum);
+            mSTFT.magnitude(spectrum, magnitude);
+            mYinFFT.processFrame(magnitude, feature, 20, 5000, sampleRate(),
+                                 c.allocator());
             break;
           case 4:
-            mLoudness.processFrame(in.row(0), mFeature, true, true);
+            mLoudness.processFrame(in.row(0), feature, true, true,
+                                   c.allocator());
             break;
           }
           if (mFrameOffset < out.row(0).size())
             out.row(0)(mFrameOffset) = mNovelty.processFrame(
-                mFeature, get<kThreshold>(), get<kDebounce>());
+                feature, get<kThreshold>(), get<kDebounce>(), c.allocator());
           mFrameOffset += get<kFFT>().hopSize();
         });
 
@@ -194,11 +208,11 @@ public:
            (1 + ((get<kKernelSize>() + 1) >> 1) + (filterSize >> 1));
   }
 
-  void reset()
+  void reset(FluidContext& c)
   {
     mBufferedProcess.reset();
-    mFrameOffset = 0; 
-    initAlgorithms(get<kFeature>(), get<kFFT>().winSize());
+    mFrameOffset = 0;
+    initAlgorithms(get<kFeature>(), get<kFFT>().winSize(), c);
   }
 
 private:
@@ -212,10 +226,11 @@ private:
   FluidTensor<double, 1>               mBands;
   FluidTensor<double, 1>               mFeature;
   algorithm::MelBands                  mMelBands;
-  algorithm::DCT                       mDCT{40, 13};
+  algorithm::DCT                       mDCT;
   algorithm::ChromaFilterBank          mChroma;
   algorithm::YINFFT                    mYinFFT;
   algorithm::Loudness                  mLoudness;
+  index                                nDims;
   index mFrameOffset{0}; // in case kHopSize < hostVecSize
 };
 } // namespace noveltyslice

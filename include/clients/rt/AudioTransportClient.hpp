@@ -44,8 +44,11 @@ public:
     return AudioTransportParams;
   }
 
-  AudioTransportClient(ParamSetViewType& p)
-      : mParams{p}, mAlgorithm(get<kFFT>().max())
+  AudioTransportClient(ParamSetViewType& p, FluidContext& c)
+      : mParams{p},
+        mBufferedProcess(get<kFFT>().max(), get<kFFT>().max(), 2, 2,
+                         c.hostVectorSize(), c.allocator()),
+        mAlgorithm(get<kFFT>().max(), c.allocator())                    
   {
     audioChannelsIn(2);
     audioChannelsOut(1);
@@ -64,11 +67,8 @@ public:
     {
       mAlgorithm.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
                       get<kFFT>().hopSize());
-      mBufferedProcess.hostSize(hostVecSize);
-      mBufferedProcess.maxSize(get<kFFT>().winSize(), get<kFFT>().winSize(), 2,
-                               2);
     }
-    RealMatrix in(2, input[0].size());
+    RealMatrix in(2, input[0].size(), c.allocator());
     in.row(0) <<= input[0];
     in.row(1) <<= input[1];
     mBufferedProcess.push(RealMatrixView(in));
@@ -76,19 +76,21 @@ public:
         get<kFFT>().winSize(), get<kFFT>().winSize(), get<kFFT>().hopSize(), c,
         [&](RealMatrixView _in, RealMatrixView _out) {
           mAlgorithm.processFrame(_in.row(0), _in.row(1), get<kInterpolation>(),
-                                  _out);
+                                  _out, c.allocator());
         });
-    RealMatrix out(2, hostVecSize);
+    RealMatrix out(2, hostVecSize, c.allocator());
     mBufferedProcess.pull(RealMatrixView(out));
     RealVectorView result = out.row(0);
     RealVectorView norm = out.row(1);
     for (index i = 0; i < result.size(); i++)
-    { result(i) /= (norm(i) > 0 ? norm(i) : 1); }
+    {
+      result(i) /= (norm(i) > 0 ? norm(i) : 1);
+    }
     if (output[0].data()) output[0] <<= result;
   }
 
   index latency() { return get<kFFT>().winSize(); }
-  void  reset() { mBufferedProcess.reset(); }
+  void  reset(FluidContext&) { mBufferedProcess.reset(); }
 
 private:
   BufferedProcess                            mBufferedProcess;

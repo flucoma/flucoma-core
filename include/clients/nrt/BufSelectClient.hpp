@@ -55,7 +55,7 @@ public:
   static constexpr auto& getParameterDescriptors() { return BufSelectParams; }
 
 
-  BufSelectClient(ParamSetViewType& p) : mParams{p} {}
+  BufSelectClient(ParamSetViewType& p, FluidContext&) : mParams{p} {}
 
   template <typename T>
   Result process(FluidContext&)

@@ -11,6 +11,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "../nrt/FluidSharedInstanceAdaptor.hpp"
+#include "../../data/FluidMemory.hpp"
 #include <clients/common/FluidBaseClient.hpp>
 #include <memory>
 
@@ -26,7 +27,7 @@ public:
   using SharedType = NRTSharedInstanceAdaptor<std::decay_t<T>>;
 
   SharedClientRef() {}
-  SharedClientRef(const char* name) : mName{name} {}
+  SharedClientRef(const char* name) : mName{name, FluidDefaultAllocator()} {}
   WeakPointer get() const { return {SharedType::lookup(mName)}; }
   void        set(const char* name) { mName = std::string(name); }
   const char* name() const { return mName.c_str(); }
@@ -50,7 +51,7 @@ public:
   }
 
 private:
-  std::string mName;
+  rt::string mName;
 };
 
 template <typename T>

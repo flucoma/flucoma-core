@@ -84,8 +84,8 @@ void to_json(nlohmann::json &j, const FluidTensorView<const T, 1> &t) {
 template <typename T>
 void from_json(const nlohmann::json &j, FluidTensor<T, 2> &t) {
   if (j.size() > 0) {
-    auto result = FluidTensor<T, 2>(j.size(), j[0].size());
-    FluidTensor<T, 1> tmp(j[0].size());
+    auto result = FluidTensor<T, 2>(asSigned(j.size()), asSigned(j[0].size()));
+    FluidTensor<T, 1> tmp(asSigned(j[0].size()));
     for (size_t i = 0; i < j.size(); i++) {
       j.at(i).get_to(tmp);
       result.row(asSigned(i)) <<= tmp;
@@ -419,7 +419,7 @@ void from_json(const nlohmann::json &j, MLP &mlp) {
   index outputSize = j["layers"][asUnsigned(nLayers - 1)]["cols"].get<index>();
   index activation = j["layers"][0]["activation"].get<index>();
   index finalActivation = j["layers"][asUnsigned(nLayers - 1)]["activation"].get<index>();
-  FluidTensor<index, 1> hiddenSizes(j["layers"].size() - 1);
+  FluidTensor<index, 1> hiddenSizes(asSigned(j["layers"].size()) - 1);
   if(nLayers > 1){
     for (index i = 0; i < nLayers - 1; i++){
       hiddenSizes(i) =  j["layers"][asUnsigned(i)]["cols"].get<index>();

@@ -20,6 +20,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../algorithms/public/MelBands.hpp"
 #include "../../data/TensorTypes.hpp"
 
+
 namespace fluid {
 namespace client {
 namespace melbands {
@@ -60,13 +61,13 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return MelBandsParams; }
 
-  MelBandsClient(ParamSetViewType& p)
-      : mParams{p}, mSTFTBufferedProcess(get<kFFT>().max(), 1, 0),
-        mMelBands(get<kNBands>().max(), get<kFFT>().max())
+  MelBandsClient(ParamSetViewType& p, FluidContext& c)
+      : mParams{p},
+        mSTFTBufferedProcess(get<kFFT>(),1,0,c.hostVectorSize(),c.allocator()),
+        mMelBands(get<kNBands>().max(), get<kFFT>().max(),c.allocator()),
+        mMagnitude{get<kFFT>().maxFrameSize(), c.allocator()},
+        mBands{get<kNBands>().max(), c.allocator()}
   {
-    mBands = FluidTensor<double, 1>(get<kNBands>().max());
-    mMagnitude = FluidTensor<double,1>(get<kFFT>().maxFrameSize());
-    
     audioChannelsIn(1);
     controlChannelsOut({1,get<kNBands>(),get<kNBands>().max()});
     setInputLabels({"audio in"});
@@ -93,18 +94,23 @@ public:
                          get<kMaxFreq>(), sampleRate()))
     {
       mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), nBands,
-                     frameSize, sampleRate(),winSize);
+                     frameSize, sampleRate(),winSize, c.allocator());
       controlChannelsOut({1, nBands});
+    }
+    
+    if (mHostSizeTracker.changed(c.hostVectorSize()))
+    {
+      mSTFTBufferedProcess =    STFTBufferedProcess<false>(get<kFFT>(),1,0,c.hostVectorSize(),c.allocator()); 
     }
     
     auto mags = mMagnitude(Slice(0,frameSize));
     auto bands = mBands(Slice(0,nBands));
     
     mSTFTBufferedProcess.processInput(
-        mParams, input, c, [&](ComplexMatrixView in) {
+        get<kFFT>(), input, c, [&](ComplexMatrixView in) {
           algorithm::STFT::magnitude(in.row(0), mags);
           mMelBands.processFrame(mags, bands, get<kNormalize>() == 1,
-                                 false, get<kScale>() == 1);
+                                 false, get<kScale>() == 1, c.allocator());
         });
     // for (index i = 0; i < get<kNBands>(); ++i)
     //   output[asUnsigned(i)](0) = static_cast<T>(mBands(i));
@@ -114,12 +120,12 @@ public:
 
   index latency() { return get<kFFT>().winSize(); }
 
-  void reset()
+  void reset(FluidContext& c)
   {
     mSTFTBufferedProcess.reset();
     mMelBands.init(get<kMinFreq>(), get<kMaxFreq>(), get<kNBands>(),
                    get<kFFT>().frameSize(), sampleRate(),
-                   get<kFFT>().winSize());
+                   get<kFFT>().winSize(), c.allocator());
   }
 
   AnalysisSize analysisSettings()
@@ -131,7 +137,8 @@ public:
 private:
   ParameterTrackChanges<index, index, index, index, double, double, double>
                                                      mTracker;
-  STFTBufferedProcess<ParamSetViewType, kFFT, false> mSTFTBufferedProcess;
+  ParameterTrackChanges<index> mHostSizeTracker;
+  STFTBufferedProcess<false> mSTFTBufferedProcess;
 
   algorithm::MelBands    mMelBands;
   FluidTensor<double, 1> mMagnitude;

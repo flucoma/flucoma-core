@@ -73,7 +73,8 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return AmpGateParams; }
 
-  AmpGateClient(ParamSetViewType& p) : mParams{p}, mAlgorithm{get<kMaxSize>()}
+  AmpGateClient(ParamSetViewType& p, FluidContext& c)
+    : mParams{p}, mAlgorithm{get<kMaxSize>(), c.allocator()}
   {
     FluidBaseClient::audioChannelsIn(1);
     FluidBaseClient::audioChannelsOut(1);
@@ -110,7 +111,7 @@ public:
     }
   }
 
-  void reset()
+  void reset(FluidContext&)
   {
     double hiPassFreq = std::min(get<kHiPassFreq>() / sampleRate(), 0.5);
     mAlgorithm.init(get<kOnThreshold>(), get<kOffThreshold>(), hiPassFreq,

@@ -53,13 +53,13 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return NMFMatchParams; }
 
-  NMFMatchClient(ParamSetViewType& p)
-      : mParams(p), mSTFTProcessor(get<kFFT>().max(), 1, 0)
+  NMFMatchClient(ParamSetViewType& p, FluidContext& c)
+      : mParams(p),
+        mFilter(get<kMaxRank>().max(),get<kFFT>().maxFrameSize(),c.allocator()),
+        mMagnitude(1, get<kFFT>().maxFrameSize(),c.allocator()),
+        mActivations(get<kMaxRank>().max(), c.allocator()),
+        mSTFTProcessor(get<kFFT>(), 1, 0, c.hostVectorSize(), c.allocator())
   {
-    mMagnitude = FluidTensor<double,2>(1, get<kFFT>().maxFrameSize());
-    mFilter = FluidTensor<double,2>(get<kMaxRank>().max(),get<kFFT>().maxFrameSize());
-    mActivations = FluidTensor<double,1>(get<kMaxRank>().max());
-    
     audioChannelsIn(1);
     controlChannelsOut({1, get<kMaxRank>(),get<kMaxRank>().max()});
     setInputLabels({"audio input"});
@@ -68,7 +68,7 @@ public:
 
   index latency() { return get<kFFT>().winSize(); }
 
-  void reset() { mSTFTProcessor.reset(); }
+  void reset(FluidContext&) { mSTFTProcessor.reset(); }
 
   template <typename T>
   void process(std::vector<HostVector<T>>& input,
@@ -104,9 +104,10 @@ public:
       for (index i = 0; i < filter.rows(); ++i)
         filter.row(i) <<= filterBuffer.samps(i);
 
-      mSTFTProcessor.processInput(mParams, input, c, [&](ComplexMatrixView in) {
+      mSTFTProcessor.processInput(get<kFFT>(), input, c, [&](ComplexMatrixView in) {
         algorithm::STFT::magnitude(in, mags);
-        mNMF.processFrame(mags.row(0), filter, activations);
+        mNMF.processFrame(mags.row(0), filter, activations,
+            10, FluidTensorView<double,1>{nullptr, 0, 0}, c.allocator());
       });
 
       output[0](Slice(0,rank)) <<= activations;
@@ -121,7 +122,7 @@ private:
   FluidTensor<double, 2>              mMagnitude;
   FluidTensor<double, 1>              mActivations;
 
-  STFTBufferedProcess<ParamSetViewType, kFFT, false> mSTFTProcessor;
+  STFTBufferedProcess<false> mSTFTProcessor;
 };
 } // namespace nmfmatch
 

@@ -59,16 +59,18 @@ public:
     using namespace Eigen;
     using namespace _impl;
     if (k > mBases.cols()) return;
-    VectorXd input = asEigen<Matrix>(in);
+    FluidEigenMap<Matrix> input = asEigen<Matrix>(in);
     input = input - mMean;
-    VectorXd result = input.transpose() * mBases.block(0, 0, mBases.rows(), k);
+    FluidEigenMap<Matrix> result = asEigen<Matrix>(out);
+    // this avoids Eigen making a temporary (sorry):
+    result.transpose().noalias() =
+        input.transpose() * mBases.block(0, 0, mBases.rows(), k);
 
     if (whiten)
     {
-      ArrayXd norm = mExplainedVariance.segment(0, k).max(epsilon).rsqrt();
+      auto norm = mExplainedVariance.segment(0, k).max(epsilon).rsqrt();
       result.array() *= norm;
     }
-     out <<= _impl::asFluid(result);
   }
 
   void inverseProcessFrame(RealVectorView in, RealVectorView out, bool whiten = false) const

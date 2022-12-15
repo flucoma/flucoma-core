@@ -44,7 +44,7 @@ constexpr auto OnsetSliceParams = defineParameters(
     FloatParam("threshold", "Threshold", 0.5, Min(0)),
     LongParam("minSliceLength", "Minimum Length of Slice", 2, Min(0)),
     LongParam("filterSize", "Filter Size", 5, Min(1), Odd(), Max(101)),
-    LongParam("frameDelta", "Frame Delta", 0, Min(0)),
+    LongParam("frameDelta", "Frame Delta", 0, Min(0), Max(8192)),
     FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class OnsetSliceClient : public FluidBaseClient, public AudioIn, public AudioOut
@@ -65,8 +65,10 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return OnsetSliceParams; }
 
-  OnsetSliceClient(ParamSetViewType& p)
-      : mParams{p}, mAlgorithm{get<kFFT>().max()}
+  OnsetSliceClient(ParamSetViewType& p, FluidContext const& c)
+      : mParams{p},
+        mAlgorithm{get<kFFT>().max(), 101,c.allocator()},
+        mBufferedProcess{get<kFFT>().max() + 8192 /*max frame delta*/, 0, 1, 0, c.hostVectorSize(), c.allocator()}
   {
     audioChannelsIn(1);
     audioChannelsOut(1);
@@ -82,7 +84,7 @@ public:
     using std::size_t;
 
     if (!input[0].data() || !output[0].data()) return;
-
+    assert(input[0].size() == c.hostVectorSize());
     index hostVecSize = input[0].size();
     index totalWindow = get<kFFT>().winSize();
     if (get<kFunction>() > 1 && get<kFunction>() < 5)
@@ -90,10 +92,13 @@ public:
     if (mBufferParamsTracker.changed(hostVecSize, get<kFFT>().winSize(),
                                      get<kFrameDelta>()))
     {
-      mBufferedProcess.hostSize(hostVecSize);
-      mBufferedProcess.maxSize(totalWindow, totalWindow,
-                               FluidBaseClient::audioChannelsIn(),
-                               FluidBaseClient::audioChannelsOut());
+    
+//      mBufferedProcess.reset();
+          mBufferedProcess = BufferedProcess {get<kFFT>().max() + 8192 /*max frame delta*/, 0, 1, 0, c.hostVectorSize(), c.allocator()};
+//      mBufferedProcess.hostSize(hostVecSize);
+//      mBufferedProcess.maxSize(totalWindow, totalWindow,
+//                               FluidBaseClient::audioChannelsIn(),
+//                               FluidBaseClient::audioChannelsOut());
       mFrameOffset = 0; 
     }
     if (mParamsTracker.changed(get<kFFT>().fftSize(), get<kFFT>().winSize()))
@@ -101,16 +106,16 @@ public:
       mAlgorithm.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
                       get<kFilterSize>());
     }
-    RealMatrix in(1, hostVecSize);
+    RealMatrix in(1, hostVecSize, c.allocator());
     in.row(0) <<= input[0];
-    RealMatrix out(1, hostVecSize);
+    RealMatrix out(1, hostVecSize, c.allocator());
     
     mBufferedProcess.push(RealMatrixView(in));
     mBufferedProcess.processInput(
         totalWindow, get<kFFT>().hopSize(), c, [&, this](RealMatrixView in) {
           out.row(0)(mFrameOffset) = mAlgorithm.processFrame(
               in.row(0), get<kFunction>(), get<kFilterSize>(),
-              get<kThreshold>(), get<kDebounce>(), get<kFrameDelta>());
+              get<kThreshold>(), get<kDebounce>(), get<kFrameDelta>(),c.allocator());
           mFrameOffset += get<kFFT>().hopSize();
         });
 
@@ -122,9 +127,9 @@ public:
 
   index latency() { return static_cast<index>(get<kFFT>().hopSize()); }
 
-  void reset()
+  void reset(FluidContext& c)
   {    
-    mBufferedProcess.reset();
+    mBufferedProcess = BufferedProcess {get<kFFT>().max() + 8192 /*max frame delta*/, 0, 1, 0, c.hostVectorSize(), c.allocator()};
     mFrameOffset = 0;
     mAlgorithm.init(get<kFFT>().winSize(), get<kFFT>().fftSize(),
                     get<kFilterSize>());

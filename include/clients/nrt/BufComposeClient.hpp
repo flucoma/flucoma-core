@@ -69,7 +69,7 @@ public:
   static constexpr auto& getParameterDescriptors() { return BufComposeParams; }
 
 
-  BufComposeClient(ParamSetViewType& p) : mParams{p} {}
+  BufComposeClient(ParamSetViewType& p, FluidContext&) : mParams{p} {}
 
   template <typename T>
   Result process(FluidContext& c)
