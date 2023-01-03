@@ -393,9 +393,13 @@ public:
       }
 
       if (hopChanged) v.setHop(v.hopRaw() <= 0 ? -1 : v.hopRaw());
-      
-      if(v.mMaxFFTSize > 0) v.mMaxFFTSize = static_cast<index>(v.nextPow2(static_cast<uint32_t>(v.mMaxFFTSize), true));
-      
+
+      if (v.mMaxFFTSize > 0)
+        v.mMaxFFTSize = static_cast<index>(
+            v.nextPow2(static_cast<uint32_t>(v.mMaxFFTSize), true));
+      else
+        v.mMaxFFTSize = v.nextPow2(static_cast<uint32_t>(v.fftSize()), true);
+
       index clippedFFT = v.mMaxFFTSize > 0 ? std::min(v.fftSize(),v.mMaxFFTSize) : v.fftSize();
 
       bool fftSizeWasClipped{clippedFFT != v.fftSize()};
