@@ -108,6 +108,8 @@ public:
   void clear()
   {
     mRoot = nullptr;
+    mNPoints = 0; 
+    mDims = 0; 
     mInitialized = false;
   }
 
@@ -267,7 +269,7 @@ private:
   }
 
   NodePtr mRoot{nullptr};
-  index   mDims;
+  index   mDims{0};
   index   mNPoints{0};
   bool    mInitialized{false};
 };
