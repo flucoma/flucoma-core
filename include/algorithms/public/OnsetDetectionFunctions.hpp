@@ -42,11 +42,12 @@ public:
   {
     assert(windowSize <= mWindow.size());
     makeWindow(windowSize);
-
     mPrevFrame.setZero();
     mPrevPrevFrame.setZero();
     mFilter.init(std::max<index>(filterSize, 3));
     mFFT.resize(fftSize);
+    assert(fftSize <= mWindow.size());
+    mFFTSize = fftSize;
     mDebounceCount = 1;
     mPrevFuncVal = 0;
     mInitialized = true;
@@ -64,7 +65,7 @@ public:
     return static_cast<index>(std::pow(2, std::ceil(std::log2(n))));
   }
 
-  /// input window isn't necessarily a single framre because it should encompass
+  /// input window isn't necessarily a single frame because it should encompass
   /// `frameDelta`'s worth of history
   double processFrame(RealVectorView input, index function, index filterSize,
                       index frameDelta, Allocator& alloc)
@@ -72,15 +73,16 @@ public:
     assert(mInitialized);
     double funcVal = 0;
     double filteredFuncVal = 0;
-    index frameSize = nextPower2(mWindowSize) / 2 + 1;
+    index frameSize = nextPower2(mFFTSize) / 2 + 1;
 
     if (filterSize >= 3 &&
         (!mFilter.initialized() || filterSize != mFilter.size()))
       mFilter.init(filterSize);
 
-    ScopedEigenMap<ArrayXd> in(mWindowSize, alloc);
-    in = _impl::asEigen<Eigen::Array>(input).col(0).head(mWindowSize) *
-         mWindow.head(mWindowSize);
+    ScopedEigenMap<ArrayXd> in(mFFTSize, alloc);
+    in.head(mWindowSize) =
+        _impl::asEigen<Eigen::Array>(input).col(0).head(mWindowSize) *
+        mWindow.head(mWindowSize);
 
     ScopedEigenMap<ArrayXcd> frame(frameSize, alloc);
     frame = mFFT.process(in);
@@ -88,8 +90,11 @@ public:
     if (function > 1 && function < 5 && frameDelta != 0)
     {
       ScopedEigenMap<ArrayXcd> frame2(frameSize, alloc);
-      frame2 = mFFT.process(in.segment(frameDelta, mWindowSize) *
-                            mWindow.head(mWindowSize));
+      ScopedEigenMap<ArrayXd>  in2(mFFTSize, alloc);
+      in2.head(mWindowSize) = _impl::asEigen<Eigen::Array>(input)(
+                                  Eigen::seqN(frameDelta, mWindowSize), 0) *
+                              mWindow.head(mWindowSize);
+      frame2 = mFFT.process(in2);
       funcVal = OnsetDetectionFuncs::map(function)(frame2, frame, frame, alloc);
     }
     else
@@ -112,6 +117,7 @@ private:
   FFT                      mFFT;
   ScopedEigenMap<ArrayXd>  mWindow;
   index                    mWindowSize{1024};
+  index                    mFFTSize;
   index                    mDebounceCount{1};
   ScopedEigenMap<ArrayXcd> mPrevFrame;
   ScopedEigenMap<ArrayXcd> mPrevPrevFrame;
