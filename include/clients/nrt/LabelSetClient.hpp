@@ -110,6 +110,24 @@ public:
     return mAlgorithm.remove(id) ? OK() : Error(PointNotFound);
   }
 
+  MessageResult<void> merge(LabelSetClientRef labelsetClient,
+                            bool                           overwrite)
+  {
+    auto labelsetClientPtr = labelsetClient.get().lock();
+    if (!labelsetClientPtr) return Error(NoLabelSet);
+    auto srcLabelSet = labelsetClientPtr->getLabelSet();
+    if (!labelsetClientPtr) return Error(NoLabelSet);
+    auto       ids = srcLabelSet.getIds();
+    StringVector point(1);
+    for (index i = 0; i < srcLabelSet.size(); i++)
+    {
+      srcLabelSet.get(ids(i), point);
+      bool added = mAlgorithm.add(ids(i), point);
+      if (!added && overwrite) mAlgorithm.update(ids(i), point);
+    }
+    return OK();
+  }
+
   MessageResult<void> clear()
   {
     mAlgorithm = LabelSet(1);
@@ -137,6 +155,7 @@ public:
         makeMessage("deleteLabel", &LabelSetClient::deleteLabel),
         makeMessage("updateLabel", &LabelSetClient::updateLabel),
         makeMessage("setLabel", &LabelSetClient::setLabel),
+        makeMessage("merge", &LabelSetClient::merge),
         makeMessage("dump", &LabelSetClient::dump),
         makeMessage("load", &LabelSetClient::load),
         makeMessage("print", &LabelSetClient::print),
