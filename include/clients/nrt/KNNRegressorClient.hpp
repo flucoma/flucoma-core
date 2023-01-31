@@ -123,24 +123,24 @@ public:
   {
     index k = get<kNumNeighbors>();
     bool  weight = get<kWeight>() != 0;
-    if (k == 0) return Error<double>(SmallK);
-    if (mAlgorithm.tree.size() == 0) return Error<double>(NoDataFitted);
-    if (mAlgorithm.tree.size() < k) return Error<double>(NotEnoughData);
+    if (k == 0) return Error(SmallK);
+    if (mAlgorithm.tree.size() == 0) return Error(NoDataFitted);
+    if (mAlgorithm.tree.size() < k) return Error(NotEnoughData);
 
     InBufferCheck bufCheck(mAlgorithm.tree.dims());
     if (!bufCheck.checkInputs(in.get()))
-      return Error<double>(bufCheck.error());
-    InOutBuffersCheck bufCheck(mAlgorithm.tree.dims());//I'm sure there is a better way
-    if (!bufCheck.checkInputs(out.get()))
-      return Error<double>(bufCheck.error());
+      return Error(bufCheck.error());
+    BufferAdaptor::ReadAccess inBuf(in.get());
+    BufferAdaptor::Access outBuf(out.get());
+    if (!outBuf.exists()) return Error(InvalidBuffer);
+    Result resizeResult = outBuf.resize(mAlgorithm.target.dims(), 1, inBuf.sampleRate());
+    if (!resizeResult.ok()) return Error(BufferAlloc);
     algorithm::KNNRegressor regressor;
     RealVector              input(mAlgorithm.tree.dims());
     RealVector              output(mAlgorithm.target.dims());
-    input <<= BufferAdaptor::ReadAccess(in.get())
-                .samps(0, mAlgorithm.tree.dims(), 0);
-    auto outBuf = BufferAdaptor::Access(out.get());
+    input <<= inBuf.samps(0, mAlgorithm.tree.dims(), 0);
     regressor.predict(mAlgorithm.tree, mAlgorithm.target, input, output, k, weight);
-    outBuf.samps() <<= output;
+    outBuf.samps(0) <<= output;
     return OK();
   }
 
@@ -164,7 +164,7 @@ public:
     algorithm::KNNRegressor regressor;
     auto                    ids = dataSet.getIds();
     auto                    data = dataSet.getData();
-    DataSet                 result;
+    DataSet                 result(mAlgorithm.tree.dims());
     RealVector              prediction(mAlgorithm.target.dims());//should allocate elsewhere
     for (index i = 0; i < dataSet.size(); i++)
     {
@@ -254,18 +254,18 @@ public:
                                 get<kOutputBuffer>().get()))
         return;
       auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-      // if (outBuf.samps(0).size() != 1) return;
+      if (outBuf.samps(0).size() != algorithm.tree.dims()) return;
 
       algorithm::KNNRegressor regressor;
 
       RealVector input(algorithm.tree.dims());
-      RealVector output(mAlgorithm.target.dims());
+      RealVector output(algorithm.target.dims());
 
-      point <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+      input <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                   .samps(0, algorithm.tree.dims(), 0);
 
       regressor.predict(algorithm.tree, algorithm.target, input, output, k, weight);
-      outBuf.samps() = output;
+      outBuf.samps(0) <<= output;
     }
   }
 

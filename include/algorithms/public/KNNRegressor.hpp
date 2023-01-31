@@ -35,8 +35,6 @@ public:
                  Allocator& alloc = FluidDefaultAllocator()) const
   {
     using namespace std;
-    using namespace Eigen;
-    using namespace _impl;
 
     auto [distances, ids] = tree.kNearest(input, k, 0, alloc);
     double             uniformWeight = 1.0 / k;
@@ -65,13 +63,12 @@ public:
       }
     }
 
-    rt::vector<double> prediction(targets.pointSize(),0,alloc); //should we make a private allocation once? or just write in prediction directly
-    ArrayXd predictionView = asEigen<Array>(prediction);
+    RealVector prediction(targets.pointSize(),alloc); //should we make a private allocation once? or just write in prediction directly
 
     for (size_t i = 0; i < asUnsigned(k); i++)
     {
-      ArrayXd point = asEigen<Array>(targets.get(*ids[i]));
-      predictionView += predictionView + (weights[i] * point);//it seems we can't mult a array by a double
+      Eigen::ArrayXd point = _impl::asEigen<Eigen::Array>(targets.get(*ids[i]));
+      _impl::asEigen<Eigen::Array>(prediction) += _impl::asEigen<Eigen::Array>(prediction) + (weights[i] * point);//it seems we can't mult a array by a double
     }
 
     output = prediction;
