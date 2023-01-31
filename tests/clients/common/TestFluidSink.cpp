@@ -56,7 +56,7 @@ TEMPLATE_TEST_CASE("FluidSink can overlap-add a varitety of window sizes and hop
   }
   
 
-  for (int i = 0, j = 0, k = 0; i < data.size() - hostSize; i += hostSize)
+  for (int i = 0, j = 0, k = 0; i < data.size() - frameSize; i += hostSize)
   {
     
     for (; j < hostSize; j += hop, k += 1)
