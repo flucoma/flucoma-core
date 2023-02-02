@@ -254,7 +254,7 @@ public:
                                 get<kOutputBuffer>().get()))
         return;
       auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-      if (outBuf.samps(0).size() != algorithm.tree.dims()) return;
+      if (outBuf.samps(0).size() != algorithm.target.dims()) return;
 
       algorithm::KNNRegressor regressor;
 
