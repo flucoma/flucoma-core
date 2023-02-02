@@ -164,8 +164,8 @@ public:
     algorithm::KNNRegressor regressor;
     auto                    ids = dataSet.getIds();
     auto                    data = dataSet.getData();
-    DataSet                 result(mAlgorithm.tree.dims());
-    RealVector              prediction(mAlgorithm.target.dims());//should allocate elsewhere
+    DataSet                 result(mAlgorithm.target.dims());
+    RealVector              prediction(mAlgorithm.target.dims());
     for (index i = 0; i < dataSet.size(); i++)
     {
       RealVectorView point = data.row(i);

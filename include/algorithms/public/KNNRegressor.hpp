@@ -59,10 +59,11 @@ public:
       }
     }
       
+      output.fill(0);
       for (size_t i = 0; i < asUnsigned(k); i++)
       {
         Eigen::ArrayXd point = asEigen<Array>(targets.get(*ids[i]));
-          asEigen<Array>(output) += (weights[i] * point);
+        asEigen<Array>(output) += (weights[i] * point);
       }
   }
 };
