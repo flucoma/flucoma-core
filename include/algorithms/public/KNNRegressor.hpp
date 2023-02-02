@@ -58,16 +58,12 @@ public:
         weights = (1.0 / distanceArray) / sum;
       }
     }
-
-    rt::vector<index> indices(ids.size(), alloc);
-
-    transform(ids.cbegin(), ids.cend(), indices.begin(),
-              [&targets](const string* id) { return targets.getIndex(*id); });
-
-    auto targetPoints = asEigen<Array>(targets.getData())(indices, Eigen::all);
-
-    asEigen<Array>(output) =
-        (targetPoints.colwise() * weights.array()).colwise().mean().transpose();
+      
+      for (size_t i = 0; i < asUnsigned(k); i++)
+      {
+        Eigen::ArrayXd point = asEigen<Array>(targets.get(*ids[i]));
+          asEigen<Array>(output) += (weights[i] * point);
+      }
   }
 };
 } // namespace algorithm
