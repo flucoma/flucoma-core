@@ -41,7 +41,7 @@ public:
     auto [distances, ids] = tree.kNearest(input, k, 0, alloc);
 
     ScopedEigenMap<Eigen::VectorXd> weights(k, alloc);
-    weights.setConstant(weighted ? 0 : 1);
+    weights.setConstant(weighted ? 0 : (1.0 / k));
 
     if (weighted)
     {
