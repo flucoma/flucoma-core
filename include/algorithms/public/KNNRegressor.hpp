@@ -35,43 +35,39 @@ public:
                  Allocator& alloc = FluidDefaultAllocator()) const
   {
     using namespace std;
+    using _impl::asEigen;
+    using Eigen::Array;
 
     auto [distances, ids] = tree.kNearest(input, k, 0, alloc);
-    double             uniformWeight = 1.0 / k;
-    rt::vector<double> weights(asUnsigned(k), weighted ? 0 : uniformWeight,
-                               alloc);
-    double             sum = 0;
+
+    ScopedEigenMap<Eigen::VectorXd> weights(k, alloc);
+    weights.setConstant(weighted ? 0 : 1);
+
     if (weighted)
     {
-      bool binaryWeights = false;
-      for (size_t i = 0; i < asUnsigned(k); i++)
+      auto distanceArray =
+          Eigen::Map<Eigen::ArrayXd>(distances.data(), distances.size());
+
+      if ((distanceArray < epsilon).any())
       {
-        if (distances[i] < epsilon)
-        {
-          binaryWeights = true;
-          weights[i] = 1;
-        }
-        else
-          sum += (1.0 / distances[i]);
+        weights = (distanceArray < epsilon).select(1.0, weights);
       }
-      if (!binaryWeights)
+      else
       {
-        for (size_t i = 0; i < asUnsigned(k); i++)
-        {
-          weights[i] = (1.0 / distances[i]) / sum;
-        }
+        double sum = (1.0 / distanceArray).sum();
+        weights = (1.0 / distanceArray) / sum;
       }
     }
 
-    RealVector prediction(targets.pointSize(),alloc); //should we make a private allocation once? or just write in prediction directly
+    rt::vector<index> indices(ids.size(), alloc);
 
-    for (size_t i = 0; i < asUnsigned(k); i++)
-    {
-      Eigen::ArrayXd point = _impl::asEigen<Eigen::Array>(targets.get(*ids[i]));
-      _impl::asEigen<Eigen::Array>(prediction) += _impl::asEigen<Eigen::Array>(prediction) + (weights[i] * point);//it seems we can't mult a array by a double
-    }
+    transform(ids.cbegin(), ids.cend(), indices.begin(),
+              [&targets](const string* id) { return targets.getIndex(*id); });
 
-    output = prediction;
+    auto targetPoints = asEigen<Array>(targets.getData())(indices, Eigen::all);
+
+    asEigen<Array>(output) =
+        (targetPoints.colwise() * weights.array()).colwise().mean().transpose();
   }
 };
 } // namespace algorithm
