@@ -233,7 +233,7 @@ public:
 
   template <typename T>
   void process(std::vector<FluidTensorView<T, 1>>& in,
-               std::vector<FluidTensorView<T, 1>>& out, FluidContext&)
+               std::vector<FluidTensorView<T, 1>>& out, FluidContext& c)
   {
     out[0] <<= in[0];
     if (in[0](0) > 0)
@@ -258,13 +258,13 @@ public:
 
       algorithm::KNNRegressor regressor;
 
-      RealVector input(algorithm.tree.dims());
-      RealVector output(algorithm.target.dims());
+      RealVector input(algorithm.tree.dims(), c.allocator());
+      RealVector output(algorithm.target.dims(), c.allocator());
 
       input <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                   .samps(0, algorithm.tree.dims(), 0);
 
-      regressor.predict(algorithm.tree, algorithm.target, input, output, k, weight);
+      regressor.predict(algorithm.tree, algorithm.target, input, output, k, weight, c.allocator());
       outBuf.samps(0) <<= output;
     }
   }
