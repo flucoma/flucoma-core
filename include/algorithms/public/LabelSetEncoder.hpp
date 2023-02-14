@@ -93,7 +93,7 @@ public:
   void init(FluidTensorView<string, 1> labels)
   {
     mLabelsMap.clear();
-    mLabels <<= labels;
+    mLabels = FluidTensor<string, 1>(labels);
     for (index i = 0; i < mLabels.size(); i++) { mLabelsMap[mLabels(i)] = i; }
     mNumLabels = mLabels.size();
     mInitialized = true;
