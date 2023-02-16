@@ -188,7 +188,7 @@ public:
       auto kdtreeptr = get<kTree>().get().lock();
       if (!kdtreeptr)
       {
-        // c.reportError("No FluidKDTree found");
+        // c.reportError("No FluidKDTree found"); //why are both this and line 197+214 commented?
         return;
       }
 
@@ -206,7 +206,6 @@ public:
                                 get<kOutputBuffer>().get()))
         return;
       auto datasetClientPtr = get<kDataSet>().get().lock();
-      // if (!datasetClientPtr) datasetClientPtr = mDataSetClient.get().lock();
       if (!datasetClientPtr)
         datasetClientPtr = kdtreeptr->getDataSet().get().lock();
 
@@ -219,8 +218,9 @@ public:
       auto  dataset = datasetClientPtr->getDataSet();
       index pointSize = dataset.pointSize();
       auto  outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-      index outputSize = k * pointSize;
-      if (outBuf.samps(0).size() < outputSize) return;
+      index realK = std::min(k, (outBuf.samps(0).size() / pointSize));
+      if (realK <= 0) return;
+      index outputSize =  realK * pointSize;
 
       RealVector point(dims, c.allocator());
       point <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
@@ -232,9 +232,9 @@ public:
       }
 
       auto [dists, ids] =
-          kdtreeptr->algorithm().kNearest(point, k, 0, c.allocator());
+          kdtreeptr->algorithm().kNearest(point, realK, 0, c.allocator()); // i'd like to pass get<kRadius>() and output min(nbpoints,realK) somehow
 
-      for (index i = 0; i < k; i++)
+      for (index i = 0; i < realK; i++)
       {
         dataset.get(*ids[asUnsigned(i)],
                     mRTBuffer(Slice(i * pointSize, pointSize)));
