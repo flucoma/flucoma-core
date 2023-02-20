@@ -188,7 +188,7 @@ public:
       auto kdtreeptr = get<kTree>().get().lock();
       if (!kdtreeptr)
       {
-        // c.reportError("No FluidKDTree found"); //why are both this and line 197+214 commented?
+        // c.reportError("No FluidKDTree found");
         return;
       }
 
@@ -218,9 +218,9 @@ public:
       auto  dataset = datasetClientPtr->getDataSet();
       index pointSize = dataset.pointSize();
       auto  outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-      index realK = std::min(k, (outBuf.samps(0).size() / pointSize));
-      if (realK <= 0) return;
-      index outputSize =  realK * pointSize;
+      index maxK = std::min(k, (outBuf.samps(0).size() / pointSize));
+      if (maxK <= 0) return;
+      index outputSize =  maxK * pointSize;
 
       RealVector point(dims, c.allocator());
       point <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
@@ -232,9 +232,9 @@ public:
       }
 
       auto [dists, ids] =
-          kdtreeptr->algorithm().kNearest(point, realK, 0, c.allocator()); // i'd like to pass get<kRadius>() and output min(nbpoints,realK) somehow
+          kdtreeptr->algorithm().kNearest(point, maxK, 0, c.allocator());
 
-      for (index i = 0; i < realK; i++)
+      for (index i = 0; i < maxK; i++)
       {
         dataset.get(*ids[asUnsigned(i)],
                     mRTBuffer(Slice(i * pointSize, pointSize)));
