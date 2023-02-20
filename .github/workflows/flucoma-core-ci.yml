@@ -3,9 +3,9 @@ name: Flucoma Core CI
 on:
   workflow_dispatch:
   push:
-    branches: [ main, dev ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, dev ]
+    branches: [ main ]
 
 env:  
   BUILD_TYPE: Release
