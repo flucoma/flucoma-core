@@ -15,6 +15,7 @@ We use other some add-ons for Sphinx:
 
 * [myst-parser](https://myst-parser.readthedocs.io/en/latest/): provides an extended markdown syntax that aims to provide the power of reStructuredTxt (Sphinx's default markup language) with the simplicity of markdown 
 * [sphinx-book-theme](https://sphinx-book-theme.readthedocs.io/en/stable/index.html): for the theming 
+* [sphinx_copybutton](https://sphinx-copybutton.readthedocs.io/en/latest/) adds a copy button to code blocks
 
 The repo has a `requirements.txt` listing all these python dependencies, so that you can get going with 
 ```
@@ -31,3 +32,12 @@ cmake --build . --target docs
 ```
 
 will first run doxygen and then sphinx. The output will appear in `<your build folder>/docs/sphinx`. 
+
+Then, if you happen to be a project maintainer, you can use `rsync` to deploy these to `develop.flucoma.org`
+```none
+rsync -avz <path to sphinx output>/ <your user>@flucoma:<develop group's www folder>
+```
+where 
+
+* `<path to sphinx output>` is the directory that sphinx has wrriten to, i.e. `<your build folder>/docs/sphinx`. Note the slash at the end – this tells `rsync` not to make subdirectory called `sphinx` on the server (not what we want) and instead sync the contents
+* `<your user>` is your user on our server. Your user needs to be in the `develop` group to get permissions to the `www` directory. 
