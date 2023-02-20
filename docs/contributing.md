@@ -139,7 +139,7 @@ Whenever a PR is made to `flucoma-core`, the test suite is built and run against
 
 Improving our test coverage is partly just a matter of getting on writing more tests, like we should have done to begin with. However, not all of this code is immediately obvious in *how to* test it, and for the `Client`s, is just not (yet) possible to test these in isolation from a host environment. 
 
-### Species of Test
+## Species of Test
 
 Using [Approval Tests](https://approvaltestscpp.readthedocs.io/en/latest/index.html) is our current solution for things that are tricky to test (because it's hard to say *a priori* what a right answer should be). What Approval Tests allow us to do is test for *consistency* by making sure that the output of functions doesn't change since they were last 'approved'.  Getting set up with new Approval Tests isn't too hard (you need some sort of a merge program set up, I use vscode), and if you're struggling to come up with a test for something, we heartily recommend doing an Approval Test as definitely-much-better-than-nothing. 
 
@@ -147,7 +147,7 @@ There are two other categories of test that we've added, and for which detailed 
 
 Our own compile time tests do something similar by verifying that certain structures that ought not to compile actually don't compile! This is an artefact of doing quite a lot of compile-time stuff in the framework. By and large, you won't find yourself needing to reach for these at all often. 
 
-### Tests and `Client`s 
+## Tests and `Client`s 
 
 There isn't currently a pain-free way to test a {term}`Client` in isolation from a specific host. 
 There is a SuperCollider specific test harness [FlucomaTestSuite](https://github.com/flucoma/FlucomaTestSuite) that does Approval-style testing for clients, and is generally kept up to date. However, this isn't ideal for developing and debugging. 

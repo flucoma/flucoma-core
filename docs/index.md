@@ -21,6 +21,7 @@ caption: Getting Started
 ---
 contributing.md
 build-system/overview.md
+build-system/updating_docs.md
 ```
 ```{toctree}
 ---
