@@ -206,7 +206,6 @@ public:
                                 get<kOutputBuffer>().get()))
         return;
       auto datasetClientPtr = get<kDataSet>().get().lock();
-      // if (!datasetClientPtr) datasetClientPtr = mDataSetClient.get().lock();
       if (!datasetClientPtr)
         datasetClientPtr = kdtreeptr->getDataSet().get().lock();
 
@@ -219,8 +218,9 @@ public:
       auto  dataset = datasetClientPtr->getDataSet();
       index pointSize = dataset.pointSize();
       auto  outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-      index outputSize = k * pointSize;
-      if (outBuf.samps(0).size() < outputSize) return;
+      index maxK = std::min(k, (outBuf.samps(0).size() / pointSize));
+      if (maxK <= 0) return;
+      index outputSize =  maxK * pointSize;
 
       RealVector point(dims, c.allocator());
       point <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
@@ -232,9 +232,9 @@ public:
       }
 
       auto [dists, ids] =
-          kdtreeptr->algorithm().kNearest(point, k, 0, c.allocator());
+          kdtreeptr->algorithm().kNearest(point, maxK, 0, c.allocator());
 
-      for (index i = 0; i < k; i++)
+      for (index i = 0; i < maxK; i++)
       {
         dataset.get(*ids[asUnsigned(i)],
                     mRTBuffer(Slice(i * pointSize, pointSize)));
