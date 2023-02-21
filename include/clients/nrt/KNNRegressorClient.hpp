@@ -119,23 +119,29 @@ public:
     return {};
   }
 
-  MessageResult<double> predictPoint(InputBufferPtr data) const
+  MessageResult<void> predictPoint(InputBufferPtr in, BufferPtr out) const
   {
     index k = get<kNumNeighbors>();
     bool  weight = get<kWeight>() != 0;
-    if (k == 0) return Error<double>(SmallK);
-    if (mAlgorithm.tree.size() == 0) return Error<double>(NoDataFitted);
-    if (mAlgorithm.tree.size() < k) return Error<double>(NotEnoughData);
+    if (k == 0) return Error(SmallK);
+    if (mAlgorithm.tree.size() == 0) return Error(NoDataFitted);
+    if (mAlgorithm.tree.size() < k) return Error(NotEnoughData);
+
     InBufferCheck bufCheck(mAlgorithm.tree.dims());
-    if (!bufCheck.checkInputs(data.get()))
-      return Error<double>(bufCheck.error());
+    if (!bufCheck.checkInputs(in.get()))
+      return Error(bufCheck.error());
+    BufferAdaptor::ReadAccess inBuf(in.get());
+    BufferAdaptor::Access outBuf(out.get());
+    if (!outBuf.exists()) return Error(InvalidBuffer);
+    Result resizeResult = outBuf.resize(mAlgorithm.target.dims(), 1, inBuf.sampleRate());
+    if (!resizeResult.ok()) return Error(BufferAlloc);
     algorithm::KNNRegressor regressor;
-    RealVector              point(mAlgorithm.tree.dims());
-    point <<= BufferAdaptor::ReadAccess(data.get())
-                .samps(0, mAlgorithm.tree.dims(), 0);
-    double result =
-        regressor.predict(mAlgorithm.tree, mAlgorithm.target, point, k, weight);
-    return result;
+    RealVector              input(mAlgorithm.tree.dims());
+    RealVector              output(mAlgorithm.target.dims());
+    input <<= inBuf.samps(0, mAlgorithm.tree.dims(), 0);
+    regressor.predict(mAlgorithm.tree, mAlgorithm.target, input, output, k, weight);
+    outBuf.samps(0) <<= output;
+    return OK();
   }
 
   MessageResult<void> predict(InputDataSetClientRef source,
@@ -158,12 +164,12 @@ public:
     algorithm::KNNRegressor regressor;
     auto                    ids = dataSet.getIds();
     auto                    data = dataSet.getData();
-    DataSet                 result(1);
+    DataSet                 result(mAlgorithm.target.dims());
+    RealVector              prediction(mAlgorithm.target.dims());
     for (index i = 0; i < dataSet.size(); i++)
     {
       RealVectorView point = data.row(i);
-      RealVector     prediction = {regressor.predict(
-          mAlgorithm.tree, mAlgorithm.target, point, k, weight)};
+      regressor.predict(mAlgorithm.tree, mAlgorithm.target, point, prediction, k, weight);
       result.add(ids(i), prediction);
     }
     destPtr->setDataSet(result);
@@ -226,11 +232,11 @@ public:
 
 
   template <typename T>
-  void process(std::vector<FluidTensorView<T, 1>>& input,
-               std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
+  void process(std::vector<FluidTensorView<T, 1>>& in,
+               std::vector<FluidTensorView<T, 1>>& out, FluidContext& c)
   {
-    output[0] <<= input[0];
-    if (input[0](0) > 0)
+    out[0] <<= in[0];
+    if (in[0](0) > 0)
     {
       auto knnPtr = get<kModel>().get().lock();
       if (!knnPtr)
@@ -248,17 +254,18 @@ public:
                                 get<kOutputBuffer>().get()))
         return;
       auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-      if (outBuf.samps(0).size() != 1) return;
+      if (outBuf.samps(0).size() != algorithm.target.dims()) return;
 
       algorithm::KNNRegressor regressor;
 
-      RealVector point(algorithm.tree.dims());
-      point <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+      RealVector input(algorithm.tree.dims(), c.allocator());
+      RealVector output(algorithm.target.dims(), c.allocator());
+
+      input <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                   .samps(0, algorithm.tree.dims(), 0);
 
-      double result =
-          regressor.predict(algorithm.tree, algorithm.target, point, k, weight);
-      outBuf.samps(0)[0] = result;
+      regressor.predict(algorithm.tree, algorithm.target, input, output, k, weight, c.allocator());
+      outBuf.samps(0) <<= output;
     }
   }
 
