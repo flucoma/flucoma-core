@@ -161,7 +161,11 @@ if(NOT memory_POPULATED)
 endif()
 add_subdirectory(${memory_SOURCE_DIR} ${memory_BINARY_DIR} EXCLUDE_FROM_ALL)
 
-FetchContent_MakeAvailable(fmt)
+FetchContent_GetProperties(fmt)
+if(NOT fmt_POPULATED)
+  FetchContent_Populate(fmt)
+endif()
+add_subdirectory(${fmt_SOURCE_DIR} ${fmt_BINARY_DIR} EXCLUDE_FROM_ALL)
 
 # HISSTools FFT target
 add_library(
