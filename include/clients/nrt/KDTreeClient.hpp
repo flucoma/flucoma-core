@@ -181,30 +181,28 @@ public:
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext& c)
   {
-    output[0] <<= input[0];
-
     if (input[0](0) > 0)
     {
       auto kdtreeptr = get<kTree>().get().lock();
       if (!kdtreeptr)
       {
-        // c.reportError("No FluidKDTree found");
+        // c.reportError("FluidKDTree RT Query: No FluidKDTree found");
         return;
       }
 
       if (!kdtreeptr->initialized())
       {
-        // c.reportError("FluidKDTree not fitted");
+        // c.reportError("FluidKDTree RT Query: tree not fitted");
         return;
       }
 
       index k = get<kNumNeighbors>();
-      if (k > kdtreeptr->size() || k <= 0) return;
+      if (k > kdtreeptr->size() || k < 0) return; //c.reportError("FluidKDTree RT Query has wrong k size");
       index             dims = kdtreeptr->dims();
       InOutBuffersCheck bufCheck(dims);
       if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
                                 get<kOutputBuffer>().get()))
-        return;
+        return; //c.reportError("FluidKDTree RT Query i/o buffers are unavailable");
       auto datasetClientPtr = get<kDataSet>().get().lock();
       if (!datasetClientPtr)
         datasetClientPtr = kdtreeptr->getDataSet().get().lock();
@@ -218,7 +216,7 @@ public:
       auto  dataset = datasetClientPtr->getDataSet();
       index pointSize = dataset.pointSize();
       auto  outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-      index maxK = std::min(k, (outBuf.samps(0).size() / pointSize));
+      index maxK = outBuf.samps(0).size() / pointSize;
       if (maxK <= 0) return;
       index outputSize =  maxK * pointSize;
 
@@ -232,20 +230,25 @@ public:
       }
 
       auto [dists, ids] =
-          kdtreeptr->algorithm().kNearest(point, maxK, 0, c.allocator());
-
-      for (index i = 0; i < maxK; i++)
+          kdtreeptr->algorithm().kNearest(point, k, get<kRadius>(), c.allocator());
+    
+        mNumValidKs = std::min(asSigned(ids.size()), maxK);
+        
+      for (index i = 0; i < mNumValidKs; i++)
       {
         dataset.get(*ids[asUnsigned(i)],
                     mRTBuffer(Slice(i * pointSize, pointSize)));
       }
       outBuf.samps(0, outputSize, 0) <<= mRTBuffer;
     }
+    
+    output[0](0) = mNumValidKs;
   }
 
 
 private:
   RealVector       mRTBuffer;
+    index          mNumValidKs = 0;
   InputDataSetClientRef mDataSetClient;
 };
 
