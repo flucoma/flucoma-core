@@ -75,12 +75,15 @@ public:
     return OK();
   }
 
-  MessageResult<StringVector> kNearest(InputBufferPtr data, Optional<index> nNeighbours) const
+  MessageResult<StringVector> kNearest(InputBufferPtr  data,
+                                       Optional<index> nNeighbours) const
   {
-    //we can deprecate ancillary parameters in favour of optional args by falling back to using parameters when arg not present
+    // we can deprecate ancillary parameters in favour of optional args by
+    // falling back to using parameters when arg not present
     index k = nNeighbours ? nNeighbours.value() : get<kNumNeighbors>();
-    //alternatively we could just be hardcore and ignore parameters and have message handlers fallback to a default when arg missing (which would be eventual behaviour, I guess)
-    //index k =  nNeighbours.value_or(1); 
+    // alternatively we could just be hardcore and ignore parameters and have
+    // message handlers fallback to a default when arg missing (which would be
+    // eventual behaviour, I guess) index k =  nNeighbours.value_or(1);
     if (k > mAlgorithm.size()) return Error<StringVector>(SmallDataSet);
     // if (k <= 0 && get<kRadius>() <= 0) return Error<StringVector>(SmallK);
     if (!mAlgorithm.initialized()) return Error<StringVector>(NoDataFitted);
@@ -90,7 +93,7 @@ public:
     RealVector point(mAlgorithm.dims());
     point <<=
         BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0);
-    auto [dists, ids] =  mAlgorithm.kNearest(point, k, get<kRadius>());
+    auto [dists, ids] = mAlgorithm.kNearest(point, k, get<kRadius>());
     StringVector result(asSigned(ids.size()));
     std::transform(ids.cbegin(), ids.cend(), result.begin(),
                    [](const std::string* x) {
@@ -99,7 +102,8 @@ public:
     return result;
   }
 
-  MessageResult<RealVector> kNearestDist(InputBufferPtr data, Optional<index> nNeighbours) const
+  MessageResult<RealVector> kNearestDist(InputBufferPtr  data,
+                                         Optional<index> nNeighbours) const
   {
     // TODO: refactor with kNearest
     index k = nNeighbours ? nNeighbours.value() : get<kNumNeighbors>();
@@ -169,7 +173,8 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return KDTreeQueryParams; }
 
-  KDTreeQuery(ParamSetViewType& p, FluidContext& c) : mParams(p), mRTBuffer(c.allocator()) 
+  KDTreeQuery(ParamSetViewType& p, FluidContext& c)
+      : mParams(p), mRTBuffer(c.allocator())
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});
@@ -197,12 +202,14 @@ public:
       }
 
       index k = get<kNumNeighbors>();
-      if (k > kdtreeptr->size() || k < 0) return; //c.reportError("FluidKDTree RT Query has wrong k size");
+      if (k > kdtreeptr->size() || k < 0)
+        return; // c.reportError("FluidKDTree RT Query has wrong k size");
       index             dims = kdtreeptr->dims();
       InOutBuffersCheck bufCheck(dims);
       if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
                                 get<kOutputBuffer>().get()))
-        return; //c.reportError("FluidKDTree RT Query i/o buffers are unavailable");
+        return; // c.reportError("FluidKDTree RT Query i/o buffers are
+                // unavailable");
       auto datasetClientPtr = get<kDataSet>().get().lock();
       if (!datasetClientPtr)
         datasetClientPtr = kdtreeptr->getDataSet().get().lock();
@@ -218,7 +225,7 @@ public:
       auto  outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
       index maxK = outBuf.samps(0).size() / pointSize;
       if (maxK <= 0) return;
-      index outputSize =  maxK * pointSize;
+      index outputSize = maxK * pointSize;
 
       RealVector point(dims, c.allocator());
       point <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
@@ -229,11 +236,11 @@ public:
         mRTBuffer.fill(0);
       }
 
-      auto [dists, ids] =
-          kdtreeptr->algorithm().kNearest(point, k, get<kRadius>(), c.allocator());
-    
-        mNumValidKs = std::min(asSigned(ids.size()), maxK);
-        
+      auto [dists, ids] = kdtreeptr->algorithm().kNearest(
+          point, k, get<kRadius>(), c.allocator());
+
+      mNumValidKs = std::min(asSigned(ids.size()), maxK);
+
       for (index i = 0; i < mNumValidKs; i++)
       {
         dataset.get(*ids[asUnsigned(i)],
@@ -241,14 +248,14 @@ public:
       }
       outBuf.samps(0, outputSize, 0) <<= mRTBuffer;
     }
-    
+
     output[0](0) = mNumValidKs;
   }
 
 
 private:
-  RealVector       mRTBuffer;
-    index          mNumValidKs = 0;
+  RealVector            mRTBuffer;
+  index                 mNumValidKs = 0;
   InputDataSetClientRef mDataSetClient;
 };
 
