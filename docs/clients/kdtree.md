@@ -395,11 +395,11 @@ These message-based model objects are inherently offline beasts: they don't work
 
 Because, in SuperCollider, real-time streaming objects (i.e. `UGens`) inhabit a different universe to what we've constructed to deal with these stateful model objects who do all their processing on `scsynth`'s nrt command thread, we need to define a different type of real-time streaming `Client` that will communicate with a reference to a stateful model object and expose the inference functions for use in synths. 
 
-```{admonition} Code Smell 
-### pooooo-ey! Why do we need to make a *whole new client for this*? 
-
-Yes, it sucks. It's quite possible that we could try and refactor things to obviate all that follows. After all, we're not using the `process()` method for anything in `KDTreeClient`. Basically, we just want the framework to be clever enough to generate a second SC plugin, sensibly named, that is a `UGen` with a `.kr` method which should be pretty predictable. 
+````{admonition} Code Smell 
+```{rubric} pooooo-ey! Why do we need to make a *whole new client for this*? 
 ```
+Yes, it sucks. It's quite possible that we could try and refactor things to obviate all that follows. After all, we're not using the `process()` method for anything in `KDTreeClient`. Basically, we just want the framework to be clever enough to generate a second SC plugin, sensibly named, that is a `UGen` with a `.kr` method which should be pretty predictable. 
+````
 
 The setup for this second `Client` repeats the same basic form as we've already seen, so we'll cover it more quickly, and then look more closely at what happens in `process()`.
 

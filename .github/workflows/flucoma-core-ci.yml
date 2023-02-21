@@ -3,9 +3,9 @@ name: Flucoma Core CI
 on:
   workflow_dispatch:
   push:
-    branches: [ main, dev ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, dev ]
+    branches: [ main ]
 
 env:  
   BUILD_TYPE: Release
@@ -19,7 +19,7 @@ jobs:
       fail-fast: false 
       
     steps:  
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     
     # - name: Cache Build Folder 
     #   uses: actions/cache@v2
