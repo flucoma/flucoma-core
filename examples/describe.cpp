@@ -18,17 +18,18 @@ to compute a summary of spectral features of an audio file
 #include <algorithms/public/DCT.hpp>
 #include <algorithms/public/Loudness.hpp>
 #include <algorithms/public/MelBands.hpp>
+#include <algorithms/public/MultiStats.hpp>
 #include <algorithms/public/STFT.hpp>
 #include <algorithms/public/SpectralShape.hpp>
-#include <algorithms/public/MultiStats.hpp>
 #include <algorithms/public/YINFFT.hpp>
 #include <data/FluidIndex.hpp>
+#include <data/FluidMemory.hpp>
 #include <data/TensorTypes.hpp>
 #include <cstdio>
 #include <iomanip>
 #include <iostream>
 
-fluid::RealVector computeStats(fluid::RealMatrixView   matrix,
+fluid::RealVector computeStats(fluid::RealMatrixView        matrix,
                                fluid::algorithm::MultiStats stats)
 {
   fluid::index      dim = matrix.cols();
@@ -91,7 +92,7 @@ int main(int argc, char* argv[])
   MelBands      bands{nBands, fftSize};
   DCT           dct{nBands, nCoefs};
   YINFFT        yin;
-  SpectralShape shape;
+  SpectralShape shape(FluidDefaultAllocator());
   Loudness      loudness{windowSize};
   MultiStats    stats;
 
@@ -123,12 +124,14 @@ int main(int argc, char* argv[])
     RealVectorView window = padded(fluid::Slice(i * hopSize, windowSize));
     stft.processFrame(window, frame);
     stft.magnitude(frame, magnitude);
-    bands.processFrame(magnitude, mels, false, false, true);
+    bands.processFrame(magnitude, mels, false, false, true,
+                       FluidDefaultAllocator());
     dct.processFrame(mels, mfccs);
     mfccMat.row(i) <<= mfccs;
     yin.processFrame(magnitude, pitch, minFreq, maxFreq, samplingRate);
     pitchMat.row(i) <<= pitch;
-    shape.processFrame(magnitude, shapeDesc, samplingRate);
+    shape.processFrame(magnitude, shapeDesc, samplingRate, 0, -1, 0.95, false,
+                       false, FluidDefaultAllocator());
     shapeMat.row(i) <<= shapeDesc;
     loudness.processFrame(window, loudnessDesc, true, true);
     loudnessMat.row(i) <<= loudnessDesc;
