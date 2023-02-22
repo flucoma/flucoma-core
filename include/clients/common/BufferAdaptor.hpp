@@ -167,12 +167,12 @@ private:
   friend std::ostream& operator<<(std::ostream& os, const BufferAdaptor* b);
 };
 
-std::ostream& operator<<(std::ostream& os, const BufferAdaptor* b)
+inline std::ostream& operator<<(std::ostream& os, const BufferAdaptor* b)
 {
   return os << b->asString();
 }
 
-Result bufferRangeCheck(const BufferAdaptor* b, index startFrame,
+inline Result bufferRangeCheck(const BufferAdaptor* b, index startFrame,
                         index& nFrames, index startChan, index& nChans)
 {
   if (!b) return {Result::Status::kError, "Input buffer not set"}; // error
