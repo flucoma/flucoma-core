@@ -202,7 +202,7 @@ public:
     computeEpochsPerSample(knnGraph, epochsPerSample);
     epochsPerSample = (epochsPerSample == 0).select(-1, epochsPerSample);
     optimizeLayoutAndUpdate(mEmbedding, mEmbedding, rowIndices, colIndices,
-                   epochsPerSample, true, learningRate, maxIter);
+                   epochsPerSample, learningRate, maxIter);
     DataSet out(ids, _impl::asFluid(mEmbedding));
     mInitialized = true;
     return out;
@@ -227,7 +227,7 @@ public:
     computeEpochsPerSample(knnGraph, epochsPerSample);
     epochsPerSample = (epochsPerSample == 0).select(-1, epochsPerSample);
     optimizeLayout(embedding, mEmbedding, rowIndices, colIndices,
-                   epochsPerSample, false, learningRate, maxIter);
+                   epochsPerSample, learningRate, maxIter);
     DataSet out(in.getIds(), _impl::asFluid(embedding));
     return out;
   }
