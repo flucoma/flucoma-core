@@ -242,7 +242,7 @@ public:
     std::transform(
         indices.begin(), indices.begin() + nNeighbours, labels.begin(),
         [this](index i) {
-          std::string& id = mAlgorithm.getIds()[i];
+          std::string const& id = mAlgorithm.getIds()[i];
           return rt::string{id, 0, id.size(), FluidDefaultAllocator()};
         });
 

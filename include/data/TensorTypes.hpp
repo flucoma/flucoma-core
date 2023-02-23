@@ -25,6 +25,11 @@ using ComplexMatrixView = FluidTensorView<std::complex<double>, 2>;
 using RealVectorView = FluidTensorView<double, 1>;
 using ComplexVectorView = FluidTensorView<std::complex<double>, 1>;
 
+using InputRealMatrixView = FluidTensorView<const double, 2>;
+using InputComplexMatrixView = FluidTensorView<const std::complex<double>, 2>;
+using InputRealVectorView = FluidTensorView<const double, 1>;
+using InputComplexVectorView = FluidTensorView<const std::complex<double>, 1>;
+
 using ArrayXXidx = Eigen::Array<fluid::index, Eigen::Dynamic, Eigen::Dynamic>; 
 using ArrayXidx = Eigen::Array<fluid::index, Eigen::Dynamic, 1>; 
 } // namespace fluid

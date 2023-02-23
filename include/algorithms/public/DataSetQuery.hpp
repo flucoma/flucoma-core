@@ -36,7 +36,7 @@ public:
     index  comparison;
     double value;
 
-    bool test(RealVectorView point)
+    bool test(InputRealVectorView point)
     {
       using namespace std;
       switch (comparison)
@@ -129,7 +129,7 @@ public:
 
 private:
   void addRow(
-      string id, RealVectorView point, const DataSet& current, DataSet& out)
+      string id, InputRealVectorView point, const DataSet& current, DataSet& out)
   {
     mTmpPoint.fill(0);
     index currentSize = current.pointSize();

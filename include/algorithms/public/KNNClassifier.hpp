@@ -34,7 +34,7 @@ public:
                              Allocator& alloc = FluidDefaultAllocator()) const
   {
     using namespace std;
-    unordered_map<string*, double> labelsMap;
+    unordered_map<const string*, double> labelsMap;
     auto [distances, ids] = tree.kNearest(point, k, 0, alloc);
 
     double             uniformWeight = 1.0 / k;
@@ -64,11 +64,11 @@ public:
       }
     }
 
-    string* prediction;
+    const string* prediction;
     double  maxWeight = 0;
     for (size_t i = 0; i < asUnsigned(k); i++)
     {
-      string* label = labels.get(*ids[i]).data();
+      const string* label = labels.get(*ids[i]).data();
       assert(label && "KNNClassifier: ID not mapped to label");
       auto pos = labelsMap.find(label);
       if (pos == labelsMap.end())
