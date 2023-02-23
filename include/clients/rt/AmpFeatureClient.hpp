@@ -38,7 +38,7 @@ constexpr auto AmpFeatureParams = defineParameters(
     LongParam("fastRampDown", "Fast Envelope Ramp Down Length", 1, Min(1)),
     LongParam("slowRampUp", "Slow Envelope Ramp Up Length", 100, Min(1)),
     LongParam("slowRampDown", "Slow Envelope Ramp Down Length", 100, Min(1)),
-    FloatParam("floor", "Floor value (dB)", -145, Min(-144), Max(144)),
+    FloatParam("floor", "Floor value (dB)", -144, Min(-144), Max(144)),
     FloatParam("highPassFreq", "High-Pass Filter Cutoff", 85, Min(0)));
 
 class AmpFeatureClient : public FluidBaseClient, public AudioIn, public AudioOut
