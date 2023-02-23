@@ -17,6 +17,80 @@
 namespace fluid {
 namespace algorithm {
 
+namespace impl {
+template <typename RefeferenceArray>
+void optimizeLayout(Eigen::ArrayXXd& embedding, RefeferenceArray& reference,
+                    Eigen::ArrayXi const&  embIndices,
+                    Eigen::ArrayXi const&  refIndices,
+                    Eigen::ArrayXd const&  epochsPerSample,
+                    Eigen::VectorXd const& AB, bool updateReference,
+                    double learningRate, index maxIter, double gamma = 1.0)
+{
+  using namespace std;
+  using namespace Eigen;
+  double alpha = learningRate;
+  double negativeSampleRate = 5.0;
+  auto   distance = DistanceFuncs::map()[DistanceFuncs::Distance::kSqEuclidean];
+  double a = AB(0);
+  double b = AB(1);
+  random_device                   rd;
+  mt19937                         mt(rd());
+  uniform_int_distribution<index> randomInt(0, reference.rows() - 1);
+  ArrayXd epochsPerNegativeSample = epochsPerSample / negativeSampleRate;
+  ArrayXd nextEpoch = epochsPerSample;
+  ArrayXd nextNegEpoch = epochsPerNegativeSample;
+  ArrayXd bound = VectorXd::Constant(embedding.cols(),
+                                     4); // based on umap python implementation
+  for (index i = 0; i < maxIter; i++)
+  {
+    for (index j = 0; j < epochsPerSample.size(); j++)
+    {
+      if (nextEpoch(j) > i) continue;
+      ArrayXd current = embedding.row(embIndices(j));
+      ArrayXd other = reference.row(refIndices(j));
+      double  dist = distance(current, other); // todo: try to have dist member
+      double  gradCoef = 0;
+      ArrayXd grad;
+      if (dist > 0)
+      {
+        gradCoef = -2.0 * a * b * pow(dist, b - 1.0);
+        gradCoef /= a * pow(dist, b) + 1.0;
+      }
+      grad = (gradCoef * (current - other)).cwiseMin(bound).cwiseMax(-bound);
+      current += grad * alpha;
+      if constexpr (!std::is_const_v<RefeferenceArray>)
+        if (updateReference) other += -grad * alpha;
+      nextEpoch(j) += epochsPerSample(j);
+      index numNegative = static_cast<index>((i - nextNegEpoch(j)) /
+                                             epochsPerNegativeSample(j));
+      for (index k = 0; k < numNegative; k++)
+      {
+        index negativeIndex = randomInt(mt);
+        if (negativeIndex == embIndices(j)) continue;
+        ArrayXd negative = reference.row(negativeIndex);
+        dist = distance(current, negative);
+        gradCoef = 0;
+        grad = VectorXd::Constant(reference.cols(), 4.0);
+        if (dist > 0)
+        {
+          gradCoef = 2.0 * gamma * b;
+          gradCoef /= (0.001 + dist) * (a * pow(dist, b) + 1);
+          grad = (gradCoef * (current - negative))
+                     .cwiseMin(bound)
+                     .cwiseMax(-bound);
+        }
+        current += grad * alpha;
+      }
+      nextNegEpoch(j) += numNegative * epochsPerNegativeSample(j);
+      embedding.row(embIndices(j)) = current;
+      if constexpr (!std::is_const_v<RefeferenceArray>)
+        if (updateReference) reference.row(refIndices(j)) = other;
+    }
+    alpha = learningRate * (1.0 - (i / double(maxIter)));
+  }
+}
+} // namespace impl
+
 struct UMAPEmbeddingParamsFunctor
 {
   typedef double Scalar;
@@ -127,7 +201,7 @@ public:
     getGraphIndices(knnGraph, rowIndices, colIndices);
     computeEpochsPerSample(knnGraph, epochsPerSample);
     epochsPerSample = (epochsPerSample == 0).select(-1, epochsPerSample);
-    optimizeLayout(mEmbedding, mEmbedding, rowIndices, colIndices,
+    optimizeLayoutAndUpdate(mEmbedding, mEmbedding, rowIndices, colIndices,
                    epochsPerSample, true, learningRate, maxIter);
     DataSet out(ids, _impl::asFluid(mEmbedding));
     mInitialized = true;
@@ -341,70 +415,26 @@ private:
     });
   }
 
-  void optimizeLayout(Ref<ArrayXXd> embedding, Ref<ArrayXXd> reference,
-                      Ref<ArrayXi> embIndices, Ref<ArrayXi> refIndices,
-                      Ref<ArrayXd> epochsPerSample, bool updateReference,
-                      double learningRate, index maxIter, double gamma = 1.0) const
+  void optimizeLayoutAndUpdate(ArrayXXd& embedding, ArrayXXd& reference,
+                               ArrayXi const& embIndices,
+                               ArrayXi const& refIndices,
+                               ArrayXd const& epochsPerSample,
+                               double learningRate, index maxIter,
+                               double gamma = 1.0)
   {
-    using namespace std;
-    double alpha = learningRate;
-    double negativeSampleRate = 5.0;
-    auto distance = DistanceFuncs::map()[DistanceFuncs::Distance::kSqEuclidean];
-    double                          a = mAB(0);
-    double                          b = mAB(1);
-    random_device                   rd;
-    mt19937                         mt(rd());
-    uniform_int_distribution<index> randomInt(0, reference.rows() - 1);
-    ArrayXd epochsPerNegativeSample = epochsPerSample / negativeSampleRate;
-    ArrayXd nextEpoch = epochsPerSample;
-    ArrayXd nextNegEpoch = epochsPerNegativeSample;
-    ArrayXd bound = VectorXd::Constant(
-        embedding.cols(), 4); // based on umap python implementation
-    for (index i = 0; i < maxIter; i++)
-    {
-      for (index j = 0; j < epochsPerSample.size(); j++)
-      {
-        if (nextEpoch(j) > i) continue;
-        ArrayXd current = embedding.row(embIndices(j));
-        ArrayXd other = reference.row(refIndices(j));
-        double dist = distance(current, other); // todo: try to have dist member
-        double gradCoef = 0;
-        ArrayXd grad;
-        if (dist > 0)
-        {
-          gradCoef = -2.0 * a * b * pow(dist, b - 1.0);
-          gradCoef /= a * pow(dist, b) + 1.0;
-        }
-        grad = (gradCoef * (current - other)).cwiseMin(bound).cwiseMax(-bound);
-        current += grad * alpha;
-        if (updateReference) other += -grad * alpha;
-        nextEpoch(j) += epochsPerSample(j);
-        index numNegative = static_cast<index>((i - nextNegEpoch(j)) /
-                                                 epochsPerNegativeSample(j));
-        for (index k = 0; k < numNegative; k++)
-        {
-          index negativeIndex = randomInt(mt);
-          if (negativeIndex == embIndices(j)) continue;
-          ArrayXd negative = reference.row(negativeIndex);
-          dist = distance(current, negative);
-          gradCoef = 0;
-          grad = VectorXd::Constant(reference.cols(), 4.0);
-          if (dist > 0)
-          {
-            gradCoef = 2.0 * gamma * b;
-            gradCoef /= (0.001 + dist) * (a * pow(dist, b) + 1);
-            grad = (gradCoef * (current - negative))
-                       .cwiseMin(bound)
-                       .cwiseMax(-bound);
-          }
-          current += grad * alpha;
-        }
-        nextNegEpoch(j) += numNegative * epochsPerNegativeSample(j);
-        embedding.row(embIndices(j)) = current;
-        if (updateReference) reference.row(refIndices(j)) = other;
-      }
-      alpha = learningRate * (1.0 - (i / double(maxIter)));
-    }
+    impl::optimizeLayout(embedding, reference, embIndices, refIndices,
+                         epochsPerSample, mAB, true, learningRate, maxIter,
+                         gamma);
+  }
+
+  void optimizeLayout(ArrayXXd& embedding, ArrayXXd const& reference,
+                      ArrayXi const& embIndices, ArrayXi const& refIndices,
+                      ArrayXd const& epochsPerSample, double learningRate,
+                      index maxIter, double gamma = 1.0) const
+  {
+    impl::optimizeLayout(embedding, reference, embIndices, refIndices,
+                         epochsPerSample, mAB, false, learningRate, maxIter,
+                         gamma);
   }
 
   template <typename Derived>
@@ -435,7 +465,7 @@ private:
   KDTree   mTree;
   index    mK;
   VectorXd mAB;
-  mutable ArrayXXd mEmbedding;
+  ArrayXXd mEmbedding;
   bool     mInitialized{false};
 };
 }// namespace algorithm
