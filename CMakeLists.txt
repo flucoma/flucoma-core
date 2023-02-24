@@ -96,6 +96,7 @@ FetchContent_Declare(
   GIT_TAG main
 )
 
+set(FMT_INSTALL OFF CACHE BOOL "")
 FetchContent_Declare(
   fmt
   GIT_SHALLOW TRUE  
