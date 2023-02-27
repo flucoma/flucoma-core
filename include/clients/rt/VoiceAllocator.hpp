@@ -54,20 +54,16 @@ public:
       : mParams(p), mInputSize{0}, mSizeTracker{0}
   {
     controlChannelsIn(3);
-    controlChannelsOut({2, -1});
-    setInputLabels({"input stream", "middle", "third"});
-    setOutputLabels({"mean", "sample standard deviation"});
+    controlChannelsOut({3, -1});
+    setInputLabels({"left", "middle", "right"});
+    setOutputLabels({"lefto", "middleo", "righto"});
   }
 
   template <typename T>
   void process(std::vector<HostVector<T>>& input,
                std::vector<HostVector<T>>& output, FluidContext&)
   {
-
-      std::cout << "left: " << input[0] << '\n';
-      std::cout << "middle: " << input[1] << '\n';
-      std::cout << "right: " << input[2] << '\n';
-
+      
     bool inputSizeChanged = mInputSize != input[0].size() ;
     bool sizeParamChanged = mSizeTracker.changed(get<0>());
 
@@ -78,6 +74,9 @@ public:
     }
 
 //    mAlgorithm.process(input[0],output[0],output[1]);
+      output[2] <<= input[2];
+      output[1] <<= input[1];
+      output[0] <<=  input[0];
   }
 
   MessageResult<void> clear()
