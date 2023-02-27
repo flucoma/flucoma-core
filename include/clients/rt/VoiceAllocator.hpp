@@ -16,7 +16,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
-//#include "../../algorithms/public/RunningStats.hpp"
+// #include "../../algorithms/public/RunningStats.hpp"
 #include "../../data/TensorTypes.hpp"
 
 namespace fluid {
@@ -26,10 +26,13 @@ namespace voiceallocator {
 template <typename T>
 using HostVector = FluidTensorView<T, 1>;
 
-constexpr auto VoiceAllocatorParams =
-    defineParameters(LongParam("history", "History Size", 2, Min(2))); //will be most probably a max num voice and all other params
+constexpr auto VoiceAllocatorParams = defineParameters(LongParam(
+    "history", "History Size", 2,
+    Min(2))); // will be most probably a max num voice and all other params
 
-class VoiceAllocatorClient : public FluidBaseClient, public ControlIn, ControlOut
+class VoiceAllocatorClient : public FluidBaseClient,
+                             public ControlIn,
+                             ControlOut
 {
 public:
   using ParamDescType = decltype(VoiceAllocatorParams);
@@ -50,7 +53,7 @@ public:
     return VoiceAllocatorParams;
   }
 
-    VoiceAllocatorClient(ParamSetViewType& p, FluidContext&)
+  VoiceAllocatorClient(ParamSetViewType& p, FluidContext&)
       : mParams(p), mInputSize{0}, mSizeTracker{0}
   {
     controlChannelsIn(3);
@@ -63,25 +66,25 @@ public:
   void process(std::vector<HostVector<T>>& input,
                std::vector<HostVector<T>>& output, FluidContext&)
   {
-      
-    bool inputSizeChanged = mInputSize != input[0].size() ;
+
+    bool inputSizeChanged = mInputSize != input[0].size();
     bool sizeParamChanged = mSizeTracker.changed(get<0>());
 
-    if(inputSizeChanged|| sizeParamChanged)
+    if (inputSizeChanged || sizeParamChanged)
     {
       mInputSize = input[0].size();
-//      mAlgorithm.init(get<0>(),mInputSize);
+      //      mAlgorithm.init(get<0>(),mInputSize);
     }
 
-//    mAlgorithm.process(input[0],output[0],output[1]);
-      output[2] <<= input[2];
-      output[1] <<= input[1];
-      output[0] <<=  input[0];
+    //    mAlgorithm.process(input[0],output[0],output[1]);
+    output[2] <<= input[2];
+    output[1] <<= input[1];
+    output[0] <<= input[0];
   }
 
   MessageResult<void> clear()
-  {     
-//    mAlgorithm.init(get<0>(),mInputSize);
+  {
+    //    mAlgorithm.init(get<0>(),mInputSize);
     return {};
   }
 
@@ -93,14 +96,15 @@ public:
   index latency() { return 0; }
 
 private:
-//  algorithm::RunningStats mAlgorithm;
-  index mInputSize;
+  //  algorithm::RunningStats mAlgorithm;
+  index                        mInputSize;
   ParameterTrackChanges<index> mSizeTracker;
 };
 
-} // namespace runningstats
+} // namespace voiceallocator
 
-using VoiceAllocatorClient = ClientWrapper<voiceallocator::VoiceAllocatorClient>;
+using VoiceAllocatorClient =
+    ClientWrapper<voiceallocator::VoiceAllocatorClient>;
 
 } // namespace client
 } // namespace fluid
