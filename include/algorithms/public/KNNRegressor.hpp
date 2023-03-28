@@ -29,46 +29,48 @@ class KNNRegressor
 public:
   using DataSet = FluidDataSet<std::string, double, 1>;
 
-  double predict(KDTree const& tree, DataSet const& targets,
-                 RealVectorView point, index k, bool weighted,
+  void predict(KDTree const& tree, DataSet const& targets,
+                 RealVectorView input, RealVectorView output,
+                 index k, bool weighted,
                  Allocator& alloc = FluidDefaultAllocator()) const
   {
     using namespace std;
-    double prediction = 0;
-    auto [distances, ids] = tree.kNearest(point, k, 0, alloc);
-    double             uniformWeight = 1.0 / k;
-    rt::vector<double> weights(asUnsigned(k), weighted ? 0 : uniformWeight,
-                               alloc);
-    double             sum = 0;
+    using _impl::asEigen;
+    using Eigen::Array;
+
+    auto [distances, ids] = tree.kNearest(input, k, 0, alloc);
+
+    ScopedEigenMap<Eigen::VectorXd> weights(k, alloc);
+    weights.setConstant(weighted ? 0 : (1.0 / k));
+
     if (weighted)
     {
-      bool binaryWeights = false;
-      for (size_t i = 0; i < asUnsigned(k); i++)
-      {
-        if (distances[i] < epsilon)
-        {
-          binaryWeights = true;
-          weights[i] = 1;
-        }
-        else
-          sum += (1.0 / distances[i]);
-      }
-      if (!binaryWeights)
-      {
-        for (size_t i = 0; i < asUnsigned(k); i++)
-        {
-          weights[i] = (1.0 / distances[i]) / sum;
-        }
-      }
-    }
+      auto distanceArray =
+          Eigen::Map<Eigen::ArrayXd>(distances.data(), distances.size());
 
-    for (size_t i = 0; i < asUnsigned(k); i++)
-    {
-      auto point = targets.get(*ids[i]);
-      prediction += (weights[i] * point(0));
+      if ((distanceArray < epsilon).any())
+      {
+        weights = (distanceArray < epsilon).select(1.0, weights);
+      }
+      else
+      {
+        double sum = (1.0 / distanceArray).sum();
+        weights = (1.0 / distanceArray) / sum;
+      }
     }
-    return prediction;
+      
+      output.fill(0);
+
+      rt::vector<index> indices(ids.size(), alloc);
+      
+      transform(ids.cbegin(), ids.cend(), indices.begin(),
+                [&targets](const string* id) { return targets.getIndex(*id); });
+
+      auto targetPoints = asEigen<Array>(targets.getData())(indices, Eigen::all);
+      
+      asEigen<Array>(output) = (targetPoints.colwise() * weights.array()).colwise().sum().transpose();
   }
 };
 } // namespace algorithm
 } // namespace fluid
+
