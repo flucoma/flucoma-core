@@ -18,7 +18,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'FluCoMa Developer'
-copyright = '2023, Team FluCoMa'
+copyright = 'University of Huddersfield'
 author = 'Team FluCoMa'
 master_doc = "index"
 language = "en"
