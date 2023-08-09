@@ -35,7 +35,7 @@ public:
     PolynomialRegressor() = default;
     ~PolynomialRegressor() = default;
 
-    void init(index degree) 
+    void init(index degree = 2)
     {
         mDegree = degree;
         mInitialised = true;
@@ -45,22 +45,86 @@ public:
     bool    initialised()   const { return mInitialised;    };
     bool    regressed()     const { return mRegressed;      };
 
-    RealVectorView getCoefficients() const 
+    void setDegree(index degree) {
+        if(mDegree == degree) return;
+
+        mDegree = degree;
+        resetMappingSpace(); 
+    }
+
+    void process(RealVectorView in, RealVectorView out) {
+        setMappingSpace(in, out);
+        process();
+    };
+
+    void process() 
+    {
+        assert(mInSet && mOutSet && "input and output mapping must be set");
+        
+    };
+
+    void getCoefficients(RealVectorView coefficients) const
+    {
+        VectorXd output;
+        
+    };
+
+    void setMappingSpace(RealVectorView in, RealVectorView out) const
+    {
+        VectorXd input = asEigen<Eigen::Vector>(in);
+        VectorXd output = asEigen<Eigen::Vector>(out);
+
+        setInputSpace(input);
+        setOutputSpace(output);
+    }
+
+    void setMappingSpace(RealVectorView in, 
+                         RealVectorView out, 
+                         Allocator& alloc = FluidDefaultAllocator()) const
+    {
+        ScopedEigenMap<ArrayXd> input(in.size(), alloc), output(out.size(), alloc);
+        input = asEigen<Eigen::Array>(in);
+        output = asEigen<Eigen::Array>(in);
+
+        setInputSpace(input);
+        setInputSpace(output);
+    };
+
+    void resetMappingSpace() const { mInSet = mOutSet = false; };
+
+private:
+
+    void setInputSpace(Eigen::Ref<VectorXd> in) const 
+    {
+        mIn = in;
+        mInSet = true;
+    };
+
+    void setOutputSpace(Eigen::Ref<VectorXd> out) const 
+    {
+        mOut = out;
+        mOutSet = true;
+    };
+
+    void getRegressionCoefficients(Eigen::Ref<VectorXd> coefficientsOut) 
     {
 
     };
 
-private:
     index mDegree       {2};
     bool  mInitialised  {false};
     bool  mRegressed    {false};
 
-    VectorXd mCoefficients;
+    bool mInSet         {false};
+    bool mOutSet        {false};
 
     mutable VectorXd mIn;
     mutable VectorXd mOut;
 
+    MatrixXd mDesignMatrix;
+    VectorXd mCoefficients;
+
 }   
 
-}
-}
+} // namespace algorithm
+} // namespace fluid
