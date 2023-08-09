@@ -52,21 +52,22 @@ public:
         resetMappingSpace(); 
     }
 
-    void process(RealVectorView in, RealVectorView out) {
+    void process(RealVectorView in, RealVectorView out)
+    {
         setMappingSpace(in, out);
         process();
     };
 
     void process() 
     {
-        assert(mInSet && mOutSet && "input and output mapping must be set");
-        
+        assert(mInSet && mOutSet);
+        calculateRegressionCoefficients();
     };
 
     void getCoefficients(RealVectorView coefficients) const
     {
-        VectorXd output;
-        
+        assert(mRegressed);
+        asEigen<Vector>(coefficients) = mCoefficients;   
     };
 
     void setMappingSpace(RealVectorView in, RealVectorView out) const
@@ -90,7 +91,7 @@ public:
         setInputSpace(output);
     };
 
-    void resetMappingSpace() const { mInSet = mOutSet = false; };
+    void resetMappingSpace() const { mInSet = mOutSet = mRegressed = false; };
 
 private:
 
@@ -107,17 +108,22 @@ private:
 
         mIn = in;
         mInSet = true;
+        mRegressed = false;
     };
 
     void setOutputSpace(Eigen::Ref<VectorXd> out) const 
     {
         mOut = out;
         mOutSet = true;
+        mRegressed = false;
     };
 
-    void getRegressionCoefficients(Eigen::Ref<VectorXd> coefficientsOut) 
+    void calculateRegressionCoefficients()
     {
-        
+        MatrixXd transposeProduct = mDesignMatrix.transpose() * mDesignMatrix;
+        mCoefficients = transposeProduct.inverse() * mDesignMatrix.transpose() * mOut;
+
+        mRegressed = true;
     };
 
     index mDegree       {2};
