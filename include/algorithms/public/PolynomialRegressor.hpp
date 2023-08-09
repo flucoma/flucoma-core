@@ -96,6 +96,15 @@ private:
 
     void setInputSpace(Eigen::Ref<VectorXd> in) const 
     {
+        VectorXd designColumn = VectorXd::Ones(in.size());
+        ArrayXd inArray = in.array();
+        mDesignMatrix.conservativeResize(in.size(), mDegree + 1);
+
+        for(index i = 0; i < mDegree + 1; ++i) {
+            mDesignMatrix.col(i) = designColumn;
+            designColumn = designColumn.array() * inArray;
+        }
+
         mIn = in;
         mInSet = true;
     };
@@ -108,7 +117,7 @@ private:
 
     void getRegressionCoefficients(Eigen::Ref<VectorXd> coefficientsOut) 
     {
-
+        
     };
 
     index mDegree       {2};
