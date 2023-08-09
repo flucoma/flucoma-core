@@ -32,8 +32,31 @@ class PolynomialRegressor
     using VectorXd = Eigen::VectorXd;
 
 public:
-    PolynomialRegressor() = default;
+    explicit PolynomialRegressor() = default;
     ~PolynomialRegressor() = default;
+
+    PolynomialRegressor(const PolynomialRegressor& other)
+    : mDegree       {other.mDegree}
+    , mInitialised  {true}
+    , mRegressed    {true}
+    , mCoefficients {other.mCoefficients}
+    {
+        setInputSpace(other.mIn);
+        setOutputSpace(other.mOut);
+    };
+
+    PolynomialRegressor& operator=(const PolynomialRegressor& other) 
+    {
+        mDegree = other.mDegree;
+        mInitialised = true;
+        mRegressed = true;
+        mCoefficients = other.mCoefficients;
+        
+        setInputSpace(other.mIn);
+        setOutputSpace(other.mOut);
+
+        return *this;
+    }
 
     void init(index degree = 2)
     {
@@ -135,8 +158,8 @@ private:
 
     mutable VectorXd mIn;
     mutable VectorXd mOut;
+    mutable MatrixXd mDesignMatrix;
 
-    MatrixXd mDesignMatrix;
     VectorXd mCoefficients;
 
 }   
