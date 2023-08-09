@@ -1,5 +1,5 @@
 # Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
-# Copyright 2017-2019 University of Huddersfield.
+# Copyright University of Huddersfield.
 # Licensed under the BSD-3 License.
 # See license.md file in the project root for full license information.
 # This project has received funding from the European Research Council (ERC)
@@ -19,10 +19,10 @@ set(flucoma_VERSION_SUFFIX "")
 
 function(make_flucoma_version_string output_variable)
   set(result "${flucoma_VERSION_MAJOR}.${flucoma_VERSION_MINOR}.${flucoma_VERSION_PATCH}") 
-  if(${flucoma_VERSION_SUFFIX})
+  if(flucoma_VERSION_SUFFIX)
     string(APPEND result "-${flucoma_VERSION_SUFFIX}")
   endif()  
-  set(${output_variable} ${result} PARENT_SCOPE)    
+  set(${output_variable} ${result} PARENT_SCOPE)
 endfunction()
 
 function(make_flucoma_version_string_with_sha output_variable)
