@@ -305,7 +305,7 @@ public:
   }
 
   template <size_t N>
-  typename ParamType<N>::type applyConstraintsTo(typename ParamType<N>::type x)
+  typename ParamType<N>::type applyConstraintsTo(typename ParamType<N>::type x) const
   {
     const index offset = std::get<N>(std::make_tuple(Os...));
     auto&       constraints = constraint<N>();
@@ -570,7 +570,7 @@ private:
 
   template <size_t Offset, size_t N, ConstraintTypes C, typename T,
             typename... Constraints>
-  T constrain(T& thisParam, const std::tuple<Constraints...>& c, Result* r)
+  T constrain(T& thisParam, const std::tuple<Constraints...>& c, Result* r) const
   {
     using CT = std::tuple<Constraints...>;
     // clang < 3.7: index_sequence_for doesn't work here
@@ -592,7 +592,7 @@ private:
   template <size_t Offset, size_t N, typename T, typename Constraints,
             size_t... Is>
   T constrainImpl(T& thisParam, Constraints& c, std::index_sequence<Is...>,
-                  Result* r)
+                  Result* r) const
   {
     T res = thisParam;
     static_cast<void>(r);
