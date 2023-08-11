@@ -10,7 +10,7 @@ body:
   - type: textarea
     id: what-happened
     attributes:
-      label: Please tell us what you were doing!
+      label: Please tell us what you were doing! You can include code and files by drag and dropping them into the text area.
       description: The more details we have the easier it is to understand the problem. Please include example code to reproduce the situation if possible. You can drop files in this text area.
     validations:
       required: true
