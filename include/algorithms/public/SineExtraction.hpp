@@ -54,6 +54,7 @@ public:
   {
     mBins = fftSize / 2 + 1;
     mCurrentFrame = 0;
+    mBuf = makeEmptyQueue(alloc);
     //    mBuf = std::queue<ArrayXcd>();
     mScale = 1.0 / (windowSize / 4.0); // scale to original amplitude
     computeWindowTransform(windowSize, transformSize, alloc);
