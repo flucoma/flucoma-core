@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: FluCoMa Discourse
+    url: https://discourse.flucoma.org
+    about: If you want to discuss the bug with the community you can use the Discourse.
