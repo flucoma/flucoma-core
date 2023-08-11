@@ -200,7 +200,7 @@ public:
     output[0] <<= out.row(0);
   }
 
-  index latency()
+  index latency() const
   {
     index filterSize = get<kFilterSize>();
     if (filterSize % 2) filterSize++;

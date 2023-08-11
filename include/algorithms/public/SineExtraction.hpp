@@ -145,7 +145,7 @@ public:
 
   void reset() { mCurrentFrame = 0; }
 
-  bool initialized() { return mInitialized; }
+  bool initialized() const { return mInitialized; }
 
 private:
   void computeWindowTransform(index windowSize, index transformSize,

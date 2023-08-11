@@ -49,7 +49,7 @@ public:
     audioChannelsOut(1);
   }
 
-  index latency() { return 0; }
+  index latency() const { return 0; }
   void  reset() {}
 
   template <typename T>

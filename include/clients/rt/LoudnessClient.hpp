@@ -116,7 +116,7 @@ public:
     output[0](Slice(numOuts, mMaxFeatures - numOuts)).fill(0);
   }
 
-  index latency() { return get<kWindowSize>(); }
+  index latency() const { return get<kWindowSize>(); }
 
   void reset(FluidContext& c)
   {

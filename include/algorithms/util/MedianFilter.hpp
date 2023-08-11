@@ -57,7 +57,7 @@ public:
 
   index size() { return asSigned(mFilterSize); }
 
-  bool initialized() { return mInitialized; }
+  bool initialized() const { return mInitialized; }
 
 private:
   std::size_t mFilterSize{0};

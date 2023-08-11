@@ -59,7 +59,7 @@ public:
     return detected;
   }
 
-  bool initialized() { return mEnvelope.initialized(); }
+  bool initialized() const { return mEnvelope.initialized(); }
 
 private:
   Envelope mEnvelope;

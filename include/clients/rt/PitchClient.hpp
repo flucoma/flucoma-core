@@ -147,7 +147,7 @@ public:
       
     output[0](Slice(numOuts,mMaxFeatures - numOuts)).fill(0);         
   }
-  index latency() { return get<kFFT>().winSize(); }
+  index latency() const { return get<kFFT>().winSize(); }
 
   AnalysisSize analysisSettings()
   {

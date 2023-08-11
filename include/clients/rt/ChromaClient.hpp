@@ -108,7 +108,7 @@ public:
     output[0](Slice(nChroma, get<kNChroma>().max() - nChroma)).fill(0);
   }
 
-  index latency() { return get<kFFT>().winSize(); }
+  index latency() const { return get<kFFT>().winSize(); }
 
   void reset(FluidContext const& c)
   {

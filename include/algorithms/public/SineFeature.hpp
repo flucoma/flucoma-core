@@ -77,7 +77,7 @@ public:
     return maxNumOut;
   }
 
-  bool initialized() { return mInitialized; }
+  bool initialized() const { return mInitialized; }
 
 private:
   PeakDetection mPeakDetection;
