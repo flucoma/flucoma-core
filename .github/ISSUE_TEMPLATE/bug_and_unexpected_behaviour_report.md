@@ -8,7 +8,7 @@ assignees: ''
 ---
 
 **Please tell us what you were doing.**
-The more details we have the easier it is to understand the problem.
+The more details we have the easier it is to understand the problem. Please include example code to reproduce the situation if possible.
 
 ***What was the expected result?***
 
