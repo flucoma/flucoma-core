@@ -160,14 +160,14 @@ public:
   }
 
   template<size_t N> 
-  typename ParamType<N>::type applyConstraintsTo(typename ParamType<N>::type x)
+  typename ParamType<N>::type applyConstraintsTo(typename ParamType<N>::type x) const
   {
       return mParams->template applyConstraintsTo<N>(x); 
   }
 
   template <size_t N>
   typename ParamType<N>::type
-  applyConstraintToMax(typename ParamType<N>::type x)
+  applyConstraintToMax(typename ParamType<N>::type x) const
   {
     return mParams->template applyConstraintToMax(x);
   }

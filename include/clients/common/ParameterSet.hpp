@@ -312,9 +312,9 @@ public:
     return constrain<offset, N, kAll>(x, constraints, nullptr);
   }
 
-  template <size_t N>
-  auto applyConstraintToMax(index x) -> std::enable_if_t<
-      std::is_same_v<typename ParamType<N>::type, LongRuntimeMaxParam>, index>
+  template <size_t N, typename = std::enable_if_t<
+    std::is_same_v<typename ParamType<N>::type, LongRuntimeMaxParam>, index>>
+  auto applyConstraintToMax(index x) const
   {
     const auto constraints = GetIncreasingConstraints(constraint<N>());
     if constexpr (std::tuple_size<decltype(constraints)>::value)
@@ -465,7 +465,7 @@ public:
   {} // no-op for non-shared parameter set?
 
   template <size_t N>
-  auto descriptorAt()
+  auto descriptorAt() const
   {
     return descriptor<N>();
   }
