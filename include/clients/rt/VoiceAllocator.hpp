@@ -53,12 +53,15 @@ public:
     return VoiceAllocatorParams;
   }
 
-  VoiceAllocatorClient(ParamSetViewType& p, FluidContext&)
-      : mParams(p), mInputSize{0}, mSizeTracker{0}
+  VoiceAllocatorClient(ParamSetViewType& p, FluidContext& c)
+      : mParams(p), mInputSize{0}, mSizeTracker{0},
+    mOut0(16, c.allocator()),
+    mOut1(16, c.allocator()),
+    mOut2(16, c.allocator())
   {
-    controlChannelsIn(3);
-    controlChannelsOut({3, -1});
-    setInputLabels({"left", "middle", "right"});
+    controlChannelsIn(2);
+    controlChannelsOut({3, 16, 16});
+    setInputLabels({"left", "right"});
     setOutputLabels({"lefto", "middleo", "righto"});
   }
 
@@ -76,10 +79,15 @@ public:
       //      mAlgorithm.init(get<0>(),mInputSize);
     }
 
+    // copy in to fixed output array
+      mOut2(Slice(0,input[0].size())) <<= input[0];
+      mOut1(Slice(0,input[1].size())) <<= input[1];
+      mOut0(Slice(0,input[0].size())) <<= input[0];
+      
     //    mAlgorithm.process(input[0],output[0],output[1]);
-    output[2] <<= input[2];
-    output[1] <<= input[1];
-    output[0] <<= input[0];
+    output[2] <<= mOut2;
+    output[1] <<= mOut1;
+    output[0] <<= mOut0;
   }
 
   MessageResult<void> clear()
@@ -99,6 +107,9 @@ private:
   //  algorithm::RunningStats mAlgorithm;
   index                        mInputSize;
   ParameterTrackChanges<index> mSizeTracker;
+    FluidTensor<double, 1>                      mOut0;
+    FluidTensor<double, 1>                      mOut1;
+    FluidTensor<double, 1>                      mOut2;
 };
 
 } // namespace voiceallocator
