@@ -1,1 +1,20 @@
+* text=auto
+
+*.clang-format text
+*.cmake text
+*.cpp text
+*.gitattributes text
+*.gitignore text
+*.hpp text
+*.in text
+*.json text
+*.lic text
+*.md text
+*.pd text
+*.py text
+*.svg text
+*.txt text
+*.yml text
+
+*.png binary
 *.wav binary
