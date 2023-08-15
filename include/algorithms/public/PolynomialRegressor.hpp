@@ -22,50 +22,39 @@ under the European Union’s Horizon 2020 research and innovation programme
 namespace fluid {
 namespace algorithm {
 
-template <typename T>
 class PolynomialRegressor
 {
-    using ArrayXd =  Eigen::ArrayXd;
-    using ArrayXXd = Eigen::ArrayXXd;
-
-    using MatrixXd = Eigen::MatrixXd;
-    using VectorXd = Eigen::VectorXd;
-
 public:
     explicit PolynomialRegressor() = default;
     ~PolynomialRegressor() = default;
 
-    PolynomialRegressor(const PolynomialRegressor& other)
-    : mDegree       {other.mDegree}
-    , mInitialised  {true}
-    , mRegressed    {true}
-    , mCoefficients {other.mCoefficients}
-    {
-        setInputSpace(other.mIn);
-        setOutputSpace(other.mOut);
-    };
+    // PolynomialRegressor(const PolynomialRegressor& other)
+    // : mDegree       {other.mDegree}
+    // , mRegressed    {true}
+    // , mCoefficients {other.mCoefficients}
+    // {
+    //     setInputSpace(other.mIn);
+    //     setOutputSpace(other.mOut);
+    // };
 
-    PolynomialRegressor& operator=(const PolynomialRegressor& other) 
-    {
-        mDegree = other.mDegree;
-        mInitialised = true;
-        mRegressed = true;
-        mCoefficients = other.mCoefficients;
+    // PolynomialRegressor& operator=(const PolynomialRegressor& other) 
+    // {
+    //     mDegree = other.mDegree;
+    //     mRegressed = true;
+    //     mCoefficients = other.mCoefficients;
         
-        setInputSpace(other.mIn);
-        setOutputSpace(other.mOut);
+    //     setInputSpace(other.mIn);
+    //     setOutputSpace(other.mOut);
 
-        return *this;
-    }
+    //     return *this;
+    // }
 
     void init(index degree = 2)
     {
         mDegree = degree;
-        mInitialised = true;
     };
 
     index   getDegree()     const { return mDegree;         };
-    bool    initialised()   const { return mInitialised;    };
     bool    regressed()     const { return mRegressed;      };
 
     void setDegree(index degree) {
@@ -75,94 +64,115 @@ public:
         resetMappingSpace(); 
     }
 
-    void process(RealVectorView in, RealVectorView out)
-    {
-        setMappingSpace(in, out);
-        process();
-    };
+    // void process(RealVectorView in, RealVectorView out)
+    // {
+    //     setMappingSpace(in, out);
+    //     process();
+    // };
 
-    void process() 
-    {
-        assert(mInSet && mOutSet);
-        calculateRegressionCoefficients();
-    };
+    // void process() 
+    // {
+    //     assert(mInSet && mOutSet);
+    //     calculateRegressionCoefficients();
+    // };
 
-    void getCoefficients(RealVectorView coefficients) const
-    {
-        assert(mRegressed);
-        asEigen<Vector>(coefficients) = mCoefficients;   
-    };
+    // void getCoefficients(RealVectorView coefficients) const
+    // {
+    //     using namespace _impl;
 
-    void setMappingSpace(RealVectorView in, RealVectorView out) const
-    {
-        VectorXd input = asEigen<Eigen::Vector>(in);
-        VectorXd output = asEigen<Eigen::Vector>(out);
+    //     assert(mRegressed);
 
-        setInputSpace(input);
-        setOutputSpace(output);
-    }
+    //     asEigen<Eigen::Array>(coefficients) = mCoefficients;   
+    // };
 
-    void setMappingSpace(RealVectorView in, 
-                         RealVectorView out, 
-                         Allocator& alloc = FluidDefaultAllocator()) const
-    {
-        ScopedEigenMap<ArrayXd> input(in.size(), alloc), output(out.size(), alloc);
-        input = asEigen<Eigen::Array>(in);
-        output = asEigen<Eigen::Array>(in);
+    // void getMappedSpace(InputRealVectorView in, 
+    //                     RealVectorView out, 
+    //                     Allocator& alloc = FluidDefaultAllocator()) const
+    // {
+    //     using namespace _impl;
 
-        setInputSpace(input);
-        setInputSpace(output);
-    };
+    //     assert(mRegressed);
 
-    void resetMappingSpace() const { mInSet = mOutSet = mRegressed = false; };
+    //     ScopedEigenMap<Eigen::VectorXd> input(in.size(), alloc), output(out.size(), alloc);
+    //     input = asEigen<Eigen::Array>(in);
+    //     output = asEigen<Eigen::Array>(in);
+
+    //     calculateMappings(input, output);
+
+    //     asEigen<Eigen::Array>(out) = output;
+    // }
+
+    // void setMappingSpace(InputRealVectorView in, 
+    //                      InputRealVectorView out, 
+    //                      Allocator& alloc = FluidDefaultAllocator()) const
+    // {
+    //     using namespace _impl;
+
+    //     ScopedEigenMap<Eigen::VectorXd> input(in.size(), alloc), output(out.size(), alloc);
+    //     input = asEigen<Eigen::Array>(in);
+    //     output = asEigen<Eigen::Array>(in);
+
+    //     setInputSpace(input);
+    //     setInputSpace(output);
+    // };
+
+    void resetMappingSpace() { mInSet = mOutSet = mRegressed = false; };
 
 private:
 
-    void setInputSpace(Eigen::Ref<VectorXd> in) const 
-    {
-        VectorXd designColumn = VectorXd::Ones(in.size());
-        ArrayXd inArray = in.array();
-        mDesignMatrix.conservativeResize(in.size(), mDegree + 1);
+    // void setInputSpace(Eigen::Ref<Eigen::VectorXd> in) 
+    // {
+    //     mIn = in;
+    //     mInSet = true;
+    //     mRegressed = false;
+    // };
 
-        for(index i = 0; i < mDegree + 1; ++i) {
-            mDesignMatrix.col(i) = designColumn;
-            designColumn = designColumn.array() * inArray;
-        }
+    // void setOutputSpace(Eigen::Ref<Eigen::VectorXd> out) 
+    // {
+    //     mOut = out;
+    //     mOutSet = true;
+    //     mRegressed = false;
+    // };
 
-        mIn = in;
-        mInSet = true;
-        mRegressed = false;
-    };
+    // void calculateRegressionCoefficients()
+    // {
+    //     generateDesignMatrix(mIn);
 
-    void setOutputSpace(Eigen::Ref<VectorXd> out) const 
-    {
-        mOut = out;
-        mOutSet = true;
-        mRegressed = false;
-    };
+    //     Eigen::MatrixXd transposeProduct = mDesignMatrix.transpose() * mDesignMatrix;
+    //     mCoefficients = transposeProduct.inverse() * mDesignMatrix.transpose() * mOut;
 
-    void calculateRegressionCoefficients()
-    {
-        MatrixXd transposeProduct = mDesignMatrix.transpose() * mDesignMatrix;
-        mCoefficients = transposeProduct.inverse() * mDesignMatrix.transpose() * mOut;
+    //     mRegressed = true;
+    // };
 
-        mRegressed = true;
-    };
+    // void calculateMappings(Eigen::Ref<Eigen::VectorXd> in, Eigen::Ref<Eigen::VectorXd> out) const
+    // {
+    //     generateDesignMatrix(in);
+    //     out = mDesignMatrix * mCoefficients;
+    // }
+
+    // void generateDesignMatrix(Eigen::Ref<Eigen::VectorXd> in) const
+    // {
+    //     Eigen::VectorXd designColumn = Eigen::VectorXd::Ones(in.size());
+    //     Eigen::ArrayXd inArray = in.array();
+    //     mDesignMatrix.conservativeResize(in.size(), mDegree + 1);
+
+    //     for(index i = 0; i < mDegree + 1; ++i, designColumn = designColumn.array() * inArray) 
+    //         mDesignMatrix.col(i) = designColumn;
+    // }
 
     index mDegree       {2};
-    bool  mInitialised  {false};
     bool  mRegressed    {false};
 
-    bool mInSet         {false};
-    bool mOutSet        {false};
+    bool mInSet {false};
+    bool mOutSet{false};
 
-    mutable VectorXd mIn;
-    mutable VectorXd mOut;
-    mutable MatrixXd mDesignMatrix;
+    Eigen::VectorXd mIn;
+    Eigen::VectorXd mOut;
+    mutable Eigen::MatrixXd mDesignMatrix;
 
-    VectorXd mCoefficients;
+    Eigen::VectorXd mCoefficients;
 
-}   
+};   
 
 } // namespace algorithm
 } // namespace fluid
