@@ -89,8 +89,8 @@ public:
                                                               c.allocator()},
         mChroma{12, get<kFFT>().max(), c.allocator()}, mLoudness{
                                                            get<kFFT>().max(),
-                                                           c.allocator()}
-
+                                                           c.allocator()},
+        mYinFFT(get<kFFT>().maxFrameSize(), c.allocator())
   {
     audioChannelsIn(1);
     audioChannelsOut(1);

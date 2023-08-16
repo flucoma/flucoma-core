@@ -25,6 +25,11 @@ class YINFFT
 {
 
 public:
+    
+  YINFFT(index maxInputSize, Allocator& alloc)
+  : mFFT(2 * maxInputSize - 1, alloc)
+  {}
+  
   void processFrame(const RealVectorView& input, RealVectorView output,
       double minFreq, double maxFreq, double sampleRate,
       Allocator& alloc = FluidDefaultAllocator())
@@ -36,14 +41,13 @@ public:
     squareMag = _impl::asEigen<Array>(input).square();
 
     index  nBins = input.size();
-    FFT    fft(2 * (input.size() - 1));
     double squareMagSum = 2 * squareMag.sum();
 
     ScopedEigenMap<ArrayXd> squareMagSym(2 * (nBins - 1), alloc);
     squareMagSym << squareMag[0], squareMag.segment(1, nBins - 1),
         squareMag.segment(1, nBins - 2).reverse();
 
-    Eigen::Map<ArrayXcd>    squareMagFFT = fft.process(squareMagSym);
+    Eigen::Map<ArrayXcd>    squareMagFFT = mFFT.process(squareMagSym);
     ScopedEigenMap<ArrayXd> yin(squareMagFFT.size(), alloc);
     yin = squareMagSum - squareMagFFT.real();
 
@@ -83,6 +87,8 @@ public:
     output(0) = pitch;
     output(1) = pitchConfidence;
   }
+    
+  FFT mFFT;
 };
 } // namespace algorithm
 } // namespace fluid
