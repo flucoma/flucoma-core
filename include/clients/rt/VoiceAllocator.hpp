@@ -26,9 +26,13 @@ namespace voiceallocator {
 template <typename T>
 using HostVector = FluidTensorView<T, 1>;
 
-constexpr auto VoiceAllocatorParams = defineParameters(LongParam(
-    "history", "History Size", 2,
-    Min(2))); // will be most probably a max num voice and all other params
+enum VoiceAllocatorParamIndex {
+  kNVoices
+};
+
+constexpr auto VoiceAllocatorParams = defineParameters(
+    LongParamRuntimeMax<Primary>( "numVoices", "Number of Voices", 1, Min(1))
+    );
 
 class VoiceAllocatorClient : public FluidBaseClient,
                              public ControlIn,
@@ -55,12 +59,12 @@ public:
 
   VoiceAllocatorClient(ParamSetViewType& p, FluidContext& c)
       : mParams(p), mInputSize{0}, mSizeTracker{0},
-    mOut0(16, c.allocator()),
-    mOut1(16, c.allocator()),
-    mOut2(16, c.allocator())
+    mOut0(get<kNVoices>().max(), c.allocator()),
+    mOut1(get<kNVoices>().max(), c.allocator()),
+    mOut2(get<kNVoices>().max(), c.allocator())
   {
     controlChannelsIn(2);
-    controlChannelsOut({3, 16, 16});
+    controlChannelsOut({3, get<kNVoices>(), get<kNVoices>().max()});
     setInputLabels({"left", "right"});
     setOutputLabels({"lefto", "middleo", "righto"});
   }
@@ -69,25 +73,27 @@ public:
   void process(std::vector<HostVector<T>>& input,
                std::vector<HostVector<T>>& output, FluidContext&)
   {
+    index nVoices = get<kNVoices>();
 
     bool inputSizeChanged = mInputSize != input[0].size();
-    bool sizeParamChanged = mSizeTracker.changed(get<0>());
+    bool sizeParamChanged = mSizeTracker.changed(nVoices);
 
     if (inputSizeChanged || sizeParamChanged)
     {
       mInputSize = input[0].size();
-      //      mAlgorithm.init(get<0>(),mInputSize);
+      controlChannelsOut({3, nVoices}); //update the dynamic out size
+        // other initialisation
     }
 
     // copy in to fixed output array
-      mOut2(Slice(0,input[0].size())) <<= input[0];
+      mOut2(Slice(0,input[0].size())) <<= input[0];// dummy code so I don't check that the input is smaller than the output - the voice alloc algo should deal with input more cleverly than just copy
       mOut1(Slice(0,input[1].size())) <<= input[1];
       mOut0(Slice(0,input[0].size())) <<= input[0];
       
     //    mAlgorithm.process(input[0],output[0],output[1]);
-    output[2] <<= mOut2;
-    output[1] <<= mOut1;
-    output[0] <<= mOut0;
+    output[2](Slice(0,nVoices)) <<= mOut2(Slice(0,nVoices));
+    output[1](Slice(0,nVoices)) <<= mOut1(Slice(0,nVoices));
+    output[0](Slice(0,nVoices)) <<= mOut0(Slice(0,nVoices));
   }
 
   MessageResult<void> clear()
@@ -105,8 +111,8 @@ public:
 
 private:
   //  algorithm::RunningStats mAlgorithm;
-  index                        mInputSize;
-  ParameterTrackChanges<index> mSizeTracker;
+    index                                       mInputSize;
+    ParameterTrackChanges<index>                mSizeTracker;
     FluidTensor<double, 1>                      mOut0;
     FluidTensor<double, 1>                      mOut1;
     FluidTensor<double, 1>                      mOut2;
