@@ -26,7 +26,7 @@ class YINFFT
 
 public:
     
-  YINFFT(index maxInputSize, Allocator& alloc)
+  YINFFT(index maxInputSize, Allocator& alloc = FluidDefaultAllocator())
   : mFFT(2 * maxInputSize - 1, alloc)
   {}
   
