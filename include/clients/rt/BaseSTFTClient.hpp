@@ -53,7 +53,7 @@ public:
     audioChannelsOut(1);
   }
 
-  index latency() { return get<kFFT>().winSize(); }
+  index latency() const { return get<kFFT>().winSize(); }
 
   void reset(FluidContext&) { mSTFTBufferedProcess.reset(); }
 

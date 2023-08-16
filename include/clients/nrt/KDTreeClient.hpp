@@ -180,7 +180,7 @@ public:
     controlChannelsOut({1, 1});
   }
 
-  index latency() { return 0; }
+  index latency() const { return 0; }
 
   template <typename T>
   void process(std::vector<FluidTensorView<T, 1>>& input,

@@ -39,7 +39,7 @@ public:
     audioChannelsOut(1);
   }
 
-  index latency() { return params.fftSettings.winSize(); }
+  index latency() const { return params.fftSettings.winSize(); }
 
   void reset(FluidContext&) { mSTFTBufferedProcess.reset(); }
 

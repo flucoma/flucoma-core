@@ -100,7 +100,7 @@ public:
     mInitialized = true;
   }
 
-  bool initialized() { return mInitialized; }
+  bool initialized() const { return mInitialized; }
 
   void processFrame(ComplexVectorView v, double interpolation, Allocator& alloc)
   {

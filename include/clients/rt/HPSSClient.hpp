@@ -77,7 +77,7 @@ public:
     FluidBaseClient::setOutputLabels({"harmonic component", "percussive component", "residual (in modes 1 & 2)"});
   }
 
-  index latency()
+  index latency() const
   {
     return ((get<kHSize>() - 1) * get<kFFT>().hopSize()) +
            get<kFFT>().winSize();

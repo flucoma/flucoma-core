@@ -59,7 +59,7 @@ public:
     return fast - slow;
   }
 
-  bool initialized() { return mInitialized; }
+  bool initialized() const { return mInitialized; }
 
 private:
   void initFilters(double cutoff)

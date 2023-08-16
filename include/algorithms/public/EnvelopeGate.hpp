@@ -173,8 +173,8 @@ public:
 
     return result;
   }
-  index getLatency() { return mLatency; }
-  bool  initialized() { return mInitialized; }
+  index getLatency() const { return mLatency; }
+  bool  initialized() const { return mInitialized; }
 
 
 private:
