@@ -43,6 +43,8 @@ public:
     index  nBins = input.size();
     double squareMagSum = 2 * squareMag.sum();
 
+    mFFT.resize(2 * (nBins - 1));
+      
     ScopedEigenMap<ArrayXd> squareMagSym(2 * (nBins - 1), alloc);
     squareMagSym << squareMag[0], squareMag.segment(1, nBins - 1),
         squareMag.segment(1, nBins - 2).reverse();
