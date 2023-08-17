@@ -107,7 +107,7 @@ public:
     return defineMessages(makeMessage("clear", &VoiceAllocatorClient::clear));
   }
 
-  index latency() { return 0; }
+  index latency() const { return 0; }
 
 private:
   //  algorithm::RunningStats mAlgorithm;
