@@ -140,6 +140,8 @@ add_kr_in_client(Stats clients/rt/RunningStatsClient.hpp CLASS RunningStatsClien
 add_client(TransientSlice clients/rt/TransientSliceClient.hpp CLASS RTTransientSliceClient )
 add_client(Transients clients/rt/TransientClient.hpp CLASS RTTransientClient )
 
+add_client(PolynomialRegressor clients/nrt/PolynomialRegressorClient.hpp CLASS NRTThreadedPolynomialRegressorClient )
+
 #lib manipulation client group 
 add_client(DataSet clients/nrt/DataSetClient.hpp CLASS NRTThreadedDataSetClient GROUP MANIPULATION)
 add_client(DataSetQuery clients/nrt/DataSetQueryClient.hpp CLASS NRTThreadedDataSetQueryClient GROUP MANIPULATION)
@@ -156,6 +158,5 @@ add_client(PCA clients/nrt/PCAClient.hpp CLASS NRTThreadedPCAClient GROUP MANIPU
 add_client(MDS clients/nrt/MDSClient.hpp CLASS NRTThreadedMDSClient GROUP MANIPULATION)
 add_client(UMAP clients/nrt/UMAPClient.hpp CLASS NRTThreadedUMAPClient GROUP MANIPULATION)
 add_client(MLPRegressor clients/nrt/MLPRegressorClient.hpp CLASS NRTThreadedMLPRegressorClient GROUP MANIPULATION)
-add_client(PolynomialRegressor clients/nrt/PolynomialRegressorClient.hpp CLASS NRTThreadedPolynomialRegressorClient GROUP MANIPULATION)
 add_client(MLPClassifier clients/nrt/MLPClassifierClient.hpp CLASS NRTThreadedMLPClassifierClient GROUP MANIPULATION)
 add_client(Grid clients/nrt/GridClient.hpp CLASS NRTThreadedGridClient GROUP MANIPULATION)
