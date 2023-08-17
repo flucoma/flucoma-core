@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
   STFT          stft{windowSize, fftSize, hopSize};
   MelBands      bands{nBands, fftSize};
   DCT           dct{nBands, nCoefs};
-  YINFFT        yin;
+  YINFFT        yin{nBins, FluidDefaultAllocator()};
   SpectralShape shape(FluidDefaultAllocator());
   Loudness      loudness{windowSize};
   MultiStats    stats;
