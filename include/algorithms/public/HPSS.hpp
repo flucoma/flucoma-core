@@ -151,7 +151,7 @@ public:
     _impl::asEigen<Array>(out).col(2) = buf.col(0) * residualMask.min(1.0);
   }
   
-  bool initialized() { return mInitialized; }
+  bool initialized() const { return mInitialized; }
 
 private:
   ArrayXMap makeThreshold(index nBins, double x1, double y1, double x2,

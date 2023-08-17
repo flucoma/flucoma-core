@@ -114,7 +114,7 @@ public:
         });
   }
 
-  index latency()
+  index latency() const
   {
     return get<kFFT>().winSize() +
            (get<kFFT>().hopSize() * get<kMinTrackLen>());

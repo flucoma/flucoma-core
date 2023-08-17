@@ -135,7 +135,7 @@ public:
     interpolate(transients.data(), residual.data(), alloc);
   }
 
-  bool initialized() { return mInitialized; }
+  bool initialized() const { return mInitialized; }
 
 private:
   void frame(const double* input, index inSize)

@@ -336,7 +336,7 @@ public:
     }
   }
 
-  index latency() { return 0; }
+  index latency() const { return 0; }
 };
 
 

@@ -147,14 +147,14 @@ public:
       
     output[0](Slice(numOuts,mMaxFeatures - numOuts)).fill(0);         
   }
-  index latency() { return get<kFFT>().winSize(); }
+  index latency() const { return get<kFFT>().winSize(); }
 
   AnalysisSize analysisSettings()
   {
     return { get<kFFT>().winSize(), get<kFFT>().hopSize() }; 
   }
 
-  void  reset(FluidContext& c)
+  void reset(FluidContext& c)
   {
     mSTFTBufferedProcess.reset();
     cepstrumF0.init(get<kFFT>().frameSize(), c.allocator());

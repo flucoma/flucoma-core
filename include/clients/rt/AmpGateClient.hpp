@@ -119,7 +119,7 @@ public:
                     get<kMinTimeBelowThreshold>(), get<kDownwardLookupTime>());
   }
 
-  index latency()
+  index latency() const
   {
     return std::max(
         get<kMinTimeAboveThreshold>() + get<kUpwardLookupTime>(),

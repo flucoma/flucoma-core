@@ -56,12 +56,12 @@ public:
   double sampleRate() const noexcept { return mSampleRate; };
   void   sampleRate(double sr) { mSampleRate = sr; }
 
-  const char* getInputLabel(index i)
+  const char* getInputLabel(index i) const
   {
     return i < asSigned(mInputLabels.size()) ? mInputLabels[asUnsigned(i)] : "";
   }
 
-  const char* getOutputLabel(index i)
+  const char* getOutputLabel(index i) const
   {
     return i < asSigned(mOutputLabels.size()) ? mOutputLabels[asUnsigned(i)] : "";
   }
@@ -216,7 +216,7 @@ public:
     mParams.template set(std::forward<T>(x), reportage);
   }
 
-  auto latency() { return mClient.latency(); }
+  auto latency() const { return mClient.latency(); }
 
   index audioChannelsIn() const noexcept { return mClient.audioChannelsIn(); }
   index audioChannelsOut() const noexcept { return mClient.audioChannelsOut(); }
@@ -254,12 +254,12 @@ public:
     mParams = p;
   }
 
-  const char* getInputLabel(index i)
+  const char* getInputLabel(index i) const
   {
     return mClient.getInputLabel(i);
   }
 
-  const char* getOutputLabel(index i)
+  const char* getOutputLabel(index i) const
   {
     return mClient.getOutputLabel(i);
   }

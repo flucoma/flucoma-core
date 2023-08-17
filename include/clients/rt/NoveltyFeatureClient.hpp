@@ -181,7 +181,7 @@ public:
     output[0](0) = static_cast<T>(mDescriptor);
   }
 
-  index latency()
+  index latency() const
   {
     index filterSize = get<kFilterSize>();
     if (filterSize % 2) filterSize++;
