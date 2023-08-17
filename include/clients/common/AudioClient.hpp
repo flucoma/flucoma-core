@@ -44,7 +44,7 @@ struct ControlOutFollowsIn : ControlIn, ControlOut
 template <typename T>
 constexpr bool isControlIn = std::is_base_of<ControlIn, T>::value;
 template <typename T>
-constexpr bool isControlOutFollowsIn = std::is_base_of<ControlOutFollowsIn, T>::value;template <typename T>
+constexpr bool isControlOutFollowsIn = std::is_base_of<ControlOutFollowsIn, T>::value;
 template <typename T>
 constexpr bool isControlOut = std::is_base_of<ControlOut, T>::value;
 template <typename T>
