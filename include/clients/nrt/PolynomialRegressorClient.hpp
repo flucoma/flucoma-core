@@ -47,7 +47,10 @@ public:
   
   std::reference_wrapper<ParamSetViewType> mParams;
 
-  void setParams(ParamSetViewType& p) { mParams = p; }
+  void setParams(ParamSetViewType& p) { 
+    mParams = p;
+    mAlgorithm.setDegree(get<kDegree>());
+  }
 
   template <size_t N>
   auto& get() const
@@ -73,48 +76,73 @@ public:
     return {};
   }
 
-  MessageResult<string> fit(InputDataSetClientRef source,
+  MessageResult<void> fit(InputDataSetClientRef source,
                             InputDataSetClientRef target)
   {
     auto sourceClientPtr = source.get().lock();
-    if (!sourceClientPtr) return Error<string>(NoDataSet);
+    if (!sourceClientPtr) return Error<void>(NoDataSet);
     auto sourceDataSet = sourceClientPtr->getDataSet();
-    if (sourceDataSet.size() == 0) return Error<string>(EmptyDataSet);
+    if (sourceDataSet.size() == 0) return Error<void>(EmptyDataSet);
     if (sourceDataSet.dims() != 1)
-      return Error<string>(DimensionsDontMatch);
+      return Error<void>(DimensionsDontMatch);
     auto targetClientPtr = target.get().lock();
-    if (!targetClientPtr) return Error<string>(NoDataSet);
+    if (!targetClientPtr) return Error<void>(NoDataSet);
     auto targetDataSet = targetClientPtr->getDataSet();
-    if (targetDataSet.size() == 0) return Error<string>(EmptyDataSet);
+    if (targetDataSet.size() == 0) return Error<void>(EmptyDataSet);
     if (sourceDataSet.size() != targetDataSet.size())
-      return Error<string>(SizesDontMatch);
+      return Error<void>(SizesDontMatch);
     if (!mAlgorithm.initialized()) 
-      mAlgorithm.init();
+      mAlgorithm.init(get<kDegree>());
     
     auto data = sourceDataSet.getData().col(0);
     auto tgt = targetDataSet.getData().col(0);
 
-    // mAlgorithm.setMappingSpace(data, tgt);
+    mAlgorithm.calculateRegressionCoefficients(data, tgt);
 
-    string res = " ";
-
-    for (auto& x : data) {
-      res += std::to_string(x);
-      res += "\t";
-    }
-
-    return res;
+    return OK();
   }
 
-  MessageResult<void> map(InputBufferPtr in, BufferPtr out)
+   MessageResult<void> predict(InputDataSetClientRef src,
+                               DataSetClientRef dest)
   {
     return OK();
+  }
+
+  MessageResult<float> predictPoint(InputBufferPtr in, BufferPtr out) const
+  {
+    if (!in || !out) return Error<float>(NoBuffer);
+
+    BufferAdaptor::ReadAccess inBuf(in.get());
+    BufferAdaptor::Access outBuf(out.get());
+
+    if (!inBuf.exists()) return Error<float>(InvalidBuffer);
+    if (!outBuf.exists()) return Error<float>(InvalidBuffer);
+    if (inBuf.numFrames() != 1) return Error<float>(WrongPointSize);
+
+    if (!mAlgorithm.regressed()) return Error<float>(NoDataFitted);
+
+    Result resizeResult = outBuf.resize(1, 1, inBuf.sampleRate());
+    if (!resizeResult.ok()) return Error<float>(BufferAlloc);
+
+    RealVector src(1);
+    RealVector dest(1);
+    
+    src <<= inBuf.samps(0, 1, 0);
+    mAlgorithm.getMappedSpace(src, dest);
+    outBuf.samps(0, 1, 0) <<= dest;
+
+    return dest[0];
   }
 
   
   MessageResult<string> print()
   {
-    return "deez nuts";
+    return "PolynomialRegressor " 
+          + std::string(get<kName>()) 
+          + "\ndegree: " 
+          + std::to_string(mAlgorithm.getDegree()) 
+          + "\n regressed: " 
+          + (mAlgorithm.regressed() ? "true" : "false");
   }
 
   static auto getMessageDescriptors()
@@ -125,7 +153,8 @@ public:
         makeMessage("clear",  &PolynomialRegressorClient::clear),
         makeMessage("size",   &PolynomialRegressorClient::size),
         makeMessage("print",  &PolynomialRegressorClient::print),
-        makeMessage("map",    &PolynomialRegressorClient::map),
+        makeMessage("predict",&PolynomialRegressorClient::predict),
+        makeMessage("predictPoint", &PolynomialRegressorClient::predictPoint),
         makeMessage("load",   &PolynomialRegressorClient::load),
         makeMessage("dump",   &PolynomialRegressorClient::dump),
         makeMessage("write",  &PolynomialRegressorClient::write),
