@@ -105,24 +105,43 @@ public:
    MessageResult<void> predict(InputDataSetClientRef src,
                                DataSetClientRef dest)
   {
+    auto  srcPtr = src.get().lock();
+    auto  destPtr = dest.get().lock();
+
+    if (!srcPtr || !destPtr) return Error(NoDataSet);
+
+    auto srcDataSet = srcPtr->getDataSet();
+    if (srcDataSet.size() == 0) return Error(EmptyDataSet);
+
+    if (!mAlgorithm.regressed()) return Error(NoDataFitted);
+    if (srcDataSet.dims() != 1) return Error(WrongPointSize);
+
+    StringVector ids{srcDataSet.getIds()};
+    RealMatrix output(srcDataSet.size(), 1);
+
+    mAlgorithm.getMappedSpace(srcDataSet.getData().col(0), output.col(0));
+
+    DataSet result(ids, output);
+    destPtr->setDataSet(result);
+
     return OK();
   }
 
-  MessageResult<float> predictPoint(InputBufferPtr in, BufferPtr out) const
+  MessageResult<double> predictPoint(InputBufferPtr in, BufferPtr out) const
   {
-    if (!in || !out) return Error<float>(NoBuffer);
+    if (!in || !out) return Error<double>(NoBuffer);
 
     BufferAdaptor::ReadAccess inBuf(in.get());
     BufferAdaptor::Access outBuf(out.get());
 
-    if (!inBuf.exists()) return Error<float>(InvalidBuffer);
-    if (!outBuf.exists()) return Error<float>(InvalidBuffer);
-    if (inBuf.numFrames() != 1) return Error<float>(WrongPointSize);
+    if (!inBuf.exists()) return Error<double>(InvalidBuffer);
+    if (!outBuf.exists()) return Error<double>(InvalidBuffer);
+    if (inBuf.numFrames() != 1) return Error<double>(WrongPointSize);
 
-    if (!mAlgorithm.regressed()) return Error<float>(NoDataFitted);
+    if (!mAlgorithm.regressed()) return Error<double>(NoDataFitted);
 
     Result resizeResult = outBuf.resize(1, 1, inBuf.sampleRate());
-    if (!resizeResult.ok()) return Error<float>(BufferAlloc);
+    if (!resizeResult.ok()) return Error<double>(BufferAlloc);
 
     RealVector src(1);
     RealVector dest(1);
