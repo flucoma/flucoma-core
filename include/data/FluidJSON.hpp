@@ -492,7 +492,7 @@ bool check_json(const nlohmann::json &j, const PolynomialRegressor &) {
 }
 
 void from_json(const nlohmann::json &j, PolynomialRegressor &reg) {
-  reg.setDegree(j.at("degree").get<index>());
+  reg.init(j.at("degree").get<index>());
 
   RealVector embedding(reg.getDegree() + 1);
   j.at("coefficients").get_to(embedding);
