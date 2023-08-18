@@ -10,6 +10,7 @@
 #include <algorithms/public/UMAP.hpp>
 #include <algorithms/public/Standardization.hpp>
 #include <algorithms/public/LabelSetEncoder.hpp>
+#include <algorithms/public/PolynomialRegressor.hpp>
 #include <data/FluidDataSet.hpp>
 #include <data/FluidIndex.hpp>
 #include <data/FluidTensor.hpp>
@@ -471,6 +472,30 @@ void from_json(const nlohmann::json &j, UMAP &umap) {
   double b = j.at("b").get<index>();
   index k = j.at("k").get<index>();
   umap.init(embedding, tree, k, a, b);
+}
+
+// PolynomialRegressor
+void to_json(nlohmann::json &j, const PolynomialRegressor &reg) {
+  RealVector coefficients(reg.getDegree());
+
+  reg.getCoefficients(coefficients);
+
+  j["degree"] = reg.getDegree();
+  j["coefficients"] = RealVectorView(coefficients);
+}
+
+bool check_json(const nlohmann::json &j, const PolynomialRegressor &) {
+  return fluid::check_json(j,
+    {"degree", "coefficients"},
+    {JSONTypes::NUMBER, JSONTypes::OBJECT}
+  );
+}
+
+void from_json(const nlohmann::json &j, PolynomialRegressor &reg) {
+  reg.setDegree(j.at("degree").get<index>());
+
+  RealVector embedding(reg.getDegree() + 1);
+  j.at("coefficients").get_to(embedding);
 }
 
 } // namespace algorithm

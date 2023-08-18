@@ -34,13 +34,10 @@ public:
         mDegree = degree;
     };
 
-    index size() const { return asSigned(mInSet ? mIn.size() : 0); };
-    index dims() const { return size(); };
+    index size() const { return asSigned(mInSet ? mIn.size() : 1); };
+    index dims() const { return asSigned(mInSet ? mIn.size() : 0); };
 
-    void clear() 
-    {
-        mInSet = mOutSet = mRegressed = false;
-    }
+    void clear() { mInSet = mOutSet = mRegressed = false; }
 
     index   getDegree()     const { return asSigned(mDegree); };
     bool    regressed()     const { return mRegressed; };
@@ -51,7 +48,7 @@ public:
         return;
 
         mDegree = degree;
-        resetMappingSpace();
+        clear();
     }
 
     void process(RealVectorView in, RealVectorView out)
@@ -71,6 +68,13 @@ public:
        assert(mRegressed);
        _impl::asEigen<Eigen::Array>(coefficients) = mCoefficients;   
     };
+
+    void setCoefficients(InputRealVectorView coefficients)
+    {
+        mCoefficients = _impl::asEigen<Eigen::Array>(coefficients);
+        setDegree(coefficients.size() - 1);
+        mRegressed = true;
+    }
 
     void getMappedSpace(InputRealVectorView in, 
                         RealVectorView out, 
@@ -103,8 +107,6 @@ public:
         setInputSpace(input);
         setOutputSpace(output);
     };
-
-    void resetMappingSpace() { mInSet = mOutSet = mRegressed = false; };
 
 private:
     void setInputSpace(Eigen::Ref<Eigen::VectorXd> in) 
@@ -160,7 +162,7 @@ private:
 
     Eigen::VectorXd mCoefficients;
 
-};   
+};
 
 } // namespace algorithm
 } // namespace fluid

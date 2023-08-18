@@ -73,47 +73,63 @@ public:
     return {};
   }
 
-  MessageResult<StringVector> fit(InputDataSetClientRef source,
+  MessageResult<string> fit(InputDataSetClientRef source,
                             InputDataSetClientRef target)
   {
     auto sourceClientPtr = source.get().lock();
     if (!sourceClientPtr) return Error<string>(NoDataSet);
-
     auto sourceDataSet = sourceClientPtr->getDataSet();
     if (sourceDataSet.size() == 0) return Error<string>(EmptyDataSet);
-
     if (sourceDataSet.dims() != 1)
       return Error<string>(DimensionsDontMatch);
-
     auto targetClientPtr = target.get().lock();
     if (!targetClientPtr) return Error<string>(NoDataSet);
     auto targetDataSet = targetClientPtr->getDataSet();
     if (targetDataSet.size() == 0) return Error<string>(EmptyDataSet);
     if (sourceDataSet.size() != targetDataSet.size())
       return Error<string>(SizesDontMatch);
-
     if (!mAlgorithm.initialized()) 
       mAlgorithm.init();
     
-    auto data = sourceDataSet.getData();
+    auto data = sourceDataSet.getData().col(0);
     auto tgt = targetDataSet.getData().col(0);
+
+    // mAlgorithm.setMappingSpace(data, tgt);
 
     string res = " ";
 
     for (auto& x : data) {
       res += std::to_string(x);
+      res += "\t";
     }
 
-    return res.c_str();
+    return res;
+  }
+
+  MessageResult<void> map(InputBufferPtr in, BufferPtr out)
+  {
+    return OK();
+  }
+
+  
+  MessageResult<string> print()
+  {
+    return "deez nuts";
   }
 
   static auto getMessageDescriptors()
   {
     return defineMessages(
-        makeMessage("fit", &PolynomialRegressorClient::fit),
-        makeMessage("cols", &PolynomialRegressorClient::dims),
-        makeMessage("clear", &PolynomialRegressorClient::clear),
-        makeMessage("size", &PolynomialRegressorClient::size));
+        makeMessage("fit",    &PolynomialRegressorClient::fit),
+        makeMessage("dims",   &PolynomialRegressorClient::dims),
+        makeMessage("clear",  &PolynomialRegressorClient::clear),
+        makeMessage("size",   &PolynomialRegressorClient::size),
+        makeMessage("print",  &PolynomialRegressorClient::print),
+        makeMessage("map",    &PolynomialRegressorClient::map),
+        makeMessage("load",   &PolynomialRegressorClient::load),
+        makeMessage("dump",   &PolynomialRegressorClient::dump),
+        makeMessage("write",  &PolynomialRegressorClient::write),
+        makeMessage("read",   &PolynomialRegressorClient::read));
   }
 };
 
@@ -150,7 +166,7 @@ public:
   }
 
   PolynomialRegressorQuery(ParamSetViewType& p, FluidContext& c) 
-      : mParams(p), mRTBuffer(c.allocator())
+      : mParams(p)
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});
@@ -164,10 +180,6 @@ public:
   }
 
   index latency() { return 0; }
-
-private:
-  RealVector            mRTBuffer;
-  InputDataSetClientRef mDataSetClient;
 }; 
 
 } // namespace polynomialregressor
