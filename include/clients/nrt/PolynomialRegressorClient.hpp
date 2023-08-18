@@ -21,7 +21,8 @@ namespace polynomialregressor {
 
 constexpr auto PolynomialRegressorParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
-    LongParam("degree", "Degree of fit polynomial", 2, Min(0))
+    LongParam("degree", "Degree of polynomial", 2, Min(0)),
+    LongParam("regressors", "Number of regrssors", 1, Min(1))
 );
 
 class PolynomialRegressorClient : public FluidBaseClient,
@@ -32,7 +33,8 @@ class PolynomialRegressorClient : public FluidBaseClient,
 {
   enum {
     kName,
-    kDegree
+    kDegree,
+    kRegressors
   };
 
 public:
@@ -49,7 +51,9 @@ public:
 
   void setParams(ParamSetViewType& p) { 
     mParams = p;
+
     mAlgorithm.setDegree(get<kDegree>());
+    mAlgorithm.setSize(get<kRegressors>());
   }
 
   template <size_t N>
@@ -77,25 +81,31 @@ public:
   }
 
   MessageResult<void> fit(InputDataSetClientRef source,
-                            InputDataSetClientRef target)
+                          InputDataSetClientRef target)
   {
     auto sourceClientPtr = source.get().lock();
     if (!sourceClientPtr) return Error<void>(NoDataSet);
+
     auto sourceDataSet = sourceClientPtr->getDataSet();
     if (sourceDataSet.size() == 0) return Error<void>(EmptyDataSet);
-    if (sourceDataSet.dims() != 1)
+    if (sourceDataSet.dims() != mAlgorithm.size())
       return Error<void>(DimensionsDontMatch);
+
     auto targetClientPtr = target.get().lock();
     if (!targetClientPtr) return Error<void>(NoDataSet);
+
     auto targetDataSet = targetClientPtr->getDataSet();
     if (targetDataSet.size() == 0) return Error<void>(EmptyDataSet);
     if (sourceDataSet.size() != targetDataSet.size())
       return Error<void>(SizesDontMatch);
+    if (sourceDataSet.dims() != targetDataSet.dims())
+      return Error<void>(SizesDontMatch);
+
     if (!mAlgorithm.initialized()) 
-      mAlgorithm.init(get<kDegree>());
+      mAlgorithm.init(get<kDegree>(), get<kRegressors>());
     
-    auto data = sourceDataSet.getData().col(0);
-    auto tgt = targetDataSet.getData().col(0);
+    auto data = sourceDataSet.getData();
+    auto tgt = targetDataSet.getData();
 
     mAlgorithm.calculateRegressionCoefficients(data, tgt);
 
@@ -105,6 +115,8 @@ public:
    MessageResult<void> predict(InputDataSetClientRef src,
                                DataSetClientRef dest)
   {
+    index inputSize = mAlgorithm.size();
+    index outputSize = mAlgorithm.size();
     auto  srcPtr = src.get().lock();
     auto  destPtr = dest.get().lock();
 
@@ -114,12 +126,12 @@ public:
     if (srcDataSet.size() == 0) return Error(EmptyDataSet);
 
     if (!mAlgorithm.regressed()) return Error(NoDataFitted);
-    if (srcDataSet.dims() != 1) return Error(WrongPointSize);
+    if (srcDataSet.dims() != inputSize) return Error(WrongPointSize);
 
     StringVector ids{srcDataSet.getIds()};
-    RealMatrix output(srcDataSet.size(), 1);
+    RealMatrix output(srcDataSet.size(), outputSize);
 
-    mAlgorithm.getMappedSpace(srcDataSet.getData().col(0), output.col(0));
+    mAlgorithm.getMappedSpace(srcDataSet.getData(), output);
 
     DataSet result(ids, output);
     destPtr->setDataSet(result);
@@ -127,30 +139,33 @@ public:
     return OK();
   }
 
-  MessageResult<double> predictPoint(InputBufferPtr in, BufferPtr out) const
+  MessageResult<void> predictPoint(InputBufferPtr in, BufferPtr out) const
   {
-    if (!in || !out) return Error<double>(NoBuffer);
+    index inputSize = mAlgorithm.size();
+    index outputSize = mAlgorithm.size();
+
+    if (!in || !out) return Error(NoBuffer);
 
     BufferAdaptor::ReadAccess inBuf(in.get());
     BufferAdaptor::Access outBuf(out.get());
 
-    if (!inBuf.exists()) return Error<double>(InvalidBuffer);
-    if (!outBuf.exists()) return Error<double>(InvalidBuffer);
-    if (inBuf.numFrames() != 1) return Error<double>(WrongPointSize);
+    if (!inBuf.exists()) return Error(InvalidBuffer);
+    if (!outBuf.exists()) return Error(InvalidBuffer);
+    if (inBuf.numFrames() != inputSize) return Error(WrongPointSize);
 
-    if (!mAlgorithm.regressed()) return Error<double>(NoDataFitted);
+    if (!mAlgorithm.regressed()) return Error(NoDataFitted);
 
-    Result resizeResult = outBuf.resize(1, 1, inBuf.sampleRate());
-    if (!resizeResult.ok()) return Error<double>(BufferAlloc);
+    Result resizeResult = outBuf.resize(outputSize, 1, inBuf.sampleRate());
+    if (!resizeResult.ok()) return Error(BufferAlloc);
 
-    RealVector src(1);
-    RealVector dest(1);
+    RealMatrix src(inputSize, 1);
+    RealMatrix dest(outputSize, 1);
     
-    src <<= inBuf.samps(0, 1, 0);
+    src.col(0) <<= inBuf.samps(0, inputSize, 0);
     mAlgorithm.getMappedSpace(src, dest);
-    outBuf.samps(0, 1, 0) <<= dest;
+    outBuf.samps(0, outputSize, 0) <<= dest.col(0);
 
-    return dest[0];
+    return OK();
   }
 
   
@@ -158,8 +173,8 @@ public:
   {
     return "PolynomialRegressor " 
           + std::string(get<kName>()) 
-          + "\ndegree: " 
-          + std::to_string(mAlgorithm.getDegree()) 
+          + "\ndegree: "
+          + std::to_string(mAlgorithm.dims()) 
           + "\n regressed: " 
           + (mAlgorithm.regressed() ? "true" : "false");
   }
