@@ -53,7 +53,7 @@ public:
     mParams = p;
 
     mAlgorithm.setDegree(get<kDegree>());
-    mAlgorithm.setSize(get<kRegressors>());
+    mAlgorithm.setDims(get<kRegressors>());
   }
 
   template <size_t N>
@@ -85,20 +85,19 @@ public:
   {
     auto sourceClientPtr = source.get().lock();
     if (!sourceClientPtr) return Error<void>(NoDataSet);
-
     auto sourceDataSet = sourceClientPtr->getDataSet();
     if (sourceDataSet.size() == 0) return Error<void>(EmptyDataSet);
-    if (sourceDataSet.dims() != mAlgorithm.size())
+    if (sourceDataSet.dims() != mAlgorithm.dims())
       return Error<void>(DimensionsDontMatch);
 
     auto targetClientPtr = target.get().lock();
     if (!targetClientPtr) return Error<void>(NoDataSet);
-
     auto targetDataSet = targetClientPtr->getDataSet();
     if (targetDataSet.size() == 0) return Error<void>(EmptyDataSet);
+    if (sourceDataSet.dims() != mAlgorithm.dims())
+      return Error<void>(DimensionsDontMatch);
+
     if (sourceDataSet.size() != targetDataSet.size())
-      return Error<void>(SizesDontMatch);
-    if (sourceDataSet.dims() != targetDataSet.dims())
       return Error<void>(SizesDontMatch);
 
     if (!mAlgorithm.initialized()) 
@@ -115,8 +114,8 @@ public:
    MessageResult<void> predict(InputDataSetClientRef src,
                                DataSetClientRef dest)
   {
-    index inputSize = mAlgorithm.size();
-    index outputSize = mAlgorithm.size();
+    index inputSize = mAlgorithm.dims();
+    index outputSize = mAlgorithm.dims();
     auto  srcPtr = src.get().lock();
     auto  destPtr = dest.get().lock();
 
@@ -141,8 +140,8 @@ public:
 
   MessageResult<void> predictPoint(InputBufferPtr in, BufferPtr out) const
   {
-    index inputSize = mAlgorithm.size();
-    index outputSize = mAlgorithm.size();
+    index inputSize = mAlgorithm.dims();
+    index outputSize = mAlgorithm.dims();
 
     if (!in || !out) return Error(NoBuffer);
 
@@ -173,9 +172,11 @@ public:
   {
     return "PolynomialRegressor " 
           + std::string(get<kName>()) 
-          + "\ndegree: "
-          + std::to_string(mAlgorithm.dims()) 
-          + "\n regressed: " 
+          + "\npolynimal degree: "
+          + std::to_string(mAlgorithm.degree()) 
+          + "\nparallel regressors: "
+          + std::to_string(mAlgorithm.dims())
+          + "\nregressed: " 
           + (mAlgorithm.regressed() ? "true" : "false");
   }
 

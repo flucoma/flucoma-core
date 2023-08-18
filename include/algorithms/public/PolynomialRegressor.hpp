@@ -29,15 +29,16 @@ public:
     explicit PolynomialRegressor() = default;
     ~PolynomialRegressor() = default;
 
-    void init(index degree, index dim)
+    void init(index degree, index dims)
     {
         mInitialized = true;
-        mDegree = degree;
-        mSize = dim;
+        setDegree(degree);
+        setDims(dims);
     };
 
-    index dims() const { return asSigned(mDegree); };
-    index size() const { return asSigned(mSize); };
+    index degree()  const { return mInitialized ? asSigned(mDegree) : 0; };
+    index dims()    const { return mInitialized ? asSigned(mDims) : 0; };
+    index size()    const { return mInitialized ? asSigned(mDegree) : 0; };
 
     void clear() { mRegressed = false; }
 
@@ -48,15 +49,15 @@ public:
         if (mDegree == degree) return;
 
         mDegree = degree;
-        mCoefficients.conservativeResize(mDegree + 1, mSize);
+        mCoefficients.conservativeResize(mDegree + 1, mDims);
         mRegressed = false;
     }
 
-    void setSize(index dim) {
-        if (mSize == dim) return;
+    void setDims(index dims) {
+        if (mDims == dims) return;
 
-        mSize = dim;
-        mCoefficients.conservativeResize(mDegree + 1, mSize);
+        mDims = dims;
+        mCoefficients.conservativeResize(mDegree + 1, mDims);
         mRegressed = false;
     }
 
@@ -71,7 +72,7 @@ public:
         input = asEigen<Eigen::Array>(in);
         output = asEigen<Eigen::Array>(out);
 
-        for(index i = 0; i < mSize; ++i)
+        for(index i = 0; i < mDims; ++i)
         {
             generateDesignMatrix(input.col(i));
 
@@ -85,13 +86,13 @@ public:
 
     void getCoefficients(RealMatrixView coefficients) const
     {
-       _impl::asEigen<Eigen::Array>(coefficients) = mCoefficients;   
+       if (mInitialized) _impl::asEigen<Eigen::Array>(coefficients) = mCoefficients;   
     };
 
     void setCoefficients(InputRealMatrixView coefficients)
     {
         setDegree(coefficients.rows() - 1);
-        setSize(coefficients.cols());
+        setDims(coefficients.cols());
 
         mCoefficients = _impl::asEigen<Eigen::Array>(coefficients);
         mRegressed = true;
@@ -116,7 +117,7 @@ public:
 private:
     void calculateMappings(Eigen::Ref<Eigen::MatrixXd> in, Eigen::Ref<Eigen::MatrixXd> out) const
     {
-        for(index i = 0; i < mSize; ++i)
+        for(index i = 0; i < mDims; ++i)
         {
             generateDesignMatrix(in.col(i));
             out.col(i) = mDesignMatrix * mCoefficients.col(i);
@@ -135,7 +136,7 @@ private:
     }
 
     index mDegree       {2};
-    index mSize          {2};
+    index mDims         {1};
     bool  mRegressed    {false};
     bool  mInitialized  {false};
 
