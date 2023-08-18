@@ -16,6 +16,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../data/FluidMemory.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
+#include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
 
@@ -34,10 +35,10 @@ public:
         mDegree = degree;
     };
 
-    index size() const { return asSigned(mInSet ? mIn.size() : 1); };
-    index dims() const { return asSigned(mInSet ? mIn.size() : 0); };
+    index size() const { return asSigned(mDegree); };
+    index dims() const { return asSigned(mDegree); };
 
-    void clear() { mInSet = mOutSet = mRegressed = false; }
+    void clear() { mRegressed = false; }
 
     index   getDegree()     const { return asSigned(mDegree); };
     bool    regressed()     const { return mRegressed; };
@@ -48,31 +49,37 @@ public:
         return;
 
         mDegree = degree;
-        clear();
+        mRegressed = false;
     }
 
-    void process(RealVectorView in, RealVectorView out)
+    void calculateRegressionCoefficients(InputRealVectorView in, 
+                                         InputRealVectorView out,
+                                         Allocator& alloc = FluidDefaultAllocator())
     {
-        setMappingSpace(in, out);
-        process();
-    };
+        using namespace _impl;
 
-    void process() 
-    {
-       assert(mInSet && mOutSet);
-       calculateRegressionCoefficients();
+        ScopedEigenMap<Eigen::VectorXd> input(in.size(), alloc), 
+          output(out.size(), alloc);
+        input = asEigen<Eigen::Array>(in);
+        output = asEigen<Eigen::Array>(out);
+
+        generateDesignMatrix(input);
+
+        Eigen::MatrixXd transposeProduct = mDesignMatrix.transpose() * mDesignMatrix;
+        mCoefficients = transposeProduct.inverse() * mDesignMatrix.transpose() * output;
+
+        mRegressed = true;
     };
 
     void getCoefficients(RealVectorView coefficients) const
     {
-       assert(mRegressed);
        _impl::asEigen<Eigen::Array>(coefficients) = mCoefficients;   
     };
 
     void setCoefficients(InputRealVectorView coefficients)
     {
-        mCoefficients = _impl::asEigen<Eigen::Array>(coefficients);
         setDegree(coefficients.size() - 1);
+        mCoefficients = _impl::asEigen<Eigen::Array>(coefficients);
         mRegressed = true;
     }
 
@@ -81,8 +88,6 @@ public:
                         Allocator& alloc = FluidDefaultAllocator()) const
     {
         using namespace _impl;
-
-        assert(mRegressed);
 
         ScopedEigenMap<Eigen::VectorXd> input(in.size(), alloc),
           output(out.size(), alloc);
@@ -94,45 +99,7 @@ public:
         asEigen<Eigen::Array>(out) = output;
     }
 
-    void setMappingSpace(InputRealVectorView in, 
-                         InputRealVectorView out, 
-                         Allocator& alloc = FluidDefaultAllocator())
-    {
-        using namespace _impl;
-
-        ScopedEigenMap<Eigen::VectorXd> input(in.size(), alloc), output(out.size(), alloc);
-        input = asEigen<Eigen::Array>(in);
-        output = asEigen<Eigen::Array>(in);
-
-        setInputSpace(input);
-        setOutputSpace(output);
-    };
-
 private:
-    void setInputSpace(Eigen::Ref<Eigen::VectorXd> in) 
-    {
-        mIn = in;
-        mInSet = true;
-        mRegressed = false;
-    };
-
-    void setOutputSpace(Eigen::Ref<Eigen::VectorXd> out) 
-    {
-        mOut = out;
-        mOutSet = true;
-        mRegressed = false;
-    };
-
-    void calculateRegressionCoefficients()
-    {
-        generateDesignMatrix(mIn);
-
-        Eigen::MatrixXd transposeProduct = mDesignMatrix.transpose() * mDesignMatrix;
-        mCoefficients = transposeProduct.inverse() * mDesignMatrix.transpose() * mOut;
-
-        mRegressed = true;
-    };
-
     void calculateMappings(Eigen::Ref<Eigen::VectorXd> in, Eigen::Ref<Eigen::VectorXd> out) const
     {
         generateDesignMatrix(in);
@@ -153,13 +120,7 @@ private:
     bool  mRegressed    {false};
     bool  mInitialized  {false};
 
-    bool mInSet {false};
-    bool mOutSet{false};
-
-    Eigen::VectorXd mIn;
-    Eigen::VectorXd mOut;
     mutable Eigen::MatrixXd mDesignMatrix;
-
     Eigen::VectorXd mCoefficients;
 
 };
