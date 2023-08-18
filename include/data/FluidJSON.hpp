@@ -476,27 +476,29 @@ void from_json(const nlohmann::json &j, UMAP &umap) {
 
 // PolynomialRegressor
 void to_json(nlohmann::json &j, const PolynomialRegressor &reg) {
-  RealMatrix coefficients(reg.dims(), reg.size());
+  RealMatrix coefficients(reg.dims() + 1, reg.size());
 
   reg.getCoefficients(coefficients);
 
-  j["degree"] = reg.dims();
-  j["size"] = reg.dims();
   j["coefficients"] = RealMatrixView(coefficients);
+  j["degree"] = reg.degree();
+  j["dims"] = reg.dims();
 }
 
 bool check_json(const nlohmann::json &j, const PolynomialRegressor &) {
   return fluid::check_json(j,
-    {"degree", "size", "coefficients"},
-    {JSONTypes::NUMBER, JSONTypes::NUMBER, JSONTypes::OBJECT}
+    {"degree", "dims", "coefficients"},
+    {JSONTypes::NUMBER, JSONTypes::NUMBER, JSONTypes::ARRAY}
   );
 }
 
 void from_json(const nlohmann::json &j, PolynomialRegressor &reg) {
-  reg.init(j.at("degree").get<index>(), j.at("size").get<index>());
+  reg.init(j.at("degree").get<index>(), j.at("dims").get<index>());
 
   RealMatrix embedding(reg.dims() + 1, reg.size());
   j.at("coefficients").get_to(embedding);
+
+  reg.setCoefficients(embedding);
 }
 
 } // namespace algorithm
