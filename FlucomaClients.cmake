@@ -137,7 +137,7 @@ add_client(SineFeature clients/rt/SineFeatureClient.hpp CLASS RTSineFeatureClien
 add_client(Sines clients/rt/SinesClient.hpp CLASS RTSinesClient )
 add_client(SpectralShape clients/rt/SpectralShapeClient.hpp CLASS RTSpectralShapeClient )
 add_kr_in_client(Stats clients/rt/RunningStatsClient.hpp CLASS RunningStatsClient )
-add_kr_in_client(VoiceAllocator clients/rt/VoiceAllocator.hpp CLASS VoiceAllocatorClient )
+add_kr_in_client(VoiceAllocator clients/rt/VoiceAllocatorClient.hpp CLASS VoiceAllocatorClient )
 add_client(TransientSlice clients/rt/TransientSliceClient.hpp CLASS RTTransientSliceClient )
 add_client(Transients clients/rt/TransientClient.hpp CLASS RTTransientClient )
 
