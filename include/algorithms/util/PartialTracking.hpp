@@ -32,6 +32,13 @@ struct SinePeak
   bool   assigned;
 };
 
+struct VoicePeak
+{
+    double freq;
+    double logMag;
+    index voiceID;
+};
+
 struct SineTrack
 {
 
@@ -132,6 +139,26 @@ public:
           track.peaks[asUnsigned(latencyFrame - track.startFrame)]);
     }
     return sinePeaks;
+  }
+
+  // todo - refactor this function with the one above
+  vector<VoicePeak> getActiveVoices(Allocator& alloc)
+  {
+      vector<VoicePeak> voicePeaks(0, alloc);
+      index            latencyFrame = mCurrentFrame - mMinTrackLength;
+      if (latencyFrame < 0) return voicePeaks;
+      for (auto&& track : mTracks)
+      {
+          if (track.startFrame > latencyFrame) continue;
+          if (track.endFrame >= 0 && track.endFrame <= latencyFrame) continue;
+          if (track.endFrame >= 0 &&
+              track.endFrame - track.startFrame < mMinTrackLength)
+              continue;
+          voicePeaks.push_back({track.peaks[asUnsigned(latencyFrame - track.startFrame)].freq,
+                               track.peaks[asUnsigned(latencyFrame - track.startFrame)].logMag,
+                               track.trackId});
+      }
+      return voicePeaks;
   }
 
 private:
