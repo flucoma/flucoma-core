@@ -18,6 +18,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../common/ParameterTypes.hpp"
 // #include "../../algorithms/public/RunningStats.hpp"
 #include "../../data/TensorTypes.hpp"
+#include "../../algorithms/util/PartialTracking.hpp"
 
 namespace fluid {
 namespace client {
@@ -75,15 +76,18 @@ public:
   }
 
   VoiceAllocatorClient(ParamSetViewType& p, FluidContext& c)
-      : mParams(p), mInputSize{0}, mSizeTracker{0},
-    mOut0(get<kNVoices>().max(), c.allocator()),
-    mOut1(get<kNVoices>().max(), c.allocator()),
-    mOut2(get<kNVoices>().max(), c.allocator())
+      : mParams(p), mVoices(c.allocator()), mTracking(c.allocator()),
+      mInputSize{ 0 }, mSizeTracker{ 0 },
+      mFreqs(get<kNVoices>().max(), c.allocator()),
+      mLogMags(get<kNVoices>().max(), c.allocator()),
+      mVoiceIDs(get<kNVoices>().max(), c.allocator())
   {
     controlChannelsIn(2);
     controlChannelsOut({3, get<kNVoices>(), get<kNVoices>().max()});
     setInputLabels({"frequencies", "magnitudes"});
     setOutputLabels({"frequencies", "magnitudes", "voice IDs"});
+    mTracking.init();
+    mVoices.clear();
   }
 
   template <typename T>
@@ -102,15 +106,79 @@ public:
         // other initialisation
     }
 
-    // copy in to fixed output array
-      mOut2(Slice(0,input[0].size())) <<= input[0];// dummy code so I don't check that the input is smaller than the output - the voice alloc algo should deal with input more cleverly than just copy
-      mOut1(Slice(0,input[1].size())) <<= input[1];
-      mOut0(Slice(0,input[0].size())) <<= input[0];
-      
-    //    mAlgorithm.process(input[0],output[0],output[1]);
-    output[2](Slice(0,nVoices)) <<= mOut2(Slice(0,nVoices));
-    output[1](Slice(0,nVoices)) <<= mOut1(Slice(0,nVoices));
-    output[0](Slice(0,nVoices)) <<= mOut0(Slice(0,nVoices));
+    index lowerSize;
+    bool unfilledVoices = false;
+    if (input[0].size() >= nVoices)
+    {
+        lowerSize = nVoices;
+    }
+    else
+    {
+        lowerSize = input[0].size();
+        unfilledVoices = true;
+    }
+
+    //mOut1(Slice(0, lowerSize)) <<= input[1](Slice(0, lowerSize));
+    //mOut0(Slice(0, lowerSize)) <<= input[0](Slice(0, lowerSize));
+
+    vector<algorithm::SinePeak> incomingVoices(0, c.allocator());
+    for (index i = 0; i < lowerSize; ++i)
+    {
+        if (input[1].row(i) != 0 && input[0].row(i) != 0)
+        {
+            incomingVoices.push_back({ input[0].row(i), input[1].row(i), false });
+        }
+    }
+    
+    if (true) //change this to IF INPUT = TYPE MAGNITUDE, if dB skip
+    {
+        for (algorithm::SinePeak voice : incomingVoices)
+        {
+            voice.logMag = 20 * log10(std::max(voice.logMag, algorithm::epsilon));
+        }
+    }
+
+    double maxAmp = -144;
+    for (algorithm::SinePeak voice : incomingVoices)
+    {
+        if (voice.logMag > maxAmp) { maxAmp = voice.logMag; }
+    }
+
+    mTracking.processFrame(incomingVoices, maxAmp, get<kMinTrackLen>(), get<kBirthLowThreshold>(), get<kBirthHighTreshold>(), get<kTrackMethod>(), get<kTrackMagRange>(), get<kTrackFreqRange>(), get<kTrackProb>(), c.allocator());
+
+    vector<algorithm::VoicePeak> badIDVoices(0, c.allocator());
+    badIDVoices = mTracking.getActiveVoices(c.allocator());
+
+    if (badIDVoices.size() < lowerSize)
+    {
+        lowerSize = badIDVoices.size();
+    }
+
+    for (index i = 0; i < lowerSize; ++i)
+    {
+        output[2].row(i) = badIDVoices[i].voiceID;
+        output[1].row(i) = badIDVoices[i].logMag;
+        output[0].row(i) = badIDVoices[i].freq;
+    }
+
+    for (index i = lowerSize; i < nVoices; ++i)
+    {
+        output[2].row(i) = -1;
+        output[1].row(i) = 0;
+        output[0].row(i) = 0;
+    }
+
+    //output[2](Slice(0, lowerSize)) <<= mVoiceIDs(Slice(0, lowerSize));
+    //output[1](Slice(0, lowerSize)) <<= mLogMags(Slice(0, lowerSize));
+    //output[0](Slice(0, lowerSize)) <<= mFreqs(Slice(0, lowerSize));
+    //
+    //if (unfilledVoices)
+    //{
+    //    index unfilledVoicesLength = nVoices - lowerSize;
+    //    output[2](Slice(lowerSize, unfilledVoicesLength)).fill(-1);
+    //    output[1](Slice(lowerSize, unfilledVoicesLength)).fill(0);
+    //    output[0](Slice(lowerSize, unfilledVoicesLength)).fill(0);
+    //}
   }
 
   MessageResult<void> clear()
@@ -128,11 +196,13 @@ public:
 
 private:
   //  algorithm::RunningStats mAlgorithm;
+    vector<algorithm::VoicePeak>                mVoices;
+    algorithm::PartialTracking                  mTracking;
     index                                       mInputSize;
     ParameterTrackChanges<index>                mSizeTracker;
-    FluidTensor<double, 1>                      mOut0;
-    FluidTensor<double, 1>                      mOut1;
-    FluidTensor<double, 1>                      mOut2;
+    FluidTensor<double, 1>                      mFreqs;
+    FluidTensor<double, 1>                      mLogMags;
+    FluidTensor<double, 1>                      mVoiceIDs;
 };
 
 } // namespace voiceallocator
