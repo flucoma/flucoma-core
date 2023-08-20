@@ -38,6 +38,9 @@ class VoiceAllocatorClient : public FluidBaseClient,
                              public ControlIn,
                              ControlOut
 {
+    template <typename T>
+    using vector = rt::vector<T>;
+
 public:
   using ParamDescType = decltype(VoiceAllocatorParams);
 
@@ -65,13 +68,13 @@ public:
   {
     controlChannelsIn(2);
     controlChannelsOut({3, get<kNVoices>(), get<kNVoices>().max()});
-    setInputLabels({"left", "right"});
-    setOutputLabels({"lefto", "middleo", "righto"});
+    setInputLabels({"frequencies", "magnitudes"});
+    setOutputLabels({"frequencies", "magnitudes", "voice IDs"});
   }
 
   template <typename T>
   void process(std::vector<HostVector<T>>& input,
-               std::vector<HostVector<T>>& output, FluidContext&)
+               std::vector<HostVector<T>>& output, FluidContext& c)
   {
     index nVoices = get<kNVoices>();
 
