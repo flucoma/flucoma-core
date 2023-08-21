@@ -82,7 +82,8 @@ public:
   VoiceAllocatorClient(ParamSetViewType& p, FluidContext& c)
       : mParams(p), mTracking(c.allocator()),
       mSizeTracker{ 0 },
-      mFreeVoices(), mActiveVoices(), mActiveVoiceData(0, c.allocator()), //todo - need allocator for queue/deque?
+      mFreeVoices(c.allocator()), mActiveVoices(c.allocator()),
+      mActiveVoiceData(0, c.allocator()),
       mFreqs(get<kNVoices>().max(), c.allocator()),
       mLogMags(get<kNVoices>().max(), c.allocator()),
       mVoiceIDs(get<kNVoices>().max(), c.allocator())
@@ -262,8 +263,8 @@ public:
 
 private:
   //  algorithm::RunningStats mAlgorithm;
-    std::queue<index>                           mFreeVoices;
-    std::deque<index>                           mActiveVoices;
+    rt::queue<index>                           mFreeVoices;
+    rt::deque<index>                           mActiveVoices;
     vector<VoicePeak>                           mActiveVoiceData;
     algorithm::PartialTracking                  mTracking;
     ParameterTrackChanges<index>                mSizeTracker;
