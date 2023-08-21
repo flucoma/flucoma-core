@@ -480,21 +480,26 @@ void to_json(nlohmann::json &j, const PolynomialRegressor &reg) {
 
   reg.getCoefficients(coefficients);
 
+  j["tikhonov"] = reg.tihkonov();
   j["coefficients"] = RealMatrixView(coefficients);
 }
 
 bool check_json(const nlohmann::json &j, const PolynomialRegressor &) {
   return fluid::check_json(j,
-    {"coefficients"},
-    {JSONTypes::ARRAY}
+    {"tikhonov", "coefficients"},
+    {JSONTypes::NUMBER, JSONTypes::ARRAY}
   );
 }
 
 void from_json(const nlohmann::json &j, PolynomialRegressor &reg) {
   RealMatrix embedding(reg.degree() + 1, reg.dims());
+  double tikhonov;
+
+  j.at("tikhonov").get_to(tikhonov);
   j.at("coefficients").get_to(embedding);
 
-  reg.setCoefficients(embedding);
+  reg.setTikhonov(tikhonov);
+  reg.setCoefficients(embedding); 
 }
 
 } // namespace algorithm
