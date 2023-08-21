@@ -155,7 +155,7 @@ public:
               track.endFrame - track.startFrame < mMinTrackLength)
               continue;
           voicePeaks.push_back({track.peaks[asUnsigned(latencyFrame - track.startFrame)].freq,
-                               track.peaks[asUnsigned(latencyFrame - track.startFrame)].logMag,
+                               pow(10, track.peaks[asUnsigned(latencyFrame - track.startFrame)].logMag / 20),
                                track.trackId});
       }
       return voicePeaks;

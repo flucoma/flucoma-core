@@ -137,17 +137,20 @@ public:
     {
         if (input[1].row(i) != 0 && input[0].row(i) != 0)
         {
-            incomingVoices.push_back({ input[0].row(i), input[1].row(i), false });
+            incomingVoices.push_back({ input[0].row(i),
+                                     20 * log10(std::max(static_cast<double>(input[1].row(i)), algorithm::epsilon)),
+                                     false });
         }
     }
     
-    if (true) //change this to IF INPUT = TYPE MAGNITUDE, if dB skip
-    {
-        for (SinePeak voice : incomingVoices)
-        {
-            voice.logMag = 20 * log10(std::max(voice.logMag, algorithm::epsilon));
-        }
-    }
+    //if (true) //todo - change this to IF INPUT = TYPE MAGNITUDE, if dB skip
+    //{
+    //    for (SinePeak voice : incomingVoices)
+    //    {
+    //        //todo - doesn't actually do anything????
+    //        voice.logMag = 20 * log10(std::max(voice.logMag, algorithm::epsilon));
+    //    }
+    //}
 
     double maxAmp = -144;
     for (SinePeak voice : incomingVoices)
