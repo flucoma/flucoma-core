@@ -55,6 +55,8 @@ class VoiceAllocatorClient : public FluidBaseClient,
 {
     template <typename T>
     using vector = rt::vector<T>;
+    using VoicePeak = algorithm::VoicePeak;
+    using SinePeak = algorithm::SinePeak;
 
 public:
   using ParamDescType = decltype(VoiceAllocatorParams);
@@ -76,8 +78,9 @@ public:
   }
 
   VoiceAllocatorClient(ParamSetViewType& p, FluidContext& c)
-      : mParams(p), mVoices(c.allocator()), mTracking(c.allocator()),
+      : mParams(p), mTracking(c.allocator()),
       mInputSize{ 0 }, mSizeTracker{ 0 },
+      mFreeVoices(), mActiveVoices(), mActiveVoiceData(0, c.allocator()), //todo - need allocator for queue/deque?
       mFreqs(get<kNVoices>().max(), c.allocator()),
       mLogMags(get<kNVoices>().max(), c.allocator()),
       mVoiceIDs(get<kNVoices>().max(), c.allocator())
@@ -87,7 +90,15 @@ public:
     setInputLabels({"frequencies", "magnitudes"});
     setOutputLabels({"frequencies", "magnitudes", "voice IDs"});
     mTracking.init();
-    mVoices.clear();
+  }
+
+  void init(index nVoices)
+  {
+      if (!mActiveVoices.empty()) { mActiveVoices.pop_back(); }
+      if (!mFreeVoices.empty()) { mFreeVoices.pop(); }
+      for (index i = 0; i < nVoices; ++i) { mFreeVoices.push(i); }
+      mActiveVoiceData.resize(nVoices);
+      for (VoicePeak each : mActiveVoiceData) { each = { 0, 0, 0 }; }
   }
 
   template <typename T>
@@ -103,7 +114,7 @@ public:
     {
       mInputSize = input[0].size();
       controlChannelsOut({3, nVoices}); //update the dynamic out size
-        // other initialisation
+      init(nVoices);
     }
 
     index lowerSize;
@@ -121,7 +132,7 @@ public:
     //mOut1(Slice(0, lowerSize)) <<= input[1](Slice(0, lowerSize));
     //mOut0(Slice(0, lowerSize)) <<= input[0](Slice(0, lowerSize));
 
-    vector<algorithm::SinePeak> incomingVoices(0, c.allocator());
+    vector<SinePeak> incomingVoices(0, c.allocator());
     for (index i = 0; i < lowerSize; ++i)
     {
         if (input[1].row(i) != 0 && input[0].row(i) != 0)
@@ -132,40 +143,28 @@ public:
     
     if (true) //change this to IF INPUT = TYPE MAGNITUDE, if dB skip
     {
-        for (algorithm::SinePeak voice : incomingVoices)
+        for (SinePeak voice : incomingVoices)
         {
             voice.logMag = 20 * log10(std::max(voice.logMag, algorithm::epsilon));
         }
     }
 
     double maxAmp = -144;
-    for (algorithm::SinePeak voice : incomingVoices)
+    for (SinePeak voice : incomingVoices)
     {
         if (voice.logMag > maxAmp) { maxAmp = voice.logMag; }
     }
 
     mTracking.processFrame(incomingVoices, maxAmp, get<kMinTrackLen>(), get<kBirthLowThreshold>(), get<kBirthHighTreshold>(), get<kTrackMethod>(), get<kTrackMagRange>(), get<kTrackFreqRange>(), get<kTrackProb>(), c.allocator());
 
-    vector<algorithm::VoicePeak> badIDVoices(0, c.allocator());
-    badIDVoices = mTracking.getActiveVoices(c.allocator());
+    vector<VoicePeak> outgoingVoices(0, c.allocator());
+    outgoingVoices = allocatorAlgorithm(mTracking.getActiveVoices(c.allocator()), nVoices, c.allocator());
 
-    if (badIDVoices.size() < lowerSize)
+    for (index i = 0; i < nVoices; ++i)
     {
-        lowerSize = badIDVoices.size();
-    }
-
-    for (index i = 0; i < lowerSize; ++i)
-    {
-        output[2].row(i) = badIDVoices[i].voiceID;
-        output[1].row(i) = badIDVoices[i].logMag;
-        output[0].row(i) = badIDVoices[i].freq;
-    }
-
-    for (index i = lowerSize; i < nVoices; ++i)
-    {
-        output[2].row(i) = -1;
-        output[1].row(i) = 0;
-        output[0].row(i) = 0;
+        output[2].row(i) = outgoingVoices[i].voiceID;
+        output[1].row(i) = outgoingVoices[i].logMag;
+        output[0].row(i) = outgoingVoices[i].freq;
     }
 
     //output[2](Slice(0, lowerSize)) <<= mVoiceIDs(Slice(0, lowerSize));
@@ -179,6 +178,49 @@ public:
     //    output[1](Slice(lowerSize, unfilledVoicesLength)).fill(0);
     //    output[0](Slice(lowerSize, unfilledVoicesLength)).fill(0);
     //}
+  }
+
+  vector<VoicePeak> allocatorAlgorithm(vector<VoicePeak>& incomingVoices, index nVoices, Allocator& alloc)
+  {
+      //handle existing voices - killing or sustaining
+      for (index existing = 0; existing < mActiveVoices.size(); ++existing)
+      {
+          bool killVoice = true;
+          for (index incoming = 0; incoming < incomingVoices.size(); ++incoming)
+          {
+              //remove incoming voice events & allows corresponding voice to live if it already exists
+              if (mActiveVoiceData[mActiveVoices[existing]].voiceID == incomingVoices[incoming].voiceID)
+              {
+                  killVoice = false;
+                  incomingVoices.erase(incomingVoices.begin() + incoming);
+                  break;
+              }
+          }
+          if (killVoice) //note off
+          {
+              mActiveVoiceData[mActiveVoices[existing]] = { 0, 0, 0 };
+              mFreeVoices.push(mActiveVoices[existing]);
+              mActiveVoices.erase(mActiveVoices.begin() + existing);
+          }
+      }
+
+      //handle new voice allocation
+      for (index incoming = 0; incoming < incomingVoices.size(); ++incoming)
+      {
+          if (!mFreeVoices.empty())
+          {
+              index newVoiceIndex = mFreeVoices.front();
+              mFreeVoices.pop();
+              mActiveVoices.push_back(newVoiceIndex);
+              mActiveVoiceData[newVoiceIndex] = incomingVoices[incoming];
+          }
+          else //voice stealing
+          {
+              ;
+          }
+      }
+
+      return mActiveVoiceData;
   }
 
   MessageResult<void> clear()
@@ -196,7 +238,9 @@ public:
 
 private:
   //  algorithm::RunningStats mAlgorithm;
-    vector<algorithm::VoicePeak>                mVoices;
+    std::queue<index>                           mFreeVoices;
+    std::deque<index>                           mActiveVoices;
+    vector<VoicePeak>                           mActiveVoiceData;
     algorithm::PartialTracking                  mTracking;
     index                                       mInputSize;
     ParameterTrackChanges<index>                mSizeTracker;
