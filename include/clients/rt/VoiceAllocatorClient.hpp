@@ -79,7 +79,7 @@ public:
 
   VoiceAllocatorClient(ParamSetViewType& p, FluidContext& c)
       : mParams(p), mTracking(c.allocator()),
-      mInputSize{ 0 }, mSizeTracker{ 0 },
+      mSizeTracker{ 0 },
       mFreeVoices(), mActiveVoices(), mActiveVoiceData(0, c.allocator()), //todo - need allocator for queue/deque?
       mFreqs(get<kNVoices>().max(), c.allocator()),
       mLogMags(get<kNVoices>().max(), c.allocator()),
@@ -107,12 +107,8 @@ public:
   {
     index nVoices = get<kNVoices>();
 
-    bool inputSizeChanged = mInputSize != input[0].size();
-    bool sizeParamChanged = mSizeTracker.changed(nVoices);
-
-    if (inputSizeChanged || sizeParamChanged)
+    if (mSizeTracker.changed(nVoices))
     {
-      mInputSize = input[0].size();
       controlChannelsOut({3, nVoices}); //update the dynamic out size
       init(nVoices);
     }
