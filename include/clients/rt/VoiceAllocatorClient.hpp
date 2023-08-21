@@ -251,7 +251,7 @@ public:
 
   MessageResult<void> clear()
   {
-    //    mAlgorithm.init(get<0>(),mInputSize);
+    init(get<kNVoices>());
     return {};
   }
 
