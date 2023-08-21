@@ -201,6 +201,7 @@ public:
               mActiveVoiceData[mActiveVoices[existing]] = { 0, 0, 0 };
               mFreeVoices.push(mActiveVoices[existing]);
               mActiveVoices.erase(mActiveVoices.begin() + existing);
+              --existing;
           }
       }
 
