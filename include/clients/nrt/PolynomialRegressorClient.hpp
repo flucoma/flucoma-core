@@ -181,6 +181,12 @@ public:
           + (mAlgorithm.regressed() ? "true" : "false");
   }
 
+  MessageResult<void> write(string fileName)
+  {
+    if(!mAlgorithm.regressed()) return Error(NoDataFitted);
+    return DataClient::write(fileName);
+  }
+
   MessageResult<ParamValues> read(string fileName)
   {
     auto result = DataClient::read(fileName);
