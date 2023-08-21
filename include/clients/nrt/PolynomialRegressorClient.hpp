@@ -21,8 +21,7 @@ namespace polynomialregressor {
 
 constexpr auto PolynomialRegressorParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
-    LongParam("degree", "Degree of polynomial", 2, Min(0)),
-    LongParam("regressors", "Number of regrssors", 1, Min(1))
+    LongParam("degree", "Degree of polynomial", 2, Min(0))
 );
 
 class PolynomialRegressorClient : public FluidBaseClient,
@@ -33,8 +32,7 @@ class PolynomialRegressorClient : public FluidBaseClient,
 {
   enum {
     kName,
-    kDegree,
-    kRegressors
+    kDegree
   };
 
 public:
@@ -52,9 +50,7 @@ public:
 
   void setParams(ParamSetViewType& p) { 
     mParams = p;
-
     mAlgorithm.setDegree(get<kDegree>());
-    mAlgorithm.setDims(get<kRegressors>());
   }
 
   template <size_t N>
@@ -71,7 +67,7 @@ public:
 // c.allocator();
   PolynomialRegressorClient(ParamSetViewType& p, FluidContext& c) : mParams(p) 
   {
-    audioChannelsIn(1);
+    controlChannelsIn(1);
     controlChannelsOut({1, 1});
   }
 
@@ -84,25 +80,23 @@ public:
   MessageResult<void> fit(InputDataSetClientRef source,
                           InputDataSetClientRef target)
   {
-    auto sourceClientPtr = source.get().lock();
-    if (!sourceClientPtr) return Error<void>(NoDataSet);
-    auto sourceDataSet = sourceClientPtr->getDataSet();
-    if (sourceDataSet.size() == 0) return Error<void>(EmptyDataSet);
-    if (sourceDataSet.dims() != mAlgorithm.dims())
-      return Error<void>(DimensionsDontMatch);
-
     auto targetClientPtr = target.get().lock();
     if (!targetClientPtr) return Error<void>(NoDataSet);
     auto targetDataSet = targetClientPtr->getDataSet();
     if (targetDataSet.size() == 0) return Error<void>(EmptyDataSet);
-    if (sourceDataSet.dims() != mAlgorithm.dims())
-      return Error<void>(DimensionsDontMatch);
+    
+    auto sourceClientPtr = source.get().lock();
+    if (!sourceClientPtr) return Error<void>(NoDataSet);
+    auto sourceDataSet = sourceClientPtr->getDataSet();
+    if (sourceDataSet.size() == 0) return Error<void>(EmptyDataSet);
 
     if (sourceDataSet.size() != targetDataSet.size())
       return Error<void>(SizesDontMatch);
 
-    if (!mAlgorithm.initialized()) 
-      mAlgorithm.init(get<kDegree>(), get<kRegressors>());
+    if (sourceDataSet.dims() != targetDataSet.dims())
+      return Error<void>(WrongPointSize);
+
+    mAlgorithm.init(get<kDegree>(), sourceDataSet.dims());
     
     auto data = sourceDataSet.getData();
     auto tgt = targetDataSet.getData();
@@ -174,7 +168,7 @@ public:
     return "PolynomialRegressor " 
           + std::string(get<kName>()) 
           + "\npolynimal degree: "
-          + std::to_string(mAlgorithm.degree()) 
+          + std::to_string(get<kDegree>()) 
           + "\nparallel regressors: "
           + std::to_string(mAlgorithm.dims())
           + "\nregressed: " 
@@ -215,9 +209,7 @@ public:
 private:
   MessageResult<ParamValues> updateParameters()
   {
-    get<kRegressors>() = mAlgorithm.dims();
     get<kDegree>() = mAlgorithm.degree();
-
     return mParams.get().toTuple();
   }
 };
