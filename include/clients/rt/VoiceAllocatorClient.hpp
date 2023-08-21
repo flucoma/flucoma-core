@@ -94,8 +94,8 @@ public:
 
   void init(index nVoices)
   {
-      if (!mActiveVoices.empty()) { mActiveVoices.pop_back(); }
-      if (!mFreeVoices.empty()) { mFreeVoices.pop(); }
+      while (!mActiveVoices.empty()) { mActiveVoices.pop_back(); }
+      while (!mFreeVoices.empty()) { mFreeVoices.pop(); }
       for (index i = 0; i < nVoices; ++i) { mFreeVoices.push(i); }
       mActiveVoiceData.resize(nVoices);
       for (VoicePeak each : mActiveVoiceData) { each = { 0, 0, 0 }; }
