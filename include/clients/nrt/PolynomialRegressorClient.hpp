@@ -21,7 +21,8 @@ namespace polynomialregressor {
 
 constexpr auto PolynomialRegressorParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
-    LongParam("degree", "Degree of polynomial", 2, Min(0))
+    LongParam("degree", "Degree of polynomial", 2, Min(0)),
+    FloatParam("tikhonov", "Tihkonov factor for regression", 0.0, Min(0.0))
 );
 
 class PolynomialRegressorClient : public FluidBaseClient,
@@ -32,7 +33,8 @@ class PolynomialRegressorClient : public FluidBaseClient,
 {
   enum {
     kName,
-    kDegree
+    kDegree,
+    kTikhonov
   };
 
 public:
@@ -51,6 +53,7 @@ public:
   void setParams(ParamSetViewType& p) { 
     mParams = p;
     mAlgorithm.setDegree(get<kDegree>());
+    mAlgorithm.setTikhonov(get<kTikhonov>());
   }
 
   template <size_t N>
@@ -64,8 +67,7 @@ public:
     return PolynomialRegressorParams;
   }
   
-// c.allocator();
-  PolynomialRegressorClient(ParamSetViewType& p, FluidContext& c) : mParams(p) 
+  PolynomialRegressorClient(ParamSetViewType& p, FluidContext&) : mParams(p) 
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});
@@ -96,7 +98,9 @@ public:
     if (sourceDataSet.dims() != targetDataSet.dims())
       return Error<void>(WrongPointSize);
 
-    mAlgorithm.init(get<kDegree>(), sourceDataSet.dims());
+    updateParameters();
+
+    mAlgorithm.init(get<kDegree>(), sourceDataSet.dims(), get<kTikhonov>());
     
     auto data = sourceDataSet.getData();
     auto tgt = targetDataSet.getData();
@@ -168,9 +172,11 @@ public:
     return "PolynomialRegressor " 
           + std::string(get<kName>()) 
           + "\npolynimal degree: "
-          + std::to_string(get<kDegree>()) 
+          + std::to_string(mAlgorithm.degree()) 
           + "\nparallel regressors: "
           + std::to_string(mAlgorithm.dims())
+          + "\nTikhonov regularisation factor: "
+          + std::to_string(mAlgorithm.tihkonov())
           + "\nregressed: " 
           + (mAlgorithm.regressed() ? "true" : "false");
   }
@@ -199,7 +205,8 @@ public:
         makeMessage("size",   &PolynomialRegressorClient::size),
         makeMessage("print",  &PolynomialRegressorClient::print),
         makeMessage("predict",&PolynomialRegressorClient::predict),
-        makeMessage("predictPoint", &PolynomialRegressorClient::predictPoint),
+        makeMessage("predictPoint", 
+                              &PolynomialRegressorClient::predictPoint),
         makeMessage("load",   &PolynomialRegressorClient::load),
         makeMessage("dump",   &PolynomialRegressorClient::dump),
         makeMessage("write",  &PolynomialRegressorClient::write),
@@ -210,6 +217,8 @@ private:
   MessageResult<ParamValues> updateParameters()
   {
     get<kDegree>() = mAlgorithm.degree();
+    get<kTikhonov>() = mAlgorithm.tihkonov();
+
     return mParams.get().toTuple();
   }
 };
