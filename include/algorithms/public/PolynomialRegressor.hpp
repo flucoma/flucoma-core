@@ -106,6 +106,8 @@ public:
 
     void setCoefficients(InputRealMatrixView coefficients)
     {
+        if(!mInitialized) mInitialized = true;
+        
         setDegree(coefficients.rows() - 1);
         setDims(coefficients.cols());
 
