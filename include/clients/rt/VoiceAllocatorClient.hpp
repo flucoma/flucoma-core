@@ -160,7 +160,11 @@ public:
     mTracking.processFrame(incomingVoices, maxAmp, get<kMinTrackLen>(), get<kBirthLowThreshold>(), get<kBirthHighTreshold>(), get<kTrackMethod>(), get<kTrackMagRange>(), get<kTrackFreqRange>(), get<kTrackProb>(), c.allocator());
 
     vector<VoicePeak> outgoingVoices(0, c.allocator());
-    outgoingVoices = allocatorAlgorithm(sortVoices(mTracking.getActiveVoices(c.allocator()), get<kPrioritisedVoices>()), c.allocator());
+    outgoingVoices = mTracking.getActiveVoices(c.allocator());
+    outgoingVoices = sortVoices(outgoingVoices, get<kPrioritisedVoices>());
+    if (outgoingVoices.size() > nVoices)
+        outgoingVoices.resize(nVoices);
+    outgoingVoices = allocatorAlgorithm(outgoingVoices, c.allocator());
 
     for (index i = 0; i < nVoices; ++i)
     {
