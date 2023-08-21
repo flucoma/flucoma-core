@@ -195,7 +195,7 @@ public:
                   break;
               }
           }
-          if (killVoice) //note off
+          if (killVoice) //voice off
           {
               mActiveVoiceData[mActiveVoices[existing]] = { 0, 0, 0 };
               mFreeVoices.push(mActiveVoices[existing]);
@@ -206,7 +206,7 @@ public:
       //handle new voice allocation
       for (index incoming = 0; incoming < incomingVoices.size(); ++incoming)
       {
-          if (!mFreeVoices.empty())
+          if (!mFreeVoices.empty()) //voice on
           {
               index newVoiceIndex = mFreeVoices.front();
               mFreeVoices.pop();
