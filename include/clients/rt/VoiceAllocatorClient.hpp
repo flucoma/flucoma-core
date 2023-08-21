@@ -242,7 +242,6 @@ private:
     std::deque<index>                           mActiveVoices;
     vector<VoicePeak>                           mActiveVoiceData;
     algorithm::PartialTracking                  mTracking;
-    index                                       mInputSize;
     ParameterTrackChanges<index>                mSizeTracker;
     FluidTensor<double, 1>                      mFreqs;
     FluidTensor<double, 1>                      mLogMags;
