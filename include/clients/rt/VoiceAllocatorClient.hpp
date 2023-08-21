@@ -168,6 +168,8 @@ public:
         output[0].row(i) = outgoingVoices[i].freq;
     }
 
+    mTracking.prune();
+
     //output[2](Slice(0, lowerSize)) <<= mVoiceIDs(Slice(0, lowerSize));
     //output[1](Slice(0, lowerSize)) <<= mLogMags(Slice(0, lowerSize));
     //output[0](Slice(0, lowerSize)) <<= mFreqs(Slice(0, lowerSize));
