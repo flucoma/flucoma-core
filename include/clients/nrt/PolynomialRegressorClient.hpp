@@ -101,7 +101,7 @@ public:
     auto data = sourceDataSet.getData();
     auto tgt = targetDataSet.getData();
 
-    mAlgorithm.calculateRegressionCoefficients(data, tgt);
+    mAlgorithm.regress(data, tgt);
 
     return OK();
   }
@@ -125,7 +125,7 @@ public:
     StringVector ids{srcDataSet.getIds()};
     RealMatrix output(srcDataSet.size(), outputSize);
 
-    mAlgorithm.getMappedSpace(srcDataSet.getData(), output);
+    mAlgorithm.process(srcDataSet.getData(), output);
 
     DataSet result(ids, output);
     destPtr->setDataSet(result);
@@ -156,7 +156,7 @@ public:
     RealMatrix dest(outputSize, 1);
     
     src.col(0) <<= inBuf.samps(0, inputSize, 0);
-    mAlgorithm.getMappedSpace(src, dest);
+    mAlgorithm.process(src, dest);
     outBuf.samps(0, outputSize, 0) <<= dest.col(0);
 
     return OK();

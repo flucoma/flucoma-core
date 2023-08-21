@@ -61,9 +61,9 @@ public:
         mRegressed = false;
     }
 
-    void calculateRegressionCoefficients(InputRealMatrixView in, 
-                                         InputRealMatrixView out,
-                                         Allocator& alloc = FluidDefaultAllocator())
+    void regress(InputRealMatrixView in, 
+                 InputRealMatrixView out,
+                 Allocator& alloc = FluidDefaultAllocator())
     {
         using namespace _impl;
 
@@ -98,9 +98,9 @@ public:
         mRegressed = true;
     }
 
-    void getMappedSpace(InputRealMatrixView in, 
-                        RealMatrixView out, 
-                        Allocator& alloc = FluidDefaultAllocator()) const
+    void process(InputRealMatrixView in, 
+                 RealMatrixView out, 
+                 Allocator& alloc = FluidDefaultAllocator()) const
     {
         using namespace _impl;
 
