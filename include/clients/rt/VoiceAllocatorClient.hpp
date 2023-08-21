@@ -135,9 +135,8 @@ public:
     {
         if (input[1].row(i) != 0 && input[0].row(i) != 0)
         {
-            incomingVoices.push_back({ input[0].row(i),
-                                     20 * log10(std::max(static_cast<double>(input[1].row(i)), algorithm::epsilon)),
-                                     false });
+            double logMag = 20 * log10(std::max(static_cast<double>(input[1].row(i)), algorithm::epsilon));
+            incomingVoices.push_back({ input[0].row(i), logMag, false });
         }
     }
     
