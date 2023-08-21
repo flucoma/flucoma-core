@@ -191,6 +191,7 @@ public:
               if (mActiveVoiceData[mActiveVoices[existing]].voiceID == incomingVoices[incoming].voiceID)
               {
                   killVoice = false;
+                  mActiveVoiceData[mActiveVoices[existing]] = incomingVoices[incoming]; //update freq/mag
                   incomingVoices.erase(incomingVoices.begin() + incoming);
                   break;
               }
