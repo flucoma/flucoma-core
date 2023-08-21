@@ -29,7 +29,8 @@ using HostVector = FluidTensorView<T, 1>;
 
 enum VoiceAllocatorParamIndex {
   kNVoices,
-  kStealMethod,
+  kPrioritisedVoices,
+  //kStealMethod,
   kBirthLowThreshold,
   kBirthHighTreshold,
   kMinTrackLen,
@@ -41,7 +42,8 @@ enum VoiceAllocatorParamIndex {
 
 constexpr auto VoiceAllocatorParams = defineParameters(
     LongParamRuntimeMax<Primary>( "numVoices", "Number of Voices", 1, Min(1)),
-    EnumParam("stealMethod", "Voice Stealing Priority", 0, "Oldest", "Quietest"),
+    EnumParam("prioritisedVoices", "Prioritised Voice Quality", 0, "Loudest Magnitude", "Lowest Frequency"),
+    //EnumParam("stealMethod", "Voice Stealing Method", 0, "No Stealing", "Oldest", "Quietest"),
     FloatParam("birthLowThreshold", "Track Birth Low Frequency Threshold", -24, Min(-144), Max(0)),
     FloatParam("birthHighThreshold", "Track Birth High Frequency Threshold", -60, Min(-144), Max(0)),
     LongParam("minTrackLen", "Minimum Track Length", 1, Min(1)),
@@ -158,7 +160,7 @@ public:
     mTracking.processFrame(incomingVoices, maxAmp, get<kMinTrackLen>(), get<kBirthLowThreshold>(), get<kBirthHighTreshold>(), get<kTrackMethod>(), get<kTrackMagRange>(), get<kTrackFreqRange>(), get<kTrackProb>(), c.allocator());
 
     vector<VoicePeak> outgoingVoices(0, c.allocator());
-    outgoingVoices = allocatorAlgorithm(mTracking.getActiveVoices(c.allocator()), get<kStealMethod>(), c.allocator());
+    outgoingVoices = allocatorAlgorithm(sortVoices(mTracking.getActiveVoices(c.allocator()), get<kPrioritisedVoices>()), c.allocator());
 
     for (index i = 0; i < nVoices; ++i)
     {
@@ -182,12 +184,31 @@ public:
     //}
   }
 
-  vector<VoicePeak> allocatorAlgorithm(vector<VoicePeak>& incomingVoices, bool stealQuietest, Allocator& alloc)
+  vector<VoicePeak> sortVoices(vector<VoicePeak>& incomingVoices, index sortingMethod)
   {
-      //move released/stolen to free
+      //sortingMethod - 0 loudest - 1 lowest
+      switch (sortingMethod)
+      {
+      case 0: //loudest
+          std::sort(incomingVoices.begin(), incomingVoices.end(),
+                    [](const VoicePeak& voice1, const VoicePeak& voice2)
+                    { return voice1.logMag > voice2.logMag; });
+          break;
+      case 1: //lowest
+          std::sort(incomingVoices.begin(), incomingVoices.end(),
+                    [](const VoicePeak& voice1, const VoicePeak& voice2)
+                    { return voice1.freq < voice2.freq; });
+          break;
+      }
+      return incomingVoices;
+  }
+
+  vector<VoicePeak> allocatorAlgorithm(vector<VoicePeak>& incomingVoices, Allocator& alloc)
+  {
+      //move released to free
       for (index existing = 0; existing < mActiveVoiceData.size(); ++existing)
       {
-          if (mActiveVoiceData[existing].state == algorithm::VoiceState::kReleaseState || mActiveVoiceData[existing].state == algorithm::VoiceState::kStolenState)
+          if (mActiveVoiceData[existing].state == algorithm::VoiceState::kReleaseState)
               mActiveVoiceData[existing].state = algorithm::VoiceState::kFreeState;
       }
 
@@ -224,26 +245,39 @@ public:
               index newVoiceIndex = mFreeVoices.front();
               mFreeVoices.pop();
               mActiveVoices.push_back(newVoiceIndex);
+              algorithm::VoiceState prevState = mActiveVoiceData[newVoiceIndex].state;
               mActiveVoiceData[newVoiceIndex] = incomingVoices[incoming];
+              if (prevState == algorithm::VoiceState::kReleaseState) //mark as stolen
+                  mActiveVoiceData[newVoiceIndex].state = algorithm::VoiceState::kStolenState;
           }
-          else //voice stealing
+          /*else //voice stealing
           {
               index stolenVoiceIndex;
-              if (stealQuietest)
-              {
-                  auto minElement =  std::min_element(mActiveVoiceData.begin(), mActiveVoiceData.end(), [](const VoicePeak& voice1, const VoicePeak& voice2) { return voice1.logMag < voice2.logMag; });
-                  stolenVoiceIndex = std::distance(mActiveVoiceData.begin(), minElement);
-                  mActiveVoices.erase(mActiveVoices.begin() + stolenVoiceIndex);
-              }
-              else //steal oldest
+              if (stealingMethod == 1) //steal oldest
               {
                   stolenVoiceIndex = mActiveVoices.front();
                   mActiveVoices.pop_front();
               }
+              else if (stealingMethod == 2 && prioritisedVoices == 0) //steal quietest
+              {
+                  auto minElement = std::min_element(mActiveVoiceData.begin(), mActiveVoiceData.end(), 
+                                                      [](const VoicePeak& voice1, const VoicePeak& voice2) 
+                                                      { return voice1.logMag < voice2.logMag; });
+                  stolenVoiceIndex = std::distance(mActiveVoiceData.begin(), minElement);
+                  mActiveVoices.erase(mActiveVoices.begin() + stolenVoiceIndex);
+              }
+              else if (stealingMethod == 2 && prioritisedVoices == 1) //steal highest
+              {
+                  auto minElement = std::max_element(mActiveVoiceData.begin(), mActiveVoiceData.end(),
+                                                     [](const VoicePeak& voice1, const VoicePeak& voice2)
+                                                     { return voice1.freq > voice2.freq; });
+                  stolenVoiceIndex = std::distance(mActiveVoiceData.begin(), minElement);
+                  mActiveVoices.erase(mActiveVoices.begin() + stolenVoiceIndex);
+              }
               mActiveVoices.push_back(stolenVoiceIndex);
               mActiveVoiceData[stolenVoiceIndex] = incomingVoices[incoming];
               mActiveVoiceData[stolenVoiceIndex].state = algorithm::VoiceState::kStolenState;
-          }
+          }*/
       }
 
       return mActiveVoiceData;
