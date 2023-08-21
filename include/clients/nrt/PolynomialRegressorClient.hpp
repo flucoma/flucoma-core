@@ -46,6 +46,7 @@ public:
 
   using ParamDescType = decltype(PolynomialRegressorParams);
   using ParamSetViewType = ParameterSetView<ParamDescType>;
+  using ParamValues = typename ParamSetViewType::ValueTuple;
   
   std::reference_wrapper<ParamSetViewType> mParams;
 
@@ -180,6 +181,21 @@ public:
           + (mAlgorithm.regressed() ? "true" : "false");
   }
 
+  MessageResult<ParamValues> read(string fileName)
+  {
+    auto result = DataClient::read(fileName);
+    if (result.ok()) return updateParameters();
+    return {result.status(), result.message()};
+  }
+
+  MessageResult<ParamValues> load(string fileName)
+  {
+    auto result = DataClient::load(fileName);
+    if (result.ok()) return updateParameters();
+    return {result.status(), result.message()};
+  }
+
+
   static auto getMessageDescriptors()
   {
     return defineMessages(
@@ -194,6 +210,15 @@ public:
         makeMessage("dump",   &PolynomialRegressorClient::dump),
         makeMessage("write",  &PolynomialRegressorClient::write),
         makeMessage("read",   &PolynomialRegressorClient::read));
+  }
+
+private:
+  MessageResult<ParamValues> updateParameters()
+  {
+    get<kRegressors>() = mAlgorithm.dims();
+    get<kDegree>() = mAlgorithm.degree();
+
+    return mParams.get().toTuple();
   }
 };
 
