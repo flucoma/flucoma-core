@@ -29,6 +29,7 @@ using HostVector = FluidTensorView<T, 1>;
 
 enum VoiceAllocatorParamIndex {
   kNVoices,
+  kStealMethod,
   kBirthLowThreshold,
   kBirthHighTreshold,
   kMinTrackLen,
@@ -40,6 +41,7 @@ enum VoiceAllocatorParamIndex {
 
 constexpr auto VoiceAllocatorParams = defineParameters(
     LongParamRuntimeMax<Primary>( "numVoices", "Number of Voices", 1, Min(1)),
+    EnumParam("stealMethod", "Voice Stealing Priority", 0, "Oldest", "Quietest"),
     FloatParam("birthLowThreshold", "Track Birth Low Frequency Threshold", -24, Min(-144), Max(0)),
     FloatParam("birthHighThreshold", "Track Birth High Frequency Threshold", -60, Min(-144), Max(0)),
     LongParam("minTrackLen", "Minimum Track Length", 1, Min(1)),
@@ -88,7 +90,7 @@ public:
     controlChannelsIn(2);
     controlChannelsOut({3, get<kNVoices>(), get<kNVoices>().max()});
     setInputLabels({"frequencies", "magnitudes"});
-    setOutputLabels({"frequencies", "magnitudes", "voice IDs"});
+    setOutputLabels({"frequencies", "magnitudes", "state"});
     mTracking.init();
   }
 
@@ -109,27 +111,26 @@ public:
 
     if (mSizeTracker.changed(nVoices))
     {
-      controlChannelsOut({3, nVoices}); //update the dynamic out size
+      controlChannelsOut({4, nVoices}); //update the dynamic out size
       init(nVoices);
     }
 
-    index lowerSize;
-    bool unfilledVoices = false;
-    if (input[0].size() >= nVoices)
-    {
-        lowerSize = nVoices;
-    }
-    else
-    {
-        lowerSize = input[0].size();
-        unfilledVoices = true;
-    }
+    //index lowerSize;
+    //if (input[0].size() >= nVoices)
+    //{
+    //    lowerSize = nVoices;
+    //}
+    //else
+    //{
+    //    lowerSize = input[0].size();
+    //    unfilledVoices = true;
+    //}
 
     //mOut1(Slice(0, lowerSize)) <<= input[1](Slice(0, lowerSize));
     //mOut0(Slice(0, lowerSize)) <<= input[0](Slice(0, lowerSize));
 
     vector<SinePeak> incomingVoices(0, c.allocator());
-    for (index i = 0; i < lowerSize; ++i)
+    for (index i = 0; i < input[0].size(); ++i)
     {
         if (input[1].row(i) != 0 && input[0].row(i) != 0)
         {
@@ -157,12 +158,11 @@ public:
     mTracking.processFrame(incomingVoices, maxAmp, get<kMinTrackLen>(), get<kBirthLowThreshold>(), get<kBirthHighTreshold>(), get<kTrackMethod>(), get<kTrackMagRange>(), get<kTrackFreqRange>(), get<kTrackProb>(), c.allocator());
 
     vector<VoicePeak> outgoingVoices(0, c.allocator());
-    outgoingVoices = allocatorAlgorithm(mTracking.getActiveVoices(c.allocator()), nVoices, c.allocator());
+    outgoingVoices = allocatorAlgorithm(mTracking.getActiveVoices(c.allocator()), get<kStealMethod>(), c.allocator());
 
     for (index i = 0; i < nVoices; ++i)
     {
-        //output[3].row(i) = outgoingVoices[i].voiceID;
-        output[2].row(i) = i;
+        output[2].row(i) = static_cast<index>(outgoingVoices[i].state);
         output[1].row(i) = outgoingVoices[i].logMag;
         output[0].row(i) = outgoingVoices[i].freq;
     }
@@ -180,8 +180,15 @@ public:
     //}
   }
 
-  vector<VoicePeak> allocatorAlgorithm(vector<VoicePeak>& incomingVoices, index nVoices, Allocator& alloc)
+  vector<VoicePeak> allocatorAlgorithm(vector<VoicePeak>& incomingVoices, bool stealQuietest, Allocator& alloc)
   {
+      //move released/stolen to free
+      for (index existing = 0; existing < mActiveVoiceData.size(); ++existing)
+      {
+          if (mActiveVoiceData[existing].state == algorithm::VoiceState::kReleaseState || mActiveVoiceData[existing].state == algorithm::VoiceState::kStolenState)
+              mActiveVoiceData[existing].state = algorithm::VoiceState::kFreeState;
+      }
+
       //handle existing voices - killing or sustaining
       for (index existing = 0; existing < mActiveVoices.size(); ++existing)
       {
@@ -193,13 +200,14 @@ public:
               {
                   killVoice = false;
                   mActiveVoiceData[mActiveVoices[existing]] = incomingVoices[incoming]; //update freq/mag
+                  mActiveVoiceData[mActiveVoices[existing]].state = algorithm::VoiceState::kSustainState;
                   incomingVoices.erase(incomingVoices.begin() + incoming);
                   break;
               }
           }
           if (killVoice) //voice off
           {
-              mActiveVoiceData[mActiveVoices[existing]] = { 0, 0, 0 };
+              mActiveVoiceData[mActiveVoices[existing]].state = algorithm::VoiceState::kReleaseState;
               mFreeVoices.push(mActiveVoices[existing]);
               mActiveVoices.erase(mActiveVoices.begin() + existing);
               --existing;
@@ -218,9 +226,21 @@ public:
           }
           else //voice stealing
           {
-              ;
-              //probably would require a lot of refactoring, especially with how PartialTracking is currently used
-              //problem for future homer
+              index stolenVoiceIndex;
+              if (stealQuietest)
+              {
+                  auto minElement =  std::min_element(mActiveVoiceData.begin(), mActiveVoiceData.end(), [](const VoicePeak& voice1, const VoicePeak& voice2) { return voice1.logMag < voice2.logMag; });
+                  stolenVoiceIndex = std::distance(mActiveVoiceData.begin(), minElement);
+                  mActiveVoices.erase(mActiveVoices.begin() + stolenVoiceIndex);
+              }
+              else //steal oldest
+              {
+                  stolenVoiceIndex = mActiveVoices.front();
+                  mActiveVoices.pop_front();
+              }
+              mActiveVoices.push_back(stolenVoiceIndex);
+              mActiveVoiceData[stolenVoiceIndex] = incomingVoices[incoming];
+              mActiveVoiceData[stolenVoiceIndex].state = algorithm::VoiceState::kStolenState;
           }
       }
 

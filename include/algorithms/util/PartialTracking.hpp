@@ -25,6 +25,15 @@ Capability through Linear Programming". Proceedings of DAFx-2018.
 namespace fluid {
 namespace algorithm {
 
+enum class VoiceState
+{
+    kFreeState,
+    kAttackState,
+    kSustainState,
+    kReleaseState,
+    kStolenState
+};
+
 struct SinePeak
 {
   double freq;
@@ -37,6 +46,7 @@ struct VoicePeak
     double freq;
     double logMag;
     index voiceID;
+    VoiceState state;
 };
 
 struct SineTrack
@@ -156,7 +166,8 @@ public:
               continue;
           voicePeaks.push_back({track.peaks[asUnsigned(latencyFrame - track.startFrame)].freq,
                                pow(10, track.peaks[asUnsigned(latencyFrame - track.startFrame)].logMag / 20),
-                               track.trackId});
+                               track.trackId,
+                               VoiceState::kAttackState});
       }
       return voicePeaks;
   }
