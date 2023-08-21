@@ -161,7 +161,8 @@ public:
 
     for (index i = 0; i < nVoices; ++i)
     {
-        output[2].row(i) = outgoingVoices[i].voiceID;
+        //output[3].row(i) = outgoingVoices[i].voiceID;
+        output[2].row(i) = i;
         output[1].row(i) = outgoingVoices[i].logMag;
         output[0].row(i) = outgoingVoices[i].freq;
     }
