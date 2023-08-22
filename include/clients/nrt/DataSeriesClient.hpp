@@ -20,14 +20,16 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 namespace client {
-namespace dataset {
+namespace dataseries {
 
 enum { kName };
 
-constexpr auto DataSetParams =
-    defineParameters(StringParam<Fixed<true>>("name", "Name of the DataSet"));
+constexpr auto DataSeriesParams = defineParameters(
+    StringParam<Fixed<true>>("name", "Name of the DataSeries"),
+    LongParam("frameLen", "length of one frame", 0)
+);
 
-class DataSetClient : public FluidBaseClient,
+class DataSeriesClient : public FluidBaseClient,
                       OfflineIn,
                       OfflineOut,
                       public DataClient<FluidDataSet<std::string, double, 1>>
@@ -45,7 +47,7 @@ public:
     return {};
   }
 
-  using ParamDescType = decltype(DataSetParams);
+  using ParamDescType = decltype(DataSeriesParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   std::reference_wrapper<ParamSetViewType> mParams;
@@ -58,9 +60,9 @@ public:
     return mParams.get().template get<N>();
   }
 
-  static constexpr auto& getParameterDescriptors() { return DataSetParams; }
+  static constexpr auto& getParameterDescriptors() { return DataSeriesParams; }
 
-  DataSetClient(ParamSetViewType& p, FluidContext&) : mParams(p) {}
+  DataSeriesClient(ParamSetViewType& p, FluidContext&) : mParams(p) {}
 
   MessageResult<void> addPoint(string id, InputBufferPtr data)
   {
@@ -134,10 +136,10 @@ public:
     return mAlgorithm.remove(id) ? OK() : Error(PointNotFound);
   }
 
-  MessageResult<void> merge(SharedClientRef<const DataSetClient> datasetClient,
+  MessageResult<void> merge(SharedClientRef<const DataSeriesClient> dataseriesClient,
                             bool                           overwrite)
   {
-    auto datasetClientPtr = datasetClient.get().lock();
+    auto datasetClientPtr = dataseriesClient.get().lock();
     if (!datasetClientPtr) return Error(NoDataSet);
     auto srcDataSet = datasetClientPtr->getDataSet();
     if (srcDataSet.size() == 0) return Error(EmptyDataSet);
@@ -266,24 +268,24 @@ public:
   static auto getMessageDescriptors()
   {
     return defineMessages(
-        makeMessage("addPoint", &DataSetClient::addPoint),
-        makeMessage("getPoint", &DataSetClient::getPoint),
-        makeMessage("setPoint", &DataSetClient::setPoint),
-        makeMessage("updatePoint", &DataSetClient::updatePoint),
-        makeMessage("deletePoint", &DataSetClient::deletePoint),
-        makeMessage("merge", &DataSetClient::merge),
-        makeMessage("dump", &DataSetClient::dump),
-        makeMessage("load", &DataSetClient::load),
-        makeMessage("print", &DataSetClient::print),
-        makeMessage("size", &DataSetClient::size),
-        makeMessage("cols", &DataSetClient::dims),
-        makeMessage("clear", &DataSetClient::clear),
-        makeMessage("write", &DataSetClient::write),
-        makeMessage("read", &DataSetClient::read),
-        makeMessage("fromBuffer", &DataSetClient::fromBuffer),
-        makeMessage("toBuffer", &DataSetClient::toBuffer),
-        makeMessage("getIds", &DataSetClient::getIds),
-        makeMessage("kNearest", &DataSetClient::kNearest));
+        makeMessage("addPoint",     &DataSeriesClient::addPoint),
+        makeMessage("getPoint",     &DataSeriesClient::getPoint),
+        makeMessage("setPoint",     &DataSeriesClient::setPoint),
+        makeMessage("updatePoint",  &DataSeriesClient::updatePoint),
+        makeMessage("deletePoint",  &DataSeriesClient::deletePoint),
+        makeMessage("merge",        &DataSeriesClient::merge),
+        makeMessage("dump",         &DataSeriesClient::dump),
+        makeMessage("load",         &DataSeriesClient::load),
+        makeMessage("print",        &DataSeriesClient::print),
+        makeMessage("size",         &DataSeriesClient::size),
+        makeMessage("cols",         &DataSeriesClient::dims),
+        makeMessage("clear",        &DataSeriesClient::clear),
+        makeMessage("write",        &DataSeriesClient::write),
+        makeMessage("read",         &DataSeriesClient::read),
+        makeMessage("fromBuffer",   &DataSeriesClient::fromBuffer),
+        makeMessage("toBuffer",     &DataSeriesClient::toBuffer),
+        makeMessage("getIds",       &DataSeriesClient::getIds),
+        makeMessage("kNearest",     &DataSeriesClient::kNearest));
   }
 
 private:
@@ -307,11 +309,11 @@ private:
 
 } // namespace dataset
 
-using DataSetClientRef = SharedClientRef<dataset::DataSetClient>;
-using InputDataSetClientRef = SharedClientRef<const dataset::DataSetClient>;
+using DataSeriesClientRef = SharedClientRef<dataseries::DataSeriesClient>;
+using InputDataSeriesClientRef = SharedClientRef<const dataseries::DataSeriesClient>;
 
-using NRTThreadedDataSetClient =
-    NRTThreadingAdaptor<typename DataSetClientRef::SharedType>;
+using NRTThreadedDataSeriesClient =
+    NRTThreadingAdaptor<typename DataSeriesClientRef::SharedType>;
 
 } // namespace client
 } // namespace fluid
