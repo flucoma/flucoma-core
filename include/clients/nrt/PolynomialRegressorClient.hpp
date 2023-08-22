@@ -98,8 +98,6 @@ public:
     if (sourceDataSet.dims() != targetDataSet.dims())
       return Error<void>(WrongPointSize);
 
-    updateParameters();
-
     mAlgorithm.init(get<kDegree>(), sourceDataSet.dims(), get<kTikhonov>());
     
     auto data = sourceDataSet.getData();
