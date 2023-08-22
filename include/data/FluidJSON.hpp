@@ -11,6 +11,7 @@
 #include <algorithms/public/Standardization.hpp>
 #include <algorithms/public/LabelSetEncoder.hpp>
 #include <data/FluidDataSet.hpp>
+#include <data/FluidDataSeries.hpp>
 #include <data/FluidIndex.hpp>
 #include <data/FluidTensor.hpp>
 #include <data/TensorTypes.hpp>
@@ -123,6 +124,38 @@ bool check_json(const nlohmann::json &j,
 
 template <typename T>
 void from_json(const nlohmann::json &j, FluidDataSet<std::string, T, 1> &ds) {
+  auto rows = j.at("data");
+  index pointSize = j.at("cols").get<index>();
+  ds.resize(pointSize);
+  FluidTensor<T, 1> tmp(pointSize);
+  for (auto r = rows.begin(); r != rows.end(); ++r) {
+    r.value().get_to(tmp);
+    ds.add(r.key(), tmp);
+  }
+}
+
+// FluidDataSeries
+template <typename T>
+void to_json(nlohmann::json &j, const FluidDataSeries<std::string, T, 1> &ds) {
+  auto ids = ds.getIds();
+  auto data = ds.getData();
+  j["cols"] = ds.pointSize();
+  for (index r = 0; r < ds.size(); r++) {
+    j["data"][ids[r]] = data.row(r);
+  }
+}
+
+template <typename T>
+bool check_json(const nlohmann::json &j,
+                const FluidDataSeries<std::string, T, 1> &) {
+  return fluid::check_json(j,
+    {"data", "cols"},
+    {JSONTypes::OBJECT, JSONTypes::NUMBER}
+  );
+}
+
+template <typename T>
+void from_json(const nlohmann::json &j, FluidDataSeries<std::string, T, 1> &ds) {
   auto rows = j.at("data");
   index pointSize = j.at("cols").get<index>();
   ds.resize(pointSize);

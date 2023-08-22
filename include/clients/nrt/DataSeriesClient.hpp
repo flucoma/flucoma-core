@@ -14,7 +14,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "NRTClient.hpp"
 #include "../common/SharedClientUtils.hpp"
 #include "../../algorithms/public/DataSetIdSequence.hpp"
-#include "../../data/FluidDataSet.hpp"
+#include "../../data/FluidDataSeries.hpp"
 #include <sstream>
 #include <string>
 
@@ -32,13 +32,13 @@ constexpr auto DataSeriesParams = defineParameters(
 class DataSeriesClient : public FluidBaseClient,
                       OfflineIn,
                       OfflineOut,
-                      public DataClient<FluidDataSet<std::string, double, 1>>
+                      public DataClient<FluidDataSeries<std::string, double, 1>>
 {
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
   using InputBufferPtr = std::shared_ptr<const BufferAdaptor>;
-  using DataSet = FluidDataSet<string, double, 1>;
+  using DataSeries = FluidDataSeries<string, double, 1>;
   using LabelSet = FluidDataSet<string, string, 1>;
 
   template <typename T>
@@ -66,14 +66,14 @@ public:
 
   MessageResult<void> addPoint(string id, InputBufferPtr data)
   {
-    DataSet& dataset = mAlgorithm;
+    DataSeries& dataset = mAlgorithm;
     if (!data) return Error(NoBuffer);
     BufferAdaptor::ReadAccess buf(data.get());
     if (!buf.exists()) return Error(InvalidBuffer);
     if (buf.numFrames() == 0) return Error(EmptyBuffer);
     if (dataset.size() == 0)
     {
-      if (dataset.dims() != buf.numFrames()) dataset = DataSet(buf.numFrames());
+      if (dataset.dims() != buf.numFrames()) dataset = DataSeries(buf.numFrames());
     }
     else if (buf.numFrames() != dataset.dims())
       return Error(WrongPointSize);
@@ -139,17 +139,17 @@ public:
   MessageResult<void> merge(SharedClientRef<const DataSeriesClient> dataseriesClient,
                             bool                           overwrite)
   {
-    auto datasetClientPtr = dataseriesClient.get().lock();
-    if (!datasetClientPtr) return Error(NoDataSet);
-    auto srcDataSet = datasetClientPtr->getDataSet();
-    if (srcDataSet.size() == 0) return Error(EmptyDataSet);
-    if (srcDataSet.pointSize() != mAlgorithm.pointSize())
+    auto dataseriesClientPtr = dataseriesClient.get().lock();
+    if (!dataseriesClientPtr) return Error(NoDataSet);
+    auto srcDataSeries = dataseriesClientPtr->getDataSeries();
+    if (srcDataSeries.size() == 0) return Error(EmptyDataSet);
+    if (srcDataSeries.pointSize() != mAlgorithm.pointSize())
       return Error(WrongPointSize);
-    auto       ids = srcDataSet.getIds();
-    RealVector point(srcDataSet.pointSize());
-    for (index i = 0; i < srcDataSet.size(); i++)
+    auto       ids = srcDataSeries.getIds();
+    RealVector point(srcDataSeries.pointSize());
+    for (index i = 0; i < srcDataSeries.size(); i++)
     {
-      srcDataSet.get(ids(i), point);
+      srcDataSeries.get(ids(i), point);
       bool added = mAlgorithm.add(ids(i), point);
       if (!added && overwrite) mAlgorithm.update(ids(i), point);
     }
@@ -169,7 +169,7 @@ public:
       auto& labelSet = labelsPtr->getLabelSet();
       if (labelSet.size() != bufView.rows())
       { return Error("Label set size needs to match the buffer size"); }
-      mAlgorithm = DataSet(labelSet.getData().col(0),
+      mAlgorithm = DataSeries(labelSet.getData().col(0),
                            FluidTensorView<const float, 2>(bufView));
     }
     else
@@ -177,7 +177,7 @@ public:
       algorithm::DataSetIdSequence seq("", 0, 0);
       FluidTensor<string, 1>       newIds(bufView.rows());
       seq.generate(newIds);
-      mAlgorithm = DataSet(newIds, FluidTensorView<const float, 2>(bufView));
+      mAlgorithm = DataSeries(newIds, FluidTensorView<const float, 2>(bufView));
     }
     return OK();
   }
@@ -253,7 +253,7 @@ public:
 
   MessageResult<void> clear()
   {
-    mAlgorithm = DataSet(0);
+    mAlgorithm = DataSeries(0);
     return OK();
   }
   
@@ -262,8 +262,8 @@ public:
     return "DataSet " + std::string(get<kName>()) + ": " + mAlgorithm.print();
   }
 
-  const DataSet getDataSet() const { return mAlgorithm; }
-  void          setDataSet(DataSet ds) { mAlgorithm = ds; }
+  const DataSeries getDataSeries() const { return mAlgorithm; }
+  void             setDataSeries(DataSeries ds) { mAlgorithm = ds; }
 
   static auto getMessageDescriptors()
   {
