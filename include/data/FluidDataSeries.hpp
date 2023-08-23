@@ -208,8 +208,29 @@ public:
     return true;
   }
 
-  std::vector<FluidTensorView<dataType, N + 1>>       getData() { return mData; }
-  std::vector<FluidTensorView<const dataType, N + 1>> getData() const { return mData; }
+  std::vector<FluidTensorView<dataType, N + 1>> getData() 
+  { 
+    std::vector<FluidTensorView<dataType, N + 1>> viewVec(mData.size());
+
+    // hacky fix to force conversion of vector to views of mData
+    // doesn't actually copy anything, it uses the FluidTensor ctor of FluidTensorView
+    // which creates a view/ref, so ends up creating what we want
+    std::copy(mData.begin(), mData.end(), std::back_inserter(viewVec));
+
+    return viewVec; 
+  }
+
+  const std::vector<FluidTensorView<const dataType, N + 1>> getData() const 
+  { 
+    std::vector<FluidTensorView<const dataType, N + 1>> viewVec;
+
+    // hacky fix to force conversion of vector to views of mData
+    // doesn't actually copy anything, it uses the FluidTensor ctor of FluidTensorView
+    // which creates a view/ref, so ends up creating what we want
+    std::copy(mData.cbegin(), mData.cend(), std::back_inserter(viewVec));
+
+    return viewVec; 
+  }
 
   FluidTensorView<idType, 1>             getIds() { return mIds; }
   FluidTensorView<const idType, 1>       getIds() const { return mIds; }
