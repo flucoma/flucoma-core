@@ -273,11 +273,11 @@ public:
   static auto getMessageDescriptors()
   {
     return defineMessages(
-        makeMessage("addPoint",     &DataSeriesClient::addFrame),
-        makeMessage("getPoint",     &DataSeriesClient::getFrame),
-        makeMessage("setPoint",     &DataSeriesClient::setFrame),
-        makeMessage("updatePoint",  &DataSeriesClient::updateFrame),
-        makeMessage("deletePoint",  &DataSeriesClient::deleteFrame),
+        makeMessage("addFrame",     &DataSeriesClient::addFrame),
+        makeMessage("getFrame",     &DataSeriesClient::getFrame),
+        makeMessage("setFrame",     &DataSeriesClient::setFrame),
+        makeMessage("updateFrame",  &DataSeriesClient::updateFrame),
+        makeMessage("deleteFrame",  &DataSeriesClient::deleteFrame),
         makeMessage("merge",        &DataSeriesClient::merge),
         makeMessage("dump",         &DataSeriesClient::dump),
         makeMessage("load",         &DataSeriesClient::load),
