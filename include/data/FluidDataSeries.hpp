@@ -64,7 +64,7 @@ public:
     }
   }
 
-  bool addSeries(idType const& id, FluidTensorView<dataType, N + 1> series)
+  bool addSeries(idType const& id, FluidTensorView<const dataType, N + 1> series)
   {
     assert(sameExtents(mDim, series[0].descriptor()));
 
@@ -89,7 +89,7 @@ public:
     return true;
   }
 
-  bool addFrame(idType const& id, FluidTensorView<dataType, N> frame)
+  bool addFrame(idType const& id, FluidTensorView<const dataType, N> frame)
   {
     assert(sameExtents(mDim, frame.descriptor()));
 
@@ -109,7 +109,7 @@ public:
     return true;
   }
 
-  bool getFrame(idType const& id, index time, FluidTensorView<dataType, N> frame)
+  bool getFrame(idType const& id, index time, FluidTensorView<dataType, N> frame) const
   {
     auto pos = mIndex.find(id);
     if (pos == mIndex.end()) return false;
@@ -121,7 +121,7 @@ public:
     return true;
   }
 
-  FluidTensorView<const dataType, N + 1> get(idType const& id) const
+  FluidTensorView<const dataType, N + 1> getSeries(idType const& id) const
   {
     auto pos = mIndex.find(id);
     return pos != mIndex.end()
@@ -138,7 +138,7 @@ public:
       return pos->second;
   }
 
-  bool updateSeries(idType const& id, FluidTensorView<dataType, N + 1> series)
+  bool updateSeries(idType const& id, FluidTensorView<const dataType, N + 1> series)
   {
     auto pos = mIndex.find(id);
     if (pos == mIndex.end())
@@ -148,7 +148,7 @@ public:
     return true;
   }
 
-  bool updateFrame(idType const& id, index time, FluidTensorView<dataType, N> frame)
+  bool updateFrame(idType const& id, index time, FluidTensorView<const dataType, N> frame)
   {
     auto pos = mIndex.find(id);
     if (pos == mIndex.end()) return false;
