@@ -115,9 +115,7 @@ public:
     if (pos == mIndex.end()) return false;
 
     FluidTensorView<dataType, N + 1> bucket = mData[pos->second];
-
     assert(time < bucket.rows());
-
     frame <<= bucket.row(time);
 
     return true;
@@ -140,29 +138,66 @@ public:
       return pos->second;
   }
 
-  bool update(idType const& id, FluidTensorView<dataType, N> point)
+  bool updateSeries(idType const& id, FluidTensorView<dataType, N + 1> series)
   {
     auto pos = mIndex.find(id);
     if (pos == mIndex.end())
       return false;
     else
-      mData.row(pos->second) <<= point;
+      mData[pos->second] <<= series;
     return true;
   }
 
-  bool remove(idType const& id)
+  bool updateFrame(idType const& id, index time, FluidTensorView<dataType, N> frame)
   {
     auto pos = mIndex.find(id);
-    if (pos == mIndex.end()) { return false; }
-    else
+    if (pos == mIndex.end()) return false;
+
+    FluidTensorView<dataType, N + 1> bucket = mData[pos->second];
+    assert(time < bucket.rows());
+    bucket.row(time) <<= frame;
+
+    return true;
+  }
+
+  bool removeSeries(idType const& id)
+  {
+    auto pos = mIndex.find(id);
+    if (pos == mIndex.end()) return false;
+
+    index current = pos->second;
+    mData.erase(mData.begin() + current);
+    mIds.deleteRow(current);
+    mIndex.erase(id);
+
+    for (auto& point : mIndex)
     {
-      auto current = pos->second;
-      mData.deleteRow(current);
+      if (point.second > current) point.second--;
+    }
+
+    return true;
+  }
+
+  bool removeFrame(idType const& id, index time)
+  {
+    auto pos = mIndex.find(id);
+    if (pos == mIndex.end()) return false;
+
+    index current = pos->second;
+    FluidTensorView<dataType, N + 1> bucket = mData[current];
+    assert(time < bucket.rows())
+    bucket.deleteRow(time);
+    
+    if(bucket.rows() == 0)
+    {
       mIds.deleteRow(current);
       mIndex.erase(id);
       for (auto& point : mIndex)
+      {
         if (point.second > current) point.second--;
+      }
     }
+
     return true;
   }
 
