@@ -165,7 +165,7 @@ void from_json(const nlohmann::json &j, FluidDataSeries<std::string, T, 1> &ds) 
   FluidTensor<T, 1> tmp(pointSize);
   for (auto r = data.begin(); r != data.end(); ++r) 
   {
-    for (auto s = r.begin(); r != r.end(); ++r) 
+    for (auto s = r->begin(); s != r->end(); ++s) 
     {
       s.value().get_to(tmp);
       ds.addFrame(r.key(), tmp);
