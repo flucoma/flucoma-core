@@ -264,7 +264,7 @@ public:
   
   MessageResult<string> print()
   {
-    return "DataSet " + std::string(get<kName>()) + ": " + mAlgorithm.print();
+    return "DataSeries " + std::string(get<kName>()) + ": " + mAlgorithm.print();
   }
 
   const DataSeries getDataSeries() const { return mAlgorithm; }
