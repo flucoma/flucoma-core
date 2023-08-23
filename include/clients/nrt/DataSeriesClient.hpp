@@ -22,11 +22,10 @@ namespace fluid {
 namespace client {
 namespace dataseries {
 
-enum { kName, kFrameLen };
+enum { kName };
 
 constexpr auto DataSeriesParams = defineParameters(
-    StringParam<Fixed<true>>("name", "Name of the DataSeries"),
-    LongParam("frameLen", "length of one frame", 0)
+    StringParam<Fixed<true>>("name", "Name of the DataSeries")
 );
 
 class DataSeriesClient : public FluidBaseClient,
