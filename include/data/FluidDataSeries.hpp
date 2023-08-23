@@ -121,7 +121,8 @@ public:
     auto pos = mIndex.find(id);
     if (pos == mIndex.end()) return false;
 
-    assert(time < mData[pos->second].rows());
+    if (time >= mData[pos->second].rows()) return false;
+
     frame <<= mData[pos->second].row(time);
 
     return true;
@@ -162,7 +163,7 @@ public:
     auto pos = mIndex.find(id);
     if (pos == mIndex.end()) return false;
 
-    assert(time < mData[pos->second].rows());
+    if (time >= mData[pos->second].rows()) return false;
     mData[pos->second].row(time) <<= frame;
 
     return true;
@@ -192,9 +193,9 @@ public:
     if (pos == mIndex.end()) return false;
 
     index current = pos->second;
-    assert(time < mData[current].rows());
+    if (time >= mData[current].rows()) return false;
+
     mData[current].deleteRow(time);
-    
     if(mData[current].rows() == 0)
     {
       mIds.deleteRow(current);
