@@ -76,10 +76,11 @@ public:
     }
     else if (buf.numFrames() != dataset.dims())
       return Error(WrongPointSize);
-    RealVector point(dataset.dims());
-    point <<= buf.samps(0, dataset.dims(), 0);
-    dataset.addFrame(id, point);
-    return  OK();
+
+    RealVector frame(dataset.dims());
+    frame <<= buf.samps(0, dataset.dims(), 0);
+    dataset.addFrame(id, frame);
+    return OK();
   }
 
   MessageResult<void> getFrame(string id, index time, BufferPtr data) const
@@ -148,9 +149,11 @@ public:
       return Error(WrongPointSize);
 
     auto       ids = srcDataSeries.getIds();
+    RealMatrix series;
+
     for (index i = 0; i < srcDataSeries.size(); i++)
     {
-      auto series = srcDataSeries.getSeries(ids(i));
+      srcDataSeries.getSeries(ids(i), series);
       bool added = mAlgorithm.addSeries(ids(i), series);
       if (!added && overwrite) mAlgorithm.updateSeries(ids(i), series);
     }
