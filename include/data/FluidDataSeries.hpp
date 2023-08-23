@@ -64,16 +64,18 @@ public:
     }
   }
 
-  bool add(idType const& id, FluidTensorView<dataType, N> point)
+  bool addSeries(idType const& id, FluidTensorView<dataType, N + 1> series)
   {
-    assert(sameExtents(mDim, point.descriptor()));
-    index pos = mData.rows();
-    auto  result = mIndex.insert({id, pos});
+    assert(sameExtents(mDim, series[0].descriptor()));
+
+    auto result = mIndex.insert({id, mData.size()});
     if (!result.second) return false;
-    mData.resizeDim(0, 1);
-    mData.row(mData.rows() - 1) <<= point;
+
+    mData.push_back(series);
+
     mIds.resizeDim(0, 1);
     mIds(mIds.rows() - 1) = id;
+
     return true;
   }
 
