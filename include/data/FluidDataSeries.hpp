@@ -79,11 +79,15 @@ public:
     return true;
   }
 
-  bool get(idType const& id, FluidTensorView<dataType, N> point) const
+  bool getSeries(idType const& id, FluidTensorView<dataType, N + 1> series) const
   {
     auto pos = mIndex.find(id);
     if (pos == mIndex.end()) return false;
-    point <<= mData.row(pos->second);
+
+    series <<= mData[pos->second];
+
+    return true;
+  }
     return true;
   }
 
