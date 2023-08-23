@@ -29,7 +29,7 @@ using HostVector = FluidTensorView<T, 1>;
 constexpr auto RunningStatsParams =
     defineParameters(LongParam("history", "History Size", 2, Min(2)));
 
-class RunningStatsClient : public FluidBaseClient, public ControlIn, ControlOut
+class RunningStatsClient : public FluidBaseClient, public ControlOutFollowsIn
 {
 public:
   using ParamDescType = decltype(RunningStatsParams);
