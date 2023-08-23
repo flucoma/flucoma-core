@@ -106,9 +106,7 @@ public:
     auto pos = mIndex.find(id);
     if (pos == mIndex.end())
     {
-      FluidTensor<dataType, N + 1> newPoint;
-      newPoint.resizeDim(0, 1);
-      newPoint.row(0) <<= frame;
+      FluidTensorView<dataType, N + 1> newPoint(frame);
       return addSeries(id, newPoint);
     } 
 
