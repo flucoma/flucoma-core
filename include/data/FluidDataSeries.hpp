@@ -166,9 +166,10 @@ public:
     return true;
   }
 
-  FluidTensorView<dataType, N + 1>       getData() { return mData; }
+  std::vector<FluidTensorView<dataType, N + 1>>       getData() { return mData; }
+  std::vector<FluidTensorView<const dataType, N + 1>> getData() const { return mData; }
+
   FluidTensorView<idType, 1>             getIds() { return mIds; }
-  FluidTensorView<const dataType, N + 1> getData() const { return mData; }
   FluidTensorView<const idType, 1>       getIds() const { return mIds; }
 
   index pointSize() const { return mDim.size; }
