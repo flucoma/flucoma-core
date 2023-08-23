@@ -118,20 +118,6 @@ public:
       init(nVoices);
     }
 
-    //index lowerSize;
-    //if (input[0].size() >= nVoices)
-    //{
-    //    lowerSize = nVoices;
-    //}
-    //else
-    //{
-    //    lowerSize = input[0].size();
-    //    unfilledVoices = true;
-    //}
-
-    //mOut1(Slice(0, lowerSize)) <<= input[1](Slice(0, lowerSize));
-    //mOut0(Slice(0, lowerSize)) <<= input[0](Slice(0, lowerSize));
-
     vector<SinePeak> incomingVoices(0, c.allocator());
     for (index i = 0; i < input[0].size(); ++i)
     {
@@ -141,15 +127,6 @@ public:
             incomingVoices.push_back({ input[0].row(i), logMag, false });
         }
     }
-    
-    //if (true) //todo - change this to IF INPUT = TYPE MAGNITUDE, if dB skip
-    //{
-    //    for (SinePeak voice : incomingVoices)
-    //    {
-    //        //todo - doesn't actually do anything????
-    //        voice.logMag = 20 * log10(std::max(voice.logMag, algorithm::epsilon));
-    //    }
-    //}
 
     double maxAmp = -144;
     for (SinePeak voice : incomingVoices)
@@ -174,18 +151,6 @@ public:
     }
 
     mTracking.prune();
-
-    //output[2](Slice(0, lowerSize)) <<= mVoiceIDs(Slice(0, lowerSize));
-    //output[1](Slice(0, lowerSize)) <<= mLogMags(Slice(0, lowerSize));
-    //output[0](Slice(0, lowerSize)) <<= mFreqs(Slice(0, lowerSize));
-    //
-    //if (unfilledVoices)
-    //{
-    //    index unfilledVoicesLength = nVoices - lowerSize;
-    //    output[2](Slice(lowerSize, unfilledVoicesLength)).fill(-1);
-    //    output[1](Slice(lowerSize, unfilledVoicesLength)).fill(0);
-    //    output[0](Slice(lowerSize, unfilledVoicesLength)).fill(0);
-    //}
   }
 
   vector<VoicePeak> sortVoices(vector<VoicePeak>& incomingVoices, index sortingMethod)
@@ -253,34 +218,6 @@ public:
               if (prevState == algorithm::VoiceState::kReleaseState) //mark as stolen
                   mActiveVoiceData[newVoiceIndex].state = algorithm::VoiceState::kStolenState;
           }
-          /*else //voice stealing
-          {
-              index stolenVoiceIndex;
-              if (stealingMethod == 1) //steal oldest
-              {
-                  stolenVoiceIndex = mActiveVoices.front();
-                  mActiveVoices.pop_front();
-              }
-              else if (stealingMethod == 2 && prioritisedVoices == 0) //steal quietest
-              {
-                  auto minElement = std::min_element(mActiveVoiceData.begin(), mActiveVoiceData.end(), 
-                                                      [](const VoicePeak& voice1, const VoicePeak& voice2) 
-                                                      { return voice1.logMag < voice2.logMag; });
-                  stolenVoiceIndex = std::distance(mActiveVoiceData.begin(), minElement);
-                  mActiveVoices.erase(mActiveVoices.begin() + stolenVoiceIndex);
-              }
-              else if (stealingMethod == 2 && prioritisedVoices == 1) //steal highest
-              {
-                  auto minElement = std::max_element(mActiveVoiceData.begin(), mActiveVoiceData.end(),
-                                                     [](const VoicePeak& voice1, const VoicePeak& voice2)
-                                                     { return voice1.freq > voice2.freq; });
-                  stolenVoiceIndex = std::distance(mActiveVoiceData.begin(), minElement);
-                  mActiveVoices.erase(mActiveVoices.begin() + stolenVoiceIndex);
-              }
-              mActiveVoices.push_back(stolenVoiceIndex);
-              mActiveVoiceData[stolenVoiceIndex] = incomingVoices[incoming];
-              mActiveVoiceData[stolenVoiceIndex].state = algorithm::VoiceState::kStolenState;
-          }*/
       }
 
       return mActiveVoiceData;
