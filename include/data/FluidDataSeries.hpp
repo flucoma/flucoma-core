@@ -102,9 +102,8 @@ public:
       return addSeries(id, newPoint);
     } 
 
-    FluidTensorView<dataType, N + 1> bucket = mData[pos->second];
-    bucket.resizeDim(0, 1);
-    bucket.row(bucket.rows() - 1) <<= frame;
+    mData[pos->second].resizeDim(0, 1);
+    mData[pos->second].row(mData[pos->second].rows() - 1) <<= frame;
 
     return true;
   }
@@ -114,19 +113,21 @@ public:
     auto pos = mIndex.find(id);
     if (pos == mIndex.end()) return false;
 
-    FluidTensorView<dataType, N + 1> bucket = mData[pos->second];
-    assert(time < bucket.rows());
-    frame <<= bucket.row(time);
+    assert(time < mData[pos->second].rows());
+    frame <<= mData[pos->second].row(time);
 
     return true;
   }
 
-  FluidTensorView<const dataType, N + 1> getSeries(idType const& id) const
+  FluidTensorView<const dataType, N> getFrame(idType const& id, index time) const
   {
     auto pos = mIndex.find(id);
-    return pos != mIndex.end()
-               ? mData[pos->second]
-               : FluidTensorView<const dataType, N + 1>{nullptr, 0, 0};
+    if(pos != mIndex.end())
+    {
+      assert(time < mData[pos->second].rows());
+      return mData[pos->second].row(time);
+    }
+    else { return FluidTensorView<const dataType, N>{nullptr, 0, 0}; }
   }
 
   index getIndex(idType const& id) const
@@ -153,9 +154,8 @@ public:
     auto pos = mIndex.find(id);
     if (pos == mIndex.end()) return false;
 
-    FluidTensorView<dataType, N + 1> bucket = mData[pos->second];
-    assert(time < bucket.rows());
-    bucket.row(time) <<= frame;
+    assert(time < mData[pos->second].rows());
+    mData[pos->second].row(time) <<= frame;
 
     return true;
   }
@@ -184,11 +184,10 @@ public:
     if (pos == mIndex.end()) return false;
 
     index current = pos->second;
-    FluidTensorView<dataType, N + 1> bucket = mData[current];
-    assert(time < bucket.rows())
-    bucket.deleteRow(time);
+    assert(time < mData[current].rows());
+    mData[current].deleteRow(time);
     
-    if(bucket.rows() == 0)
+    if(mData[current].rows() == 0)
     {
       mIds.deleteRow(current);
       mIndex.erase(id);
