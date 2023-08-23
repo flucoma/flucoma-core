@@ -22,14 +22,14 @@ public:
   // e.g. FluidDataSet(2, 3) is a dataset of 2x3 tensors
   template <typename... Dims,
             typename = std::enable_if_t<isIndexSequence<Dims...>()>>
-  FluidDataSeries(Dims... dims) : mData(0, dims...), mDim(dims...)
+  FluidDataSeries(Dims... dims) : mDim(dims...)
   {
     static_assert(sizeof...(dims) == N, "Number of dimensions doesn't match");
   }
 
   // Construct from existing tensors of ids and data points
   FluidDataSeries(FluidTensorView<const idType, 1>       ids,
-               FluidTensorView<const dataType, N + 1> points)
+               std::vector<FluidTensorView<const dataType, N + 1>> points)
       : mIds(ids), mData(points)
   {
     initFromData();
@@ -39,7 +39,7 @@ public:
   // (from convertible type for data, typically float -> double)
   template <typename U, typename T = dataType>
   FluidDataSeries(FluidTensorView<const idType, 1> ids,
-               FluidTensorView<const U, N + 1>  points,
+               std::vector<FluidTensorView<const U, N + 1>>  points,
                std::enable_if_t<std::is_convertible<U, T>::value>* = nullptr)
       : mIds(ids), mData(points)
   {
@@ -54,7 +54,7 @@ public:
     static_assert(sizeof...(dims) == N, "Number of dimensions doesn't match");
     if (size() == 0)
     {
-      mData = FluidTensor<dataType, N + 1>(0, dims...);
+      mData = std::vector<FluidTensor<dataType, N + 1>>();
       mDim = FluidTensorSlice<N>(dims...);
       return true;
     }
