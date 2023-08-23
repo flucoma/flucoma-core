@@ -71,7 +71,7 @@ public:
     auto result = mIndex.insert({id, mData.size()});
     if (!result.second) return false;
 
-    mData.push_back(series);
+    mData.emplace_back(series);
 
     mIds.resizeDim(0, 1);
     mIds(mIds.rows() - 1) = id;
