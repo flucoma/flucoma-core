@@ -34,7 +34,7 @@ enum VoiceAllocatorParamIndex {
   kBirthLowThreshold,
   kBirthHighTreshold,
   kMinTrackLen,
-  kTrackMethod,
+  //kTrackMethod,
   kTrackMagRange,
   kTrackFreqRange,
   kTrackProb
@@ -47,7 +47,7 @@ constexpr auto VoiceAllocatorParams = defineParameters(
     FloatParam("birthLowThreshold", "Track Birth Low Frequency Threshold", -24, Min(-144), Max(0)),
     FloatParam("birthHighThreshold", "Track Birth High Frequency Threshold", -60, Min(-144), Max(0)),
     LongParam("minTrackLen", "Minimum Track Length", 1, Min(1)),
-    EnumParam("trackMethod", "Tracking Method", 0, "Greedy", "Hungarian"),
+    //EnumParam("trackMethod", "Tracking Method", 0, "Greedy", "Hungarian"), //changing this to hungarian currently spikes the output like crazy for a moment
     FloatParam("trackMagRange", "Tracking Magnitude Range (dB)", 15., Min(1.), Max(200.)),
     FloatParam("trackFreqRange", "Tracking Frequency Range (Hz)", 50., Min(1.), Max(10000.)),
     FloatParam("trackProb", "Tracking Matching Probability", 0.5, Min(0.0), Max(1.0))
@@ -157,7 +157,7 @@ public:
         if (voice.logMag > maxAmp) { maxAmp = voice.logMag; }
     }
 
-    mTracking.processFrame(incomingVoices, maxAmp, get<kMinTrackLen>(), get<kBirthLowThreshold>(), get<kBirthHighTreshold>(), get<kTrackMethod>(), get<kTrackMagRange>(), get<kTrackFreqRange>(), get<kTrackProb>(), c.allocator());
+    mTracking.processFrame(incomingVoices, maxAmp, get<kMinTrackLen>(), get<kBirthLowThreshold>(), get<kBirthHighTreshold>(), 0, get<kTrackMagRange>(), get<kTrackFreqRange>(), get<kTrackProb>(), c.allocator());
 
     vector<VoicePeak> outgoingVoices(0, c.allocator());
     outgoingVoices = mTracking.getActiveVoices(c.allocator());
