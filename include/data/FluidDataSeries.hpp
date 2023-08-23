@@ -211,59 +211,95 @@ public:
   index size() const { return mIds.size(); }
   bool  initialized() const { return (size() > 0); }
 
-  std::string printRow(FluidTensorView<const dataType, N> row,
-                       index                              maxCols) const
+  std::string printFrame(FluidTensorView<const dataType, N> frame,
+                         index maxCols) const
   {
     using namespace std;
     ostringstream result;
-    if (row.size() < maxCols)
+    if (frame.size() < maxCols)
     {
-      for (index c = 0; c < row.size(); c++)
+      for (index c = 0; c < frame.size(); c++)
       {
-        result << setw(10) << setprecision(5) << row(c);
+        result << setw(10) << setprecision(5) << frame(c);
       }
     }
     else
     {
       for (index c = 0; c < maxCols / 2; c++)
       {
-        result << setw(10) << setprecision(5) << row(c);
+        result << setw(10) << setprecision(5) << frame(c);
       }
       result << setw(10) << "...";
       for (index c = maxCols / 2; c > 0; c--)
       {
-        result << setw(10) << setprecision(5) << row(row.size() - c);
+        result << setw(10) << setprecision(5) << frame(frame.size() - c);
       }
     }
     return result.str();
   }
 
-  std::string print(index maxRows = 6, index maxCols = 6) const
+  std::string printSeries(FluidTensorView<const dataType, N + 1> series,
+                         index maxFrames, index maxCols) const
+  {
+    using namespace std;
+    ostringstream result;
+
+    for (index t = 0; t < series.rows(); t++)
+    {
+      using namespace std;
+      ostringstream result;
+      if (series.rows() < maxFrames)
+      {
+        for (index r = 0; r < series.rows(); r++)
+        {
+          result << "t = " << r << ": {" << endl << printFrame(series.row(r), maxCols)
+                 << endl << "}" << endl;
+        }
+      }
+      else
+      {
+        for (index r = 0; r < maxFrames / 2; r++)
+        {
+          result << "t = " << r << " {" << endl << printFrame(series.row(r), maxCols)
+                 << endl << "}" << endl;
+        }
+        result << setw(10) << "..." << std::endl;
+        for (index r = maxFrames / 2; r > 0; r--)
+        {
+          result << "t = " << (size() - r) << " {"
+                << printFrame(series.row(size() - r), maxCols) << " }" << endl;
+        }
+      }
+      return result.str();
+    }
+  }
+
+  std::string print(index maxRows = 6, index maxFrames = 6, index maxCols = 6) const
   {
     using namespace std;
     if (size() == 0) return "{}";
     ostringstream result;
-    result << endl << "rows: " << size() << " cols: " << pointSize() << endl;
+    result << endl << "points: " << size() << " frame size: " << pointSize() << endl;
     if (size() < maxRows)
     {
       for (index r = 0; r < size(); r++)
       {
-        result << mIds(r) << " " << printRow(mData.row(r), maxCols)
-               << std::endl;
+        result << mIds(r) << ": {" << endl << printSeries(mData[r], maxFrames, maxCols)
+               << " }" << endl;
       }
     }
     else
     {
       for (index r = 0; r < maxRows / 2; r++)
       {
-        result << mIds(r) << " " << printRow(mData.row(r), maxCols)
-               << std::endl;
+        result << mIds(r) << ": {" << endl << printSeries(mData[r], maxFrames, maxCols)
+               << endl << "}" << endl;
       }
       result << setw(10) << "..." << std::endl;
       for (index r = maxRows / 2; r > 0; r--)
       {
-        result << mIds(size() - r) << " "
-               << printRow(mData.row(size() - r), maxCols) << std::endl;
+        result << mIds(size() - r) << " {"
+               << printSeries(mData[size() - r], maxFrames, maxCols) << " }" << endl;
       }
     }
     return result.str();
