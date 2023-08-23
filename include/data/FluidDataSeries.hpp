@@ -89,6 +89,14 @@ public:
     return true;
   }
 
+  FluidTensorView<const dataType, N + 1> getSeries(idType const& id) const
+  {
+    auto pos = mIndex.find(id);
+    return pos != mIndex.end()
+               ? mData[pos->second]
+               : FluidTensorView<const dataType, N + 1>{nullptr, 0, 0, 0};
+  }
+
   bool addFrame(idType const& id, FluidTensorView<const dataType, N> frame)
   {
     assert(sameExtents(mDim, frame.descriptor()));
