@@ -140,8 +140,11 @@ void to_json(nlohmann::json &j, const FluidDataSeries<std::string, T, 1> &ds) {
   auto ids = ds.getIds();
   auto data = ds.getData();
   j["cols"] = ds.pointSize();
-  for (index r = 0; r < ds.size(); r++) {
-    j["data"][ids[r]] = data.row(r);
+  for (index r = 0; r < ds.size(); r++) 
+  {
+    auto series = data[r];
+    for (index s = 0; s < series.size(); s++)
+      j["data"][ids[r]]["t" + std::to_string(s)] = data[r].row(s);
   }
 }
 
@@ -149,20 +152,24 @@ template <typename T>
 bool check_json(const nlohmann::json &j,
                 const FluidDataSeries<std::string, T, 1> &) {
   return fluid::check_json(j,
-    {"data", "cols"},
-    {JSONTypes::OBJECT, JSONTypes::NUMBER}
+    {"cols", "data"},
+    {JSONTypes::NUMBER, JSONTypes::OBJECT}
   );
 }
 
 template <typename T>
 void from_json(const nlohmann::json &j, FluidDataSeries<std::string, T, 1> &ds) {
-  auto rows = j.at("data");
+  auto data = j.at("data");
   index pointSize = j.at("cols").get<index>();
   ds.resize(pointSize);
   FluidTensor<T, 1> tmp(pointSize);
-  for (auto r = rows.begin(); r != rows.end(); ++r) {
-    r.value().get_to(tmp);
-    ds.add(r.key(), tmp);
+  for (auto r = data.begin(); r != data.end(); ++r) 
+  {
+    for (auto s = r.begin(); r != r.end(); ++r) 
+    {
+      s.value().get_to(tmp);
+      ds.addFrame(r.key(), tmp);
+    }
   }
 }
 
