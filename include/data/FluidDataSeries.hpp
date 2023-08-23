@@ -245,7 +245,7 @@ private:
 
   std::unordered_map<idType, index> mIndex;
   FluidTensor<idType, 1>            mIds;
-  FluidTensor<dataType, N + 1>      mData;
-  FluidTensorSlice<N>               mDim;
+  std::vector<FluidTensor<dataType, N + 1>> mData;
+  FluidTensorSlice<N>               mDim; // dimensions for one frame
 };
 } // namespace fluid
