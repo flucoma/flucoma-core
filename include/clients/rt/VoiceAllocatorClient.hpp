@@ -42,7 +42,7 @@ enum VoiceAllocatorParamIndex {
 
 constexpr auto VoiceAllocatorParams = defineParameters(
     LongParamRuntimeMax<Primary>( "numVoices", "Number of Voices", 1, Min(1)),
-    EnumParam("prioritisedVoices", "Prioritised Voice Quality", 0, "Loudest Magnitude", "Lowest Frequency"),
+    EnumParam("prioritisedVoices", "Prioritised Voice Quality", 0, "Lowest Frequency", "Loudest Magnitude"),
     //EnumParam("stealMethod", "Voice Stealing Method", 0, "No Stealing", "Oldest", "Quietest"),
     FloatParam("birthLowThreshold", "Track Birth Low Frequency Threshold", -24, Min(-144), Max(0)),
     FloatParam("birthHighThreshold", "Track Birth High Frequency Threshold", -60, Min(-144), Max(0)),
@@ -190,18 +190,17 @@ public:
 
   vector<VoicePeak> sortVoices(vector<VoicePeak>& incomingVoices, index sortingMethod)
   {
-      //sortingMethod - 0 loudest - 1 lowest
       switch (sortingMethod)
       {
-      case 0: //loudest
-          std::sort(incomingVoices.begin(), incomingVoices.end(),
-                    [](const VoicePeak& voice1, const VoicePeak& voice2)
-                    { return voice1.logMag > voice2.logMag; });
-          break;
-      case 1: //lowest
+      case 0: //lowest
           std::sort(incomingVoices.begin(), incomingVoices.end(),
                     [](const VoicePeak& voice1, const VoicePeak& voice2)
                     { return voice1.freq < voice2.freq; });
+          break;
+      case 1: //loudest
+          std::sort(incomingVoices.begin(), incomingVoices.end(),
+                    [](const VoicePeak& voice1, const VoicePeak& voice2)
+                    { return voice1.logMag > voice2.logMag; });
           break;
       }
       return incomingVoices;
