@@ -67,52 +67,58 @@ public:
   {
     DataSeries& dataset = mAlgorithm;
     if (!data) return Error(NoBuffer);
+
     BufferAdaptor::ReadAccess buf(data.get());
     if (!buf.exists()) return Error(InvalidBuffer);
     if (buf.numFrames() == 0) return Error(EmptyBuffer);
+
     if (dataset.size() == 0)
     {
       if (dataset.dims() != buf.numFrames()) dataset = DataSeries(buf.numFrames());
     }
-    else if (buf.numFrames() != dataset.dims())
-      return Error(WrongPointSize);
+    else if (buf.numFrames() != dataset.dims()) { return Error(WrongPointSize); }
 
     RealVector frame(dataset.dims());
     frame <<= buf.samps(0, dataset.dims(), 0);
     dataset.addFrame(id, frame);
+
     return OK();
   }
 
   MessageResult<void> getFrame(string id, index time, BufferPtr data) const
   {
     if (!data) return Error(NoBuffer);
+
     BufferAdaptor::Access buf(data.get());
     if (!buf.exists()) return Error(InvalidBuffer);
+
     Result resizeResult = buf.resize(mAlgorithm.dims(), 1, buf.sampleRate());
     if (!resizeResult.ok())
       return {resizeResult.status(), resizeResult.message()};
+
     RealVector point(mAlgorithm.dims());
     point <<= buf.samps(0, mAlgorithm.dims(), 0);
+
     bool result = mAlgorithm.getFrame(id, time, point);
     if (result)
     {
       buf.samps(0, mAlgorithm.dims(), 0) <<= point;
       return OK();
     }
-    else
-    {
-      return Error(PointNotFound);
-    }
+    else { return Error(PointNotFound); }
   }
 
   MessageResult<void> updateFrame(string id, index time, InputBufferPtr data)
   {
     if (!data) return Error(NoBuffer);
+
     BufferAdaptor::ReadAccess buf(data.get());
     if (!buf.exists()) return Error(InvalidBuffer);
     if (buf.numFrames() < mAlgorithm.dims()) return Error(WrongPointSize);
+
     RealVector point(mAlgorithm.dims());
     point <<= buf.samps(0, mAlgorithm.dims(), 0);
+
     return mAlgorithm.updateFrame(id, time, point) ? OK() : Error(PointNotFound);
   }
 
@@ -124,11 +130,14 @@ public:
       BufferAdaptor::ReadAccess buf(data.get());
       if (!buf.exists()) return Error(InvalidBuffer);
       if (buf.numFrames() < mAlgorithm.dims()) return Error(WrongPointSize);
+
       RealVector point(mAlgorithm.dims());
       point <<= buf.samps(0, mAlgorithm.dims(), 0);
+
       bool result = mAlgorithm.updateFrame(id, time, point);
       if (result) return OK();
     }
+
     return addFrame(id, data);
   }
 
@@ -211,6 +220,7 @@ public:
     auto destPtr = dest.get().lock();
     if (!destPtr) return Error(NoDataSet);
     destPtr->setLabelSet(getIdsLabelSet());
+
     return OK();
   }
 
@@ -287,10 +297,7 @@ public:
         makeMessage("clear",        &DataSeriesClient::clear),
         makeMessage("write",        &DataSeriesClient::write),
         makeMessage("read",         &DataSeriesClient::read),
-        // makeMessage("fromBuffer",   &DataSeriesClient::fromBuffer),
-        // makeMessage("toBuffer",     &DataSeriesClient::toBuffer),
         makeMessage("getIds",       &DataSeriesClient::getIds)
-        // makeMessage("kNearest",     &DataSeriesClient::kNearest)
     );
   }
 

@@ -142,19 +142,16 @@ public:
   index getIndex(idType const& id) const
   {
     auto pos = mIndex.find(id);
-    if (pos == mIndex.end())
-      return -1;
-    else
-      return pos->second;
+    if (pos == mIndex.end()) return -1;
+    else return pos->second;
   }
 
   bool updateSeries(idType const& id, FluidTensorView<dataType, N + 1> series)
   {
     auto pos = mIndex.find(id);
-    if (pos == mIndex.end())
-      return false;
-    else
-      mData[pos->second] <<= series;
+    if (pos == mIndex.end()) return false;
+    else mData[pos->second] <<= series;
+
     return true;
   }
 
@@ -250,23 +247,17 @@ public:
     if (frame.size() < maxCols)
     {
       for (index c = 0; c < frame.size(); c++)
-      {
         result << setw(10) << setprecision(5) << frame(c);
-      }
     }
     else
     {
-      for (index c = 0; c < maxCols / 2; c++)
-      {
+      for (index c = 0; c < maxCols / 2; c++) 
         result << setw(10) << setprecision(5) << frame(c);
-      }
 
       result << setw(10) << "...";
 
       for (index c = maxCols / 2; c > 0; c--)
-      {
         result << setw(10) << setprecision(5) << frame(frame.size() - c);
-      }
     }
 
     return result.str();
@@ -281,26 +272,20 @@ public:
     if (series.rows() < maxFrames)
     {
       for (index t = 0; t < series.rows(); t++)
-      {
         result << setw(10) << "t" << t << ": " << printFrame(series.row(t), maxCols)
                << endl;
-      }
     }
     else
     {
       for (index t = 0; t < maxFrames / 2; t++)
-      {
         result << setw(10) << "t" << t << ": " << printFrame(series.row(t), maxCols)
-                << endl;
-      }
+               << endl;
 
       result << setw(10) << "..." << std::endl;
 
       for (index t = maxFrames / 2; t > 0; t--)
-      {
         result << setw(10) << "t" << (series.rows() - t) << ": " 
                << printFrame(series.row(size() - t), maxCols) << endl;
-      }
     }
 
     return result.str();
@@ -317,26 +302,20 @@ public:
     if (size() < maxRows)
     {
       for (index r = 0; r < size(); r++)
-      {
         result << mIds(r) << ":" << endl << printSeries(mData[r], maxFrames, maxCols)
                << endl;
-      }
     }
     else
     {
       for (index r = 0; r < maxRows / 2; r++)
-      {
         result << mIds(r) << ":" << endl << printSeries(mData[r], maxFrames, maxCols)
                << endl;
-      }
 
       result << setw(10) << "..." << std::endl;
 
       for (index r = maxRows / 2; r > 0; r--)
-      {
         result << mIds(size() - r) << ":"
                << printSeries(mData[size() - r], maxFrames, maxCols) << endl;
-      }
     }
 
     return result.str();
@@ -347,7 +326,8 @@ private:
   {
     assert(mIds.rows() == mData.size());
     mDim = mData[0].cols();
-    for (index i = 0; i < mIds.size(); i++) { mIndex.insert({mIds[i], i}); }
+    for (index i = 0; i < mIds.size(); i++) 
+      mIndex.insert({mIds[i], i});
   }
 
   std::unordered_map<idType, index> mIndex;
