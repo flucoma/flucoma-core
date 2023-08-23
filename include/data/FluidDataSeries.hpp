@@ -123,12 +123,12 @@ public:
     return true;
   }
 
-  FluidTensorView<const dataType, N> get(idType const& id) const
+  FluidTensorView<const dataType, N + 1> get(idType const& id) const
   {
     auto pos = mIndex.find(id);
     return pos != mIndex.end()
-               ? mData.row(pos->second)
-               : FluidTensorView<const dataType, N>{nullptr, 0, 0};
+               ? mData[pos->second]
+               : FluidTensorView<const dataType, N + 1>{nullptr, 0, 0};
   }
 
   index getIndex(idType const& id) const
