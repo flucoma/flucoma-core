@@ -143,7 +143,7 @@ void to_json(nlohmann::json &j, const FluidDataSeries<std::string, T, 1> &ds) {
   for (index r = 0; r < ds.size(); r++) 
   {
     auto series = data[r];
-    for (index s = 0; s < series.size(); s++)
+    for (index s = 0; s < series.rows(); s++)
       j["data"][ids[r]]["t" + std::to_string(s)] = data[r].row(s);
   }
 }
@@ -163,6 +163,7 @@ void from_json(const nlohmann::json &j, FluidDataSeries<std::string, T, 1> &ds) 
   index pointSize = j.at("cols").get<index>();
   ds.resize(pointSize);
   FluidTensor<T, 1> tmp(pointSize);
+
   for (auto r = data.begin(); r != data.end(); ++r) 
   {
     for (auto s = r->begin(); s != r->end(); ++s) 
