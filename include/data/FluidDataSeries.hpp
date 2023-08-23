@@ -238,8 +238,8 @@ public:
 private:
   void initFromData()
   {
-    assert(mIds.rows() == mData.rows());
-    mDim = mData.cols();
+    assert(mIds.rows() == mData.size());
+    mDim = mData[0].cols();
     for (index i = 0; i < mIds.size(); i++) { mIndex.insert({mIds[i], i}); }
   }
 
