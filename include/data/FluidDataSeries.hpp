@@ -22,14 +22,16 @@ public:
   // e.g. FluidDataSet(2, 3) is a dataset of 2x3 tensors
   template <typename... Dims,
             typename = std::enable_if_t<isIndexSequence<Dims...>()>>
-  FluidDataSeries(Dims... dims) : mDim(dims...)
+  FluidDataSeries(Dims... dims) 
+  : mData(0, FluidTensor<dataType, N + 1>(0, dims...)), 
+    mDim(dims...)
   {
     static_assert(sizeof...(dims) == N, "Number of dimensions doesn't match");
   }
 
   // Construct from existing tensors of ids and data points
-  FluidDataSeries(FluidTensorView<const idType, 1>       ids,
-               std::vector<FluidTensorView<const dataType, N + 1>> points)
+  FluidDataSeries(FluidTensorView<const idType, 1>                    ids,
+                  std::vector<FluidTensorView<const dataType, N + 1>> points)
       : mIds(ids), mData(points)
   {
     initFromData();
@@ -39,8 +41,8 @@ public:
   // (from convertible type for data, typically float -> double)
   template <typename U, typename T = dataType>
   FluidDataSeries(FluidTensorView<const idType, 1> ids,
-               std::vector<FluidTensorView<const U, N + 1>>  points,
-               std::enable_if_t<std::is_convertible<U, T>::value>* = nullptr)
+                  std::vector<FluidTensorView<const U, N + 1>>  points,
+                  std::enable_if_t<std::is_convertible<U, T>::value>* = nullptr)
       : mIds(ids), mData(points)
   {
     initFromData();
@@ -64,7 +66,7 @@ public:
     }
   }
 
-  bool addSeries(idType const& id, FluidTensorView<const dataType, N + 1> series)
+  bool addSeries(idType const& id, FluidTensorView<dataType, N + 1> series)
   {
     assert(sameExtents(mDim, series[0].descriptor()));
 
@@ -97,7 +99,7 @@ public:
                : FluidTensorView<const dataType, N + 1>{nullptr, 0, 0, 0};
   }
 
-  bool addFrame(idType const& id, FluidTensorView<const dataType, N> frame)
+  bool addFrame(idType const& id, FluidTensorView<dataType, N> frame)
   {
     assert(sameExtents(mDim, frame.descriptor()));
 
@@ -147,7 +149,7 @@ public:
       return pos->second;
   }
 
-  bool updateSeries(idType const& id, FluidTensorView<const dataType, N + 1> series)
+  bool updateSeries(idType const& id, FluidTensorView<dataType, N + 1> series)
   {
     auto pos = mIndex.find(id);
     if (pos == mIndex.end())
@@ -157,7 +159,7 @@ public:
     return true;
   }
 
-  bool updateFrame(idType const& id, index time, FluidTensorView<const dataType, N> frame)
+  bool updateFrame(idType const& id, index time, FluidTensorView<dataType, N> frame)
   {
     auto pos = mIndex.find(id);
     if (pos == mIndex.end()) return false;
@@ -212,7 +214,7 @@ public:
   { 
     std::vector<FluidTensorView<dataType, N + 1>> viewVec(mData.size());
 
-    // hacky fix to force conversion of vector to views of mData
+    // hacky fix to force conversion of vector of tensors to vector of views of mData
     // doesn't actually copy anything, it uses the FluidTensor ctor of FluidTensorView
     // which creates a view/ref, so ends up creating what we want
     std::copy(mData.begin(), mData.end(), std::back_inserter(viewVec));
