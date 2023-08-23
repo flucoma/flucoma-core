@@ -146,6 +146,11 @@ public:
     return mAlgorithm.removeFrame(id, time) ? OK() : Error(PointNotFound);
   }
 
+  MessageResult<void> deleteSeries(string id)
+  {
+    return mAlgorithm.removeSeries(id) ? OK() : Error(PointNotFound);
+  }
+
   MessageResult<void> merge(SharedClientRef<const DataSeriesClient> dataseriesClient,
                             bool                           overwrite)
   {
@@ -170,51 +175,6 @@ public:
     return OK();
   }
 
-  // MessageResult<void>
-  // fromBuffer(InputBufferPtr data, bool transpose,
-  //            SharedClientRef<const labelset::LabelSetClient> labels)
-  // {
-  //   if (!data) return Error(NoBuffer);
-  //   BufferAdaptor::ReadAccess buf(data.get());
-  //   if (!buf.exists()) return Error(InvalidBuffer);
-  //   auto bufView = transpose ? buf.allFrames() : buf.allFrames().transpose();
-  //   if (auto labelsPtr = labels.get().lock())
-  //   {
-  //     auto& labelSet = labelsPtr->getLabelSet();
-  //     if (labelSet.size() != bufView.rows())
-  //     { return Error("Label set size needs to match the buffer size"); }
-  //     mAlgorithm = DataSeries(labelSet.getData().col(0),
-  //                          FluidTensorView<const float, 2>(bufView));
-  //   }
-  //   else
-  //   {
-  //     algorithm::DataSetIdSequence seq("", 0, 0);
-  //     FluidTensor<string, 1>       newIds(bufView.rows());
-  //     seq.generate(newIds);
-  //     mAlgorithm = DataSeries(newIds, FluidTensorView<const float, 2>(bufView));
-  //   }
-  //   return OK();
-  // }
-
-  // MessageResult<void> toBuffer(BufferPtr data, bool transpose,
-  //                              LabelSetClientRef labels)
-  // {
-  //   if (!data) return Error(NoBuffer);
-  //   BufferAdaptor::Access buf(data.get());
-  //   if (!buf.exists()) return Error(InvalidBuffer);
-  //   index  nFrames = transpose ? mAlgorithm.dims() : mAlgorithm.size();
-  //   index  nChannels = transpose ? mAlgorithm.size() : mAlgorithm.dims();
-  //   Result resizeResult = buf.resize(nFrames, nChannels, buf.sampleRate());
-  //   if (!resizeResult.ok()) return Error(resizeResult.message());
-  //   buf.allFrames() <<=
-  //       transpose ? mAlgorithm.getData()
-  //                 : FluidTensorView<const double, 2>(mAlgorithm.getData())
-  //                       .transpose();
-  //   auto labelsPtr = labels.get().lock();
-  //   if (labelsPtr) labelsPtr->setLabelSet(getIdsLabelSet());
-  //   return OK();
-  // }
-
   MessageResult<void> getIds(LabelSetClientRef dest)
   {
     auto destPtr = dest.get().lock();
@@ -223,48 +183,6 @@ public:
 
     return OK();
   }
-
-  // MessageResult<FluidTensor<rt::string, 1>> kNearest(InputBufferPtr data,
-  //                                                    index nNeighbours) const
-  // {
-  //   // check for nNeighbours > 0 and < size of DS
-  //   if (nNeighbours > mAlgorithm.size())
-  //     return Error<FluidTensor<rt::string, 1>>(SmallDataSet);
-  //   if (nNeighbours <= 0) return Error<FluidTensor<rt::string, 1>>(SmallK);
-
-  //   InBufferCheck bufCheck(mAlgorithm.dims());
-
-  //   if (!bufCheck.checkInputs(data.get()))
-  //     return Error<FluidTensor<rt::string, 1>>(bufCheck.error());
-
-  //   FluidTensor<const double, 1> point(
-  //       BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0));
-
-  //   std::vector<index> indices(asUnsigned(mAlgorithm.size()));
-  //   std::iota(indices.begin(), indices.end(), 0);
-  //   std::vector<double> distances(asUnsigned(mAlgorithm.size()));
-
-  //   auto ds = mAlgorithm.getData();
-
-  //   std::transform(
-  //       indices.begin(), indices.end(), distances.begin(),
-  //       [&point, &ds, this](index i) { return distance(point, ds.row(i)); });
-
-  //   std::sort(indices.begin(), indices.end(), [&distances](index a, index b) {
-  //     return distances[asUnsigned(a)] < distances[asUnsigned(b)];
-  //   });
-
-  //   FluidTensor<rt::string, 1> labels(nNeighbours);
-
-  //   std::transform(
-  //       indices.begin(), indices.begin() + nNeighbours, labels.begin(),
-  //       [this](index i) {
-  //         std::string const& id = mAlgorithm.getIds()[i];
-  //         return rt::string{id, 0, id.size(), FluidDefaultAllocator()};
-  //       });
-
-  //   return labels;
-  // }
 
   MessageResult<void> clear()
   {
@@ -288,6 +206,7 @@ public:
         makeMessage("setFrame",     &DataSeriesClient::setFrame),
         makeMessage("updateFrame",  &DataSeriesClient::updateFrame),
         makeMessage("deleteFrame",  &DataSeriesClient::deleteFrame),
+        makeMessage("deleteSeries", &DataSeriesClient::deleteFrame),
         makeMessage("merge",        &DataSeriesClient::merge),
         makeMessage("dump",         &DataSeriesClient::dump),
         makeMessage("load",         &DataSeriesClient::load),
