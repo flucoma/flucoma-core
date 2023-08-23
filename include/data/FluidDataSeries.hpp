@@ -88,6 +88,38 @@ public:
 
     return true;
   }
+
+  bool addFrame(idType const& id, FluidTensorView<dataType, N> frame)
+  {
+    assert(sameExtents(mDim, frame.descriptor()));
+
+    auto pos = mIndex.find(id);
+    if (pos == mIndex.end())
+    {
+      FluidTensor<dataType, N + 1> newPoint;
+      newPoint.resizeDim(0, 1);
+      newPoint.row(0) <<= frame;
+      return addSeries(id, newPoint);
+    } 
+
+    FluidTensorView<dataType, N + 1> bucket = mData[pos->second];
+    bucket.resizeDim(0, 1);
+    bucket.row(bucket.rows() - 1) <<= frame;
+
+    return true;
+  }
+
+  bool getFrame(idType const& id, index time, FluidTensorView<dataType, N> frame)
+  {
+    auto pos = mIndex.find(id);
+    if (pos == mIndex.end()) return false;
+
+    FluidTensorView<dataType, N + 1> bucket = mData[pos->second];
+
+    assert(time < bucket.rows());
+
+    frame <<= bucket.row(time);
+
     return true;
   }
 
