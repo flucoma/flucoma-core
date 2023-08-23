@@ -78,7 +78,8 @@ public:
 
   PitchClient(ParamSetViewType& p, FluidContext& c)
       : mParams(p), mSTFTBufferedProcess(get<kFFT>(), 1, 0, c.hostVectorSize(), c.allocator()),
-        cepstrumF0(get<kFFT>().maxFrameSize(), c.allocator()),
+        mCepstrumF0(get<kFFT>().maxFrameSize(), c.allocator()),
+        mYinFFT(get<kFFT>().maxFrameSize(), c.allocator()),
         mMagnitude(get<kFFT>().maxFrameSize(), c.allocator()),
         mDescriptors(2, c.allocator())
   {
@@ -99,7 +100,7 @@ public:
 
     if (mParamTracker.changed(get<kFFT>().frameSize(), sampleRate(), c.hostVectorSize()))
     {
-      cepstrumF0.init(get<kFFT>().frameSize(), c.allocator());
+      mCepstrumF0.init(get<kFFT>().frameSize(), c.allocator());
       mSTFTBufferedProcess = STFTBufferedProcess(get<kFFT>(), 1, 0, c.hostVectorSize(), c.allocator());
 //      mMagnitude.resize(get<kFFT>().frameSize());
     }
@@ -112,15 +113,15 @@ public:
           switch (get<kAlgorithm>())
           {
           case 0:
-            cepstrumF0.processFrame(mags, mDescriptors, get<kMinFreq>(),
+            mCepstrumF0.processFrame(mags, mDescriptors, get<kMinFreq>(),
                                     get<kMaxFreq>(), sampleRate(),c.allocator());
             break;
           case 1:
-            hps.processFrame(mags, mDescriptors, 4, get<kMinFreq>(),
+            mHPS.processFrame(mags, mDescriptors, 4, get<kMinFreq>(),
                              get<kMaxFreq>(), sampleRate(), c.allocator());
             break;
           case 2:
-            yinFFT.processFrame(mags, mDescriptors, get<kMinFreq>(),
+            mYinFFT.processFrame(mags, mDescriptors, get<kMinFreq>(),
                                 get<kMaxFreq>(), sampleRate(), c.allocator());
             break;
           }
@@ -157,7 +158,7 @@ public:
   void reset(FluidContext& c)
   {
     mSTFTBufferedProcess.reset();
-    cepstrumF0.init(get<kFFT>().frameSize(), c.allocator());
+    mCepstrumF0.init(get<kFFT>().frameSize(), c.allocator());
 //    mMagnitude.resize(get<kFFT>().frameSize());
   }
 
@@ -166,9 +167,9 @@ private:
   
   STFTBufferedProcess<> mSTFTBufferedProcess;
 
-  CepstrumF0             cepstrumF0;
-  HPS                    hps;
-  YINFFT                 yinFFT;
+  CepstrumF0             mCepstrumF0;
+  HPS                    mHPS;
+  YINFFT                 mYinFFT;
   FluidTensor<double, 1> mMagnitude;
   FluidTensor<double, 1> mDescriptors;
 };
