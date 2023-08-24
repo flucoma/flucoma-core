@@ -321,10 +321,10 @@ public:
         result << mIds(r) << ":" << endl << printSeries(mData[r], maxFrames, maxCols)
                << endl;
 
-      result << setw(10) << "..." << std::endl;
+      result << setw(10) << "⋮" << endl;
 
       for (index r = maxRows / 2; r > 0; r--)
-        result << mIds(size() - r) << ":"
+        result << mIds(size() - r) << ":" << endl
                << printSeries(mData[size() - r], maxFrames, maxCols) << endl;
     }
 
