@@ -15,6 +15,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "NRTClient.hpp"
 #include "../common/SharedClientUtils.hpp"
 #include "../../algorithms/public/DataSetIdSequence.hpp"
+#include "../../algorithms/public/DTW.hpp"
 #include "../../data/FluidDataSeries.hpp"
 #include <sstream>
 #include <string>
@@ -255,6 +256,46 @@ public:
     return OK();
   }
 
+  MessageResult<FluidTensor<rt::string, 1>> kNearest(InputBufferPtr data,
+                                                     index nNeighbours) const
+  {
+    // check for nNeighbours > 0 and < size of DS
+    if (nNeighbours > mAlgorithm.size())
+      return Error<FluidTensor<rt::string, 1>>(SmallDataSet);
+    if (nNeighbours <= 0) return Error<FluidTensor<rt::string, 1>>(SmallK);
+
+    BufferAdaptor::ReadAccess buf(data.get());
+    if (!buf.exists()) return Error<FluidTensor<rt::string, 1>>(InvalidBuffer);
+    if (buf.numChans() < mAlgorithm.dims()) return Error<FluidTensor<rt::string, 1>>(WrongPointSize);
+
+    FluidTensor<const double, 2> series(buf.allFrames().transpose());
+
+    std::vector<index> indices(asUnsigned(mAlgorithm.size()));
+    std::iota(indices.begin(), indices.end(), 0);
+    std::vector<double> distances(asUnsigned(mAlgorithm.size()));
+
+    auto ds = mAlgorithm.getData();
+
+    std::transform(
+        indices.begin(), indices.end(), distances.begin(),
+        [&series, &ds, this](index i) { return distance(series, ds[i]); });
+
+    std::sort(indices.begin(), indices.end(), [&distances](index a, index b) {
+      return distances[asUnsigned(a)] < distances[asUnsigned(b)];
+    });
+
+    FluidTensor<rt::string, 1> labels(nNeighbours);
+
+    std::transform(
+        indices.begin(), indices.begin() + nNeighbours, labels.begin(),
+        [this](index i) {
+          std::string const& id = mAlgorithm.getIds()[i];
+          return rt::string{id, 0, id.size(), FluidDefaultAllocator()};
+        });
+
+    return labels;
+  }
+
   MessageResult<void> clear()
   {
     mAlgorithm = DataSeries(0);
@@ -292,7 +333,8 @@ public:
         makeMessage("write",        &DataSeriesClient::write),
         makeMessage("read",         &DataSeriesClient::read),
         makeMessage("getIds",       &DataSeriesClient::getIds),
-        makeMessage("getDataSet",   &DataSeriesClient::getDataSet)
+        makeMessage("getDataSet",   &DataSeriesClient::getDataSet),
+        makeMessage("kNearest",     &DataSeriesClient::kNearest)
     );
   }
 
@@ -319,6 +361,12 @@ private:
     }
 
     return ds;
+  }
+
+  double distance(FluidTensorView<const double, 2> x1, FluidTensorView<const double, 2> x2) const
+  {
+    algorithm::DTW dtw;
+    return dtw.process(x1, x2);
   }
 };
 
