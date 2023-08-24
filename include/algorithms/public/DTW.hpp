@@ -36,6 +36,40 @@ public:
     {
 
     }
+
+    double process(InputRealMatrixView x1, InputRealMatrixView x2, index q)
+    {
+        distanceMetrics.conservativeResize(x1.rows(), x2.rows());
+        // simple brute force DTW is very inefficient, see FastDTW
+        for (index i = 0; i < x1.rows(); i++)
+        {
+            for (index j = 0; j < x2.rows(); j++)
+            {
+                ArrayXd x1i = _impl::asEigen<Eigen::Array>(x1.row(i));
+                ArrayXd x2j = _impl::asEigen<Eigen::Array>(x2.row(j));
+
+                distanceMetrics(i, j) = euclidianDistToTheQ(x1i, x2j, q);
+
+                if (i > 0 || j > 0)
+                {
+                    double minimum = std::numeric_limits<double>::max();
+
+                    if (i > 0 && j > 0) 
+                        minimum = std::min(minimum, distanceMetrics(i - 1, j - 1));
+                    if (i > 0)
+                        minimum = std::min(minimum, distanceMetrics(i - 1, j));
+                    if (j > 0)
+                        minimum = std::min(minimum, distanceMetrics(i, j - 1));
+
+                    distanceMetrics(i, j) += minimum;
+                }
+            }
+        }
+
+        return std::pow(distanceMetrics.bottomLeftCorner<1, 1>().value(), 1.0 / q);
+    }
+
+private:
     mutable MatrixXd distanceMetrics;
 
     inline static double euclidianDistToTheQ(const Eigen::Ref<const VectorXd>& in, const Eigen::Ref<const VectorXd>& out, index q)
