@@ -180,7 +180,18 @@ public:
 
   MessageResult<void> setSeries(string id, InputBufferPtr data)
   {
-    return OK();
+    if (!data) return Error(NoBuffer);
+
+    { // restrict buffer lock to this scope in case addPoint is called
+      BufferAdaptor::ReadAccess buf(data.get());
+      if (!buf.exists()) return Error(InvalidBuffer);
+      if (buf.numChans() < mAlgorithm.dims()) return Error(WrongPointSize);
+
+      bool result = mAlgorithm.updateSeries(id, buf.allFrames().transpose());
+      if (result) return OK();
+    }
+
+    return addSeries(id, data);
   }
 
   MessageResult<void> deleteFrame(string id, index time)
