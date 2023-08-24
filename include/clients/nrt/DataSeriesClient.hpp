@@ -113,10 +113,7 @@ public:
     if (!buf.exists()) return Error(InvalidBuffer);
     if (buf.numFrames() < mAlgorithm.dims()) return Error(WrongPointSize);
 
-    RealVector point(mAlgorithm.dims());
-    point <<= buf.samps(0, mAlgorithm.dims(), 0);
-
-    return mAlgorithm.updateFrame(id, time, point) ? OK() : Error(PointNotFound);
+    return mAlgorithm.updateFrame(id, time, buf.samps(0, mAlgorithm.dims(), 0)) ? OK() : Error(PointNotFound);
   }
 
   MessageResult<void> setFrame(string id, index time, InputBufferPtr data)
@@ -128,10 +125,7 @@ public:
       if (!buf.exists()) return Error(InvalidBuffer);
       if (buf.numFrames() < mAlgorithm.dims()) return Error(WrongPointSize);
 
-      RealVector point(mAlgorithm.dims());
-      point <<= buf.samps(0, mAlgorithm.dims(), 0);
-
-      bool result = mAlgorithm.updateFrame(id, time, point);
+      bool result = mAlgorithm.updateFrame(id, time, buf.samps(0, mAlgorithm.dims(), 0));
       if (result) return OK();
     }
 
@@ -160,11 +154,10 @@ public:
       return Error(WrongPointSize);
 
     auto       ids = srcDataSeries.getIds();
-    RealMatrix series;
 
     for (index i = 0; i < srcDataSeries.size(); i++)
     {
-      srcDataSeries.getSeries(ids(i), series);
+      InputRealMatrixView series = srcDataSeries.getSeries(ids(i));
       bool added = mAlgorithm.addSeries(ids(i), series);
       if (!added && overwrite) mAlgorithm.updateSeries(ids(i), series);
     }
