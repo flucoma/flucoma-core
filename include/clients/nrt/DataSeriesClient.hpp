@@ -11,6 +11,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 #include "DataClient.hpp"
 #include "LabelSetClient.hpp"
+#include "DataSetClient.hpp"
 #include "NRTClient.hpp"
 #include "../common/SharedClientUtils.hpp"
 #include "../../algorithms/public/DataSetIdSequence.hpp"
@@ -38,6 +39,7 @@ public:
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
   using InputBufferPtr = std::shared_ptr<const BufferAdaptor>;
   using DataSeries = FluidDataSeries<string, double, 1>;
+  using DataSet = FluidDataSet<string, double, 1>;
   using LabelSet = FluidDataSet<string, string, 1>;
 
   template <typename T>
@@ -233,6 +235,17 @@ public:
     return OK();
   }
 
+  MessageResult<void> getDataSet(DataSetClientRef dest, index time) const
+  {
+    auto destPtr = dest.get().lock();
+    if (!destPtr) return Error(NoDataSet);
+    destPtr->setDataSet(getSliceDataSet(time));
+
+    if(destPtr->size() == 0) return Error(EmptyDataSet);
+
+    return OK();
+  }
+
   MessageResult<void> getIds(LabelSetClientRef dest)
   {
     auto destPtr = dest.get().lock();
@@ -262,11 +275,11 @@ public:
         makeMessage("addFrame",     &DataSeriesClient::addFrame),
         makeMessage("addSeries",    &DataSeriesClient::addSeries),
         makeMessage("getFrame",     &DataSeriesClient::getFrame),
-        makeMessage("getSeries",     &DataSeriesClient::getSeries),
+        makeMessage("getSeries",    &DataSeriesClient::getSeries),
         makeMessage("setFrame",     &DataSeriesClient::setFrame),
-        makeMessage("setSeries",     &DataSeriesClient::setSeries),
+        makeMessage("setSeries",    &DataSeriesClient::setSeries),
         makeMessage("updateFrame",  &DataSeriesClient::updateFrame),
-        makeMessage("updateSeries",  &DataSeriesClient::updateSeries),
+        makeMessage("updateSeries", &DataSeriesClient::updateSeries),
         makeMessage("deleteFrame",  &DataSeriesClient::deleteFrame),
         makeMessage("deleteSeries", &DataSeriesClient::deleteFrame),
         makeMessage("merge",        &DataSeriesClient::merge),
@@ -278,7 +291,8 @@ public:
         makeMessage("clear",        &DataSeriesClient::clear),
         makeMessage("write",        &DataSeriesClient::write),
         makeMessage("read",         &DataSeriesClient::read),
-        makeMessage("getIds",       &DataSeriesClient::getIds)
+        makeMessage("getIds",       &DataSeriesClient::getIds),
+        makeMessage("getDataSet",   &DataSeriesClient::getDataSet)
     );
   }
 
@@ -292,13 +306,20 @@ private:
     seq.generate(newIds);
     return LabelSet(newIds, labels);
   };
-  
-  // double distance(FluidTensorView<const double, 1> point1, FluidTensorView<const double, 1> point2) const
-  // {    
-  //   return std::transform_reduce(point1.begin(), point1.end(), point2.begin(), 0.0, std::plus{}, [](double v1, double v2){
-  //     return (v1-v2) * (v1-v2);
-  //   });
-  // };
+
+  DataSet getSliceDataSet(index time) const
+  {
+    DataSet ds(mAlgorithm.dims());
+    decltype(mAlgorithm)::FrameType frame(mAlgorithm.dims());
+
+    for(auto id : mAlgorithm.getIds())
+    {
+      bool ret = mAlgorithm.getFrame(id, time, frame);
+      if(ret) ds.add(id, frame);
+    }
+
+    return ds;
+  }
 };
 
 } // namespace dataset

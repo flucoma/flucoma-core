@@ -15,6 +15,8 @@ class FluidDataSeries
 {
 
 public:
+  using FrameType = FluidTensor<dataType, N>;
+
   explicit FluidDataSeries() = default;
   ~FluidDataSeries() = default;
 
