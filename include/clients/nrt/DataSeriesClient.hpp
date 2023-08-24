@@ -85,7 +85,7 @@ public:
   MessageResult<void> addSeries(string id, InputBufferPtr data)
   {
     if (!data) return Error(NoBuffer);
-    
+
     BufferAdaptor::ReadAccess buf(data.get());
     if (!buf.exists()) return Error(InvalidBuffer);
     if (buf.numFrames() == 0) return Error(EmptyBuffer);
@@ -123,6 +123,11 @@ public:
     else { return Error(PointNotFound); }
   }
 
+  MessageResult<void> getSeries(string id, BufferPtr data) const
+  {
+    return OK();
+  }
+
   MessageResult<void> updateFrame(string id, index time, InputBufferPtr data)
   {
     if (!data) return Error(NoBuffer);
@@ -132,6 +137,11 @@ public:
     if (buf.numFrames() < mAlgorithm.dims()) return Error(WrongPointSize);
 
     return mAlgorithm.updateFrame(id, time, buf.samps(0, mAlgorithm.dims(), 0)) ? OK() : Error(PointNotFound);
+  }
+
+  MessageResult<void> updateSeries(string id, InputBufferPtr data)
+  {
+    return OK();
   }
 
   MessageResult<void> setFrame(string id, index time, InputBufferPtr data)
@@ -148,6 +158,11 @@ public:
     }
 
     return addFrame(id, data);
+  }
+
+  MessageResult<void> setSeries(string id, InputBufferPtr data)
+  {
+    return OK();
   }
 
   MessageResult<void> deleteFrame(string id, index time)
@@ -212,8 +227,11 @@ public:
         makeMessage("addFrame",     &DataSeriesClient::addFrame),
         makeMessage("addSeries",    &DataSeriesClient::addSeries),
         makeMessage("getFrame",     &DataSeriesClient::getFrame),
+        makeMessage("getSeries",     &DataSeriesClient::getSeries),
         makeMessage("setFrame",     &DataSeriesClient::setFrame),
+        makeMessage("setSeries",     &DataSeriesClient::setSeries),
         makeMessage("updateFrame",  &DataSeriesClient::updateFrame),
+        makeMessage("updateSeries",  &DataSeriesClient::updateSeries),
         makeMessage("deleteFrame",  &DataSeriesClient::deleteFrame),
         makeMessage("deleteSeries", &DataSeriesClient::deleteFrame),
         makeMessage("merge",        &DataSeriesClient::merge),
