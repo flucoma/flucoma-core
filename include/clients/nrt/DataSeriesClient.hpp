@@ -281,7 +281,7 @@ public:
         makeMessage("updateFrame",  &DataSeriesClient::updateFrame),
         makeMessage("updateSeries", &DataSeriesClient::updateSeries),
         makeMessage("deleteFrame",  &DataSeriesClient::deleteFrame),
-        makeMessage("deleteSeries", &DataSeriesClient::deleteFrame),
+        makeMessage("deleteSeries", &DataSeriesClient::deleteSeries),
         makeMessage("merge",        &DataSeriesClient::merge),
         makeMessage("dump",         &DataSeriesClient::dump),
         makeMessage("load",         &DataSeriesClient::load),
