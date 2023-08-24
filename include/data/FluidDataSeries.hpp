@@ -67,41 +67,6 @@ public:
   }
 
   template <typename U>
-  bool addSeries(idType const& id, FluidTensorView<U, N + 1> series)
-  {
-    static_assert(std::is_convertible<U, dataType>::value,  "Can't convert between types");
-    
-    // dont crete another view 
-    auto result = mIndex.insert({id, mData.size()});
-    if (!result.second) return false;
-
-    mData.emplace_back(series);
-
-    mIds.resizeDim(0, 1);
-    mIds(mIds.rows() - 1) = id;
-
-    return true;
-  }
-
-  bool getSeries(idType const& id, FluidTensorView<dataType, N + 1> series) const
-  {
-    auto pos = mIndex.find(id);
-    if (pos == mIndex.end()) return false;
-
-    series <<= mData[pos->second];
-
-    return true;
-  }
-
-  FluidTensorView<const dataType, N + 1> getSeries(idType const& id) const
-  {
-    auto pos = mIndex.find(id);
-    return pos != mIndex.end()
-               ? mData[pos->second]
-               : FluidTensorView<const dataType, N + 1>{nullptr, 0, 0, 0};
-  }
-
-  template <typename U>
   bool addFrame(idType const& id, FluidTensorView<U, N> frame)
   {
     static_assert(std::is_convertible<U, dataType>::value,  "Can't convert between types");
@@ -116,6 +81,23 @@ public:
 
     mData[pos->second].resizeDim(0, 1);
     mData[pos->second].row(mData[pos->second].rows() - 1) <<= frame;
+
+    return true;
+  }
+
+  template <typename U>
+  bool addSeries(idType const& id, FluidTensorView<U, N + 1> series)
+  {
+    static_assert(std::is_convertible<U, dataType>::value,  "Can't convert between types");
+    
+    // dont crete another view 
+    auto result = mIndex.insert({id, mData.size()});
+    if (!result.second) return false;
+
+    mData.emplace_back(series);
+
+    mIds.resizeDim(0, 1);
+    mIds(mIds.rows() - 1) = id;
 
     return true;
   }
@@ -143,23 +125,22 @@ public:
     else { return FluidTensorView<const dataType, N>{nullptr, 0, 0}; }
   }
 
-  index getIndex(idType const& id) const
+  bool getSeries(idType const& id, FluidTensorView<dataType, N + 1> series) const
   {
-    auto pos = mIndex.find(id);
-    if (pos == mIndex.end()) return -1;
-    else return pos->second;
-  }
-
-  template <typename U>
-  bool updateSeries(idType const& id, FluidTensorView<U, N + 1> series)
-  {
-    static_assert(std::is_convertible<U, dataType>::value,  "Can't convert between types");
-
     auto pos = mIndex.find(id);
     if (pos == mIndex.end()) return false;
-    else mData[pos->second] <<= series;
+
+    series <<= mData[pos->second];
 
     return true;
+  }
+
+  FluidTensorView<const dataType, N + 1> getSeries(idType const& id) const
+  {
+    auto pos = mIndex.find(id);
+    return pos != mIndex.end()
+               ? mData[pos->second]
+               : FluidTensorView<const dataType, N + 1>{nullptr, 0, 0, 0};
   }
 
   template <typename U>
@@ -176,20 +157,14 @@ public:
     return true;
   }
 
-  bool removeSeries(idType const& id)
+  template <typename U>
+  bool updateSeries(idType const& id, FluidTensorView<U, N + 1> series)
   {
+    static_assert(std::is_convertible<U, dataType>::value,  "Can't convert between types");
+
     auto pos = mIndex.find(id);
     if (pos == mIndex.end()) return false;
-
-    index current = pos->second;
-    mData.erase(mData.begin() + current);
-    mIds.deleteRow(current);
-    mIndex.erase(id);
-
-    for (auto& point : mIndex)
-    {
-      if (point.second > current) point.second--;
-    }
+    else mData[pos->second] <<= series;
 
     return true;
   }
@@ -214,6 +189,31 @@ public:
     }
 
     return true;
+  }
+
+  bool removeSeries(idType const& id)
+  {
+    auto pos = mIndex.find(id);
+    if (pos == mIndex.end()) return false;
+
+    index current = pos->second;
+    mData.erase(mData.begin() + current);
+    mIds.deleteRow(current);
+    mIndex.erase(id);
+
+    for (auto& point : mIndex)
+    {
+      if (point.second > current) point.second--;
+    }
+
+    return true;
+  }
+
+  index getIndex(idType const& id) const
+  {
+    auto pos = mIndex.find(id);
+    if (pos == mIndex.end()) return -1;
+    else return pos->second;
   }
 
   std::vector<FluidTensorView<dataType, N + 1>> getData() 
