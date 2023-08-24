@@ -216,6 +216,13 @@ public:
     else return pos->second;
   }
 
+  index getNumFrames(idType const& id) const 
+  {
+    auto pos = mIndex.find(id);
+    if (pos == mIndex.end()) return -1;
+    else return mData[pos->second].rows();
+  }
+
   std::vector<FluidTensorView<dataType, N + 1>> getData() 
   { 
     std::vector<FluidTensorView<dataType, N + 1>> viewVec(mData.size());
