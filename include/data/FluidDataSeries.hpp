@@ -183,16 +183,8 @@ public:
     index current = pos->second;
     if (time >= mData[current].rows()) return false;
 
-    mData[current].deleteRow(time);
-    if(mData[current].rows() == 0)
-    {
-      mIds.deleteRow(current);
-      mIndex.erase(id);
-      for (auto& point : mIndex)
-      {
-        if (point.second > current) point.second--;
-      }
-    }
+    if(mData[current].rows() == 1) return removeSeries(id);
+    else mData[current].deleteRow(time);
 
     return true;
   }
