@@ -82,6 +82,24 @@ public:
     return OK();
   }
 
+  MessageResult<void> addSeries(string id, InputBufferPtr data)
+  {
+    if (!data) return Error(NoBuffer);
+    
+    BufferAdaptor::ReadAccess buf(data.get());
+    if (!buf.exists()) return Error(InvalidBuffer);
+    if (buf.numFrames() == 0) return Error(EmptyBuffer);
+
+    if (mAlgorithm.size() == 0)
+    {
+      if (mAlgorithm.dims() != buf.numChans()) mAlgorithm = DataSeries(buf.numChans());
+    }
+    else if (buf.numChans() != mAlgorithm.dims()) { return Error(WrongPointSize); }
+
+    return mAlgorithm.addSeries(id, buf.allFrames().transpose()) 
+           ? OK() : Error(DuplicateIdentifier);
+  }
+
   MessageResult<void> getFrame(string id, index time, BufferPtr data) const
   {
     if (!data) return Error(NoBuffer);
@@ -192,6 +210,7 @@ public:
   {
     return defineMessages(
         makeMessage("addFrame",     &DataSeriesClient::addFrame),
+        makeMessage("addSeries",    &DataSeriesClient::addSeries),
         makeMessage("getFrame",     &DataSeriesClient::getFrame),
         makeMessage("setFrame",     &DataSeriesClient::setFrame),
         makeMessage("updateFrame",  &DataSeriesClient::updateFrame),
