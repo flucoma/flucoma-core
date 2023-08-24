@@ -81,7 +81,7 @@ private:
 
     inline static double euclidianDistToTheQ(const Eigen::Ref<const VectorXd>& in, const Eigen::Ref<const VectorXd>& out, index q)
     {
-        double euclidianSquared = in.dot(out);
+        double euclidianSquared = (in - out).dot(in - out);
         if(q == 2) 
             return euclidianSquared;
         return std::pow(euclidianSquared, 0.5 * q); // already squared, so (x^2)^(q/2) = x^q and _really_ optimises even values of q
