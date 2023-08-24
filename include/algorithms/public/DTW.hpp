@@ -37,14 +37,14 @@ public:
     ~DTW() = default;
 
     // functions so the DataClient<DTW> doesnt have freak out
-    void init() {}
-    void clear() {}
+    void init()  const {}
+    void clear() const {}
 
     constexpr index size()        const { return 0; }
     constexpr index dims()        const { return 0; }
     constexpr index initialized() const { return true; }
 
-    double process(InputRealMatrixView x1, InputRealMatrixView x2, index q = 2)
+    double process(InputRealMatrixView x1, InputRealMatrixView x2, index q = 2) const
     {
         distanceMetrics.conservativeResize(x1.rows(), x2.rows());
         // simple brute force DTW is very inefficient, see FastDTW
