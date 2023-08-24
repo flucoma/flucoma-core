@@ -161,15 +161,16 @@ template <typename T>
 void from_json(const nlohmann::json &j, FluidDataSeries<std::string, T, 1> &ds) {
   auto data = j.at("data");
   index pointSize = j.at("cols").get<index>();
-  ds.resize(pointSize);
   FluidTensor<T, 1> tmp(pointSize);
+  
+  ds.resize(pointSize);
 
   for (auto r = data.begin(); r != data.end(); ++r) 
   {
     for (auto s = r->begin(); s != r->end(); ++s) 
     {
       s.value().get_to(tmp);
-      ds.addFrame(r.key(), tmp);
+      ds.addFrame(r.key(), FluidTensorView<T, 1>{tmp});
     }
   }
 }

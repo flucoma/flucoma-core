@@ -66,10 +66,12 @@ public:
     }
   }
 
-  bool addSeries(idType const& id, FluidTensorView<dataType, N + 1> series)
+  template <typename U>
+  bool addSeries(idType const& id, FluidTensorView<U, N + 1> series)
   {
-    assert(sameExtents(mDim, series[0].descriptor()));
-
+    static_assert(std::is_convertible<U, dataType>::value,  "Can't convert between types");
+    
+    // dont crete another view 
     auto result = mIndex.insert({id, mData.size()});
     if (!result.second) return false;
 
@@ -99,14 +101,16 @@ public:
                : FluidTensorView<const dataType, N + 1>{nullptr, 0, 0, 0};
   }
 
-  bool addFrame(idType const& id, FluidTensorView<dataType, N> frame)
+  template <typename U>
+  bool addFrame(idType const& id, FluidTensorView<U, N> frame)
   {
+    static_assert(std::is_convertible<U, dataType>::value,  "Can't convert between types");
     assert(sameExtents(mDim, frame.descriptor()));
 
     auto pos = mIndex.find(id);
     if (pos == mIndex.end())
     {
-      FluidTensorView<dataType, N + 1> newPoint(frame);
+      FluidTensorView<U, N + 1> newPoint(frame);
       return addSeries(id, newPoint);
     } 
 
@@ -146,8 +150,11 @@ public:
     else return pos->second;
   }
 
-  bool updateSeries(idType const& id, FluidTensorView<dataType, N + 1> series)
+  template <typename U>
+  bool updateSeries(idType const& id, FluidTensorView<U, N + 1> series)
   {
+    static_assert(std::is_convertible<U, dataType>::value,  "Can't convert between types");
+
     auto pos = mIndex.find(id);
     if (pos == mIndex.end()) return false;
     else mData[pos->second] <<= series;
@@ -155,8 +162,11 @@ public:
     return true;
   }
 
-  bool updateFrame(idType const& id, index time, FluidTensorView<dataType, N> frame)
+  template <typename U>
+  bool updateFrame(idType const& id, index time, FluidTensorView<U, N> frame)
   {
+    static_assert(std::is_convertible<U, dataType>::value,  "Can't convert between types");
+    
     auto pos = mIndex.find(id);
     if (pos == mIndex.end()) return false;
 
