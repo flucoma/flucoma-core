@@ -65,22 +65,19 @@ public:
 
   MessageResult<void> addFrame(string id, InputBufferPtr data)
   {
-    DataSeries& dataset = mAlgorithm;
     if (!data) return Error(NoBuffer);
 
     BufferAdaptor::ReadAccess buf(data.get());
     if (!buf.exists()) return Error(InvalidBuffer);
     if (buf.numFrames() == 0) return Error(EmptyBuffer);
 
-    if (dataset.size() == 0)
+    if (mAlgorithm.size() == 0)
     {
-      if (dataset.dims() != buf.numFrames()) dataset = DataSeries(buf.numFrames());
+      if (mAlgorithm.dims() != buf.numFrames()) mAlgorithm = DataSeries(buf.numFrames());
     }
-    else if (buf.numFrames() != dataset.dims()) { return Error(WrongPointSize); }
+    else if (buf.numFrames() != mAlgorithm.dims()) { return Error(WrongPointSize); }
 
-    RealVector frame(dataset.dims());
-    frame <<= buf.samps(0, dataset.dims(), 0);
-    dataset.addFrame(id, frame);
+    mAlgorithm.addFrame(id, buf.samps(0, mAlgorithm.dims(), 0));
 
     return OK();
   }
