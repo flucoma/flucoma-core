@@ -159,7 +159,13 @@ public:
 
   MessageResult<void> updateSeries(string id, InputBufferPtr data)
   {
-    return OK();
+    if (!data) return Error(NoBuffer);
+
+    BufferAdaptor::ReadAccess buf(data.get());
+    if (!buf.exists()) return Error(InvalidBuffer);
+    if (buf.numChans() < mAlgorithm.dims()) return Error(WrongPointSize);
+
+    return mAlgorithm.updateSeries(id, buf.allFrames().transpose()) ? OK() : Error(PointNotFound);
   }
 
   MessageResult<void> setFrame(string id, index time, InputBufferPtr data)

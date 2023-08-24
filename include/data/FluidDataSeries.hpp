@@ -164,7 +164,11 @@ public:
 
     auto pos = mIndex.find(id);
     if (pos == mIndex.end()) return false;
-    else mData[pos->second] <<= series;
+    else 
+    {
+      mData[pos->second].resizeDim(0, series.rows() - mData[pos->second].rows());
+      mData[pos->second] <<= series;
+    }
 
     return true;
   }
