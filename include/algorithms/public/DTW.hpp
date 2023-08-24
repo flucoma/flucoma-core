@@ -24,6 +24,10 @@ namespace algorithm {
 
 class DTW
 {
+    using MatrixXd = Eigen::MatrixXd;
+    using VectorXd = Eigen::VectorXd;
+    using ArrayXd =  Eigen::ArrayXd;
+
 public:
     explicit DTW() = default;
     ~DTW() = default;
@@ -32,6 +36,16 @@ public:
     {
 
     }
-}
-}
-}
+    mutable MatrixXd distanceMetrics;
+
+    inline static double euclidianDistToTheQ(const Eigen::Ref<const VectorXd>& in, const Eigen::Ref<const VectorXd>& out, index q)
+    {
+        double euclidianSquared = (in * out).value();
+        if(q == 2) 
+            return euclidianSquared;
+        return std::pow(euclidianSquared, 0.5 * q); // already squared, so (x^2)^(q/2) = x^q and _really_ optimises even values of q
+    }
+};
+
+} // namespace algorithm
+} // namespace fluid
