@@ -30,28 +30,20 @@ template <typename dataType>
 class DTW
 {
     using Matrix = Eigen::Matrix<dataType, -1, -1>;
-    using Vector = Eigen::Vector<dataType, -1, 1>;
+    using Vector = Eigen::Matrix<dataType, -1, 1>;
     using Array =  Eigen::Array<dataType, -1, 1>;
 
 public:
     explicit DTW() = default;
     ~DTW() = default;
 
-    // functions so the DataClient<DTW> doesnt have freak out
-    void init()  const {}
-    void clear() const {}
-
-    constexpr index size()        const { return 0; }
-    constexpr index dims()        const { return 0; }
-    constexpr index initialized() const { return true; }
-
     template <typename U>
-    dataType process(FluidTensorView<U, 2> x1, 
-                     FluidTensorView<U, 2> x2, index p = 2) const
+    static dataType process(FluidTensorView<U, 2> x1, 
+                            FluidTensorView<U, 2> x2, index p = 2)
     {
         static_assert(std::is_convertible<U, dataType>::value,  "Can't convert between types");
 
-        distanceMetrics.conservativeResize(x1.rows(), x2.rows());
+        Matrix distanceMetrics(x1.rows(), x2.rows());
         // simple brute force DTW is very inefficient, see FastDTW
         for (index i = 0; i < x1.rows(); i++)
         {
@@ -82,8 +74,6 @@ public:
     }
 
 private:
-    mutable Matrix distanceMetrics;
-
     // P-Norm of the difference vector
     // Lp{vec} = (|vec[0]|^p + |vec[1]|^p + ... + |vec[n-1]|^p + |vec[n]|^p)^(1/p)
     // i.e., the 2-norm of a vector is the euclidian distance from the origin

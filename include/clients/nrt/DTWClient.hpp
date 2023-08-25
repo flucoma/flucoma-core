@@ -43,9 +43,6 @@ public:
 
   std::reference_wrapper<ParamSetViewType> mParams;
 
-  // stateless algorithm
-  static algorithm::DTW<double> mAlgorithm;
-
   void setParams(ParamSetViewType& p) { mParams = p; }
 
   template <size_t N>
@@ -82,8 +79,8 @@ public:
     if (!buf1.exists() || !buf2.exists()) return Error<double>(InvalidBuffer);
     if (buf1.numChans() != buf2.numChans()) return Error<double>(WrongPointSize);
 
-    double cost = mAlgorithm.process(buf1.allFrames().transpose(),
-                                     buf2.allFrames().transpose());
+    double cost = algorithm::DTW<double>::process(buf1.allFrames().transpose(),
+                                                  buf2.allFrames().transpose());
 
     return cost;
   }
