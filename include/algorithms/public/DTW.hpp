@@ -44,7 +44,7 @@ public:
     constexpr index dims()        const { return 0; }
     constexpr index initialized() const { return true; }
 
-    double process(InputRealMatrixView x1, InputRealMatrixView x2, index q = 2) const
+    double process(InputRealMatrixView x1, InputRealMatrixView x2, index p = 2) const
     {
         distanceMetrics.conservativeResize(x1.rows(), x2.rows());
         // simple brute force DTW is very inefficient, see FastDTW
@@ -55,7 +55,7 @@ public:
                 ArrayXd x1i = _impl::asEigen<Eigen::Array>(x1.row(i));
                 ArrayXd x2j = _impl::asEigen<Eigen::Array>(x2.row(j));
 
-                distanceMetrics(i, j) = euclidianDistToTheQ(x1i, x2j, q);
+                distanceMetrics(i, j) = differencePNormToTheP(x1i, x2j, p);
 
                 if (i > 0 || j > 0)
                 {
@@ -73,18 +73,22 @@ public:
             }
         }
 
-        return std::pow(distanceMetrics.bottomLeftCorner<1, 1>().value(), 1.0 / q);
+        return std::pow(distanceMetrics.bottomLeftCorner<1, 1>().value(), 1.0 / p);
     }
 
 private:
     mutable MatrixXd distanceMetrics;
 
-    inline static double euclidianDistToTheQ(const Eigen::Ref<const VectorXd>& in, const Eigen::Ref<const VectorXd>& out, index q)
+    // P-Norm of the difference vector
+    // Lp{vec} = (|vec[0]|^p + |vec[1]|^p + ... + |vec[n-1]|^p + |vec[n]|^p)^(1/p)
+    // i.e., the 2-norm of a vector is the euclidian distance from the origin
+    //       the 1-norm is the sum of the absolute value of the elements
+    // To the power P since we'll be summing multiple Norms together and they
+    // can combine into a single norm if you calculate the norm of multiple norms (normception)
+    inline static double differencePNormToTheP(const Eigen::Ref<const VectorXd>& v1, const Eigen::Ref<const VectorXd>& v2, index p)
     {
-        double euclidianSquared = (in - out).dot(in - out);
-        if(q == 2) 
-            return euclidianSquared;
-        return std::pow(euclidianSquared, 0.5 * q); // already squared, so (x^2)^(q/2) = x^q and _really_ optimises even values of q
+        // assert(v1.size() == v2.size());
+        return (v1 - v2).array().abs().pow(p).sum();
     }
 };
 
