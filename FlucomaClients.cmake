@@ -143,6 +143,7 @@ add_client(Transients clients/rt/TransientClient.hpp CLASS RTTransientClient )
 #lib manipulation client group 
 add_client(DataSet clients/nrt/DataSetClient.hpp CLASS NRTThreadedDataSetClient GROUP MANIPULATION)
 add_client(DataSetQuery clients/nrt/DataSetQueryClient.hpp CLASS NRTThreadedDataSetQueryClient GROUP MANIPULATION)
+add_client(DataSeries clients/nrt/DataSeriesClient.hpp CLASS NRTThreadedDataSeriesClient GROUP MANIPULATION)
 add_client(LabelSet clients/nrt/LabelSetClient.hpp CLASS NRTThreadedLabelSetClient GROUP MANIPULATION)
 add_client(KDTree clients/nrt/KDTreeClient.hpp CLASS NRTThreadedKDTreeClient GROUP MANIPULATION)
 add_client(KMeans clients/nrt/KMeansClient.hpp CLASS NRTThreadedKMeansClient GROUP MANIPULATION)
@@ -158,3 +159,4 @@ add_client(UMAP clients/nrt/UMAPClient.hpp CLASS NRTThreadedUMAPClient GROUP MAN
 add_client(MLPRegressor clients/nrt/MLPRegressorClient.hpp CLASS NRTThreadedMLPRegressorClient GROUP MANIPULATION)
 add_client(MLPClassifier clients/nrt/MLPClassifierClient.hpp CLASS NRTThreadedMLPClassifierClient GROUP MANIPULATION)
 add_client(Grid clients/nrt/GridClient.hpp CLASS NRTThreadedGridClient GROUP MANIPULATION)
+add_client(DTW clients/nrt/DTWClient.hpp CLASS NRTThreadedDTWClient GROUP MANIPULATION)
