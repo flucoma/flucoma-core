@@ -43,6 +43,9 @@ public:
 
   std::reference_wrapper<ParamSetViewType> mParams;
 
+  // stateless algorithm
+  static algorithm::DTW<double> mAlgorithm;
+
   void setParams(ParamSetViewType& p) { mParams = p; }
 
   template <size_t N>
@@ -70,15 +73,25 @@ public:
     return OK();
   }
 
-  MessageResult<void> bufCost(InputDataSetClientRef datasetClient)
+  MessageResult<double> bufCost(InputBufferPtr data1, InputBufferPtr data2)
   {
-    return OK();
+    if (!data1 || !data2) return Error<double>(NoBuffer);
+
+    BufferAdaptor::ReadAccess buf1(data1.get()), buf2(data2.get());
+
+    if (!buf1.exists() || !buf2.exists()) return Error<double>(InvalidBuffer);
+    if (buf1.numChans() != buf2.numChans()) return Error<double>(WrongPointSize);
+
+    double cost = mAlgorithm.process(buf1.allFrames().transpose(),
+                                     buf2.allFrames().transpose());
+
+    return cost;
   }
 
   static auto getMessageDescriptors()
   {
     return defineMessages(
-        makeMessage("cost",    &DTWClient::cost)
+        makeMessage("cost",    &DTWClient::cost),
         makeMessage("bufCost", &DTWClient::bufCost)
     );
   }
