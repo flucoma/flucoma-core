@@ -257,7 +257,8 @@ public:
   }
 
   MessageResult<FluidTensor<rt::string, 1>> kNearest(InputBufferPtr data,
-                                                     index nNeighbours) const
+                                                     index nNeighbours,
+                                                     index p = 2) const
   {
     // check for nNeighbours > 0 and < size of DS
     if (nNeighbours > mAlgorithm.size())
@@ -278,7 +279,7 @@ public:
 
     std::transform(
         indices.begin(), indices.end(), distances.begin(),
-        [&series, &ds, this](index i) { return distance(series, ds[i]); });
+        [&series, &ds, &p, this](index i) { return distance(series, ds[i], p); });
 
     std::sort(indices.begin(), indices.end(), [&distances](index a, index b) {
       return distances[asUnsigned(a)] < distances[asUnsigned(b)];
@@ -363,9 +364,9 @@ private:
     return ds;
   }
 
-  double distance(FluidTensorView<const double, 2> x1, FluidTensorView<const double, 2> x2) const
+  double distance(FluidTensorView<const double, 2> x1, FluidTensorView<const double, 2> x2, index p) const
   {
-    return algorithm::DTW<double>::process(x1, x2);
+    return algorithm::DTW<double>::process(x1, x2, p);
   }
 };
 

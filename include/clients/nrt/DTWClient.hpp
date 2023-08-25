@@ -29,7 +29,7 @@ class DTWClient : public FluidBaseClient,
                   OfflineOut,
                   ModelObject
 {
-  enum { kName, kQ };
+  enum { kName, kPNorm };
 
 public:
   using string = std::string;
@@ -80,7 +80,8 @@ public:
     if (buf1.numChans() != buf2.numChans()) return Error<double>(WrongPointSize);
 
     double cost = algorithm::DTW<double>::process(buf1.allFrames().transpose(),
-                                                  buf2.allFrames().transpose());
+                                                  buf2.allFrames().transpose(),
+                                                  get<kPNorm>());
 
     return cost;
   }
