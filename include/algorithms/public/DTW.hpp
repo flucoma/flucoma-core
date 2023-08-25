@@ -37,20 +37,17 @@ public:
     explicit DTW() = default;
     ~DTW() = default;
 
-    template <typename U>
-    static dataType process(FluidTensorView<U, 2> x1, 
-                            FluidTensorView<U, 2> x2, index p = 2)
+    static dataType process(FluidTensorView<const dataType, 2> x1, 
+                            FluidTensorView<const dataType, 2> x2, index p = 2)
     {
-        static_assert(std::is_convertible<U, dataType>::value,  "Can't convert between types");
-
         Matrix distanceMetrics(x1.rows(), x2.rows());
         // simple brute force DTW is very inefficient, see FastDTW
         for (index i = 0; i < x1.rows(); i++)
         {
             for (index j = 0; j < x2.rows(); j++)
             {
-                Array x1i = _impl::asEigen<Eigen::Array>(x1.row(i)).cast<dataType>();
-                Array x2j = _impl::asEigen<Eigen::Array>(x2.row(j)).cast<dataType>();
+                Array x1i = _impl::asEigen<Eigen::Array>(x1.row(i));
+                Array x2j = _impl::asEigen<Eigen::Array>(x2.row(j));
 
                 distanceMetrics(i, j) = differencePNormToTheP(x1i, x2j, p);
 

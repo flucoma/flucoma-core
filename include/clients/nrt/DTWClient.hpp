@@ -79,9 +79,9 @@ public:
     if (!buf1.exists() || !buf2.exists()) return Error<double>(InvalidBuffer);
     if (buf1.numChans() != buf2.numChans()) return Error<double>(WrongPointSize);
 
-    double cost = algorithm::DTW<double>::process(buf1.allFrames().transpose(),
-                                                  buf2.allFrames().transpose(),
-                                                  get<kPNorm>());
+    double cost = algorithm::DTW<float>::process(buf1.allFrames().transpose(),
+                                                 buf2.allFrames().transpose(),
+                                                 get<kPNorm>());
 
     return cost;
   }
