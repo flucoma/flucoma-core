@@ -365,7 +365,7 @@ private:
 
   double distance(FluidTensorView<const double, 2> x1, FluidTensorView<const double, 2> x2) const
   {
-    algorithm::DTW dtw;
+    algorithm::DTW<double> dtw;
     return dtw.process(x1, x2);
   }
 };

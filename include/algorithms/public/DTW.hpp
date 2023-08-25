@@ -26,11 +26,12 @@ namespace algorithm {
 // debt of gratitude to the wonderful article on https://rtavenar.github.io/blog/dtw.html
 // a better explanation of DTW than any other algorithm explanation I've seen
 
+template <typename dataType>
 class DTW
 {
-    using MatrixXd = Eigen::MatrixXd;
-    using VectorXd = Eigen::VectorXd;
-    using ArrayXd =  Eigen::ArrayXd;
+    using Matrix = Eigen::Matrix<dataType, -1, -1>;
+    using Vector = Eigen::Vector<dataType, -1, 1>;
+    using Array =  Eigen::Array<dataType, -1, 1>;
 
 public:
     explicit DTW() = default;
@@ -44,16 +45,20 @@ public:
     constexpr index dims()        const { return 0; }
     constexpr index initialized() const { return true; }
 
-    double process(InputRealMatrixView x1, InputRealMatrixView x2, index p = 2) const
+    template <typename U>
+    dataType process(FluidTensorView<U, 2> x1, 
+                     FluidTensorView<U, 2> x2, index p = 2) const
     {
+        static_assert(std::is_convertible<U, dataType>::value,  "Can't convert between types");
+
         distanceMetrics.conservativeResize(x1.rows(), x2.rows());
         // simple brute force DTW is very inefficient, see FastDTW
         for (index i = 0; i < x1.rows(); i++)
         {
             for (index j = 0; j < x2.rows(); j++)
             {
-                ArrayXd x1i = _impl::asEigen<Eigen::Array>(x1.row(i));
-                ArrayXd x2j = _impl::asEigen<Eigen::Array>(x2.row(j));
+                Array x1i = _impl::asEigen<Eigen::Array>(x1.row(i)).cast<dataType>();
+                Array x2j = _impl::asEigen<Eigen::Array>(x2.row(j)).cast<dataType>();
 
                 distanceMetrics(i, j) = differencePNormToTheP(x1i, x2j, p);
 
@@ -77,7 +82,7 @@ public:
     }
 
 private:
-    mutable MatrixXd distanceMetrics;
+    mutable Matrix distanceMetrics;
 
     // P-Norm of the difference vector
     // Lp{vec} = (|vec[0]|^p + |vec[1]|^p + ... + |vec[n-1]|^p + |vec[n]|^p)^(1/p)
@@ -85,7 +90,7 @@ private:
     //       the 1-norm is the sum of the absolute value of the elements
     // To the power P since we'll be summing multiple Norms together and they
     // can combine into a single norm if you calculate the norm of multiple norms (normception)
-    inline static double differencePNormToTheP(const Eigen::Ref<const VectorXd>& v1, const Eigen::Ref<const VectorXd>& v2, index p)
+    inline static dataType differencePNormToTheP(const Eigen::Ref<const Vector>& v1, const Eigen::Ref<const Vector>& v2, index p)
     {
         // assert(v1.size() == v2.size());
         return (v1 - v2).array().abs().pow(p).sum();
