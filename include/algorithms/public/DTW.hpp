@@ -70,7 +70,7 @@ public:
             }
         }
 
-        return std::pow(distanceMetrics.bottomLeftCorner<1, 1>().value(), 1.0 / p);
+        return std::pow(distanceMetrics(x1.rows() - 1, x2.rows() - 1), 1.0 / p);
     }
 
 private:
@@ -83,7 +83,7 @@ private:
     inline static dataType differencePNormToTheP(const Eigen::Ref<const Vector>& v1, const Eigen::Ref<const Vector>& v2, index p)
     {
         // assert(v1.size() == v2.size());
-        return (v1 - v2).array().abs().pow(p).sum();
+        return (v1.array() - v2.array()).abs().pow(p).sum();
     }
 };
 
