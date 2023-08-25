@@ -62,11 +62,11 @@ public:
                     double minimum = std::numeric_limits<double>::max();
 
                     if (i > 0 && j > 0) 
-                        minimum = std::min(minimum, distanceMetrics(i - 1, j - 1));
+                        minimum = std::min(minimum, distanceMetrics(i-1, j-1));
                     if (i > 0)
-                        minimum = std::min(minimum, distanceMetrics(i - 1, j));
+                        minimum = std::min(minimum, distanceMetrics(i-1, j  ));
                     if (j > 0)
-                        minimum = std::min(minimum, distanceMetrics(i, j - 1));
+                        minimum = std::min(minimum, distanceMetrics(i  , j-1));
 
                     distanceMetrics(i, j) += minimum;
                 }
