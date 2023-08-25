@@ -65,9 +65,27 @@ public:
     return {};
   }
 
-  MessageResult<void> cost(InputDataSetClientRef datasetClient)
+  MessageResult<double> cost(InputDataSeriesClientRef dataseriesClient, 
+                           string id1, string id2) const
   {
-    return OK();
+    auto dataseriesClientPtr = dataseriesClient.get().lock();
+    if (!dataseriesClientPtr) return Error<double>(NoDataSet);
+
+    auto srcDataSeries = dataseriesClientPtr->getDataSeries();
+    if (srcDataSeries.size() == 0) return Error<double>(EmptyDataSet);
+
+    index i1 = srcDataSeries.getIndex(id1), 
+          i2 = srcDataSeries.getIndex(id2);
+
+    if (i1 < 0 || i2 < 0) return Error<double>(PointNotFound);
+
+    InputRealMatrixView series1 = srcDataSeries.getSeries(id1),
+                        series2 = srcDataSeries.getSeries(id2);
+    
+    double cost = algorithm::DTW<double>::process(series1, series2,
+                                                  get<kPNorm>());
+
+    return cost;
   }
 
   MessageResult<double> bufCost(InputBufferPtr data1, InputBufferPtr data2)

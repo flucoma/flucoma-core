@@ -53,7 +53,7 @@ public:
 
                 if (i > 0 || j > 0)
                 {
-                    double minimum = std::numeric_limits<double>::max();
+                    dataType minimum = std::numeric_limits<dataType>::max();
 
                     if (i > 0 && j > 0) 
                         minimum = std::min(minimum, distanceMetrics(i-1, j-1));
