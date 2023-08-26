@@ -26,66 +26,116 @@ namespace algorithm {
 // debt of gratitude to the wonderful article on https://rtavenar.github.io/blog/dtw.html
 // a better explanation of DTW than any other algorithm explanation I've seen
 
-template <typename dataType>
 class DTW
 {
-    using Matrix =   Eigen::Matrix<dataType, -1, -1>;
-    using Vector =   Eigen::Matrix<dataType, -1, 1>;
-    using Array =    Eigen::Array<dataType, -1, 1>;
-    using PathType = Eigen::Matrix<index, 2, -1>;
-
 public:
     explicit DTW() = default;
     ~DTW() = default;
 
-    static dataType process(FluidTensorView<const dataType, 2> x1, 
-                            FluidTensorView<const dataType, 2> x2,
-                            index p = 2)
-    {
-        Matrix distanceMetrics(x1.rows(), x2.rows());
+    void init() const {}
+    void clear() { mCalculated = false; }
 
-        return calculateDistanceMetrics(
-            _impl::asEigen<Array>(x1), 
-            _impl::asEigen<Array>(x2)
-            distanceMetrics,
-            p
-        );
-    }
-    
-private:
-    static dataType calculateDistanceMetrics(Eigen::Ref<Matrix> x1, 
-                                             Eigen::Ref<Matrix> x2,
-                                             Eigen::Ref<Matrix> distance, index p)
+    constexpr index size()        const { return 0; }
+    constexpr index dims()        const { return 0; }
+    constexpr index initialized() const { return true; }
+
+    double process(InputRealMatrixView x1, 
+                   InputRealMatrixView x2,
+                   index p,
+                   Allocator& alloc = FluidDefaultAllocator())
     {
-        distance.conservativeResize(x1.rows(), x2.rows());
+        mCalculated = true;
+
+        return calculateDistanceMetrics(x1, x2, p, alloc);;
+    }
+
+    // bool getPath(InputRealMatrixView x1, 
+    //              InputRealMatrixView x2,
+    //              RealMatrixView path,
+    //              index p = 2,
+    //              Allocator& alloc = FluidDefaultAllocator())
+    // {
+    //     calculateDistanceMetrics(x1, x2, p, alloc);
+    //     return getPath(path);
+    // }
+
+    // bool getPath(RealMatrixView to)
+    // {
+    //     if (!mCalculated) return false;
+
+    //     index n = 0;
+    //     index maxPathLength = mDistanceMetrics.rows() 
+    //                         + mDistanceMetrics.cols() - 1;
+    //     RealMatrix path(maxPathLength, 2);
+
+    //     for (index i = mDistanceMetrics.rows(), j = mDistanceMetrics.cols(); 
+    //                i > 0 || j > 0; ++n)
+    //     {
+    //         path.row(n) <<= {(double) i, (double) j};
+
+    //         // if at one end of the matrix just go along that edge
+    //         if (i == 0 && (--j, true)) continue;
+    //         if (j == 0 && (--i, true)) continue;
+
+    //         double upVal =   mDistanceMetrics(i-1, j  );
+    //         double leftVal = mDistanceMetrics(i  , j-1);
+    //         double diagVal = mDistanceMetrics(i-1, j-1);
+
+    //         double minVal = std::min(std::min(upVal, leftVal), diagVal);
+
+    //         if (minVal == upVal) --i;
+    //         else if (minVal == leftVal) --j; 
+    //         else if (minVal == upVal) (--i, --j);
+    //         else return false;
+    //     }
+
+    //     path.row(n++) <<= {0, 0};
+
+    //     to <<= path;
+    //     return true;
+    // }
+
+    double calculateDistanceMetrics(InputRealMatrixView x1, 
+                                    InputRealMatrixView x2, 
+                                    index p, Allocator& alloc)
+    {
+        ScopedEigenMap<Eigen::VectorXd> x1r(x1.cols(), alloc),
+                                        x2r(x2.cols(), alloc);
+
+        mDistanceMetrics.resize(x1.rows(), x2.rows());
+
         // simple brute force DTW is very inefficient, see FastDTW
         for (index i = 0; i < x1.rows(); i++)
         {
             for (index j = 0; j < x2.rows(); j++)
             {
-                Array x1i = x1.row(i);
-                Array x2j = x2.row(j);
+                x1r = _impl::asEigen<Eigen::Matrix>(x1.row(i));
+                x2r = _impl::asEigen<Eigen::Matrix>(x2.row(j));
 
-                distance(i, j) = differencePNormToTheP(x1i, x2j, p);
+                mDistanceMetrics(i, j) = differencePNormToTheP(x1r, x2r, p);
 
                 if (i > 0 || j > 0)
                 {
-                    dataType minimum = std::numeric_limits<dataType>::max();
+                    double minimum = std::numeric_limits<double>::max();
 
                     if (i > 0 && j > 0)
-                        minimum = std::min(minimum, distance(i-1, j-1));
+                        minimum = std::min(minimum, mDistanceMetrics(i-1, j-1));
                     if (i > 0)
-                        minimum = std::min(minimum, distance(i-1, j  ));
+                        minimum = std::min(minimum, mDistanceMetrics(i-1, j  ));
                     if (j > 0)
-                        minimum = std::min(minimum, distance(i  , j-1));
+                        minimum = std::min(minimum, mDistanceMetrics(i  , j-1));
 
-                    distance(i, j) += minimum;
+                    mDistanceMetrics(i, j) += minimum;
                 }
             }
         }
 
-        return std::pow(distance(x1.rows() - 1, x2.rows() - 1), 1.0 / p);
+        return std::pow(mDistanceMetrics(x1.rows() - 1, x2.rows() - 1), 1.0 / p);
     }
+
+private:
+    RealMatrix mDistanceMetrics;
+    bool       mCalculated {false};
 
     // P-Norm of the difference vector
     // Lp{vec} = (|vec[0]|^p + |vec[1]|^p + ... + |vec[n-1]|^p + |vec[n]|^p)^(1/p)
@@ -93,8 +143,9 @@ private:
     //       the 1-norm is the sum of the absolute value of the elements
     // To the power P since we'll be summing multiple Norms together and they
     // can combine into a single norm if you calculate the norm of multiple norms (normception)
-    inline static dataType differencePNormToTheP(const Eigen::Ref<const Vector>& v1, 
-                                                 const Eigen::Ref<const Vector>& v2, index p)
+    inline static double differencePNormToTheP(const Eigen::Ref<const Eigen::VectorXd>& v1, 
+                                               const Eigen::Ref<const Eigen::VectorXd>& v2, 
+                                               index p)
     {
         // assert(v1.size() == v2.size());
         return (v1.array() - v2.array()).abs().pow(p).sum();

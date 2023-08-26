@@ -364,9 +364,10 @@ private:
     return ds;
   }
 
-  double distance(FluidTensorView<const double, 2> x1, FluidTensorView<const double, 2> x2, index p) const
+  double distance(InputRealMatrixView x1, InputRealMatrixView x2, index p) const
   {
-    return algorithm::DTW<double>::process(x1, x2, p);
+    algorithm::DTW dtw;
+    return dtw.process(x1, x2, p);
   }
 };
 

@@ -10,6 +10,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
+#include "DataClient.hpp"
 #include "DataSetClient.hpp"
 #include "DataSeriesClient.hpp"
 #include "NRTClient.hpp"
@@ -27,7 +28,8 @@ constexpr auto DTWParams = defineParameters(
 class DTWClient : public FluidBaseClient,
                   OfflineIn,
                   OfflineOut,
-                  ModelObject
+                  ModelObject,
+                  public DataClient<algorithm::DTW>
 {
   enum { kName, kPNorm };
 
@@ -66,7 +68,7 @@ public:
   }
 
   MessageResult<double> cost(InputDataSeriesClientRef dataseriesClient, 
-                           string id1, string id2) const
+                             string id1, string id2)
   {
     auto dataseriesClientPtr = dataseriesClient.get().lock();
     if (!dataseriesClientPtr) return Error<double>(NoDataSet);
@@ -82,10 +84,7 @@ public:
     InputRealMatrixView series1 = srcDataSeries.getSeries(id1),
                         series2 = srcDataSeries.getSeries(id2);
     
-    double cost = algorithm::DTW<double>::process(series1, series2,
-                                                  get<kPNorm>());
-
-    return cost;
+    return mAlgorithm.process(series1, series2, get<kPNorm>());
   }
 
   MessageResult<double> bufCost(InputBufferPtr data1, InputBufferPtr data2)
@@ -97,11 +96,13 @@ public:
     if (!buf1.exists() || !buf2.exists()) return Error<double>(InvalidBuffer);
     if (buf1.numChans() != buf2.numChans()) return Error<double>(WrongPointSize);
 
-    double cost = algorithm::DTW<float>::process(buf1.allFrames().transpose(),
-                                                 buf2.allFrames().transpose(),
-                                                 get<kPNorm>());
+    RealMatrix buf1frames(buf1.numFrames(), buf1.numChans()), 
+               buf2frames(buf2.numFrames(), buf2.numChans());
 
-    return cost;
+    buf1frames <<= buf1.allFrames().transpose();
+    buf2frames <<= buf2.allFrames().transpose();
+
+    return mAlgorithm.process(buf1frames, buf2frames, get<kPNorm>());
   }
 
   static auto getMessageDescriptors()

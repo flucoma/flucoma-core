@@ -8,6 +8,8 @@
 #include <string>
 #include <unordered_map>
 
+
+// TODO:: REMOVE TEMPLATE THINGY AND TURN IT INTO CONSISTNE ALLOCATION OF MATRIX
 namespace fluid {
 
 template <typename idType, typename dataType, index N>
