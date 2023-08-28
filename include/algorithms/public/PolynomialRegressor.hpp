@@ -52,7 +52,6 @@ public:
     if (mDegree == degree) return;
 
     mDegree = degree;
-    mCoefficients.conservativeResize(mDegree + 1, mDims);
     mRegressed = false;
   }
 
@@ -61,7 +60,6 @@ public:
     if (mDims == dims) return;
 
     mDims = dims;
-    mCoefficients.conservativeResize(mDegree + 1, mDims);
     mRegressed = false;
   }
 
@@ -78,14 +76,20 @@ public:
                Allocator& alloc = FluidDefaultAllocator())
   {
     using namespace _impl;
+    using namespace Eigen;
 
-    ScopedEigenMap<Eigen::MatrixXd> input(in.rows(), in.cols(), alloc),
-        output(out.rows(), out.cols(), alloc);
-    input = asEigen<Eigen::Array>(in);
-    output = asEigen<Eigen::Array>(out);
+    ScopedEigenMap<MatrixXd> input(in.rows(), in.cols(), alloc),
+        output(out.rows(), out.cols(), alloc),
+        transposeProduct(mDegree + 1, mDegree + 1, alloc);
 
-    mCoefficients.conservativeResize(mDegree + 1, mDims);
-    generateTikhonovFilter(mDegree + 1);
+    input = asEigen<Matrix>(in);
+    output = asEigen<Matrix>(out);
+
+    mCoefficients.resize(mDegree + 1, mDims);
+    mTikhonovMatrix.resize(mDegree + 1, mDegree + 1);
+
+    asEigen<Matrix>(mTikhonovMatrix) =
+        mTikhonovFactor * MatrixXd::Identity(mDegree + 1, mDegree + 1);
 
     for (index i = 0; i < mDims; ++i)
     {
@@ -95,21 +99,21 @@ public:
       // optimise the value _x = (A^T . A + R^T . R)^-1 . A^T . y
       // where R is a tikhonov filter matrix, in case of ridge regression of the
       // form a.I
-      Eigen::MatrixXd transposeDesignTikhonovProduct =
-          mDesignMatrix.transpose() * mDesignMatrix +
-          mTikhonovMatrix.transpose() * mTikhonovMatrix;
-      mCoefficients.col(i) = transposeDesignTikhonovProduct.inverse() *
-                             mDesignMatrix.transpose() * output.col(i);
+      transposeProduct = asEigen<Matrix>(mDesignMatrix).transpose() *
+                             asEigen<Matrix>(mDesignMatrix) +
+                         asEigen<Matrix>(mTikhonovMatrix).transpose() *
+                             asEigen<Matrix>(mTikhonovMatrix);
+      asEigen<Matrix>(mCoefficients.col(i)) =
+          transposeProduct.inverse() *
+          asEigen<Matrix>(mDesignMatrix).transpose() * output.col(i);
     }
-
 
     mRegressed = true;
   };
 
   void getCoefficients(RealMatrixView coefficients) const
   {
-    if (mInitialized)
-      _impl::asEigen<Eigen::Array>(coefficients) = mCoefficients;
+    if (mInitialized) coefficients <<= mCoefficients;
   };
 
   void setCoefficients(InputRealMatrixView coefficients)
@@ -119,7 +123,7 @@ public:
     setDegree(coefficients.rows() - 1);
     setDims(coefficients.cols());
 
-    mCoefficients = _impl::asEigen<Eigen::Array>(coefficients);
+    mCoefficients <<= coefficients;
     mRegressed = true;
   }
 
@@ -127,46 +131,42 @@ public:
                Allocator& alloc = FluidDefaultAllocator()) const
   {
     using namespace _impl;
+    using namespace Eigen;
 
-    ScopedEigenMap<Eigen::MatrixXd> input(in.rows(), in.cols(), alloc),
-        output(out.rows(), out.cols(), alloc);
-    input = asEigen<Eigen::Array>(in);
-    output = asEigen<Eigen::Array>(out);
+    ScopedEigenMap<VectorXd> coefficientsColumn(mCoefficients.rows(), alloc),
+        inputColumn(in.rows(), alloc);
 
-    calculateMappings(input, output);
-
-    asEigen<Eigen::Array>(out) = output;
-  }
-
-private:
-  void calculateMappings(Eigen::Ref<Eigen::MatrixXd> in,
-                         Eigen::Ref<Eigen::MatrixXd> out) const
-  {
     for (index i = 0; i < mDims; ++i)
     {
-      generateDesignMatrix(in.col(i));
-      out.col(i) = mDesignMatrix * mCoefficients.col(i);
+      inputColumn = asEigen<Matrix>(in.col(i));
+      coefficientsColumn = asEigen<Matrix>(mCoefficients.col(i));
+
+      generateDesignMatrix(inputColumn);
+
+      asEigen<Matrix>(out.col(i)) =
+          asEigen<Matrix>(mDesignMatrix) * coefficientsColumn;
     }
   }
 
-  void generateDesignMatrix(Eigen::Ref<Eigen::VectorXd> in) const
+private:
+  void generateDesignMatrix(Eigen::Ref<Eigen::VectorXd> in,
+                            Allocator& alloc = FluidDefaultAllocator()) const
   {
-    Eigen::VectorXd designColumn = Eigen::VectorXd::Ones(in.size());
-    Eigen::ArrayXd  inArray = in.array();
+    using namespace _impl;
+    using namespace Eigen;
 
-    mDesignMatrix.conservativeResize(in.size(), mDegree + 1);
+    ScopedEigenMap<ArrayXd> designColumn(in.size(), alloc),
+        inArray(in.size(), alloc);
+
+    designColumn = VectorXd::Ones(in.size());
+    inArray = in.array();
+
+    mDesignMatrix.resize(in.size(), mDegree + 1);
 
     for (index i = 0; i < mDegree + 1;
-         ++i, designColumn = designColumn.array() * inArray)
-      mDesignMatrix.col(i) = designColumn;
+         ++i, designColumn = designColumn * inArray)
+      asEigen<Matrix>(mDesignMatrix.col(i)) = designColumn;
   }
-
-  // currently only ridge normalisation with scaled identity matrix as tikhonov
-  // filter
-  void generateTikhonovFilter(index size)
-  {
-    mTikhonovMatrix = mTikhonovFactor * Eigen::MatrixXd::Identity(size, size);
-  };
 
   index mDegree{2};
   index mDims{1};
@@ -175,10 +175,10 @@ private:
 
   double mTikhonovFactor{0};
 
-  Eigen::MatrixXd mCoefficients;
+  RealMatrix mCoefficients;
 
-  mutable Eigen::MatrixXd mDesignMatrix;
-  mutable Eigen::MatrixXd mTikhonovMatrix;
+  mutable RealMatrix mDesignMatrix;
+  mutable RealMatrix mTikhonovMatrix;
 };
 
 } // namespace algorithm
