@@ -95,6 +95,8 @@ public:
     if (!buf1.exists() || !buf2.exists()) return Error<double>(InvalidBuffer);
     if (buf1.numChans() != buf2.numChans())
       return Error<double>(WrongPointSize);
+    if (buf1.numFrames() == 0 || buf2.numFrames() == 0)
+      return Error<double>(EmptyBuffer);
 
     RealMatrix buf1frames(buf1.numFrames(), buf1.numChans()),
         buf2frames(buf2.numFrames(), buf2.numChans());
