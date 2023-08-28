@@ -12,7 +12,6 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #include "DataSetClient.hpp"
 #include "NRTClient.hpp"
-
 #include "../../algorithms/public/PolynomialRegressor.hpp"
 
 namespace fluid {
@@ -22,23 +21,19 @@ namespace polynomialregressor {
 constexpr auto PolynomialRegressorParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
     LongParam("degree", "Degree of polynomial", 2, Min(0)),
-    FloatParam("tikhonov", "Tihkonov factor for regression", 0.0, Min(0.0))
-);
+    FloatParam("tikhonov", "Tihkonov factor for regression", 0.0, Min(0.0)));
 
-class PolynomialRegressorClient : public FluidBaseClient,
-                                  OfflineIn,
-                                  OfflineOut,
-                                  ModelObject,
-                                  public DataClient<algorithm::PolynomialRegressor>
+class PolynomialRegressorClient
+    : public FluidBaseClient,
+      OfflineIn,
+      OfflineOut,
+      ModelObject,
+      public DataClient<algorithm::PolynomialRegressor>
 {
-  enum {
-    kName,
-    kDegree,
-    kTikhonov
-  };
+  enum { kName, kDegree, kTikhonov };
 
 public:
-  using string = std::string;  
+  using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
   using InputBufferPtr = std::shared_ptr<const BufferAdaptor>;
   using DataSet = FluidDataSet<string, double, 1>;
@@ -47,7 +42,7 @@ public:
   using ParamDescType = decltype(PolynomialRegressorParams);
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   using ParamValues = typename ParamSetViewType::ValueTuple;
-  
+
   std::reference_wrapper<ParamSetViewType> mParams;
 
   template <size_t N>
@@ -56,7 +51,8 @@ public:
     return mParams.get().template get<N>();
   }
 
-  void setParams(ParamSetViewType& p) { 
+  void setParams(ParamSetViewType& p)
+  {
     mParams = p;
     mAlgorithm.setDegree(get<kDegree>());
     mAlgorithm.setTikhonov(get<kTikhonov>());
@@ -66,8 +62,8 @@ public:
   {
     return PolynomialRegressorParams;
   }
-  
-  PolynomialRegressorClient(ParamSetViewType& p, FluidContext&) : mParams(p) 
+
+  PolynomialRegressorClient(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});
@@ -86,7 +82,7 @@ public:
     if (!targetClientPtr) return Error<void>(NoDataSet);
     auto targetDataSet = targetClientPtr->getDataSet();
     if (targetDataSet.size() == 0) return Error<void>(EmptyDataSet);
-    
+
     auto sourceClientPtr = source.get().lock();
     if (!sourceClientPtr) return Error<void>(NoDataSet);
     auto sourceDataSet = sourceClientPtr->getDataSet();
@@ -99,7 +95,7 @@ public:
       return Error<void>(WrongPointSize);
 
     mAlgorithm.init(get<kDegree>(), sourceDataSet.dims(), get<kTikhonov>());
-    
+
     RealMatrixView data = sourceDataSet.getData();
     RealMatrixView tgt = targetDataSet.getData();
 
@@ -108,8 +104,7 @@ public:
     return OK();
   }
 
-   MessageResult<void> predict(InputDataSetClientRef src,
-                               DataSetClientRef dest)
+  MessageResult<void> predict(InputDataSetClientRef src, DataSetClientRef dest)
   {
     index inputSize = mAlgorithm.dims();
     index outputSize = mAlgorithm.dims();
@@ -125,7 +120,7 @@ public:
     if (srcDataSet.dims() != inputSize) return Error(WrongPointSize);
 
     StringVector ids{srcDataSet.getIds()};
-    RealMatrix output(srcDataSet.size(), outputSize);
+    RealMatrix   output(srcDataSet.size(), outputSize);
 
     mAlgorithm.process(srcDataSet.getData(), output);
 
@@ -143,7 +138,7 @@ public:
     if (!in || !out) return Error(NoBuffer);
 
     BufferAdaptor::ReadAccess inBuf(in.get());
-    BufferAdaptor::Access outBuf(out.get());
+    BufferAdaptor::Access     outBuf(out.get());
 
     if (!inBuf.exists()) return Error(InvalidBuffer);
     if (!outBuf.exists()) return Error(InvalidBuffer);
@@ -156,7 +151,7 @@ public:
 
     RealMatrix src(inputSize, 1);
     RealMatrix dest(outputSize, 1);
-    
+
     src.col(0) <<= inBuf.samps(0, inputSize, 0);
     mAlgorithm.process(src, dest);
     outBuf.samps(0, outputSize, 0) <<= dest.col(0);
@@ -164,24 +159,20 @@ public:
     return OK();
   }
 
-  
+
   MessageResult<string> print()
   {
-    return "PolynomialRegressor " 
-          + std::string(get<kName>()) 
-          + "\npolynimal degree: "
-          + std::to_string(mAlgorithm.degree()) 
-          + "\nparallel regressors: "
-          + std::to_string(mAlgorithm.dims())
-          + "\nTikhonov regularisation factor: "
-          + std::to_string(mAlgorithm.tihkonov())
-          + "\nregressed: " 
-          + (mAlgorithm.regressed() ? "true" : "false");
+    return "PolynomialRegressor " + std::string(get<kName>()) +
+           "\npolynimal degree: " + std::to_string(mAlgorithm.degree()) +
+           "\nparallel regressors: " + std::to_string(mAlgorithm.dims()) +
+           "\nTikhonov regularisation factor: " +
+           std::to_string(mAlgorithm.tihkonov()) +
+           "\nregressed: " + (mAlgorithm.regressed() ? "true" : "false");
   }
 
   MessageResult<void> write(string fileName)
   {
-    if(!mAlgorithm.regressed()) return Error(NoDataFitted);
+    if (!mAlgorithm.regressed()) return Error(NoDataFitted);
     return DataClient::write(fileName);
   }
 
@@ -203,18 +194,17 @@ public:
   static auto getMessageDescriptors()
   {
     return defineMessages(
-        makeMessage("fit",    &PolynomialRegressorClient::fit),
-        makeMessage("dims",   &PolynomialRegressorClient::dims),
-        makeMessage("clear",  &PolynomialRegressorClient::clear),
-        makeMessage("size",   &PolynomialRegressorClient::size),
-        makeMessage("print",  &PolynomialRegressorClient::print),
-        makeMessage("predict",&PolynomialRegressorClient::predict),
-        makeMessage("predictPoint", 
-                              &PolynomialRegressorClient::predictPoint),
-        makeMessage("load",   &PolynomialRegressorClient::load),
-        makeMessage("dump",   &PolynomialRegressorClient::dump),
-        makeMessage("write",  &PolynomialRegressorClient::write),
-        makeMessage("read",   &PolynomialRegressorClient::read));
+        makeMessage("fit", &PolynomialRegressorClient::fit),
+        makeMessage("dims", &PolynomialRegressorClient::dims),
+        makeMessage("clear", &PolynomialRegressorClient::clear),
+        makeMessage("size", &PolynomialRegressorClient::size),
+        makeMessage("print", &PolynomialRegressorClient::print),
+        makeMessage("predict", &PolynomialRegressorClient::predict),
+        makeMessage("predictPoint", &PolynomialRegressorClient::predictPoint),
+        makeMessage("load", &PolynomialRegressorClient::load),
+        makeMessage("dump", &PolynomialRegressorClient::dump),
+        makeMessage("write", &PolynomialRegressorClient::write),
+        makeMessage("read", &PolynomialRegressorClient::read));
   }
 
 private:
@@ -231,7 +221,7 @@ using PolynomialRegressorRef = SharedClientRef<const PolynomialRegressorClient>;
 
 constexpr auto PolynomialRegressorQueryParams = defineParameters(
     PolynomialRegressorRef::makeParam("model", "Source Model"),
-    LongParam("degree", "Prediction Polynomial Degree", 2, Min(0) ),
+    LongParam("degree", "Prediction Polynomial Degree", 2, Min(0)),
     InputDataSetClientRef::makeParam("dataSet", "DataSet Name"),
     InputBufferParam("inputPointBuffer", "Input Point Buffer"),
     BufferParam("predictionBuffer", "Prediction Buffer"));
@@ -243,7 +233,7 @@ class PolynomialRegressorQuery : public FluidBaseClient, ControlIn, ControlOut
 public:
   using ParamDescType = decltype(PolynomialRegressorQueryParams);
   using ParamSetViewType = ParameterSetView<ParamDescType>;
-  
+
   std::reference_wrapper<ParamSetViewType> mParams;
 
   void setParams(ParamSetViewType& p) { mParams = p; }
@@ -259,8 +249,7 @@ public:
     return PolynomialRegressorQueryParams;
   }
 
-  PolynomialRegressorQuery(ParamSetViewType& p, FluidContext& c) 
-      : mParams(p)
+  PolynomialRegressorQuery(ParamSetViewType& p, FluidContext& c) : mParams(p)
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});
@@ -269,17 +258,15 @@ public:
   template <typename T>
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext& c)
-  {
-
-  }
+  {}
 
   index latency() { return 0; }
-}; 
+};
 
 } // namespace polynomialregressor
 
-using NRTThreadedPolynomialRegressorClient =
-    NRTThreadingAdaptor<typename polynomialregressor::PolynomialRegressorRef::SharedType>;
+using NRTThreadedPolynomialRegressorClient = NRTThreadingAdaptor<
+    typename polynomialregressor::PolynomialRegressorRef::SharedType>;
 
 using RTPolynomialRegressorQueryClient =
     ClientWrapper<polynomialregressor::PolynomialRegressorQuery>;
