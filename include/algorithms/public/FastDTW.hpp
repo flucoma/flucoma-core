@@ -13,9 +13,9 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidDataSet.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/FluidMemory.hpp"
 #include "../../data/FluidTensor.hpp"
 #include "../../data/TensorTypes.hpp"
-#include "../../data/FluidMemory.hpp"
 #include <Eigen/Core>
 #include <random>
 
@@ -30,36 +30,29 @@ namespace algorithm {
 
 class FastDTW
 {
-    using MatrixXd = Eigen::MatrixXd;
-    using VectorXd = Eigen::VectorXd;
-    using ArrayXd =  Eigen::ArrayXd;
+  using MatrixXd = Eigen::MatrixXd;
+  using VectorXd = Eigen::VectorXd;
+  using ArrayXd = Eigen::ArrayXd;
 
 public:
-    explicit FastDTW() = default;
-    ~FastDTW() = default;
+  explicit FastDTW() = default;
+  ~FastDTW() = default;
 
-    // functions so the DataClient<FastDTW> doesnt have freak out
-    void init() 
-    {
-        mInitialised = true;
-    }
+  // functions so the DataClient<FastDTW> doesnt have freak out
+  void init() { mInitialised = true; }
 
-    void clear() const {}
+  void clear() const {}
 
-    index size() const { return mConstraintSize; }
-    index dims() const { return mConstraintSize; }
+  index size() const { return mConstraintSize; }
+  index dims() const { return mConstraintSize; }
 
-    bool initialized() const { return mInitialised; }
+  bool initialized() const { return mInitialised; }
 
-    void process() const
-    {
-
-    }
+  void process() const {}
 
 private:
-    bool mInitialised    {false};
-    index mConstraintSize {8};
-
+  bool  mInitialised{false};
+  index mConstraintSize{8};
 };
 
 } // namespace algorithm

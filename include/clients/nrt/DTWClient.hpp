@@ -11,8 +11,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "DataClient.hpp"
-#include "DataSetClient.hpp"
 #include "DataSeriesClient.hpp"
+#include "DataSetClient.hpp"
 #include "NRTClient.hpp"
 #include "../../algorithms/public/DTW.hpp"
 #include <string>
@@ -67,7 +67,7 @@ public:
     return {};
   }
 
-  MessageResult<double> cost(InputDataSeriesClientRef dataseriesClient, 
+  MessageResult<double> cost(InputDataSeriesClientRef dataseriesClient,
                              string id1, string id2)
   {
     auto dataseriesClientPtr = dataseriesClient.get().lock();
@@ -76,14 +76,13 @@ public:
     auto srcDataSeries = dataseriesClientPtr->getDataSeries();
     if (srcDataSeries.size() == 0) return Error<double>(EmptyDataSet);
 
-    index i1 = srcDataSeries.getIndex(id1), 
-          i2 = srcDataSeries.getIndex(id2);
+    index i1 = srcDataSeries.getIndex(id1), i2 = srcDataSeries.getIndex(id2);
 
     if (i1 < 0 || i2 < 0) return Error<double>(PointNotFound);
 
     InputRealMatrixView series1 = srcDataSeries.getSeries(id1),
                         series2 = srcDataSeries.getSeries(id2);
-    
+
     return mAlgorithm.process(series1, series2, get<kPNorm>());
   }
 
@@ -94,10 +93,11 @@ public:
     BufferAdaptor::ReadAccess buf1(data1.get()), buf2(data2.get());
 
     if (!buf1.exists() || !buf2.exists()) return Error<double>(InvalidBuffer);
-    if (buf1.numChans() != buf2.numChans()) return Error<double>(WrongPointSize);
+    if (buf1.numChans() != buf2.numChans())
+      return Error<double>(WrongPointSize);
 
-    RealMatrix buf1frames(buf1.numFrames(), buf1.numChans()), 
-               buf2frames(buf2.numFrames(), buf2.numChans());
+    RealMatrix buf1frames(buf1.numFrames(), buf1.numChans()),
+        buf2frames(buf2.numFrames(), buf2.numChans());
 
     buf1frames <<= buf1.allFrames().transpose();
     buf2frames <<= buf2.allFrames().transpose();
@@ -107,16 +107,14 @@ public:
 
   static auto getMessageDescriptors()
   {
-    return defineMessages(
-        makeMessage("cost",    &DTWClient::cost),
-        makeMessage("bufCost", &DTWClient::bufCost)
-    );
+    return defineMessages(makeMessage("cost", &DTWClient::cost),
+                          makeMessage("bufCost", &DTWClient::bufCost));
   }
 };
 
 using DTWRef = SharedClientRef<const DTWClient>;
 
-} // namespace DTW
+} // namespace dtw
 
 using NRTThreadedDTWClient =
     NRTThreadingAdaptor<typename dtw::DTWRef::SharedType>;
