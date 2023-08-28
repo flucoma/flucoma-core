@@ -83,7 +83,9 @@ public:
     InputRealMatrixView series1 = srcDataSeries.getSeries(id1),
                         series2 = srcDataSeries.getSeries(id2);
 
-    return mAlgorithm.process(series1, series2, get<kPNorm>());
+    mAlgorithm.init(get<kPNorm>());
+
+    return mAlgorithm.process(series1, series2);
   }
 
   MessageResult<double> bufCost(InputBufferPtr data1, InputBufferPtr data2)
@@ -104,7 +106,9 @@ public:
     buf1frames <<= buf1.allFrames().transpose();
     buf2frames <<= buf2.allFrames().transpose();
 
-    return mAlgorithm.process(buf1frames, buf2frames, get<kPNorm>());
+    mAlgorithm.init(get<kPNorm>());
+
+    return mAlgorithm.process(buf1frames, buf2frames);
   }
 
   static auto getMessageDescriptors()

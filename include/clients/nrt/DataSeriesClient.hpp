@@ -424,7 +424,7 @@ private:
   double distance(InputRealMatrixView x1, InputRealMatrixView x2, index p) const
   {
     algorithm::DTW dtw;
-    return dtw.process(x1, x2, p);
+    return dtw.process(x1, x2);
   }
 };
 
