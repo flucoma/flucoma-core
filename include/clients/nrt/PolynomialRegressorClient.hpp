@@ -100,8 +100,8 @@ public:
 
     mAlgorithm.init(get<kDegree>(), sourceDataSet.dims(), get<kTikhonov>());
     
-    auto data = sourceDataSet.getData();
-    auto tgt = targetDataSet.getData();
+    RealMatrixView data = sourceDataSet.getData();
+    RealMatrixView tgt = targetDataSet.getData();
 
     mAlgorithm.regress(data, tgt);
 
