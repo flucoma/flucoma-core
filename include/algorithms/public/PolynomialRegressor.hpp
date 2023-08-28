@@ -84,6 +84,7 @@ public:
     input = asEigen<Eigen::Array>(in);
     output = asEigen<Eigen::Array>(out);
 
+    mCoefficients.conservativeResize(mDegree + 1, mDims);
     generateTikhonovFilter(mDegree + 1);
 
     for (index i = 0; i < mDims; ++i)
