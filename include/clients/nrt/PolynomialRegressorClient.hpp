@@ -50,16 +50,16 @@ public:
   
   std::reference_wrapper<ParamSetViewType> mParams;
 
-  void setParams(ParamSetViewType& p) { 
-    mParams = p;
-    mAlgorithm.setDegree(get<kDegree>());
-    mAlgorithm.setTikhonov(get<kTikhonov>());
-  }
-
   template <size_t N>
   auto& get() const
   {
     return mParams.get().template get<N>();
+  }
+
+  void setParams(ParamSetViewType& p) { 
+    mParams = p;
+    mAlgorithm.setDegree(get<kDegree>());
+    mAlgorithm.setTikhonov(get<kTikhonov>());
   }
 
   static constexpr auto& getParameterDescriptors()
