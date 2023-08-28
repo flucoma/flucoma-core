@@ -26,9 +26,8 @@ public:
   // e.g. FluidDataSet(2, 3) is a dataset of 2x3 tensors
   template <typename... Dims,
             typename = std::enable_if_t<isIndexSequence<Dims...>()>>
-  FluidDataSeries(Dims... dims) 
-  : mData(0, FluidTensor<dataType, N + 1>(0, dims...)), 
-    mDim(dims...)
+  FluidDataSeries(Dims... dims)
+      : mData(0, FluidTensor<dataType, N + 1>(0, dims...)), mDim(dims...)
   {
     static_assert(sizeof...(dims) == N, "Number of dimensions doesn't match");
   }
@@ -44,8 +43,8 @@ public:
   // Construct from existing tensors of ids and data points
   // (from convertible type for data, typically float -> double)
   template <typename U, typename T = dataType>
-  FluidDataSeries(FluidTensorView<const idType, 1> ids,
-                  std::vector<FluidTensorView<const U, N + 1>>  points,
+  FluidDataSeries(FluidTensorView<const idType, 1>             ids,
+                  std::vector<FluidTensorView<const U, N + 1>> points,
                   std::enable_if_t<std::is_convertible<U, T>::value>* = nullptr)
       : mIds(ids), mData(points)
   {
@@ -64,16 +63,14 @@ public:
       mDim = FluidTensorSlice<N>(dims...);
       return true;
     }
-    else
-    {
-      return false;
-    }
+    else { return false; }
   }
 
   template <typename U>
   bool addFrame(idType const& id, FluidTensorView<U, N> frame)
   {
-    static_assert(std::is_convertible<U, dataType>::value,  "Can't convert between types");
+    static_assert(std::is_convertible<U, dataType>::value,
+                  "Can't convert between types");
     assert(sameExtents(mDim, frame.descriptor()));
 
     auto pos = mIndex.find(id);
@@ -81,7 +78,7 @@ public:
     {
       FluidTensorView<U, N + 1> newPoint(frame);
       return addSeries(id, newPoint);
-    } 
+    }
 
     mData[pos->second].resizeDim(0, 1);
     mData[pos->second].row(mData[pos->second].rows() - 1) <<= frame;
@@ -92,9 +89,10 @@ public:
   template <typename U>
   bool addSeries(idType const& id, FluidTensorView<U, N + 1> series)
   {
-    static_assert(std::is_convertible<U, dataType>::value,  "Can't convert between types");
-    
-    // dont crete another view 
+    static_assert(std::is_convertible<U, dataType>::value,
+                  "Can't convert between types");
+
+    // dont crete another view
     auto result = mIndex.insert({id, mData.size()});
     if (!result.second) return false;
 
@@ -106,7 +104,8 @@ public:
     return true;
   }
 
-  bool getFrame(idType const& id, index time, FluidTensorView<dataType, N> frame) const
+  bool getFrame(idType const& id, index time,
+                FluidTensorView<dataType, N> frame) const
   {
     auto pos = mIndex.find(id);
     if (pos == mIndex.end()) return false;
@@ -118,10 +117,11 @@ public:
     return true;
   }
 
-  FluidTensorView<const dataType, N> getFrame(idType const& id, index time) const
+  FluidTensorView<const dataType, N> getFrame(idType const& id,
+                                              index         time) const
   {
     auto pos = mIndex.find(id);
-    if(pos != mIndex.end())
+    if (pos != mIndex.end())
     {
       assert(time < mData[pos->second].rows());
       return mData[pos->second].row(time);
@@ -129,7 +129,8 @@ public:
     else { return FluidTensorView<const dataType, N>{nullptr, 0, 0}; }
   }
 
-  bool getSeries(idType const& id, FluidTensorView<dataType, N + 1> series) const
+  bool getSeries(idType const&                    id,
+                 FluidTensorView<dataType, N + 1> series) const
   {
     auto pos = mIndex.find(id);
     if (pos == mIndex.end()) return false;
@@ -150,8 +151,9 @@ public:
   template <typename U>
   bool updateFrame(idType const& id, index time, FluidTensorView<U, N> frame)
   {
-    static_assert(std::is_convertible<U, dataType>::value,  "Can't convert between types");
-    
+    static_assert(std::is_convertible<U, dataType>::value,
+                  "Can't convert between types");
+
     auto pos = mIndex.find(id);
     if (pos == mIndex.end()) return false;
 
@@ -164,13 +166,16 @@ public:
   template <typename U>
   bool updateSeries(idType const& id, FluidTensorView<U, N + 1> series)
   {
-    static_assert(std::is_convertible<U, dataType>::value,  "Can't convert between types");
+    static_assert(std::is_convertible<U, dataType>::value,
+                  "Can't convert between types");
 
     auto pos = mIndex.find(id);
-    if (pos == mIndex.end()) return false;
-    else 
+    if (pos == mIndex.end())
+      return false;
+    else
     {
-      mData[pos->second].resizeDim(0, series.rows() - mData[pos->second].rows());
+      mData[pos->second].resizeDim(0,
+                                   series.rows() - mData[pos->second].rows());
       mData[pos->second] <<= series;
     }
 
@@ -185,8 +190,10 @@ public:
     index current = pos->second;
     if (time >= mData[current].rows()) return false;
 
-    if(mData[current].rows() == 1) return removeSeries(id);
-    else mData[current].deleteRow(time);
+    if (mData[current].rows() == 1)
+      return removeSeries(id);
+    else
+      mData[current].deleteRow(time);
 
     return true;
   }
@@ -212,43 +219,49 @@ public:
   index getIndex(idType const& id) const
   {
     auto pos = mIndex.find(id);
-    if (pos == mIndex.end()) return -1;
-    else return pos->second;
+    if (pos == mIndex.end())
+      return -1;
+    else
+      return pos->second;
   }
 
-  index getNumFrames(idType const& id) const 
+  index getNumFrames(idType const& id) const
   {
     auto pos = mIndex.find(id);
-    if (pos == mIndex.end()) return -1;
-    else return mData[pos->second].rows();
+    if (pos == mIndex.end())
+      return -1;
+    else
+      return mData[pos->second].rows();
   }
 
-  std::vector<FluidTensorView<dataType, N + 1>> getData() 
-  { 
+  std::vector<FluidTensorView<dataType, N + 1>> getData()
+  {
     std::vector<FluidTensorView<dataType, N + 1>> viewVec(mData.size());
 
-    // hacky fix to force conversion of vector of tensors to vector of views of mData
-    // doesn't actually copy anything, it uses the FluidTensor ctor of FluidTensorView
-    // which creates a view/ref, so ends up creating what we want
+    // hacky fix to force conversion of vector of tensors to vector of views of
+    // mData doesn't actually copy anything, it uses the FluidTensor ctor of
+    // FluidTensorView which creates a view/ref, so ends up creating what we
+    // want
     std::copy(mData.begin(), mData.end(), std::back_inserter(viewVec));
 
-    return viewVec; 
+    return viewVec;
   }
 
-  const std::vector<FluidTensorView<const dataType, N + 1>> getData() const 
-  { 
+  const std::vector<FluidTensorView<const dataType, N + 1>> getData() const
+  {
     std::vector<FluidTensorView<const dataType, N + 1>> viewVec;
 
     // hacky fix to force conversion of vector to views of mData
-    // doesn't actually copy anything, it uses the FluidTensor ctor of FluidTensorView
-    // which creates a view/ref, so ends up creating what we want
+    // doesn't actually copy anything, it uses the FluidTensor ctor of
+    // FluidTensorView which creates a view/ref, so ends up creating what we
+    // want
     std::copy(mData.cbegin(), mData.cend(), std::back_inserter(viewVec));
 
-    return viewVec; 
+    return viewVec;
   }
 
-  FluidTensorView<idType, 1>             getIds() { return mIds; }
-  FluidTensorView<const idType, 1>       getIds() const { return mIds; }
+  FluidTensorView<idType, 1>       getIds() { return mIds; }
+  FluidTensorView<const idType, 1> getIds() const { return mIds; }
 
   index pointSize() const { return mDim.size; }
   index dims() const { return mDim.size; }
@@ -256,7 +269,7 @@ public:
   bool  initialized() const { return (size() > 0); }
 
   std::string printFrame(FluidTensorView<const dataType, N> frame,
-                         index maxCols) const
+                         index                              maxCols) const
   {
     using namespace std;
     ostringstream result;
@@ -268,7 +281,7 @@ public:
     }
     else
     {
-      for (index c = 0; c < maxCols / 2; c++) 
+      for (index c = 0; c < maxCols / 2; c++)
         result << setw(10) << setprecision(5) << frame(c);
 
       result << setw(10) << "...";
@@ -281,7 +294,7 @@ public:
   }
 
   std::string printSeries(FluidTensorView<const dataType, N + 1> series,
-                         index maxFrames, index maxCols) const
+                          index maxFrames, index maxCols) const
   {
     using namespace std;
     ostringstream result;
@@ -289,44 +302,47 @@ public:
     if (series.rows() < maxFrames)
     {
       for (index t = 0; t < series.rows(); t++)
-        result << setw(10) << "t" << t << ": " << printFrame(series.row(t), maxCols)
-               << endl;
+        result << setw(10) << "t" << t << ": "
+               << printFrame(series.row(t), maxCols) << endl;
     }
     else
     {
       for (index t = 0; t < maxFrames / 2; t++)
-        result << setw(10) << "t" << t << ": " << printFrame(series.row(t), maxCols)
-               << endl;
+        result << setw(10) << "t" << t << ": "
+               << printFrame(series.row(t), maxCols) << endl;
 
       result << setw(10) << "..." << std::endl;
 
       for (index t = maxFrames / 2; t > 0; t--)
-        result << setw(10) << "t" << (series.rows() - t) << ": " 
+        result << setw(10) << "t" << (series.rows() - t) << ": "
                << printFrame(series.row(size() - t), maxCols) << endl;
     }
 
     return result.str();
   }
 
-  std::string print(index maxRows = 6, index maxFrames = 6, index maxCols = 6) const
+  std::string print(index maxRows = 6, index maxFrames = 6,
+                    index maxCols = 6) const
   {
     using namespace std;
     ostringstream result;
 
     if (size() == 0) return "{}";
-    result << endl << "points: " << size() << endl << "frame size: " << pointSize() << endl;
+    result << endl
+           << "points: " << size() << endl
+           << "frame size: " << pointSize() << endl;
 
     if (size() < maxRows)
     {
       for (index r = 0; r < size(); r++)
-        result << mIds(r) << ":" << endl << printSeries(mData[r], maxFrames, maxCols)
-               << endl;
+        result << mIds(r) << ":" << endl
+               << printSeries(mData[r], maxFrames, maxCols) << endl;
     }
     else
     {
       for (index r = 0; r < maxRows / 2; r++)
-        result << mIds(r) << ":" << endl << printSeries(mData[r], maxFrames, maxCols)
-               << endl;
+        result << mIds(r) << ":" << endl
+               << printSeries(mData[r], maxFrames, maxCols) << endl;
 
       result << setw(10) << "⋮" << endl;
 
@@ -343,13 +359,12 @@ private:
   {
     assert(mIds.rows() == mData.size());
     mDim = mData[0].cols();
-    for (index i = 0; i < mIds.size(); i++) 
-      mIndex.insert({mIds[i], i});
+    for (index i = 0; i < mIds.size(); i++) mIndex.insert({mIds[i], i});
   }
 
-  std::unordered_map<idType, index> mIndex;
-  FluidTensor<idType, 1>            mIds;
+  std::unordered_map<idType, index>         mIndex;
+  FluidTensor<idType, 1>                    mIds;
   std::vector<FluidTensor<dataType, N + 1>> mData;
-  FluidTensorSlice<N>               mDim; // dimensions for one frame
+  FluidTensorSlice<N>                       mDim; // dimensions for one frame
 };
 } // namespace fluid
