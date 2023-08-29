@@ -33,7 +33,7 @@ enum class DTWConstraint { kUnconstrained, kIkatura, kSakoeChiba };
 
 class DTW
 {
-  class Constraint;
+  struct Constraint;
 
 public:
   explicit DTW() = default;
@@ -50,17 +50,17 @@ public:
                  DTWConstraint c = DTWConstraint::kUnconstrained,
                  Allocator&    alloc = FluidDefaultAllocator())
   {
-    Constraint                      constraint(c, x1.rows(), x2.rows());
     ScopedEigenMap<Eigen::VectorXd> x1r(x1.cols(), alloc),
         x2r(x2.cols(), alloc);
+    Constraint constraint(c, x1.rows(), x2.rows());
 
     mDistanceMetrics.resize(x1.rows(), x2.rows());
     mDistanceMetrics.fill(std::numeric_limits<double>::max());
 
     // simple brute force DTW is very inefficient, see FastDTW
-    for (index i = 0; i < x1.rows(); i++)
+    for (index i = constraint.rowStart(); i < constraint.rowEnd(); i++)
     {
-      for (index j = 0; j < x2.rows(); j++)
+      for (index j = constraint.colStart(i); j < constraint.colEnd(i); j++)
       {
         x1r = _impl::asEigen<Eigen::Matrix>(x1.row(i));
         x2r = _impl::asEigen<Eigen::Matrix>(x2.row(j));
@@ -109,7 +109,7 @@ private:
     return (v1.array() - v2.array()).abs().pow(mPNorm).sum();
   }
 
-  class Constraint
+  struct Constraint
   {
     Constraint(DTWConstraint c, index rows, index cols)
         : mType{c}, mRows{rows}, mCols{cols} {};
@@ -148,7 +148,22 @@ private:
   private:
     DTWConstraint mType;
     index         mRows, mCols;
-  };
+
+    inline static index rasterLineMinY(float x1, float x2, float y1, float y2,
+                                       float x)
+    {
+      return y1 + (x - x1) * ((y2 - y1) / (x2 - x1));
+    }
+
+    inline static index rasterLineMaxY(float x1, float x2, float y1, float y2,
+                                       float x)
+    {
+      if (y2 + x1 > y1 + x2)
+        return y1 + (x - x1 + 1) * ((y2 - y1) / (x2 - x1)) - 1;
+      else
+        return y1 + (x - x1) * ((y2 - y1) / (x2 - x1));
+    }
+  }; // struct Constraint
 };
 
 } // namespace algorithm
