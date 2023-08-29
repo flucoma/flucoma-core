@@ -124,18 +124,20 @@ private:
       {
       case DTWConstraint::kUnconstrained: return 0;
 
-      case DTWConstraint::kIkatura:
+      case DTWConstraint::kIkatura: {
         index colNorm = rasterLineMinY(mRows - 1, mCols - 1, mParam, row);
         index colInv = rasterLineMinY(0, 0, 1 / mParam, row);
 
         index col = std::max(colNorm, colInv);
 
         return col < 0 ? 0 : col > mCols - 1 ? mCols - 1 : col;
+      }
 
-      case DTWConstraint::kSakoeChiba:
+      case DTWConstraint::kSakoeChiba: {
         index col = rasterLineMinY(mParam, -mParam, mRows - 1 + mParam,
                                    mCols - 1 - mParam, row);
         return col < 0 ? 0 : col > mCols - 1 ? mCols - 1 : col;
+      }
 
       default: return -1;
       }
@@ -147,18 +149,20 @@ private:
       {
       case DTWConstraint::kUnconstrained: return mCols - 1;
 
-      case DTWConstraint::kIkatura:
+      case DTWConstraint::kIkatura: {
         index colNorm = rasterLineMaxY(0, 0, mParam, row);
         index colInv = rasterLineMaxY(mRows - 1, mCols - 1, 1 / mParam, row);
 
         index col = std::min(colNorm, colInv);
 
         return col < 0 ? 0 : col > mCols - 1 ? mCols - 1 : col;
+      }
 
-      case DTWConstraint::kSakoeChiba:
+      case DTWConstraint::kSakoeChiba: {
         index col = rasterLineMaxY(-mParam, mParam, mRows - 1 - mParam,
                                    mCols - 1 + mParam, row);
         return col < 0 ? 0 : col > mCols - 1 ? mCols - 1 : col;
+      }
 
       default: return -1;
       }

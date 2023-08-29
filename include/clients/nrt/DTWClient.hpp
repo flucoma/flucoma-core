@@ -23,7 +23,10 @@ namespace dtw {
 
 constexpr auto DTWParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
-    LongParam("p", "LpNorm power (distance weighting)", 2, Min(1)));
+    LongParam("p", "LpNorm power (distance weighting)", 2, Min(1)),
+    EnumParam("constraint", "Constraint Type", 0, "Unconstrained", "Ikatura",
+              "Sakoe-Chiba"),
+    LongParam("radius", "Constraint Value", 2, Min(0)));
 
 class DTWClient : public FluidBaseClient,
                   OfflineIn,
@@ -31,7 +34,7 @@ class DTWClient : public FluidBaseClient,
                   ModelObject,
                   public DataClient<algorithm::DTW>
 {
-  enum { kName, kPNorm };
+  enum { kName, kPNorm, kConstraint, kRadius };
 
 public:
   using string = std::string;
@@ -85,7 +88,9 @@ public:
 
     mAlgorithm.init(get<kPNorm>());
 
-    return mAlgorithm.process(series1, series2);
+    return mAlgorithm.process(series1, series2,
+                              (algorithm::DTWConstraint) get<kConstraint>(),
+                              get<kRadius>());
   }
 
   MessageResult<double> bufCost(InputBufferPtr data1, InputBufferPtr data2)
@@ -108,7 +113,9 @@ public:
 
     mAlgorithm.init(get<kPNorm>());
 
-    return mAlgorithm.process(buf1frames, buf2frames);
+    return mAlgorithm.process(buf1frames, buf2frames,
+                              (algorithm::DTWConstraint) get<kConstraint>(),
+                              get<kRadius>());
   }
 
   static auto getMessageDescriptors()
