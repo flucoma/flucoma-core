@@ -125,7 +125,13 @@ private:
       {
       case DTWConstraint::kUnconstrained: return 0;
 
-      case DTWConstraint::kIkatura: break;
+      case DTWConstraint::kIkatura:
+        index colNorm = rasterLineMinY(mRows - 1, mCols - 1, mParam, row);
+        index colInv = rasterLineMinY(0, 0, 1 / mParam, row);
+
+        index col = std::max(colNorm, colInv);
+
+        return col < 0 ? 0 : col > mCols - 1 ? mCols - 1 : col;
 
       case DTWConstraint::kSakoeChiba:
         index col = rasterLineMinY(mParam, -mParam, mRows - 1 + mParam,
@@ -140,9 +146,15 @@ private:
     {
       switch (mType)
       {
-      case DTWConstraint::kUnconstrained: return mCols;
+      case DTWConstraint::kUnconstrained: return mCols - 1;
 
-      case DTWConstraint::kIkatura: break;
+      case DTWConstraint::kIkatura:
+        index colNorm = rasterLineMaxY(0, 0, mParam, row);
+        index colInv = rasterLineMaxY(mRows - 1, mCols - 1, 1 / mParam, row);
+
+        index col = std::min(colNorm, colInv);
+
+        return col < 0 ? 0 : col > mCols - 1 ? mCols - 1 : col;
 
       case DTWConstraint::kSakoeChiba:
         index col = rasterLineMaxY(-mParam, mParam, mRows - 1 - mParam,
@@ -157,19 +169,29 @@ private:
     DTWConstraint mType;
     index mRows, mCols, mParam; // mParam is either radius (SC) or gradient (Ik)
 
+    inline static index rasterLineMinY(float x1, float y1, float dydx, float x)
+    {
+      return std::round(y1 + (x - x1) * dydx);
+    }
+
     inline static index rasterLineMinY(float x1, float y1, float x2, float y2,
                                        float x)
     {
-      return std::round(y1 + (x - x1) * (y2 - y1) / (x2 - x1));
+      return rasterLineMinY(x1, y1, (y2 - y1) / (x2 - x1), x);
+    }
+
+    inline static index rasterLineMaxY(float x1, float y1, float dydx, float x)
+    {
+      if (dydx > 1)
+        return rasterLineMinY(x1, y1, dydx, x + 1) - 1;
+      else
+        return rasterLineMinY(x1, y1, dydx, x);
     }
 
     inline static index rasterLineMaxY(float x1, float y1, float x2, float y2,
                                        float x)
     {
-      if (y2 + x1 > y1 + x2)
-        return rasterLineMinY(x1, y1, x2, y2, x + 1) - 1;
-      else
-        return rasterLineMinY(x1, y1, x2, y2, x);
+      return rasterLineMaxY(x1, y1, (y2 - y1) / (x2 - x1), x);
     }
   }; // struct Constraint
 };
