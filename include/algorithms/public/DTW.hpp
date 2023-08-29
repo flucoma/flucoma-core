@@ -47,20 +47,21 @@ public:
   constexpr index initialized() const { return mInitialized; }
 
   double process(InputRealMatrixView x1, InputRealMatrixView x2,
-                 DTWConstraint c = DTWConstraint::kUnconstrained,
+                 DTWConstraint constraint = DTWConstraint::kUnconstrained,
+                 index         constraintParam = 2,
                  Allocator&    alloc = FluidDefaultAllocator())
   {
     ScopedEigenMap<Eigen::VectorXd> x1r(x1.cols(), alloc),
         x2r(x2.cols(), alloc);
-    Constraint constraint(c, x1.rows(), x2.rows());
+    Constraint c(constraint, x1.rows(), x2.rows(), constraintParam);
 
     mDistanceMetrics.resize(x1.rows(), x2.rows());
     mDistanceMetrics.fill(std::numeric_limits<double>::max());
 
     // simple brute force DTW is very inefficient, see FastDTW
-    for (index i = constraint.rowStart(); i < constraint.rowEnd(); i++)
+    for (index i = c.startRow(); i < c.endRow(); i++)
     {
-      for (index j = constraint.colStart(i); j < constraint.colEnd(i); j++)
+      for (index j = c.startCol(i); j < c.endCol(i); j++)
       {
         x1r = _impl::asEigen<Eigen::Matrix>(x1.row(i));
         x2r = _impl::asEigen<Eigen::Matrix>(x2.row(j));
@@ -111,13 +112,14 @@ private:
 
   struct Constraint
   {
-    Constraint(DTWConstraint c, index rows, index cols)
+    Constraint(DTWConstraint c, index rows, index cols, index param)
         : mType{c}, mRows{rows}, mCols{cols} {};
 
-    const index rowStart() const { return 0; };
-    const index rowEnd() const { return mRows; };
+    const index startRow() const { return 0; };
+    const index endRow() const { return mRows; };
 
-    index colStart(index row)
+
+    index startCol(index row)
     {
       switch (mType)
       {
@@ -125,13 +127,16 @@ private:
 
       case DTWConstraint::kIkatura: break;
 
-      case DTWConstraint::kSakoeChiba: break;
+      case DTWConstraint::kSakoeChiba:
+        index col = rasterLineMinY(mParam, -mParam, mRows - 1 + mParam,
+                                   mCols - 1 - mParam, row);
+        return col < 0 ? 0 : col > mCols - 1 ? mCols - 1 : col;
 
       default: return -1;
       }
     };
 
-    index colEnd()
+    index endCol(index row)
     {
       switch (mType)
       {
@@ -139,7 +144,10 @@ private:
 
       case DTWConstraint::kIkatura: break;
 
-      case DTWConstraint::kSakoeChiba: break;
+      case DTWConstraint::kSakoeChiba:
+        index col = rasterLineMaxY(-mParam, mParam, mRows - 1 - mParam,
+                                   mCols - 1 + mParam, row);
+        return col < 0 ? 0 : col > mCols - 1 ? mCols - 1 : col;
 
       default: return -1;
       }
@@ -147,21 +155,21 @@ private:
 
   private:
     DTWConstraint mType;
-    index         mRows, mCols;
+    index mRows, mCols, mParam; // mParam is either radius (SC) or gradient (Ik)
 
-    inline static index rasterLineMinY(float x1, float x2, float y1, float y2,
+    inline static index rasterLineMinY(float x1, float y1, float x2, float y2,
                                        float x)
     {
-      return y1 + (x - x1) * ((y2 - y1) / (x2 - x1));
+      return std::round(y1 + (x - x1) * (y2 - y1) / (x2 - x1));
     }
 
-    inline static index rasterLineMaxY(float x1, float x2, float y1, float y2,
+    inline static index rasterLineMaxY(float x1, float y1, float x2, float y2,
                                        float x)
     {
       if (y2 + x1 > y1 + x2)
-        return y1 + (x - x1 + 1) * ((y2 - y1) / (x2 - x1)) - 1;
+        return rasterLineMinY(x1, y1, x2, y2, x + 1) - 1;
       else
-        return y1 + (x - x1) * ((y2 - y1) / (x2 - x1));
+        return rasterLineMinY(x1, y1, x2, y2, x);
     }
   }; // struct Constraint
 };
