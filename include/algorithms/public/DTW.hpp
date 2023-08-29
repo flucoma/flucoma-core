@@ -17,6 +17,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../data/FluidTensor.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
+#include <cstddef>
+#include <iterator>
 #include <random>
 
 namespace fluid {
@@ -38,121 +40,75 @@ public:
 
   index           size() const { return mPNorm; }
   constexpr index dims() const { return 0; }
-  constexpr index initialized() const { return true; }
+  constexpr index initialized() const { return mInitialized; }
 
   double process(InputRealMatrixView x1, InputRealMatrixView x2,
                  Allocator& alloc = FluidDefaultAllocator())
   {
-    mCalculated = true;
-
-    return calculateDistanceMetrics(x1, x2, alloc);
+    return calculateDistanceMetrics(x1, x2, x1, alloc);
   }
 
-  bool getPath(InputRealMatrixView x1, InputRealMatrixView x2,
-               RealMatrixView path, Allocator& alloc = FluidDefaultAllocator())
+private:
+  RealMatrix mDistanceMetrics;
+  RealMatrix mPath;
+  index      mPNorm{2};
+
+  bool       mCalculated{false};
+  const bool mInitialized{true};
+
+  // P-Norm of the difference vector
+  // Lp{vec} = (|vec[0]|^p + |vec[1]|^p + ... + |vec[n-1]|^p + |vec[n]|^p)^(1/p)
+  // i.e., the 2-norm of a vector is the euclidian distance from the origin
+  //       the 1-norm is the sum of the absolute value of the elements
+  // To the power P since we'll be summing multiple Norms together and they
+  // can combine into a single norm if you calculate the norm of multiple norms
+  // (normception)
+  inline double
+  differencePNormToTheP(const Eigen::Ref<const Eigen::VectorXd>& v1,
+                        const Eigen::Ref<const Eigen::VectorXd>& v2)
   {
-    calculateDistanceMetrics(x1, x2, alloc);
-    return getPath(path);
+    // assert(v1.size() == v2.size());
+    return (v1.array() - v2.array()).abs().pow(mPNorm).sum();
   }
 
-  bool getPath(RealMatrixView path)
+  static bool isValidPath(InputRealMatrixView p)
   {
-    if (!mCalculated) return false;
+    InputRealVectorView thisRow = p.row(0), nextRow = p.row(1);
 
-    index n = 0,
-          maxPathLength = mDistanceMetrics.rows() + mDistanceMetrics.cols() - 1;
-    RealMatrix calculatedPath(2, maxPathLength);
+    if (thisRow.size() != 2) return false;
 
-    for (index i = mDistanceMetrics.rows() - 1, j = mDistanceMetrics.cols() - 1;
-         i > 0 || j > 0; ++n)
+    for (index i = 0; i < p.rows() - 1; i++)
     {
-      calculatedPath.col(n) <<= {(double) i, (double) j};
+      thisRow = p.row(i);
+      nextRow = p.row(i + 1);
 
-      // if at one end of the matrix just go along that edge
-      if (i == 0 && (--j, true)) continue;
-      if (j == 0 && (--i, true)) continue;
-
-      double upVal = mDistanceMetrics(i - 1, j);
-      double leftVal = mDistanceMetrics(i, j - 1);
-      double diagVal = mDistanceMetrics(i - 1, j - 1);
-
-      double minVal = std::min(std::min(upVal, leftVal), diagVal);
-
-      if (minVal == upVal)
-        --i;
-      else if (minVal == leftVal)
-        --j;
-      else if (minVal == upVal)
-        (--i, --j);
-      else
-        return false;
+      if (nextRow.size() != 2) return false;
+      if (nextRow[0] < thisRow[0] || nextRow[1] < thisRow[1]) return false;
     }
-
-    calculatedPath.col(n++) <<= {0.0, 0.0};
-    path <<= calculatedPath;
 
     return true;
   }
 
-  double calculateWindowedDistanceMetrics(InputRealMatrixView x1,
-                                          InputRealMatrixView x2,
-                                          InputRealMatrixView path,
-                                          Allocator&          alloc)
-  {}
+  static bool isValidWindow(InputRealMatrixView w)
+  {
+    for (index i = 0; i < w.rows(); i++)
+    {
+      if (w.row(i)[0] >= w.row(i)[1]) return false;
+    }
+
+    return true;
+  }
 
   double calculateDistanceMetrics(InputRealMatrixView x1,
-                                  InputRealMatrixView x2, Allocator& alloc)
+                                  InputRealMatrixView x2,
+                                  InputRealMatrixView window,
+                                  Allocator& alloc = FluidDefaultAllocator())
   {
     ScopedEigenMap<Eigen::VectorXd> x1r(x1.cols(), alloc),
         x2r(x2.cols(), alloc);
 
     mDistanceMetrics.resize(x1.rows(), x2.rows());
 
-    // bool getPath(InputRealMatrixView x1, 
-    //              InputRealMatrixView x2,
-    //              RealMatrixView path,
-    //              index p = 2,
-    //              Allocator& alloc = FluidDefaultAllocator())
-    // {
-    //     calculateDistanceMetrics(x1, x2, p, alloc);
-    //     return getPath(path);
-    // }
-
-    // bool getPath(RealMatrixView to)
-    // {
-    //     if (!mCalculated) return false;
-
-    //     index n = 0;
-    //     index maxPathLength = mDistanceMetrics.rows() 
-    //                         + mDistanceMetrics.cols() - 1;
-    //     RealMatrix path(maxPathLength, 2);
-
-    //     for (index i = mDistanceMetrics.rows(), j = mDistanceMetrics.cols(); 
-    //                i > 0 || j > 0; ++n)
-    //     {
-    //         path.row(n) <<= {(double) i, (double) j};
-
-    //         // if at one end of the matrix just go along that edge
-    //         if (i == 0 && (--j, true)) continue;
-    //         if (j == 0 && (--i, true)) continue;
-
-    //         double upVal =   mDistanceMetrics(i-1, j  );
-    //         double leftVal = mDistanceMetrics(i  , j-1);
-    //         double diagVal = mDistanceMetrics(i-1, j-1);
-
-    //         double minVal = std::min(std::min(upVal, leftVal), diagVal);
-
-    //         if (minVal == upVal) --i;
-    //         else if (minVal == leftVal) --j; 
-    //         else if (minVal == upVal) (--i, --j);
-    //         else return false;
-    //     }
-
-    //     path.row(n++) <<= {0, 0};
-
-    //     to <<= path;
-    //     return true;
-    // }
     // simple brute force DTW is very inefficient, see FastDTW
     for (index i = 0; i < x1.rows(); i++)
     {
@@ -177,28 +133,10 @@ public:
       }
     }
 
+    mCalculated = true;
+
     return std::pow(mDistanceMetrics(x1.rows() - 1, x2.rows() - 1),
                     1.0 / mPNorm);
-  }
-
-private:
-  RealMatrix mDistanceMetrics;
-  index      mPNorm{2};
-  bool       mCalculated{false};
-
-  // P-Norm of the difference vector
-  // Lp{vec} = (|vec[0]|^p + |vec[1]|^p + ... + |vec[n-1]|^p + |vec[n]|^p)^(1/p)
-  // i.e., the 2-norm of a vector is the euclidian distance from the origin
-  //       the 1-norm is the sum of the absolute value of the elements
-  // To the power P since we'll be summing multiple Norms together and they
-  // can combine into a single norm if you calculate the norm of multiple norms
-  // (normception)
-  inline double
-  differencePNormToTheP(const Eigen::Ref<const Eigen::VectorXd>& v1,
-                        const Eigen::Ref<const Eigen::VectorXd>& v2)
-  {
-    // assert(v1.size() == v2.size());
-    return (v1.array() - v2.array()).abs().pow(mPNorm).sum();
   }
 };
 
