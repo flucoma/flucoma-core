@@ -59,9 +59,9 @@ public:
     mDistanceMetrics.fill(std::numeric_limits<double>::max());
 
     // simple brute force DTW is very inefficient, see FastDTW
-    for (index i = c.startRow(); i < c.endRow(); i++)
+    for (index i = c.firstRow(); i <= c.lastRow(); i++)
     {
-      for (index j = c.startCol(i); j < c.endCol(i); j++)
+      for (index j = c.firstCol(i); j <= c.lastCol(i); j++)
       {
         x1r = _impl::asEigen<Eigen::Matrix>(x1.row(i));
         x2r = _impl::asEigen<Eigen::Matrix>(x2.row(j));
@@ -115,11 +115,10 @@ private:
     Constraint(DTWConstraint c, index rows, index cols, index param)
         : mType{c}, mRows{rows}, mCols{cols} {};
 
-    const index startRow() const { return 0; };
-    const index endRow() const { return mRows; };
+    const index firstRow() const { return 0; };
+    const index lastRow() const { return mRows - 1; };
 
-
-    index startCol(index row)
+    index firstCol(index row)
     {
       switch (mType)
       {
@@ -142,7 +141,7 @@ private:
       }
     };
 
-    index endCol(index row)
+    index lastCol(index row)
     {
       switch (mType)
       {
