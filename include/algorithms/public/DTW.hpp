@@ -71,34 +71,6 @@ private:
     return (v1.array() - v2.array()).abs().pow(mPNorm).sum();
   }
 
-  static bool isValidPath(InputRealMatrixView p)
-  {
-    InputRealVectorView thisRow = p.row(0), nextRow = p.row(1);
-
-    if (thisRow.size() != 2) return false;
-
-    for (index i = 0; i < p.rows() - 1; i++)
-    {
-      thisRow = p.row(i);
-      nextRow = p.row(i + 1);
-
-      if (nextRow.size() != 2) return false;
-      if (nextRow[0] < thisRow[0] || nextRow[1] < thisRow[1]) return false;
-    }
-
-    return true;
-  }
-
-  static bool isValidWindow(InputRealMatrixView w)
-  {
-    for (index i = 0; i < w.rows(); i++)
-    {
-      if (w.row(i)[0] >= w.row(i)[1]) return false;
-    }
-
-    return true;
-  }
-
   double calculateDistanceMetrics(InputRealMatrixView x1,
                                   InputRealMatrixView x2,
                                   InputRealMatrixView window,
