@@ -135,61 +135,16 @@ public:
         makeMessage("read", &DTWClassifierClient::read));
   }
 
+  {
+
+
+  }
 };
 
-using DTWClassifierRef = SharedClientRef<const DTWClassifierClient>;
-
-constexpr auto DTWClassifierQueryParams = defineParameters(
-    DTWClassifierRef::makeParam("model", "Source model"),
-    LongParam("numNeighbours", "Number of Nearest Neighbours", 3, Min(1)),
-    EnumParam("weight", "Weight Neighbours by Distance", 1, "No", "Yes"),
-    InputBufferParam("inputPointBuffer", "Input Point Buffer"),
-    BufferParam("predictionBuffer", "Prediction Buffer"));
-
-class DTWClassifierQuery : public FluidBaseClient, ControlIn, ControlOut
-{
-  enum { kModel, kNumNeighbors, kWeight, kInputBuffer, kOutputBuffer };
-
-public:
-  using ParamDescType = decltype(DTWClassifierQueryParams);
-
-  using ParamSetViewType = ParameterSetView<ParamDescType>;
-  std::reference_wrapper<ParamSetViewType> mParams;
-
-  void setParams(ParamSetViewType& p) { mParams = p; }
-
-  template <size_t N>
-  auto& get() const
-  {
-    return mParams.get().template get<N>();
-  }
-
-  static constexpr auto& getParameterDescriptors()
-  {
-    return DTWClassifierQueryParams;
-  }
-
-  DTWClassifierQuery(ParamSetViewType& p, FluidContext&) : mParams(p)
-  {
-    controlChannelsIn(1);
-    controlChannelsOut({1, 1});
-  }
-
-  template <typename T>
-  void process(std::vector<FluidTensorView<T, 1>>& input,
-               std::vector<FluidTensorView<T, 1>>& output, FluidContext& c)
-  {
-  }
-
-  index latency() { return 0; }
-};
 
 } // namespace dtwclassifier
 
 using NRTThreadedDTWClassifierClient =
-    NRTThreadingAdaptor<typename knnclassifier::DTWClassifierRef::SharedType>;
 
-using RTDTWClassifierQueryClient =
-    ClientWrapper<knnclassifier::DTWClassifierQuery>;
 } // namespace client
 } // namespace fluid
