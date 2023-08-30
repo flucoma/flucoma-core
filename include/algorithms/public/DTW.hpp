@@ -39,16 +39,17 @@ public:
   explicit DTW() = default;
   ~DTW() = default;
 
-  void init(index p = 2) { mPNorm = p; }
-  void clear() { mCalculated = false; }
+  void init() {}
+  void clear() {}
 
   index           size() const { return mPNorm; }
   constexpr index dims() const { return 0; }
-  constexpr index initialized() const { return mInitialized; }
+  constexpr index initialized() const { return true; }
 
   double process(InputRealMatrixView x1, InputRealMatrixView x2,
                  DTWConstraint constr = DTWConstraint::kUnconstrained,
-                 index param = 2, Allocator& alloc = FluidDefaultAllocator())
+                 index         param = 2,
+                 Allocator&    alloc = FluidDefaultAllocator()) const
   {
     ScopedEigenMap<Eigen::VectorXd> x1r(x1.cols(), alloc),
         x2r(x2.cols(), alloc);
@@ -76,18 +77,13 @@ public:
       }
     });
 
-    mCalculated = true;
-
     return std::pow(mDistanceMetrics(x1.rows() - 1, x2.rows() - 1),
                     1.0 / mPNorm);
   }
 
 private:
-  RealMatrix mDistanceMetrics;
-  index      mPNorm{2};
-
-  bool       mCalculated{false};
-  const bool mInitialized{true};
+  mutable RealMatrix mDistanceMetrics;
+  const index        mPNorm{2};
 
   // P-Norm of the difference vector
   // Lp{vec} = (|vec[0]|^p + |vec[1]|^p + ... + |vec[n-1]|^p + |vec[n]|^p)^(1/p)
@@ -98,7 +94,7 @@ private:
   // (normception)
   inline double
   differencePNormToTheP(const Eigen::Ref<const Eigen::VectorXd>& v1,
-                        const Eigen::Ref<const Eigen::VectorXd>& v2)
+                        const Eigen::Ref<const Eigen::VectorXd>& v2) const
   {
     // assert(v1.size() == v2.size());
     return (v1.array() - v2.array()).abs().pow(mPNorm).sum();

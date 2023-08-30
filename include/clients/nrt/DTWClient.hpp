@@ -23,7 +23,6 @@ namespace dtw {
 
 constexpr auto DTWParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
-    LongParam("p", "LpNorm power (distance weighting)", 2, Min(1)),
     EnumParam("constraint", "Constraint Type", 0, "Unconstrained", "Ikatura",
               "Sakoe-Chiba"),
     FloatParam("radius", "Sakoe-Chiba Constraint Radius", 2, Min(0)),
@@ -84,8 +83,6 @@ public:
 
     if (i1 < 0 || i2 < 0) return Error<double>(PointNotFound);
 
-    mAlgorithm.init(get<kPNorm>());
-
     InputRealMatrixView series1 = srcDataSeries.getSeries(id1),
                         series2 = srcDataSeries.getSeries(id2);
 
@@ -107,8 +104,6 @@ public:
       return Error<double>(WrongPointSize);
     if (buf1.numFrames() == 0 || buf2.numFrames() == 0)
       return Error<double>(EmptyBuffer);
-
-    mAlgorithm.init(get<kPNorm>());
 
     RealMatrix buf1frames(buf1.numFrames(), buf1.numChans()),
         buf2frames(buf2.numFrames(), buf2.numChans());
