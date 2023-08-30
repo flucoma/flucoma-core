@@ -26,7 +26,7 @@ constexpr auto DTWParams = defineParameters(
     LongParam("p", "LpNorm power (distance weighting)", 2, Min(1)),
     EnumParam("constraint", "Constraint Type", 0, "Unconstrained", "Ikatura",
               "Sakoe-Chiba"),
-    LongParam("radius", "Sakoe-Chiba Constraint Radius", 2, Min(0)),
+    FloatParam("radius", "Sakoe-Chiba Constraint Radius", 2, Min(0)),
     FloatParam("gradient", "Ikatura Parallelogram max gradient", 1, Min(1)));
 
 class DTWClient : public FluidBaseClient,
