@@ -84,7 +84,10 @@ public:
       return Error(WrongPointSize);
     }
 
-    mAlgorithm.addFrame(id, buf.samps(0, mAlgorithm.dims(), 0));
+    RealVector frame(buf.numFrames());
+    frame <<= buf.samps(0, mAlgorithm.dims(), 0);
+
+    mAlgorithm.addFrame(id, frame);
 
     return OK();
   }
@@ -107,9 +110,10 @@ public:
       return Error(WrongPointSize);
     }
 
-    return mAlgorithm.addSeries(id, buf.allFrames().transpose())
-               ? OK()
-               : Error(DuplicateIdentifier);
+    RealMatrix series(buf.numFrames(), buf.numChans());
+    series <<= buf.allFrames().transpose();
+
+    return mAlgorithm.addSeries(id, series) ? OK() : Error(DuplicateIdentifier);
   }
 
   MessageResult<void> getFrame(string id, index time, BufferPtr data) const
@@ -167,9 +171,11 @@ public:
     if (!buf.exists()) return Error(InvalidBuffer);
     if (buf.numFrames() < mAlgorithm.dims()) return Error(WrongPointSize);
 
-    return mAlgorithm.updateFrame(id, time, buf.samps(0, mAlgorithm.dims(), 0))
-               ? OK()
-               : Error(PointNotFound);
+    RealVector frame(buf.numFrames());
+    frame <<= buf.samps(0, mAlgorithm.dims(), 0);
+
+    return mAlgorithm.updateFrame(id, time, frame) ? OK()
+                                                   : Error(PointNotFound);
   }
 
   MessageResult<void> updateSeries(string id, InputBufferPtr data)
@@ -180,9 +186,10 @@ public:
     if (!buf.exists()) return Error(InvalidBuffer);
     if (buf.numChans() < mAlgorithm.dims()) return Error(WrongPointSize);
 
-    return mAlgorithm.updateSeries(id, buf.allFrames().transpose())
-               ? OK()
-               : Error(PointNotFound);
+    RealMatrix series(buf.numFrames(), buf.numChans());
+    series <<= buf.allFrames().transpose();
+
+    return mAlgorithm.updateSeries(id, series) ? OK() : Error(PointNotFound);
   }
 
   MessageResult<void> setFrame(string id, index time, InputBufferPtr data)
@@ -194,8 +201,10 @@ public:
       if (!buf.exists()) return Error(InvalidBuffer);
       if (buf.numFrames() < mAlgorithm.dims()) return Error(WrongPointSize);
 
-      bool result =
-          mAlgorithm.updateFrame(id, time, buf.samps(0, mAlgorithm.dims(), 0));
+      RealVector frame(buf.numFrames());
+      frame <<= buf.samps(0, mAlgorithm.dims(), 0);
+
+      bool result = mAlgorithm.updateFrame(id, time, frame);
       if (result) return OK();
     }
 
@@ -211,7 +220,10 @@ public:
       if (!buf.exists()) return Error(InvalidBuffer);
       if (buf.numChans() < mAlgorithm.dims()) return Error(WrongPointSize);
 
-      bool result = mAlgorithm.updateSeries(id, buf.allFrames().transpose());
+      RealMatrix series(buf.numFrames(), buf.numChans());
+      series <<= buf.allFrames().transpose();
+
+      bool result = mAlgorithm.updateSeries(id, series);
       if (result) return OK();
     }
 
