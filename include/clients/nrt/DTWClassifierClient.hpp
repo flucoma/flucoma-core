@@ -61,7 +61,6 @@ void from_json(const nlohmann::json& j, DTWClassifierData& data)
 constexpr auto DTWClassifierParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
     LongParam("numNeighbours", "Number of Nearest Neighbours", 3, Min(1)),
-    EnumParam("weight", "Weight Neighbours by Distance", 1, "No", "Yes"),
     EnumParam("constraint", "Constraint Type", 0, "Unconstrained", "Ikatura",
               "Sakoe-Chiba"),
     FloatParam("radius", "Sakoe-Chiba Constraint Radius", 2, Min(0)),
@@ -135,6 +134,45 @@ public:
 
   MessageResult<string> predictPoint(InputBufferPtr data) const
   {
+    index k = get<kNumNeighbors>();
+    bool  weight = get<kWeight>() > 0;
+
+    if (k < 1) return Error<string>(SmallK);
+
+    BufferAdaptor::ReadAccess       buf = data.get();
+    RealMatrix                      series(buf.numFrames(), buf.numChans());
+    rt::vector<InputRealMatrixView> ds = mAlgorithm.series.getData();
+
+    if (buf.numChans() < mAlgorithm.series.dims())
+      return Error<string>(WrongPointSize);
+
+    series <<= buf.allFrames().transpose();
+
+    rt::vector<index>  indices(asUnsigned(mAlgorithm.size()));
+    rt::vector<double> distances(asUnsigned(mAlgorithm.size()));
+
+    std::iota(indices.begin(), indices.end(), 0);
+
+    algorithm::DTWConstraint constraint =
+        (algorithm::DTWConstraint) get<kConstraint>();
+
+    std::transform(indices.begin(), indices.end(), distances.begin(),
+                   [&](index i) {
+                     return mAlgorithm.dtw.process(series, ds[i], constraint,
+                                                   constraintParam(constraint));
+                   });
+
+    std::sort(indices.begin(), indices.end(), [&distances](index a, index b) {
+      return distances[asUnsigned(a)] < distances[asUnsigned(b)];
+    });
+
+    rt::unordered_map<std::string, index> labels;
+    auto                                  ids = mAlgorithm.series.getIds();
+
+    std::for_each(indices.begin(), indices.begin() + k,
+                  [&](index i) { return labels[ids[i]]++; });
+
+    return;
   }
 
   MessageResult<void> predict(InputDataSetClientRef source,
