@@ -10,8 +10,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 #include "DataClient.hpp"
-#include "LabelSetClient.hpp"
 #include "DataSetClient.hpp"
+#include "LabelSetClient.hpp"
 #include "NRTClient.hpp"
 #include "../common/SharedClientUtils.hpp"
 #include "../../algorithms/public/DataSetIdSequence.hpp"
@@ -26,13 +26,13 @@ namespace dataseries {
 enum { kName };
 
 constexpr auto DataSeriesParams = defineParameters(
-    StringParam<Fixed<true>>("name", "Name of the DataSeries")
-);
+    StringParam<Fixed<true>>("name", "Name of the DataSeries"));
 
-class DataSeriesClient : public FluidBaseClient,
-                      OfflineIn,
-                      OfflineOut,
-                      public DataClient<FluidDataSeries<std::string, double, 1>>
+class DataSeriesClient
+    : public FluidBaseClient,
+      OfflineIn,
+      OfflineOut,
+      public DataClient<FluidDataSeries<std::string, double, 1>>
 {
 public:
   using string = std::string;
@@ -75,9 +75,13 @@ public:
 
     if (mAlgorithm.size() == 0)
     {
-      if (mAlgorithm.dims() != buf.numFrames()) mAlgorithm = DataSeries(buf.numFrames());
+      if (mAlgorithm.dims() != buf.numFrames())
+        mAlgorithm = DataSeries(buf.numFrames());
     }
-    else if (buf.numFrames() != mAlgorithm.dims()) { return Error(WrongPointSize); }
+    else if (buf.numFrames() != mAlgorithm.dims())
+    {
+      return Error(WrongPointSize);
+    }
 
     mAlgorithm.addFrame(id, buf.samps(0, mAlgorithm.dims(), 0));
 
@@ -94,12 +98,17 @@ public:
 
     if (mAlgorithm.size() == 0)
     {
-      if (mAlgorithm.dims() != buf.numChans()) mAlgorithm = DataSeries(buf.numChans());
+      if (mAlgorithm.dims() != buf.numChans())
+        mAlgorithm = DataSeries(buf.numChans());
     }
-    else if (buf.numChans() != mAlgorithm.dims()) { return Error(WrongPointSize); }
+    else if (buf.numChans() != mAlgorithm.dims())
+    {
+      return Error(WrongPointSize);
+    }
 
-    return mAlgorithm.addSeries(id, buf.allFrames().transpose()) 
-           ? OK() : Error(DuplicateIdentifier);
+    return mAlgorithm.addSeries(id, buf.allFrames().transpose())
+               ? OK()
+               : Error(DuplicateIdentifier);
   }
 
   MessageResult<void> getFrame(string id, index time, BufferPtr data) const
@@ -132,7 +141,8 @@ public:
     BufferAdaptor::Access buf(data.get());
     if (!buf.exists()) return Error(InvalidBuffer);
 
-    Result resizeResult = buf.resize(mAlgorithm.getNumFrames(id), mAlgorithm.dims(), buf.sampleRate());
+    Result resizeResult = buf.resize(mAlgorithm.getNumFrames(id),
+                                     mAlgorithm.dims(), buf.sampleRate());
     if (!resizeResult.ok())
       return {resizeResult.status(), resizeResult.message()};
 
@@ -156,7 +166,9 @@ public:
     if (!buf.exists()) return Error(InvalidBuffer);
     if (buf.numFrames() < mAlgorithm.dims()) return Error(WrongPointSize);
 
-    return mAlgorithm.updateFrame(id, time, buf.samps(0, mAlgorithm.dims(), 0)) ? OK() : Error(PointNotFound);
+    return mAlgorithm.updateFrame(id, time, buf.samps(0, mAlgorithm.dims(), 0))
+               ? OK()
+               : Error(PointNotFound);
   }
 
   MessageResult<void> updateSeries(string id, InputBufferPtr data)
@@ -167,7 +179,9 @@ public:
     if (!buf.exists()) return Error(InvalidBuffer);
     if (buf.numChans() < mAlgorithm.dims()) return Error(WrongPointSize);
 
-    return mAlgorithm.updateSeries(id, buf.allFrames().transpose()) ? OK() : Error(PointNotFound);
+    return mAlgorithm.updateSeries(id, buf.allFrames().transpose())
+               ? OK()
+               : Error(PointNotFound);
   }
 
   MessageResult<void> setFrame(string id, index time, InputBufferPtr data)
@@ -179,7 +193,8 @@ public:
       if (!buf.exists()) return Error(InvalidBuffer);
       if (buf.numFrames() < mAlgorithm.dims()) return Error(WrongPointSize);
 
-      bool result = mAlgorithm.updateFrame(id, time, buf.samps(0, mAlgorithm.dims(), 0));
+      bool result =
+          mAlgorithm.updateFrame(id, time, buf.samps(0, mAlgorithm.dims(), 0));
       if (result) return OK();
     }
 
@@ -212,8 +227,9 @@ public:
     return mAlgorithm.removeSeries(id) ? OK() : Error(PointNotFound);
   }
 
-  MessageResult<void> merge(SharedClientRef<const DataSeriesClient> dataseriesClient,
-                            bool                           overwrite)
+  MessageResult<void>
+  merge(SharedClientRef<const DataSeriesClient> dataseriesClient,
+        bool                                    overwrite)
   {
     auto dataseriesClientPtr = dataseriesClient.get().lock();
     if (!dataseriesClientPtr) return Error(NoDataSet);
@@ -223,12 +239,12 @@ public:
     if (srcDataSeries.pointSize() != mAlgorithm.pointSize())
       return Error(WrongPointSize);
 
-    auto       ids = srcDataSeries.getIds();
+    auto ids = srcDataSeries.getIds();
 
     for (index i = 0; i < srcDataSeries.size(); i++)
     {
       InputRealMatrixView series = srcDataSeries.getSeries(ids(i));
-      bool added = mAlgorithm.addSeries(ids(i), series);
+      bool                added = mAlgorithm.addSeries(ids(i), series);
       if (!added && overwrite) mAlgorithm.updateSeries(ids(i), series);
     }
 
@@ -241,7 +257,7 @@ public:
     if (!destPtr) return Error(NoDataSet);
     destPtr->setDataSet(getSliceDataSet(time));
 
-    if(destPtr->size() == 0) return Error(EmptyDataSet);
+    if (destPtr->size() == 0) return Error(EmptyDataSet);
 
     return OK();
   }
@@ -260,10 +276,11 @@ public:
     mAlgorithm = DataSeries(0);
     return OK();
   }
-  
+
   MessageResult<string> print()
   {
-    return "DataSeries " + std::string(get<kName>()) + ": " + mAlgorithm.print();
+    return "DataSeries " + std::string(get<kName>()) + ": " +
+           mAlgorithm.print();
   }
 
   const DataSeries getDataSeries() const { return mAlgorithm; }
@@ -272,30 +289,29 @@ public:
   static auto getMessageDescriptors()
   {
     return defineMessages(
-        makeMessage("addFrame",     &DataSeriesClient::addFrame),
-        makeMessage("addSeries",    &DataSeriesClient::addSeries),
-        makeMessage("getFrame",     &DataSeriesClient::getFrame),
-        makeMessage("getSeries",    &DataSeriesClient::getSeries),
-        makeMessage("setFrame",     &DataSeriesClient::setFrame),
-        makeMessage("setSeries",    &DataSeriesClient::setSeries),
-        makeMessage("updateFrame",  &DataSeriesClient::updateFrame),
+        makeMessage("addFrame", &DataSeriesClient::addFrame),
+        makeMessage("addSeries", &DataSeriesClient::addSeries),
+        makeMessage("getFrame", &DataSeriesClient::getFrame),
+        makeMessage("getSeries", &DataSeriesClient::getSeries),
+        makeMessage("setFrame", &DataSeriesClient::setFrame),
+        makeMessage("setSeries", &DataSeriesClient::setSeries),
+        makeMessage("updateFrame", &DataSeriesClient::updateFrame),
         makeMessage("updateSeries", &DataSeriesClient::updateSeries),
-        makeMessage("deleteFrame",  &DataSeriesClient::deleteFrame),
+        makeMessage("deleteFrame", &DataSeriesClient::deleteFrame),
         makeMessage("deleteSeries", &DataSeriesClient::deleteSeries),
-        makeMessage("merge",        &DataSeriesClient::merge),
-        makeMessage("dump",         &DataSeriesClient::dump),
-        makeMessage("load",         &DataSeriesClient::load),
-        makeMessage("print",        &DataSeriesClient::print),
-        makeMessage("size",         &DataSeriesClient::size),
-        makeMessage("cols",         &DataSeriesClient::dims),
-        makeMessage("clear",        &DataSeriesClient::clear),
-        makeMessage("write",        &DataSeriesClient::write),
-        makeMessage("read",         &DataSeriesClient::read),
-        makeMessage("toBuffer",     &DataSeriesClient::getSeries),
-        makeMessage("fromBuffer",   &DataSeriesClient::setSeries),
-        makeMessage("getIds",       &DataSeriesClient::getIds),
-        makeMessage("getDataSet",   &DataSeriesClient::getDataSet)
-    );
+        makeMessage("merge", &DataSeriesClient::merge),
+        makeMessage("dump", &DataSeriesClient::dump),
+        makeMessage("load", &DataSeriesClient::load),
+        makeMessage("print", &DataSeriesClient::print),
+        makeMessage("size", &DataSeriesClient::size),
+        makeMessage("cols", &DataSeriesClient::dims),
+        makeMessage("clear", &DataSeriesClient::clear),
+        makeMessage("write", &DataSeriesClient::write),
+        makeMessage("read", &DataSeriesClient::read),
+        makeMessage("toBuffer", &DataSeriesClient::getSeries),
+        makeMessage("fromBuffer", &DataSeriesClient::setSeries),
+        makeMessage("getIds", &DataSeriesClient::getIds),
+        makeMessage("getDataSet", &DataSeriesClient::getDataSet));
   }
 
 private:
@@ -311,23 +327,24 @@ private:
 
   DataSet getSliceDataSet(index time) const
   {
-    DataSet ds(mAlgorithm.dims());
+    DataSet                         ds(mAlgorithm.dims());
     decltype(mAlgorithm)::FrameType frame(mAlgorithm.dims());
 
-    for(auto id : mAlgorithm.getIds())
+    for (auto id : mAlgorithm.getIds())
     {
       bool ret = mAlgorithm.getFrame(id, time, frame);
-      if(ret) ds.add(id, frame);
+      if (ret) ds.add(id, frame);
     }
 
     return ds;
   }
 };
 
-} // namespace dataset
+} // namespace dataseries
 
 using DataSeriesClientRef = SharedClientRef<dataseries::DataSeriesClient>;
-using InputDataSeriesClientRef = SharedClientRef<const dataseries::DataSeriesClient>;
+using InputDataSeriesClientRef =
+    SharedClientRef<const dataseries::DataSeriesClient>;
 
 using NRTThreadedDataSeriesClient =
     NRTThreadingAdaptor<typename DataSeriesClientRef::SharedType>;
