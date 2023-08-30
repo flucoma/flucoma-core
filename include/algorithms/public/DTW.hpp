@@ -47,40 +47,35 @@ public:
   constexpr index initialized() const { return mInitialized; }
 
   double process(InputRealMatrixView x1, InputRealMatrixView x2,
-                 DTWConstraint constraint = DTWConstraint::kUnconstrained,
-                 index         constraintParam = 2,
-                 Allocator&    alloc = FluidDefaultAllocator())
+                 DTWConstraint constr = DTWConstraint::kUnconstrained,
+                 index param = 2, Allocator& alloc = FluidDefaultAllocator())
   {
     ScopedEigenMap<Eigen::VectorXd> x1r(x1.cols(), alloc),
         x2r(x2.cols(), alloc);
-    Constraint c(constraint, x1.rows(), x2.rows(), constraintParam);
+    Constraint constraint(constr, x1.rows(), x2.rows(), param);
 
     mDistanceMetrics.resize(x1.rows(), x2.rows());
     mDistanceMetrics.fill(std::numeric_limits<double>::max());
 
-    // simple brute force DTW is very inefficient, see FastDTW
-    for (index i = c.firstRow(); i <= c.lastRow(); i++)
-    {
-      for (index j = c.firstCol(i); j <= c.lastCol(i); j++)
+    constraint.iterate([&, this](index r, index c) {
+      x1r = _impl::asEigen<Eigen::Matrix>(x1.row(r));
+      x2r = _impl::asEigen<Eigen::Matrix>(x2.row(c));
+
+      mDistanceMetrics(r, c) = differencePNormToTheP(x1r, x2r);
+
+      if (r > 0 || c > 0)
       {
-        x1r = _impl::asEigen<Eigen::Matrix>(x1.row(i));
-        x2r = _impl::asEigen<Eigen::Matrix>(x2.row(j));
+        double minimum = std::numeric_limits<double>::max();
 
-        mDistanceMetrics(i, j) = differencePNormToTheP(x1r, x2r);
+        if (r > 0) minimum = std::min(minimum, mDistanceMetrics(r - 1, c));
+        if (c > 0) minimum = std::min(minimum, mDistanceMetrics(r, c - 1));
+        if (r > 0 && c > 0)
+          minimum = std::min(minimum, mDistanceMetrics(r - 1, c - 1));
 
-        if (i > 0 || j > 0)
-        {
-          double minimum = std::numeric_limits<double>::max();
-
-          if (i > 0) minimum = std::min(minimum, mDistanceMetrics(i - 1, j));
-          if (j > 0) minimum = std::min(minimum, mDistanceMetrics(i, j - 1));
-          if (i > 0 && j > 0)
-            minimum = std::min(minimum, mDistanceMetrics(i - 1, j - 1));
-
-          mDistanceMetrics(i, j) += minimum;
-        }
+        if (minimum == std::numeric_limits<double>::max()) return -1;
+        mDistanceMetrics(r, c) += minimum;
       }
-    }
+    });
 
     mCalculated = true;
 
@@ -131,8 +126,50 @@ private:
     Constraint(DTWConstraint c, index rows, index cols, float param)
         : mType{c}, mRows{rows}, mCols{cols} {};
 
-    const index firstRow() const { return 0; };
-    const index lastRow() const { return mRows - 1; };
+    void iterate(std::function<void(index, index)> f)
+    {
+      index first, last;
+
+      for (index r = 0; r < mRows; ++r)
+      {
+        first = firstCol(r);
+        last = lastCol(r);
+
+        for (index c = first; c <= last; ++c) f(r, c);
+      }
+    };
+
+  private:
+    DTWConstraint mType;
+    index         mRows, mCols;
+    float         mParam; // mParam is either radius (SC) or gradient (Ik)
+
+    inline static index rasterLineMinY(index x1, index y1, float dydx, index x)
+    {
+      return std::round(y1 + (x - x1) * dydx);
+    }
+
+    inline static index rasterLineMinY(index x1, index y1, index x2, index y2,
+                                       index x)
+    {
+      float dy = y2 - y1, dx = x2 - x1;
+      return rasterLineMinY(x1, y1, dy / dx, x);
+    }
+
+    inline static index rasterLineMaxY(index x1, index y1, float dydx, index x)
+    {
+      if (dydx > 1)
+        return rasterLineMinY(x1, y1, dydx, x + 1) - 1;
+      else
+        return rasterLineMinY(x1, y1, dydx, x);
+    }
+
+    inline static index rasterLineMaxY(index x1, index y1, index x2, index y2,
+                                       index x)
+    {
+      float dy = y2 - y1, dx = x2 - x1;
+      return rasterLineMaxY(x1, y1, dy / dx, x);
+    }
 
     index firstCol(index row)
     {
@@ -179,38 +216,6 @@ private:
       }
       }
     };
-
-  private:
-    DTWConstraint mType;
-    index         mRows, mCols;
-    float         mParam; // mParam is either radius (SC) or gradient (Ik)
-
-    inline static index rasterLineMinY(index x1, index y1, float dydx, index x)
-    {
-      return std::round(y1 + (x - x1) * dydx);
-    }
-
-    inline static index rasterLineMinY(index x1, index y1, index x2, index y2,
-                                       index x)
-    {
-      float dy = y2 - y1, dx = x2 - x1;
-      return rasterLineMinY(x1, y1, dy / dx, x);
-    }
-
-    inline static index rasterLineMaxY(index x1, index y1, float dydx, index x)
-    {
-      if (dydx > 1)
-        return rasterLineMinY(x1, y1, dydx, x + 1) - 1;
-      else
-        return rasterLineMinY(x1, y1, dydx, x);
-    }
-
-    inline static index rasterLineMaxY(index x1, index y1, index x2, index y2,
-                                       index x)
-    {
-      float dy = y2 - y1, dx = x2 - x1;
-      return rasterLineMaxY(x1, y1, dy / dx, x);
-    }
   }; // struct Constraint
 };
 
