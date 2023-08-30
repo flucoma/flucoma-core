@@ -26,7 +26,8 @@ constexpr auto DTWParams = defineParameters(
     LongParam("p", "LpNorm power (distance weighting)", 2, Min(1)),
     EnumParam("constraint", "Constraint Type", 0, "Unconstrained", "Ikatura",
               "Sakoe-Chiba"),
-    LongParam("radius", "Constraint Value", 2, Min(0)));
+    LongParam("radius", "Sakoe-Chiba Constraint Radius", 2, Min(0)),
+    FloatParam("gradient", "Ikatura Parallelogram max gradient", 1, Min(1)));
 
 class DTWClient : public FluidBaseClient,
                   OfflineIn,
@@ -34,7 +35,7 @@ class DTWClient : public FluidBaseClient,
                   ModelObject,
                   public DataClient<algorithm::DTW>
 {
-  enum { kName, kPNorm, kConstraint, kRadius };
+  enum { kName, kPNorm, kConstraint, kRadius, kGradient };
 
 public:
   using string = std::string;
@@ -83,14 +84,16 @@ public:
 
     if (i1 < 0 || i2 < 0) return Error<double>(PointNotFound);
 
+    mAlgorithm.init(get<kPNorm>());
+
     InputRealMatrixView series1 = srcDataSeries.getSeries(id1),
                         series2 = srcDataSeries.getSeries(id2);
 
-    mAlgorithm.init(get<kPNorm>());
+    algorithm::DTWConstraint constraint =
+        (algorithm::DTWConstraint) get<kConstraint>();
 
-    return mAlgorithm.process(series1, series2,
-                              (algorithm::DTWConstraint) get<kConstraint>(),
-                              get<kRadius>());
+    return mAlgorithm.process(series1, series2, constraint,
+                              constraintParam(constraint));
   }
 
   MessageResult<double> bufCost(InputBufferPtr data1, InputBufferPtr data2)
@@ -122,6 +125,20 @@ public:
   {
     return defineMessages(makeMessage("cost", &DTWClient::cost),
                           makeMessage("bufCost", &DTWClient::bufCost));
+  }
+
+private:
+  float constraintParam(algorithm::DTWConstraint constraint)
+  {
+    using namespace algorithm;
+
+    switch (constraint)
+    {
+    case DTWConstraint::kIkatura: return get<kGradient>();
+    case DTWConstraint::kSakoeChiba: return get<kRadius>();
+    }
+
+    return 0.0;
   }
 };
 
