@@ -112,7 +112,7 @@ private:
 
   struct Constraint
   {
-    Constraint(DTWConstraint c, index rows, index cols, index param)
+    Constraint(DTWConstraint c, index rows, index cols, float param)
         : mType{c}, mRows{rows}, mCols{cols} {};
 
     const index firstRow() const { return 0; };
@@ -138,8 +138,6 @@ private:
                                    mCols - 1 - mParam, row);
         return col < 0 ? 0 : col > mCols - 1 ? mCols - 1 : col;
       }
-
-      default: return -1;
       }
     };
 
@@ -163,27 +161,27 @@ private:
                                    mCols - 1 + mParam, row);
         return col < 0 ? 0 : col > mCols - 1 ? mCols - 1 : col;
       }
-
-      default: return -1;
       }
     };
 
   private:
     DTWConstraint mType;
-    index mRows, mCols, mParam; // mParam is either radius (SC) or gradient (Ik)
+    index         mRows, mCols;
+    float         mParam; // mParam is either radius (SC) or gradient (Ik)
 
-    inline static index rasterLineMinY(float x1, float y1, float dydx, float x)
+    inline static index rasterLineMinY(index x1, index y1, float dydx, index x)
     {
       return std::round(y1 + (x - x1) * dydx);
     }
 
-    inline static index rasterLineMinY(float x1, float y1, float x2, float y2,
-                                       float x)
+    inline static index rasterLineMinY(index x1, index y1, index x2, index y2,
+                                       index x)
     {
-      return rasterLineMinY(x1, y1, (y2 - y1) / (x2 - x1), x);
+      float dy = y2 - y1, dx = x2 - x1;
+      return rasterLineMinY(x1, y1, dy / dx, x);
     }
 
-    inline static index rasterLineMaxY(float x1, float y1, float dydx, float x)
+    inline static index rasterLineMaxY(index x1, index y1, float dydx, index x)
     {
       if (dydx > 1)
         return rasterLineMinY(x1, y1, dydx, x + 1) - 1;
@@ -191,10 +189,11 @@ private:
         return rasterLineMinY(x1, y1, dydx, x);
     }
 
-    inline static index rasterLineMaxY(float x1, float y1, float x2, float y2,
-                                       float x)
+    inline static index rasterLineMaxY(index x1, index y1, index x2, index y2,
+                                       index x)
     {
-      return rasterLineMaxY(x1, y1, (y2 - y1) / (x2 - x1), x);
+      float dy = y2 - y1, dx = x2 - x1;
+      return rasterLineMaxY(x1, y1, dy / dx, x);
     }
   }; // struct Constraint
 };
