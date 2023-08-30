@@ -424,7 +424,8 @@ private:
   double distance(InputRealMatrixView x1, InputRealMatrixView x2, index p) const
   {
     algorithm::DTW dtw;
-    return dtw.process(x1, x2);
+    return dtw.process(x1, x2, algorithm::DTWConstraint::kSakoeChiba,
+                       std::min(x1.size(), x2.size()) / 4);
   }
 };
 
