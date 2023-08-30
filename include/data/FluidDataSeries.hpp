@@ -33,8 +33,8 @@ public:
   }
 
   // Construct from existing tensors of ids and data points
-  FluidDataSeries(FluidTensorView<const idType, 1>                    ids,
-                  std::vector<FluidTensorView<const dataType, N + 1>> points)
+  FluidDataSeries(FluidTensorView<const idType, 1>                   ids,
+                  rt::vector<FluidTensorView<const dataType, N + 1>> points)
       : mIds(ids), mData(points)
   {
     initFromData();
@@ -43,8 +43,8 @@ public:
   // Construct from existing tensors of ids and data points
   // (from convertible type for data, typically float -> double)
   template <typename U, typename T = dataType>
-  FluidDataSeries(FluidTensorView<const idType, 1>             ids,
-                  std::vector<FluidTensorView<const U, N + 1>> points,
+  FluidDataSeries(FluidTensorView<const idType, 1>            ids,
+                  rt::vector<FluidTensorView<const U, N + 1>> points,
                   std::enable_if_t<std::is_convertible<U, T>::value>* = nullptr)
       : mIds(ids), mData(points)
   {
@@ -59,7 +59,7 @@ public:
     static_assert(sizeof...(dims) == N, "Number of dimensions doesn't match");
     if (size() == 0)
     {
-      mData = std::vector<FluidTensor<dataType, N + 1>>();
+      mData = rt::vector<FluidTensor<dataType, N + 1>>();
       mDim = FluidTensorSlice<N>(dims...);
       return true;
     }
@@ -234,9 +234,9 @@ public:
       return mData[pos->second].rows();
   }
 
-  std::vector<FluidTensorView<dataType, N + 1>> getData()
+  rt::vector<FluidTensorView<dataType, N + 1>> getData()
   {
-    std::vector<FluidTensorView<dataType, N + 1>> viewVec(mData.size());
+    rt::vector<FluidTensorView<dataType, N + 1>> viewVec(mData.size());
 
     // hacky fix to force conversion of vector of tensors to vector of views of
     // mData doesn't actually copy anything, it uses the FluidTensor ctor of
@@ -247,9 +247,9 @@ public:
     return viewVec;
   }
 
-  const std::vector<FluidTensorView<const dataType, N + 1>> getData() const
+  const rt::vector<FluidTensorView<const dataType, N + 1>> getData() const
   {
-    std::vector<FluidTensorView<const dataType, N + 1>> viewVec;
+    rt::vector<FluidTensorView<const dataType, N + 1>> viewVec;
 
     // hacky fix to force conversion of vector to views of mData
     // doesn't actually copy anything, it uses the FluidTensor ctor of
@@ -362,9 +362,9 @@ private:
     for (index i = 0; i < mIds.size(); i++) mIndex.insert({mIds[i], i});
   }
 
-  std::unordered_map<idType, index>         mIndex;
-  FluidTensor<idType, 1>                    mIds;
-  std::vector<FluidTensor<dataType, N + 1>> mData;
-  FluidTensorSlice<N>                       mDim; // dimensions for one frame
+  rt::vector<FluidTensor<dataType, N + 1>> mData;
+  rt::unordered_map<idType, index>         mIndex;
+  FluidTensor<idType, 1>                   mIds;
+  FluidTensorSlice<N>                      mDim; // dimensions for one frame
 };
 } // namespace fluid
