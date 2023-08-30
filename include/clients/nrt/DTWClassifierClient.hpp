@@ -61,7 +61,11 @@ void from_json(const nlohmann::json& j, DTWClassifierData& data)
 constexpr auto DTWClassifierParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
     LongParam("numNeighbours", "Number of Nearest Neighbours", 3, Min(1)),
-    EnumParam("weight", "Weight Neighbours by Distance", 1, "No", "Yes"));
+    EnumParam("weight", "Weight Neighbours by Distance", 1, "No", "Yes"),
+    EnumParam("constraint", "Constraint Type", 0, "Unconstrained", "Ikatura",
+              "Sakoe-Chiba"),
+    FloatParam("radius", "Sakoe-Chiba Constraint Radius", 2, Min(0)),
+    FloatParam("gradient", "Ikatura Parallelogram max gradient", 1, Min(1)));
 
 class DTWClassifierClient : public FluidBaseClient,
                             OfflineIn,
@@ -69,7 +73,7 @@ class DTWClassifierClient : public FluidBaseClient,
                             ModelObject,
                             public DataClient<DTWClassifierData>
 {
-  enum { kName, kNumNeighbors, kWeight };
+  enum { kName, kNumNeighbors, kWeight, kConstraint, kRadius, kGradient };
 
 public:
   using string = std::string;
@@ -145,7 +149,6 @@ public:
         makeMessage("fit", &DTWClassifierClient::fit),
         makeMessage("predict", &DTWClassifierClient::predict),
         makeMessage("predictPoint", &DTWClassifierClient::predictPoint),
-        makeMessage("cols", &DTWClassifierClient::dims),
         makeMessage("clear", &DTWClassifierClient::clear),
         makeMessage("size", &DTWClassifierClient::size),
         makeMessage("load", &DTWClassifierClient::load),
