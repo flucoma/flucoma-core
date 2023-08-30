@@ -404,10 +404,12 @@ public:
         makeMessage("clear", &DataSeriesClient::clear),
         makeMessage("write", &DataSeriesClient::write),
         makeMessage("read", &DataSeriesClient::read),
-        makeMessage("getIds", &DataSeriesClient::getIds),
-        makeMessage("getDataSet", &DataSeriesClient::getDataSet),
         makeMessage("kNearest", &DataSeriesClient::kNearest),
-        makeMessage("kNearestDist", &DataSeriesClient::kNearestDist));
+        makeMessage("kNearestDist", &DataSeriesClient::kNearestDist),
+        makeMessage("toBuffer", &DataSeriesClient::getSeries),
+        makeMessage("fromBuffer", &DataSeriesClient::setSeries),
+        makeMessage("getIds", &DataSeriesClient::getIds),
+        makeMessage("getDataSet", &DataSeriesClient::getDataSet));
   }
 
 private:
