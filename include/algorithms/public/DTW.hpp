@@ -110,6 +110,22 @@ private:
     return (v1.array() - v2.array()).abs().pow(mPNorm).sum();
   }
 
+  // fun little fold operation to do a variadic minimum
+  template <typename... Args>
+  inline static auto min(Args&&... args)
+  {
+    auto m = (args, ...);
+    return ((m = std::min(m, args)), ...);
+  }
+
+  // filter for minimum chaining, if cond evaluates to false then the value
+  // isn't used (never will be the minimum if its the numeric maximum)
+  template <typename T>
+  inline static T useIf(bool cond, T val)
+  {
+    return cond ? val : std::numeric_limits<T>::max();
+  }
+
   struct Constraint
   {
     Constraint(DTWConstraint c, index rows, index cols, float param)
