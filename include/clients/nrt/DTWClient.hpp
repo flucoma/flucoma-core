@@ -108,17 +108,19 @@ public:
     if (buf1.numFrames() == 0 || buf2.numFrames() == 0)
       return Error<double>(EmptyBuffer);
 
+    mAlgorithm.init(get<kPNorm>());
+
     RealMatrix buf1frames(buf1.numFrames(), buf1.numChans()),
         buf2frames(buf2.numFrames(), buf2.numChans());
 
     buf1frames <<= buf1.allFrames().transpose();
     buf2frames <<= buf2.allFrames().transpose();
 
-    mAlgorithm.init(get<kPNorm>());
+    algorithm::DTWConstraint constraint =
+        (algorithm::DTWConstraint) get<kConstraint>();
 
-    return mAlgorithm.process(buf1frames, buf2frames,
-                              (algorithm::DTWConstraint) get<kConstraint>(),
-                              get<kRadius>());
+    return mAlgorithm.process(buf1frames, buf2frames, constraint,
+                              constraintParam(constraint));
   }
 
   static auto getMessageDescriptors()
