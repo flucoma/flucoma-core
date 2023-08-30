@@ -24,18 +24,38 @@ namespace dtwclassifier {
 
 struct DTWClassifierData
 {
+  algorithm::DTW                            dtw;
+  FluidDataSeries<std::string, double, 1>   series{1};
+  FluidDataSet<std::string, std::string, 1> labels{1};
+
+  index size() const { return labels.size(); }
+  index dims() const { return dtw.dims(); }
+  void  clear()
+  {
+    labels = FluidDataSet<std::string, std::string, 1>(1);
+    series = FluidDataSeries<std::string, double, 1>(1);
+
+    dtw.clear();
+  }
+  bool initialized() const { return dtw.initialized(); }
 };
 
 void to_json(nlohmann::json& j, const DTWClassifierData& data)
 {
+  j["labels"] = data.labels;
+  j["series"] = data.series;
 }
 
 bool check_json(const nlohmann::json& j, const DTWClassifierData&)
 {
+  return fluid::check_json(j, {"labels", "series"},
+                           {JSONTypes::OBJECT, JSONTypes::OBJECT});
 }
 
 void from_json(const nlohmann::json& j, DTWClassifierData& data)
 {
+  data.series = j.at("series").get<FluidDataSeries<std::string, double, 1>>();
+  data.labels = j.at("labels").get<FluidDataSet<std::string, std::string, 1>>();
 }
 
 constexpr auto DTWClassifierParams = defineParameters(
