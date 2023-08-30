@@ -287,9 +287,10 @@ public:
 
     FluidTensor<const double, 2> series(buf.allFrames().transpose());
 
-    std::vector<index> indices(asUnsigned(mAlgorithm.size()));
+    rt::vector<index>  indices(asUnsigned(mAlgorithm.size()));
+    rt::vector<double> distances(asUnsigned(mAlgorithm.size()));
+
     std::iota(indices.begin(), indices.end(), 0);
-    std::vector<double> distances(asUnsigned(mAlgorithm.size()));
 
     auto ds = mAlgorithm.getData();
 
@@ -329,9 +330,10 @@ public:
 
     FluidTensor<const double, 2> series(buf.allFrames().transpose());
 
-    std::vector<index> indices(asUnsigned(mAlgorithm.size()));
-    std::iota(indices.begin(), indices.end(), 0);
+    std::vector<index>  indices(asUnsigned(mAlgorithm.size()));
     std::vector<double> distances(asUnsigned(mAlgorithm.size()));
+
+    std::iota(indices.begin(), indices.end(), 0);
 
     auto ds = mAlgorithm.getData();
 
