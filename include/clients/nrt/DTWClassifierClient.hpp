@@ -105,9 +105,28 @@ public:
     return {};
   }
 
+  // not fitting anything, you just set the input series and output labels
   MessageResult<void> fit(InputDataSeriesClientRef dataSeriesClient,
                           InputLabelSetClientRef   labelSetClient)
   {
+    auto dataSeriesClientPtr = dataSeriesClient.get().lock();
+    if (!dataSeriesClientPtr) return Error(NoDataSet);
+
+    auto labelSetPtr = labelSetClient.get().lock();
+    if (!labelSetPtr) return Error(NoLabelSet);
+
+    auto dataSeries = dataSeriesClientPtr->getDataSeries();
+    if (dataSeries.size() == 0) return Error(EmptyDataSet);
+
+    auto labelSet = labelSetPtr->getLabelSet();
+    if (labelSet.size() == 0) return Error(EmptyLabelSet);
+
+    if (dataSeries.size() != labelSet.size()) return Error(SizesDontMatch);
+
+    mAlgorithm.series = dataSeries;
+    mAlgorithm.labels = labelSet;
+
+    return OK();
   }
 
   MessageResult<string> predictPoint(InputBufferPtr data) const
