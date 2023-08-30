@@ -72,7 +72,6 @@ public:
         if (r > 0 && c > 0)
           minimum = std::min(minimum, mDistanceMetrics(r - 1, c - 1));
 
-        if (minimum == std::numeric_limits<double>::max()) return -1;
         mDistanceMetrics(r, c) += minimum;
       }
     });
@@ -124,7 +123,21 @@ private:
   struct Constraint
   {
     Constraint(DTWConstraint c, index rows, index cols, float param)
-        : mType{c}, mRows{rows}, mCols{cols} {};
+        : mType{c}, mRows{rows}, mCols{cols}, mParam{param}
+    {
+      // ifn't gradient more than digonal set it to be the diagonal
+      // (sakoe-chiba with radius 0)
+      if (c == DTWConstraint::kIkatura)
+      {
+        float big = std::max(mRows, mCols), smol = std::min(mRows, mCols);
+
+        if (mParam <= big / smol)
+        {
+          mType = DTWConstraint::kSakoeChiba;
+          mParam = 0;
+        }
+      }
+    };
 
     void iterate(std::function<void(index, index)> f)
     {
@@ -189,6 +202,7 @@ private:
       case DTWConstraint::kSakoeChiba: {
         index col = rasterLineMinY(mParam, -mParam, mRows - 1 + mParam,
                                    mCols - 1 - mParam, row);
+
         return col < 0 ? 0 : col > mCols - 1 ? mCols - 1 : col;
       }
       }
@@ -212,6 +226,7 @@ private:
       case DTWConstraint::kSakoeChiba: {
         index col = rasterLineMaxY(-mParam, mParam, mRows - 1 - mParam,
                                    mCols - 1 + mParam, row);
+
         return col < 0 ? 0 : col > mCols - 1 ? mCols - 1 : col;
       }
       }
