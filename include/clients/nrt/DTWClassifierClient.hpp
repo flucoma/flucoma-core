@@ -157,16 +157,27 @@ public:
         makeMessage("read", &DTWClassifierClient::read));
   }
 
+private:
+  float constraintParam(algorithm::DTWConstraint constraint) const
   {
+    using namespace algorithm;
 
+    switch (constraint)
+    {
+    case DTWConstraint::kIkatura: return get<kGradient>();
+    case DTWConstraint::kSakoeChiba: return get<kRadius>();
+    }
 
+    return 0.0;
   }
 };
 
+using DTWClassifierRef = SharedClientRef<const DTWClassifierClient>;
 
 } // namespace dtwclassifier
 
 using NRTThreadedDTWClassifierClient =
+    NRTThreadingAdaptor<typename dtwclassifier::DTWClassifierRef::SharedType>;
 
 } // namespace client
 } // namespace fluid
