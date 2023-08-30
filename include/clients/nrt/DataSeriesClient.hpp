@@ -342,8 +342,8 @@ public:
 
     FluidTensor<const double, 2> series(buf.allFrames().transpose());
 
-    std::vector<index>  indices(asUnsigned(mAlgorithm.size()));
-    std::vector<double> distances(asUnsigned(mAlgorithm.size()));
+    rt::vector<index>  indices(asUnsigned(mAlgorithm.size()));
+    rt::vector<double> distances(asUnsigned(mAlgorithm.size()));
 
     std::iota(indices.begin(), indices.end(), 0);
 
