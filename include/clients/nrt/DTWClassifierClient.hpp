@@ -245,11 +245,13 @@ private:
       return distances[asUnsigned(a)] < distances[asUnsigned(b)];
     });
 
-    rt::unordered_map<std::string, index> labelCount;
-    FluidTensorView<const std::string, 2> labels = mAlgorithm.labels.getData();
+    rt::unordered_map<std::string, double> labelCount;
+    FluidTensorView<const std::string, 2>  labels = mAlgorithm.labels.getData();
 
     std::for_each(indices.begin(), indices.begin() + get<kNumNeighbors>(),
-                  [&](index& i) { return labelCount[labels(i, 0)]++; });
+                  [&](index& i) {
+                    return labelCount[labels(i, 0)] += 1.0 / distances[i];
+                  });
 
     auto result = std::max_element(
         labelCount.begin(), labelCount.end(),
