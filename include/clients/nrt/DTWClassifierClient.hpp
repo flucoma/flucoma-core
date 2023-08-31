@@ -128,7 +128,6 @@ public:
 
     auto seriesIds = dataSeries.getIds(), labelIds = labelSet.getIds();
 
-    // TODO: check if subset rather than all the same ids
     bool everySeriesHasALabel = std::is_permutation(
         seriesIds.begin(), seriesIds.end(), labelIds.begin());
 
