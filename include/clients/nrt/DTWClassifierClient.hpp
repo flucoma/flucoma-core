@@ -159,6 +159,7 @@ public:
   MessageResult<void> predict(InputDataSeriesClientRef source,
                               LabelSetClientRef        dest) const
   {
+
     auto sourcePtr = source.get().lock();
     if (!sourcePtr) return Error(NoDataSet);
 
@@ -174,12 +175,11 @@ public:
     if (mAlgorithm.size() == 0) return Error(NoDataFitted);
 
     FluidTensorView<string, 1> ids = dataSeries.getIds();
-    rt::vector<RealMatrixView> data = dataSeries.getData();
     LabelSet                   result(1);
 
     for (index i = 0; i < dataSeries.size(); i++)
     {
-      StringVector label = {kNearestModeLabel(data[i])};
+      StringVector label = {kNearestModeLabel(dataSeries.getSeries(ids[i]))};
       result.add(ids(i), label);
     }
 
@@ -216,7 +216,7 @@ private:
     return 0.0;
   }
 
-  std::string kNearestModeLabel(InputRealMatrixView series) const
+  MessageResult<string> kNearestModeLabel(InputRealMatrixView series) const
   {
     index k = get<kNumNeighbors>();
     if (k < 1) return Error<string>(SmallK);
