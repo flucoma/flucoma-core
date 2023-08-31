@@ -83,7 +83,7 @@ public:
 
 private:
   mutable RealMatrix mDistanceMetrics;
-  const index        mPNorm{2};
+  index              mPNorm{2};
 
   // P-Norm of the difference vector
   // Lp{vec} = (|vec[0]|^p + |vec[1]|^p + ... + |vec[n-1]|^p + |vec[n]|^p)^(1/p)
