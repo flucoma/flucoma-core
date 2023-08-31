@@ -62,7 +62,7 @@ void from_json(const nlohmann::json& j, DTWRegressorData& data)
   data.mappings = j.at("mappings").get<FluidDataSet<std::string, double, 1>>();
 }
 
-constexpr auto DTWClassifierParams = defineParameters(
+constexpr auto DTWRegressorParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
     LongParam("numNeighbours", "Number of Nearest Neighbours", 3, Min(1)),
     EnumParam("constraint", "Constraint Type", 0, "Unconstrained", "Ikatura",
@@ -86,7 +86,7 @@ public:
   using DataSet = FluidDataSet<string, double, 1>;
   using StringVector = FluidTensor<string, 1>;
 
-  using ParamDescType = decltype(DTWClassifierParams);
+  using ParamDescType = decltype(DTWRegressorParams);
 
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   std::reference_wrapper<ParamSetViewType> mParams;
@@ -101,7 +101,7 @@ public:
 
   static constexpr auto& getParameterDescriptors()
   {
-    return DTWClassifierParams;
+    return DTWRegressorParams;
   }
 
   DTWRegressorClient(ParamSetViewType& p, FluidContext&) : mParams(p) {}
