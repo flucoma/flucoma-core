@@ -73,7 +73,7 @@ public:
     auto pos = mIndex.find(id);
     if (pos == mIndex.end())
     {
-      FluidTensorView<U, N + 1> newPoint(frame);
+      FluidTensorView<const dataType, N + 1> newPoint(frame);
       return addSeries(id, newPoint);
     }
 
