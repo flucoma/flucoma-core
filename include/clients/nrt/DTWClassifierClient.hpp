@@ -145,21 +145,16 @@ public:
 
   MessageResult<string> predictPoint(InputBufferPtr data) const
   {
-    if (get<kNumNeighbors>() < 1) return Error<string>(SmallK);
-    if (get<kNumNeighbors>() > mAlgorithm.size())
-      return Error<string>(LargeK);
-
-    BufferAdaptor::ReadAccess       buf = data.get();
-    FluidTensor<double, 2>          series(buf.numFrames(), buf.numChans());
-    rt::vector<InputRealMatrixView> ds = mAlgorithm.series.getData();
+    BufferAdaptor::ReadAccess buf = data.get();
+    RealMatrix                series(buf.numFrames(), buf.numChans());
 
     if (buf.numChans() < mAlgorithm.series.dims())
       return Error<string>(WrongPointSize);
 
     series <<= buf.allFrames().transpose();
 
-    rt::vector<index>  indices(asUnsigned(mAlgorithm.size()));
-    rt::vector<double> distances(asUnsigned(mAlgorithm.size()));
+    return kNearestModeLabel(series);
+  }
 
     std::iota(indices.begin(), indices.end(), 0);
 
@@ -221,6 +216,48 @@ private:
     }
 
     return 0.0;
+  }
+
+  std::string kNearestModeLabel(InputRealMatrixView series) const
+  {
+    index k = get<kNumNeighbors>();
+    if (k < 1) return Error<string>(SmallK);
+    if (k > mAlgorithm.size()) return Error<string>(LargeK);
+
+    rt::vector<InputRealMatrixView> ds = mAlgorithm.series.getData();
+
+    if (series.cols() < mAlgorithm.series.dims())
+      return Error<string>(WrongPointSize);
+
+    rt::vector<index>  indices(asUnsigned(mAlgorithm.size()));
+    rt::vector<double> distances(asUnsigned(mAlgorithm.size()));
+
+    std::iota(indices.begin(), indices.end(), 0);
+
+    algorithm::DTWConstraint constraint =
+        (algorithm::DTWConstraint) get<kConstraint>();
+
+    std::transform(indices.begin(), indices.end(), distances.begin(),
+                   [&series, &ds, &constraint, this](index i) {
+                     return mAlgorithm.dtw.process(series, ds[i], constraint,
+                                                   constraintParam(constraint));
+                   });
+
+    std::sort(indices.begin(), indices.end(), [&distances](index a, index b) {
+      return distances[asUnsigned(a)] < distances[asUnsigned(b)];
+    });
+
+    rt::unordered_map<std::string, index> labelCount;
+    FluidTensorView<const std::string, 2> labels = mAlgorithm.labels.getData();
+
+    std::for_each(indices.begin(), indices.begin() + get<kNumNeighbors>(),
+                  [&](index& i) { return labelCount[labels(i, 0)]++; });
+
+    auto result = std::max_element(
+        labelCount.begin(), labelCount.end(),
+        [](auto& left, auto& right) { return left.second < right.second; });
+
+    return result->first;
   }
 };
 
