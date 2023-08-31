@@ -116,6 +116,34 @@ public:
   MessageResult<void> fit(InputDataSeriesClientRef dataSeriesClient,
                           InputDataSetClientRef    dataSetClient)
   {
+    auto dataSeriesClientPtr = dataSeriesClient.get().lock();
+    if (!dataSeriesClientPtr) return Error(NoDataSet);
+
+    auto dataSetPtr = dataSetClient.get().lock();
+    if (!dataSetPtr) return Error(NoDataSet);
+
+    auto dataSeries = dataSeriesClientPtr->getDataSeries();
+    if (dataSeries.size() == 0) return Error(EmptyDataSet);
+
+    auto dataSet = dataSetPtr->getDataSet();
+    if (dataSet.size() == 0) return Error(EmptyLabelSet);
+
+    if (dataSeries.size() != dataSet.size()) return Error(SizesDontMatch);
+
+    auto seriesIds = dataSeries.getIds(), mappingIds = dataSet.getIds();
+
+    bool everySeriesHasALabel = std::is_permutation(
+        seriesIds.begin(), seriesIds.end(), mappingIds.begin());
+
+    if (everySeriesHasALabel)
+    {
+      mAlgorithm.series = dataSeries;
+      mAlgorithm.mappings = dataSet;
+
+      return OK();
+    }
+    else
+      return Error(PointNotFound);
   }
 
   MessageResult<RealVector> predictPoint(InputBufferPtr data) const
