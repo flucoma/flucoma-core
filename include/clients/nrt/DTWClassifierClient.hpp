@@ -156,37 +156,35 @@ public:
     return kNearestModeLabel(series);
   }
 
-    std::iota(indices.begin(), indices.end(), 0);
-
-    algorithm::DTWConstraint constraint =
-        (algorithm::DTWConstraint) get<kConstraint>();
-
-    std::transform(indices.begin(), indices.end(), distances.begin(),
-                   [&series, &ds, &constraint, this](index i) {
-                     return mAlgorithm.dtw.process(series, ds[i], constraint,
-                                                   constraintParam(constraint));
-                   });
-
-    std::sort(indices.begin(), indices.end(), [&distances](index a, index b) {
-      return distances[asUnsigned(a)] < distances[asUnsigned(b)];
-    });
-
-    rt::unordered_map<std::string, index> labelCount;
-    FluidTensorView<const std::string, 2> labels = mAlgorithm.labels.getData();
-
-    std::for_each(indices.begin(), indices.begin() + get<kNumNeighbors>(),
-                  [&](index& i) { return labelCount[labels(i, 0)]++; });
-
-    auto result = std::max_element(
-        labelCount.begin(), labelCount.end(),
-        [](auto& left, auto& right) { return left.second < right.second; });
-
-    return result->first;
-  }
-
-  MessageResult<void> predict(InputDataSetClientRef source,
-                              LabelSetClientRef     dest) const
+  MessageResult<void> predict(InputDataSeriesClientRef source,
+                              LabelSetClientRef        dest) const
   {
+    auto sourcePtr = source.get().lock();
+    if (!sourcePtr) return Error(NoDataSet);
+
+    auto destPtr = dest.get().lock();
+    if (!destPtr) return Error(NoLabelSet);
+
+    auto dataSeries = sourcePtr->getDataSeries();
+    if (dataSeries.size() == 0) return Error(EmptyDataSet);
+
+    if (dataSeries.pointSize() != mAlgorithm.series.dims())
+      return Error(WrongPointSize);
+
+    if (mAlgorithm.size() == 0) return Error(NoDataFitted);
+
+    FluidTensorView<string, 1> ids = dataSeries.getIds();
+    rt::vector<RealMatrixView> data = dataSeries.getData();
+    LabelSet                   result(1);
+
+    for (index i = 0; i < dataSeries.size(); i++)
+    {
+      StringVector label = {kNearestModeLabel(data[i])};
+      result.add(ids(i), label);
+    }
+
+    destPtr->setLabelSet(result);
+    return OK();
   }
 
 
