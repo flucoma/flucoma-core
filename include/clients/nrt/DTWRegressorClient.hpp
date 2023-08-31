@@ -161,6 +161,46 @@ private:
   kNearestWeightedSum(InputRealMatrixView series,
                       Allocator&          alloc = FluidDefaultAllocator()) const
   {
+    using namespace algorithm::_impl;
+
+    index k = get<kNumNeighbors>();
+    if (k < 1) return Error<RealVector>(SmallK);
+    if (k > mAlgorithm.size()) return Error<RealVector>(LargeK);
+
+    rt::vector<InputRealMatrixView> ds = mAlgorithm.series.getData();
+
+    if (series.cols() < mAlgorithm.series.dims())
+      return Error<RealVector>(WrongPointSize);
+
+    rt::vector<index>  indices(asUnsigned(mAlgorithm.size()));
+    rt::vector<double> distances(asUnsigned(mAlgorithm.size()));
+
+    std::iota(indices.begin(), indices.end(), 0);
+
+    algorithm::DTWConstraint constraint =
+        (algorithm::DTWConstraint) get<kConstraint>();
+
+    std::transform(indices.begin(), indices.end(), distances.begin(),
+                   [&series, &ds, &constraint, this](index i) {
+                     return mAlgorithm.dtw.process(series, ds[i], constraint,
+                                                   constraintParam(constraint));
+                   });
+
+    std::sort(indices.begin(), indices.end(), [&distances](index a, index b) {
+      return distances[asUnsigned(a)] < distances[asUnsigned(b)];
+    });
+
+
+    ScopedEigenMap<Eigen::VectorXd> result(mAlgorithm.mappings.dims(), alloc);
+    InputRealMatrixView             mappings = mAlgorithm.mappings.getData();
+
+    std::for_each(indices.begin(), indices.begin() + get<kNumNeighbors>(),
+                  [&](index& i) {
+                    return result += distances[i] *
+                                     asEigen<Eigen::Matrix>(mappings.row(i));
+                  });
+
+    return RealVector(asFluid(result));
   }
 };
 
