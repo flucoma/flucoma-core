@@ -125,6 +125,39 @@ public:
   MessageResult<void> predict(InputDataSeriesClientRef source,
                               DataSetClientRef         dest) const
   {
+
+    auto sourcePtr = source.get().lock();
+    if (!sourcePtr) return Error(NoDataSet);
+
+    auto destPtr = dest.get().lock();
+    if (!destPtr) return Error(NoLabelSet);
+
+    auto dataSeries = sourcePtr->getDataSeries();
+    if (dataSeries.size() == 0) return Error(EmptyDataSet);
+
+    if (dataSeries.pointSize() != mAlgorithm.series.dims())
+      return Error(WrongPointSize);
+
+    if (mAlgorithm.size() == 0) return Error(NoDataFitted);
+
+    FluidTensorView<string, 1> ids = dataSeries.getIds();
+    DataSet                    result(mAlgorithm.mappings.dims());
+
+    for (index i = 0; i < dataSeries.size(); i++)
+    {
+      MessageResult<RealVector> point =
+          kNearestWeightedSum(dataSeries.getSeries(ids[i]));
+
+      if (point.ok())
+      {
+        RealVector pred = point;
+        result.add(ids(i), pred);
+      }
+      else
+        return MessageResult<void>{Result::Status::kError, point.message()};
+    }
+
+    destPtr->setDataSet(result);
     return OK();
   }
 
