@@ -252,7 +252,8 @@ private:
 
     std::transform(indices.begin(), indices.end(), distances.begin(),
                    [&series, &ds, &constraint, this](index i) {
-                     return mAlgorithm.dtw.process(series, ds[i], constraint,
+                     return std::numeric_limits<double>::epsilon() +
+                            mAlgorithm.dtw.process(series, ds[i], constraint,
                                                    constraintParam(constraint));
                    });
 
