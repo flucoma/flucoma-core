@@ -28,8 +28,8 @@ struct DTWClassifierData
   FluidDataSeries<std::string, double, 1>   series{0};
   FluidDataSet<std::string, std::string, 1> labels{1};
 
-  index size() const { return labels.size(); }
-  index dims() const { return dtw.dims(); }
+  index size() const { return series.size(); }
+  index dims() const { return series.dims(); }
   void  clear()
   {
     labels = FluidDataSet<std::string, std::string, 1>(1);
@@ -148,7 +148,7 @@ public:
     BufferAdaptor::ReadAccess buf = data.get();
     RealMatrix                series(buf.numFrames(), buf.numChans());
 
-    if (buf.numChans() < mAlgorithm.series.dims())
+    if (buf.numChans() < mAlgorithm.dims())
       return Error<string>(WrongPointSize);
 
     series <<= buf.allFrames().transpose();
@@ -169,7 +169,7 @@ public:
     auto dataSeries = sourcePtr->getDataSeries();
     if (dataSeries.size() == 0) return Error(EmptyDataSet);
 
-    if (dataSeries.pointSize() != mAlgorithm.series.dims())
+    if (dataSeries.pointSize() != mAlgorithm.dims())
       return Error(WrongPointSize);
 
     if (mAlgorithm.size() == 0) return Error(NoDataFitted);
@@ -224,8 +224,7 @@ private:
 
     rt::vector<InputRealMatrixView> ds = mAlgorithm.series.getData();
 
-    if (series.cols() < mAlgorithm.series.dims())
-      return Error<string>(WrongPointSize);
+    if (series.cols() < mAlgorithm.dims()) return Error<string>(WrongPointSize);
 
     rt::vector<index>  indices(asUnsigned(mAlgorithm.size()));
     rt::vector<double> distances(asUnsigned(mAlgorithm.size()));
