@@ -25,7 +25,7 @@ namespace dtwclassifier {
 struct DTWClassifierData
 {
   algorithm::DTW                            dtw;
-  FluidDataSeries<std::string, double, 1>   series{1};
+  FluidDataSeries<std::string, double, 1>   series{0};
   FluidDataSet<std::string, std::string, 1> labels{1};
 
   index size() const { return labels.size(); }
@@ -33,7 +33,7 @@ struct DTWClassifierData
   void  clear()
   {
     labels = FluidDataSet<std::string, std::string, 1>(1);
-    series = FluidDataSeries<std::string, double, 1>(1);
+    series = FluidDataSeries<std::string, double, 1>(0);
 
     dtw.clear();
   }
@@ -72,7 +72,7 @@ class DTWClassifierClient : public FluidBaseClient,
                             ModelObject,
                             public DataClient<DTWClassifierData>
 {
-  enum { kName, kNumNeighbors, kWeight, kConstraint, kRadius, kGradient };
+  enum { kName, kNumNeighbors, kConstraint, kRadius, kGradient };
 
 public:
   using string = std::string;
@@ -126,10 +126,21 @@ public:
 
     if (dataSeries.size() != labelSet.size()) return Error(SizesDontMatch);
 
-    mAlgorithm.series = dataSeries;
-    mAlgorithm.labels = labelSet;
+    auto seriesIds = dataSeries.getIds(), labelIds = labelSet.getIds();
 
-    return OK();
+    // TODO: check if subset rather than all the same ids
+    bool everySeriesHasALabel = std::is_permutation(
+        seriesIds.begin(), seriesIds.end(), labelIds.begin());
+
+    if (everySeriesHasALabel)
+    {
+      mAlgorithm.series = dataSeries;
+      mAlgorithm.labels = labelSet;
+
+      return OK();
+    }
+    else
+      return Error(EmptyLabel);
   }
 
   MessageResult<string> predictPoint(InputBufferPtr data) const
