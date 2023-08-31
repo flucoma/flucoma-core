@@ -25,8 +25,9 @@ constexpr auto DTWParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
     EnumParam("constraint", "Constraint Type", 0, "Unconstrained", "Ikatura",
               "Sakoe-Chiba"),
-    FloatParam("radius", "Sakoe-Chiba Constraint Radius", 2, Min(0)),
-    FloatParam("gradient", "Ikatura Parallelogram max gradient", 1, Min(1)));
+    LongParam("radius", "Sakoe-Chiba Constraint Radius", 2, Min(0)),
+    FloatParam("gradient", "Ikatura Parallelogram max gradient", 1.0,
+               Min(1.0)));
 
 class DTWClient : public FluidBaseClient,
                   OfflineIn,
@@ -34,7 +35,7 @@ class DTWClient : public FluidBaseClient,
                   ModelObject,
                   public DataClient<algorithm::DTW>
 {
-  enum { kName, kPNorm, kConstraint, kRadius, kGradient };
+  enum { kName, kConstraint, kRadius, kGradient };
 
 public:
   using string = std::string;
