@@ -145,13 +145,12 @@ public:
 
   MessageResult<string> predictPoint(InputBufferPtr data) const
   {
-    index k = get<kNumNeighbors>();
-    bool  weight = get<kWeight>() > 0;
-
-    if (k < 1) return Error<string>(SmallK);
+    if (get<kNumNeighbors>() < 1) return Error<string>(SmallK);
+    if (get<kNumNeighbors>() > mAlgorithm.size())
+      return Error<string>(LargeK);
 
     BufferAdaptor::ReadAccess       buf = data.get();
-    RealMatrix                      series(buf.numFrames(), buf.numChans());
+    FluidTensor<double, 2>          series(buf.numFrames(), buf.numChans());
     rt::vector<InputRealMatrixView> ds = mAlgorithm.series.getData();
 
     if (buf.numChans() < mAlgorithm.series.dims())
@@ -168,7 +167,7 @@ public:
         (algorithm::DTWConstraint) get<kConstraint>();
 
     std::transform(indices.begin(), indices.end(), distances.begin(),
-                   [&](index i) {
+                   [&series, &ds, &constraint, this](index i) {
                      return mAlgorithm.dtw.process(series, ds[i], constraint,
                                                    constraintParam(constraint));
                    });
@@ -177,13 +176,17 @@ public:
       return distances[asUnsigned(a)] < distances[asUnsigned(b)];
     });
 
-    rt::unordered_map<std::string, index> labels;
-    auto                                  ids = mAlgorithm.series.getIds();
+    rt::unordered_map<std::string, index> labelCount;
+    FluidTensorView<const std::string, 2> labels = mAlgorithm.labels.getData();
 
-    std::for_each(indices.begin(), indices.begin() + k,
-                  [&](index i) { return labels[ids[i]]++; });
+    std::for_each(indices.begin(), indices.begin() + get<kNumNeighbors>(),
+                  [&](index& i) { return labelCount[labels(i, 0)]++; });
 
-    return;
+    auto result = std::max_element(
+        labelCount.begin(), labelCount.end(),
+        [](auto& left, auto& right) { return left.second < right.second; });
+
+    return result->first;
   }
 
   MessageResult<void> predict(InputDataSetClientRef source,
