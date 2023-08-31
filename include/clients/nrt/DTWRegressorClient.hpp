@@ -120,6 +120,15 @@ public:
 
   MessageResult<RealVector> predictPoint(InputBufferPtr data) const
   {
+    BufferAdaptor::ReadAccess buf = data.get();
+    RealMatrix                series(buf.numFrames(), buf.numChans());
+
+    if (buf.numChans() < mAlgorithm.series.dims())
+      return Error<RealVector>(WrongPointSize);
+
+    series <<= buf.allFrames().transpose();
+
+    return kNearestWeightedSum(series);
   }
 
   MessageResult<void> predict(InputDataSeriesClientRef source,
