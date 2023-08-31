@@ -261,16 +261,19 @@ private:
       return distances[asUnsigned(a)] < distances[asUnsigned(b)];
     });
 
-
     ScopedEigenMap<Eigen::VectorXd> result(mAlgorithm.mappings.dims(), alloc);
     InputRealMatrixView             mappings = mAlgorithm.mappings.getData();
 
+    double totalWeight = 0.0;
     std::for_each(indices.begin(), indices.begin() + get<kNumNeighbors>(),
                   [&](index& i) {
-                    return result += distances[i] *
-                                     asEigen<Eigen::Matrix>(mappings.row(i));
+                    double weight = 1.0 / distances[i];
+
+                    totalWeight += weight;
+                    result += asEigen<Eigen::Matrix>(mappings.row(i)) * weight;
                   });
 
+    result.noalias() = result * (1 / totalWeight);
     return RealVector(asFluid(result));
   }
 };
