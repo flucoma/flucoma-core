@@ -161,3 +161,4 @@ add_client(MLPClassifier clients/nrt/MLPClassifierClient.hpp CLASS NRTThreadedML
 add_client(Grid clients/nrt/GridClient.hpp CLASS NRTThreadedGridClient GROUP MANIPULATION)
 add_client(DTW clients/nrt/DTWClient.hpp CLASS NRTThreadedDTWClient GROUP MANIPULATION)
 add_client(DTWClassifier clients/nrt/DTWClassifierClient.hpp CLASS NRTThreadedDTWClassifierClient GROUP MANIPULATION)
+add_client(DTWRegressor clients/nrt/DTWRegressorClient.hpp CLASS NRTThreadedDTWRegressorClient GROUP MANIPULATION)
