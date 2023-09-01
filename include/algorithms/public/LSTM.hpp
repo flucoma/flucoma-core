@@ -236,10 +236,10 @@ class LSTMCell
   using EigenVectorMap = Eigen::Map<VectorXd>;
   using EigenArrayMap = Eigen::Map<ArrayXd>;
 
+public:
   using ParamPtr = std::weak_ptr<LSTMParam>;
   using ParamLock = std::shared_ptr<LSTMParam>;
 
-public:
   LSTMCell(ParamPtr p) : mParams(p), mState(p){};
 
   void forwardFrame(InputRealVectorView inData, InputRealVectorView prevState,

@@ -25,13 +25,8 @@ namespace algorithm {
 template <class Cell>
 class Recur
 {
-  using Cell::StateType;
-
 public:
-  void forward();
 
-  Cell      mCell;
-  StateType state;
 
 private:
   bool mInitialized;
@@ -39,8 +34,8 @@ private:
 
   // rt vector of cells (each have ptr to params)
   // pointer so Recur can be default constructible
-  rt::vector<Cell, Allocator> mNodes;
-  std::shared_ptr<CellParams> mParams;
+  rt::vector<Cell> mNodes;
+  Cell::ParamLock  mParams;
 };
 
 } // namespace algorithm
