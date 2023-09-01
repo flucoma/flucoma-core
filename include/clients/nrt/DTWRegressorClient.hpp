@@ -250,12 +250,13 @@ private:
     algorithm::DTWConstraint constraint =
         (algorithm::DTWConstraint) get<kConstraint>();
 
-    std::transform(indices.begin(), indices.end(), distances.begin(),
-                   [&series, &ds, &constraint, this](index i) {
-                     return std::numeric_limits<double>::epsilon() +
-                            mAlgorithm.dtw.process(series, ds[i], constraint,
-                                                   constraintParam(constraint));
-                   });
+    std::transform(
+        indices.begin(), indices.end(), distances.begin(),
+        [&series, &ds, &constraint, this](index i) {
+          double dist = mAlgorithm.dtw.process(series, ds[i], constraint,
+                                               constraintParam(constraint));
+          return std::max(std::numeric_limits<double>::epsilon(), dist);
+        });
 
     std::sort(indices.begin(), indices.end(), [&distances](index a, index b) {
       return distances[asUnsigned(a)] < distances[asUnsigned(b)];
