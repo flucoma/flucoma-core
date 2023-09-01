@@ -217,7 +217,35 @@ public:
                     InputRealVectorView prevData, RealVectorView outState,
                     RealVectorView outData,
                     Allocator&     alloc = FluidDefaultAllocator())
-  {}
+  {
+    assert(inData.size() == mParam.mInSize);
+    assert(prevState.size() == mParam.mOutSize);
+    assert(prevData.size() == mParam.mOutSize);
+
+    ScopedEigenMap<VectorXd> xh(mParam.mLayerSize, alloc);
+    ScopedEigenMap<ArrayXd>  c(mParam.mOutSize, alloc),
+        zi(mParam.mOutSize, alloc), zg(mParam.mOutSize, alloc),
+        zf(mParam.mOutSize, alloc), zo(mParam.mOutSize, alloc);
+
+    c << _impl::asEigen<Eigen::Matrix>(prevState);
+    xh << _impl::asEigen<Eigen::Matrix>(inData),
+        _impl::asEigen<Eigen::Matrix>(prevData);
+
+    // matrix mult
+    zi = mParam.mEMWi * xh + mParam.mEMBi;
+    zg = mParam.mEMWg * xh + mParam.mEMBg;
+    zf = mParam.mEMWf * xh + mParam.mEMBf;
+    zo = mParam.mEMWo * xh + mParam.mEMBo;
+
+    mState.mEAI = logistic(zi);
+    mState.mEAG = tanh(zg);
+    mState.mEAF = logistic(zf);
+    mState.mEAO = logistic(zo);
+
+    // elem-wise mult and sum
+    mState.mEAC = mState.mEAG * mState.mEAI + c * mState.mEAF;
+    mState.mEAH = mState.mEAC * mState.mEAC;
+  }
 
   LSTMState  mState;
   LSTMParam& mParam;
