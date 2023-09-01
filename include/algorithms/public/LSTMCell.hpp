@@ -38,30 +38,51 @@ class LSTMCell
 public:
   using StateType = RealVector;
 
-  explicit LSTMCell() = default;
+  explicit LSTMCell(index inputSize, index outputSize,
+                    Allocator& alloc = FluidDefaultAllocator())
+      : inSize{inputSize}, layerSize{inputSize + outputSize},
+        outSize{outputSize},
+
+        // allocate the memory for the weights
+        mWi(outSize, layerSize), mWg(outSize, layerSize),
+        mWf(outSize, layerSize), mWo(outSize, layerSize),
+
+        // allocate the memory for the weight derivatives
+        mDWi(outSize, layerSize), mDWg(outSize, layerSize),
+        mDWf(outSize, layerSize), mDWo(outSize, layerSize),
+
+        // allocate the memory for the biases
+        mBi(outSize), mBg(outSize), mBf(outSize), mBo(outSize),
+
+        // allocate the memory for the bias derivatives
+        mDBi(outSize), mDBg(outSize), mDBf(outSize), mDBo(outSize),
+
+        // create eigen maps for the weights
+        mEWi(mWi.data(), mWi.rows(), mWi.cols()),
+        mEWg(mWg.data(), mWg.rows(), mWg.cols()),
+        mEWf(mWf.data(), mWf.rows(), mWf.cols()),
+        mEWo(mWo.data(), mWo.rows(), mWo.cols()),
+
+        // create eigen maps for the wight derivatives
+        mEDWi(mDWi.data(), mDWi.rows(), mDWi.cols()),
+        mEDWg(mDWg.data(), mDWg.rows(), mDWg.cols()),
+        mEDWf(mDWf.data(), mDWf.rows(), mDWf.cols()),
+        mEDWo(mDWo.data(), mDWo.rows(), mDWo.cols()),
+
+        // create eigen maps for the biases
+        mEBi(mBi.data(), mBi.size()), mEBg(mBg.data(), mBg.size()),
+        mEBf(mBf.data(), mBf.size()), mEBo(mBo.data(), mBo.size()),
+
+        // create eigen maps for the bias derivatives
+        mEDBi(mDBi.data(), mDBi.size()), mEDBg(mDBg.data(), mDBg.size()),
+        mEDBf(mDBf.data(), mDBf.size()), mEDBo(mDBo.data(), mDBo.size()){};
+
   ~LSTMCell() = default;
 
-  void init(index inputSize, index outputSize)
+  void init()
   {
-    mWi.resize(outputSize, inputSize);
-    mWg.resize(outputSize, inputSize);
-    mWf.resize(outputSize, inputSize);
-    mWo.resize(outputSize, inputSize);
-
-    mWi.fill(0);
-    mWg.fill(0);
-    mWf.fill(0);
-    mWo.fill(0);
-
-    mBi.resize(outputSize);
-    mBg.resize(outputSize);
-    mBf.resize(outputSize);
-    mBo.resize(outputSize);
-
-    mBi.fill(0);
-    mBg.fill(0);
-    mBf.fill(0);
-    mBo.fill(0);
+    resetParameters();
+    resetDerivates();
 
     mInitialized = true;
   }
