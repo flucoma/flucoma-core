@@ -198,8 +198,7 @@ public:
         mEMO(mO.data(), mO.size()), mEMC(mC.data(), mC.size()),
         mEMH(mH.data(), mH.size()),
 
-        mEMDXH(mDXH.data(), mDXH.size()), mEMDC(mDC.data(), mDC.size()),
-        mEMDH(mDH.data(), mDH.size()),
+        mEMDC(mDC.data(), mDC.size()), mEMDH(mDH.data(), mDH.size()),
 
         mEAXH(mXH.data(), mXH.size()), mEAI(mI.data(), mI.size()),
         mEACp(mCp.data(), mCp.size()), mEAHp(mHp.data(), mHp.size()),
@@ -207,21 +206,20 @@ public:
         mEAO(mO.data(), mO.size()), mEAC(mC.data(), mC.size()),
         mEAH(mH.data(), mH.size()),
 
-        mEADXH(mDXH.data(), mDXH.size()), mEADC(mDC.data(), mDC.size()),
-        mEADH(mDH.data(), mDH.size())
+        mEADC(mDC.data(), mDC.size()), mEADH(mDH.data(), mDH.size())
   {}
 
   // state at time t
   RealVector mXH, mCp, mHp, mI, mG, mF, mO, mC, mH;
-  RealVector mDXH, mDC, mDH;
+  RealVector mDC, mDH;
 
   // eigen maps to the states for linear algebra
   EigenVectorMap mEMXH, mEMCp, mEMHp, mEMI, mEMG, mEMF, mEMO, mEMC, mEMH;
-  EigenVectorMap mEMDXH, mEMDC, mEMDH;
+  EigenVectorMap mEMDC, mEMDH;
 
   // eigen maps to the states for element-wise algebra
   EigenArrayXMap mEAXH, mEACp, mEAHp, mEAI, mEAG, mEAF, mEAO, mEAC, mEAH;
-  EigenArrayXMap mEADXH, mEADC, mEADH;
+  EigenArrayXMap mEADC, mEADH;
 };
 
 class LSTMCell
