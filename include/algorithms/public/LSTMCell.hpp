@@ -35,6 +35,7 @@ class LSTMCell
   using EigenMatrixMap = Eigen::Map<MatrixXd>;
   using EigenVectorMap = Eigen::Map<VectorXd>;
   using EigenArrayMap = Eigen::Map<ArrayXd>;
+
 public:
   using StateType = RealVector;
 
@@ -120,33 +121,16 @@ public:
 
     index size = ctp.size();
 
-    ScopedEigenMap<Eigen::ArrayXd> inputGate(size, alloc),
-        forgetGate(size, alloc), outputGate(size, alloc);
+    ScopedEigenMap<ArrayXd> inputGate(size, alloc), forgetGate(size, alloc),
+        outputGate(size, alloc);
 
-    ScopedEigenMap<Eigen::ArrayXd> Zi(size, alloc), Zg(size, alloc),
-        Zf(size, alloc), Zo(size, alloc);
+    ScopedEigenMap<ArrayXd> Zi(size, alloc), Zg(size, alloc), Zf(size, alloc),
+        Zo(size, alloc);
 
-    ScopedEigenMap<Eigen::MatrixXd> Wi(mWi.rows(), mWi.cols(), alloc),
-        Wg(mWg.rows(), mWg.cols(), alloc), Wf(mWf.rows(), mWf.cols(), alloc),
-        Wo(mWo.rows(), mWo.cols(), alloc);
-
-    ScopedEigenMap<Eigen::VectorXd> Bi(mBi.size(), alloc),
-        Bg(mBg.size(), alloc), Bf(mBf.size(), alloc), Bo(mBo.size(), alloc);
-
-    Wi = _impl::asEigen<Eigen::Matrix>(mWi);
-    Wg = _impl::asEigen<Eigen::Matrix>(mWg);
-    Wf = _impl::asEigen<Eigen::Matrix>(mWf);
-    Wo = _impl::asEigen<Eigen::Matrix>(mWo);
-
-    Bi = _impl::asEigen<Eigen::Matrix>(mBi);
-    Bg = _impl::asEigen<Eigen::Matrix>(mBg);
-    Bf = _impl::asEigen<Eigen::Matrix>(mBf);
-    Bo = _impl::asEigen<Eigen::Matrix>(mBo);
-
-    Zi = Wi * xthtp + Bi;
-    Zg = Wg * xthtp + Bg;
-    Zf = Wf * xthtp + Bf;
-    Zo = Wo * xthtp + Bo;
+    Zi = mEWi * xthtp + mEBi;
+    Zg = mEWg * xthtp + mEBg;
+    Zf = mEWf * xthtp + mEBf;
+    Zo = mEWo * xthtp + mEBo;
 
     ct = ctp * logistic(Zf) + logistic(Zi) * tanh(Zg);
     ht = logistic(Zo) * ct;
