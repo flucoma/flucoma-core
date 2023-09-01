@@ -22,8 +22,19 @@ under the European Union’s Horizon 2020 research and innovation programme
 namespace fluid {
 namespace algorithm {
 
+// xt is the input at time t, ht is the output at time t, htp at t-1, ct is the
+// state at time t, ctp at t-1. wi is the input gate weights, wg is is the input
+// filter weights, wf is the forget gate weights and wo is the output gate
+// weights. The same naming applies to the bis vectors
 class LSTMCell
 {
+  using VectorXd = Eigen::VectorXd;
+  using MatrixXd = Eigen::MatrixXd;
+  using ArrayXd = Eigen::ArrayXd;
+
+  using EigenMatrixMap = Eigen::Map<MatrixXd>;
+  using EigenVectorMap = Eigen::Map<VectorXd>;
+  using EigenArrayMap = Eigen::Map<ArrayXd>;
 public:
   using StateType = RealVector;
 
@@ -125,6 +136,11 @@ private:
   RealVector mBi, mBg, mBf, mBo;
   RealVector mDBi, mDBg, mDBf, mDBo;
 
+  // eigen maps to the real parameters
+  EigenMatrixMap mEWi, mEWg, mEWf, mEWo;
+  EigenMatrixMap mEDWi, mEDWg, mEDWf, mEDWo;
+  EigenVectorMap mEBi, mEBg, mEBf, mEBo;
+  EigenVectorMap mEDBi, mEDBg, mEDBf, mEDBo;
   bool mInitialized{false};
 };
 
