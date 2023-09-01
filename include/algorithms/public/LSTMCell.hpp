@@ -163,7 +163,23 @@ public:
 
 class LSTMCell
 {
+  using VectorXd = Eigen::VectorXd;
+  using MatrixXd = Eigen::MatrixXd;
+  using ArrayXd = Eigen::ArrayXd;
 
+  using EigenMatrixMap = Eigen::Map<MatrixXd>;
+  using EigenVectorMap = Eigen::Map<VectorXd>;
+  using EigenArrayMap = Eigen::Map<ArrayXd>;
+
+public:
+  LSTMCell(LSTMParam& param)
+      : mParam(param), mState(param.mInSize, param.mOutSize){};
+
+  void forwardFrame(InputRealVectorView inData, InputRealVectorView prevState,
+                    InputRealVectorView prevData, RealVectorView outState,
+                    RealVectorView outData,
+                    Allocator&     alloc = FluidDefaultAllocator())
+  {}
 
   LSTMState  mState;
   LSTMParam& mParam;
