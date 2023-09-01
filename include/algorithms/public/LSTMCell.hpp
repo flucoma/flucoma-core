@@ -137,6 +137,8 @@ public:
   };
 
 private:
+  index inSize, layerSize, outSize;
+
   RealMatrix mWi, mWg, mWf, mWo;
   RealMatrix mDWi, mDWg, mDWf, mDWo;
   RealVector mBi, mBg, mBf, mBo;
@@ -147,7 +149,42 @@ private:
   EigenMatrixMap mEDWi, mEDWg, mEDWf, mEDWo;
   EigenVectorMap mEBi, mEBg, mEBf, mEBo;
   EigenVectorMap mEDBi, mEDBg, mEDBf, mEDBo;
+
   bool mInitialized{false};
+
+  void resetParameters()
+  {
+    std::random_device rnd_device;
+    std::mt19937       mersenne_engine{rnd_device()};
+
+    std::uniform_real_distribution<double> dist{-1.0, 1.0};
+    auto gen = [&dist, &mersenne_engine]() { return dist(mersenne_engine); };
+
+    std::generate(mWi.begin(), mWi.end(), gen);
+    std::generate(mWi.begin(), mWi.end(), gen);
+    std::generate(mWi.begin(), mWi.end(), gen);
+    std::generate(mWi.begin(), mWi.end(), gen);
+
+    std::generate(mWi.begin(), mWi.end(), gen);
+    std::generate(mWi.begin(), mWi.end(), gen);
+    std::generate(mWi.begin(), mWi.end(), gen);
+    std::generate(mWi.begin(), mWi.end(), gen);
+  }
+
+  void resetDerivates()
+  {
+    // weight derivatives
+    mDWi.fill(0.0);
+    mDWg.fill(0.0);
+    mDWf.fill(0.0);
+    mDWo.fill(0.0);
+
+    // bias derivatives
+    mDBi.fill(0.0);
+    mDBg.fill(0.0);
+    mDBf.fill(0.0);
+    mDBo.fill(0.0);
+  }
 };
 
 } // namespace algorithm
