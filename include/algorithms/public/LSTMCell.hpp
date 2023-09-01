@@ -145,7 +145,7 @@ public:
     mDBo.fill(0.0);
   }
 
-  index mInSize, mLayerSize, mOutSize;
+  const index mInSize, mLayerSize, mOutSize;
 
   // parameters
   RealMatrix mWi, mWg, mWf, mWo;
@@ -174,28 +174,31 @@ class LSTMState
 
 public:
   LSTMState(index inputSize, index outputSize)
-      : mI(outputSize), mG(outputSize), mF(outputSize), mO(outputSize),
-        mC(outputSize), mH(outputSize), mDC(outputSize), mDH(outputSize),
+      : mXH(inputSize + outputSize), mI(outputSize), mG(outputSize),
+        mF(outputSize), mO(outputSize), mC(outputSize), mH(outputSize),
+        mDC(outputSize), mDH(outputSize),
 
-        mEMI(mI.data(), mI.size()), mEMG(mG.data(), mG.size()),
-        mEMF(mF.data(), mF.size()), mEMO(mO.data(), mO.size()),
-        mEMC(mC.data(), mC.size()), mEMH(mH.data(), mH.size()),
+        mEMXH(mXH.data(), mXH.size()), mEMI(mI.data(), mI.size()),
+        mEMG(mG.data(), mG.size()), mEMF(mF.data(), mF.size()),
+        mEMO(mO.data(), mO.size()), mEMC(mC.data(), mC.size()),
+        mEMH(mH.data(), mH.size()),
 
-        mEAI(mI.data(), mI.size()), mEAG(mG.data(), mG.size()),
-        mEAF(mF.data(), mF.size()), mEAO(mO.data(), mO.size()),
-        mEAC(mC.data(), mC.size()), mEAH(mH.data(), mH.size()),
-        mEADC(mDC.data(), mDC.size()), mEADH(mDH.data(), mDH.size())
+        mEAXH(mXH.data(), mXH.size()), mEAI(mI.data(), mI.size()),
+        mEAG(mG.data(), mG.size()), mEAF(mF.data(), mF.size()),
+        mEAO(mO.data(), mO.size()), mEAC(mC.data(), mC.size()),
+        mEAH(mH.data(), mH.size()), mEADC(mDC.data(), mDC.size()),
+        mEADH(mDH.data(), mDH.size())
   {}
 
   // state at time t
-  RealVector mI, mG, mF, mO, mC, mH;
+  RealVector mXH, mI, mG, mF, mO, mC, mH;
   RealVector mDC, mDH;
 
   // eigen maps to the states for linear algebra
-  EigenVectorMap mEMI, mEMG, mEMF, mEMO, mEMC, mEMH;
+  EigenVectorMap mEMXH, mEMI, mEMG, mEMF, mEMO, mEMC, mEMH;
 
   // eigen maps to the states for element-wise algebra
-  EigenArrayXMap mEAI, mEAG, mEAF, mEAO, mEAC, mEAH;
+  EigenArrayXMap mEAXH, mEAI, mEAG, mEAF, mEAO, mEAC, mEAH;
   EigenArrayXMap mEADC, mEADH;
 };
 
@@ -222,29 +225,41 @@ public:
     assert(prevState.size() == mParam.mOutSize);
     assert(prevData.size() == mParam.mOutSize);
 
-    ScopedEigenMap<VectorXd> xh(mParam.mLayerSize, alloc);
-    ScopedEigenMap<ArrayXd>  c(mParam.mOutSize, alloc),
-        zi(mParam.mOutSize, alloc), zg(mParam.mOutSize, alloc),
-        zf(mParam.mOutSize, alloc), zo(mParam.mOutSize, alloc);
+    ScopedEigenMap<ArrayXd> cp(mParam.mOutSize, alloc),
+        Zi(mParam.mOutSize, alloc), Zg(mParam.mOutSize, alloc),
+        Zf(mParam.mOutSize, alloc), Zo(mParam.mOutSize, alloc);
 
-    c << _impl::asEigen<Eigen::Matrix>(prevState);
-    xh << _impl::asEigen<Eigen::Matrix>(inData),
+    // previous state as eigen array
+    cp << _impl::asEigen<Eigen::Array>(prevState);
+
+    // concatentate input and previous output
+    mState.mEMXH << _impl::asEigen<Eigen::Matrix>(inData),
         _impl::asEigen<Eigen::Matrix>(prevData);
 
     // matrix mult
-    zi = mParam.mEMWi * xh + mParam.mEMBi;
-    zg = mParam.mEMWg * xh + mParam.mEMBg;
-    zf = mParam.mEMWf * xh + mParam.mEMBf;
-    zo = mParam.mEMWo * xh + mParam.mEMBo;
+    Zi = mParam.mEMWi * mState.mEMXH + mParam.mEMBi;
+    Zg = mParam.mEMWg * mState.mEMXH + mParam.mEMBg;
+    Zf = mParam.mEMWf * mState.mEMXH + mParam.mEMBf;
+    Zo = mParam.mEMWo * mState.mEMXH + mParam.mEMBo;
 
-    mState.mEAI = logistic(zi);
-    mState.mEAG = tanh(zg);
-    mState.mEAF = logistic(zf);
-    mState.mEAO = logistic(zo);
+    mState.mEAI = logistic(Zi);
+    mState.mEAG = tanh(Zg);
+    mState.mEAF = logistic(Zf);
+    mState.mEAO = logistic(Zo);
 
     // elem-wise mult and sum
-    mState.mEAC = mState.mEAG * mState.mEAI + c * mState.mEAF;
+    mState.mEAC = mState.mEAG * mState.mEAI + cp * mState.mEAF;
     mState.mEAH = mState.mEAC * mState.mEAC;
+  }
+
+  void backwardFrame(InputRealVectorView dLdh, InputRealVectorView dLdc,
+                     Allocator& alloc = FluidDefaultAllocator())
+  {
+    ScopedEigenMap<ArrayXd> dC(mParam.mOutSize, alloc),
+        dI(mParam.mOutSize, alloc), dG(mParam.mOutSize, alloc),
+        dF(mParam.mOutSize, alloc), dO(mParam.mOutSize, alloc),
+        dZi(mParam.mOutSize, alloc), dZg(mParam.mOutSize, alloc),
+        dZf(mParam.mOutSize, alloc), dZo(mParam.mOutSize, alloc);
   }
 
   LSTMState  mState;
