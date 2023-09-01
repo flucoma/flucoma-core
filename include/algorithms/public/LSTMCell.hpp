@@ -37,22 +37,22 @@ class LSTMParam
 
 public:
   LSTMParam(index inputSize, index outputSize)
-      : inSize{inputSize}, layerSize{inputSize + outputSize},
-        outSize{outputSize},
+      : mInSize{inputSize}, mLayerSize{inputSize + outputSize},
+        mOutSize{outputSize},
 
         // allocate the memory for the weights
-        mWi(outSize, layerSize), mWg(outSize, layerSize),
-        mWf(outSize, layerSize), mWo(outSize, layerSize),
+        mWi(mOutSize, mLayerSize), mWg(mOutSize, mLayerSize),
+        mWf(mOutSize, mLayerSize), mWo(mOutSize, mLayerSize),
 
         // allocate the memory for the weight derivatives
-        mDWi(outSize, layerSize), mDWg(outSize, layerSize),
-        mDWf(outSize, layerSize), mDWo(outSize, layerSize),
+        mDWi(mOutSize, mLayerSize), mDWg(mOutSize, mLayerSize),
+        mDWf(mOutSize, mLayerSize), mDWo(mOutSize, mLayerSize),
 
         // allocate the memory for the biases
-        mBi(outSize), mBg(outSize), mBf(outSize), mBo(outSize),
+        mBi(mOutSize), mBg(mOutSize), mBf(mOutSize), mBo(mOutSize),
 
         // allocate the memory for the bias derivatives
-        mDBi(outSize), mDBg(outSize), mDBf(outSize), mDBo(outSize),
+        mDBi(mOutSize), mDBg(mOutSize), mDBf(mOutSize), mDBo(mOutSize),
 
         // create eigen maps for the weights
         mEWi(mWi.data(), mWi.rows(), mWi.cols()),
@@ -116,7 +116,7 @@ public:
     mDBo.fill(0.0);
   }
 
-  index inSize, layerSize, outSize;
+  index mInSize, mLayerSize, mOutSize;
 
   // parameters
   RealMatrix mWi, mWg, mWf, mWo;
