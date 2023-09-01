@@ -186,11 +186,15 @@ class LSTMState
   using EigenVectorMap = Eigen::Map<VectorXd>;
   using EigenArrayXMap = Eigen::Map<ArrayXd>;
 
+  using ParamPtr = std::weak_ptr<LSTMParam>;
+  using ParamLock = std::shared_ptr<LSTMParam>;
+
 public:
-  LSTMState(LSTMParam& p)
-      : mXH(p.mLayerSize), mCp(p.mOutSize), mHp(p.mOutSize), mI(p.mOutSize),
-        mG(p.mOutSize), mF(p.mOutSize), mO(p.mOutSize), mC(p.mOutSize),
-        mH(p.mOutSize), mDC(p.mOutSize), mDH(p.mOutSize),
+  LSTMState(ParamPtr p) : LSTMState(p.lock()){};
+  LSTMState(ParamLock p)
+      : mXH(p->mLayerSize), mCp(p->mOutSize), mHp(p->mOutSize), mI(p->mOutSize),
+        mG(p->mOutSize), mF(p->mOutSize), mO(p->mOutSize), mC(p->mOutSize),
+        mH(p->mOutSize), mDC(p->mOutSize), mDH(p->mOutSize),
 
         mEMXH(mXH.data(), mXH.size()), mEMI(mI.data(), mI.size()),
         mEMCp(mCp.data(), mCp.size()), mEMHp(mHp.data(), mHp.size()),
@@ -232,21 +236,26 @@ class LSTMCell
   using EigenVectorMap = Eigen::Map<VectorXd>;
   using EigenArrayMap = Eigen::Map<ArrayXd>;
 
+  using ParamPtr = std::weak_ptr<LSTMParam>;
+  using ParamLock = std::shared_ptr<LSTMParam>;
+
 public:
-  LSTMCell(LSTMParam& p) : mParam(p), mState(p){};
+  LSTMCell(ParamPtr p) : mParam(p), mState(p){};
 
   void forwardFrame(InputRealVectorView inData, InputRealVectorView prevState,
                     InputRealVectorView prevData, RealVectorView outState,
                     RealVectorView outData,
                     Allocator&     alloc = FluidDefaultAllocator())
   {
-    assert(inData.size() == mParam.mInSize);
-    assert(prevState.size() == mParam.mOutSize);
-    assert(prevData.size() == mParam.mOutSize);
+    ParamLock param = mParam.lock();
 
-    ScopedEigenMap<ArrayXd> cp(mParam.mOutSize, alloc),
-        Zi(mParam.mOutSize, alloc), Zg(mParam.mOutSize, alloc),
-        Zf(mParam.mOutSize, alloc), Zo(mParam.mOutSize, alloc);
+    assert(inData.size() == param->mInSize);
+    assert(prevState.size() == param->mOutSize);
+    assert(prevData.size() == param->mOutSize);
+
+    ScopedEigenMap<ArrayXd> cp(param->mOutSize, alloc),
+        Zi(param->mOutSize, alloc), Zg(param->mOutSize, alloc),
+        Zf(param->mOutSize, alloc), Zo(param->mOutSize, alloc);
 
     // previous state as eigen array
     cp << _impl::asEigen<Eigen::Array>(prevState);
@@ -256,10 +265,10 @@ public:
         _impl::asEigen<Eigen::Matrix>(prevData);
 
     // matrix mult
-    Zi = mParam.mEMWi * mState.mEMXH + mParam.mEMBi;
-    Zg = mParam.mEMWg * mState.mEMXH + mParam.mEMBg;
-    Zf = mParam.mEMWf * mState.mEMXH + mParam.mEMBf;
-    Zo = mParam.mEMWo * mState.mEMXH + mParam.mEMBo;
+    Zi = param->mEMWi * mState.mEMXH + param->mEMBi;
+    Zg = param->mEMWg * mState.mEMXH + param->mEMBg;
+    Zf = param->mEMWf * mState.mEMXH + param->mEMBf;
+    Zo = param->mEMWo * mState.mEMXH + param->mEMBo;
 
     mState.mEAI = logistic(Zi);
     mState.mEAG = tanh(Zg);
@@ -275,13 +284,15 @@ public:
                      InputRealVectorView stateDerivative,
                      Allocator&          alloc = FluidDefaultAllocator())
   {
-    ScopedEigenMap<ArrayXd> dC(mParam.mOutSize, alloc),
-        dLdh(mParam.mOutSize, alloc), dLdc(mParam.mOutSize, alloc),
-        dI(mParam.mOutSize, alloc), dG(mParam.mOutSize, alloc),
-        dF(mParam.mOutSize, alloc), dO(mParam.mOutSize, alloc);
-    ScopedEigenMap<VectorXd> dXH(mParam.mLayerSize, alloc),
-        dZi(mParam.mOutSize, alloc), dZg(mParam.mOutSize, alloc),
-        dZf(mParam.mOutSize, alloc), dZo(mParam.mOutSize, alloc);
+    ParamLock param = mParam.lock();
+
+    ScopedEigenMap<ArrayXd> dC(param->mOutSize, alloc),
+        dLdh(param->mOutSize, alloc), dLdc(param->mOutSize, alloc),
+        dI(param->mOutSize, alloc), dG(param->mOutSize, alloc),
+        dF(param->mOutSize, alloc), dO(param->mOutSize, alloc);
+    ScopedEigenMap<VectorXd> dXH(param->mLayerSize, alloc),
+        dZi(param->mOutSize, alloc), dZg(param->mOutSize, alloc),
+        dZf(param->mOutSize, alloc), dZo(param->mOutSize, alloc);
 
     dLdh = _impl::asEigen<Eigen::Array>(outputDerivative);
     dLdc = _impl::asEigen<Eigen::Array>(stateDerivative);
@@ -297,25 +308,26 @@ public:
     dZf = mState.mEAF * (1.0 - mState.mEAF) * dF;
     dZo = mState.mEAO * (1.0 - mState.mEAO) * dO;
 
-    mParam.mEMDWi += dZi * mState.mEMXH.transpose();
-    mParam.mEMDWg += dZg * mState.mEMXH.transpose();
-    mParam.mEMDWf += dZf * mState.mEMXH.transpose();
-    mParam.mEMDWo += dZo * mState.mEMXH.transpose();
+    param->mEMDWi += dZi * mState.mEMXH.transpose();
+    param->mEMDWg += dZg * mState.mEMXH.transpose();
+    param->mEMDWf += dZf * mState.mEMXH.transpose();
+    param->mEMDWo += dZo * mState.mEMXH.transpose();
 
-    mParam.mEMDBi += dZi;
-    mParam.mEMDBg += dZg;
-    mParam.mEMDBf += dZf;
-    mParam.mEMDBo += dZo;
+    param->mEMDBi += dZi;
+    param->mEMDBg += dZg;
+    param->mEMDBf += dZf;
+    param->mEMDBo += dZo;
 
-    dXH = mParam.mEMWi.transpose() * dZi + mParam.mEMWg.transpose() * dZg +
-          mParam.mEMWf.transpose() * dZf + mParam.mEMWo.transpose() * dZo;
+    dXH = param->mEMWi.transpose() * dZi + param->mEMWg.transpose() * dZg +
+          param->mEMWf.transpose() * dZf + param->mEMWo.transpose() * dZo;
 
     mState.mEADC = dC * mState.mEAF;
-    mState.mEADH = dXH(Eigen::lastN(mParam.mOutSize));
+    mState.mEADH = dXH(Eigen::lastN(param->mOutSize));
   }
 
-  LSTMState  mState;
-  LSTMParam& mParam;
+private:
+  LSTMState mState;
+  ParamPtr  mParam;
 };
 
 } // namespace algorithm
