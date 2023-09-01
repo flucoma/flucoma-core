@@ -22,11 +22,10 @@ under the European Union’s Horizon 2020 research and innovation programme
 namespace fluid {
 namespace algorithm {
 
-// xt is the input at time t, ht is the output at time t, htp at t-1, ct is the
-// state at time t, ctp at t-1. wi is the input gate weights, wg is is the input
-// filter weights, wf is the forget gate weights and wo is the output gate
-// weights. The same naming applies to the bis vectors
-class LSTMCell
+// many thanks to Nico from https://nicodjimenez.github.io/2014/08/08/lstm.html,
+// you saved my sanity here
+
+class LSTMParam
 {
   using VectorXd = Eigen::VectorXd;
   using MatrixXd = Eigen::MatrixXd;
@@ -37,10 +36,7 @@ class LSTMCell
   using EigenArrayMap = Eigen::Map<ArrayXd>;
 
 public:
-  using StateType = RealVector;
-
-  explicit LSTMCell(index inputSize, index outputSize,
-                    Allocator& alloc = FluidDefaultAllocator())
+  LSTMParam(index inputSize, index outputSize)
       : inSize{inputSize}, layerSize{inputSize + outputSize},
         outSize{outputSize},
 
@@ -76,83 +72,7 @@ public:
 
         // create eigen maps for the bias derivatives
         mEDBi(mDBi.data(), mDBi.size()), mEDBg(mDBg.data(), mDBg.size()),
-        mEDBf(mDBf.data(), mDBf.size()), mEDBo(mDBo.data(), mDBo.size()){};
-
-  ~LSTMCell() = default;
-
-  void init()
-  {
-    resetParameters();
-    resetDerivates();
-
-    mInitialized = true;
-  }
-
-  void processFrame(InputRealVectorView inData, InputRealVectorView inState,
-                    InputRealVectorView prevOutput, RealVectorView outState,
-                    RealVectorView outData,
-                    Allocator&     alloc = FluidDefaultAllocator())
-  {
-    using namespace _impl;
-
-    ScopedEigenMap<VectorXd> xthtp(inData.size() + prevOutput.size(),
-                                   alloc); // xt and htp concatenated
-    ScopedEigenMap<ArrayXd>  ct(outState.size(), alloc),
-        ctp(inState.size(), alloc), ht(outData.size(), alloc);
-
-    xthtp << asEigen<Eigen::Matrix>(inData), asEigen<Eigen::Array>(inData);
-    ctp = asEigen<Eigen::Array>(inData);
-
-    forwardFrame(xthtp, ctp, ct, ht, alloc);
-
-    asEigen<Eigen::Array>(outState) = ct;
-    asEigen<Eigen::Matrix>(outData) = ht;
-  };
-
-  void forwardFrame(Eigen::Ref<VectorXd> xthtp, Eigen::Ref<ArrayXd> ctp,
-                    Eigen::Ref<ArrayXd> ct, Eigen::Ref<ArrayXd> ht,
-                    Allocator& alloc = FluidDefaultAllocator())
-  {
-    using namespace Eigen;
-    using namespace _impl;
-
-    assert(ctp.size() == ct.size());
-    assert(ctp.size() == ht.size());
-
-    index size = ctp.size();
-
-    ScopedEigenMap<ArrayXd> inputGate(size, alloc), forgetGate(size, alloc),
-        outputGate(size, alloc);
-
-    ScopedEigenMap<ArrayXd> Zi(size, alloc), Zg(size, alloc), Zf(size, alloc),
-        Zo(size, alloc);
-
-    Zi = mEWi * xthtp + mEBi;
-    Zg = mEWg * xthtp + mEBg;
-    Zf = mEWf * xthtp + mEBf;
-    Zo = mEWo * xthtp + mEBo;
-
-    ct = ctp * logistic(Zf) + logistic(Zi) * tanh(Zg);
-    ht = logistic(Zo) * ct;
-  };
-
-private:
-  index inSize, layerSize, outSize;
-
-  RealMatrix mWi, mWg, mWf, mWo;
-  RealMatrix mDWi, mDWg, mDWf, mDWo;
-  RealVector mBi, mBg, mBf, mBo;
-  RealVector mDBi, mDBg, mDBf, mDBo;
-
-  // eigen maps to the real parameters
-  EigenMatrixMap mEWi, mEWg, mEWf, mEWo;
-  EigenMatrixMap mEDWi, mEDWg, mEDWf, mEDWo;
-  EigenVectorMap mEBi, mEBg, mEBf, mEBo;
-  EigenVectorMap mEDBi, mEDBg, mEDBf, mEDBo;
-
-  bool mInitialized{false};
-
-  void resetParameters()
+        mEDBf(mDBf.data(), mDBf.size()), mEDBo(mDBo.data(), mDBo.size())
   {
     std::random_device rnd_device;
     std::mt19937       mersenne_engine{rnd_device()};
@@ -169,22 +89,76 @@ private:
     std::generate(mWi.begin(), mWi.end(), gen);
     std::generate(mWi.begin(), mWi.end(), gen);
     std::generate(mWi.begin(), mWi.end(), gen);
-  }
+  };
 
-  void resetDerivates()
+  void apply(double lr)
   {
-    // weight derivatives
+    mEWi -= lr * mEDWi;
+    mEWg -= lr * mEDWg;
+    mEWf -= lr * mEDWf;
+    mEWo -= lr * mEDWo;
+
+    mEBi -= lr * mEDBi;
+    mEBg -= lr * mEDBg;
+    mEBf -= lr * mEDBf;
+    mEBo -= lr * mEDBo;
+
+    // clear weight derivatives
     mDWi.fill(0.0);
     mDWg.fill(0.0);
     mDWf.fill(0.0);
     mDWo.fill(0.0);
 
-    // bias derivatives
+    // clear bias derivatives
     mDBi.fill(0.0);
     mDBg.fill(0.0);
     mDBf.fill(0.0);
     mDBo.fill(0.0);
   }
+
+  index inSize, layerSize, outSize;
+
+  // parameters
+  RealMatrix mWi, mWg, mWf, mWo;
+  RealMatrix mDWi, mDWg, mDWf, mDWo;
+  RealVector mBi, mBg, mBf, mBo;
+  RealVector mDBi, mDBg, mDBf, mDBo;
+
+  // eigen maps to the parameters
+  EigenMatrixMap mEWi, mEWg, mEWf, mEWo;
+  EigenMatrixMap mEDWi, mEDWg, mEDWf, mEDWo;
+  EigenVectorMap mEBi, mEBg, mEBf, mEBo;
+  EigenVectorMap mEDBi, mEDBg, mEDBf, mEDBo;
+};
+
+class LSTMState
+{
+  using VectorXd = Eigen::VectorXd;
+  using MatrixXd = Eigen::MatrixXd;
+  using ArrayXd = Eigen::ArrayXd;
+
+  using EigenMatrixMap = Eigen::Map<MatrixXd>;
+  using EigenVectorMap = Eigen::Map<VectorXd>;
+  using EigenArrayMap = Eigen::Map<ArrayXd>;
+
+public:
+  LSTMState(index inputSize, index outputSize) {}
+
+  // state at time t
+  RealVector mI, mG, mF, mO, mC, mH;
+  RealVector mDC, mDH;
+
+  // eigen maps to the states for schmancy maths
+  EigenVectorMap mEI, mEG, mEF, mEO, mEC, mEH;
+  EigenVectorMap mEDC, mEDH;
+};
+
+class LSTMCell
+{
+
+
+  LSTMState  mState;
+  LSTMParam& mParam;
 };
 
 } // namespace algorithm
