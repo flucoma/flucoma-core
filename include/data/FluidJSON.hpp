@@ -515,6 +515,58 @@ void from_json(const nlohmann::json &j, UMAP &umap) {
   umap.init(embedding, tree, k, a, b);
 }
 
+// LSTM
+void to_json(nlohmann::json& j, const Recur<LSTMCell>& lstm)
+{
+  LSTMCell::ParamLock params = lstm.getParams().lock();
+
+  j["inSize"] = params->mInSize;
+  j["outSize"] = params->mOutSize;
+
+  j["inputWeights"] = params->mWi;
+  j["stateWeights"] = params->mWg;
+  j["forgetWeights"] = params->mWf;
+  j["outputWeights"] = params->mWo;
+
+  j["inputBias"] = params->mBi;
+  j["stateBias"] = params->mBg;
+  j["forgetBias"] = params->mBf;
+  j["outputBias"] = params->mBo;
+}
+
+bool check_json(const nlohmann::json& j, const Recur<LSTMCell>&)
+{
+  return fluid::check_json(
+      j,
+      {"inSize", "outSize", "inputWeights", "stateWeights", "forgetWeights",
+       "outputWeights", "inputBias", "stateBias", "forgetBias", "outputBias"},
+      {JSONTypes::NUMBER, JSONTypes::NUMBER, JSONTypes::ARRAY, JSONTypes::ARRAY,
+       JSONTypes::ARRAY, JSONTypes::ARRAY, JSONTypes::ARRAY, JSONTypes::ARRAY,
+       JSONTypes::ARRAY, JSONTypes::ARRAY});
+}
+
+void from_json(const nlohmann::json& j, Recur<LSTMCell>& lstm)
+{
+  index inSize = j.at("inSize").get<index>();
+  index outSize = j.at("outSize").get<index>();
+
+  lstm.init(inSize, outSize);
+
+  LSTMCell::ParamLock params = lstm.getParams().lock();
+
+  j.at("inputWeights").get_to(params->mWi);
+  j.at("stateWeights").get_to(params->mWg);
+  j.at("forgetWeights").get_to(params->mWf);
+  j.at("outputWeights").get_to(params->mWo);
+
+  j.at("inputBias").get_to(params->mBi);
+  j.at("stateBias").get_to(params->mBg);
+  j.at("forgetBias").get_to(params->mBf);
+  j.at("outputBias").get_to(params->mBo);
+
+  lstm.setTrained();
+}
+
 } // namespace algorithm
 
 class JSONFile {

@@ -34,6 +34,12 @@ public:
   index dims() const { return mInitialized ? mOutSize : 0; }
 
   bool trained() const { return mInitialized ? mTrained : false; }
+  void setTrained() const
+  {
+    if (mInitialized) mTrained = true;
+  }
+
+  Cell::ParamPtr getParams() const { return mParams; }
 
   void clear()
   {
