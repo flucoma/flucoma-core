@@ -26,11 +26,38 @@ template <class Cell>
 class Recur
 {
 public:
+  explicit Recur() = default;
+  ~Recur() = default;
 
+  index size() const { return mInitialized ? asSigned(mNodes.size()) : 0; }
+  index initialized() const { return mInitialized; }
+  index dims() const { return mInitialized ? mOutSize : 0; }
+
+  bool trained() const { return mInitialized ? mTrained : false; }
+
+  void clear()
+  {
+    mParams.reset();
+    mNodes.clear();
+  };
+
+  void init(index inSize, index outSize)
+  {
+    mInSize = inSize;
+    mOutSize = outSize;
+    mParams = std::make_shared<Cell::ParamType>(inSize, outSize);
+
+    mInitialized = true;
+  };
+
+  void fit(InputRealMatrixView input, RealMatrixView output){};
+  void process(){};
 
 private:
-  bool mInitialized;
-  bool mTrained;
+  bool mInitialized{false};
+  bool mTrained{false};
+
+  index mInSize, mOutSize;
 
   // rt vector of cells (each have ptr to params)
   // pointer so Recur can be default constructible
