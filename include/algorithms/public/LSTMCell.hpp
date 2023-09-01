@@ -68,31 +68,32 @@ public:
 
   void processFrame(InputRealVectorView inData, InputRealVectorView inState,
                     InputRealVectorView prevOutput, RealVectorView outState,
-                    RealVectorView outData, bool isFirstFrame,
-                    Allocator& alloc = FluidDefaultAllocator())
+                    RealVectorView outData,
+                    Allocator&     alloc = FluidDefaultAllocator())
   {
-    ScopedEigenMap<Eigen::VectorXd> xthtp(inData.size() + prevOutput.size(),
-                                          alloc);
-    ScopedEigenMap<Eigen::ArrayXd>  ct(outState.size(), alloc),
+    using namespace _impl;
+
+    ScopedEigenMap<VectorXd> xthtp(inData.size() + prevOutput.size(),
+                                   alloc); // xt and htp concatenated
+    ScopedEigenMap<ArrayXd>  ct(outState.size(), alloc),
         ctp(inState.size(), alloc), ht(outData.size(), alloc);
 
+    xthtp << asEigen<Eigen::Matrix>(inData), asEigen<Eigen::Array>(inData);
+    ctp = asEigen<Eigen::Array>(inData);
 
-    xthtp << _impl::asEigen<Eigen::Matrix>(inData),
-        _impl::asEigen<Eigen::Array>(inData);
-    ctp = _impl::asEigen<Eigen::Array>(inData);
+    forwardFrame(xthtp, ctp, ct, ht, alloc);
 
-    forwardFrame(xthtp, ctp, ct, ht, isFirstFrame, alloc);
-
-    _impl::asEigen<Eigen::Array>(outState) = ct;
-    _impl::asEigen<Eigen::Matrix>(outData) = ht;
+    asEigen<Eigen::Array>(outState) = ct;
+    asEigen<Eigen::Matrix>(outData) = ht;
   };
 
-  void forwardFrame(Eigen::Ref<Eigen::VectorXd> xthtp,
-                    Eigen::Ref<Eigen::ArrayXd>  ctp,
-                    Eigen::Ref<Eigen::ArrayXd>  ct,
-                    Eigen::Ref<Eigen::ArrayXd> ht, bool isFirstFrame,
+  void forwardFrame(Eigen::Ref<VectorXd> xthtp, Eigen::Ref<ArrayXd> ctp,
+                    Eigen::Ref<ArrayXd> ct, Eigen::Ref<ArrayXd> ht,
                     Allocator& alloc = FluidDefaultAllocator())
   {
+    using namespace Eigen;
+    using namespace _impl;
+
     assert(ctp.size() == ct.size());
     assert(ctp.size() == ht.size());
 
