@@ -272,14 +272,47 @@ public:
     mState.mEAH = mState.mEAC * mState.mEAC;
   }
 
-  void backwardFrame(InputRealVectorView dLdh, InputRealVectorView dLdc,
-                     Allocator& alloc = FluidDefaultAllocator())
+  void backwardFrame(InputRealVectorView outputDerivative,
+                     InputRealVectorView stateDerivative,
+                     Allocator&          alloc = FluidDefaultAllocator())
   {
     ScopedEigenMap<ArrayXd> dC(mParam.mOutSize, alloc),
+        dLdh(mParam.mOutSize, alloc), dLdc(mParam.mOutSize, alloc),
         dI(mParam.mOutSize, alloc), dG(mParam.mOutSize, alloc),
-        dF(mParam.mOutSize, alloc), dO(mParam.mOutSize, alloc),
+        dF(mParam.mOutSize, alloc), dO(mParam.mOutSize, alloc);
+    ScopedEigenMap<VectorXd> dXH(mParam.mLayerSize, alloc),
         dZi(mParam.mOutSize, alloc), dZg(mParam.mOutSize, alloc),
         dZf(mParam.mOutSize, alloc), dZo(mParam.mOutSize, alloc);
+
+    dLdh = _impl::asEigen<Eigen::Array>(outputDerivative);
+    dLdc = _impl::asEigen<Eigen::Array>(stateDerivative);
+
+    dC = mState.mEAO * dLdh + dLdc;
+    dI = mState.mEAG * dC;
+    dG = mState.mEAI * dC;
+    dF = mState.mEACp * dC;
+    dO = mState.mEAC * dLdh;
+
+    dZi = mState.mEAI * (1.0 - mState.mEAI) * dI;
+    dZg = (1.0 - (mState.mEAG) * (mState.mEAG)) * dG;
+    dZf = mState.mEAF * (1.0 - mState.mEAF) * dF;
+    dZo = mState.mEAO * (1.0 - mState.mEAO) * dO;
+
+    mParam.mEMDWi += dZi * mState.mEMXH.transpose();
+    mParam.mEMDWg += dZg * mState.mEMXH.transpose();
+    mParam.mEMDWf += dZf * mState.mEMXH.transpose();
+    mParam.mEMDWo += dZo * mState.mEMXH.transpose();
+
+    mParam.mEMDBi += dZi;
+    mParam.mEMDBg += dZg;
+    mParam.mEMDBf += dZf;
+    mParam.mEMDBo += dZo;
+
+    dXH = mParam.mEMWi.transpose() * dZi + mParam.mEMWg.transpose() * dZg +
+          mParam.mEMWf.transpose() * dZf + mParam.mEMWo.transpose() * dZo;
+
+    mState.mEADC = dC * mState.mEAF;
+    mState.mEADH = dXH(Eigen::lastN(mParam.mOutSize));
   }
 
   LSTMState  mState;
