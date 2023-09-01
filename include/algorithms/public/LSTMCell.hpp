@@ -187,10 +187,10 @@ class LSTMState
   using EigenArrayXMap = Eigen::Map<ArrayXd>;
 
 public:
-  LSTMState(index inputSize, index outputSize)
-      : mXH(inputSize + outputSize), mCp(outputSize), mHp(outputSize),
-        mI(outputSize), mG(outputSize), mF(outputSize), mO(outputSize),
-        mC(outputSize), mH(outputSize), mDC(outputSize), mDH(outputSize),
+  LSTMState(LSTMParam& p)
+      : mXH(p.mLayerSize), mCp(p.mOutSize), mHp(p.mOutSize), mI(p.mOutSize),
+        mG(p.mOutSize), mF(p.mOutSize), mO(p.mOutSize), mC(p.mOutSize),
+        mH(p.mOutSize), mDC(p.mOutSize), mDH(p.mOutSize),
 
         mEMXH(mXH.data(), mXH.size()), mEMI(mI.data(), mI.size()),
         mEMCp(mCp.data(), mCp.size()), mEMHp(mHp.data(), mHp.size()),
@@ -233,8 +233,7 @@ class LSTMCell
   using EigenArrayMap = Eigen::Map<ArrayXd>;
 
 public:
-  LSTMCell(LSTMParam& param)
-      : mParam(param), mState(param.mInSize, param.mOutSize){};
+  LSTMCell(LSTMParam& p) : mParam(p), mState(p){};
 
   void forwardFrame(InputRealVectorView inData, InputRealVectorView prevState,
                     InputRealVectorView prevData, RealVectorView outState,
