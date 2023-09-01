@@ -189,8 +189,6 @@ class LSTMState
   using ParamPtr = std::weak_ptr<LSTMParam>;
   using ParamLock = std::shared_ptr<LSTMParam>;
 
-public:
-  LSTMState(ParamPtr p) : LSTMState(p.lock()){};
   LSTMState(ParamLock p)
       : mXH(p->mLayerSize), mCp(p->mOutSize), mHp(p->mOutSize), mI(p->mOutSize),
         mG(p->mOutSize), mF(p->mOutSize), mO(p->mOutSize), mC(p->mOutSize),
@@ -212,6 +210,9 @@ public:
 
         mEADC(mDC.data(), mDC.size()), mEADH(mDH.data(), mDH.size())
   {}
+
+public:
+  LSTMState(ParamPtr p) : LSTMState(p.lock()){};
 
   // state at time t
   RealVector mXH, mCp, mHp, mI, mG, mF, mO, mC, mH;
@@ -237,10 +238,11 @@ class LSTMCell
   using EigenArrayMap = Eigen::Map<ArrayXd>;
 
 public:
-  using ParamPtr = std::weak_ptr<LSTMParam>;
-  using ParamLock = std::shared_ptr<LSTMParam>;
+  using ParamType = LSTMParam;
+  using ParamPtr = std::weak_ptr<ParamType>;
+  using ParamLock = std::shared_ptr<ParamType>;
 
-  LSTMCell(ParamPtr p) : mParams(p), mState(p){};
+  LSTMCell(ParamPtr p) : mParams(p), mState(p) {}
 
   void forwardFrame(InputRealVectorView inData, InputRealVectorView prevState,
                     InputRealVectorView prevData, RealVectorView outState,
