@@ -32,6 +32,15 @@ public:
 
   Cell      mCell;
   StateType state;
+
+private:
+  bool mInitialized;
+  bool mTrained;
+
+  // rt vector of cells (each have ptr to params)
+  // pointer so Recur can be default constructible
+  rt::vector<Cell, Allocator> mNodes;
+  std::shared_ptr<CellParams> mParams;
 };
 
 } // namespace algorithm
