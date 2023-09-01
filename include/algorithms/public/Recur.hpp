@@ -59,6 +59,34 @@ public:
   void fit(InputRealMatrixView input, RealMatrixView output){};
   void process(){};
 
+  void process(InputRealMatrixView input, RealMatrixView output)
+  {
+    assert(input.cols() == inSize);
+    assert(output.cols() == outSize);
+    assert(input.rows() == output.rows() || output.rows() == 1);
+
+    Cell       lstm(mParams);
+    RealVector nowState(mParams->mOutSize), nowHidden(mParams->mOutSize),
+        nextState(mParams->mOutSize), nextHidden(mParams->mOutSize);
+
+    nowState.fill(0.0);
+    nowHidden.fill(0.0);
+
+    for (index row = 0; row < input.rows(); ++row)
+    {
+      InputRealVectorView in = input.row(i);
+      lstm.forwardFrame(in, nowState, nowHidden, nextState, nextHidden);
+
+      if (output.rows() > 1 || row == input.rows() - 1)
+      {
+        output.row(i) <<= nextHidden;
+      }
+
+      nowState << nextState;
+      nowHidden << nextHidden;
+    }
+  };
+
 private:
   bool mInitialized{false};
   bool mTrained{false};
