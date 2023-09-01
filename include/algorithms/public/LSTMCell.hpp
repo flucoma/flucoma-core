@@ -30,8 +30,10 @@ under the European Union’s Horizon 2020 research and innovation programme
 // [WB] => weight matrix or bias vector
 // [igfo] => what the weight is for: input gate, input weighting, forget gate,
 //           output gate, respectively
+// p => previous state
 //
 // e.g. mWi -> input gate weights
+//      mCp -> previous cell state vector
 //      mDBo -> derivative of output gate biases
 //      mEMWf -> eigen matrix map of the forget gate weights
 //      mEADBf -> eigen array map of the derivative of the forget gate biases
@@ -82,6 +84,16 @@ public:
         // create matrix eigen maps for the biases
         mEMBi(mBi.data(), mBi.size()), mEMBg(mBg.data(), mBg.size()),
         mEMBf(mBf.data(), mBf.size()), mEMBo(mBo.data(), mBo.size()),
+
+        // create matrix eigen maps for the weight derivatives
+        mEMDWi(mDWi.data(), mDWi.rows(), mDWi.cols()),
+        mEMDWg(mDWg.data(), mDWg.rows(), mDWg.cols()),
+        mEMDWf(mDWf.data(), mDWf.rows(), mDWf.cols()),
+        mEMDWo(mDWo.data(), mDWo.rows(), mDWo.cols()),
+
+        // create array eigen maps for the bias derivatives
+        mEMDBi(mDBi.data(), mDBi.size()), mEMDBg(mDBg.data(), mDBg.size()),
+        mEMDBf(mDBf.data(), mDBf.size()), mEMDBo(mDBo.data(), mDBo.size()),
 
         // create array eigen maps for the weights
         mEAWi(mWi.data(), mWi.rows(), mWi.cols()),
@@ -155,7 +167,9 @@ public:
 
   // eigen maps to the parameters for linear algebra
   EigenMatrixMap mEMWi, mEMWg, mEMWf, mEMWo;
+  EigenMatrixMap mEMDWi, mEMDWg, mEMDWf, mEMDWo;
   EigenVectorMap mEMBi, mEMBg, mEMBf, mEMBo;
+  EigenVectorMap mEMDBi, mEMDBg, mEMDBf, mEMDBo;
 
   // eigen maps to the parameters for element-wise algebra
   EigenArrayXXMap mEAWi, mEAWg, mEAWf, mEAWo;
@@ -174,32 +188,40 @@ class LSTMState
 
 public:
   LSTMState(index inputSize, index outputSize)
-      : mXH(inputSize + outputSize), mI(outputSize), mG(outputSize),
-        mF(outputSize), mO(outputSize), mC(outputSize), mH(outputSize),
-        mDC(outputSize), mDH(outputSize),
+      : mXH(inputSize + outputSize), mCp(outputSize), mHp(outputSize),
+        mI(outputSize), mG(outputSize), mF(outputSize), mO(outputSize),
+        mC(outputSize), mH(outputSize), mDC(outputSize), mDH(outputSize),
 
         mEMXH(mXH.data(), mXH.size()), mEMI(mI.data(), mI.size()),
+        mEMCp(mCp.data(), mCp.size()), mEMHp(mHp.data(), mHp.size()),
         mEMG(mG.data(), mG.size()), mEMF(mF.data(), mF.size()),
         mEMO(mO.data(), mO.size()), mEMC(mC.data(), mC.size()),
         mEMH(mH.data(), mH.size()),
 
+        mEMDXH(mDXH.data(), mDXH.size()), mEMDC(mDC.data(), mDC.size()),
+        mEMDH(mDH.data(), mDH.size()),
+
         mEAXH(mXH.data(), mXH.size()), mEAI(mI.data(), mI.size()),
+        mEACp(mCp.data(), mCp.size()), mEAHp(mHp.data(), mHp.size()),
         mEAG(mG.data(), mG.size()), mEAF(mF.data(), mF.size()),
         mEAO(mO.data(), mO.size()), mEAC(mC.data(), mC.size()),
-        mEAH(mH.data(), mH.size()), mEADC(mDC.data(), mDC.size()),
+        mEAH(mH.data(), mH.size()),
+
+        mEADXH(mDXH.data(), mDXH.size()), mEADC(mDC.data(), mDC.size()),
         mEADH(mDH.data(), mDH.size())
   {}
 
   // state at time t
-  RealVector mXH, mI, mG, mF, mO, mC, mH;
-  RealVector mDC, mDH;
+  RealVector mXH, mCp, mHp, mI, mG, mF, mO, mC, mH;
+  RealVector mDXH, mDC, mDH;
 
   // eigen maps to the states for linear algebra
-  EigenVectorMap mEMXH, mEMI, mEMG, mEMF, mEMO, mEMC, mEMH;
+  EigenVectorMap mEMXH, mEMCp, mEMHp, mEMI, mEMG, mEMF, mEMO, mEMC, mEMH;
+  EigenVectorMap mEMDXH, mEMDC, mEMDH;
 
   // eigen maps to the states for element-wise algebra
-  EigenArrayXMap mEAXH, mEAI, mEAG, mEAF, mEAO, mEAC, mEAH;
-  EigenArrayXMap mEADC, mEADH;
+  EigenArrayXMap mEAXH, mEACp, mEAHp, mEAI, mEAG, mEAF, mEAO, mEAC, mEAH;
+  EigenArrayXMap mEADXH, mEADC, mEADH;
 };
 
 class LSTMCell
