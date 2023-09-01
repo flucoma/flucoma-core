@@ -142,7 +142,15 @@ class LSTMState
   using EigenArrayMap = Eigen::Map<ArrayXd>;
 
 public:
-  LSTMState(index inputSize, index outputSize) {}
+  LSTMState(index inputSize, index outputSize)
+      : mI(outputSize), mG(outputSize), mF(outputSize), mO(outputSize),
+        mC(outputSize), mH(outputSize), mDC(outputSize), mDH(outputSize),
+
+        mEI(mI.data(), mI.size()), mEG(mG.data(), mG.size()),
+        mEF(mF.data(), mF.size()), mEO(mO.data(), mO.size()),
+        mEC(mC.data(), mC.size()), mEH(mH.data(), mH.size()),
+        mEDC(mDC.data(), mDC.size()), mEDH(mDH.data(), mDH.size())
+  {}
 
   // state at time t
   RealVector mI, mG, mF, mO, mC, mH;
