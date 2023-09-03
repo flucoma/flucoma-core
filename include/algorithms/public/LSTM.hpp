@@ -244,6 +244,8 @@ public:
 
   LSTMCell(ParamPtr p) : mParams(p), mState(p) {}
 
+  LSTMState& getState() { return mState; }
+
   void forwardFrame(InputRealVectorView inData, InputRealVectorView prevState,
                     InputRealVectorView prevData, RealVectorView outState,
                     RealVectorView outData,
