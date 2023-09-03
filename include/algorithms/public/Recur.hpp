@@ -10,6 +10,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
+#include "LSTM.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidDataSet.hpp"
 #include "../../data/FluidIndex.hpp"
@@ -56,8 +57,36 @@ public:
     mInitialized = true;
   };
 
-  void fit(InputRealMatrixView input, RealMatrixView output){};
-  void process(){};
+  void fit(InputRealMatrixView input, InputRealMatrixView output)
+  {
+    // check the input sizes and check either N-N or N-1
+    assert(input.cols() == inSize);
+    assert(output.cols() == outSize);
+    assert(input.rows() == output.rows() || output.rows() == 1);
+
+    RealVector nowState(mParams->mOutSize), nowHidden(mParams->mOutSize),
+        nextState(mParams->mOutSize), nextHidden(mParams->mOutSize);
+
+    for (index i = 0; i < input.rows(); ++i)
+    {
+      mNodes.emplace_back(mParams);
+      mNodes.back().forwardFrame(input.row(i), nowState, nowHidden, nextState,
+                                 nextHidden);
+
+      nowState << nextState;
+      nowHidden << nextHidden;
+    }
+
+
+    for (index row = input.rows() - 1; row > 0; --row)
+    {
+      mNodes.back().forwardFrame(input.row(i), nowState, nowHidden, nextState,
+                                 nextHidden);
+
+      nowState << nextState;
+      nowHidden << nextHidden;
+    }
+  };
 
   void process(InputRealMatrixView input, RealMatrixView output)
   {
@@ -72,18 +101,18 @@ public:
     nowState.fill(0.0);
     nowHidden.fill(0.0);
 
-    for (index row = 0; row < input.rows(); ++row)
+    for (index i = 0; i < input.rows(); ++i)
     {
-      InputRealVectorView in = input.row(i);
-      lstm.forwardFrame(in, nowState, nowHidden, nextState, nextHidden);
-
-      if (output.rows() > 1 || row == input.rows() - 1)
-      {
-        output.row(i) <<= nextHidden;
-      }
+      lstm.forwardFrame(input.row(i), nowState, nowHidden, nextState,
+                        nextHidden);
 
       nowState << nextState;
       nowHidden << nextHidden;
+
+      if (output.rows() > 1 || row == input.rows() - 1)
+      {
+        output.row(i) <<= nowHidden;
+      }
     }
   };
 
@@ -98,6 +127,17 @@ private:
   rt::vector<Cell> mNodes;
   Cell::ParamLock  mParams;
 };
+
+double loss(InputRealVectorView a, InputRealVectorView b)
+{
+  ScopedEigenMap<Eigen::VectorXd> _a{_impl::asEigen<Eigen::Matrix>(a)},
+      _b{_impl::asEigen<Eigen::Matrix>(b)};
+
+  return (_a - _b) * (_a - _b);
+}
+
+template <>
+class Recur<LSTMCell>;
 
 } // namespace algorithm
 } // namespace fluid
