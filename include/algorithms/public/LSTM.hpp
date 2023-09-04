@@ -174,8 +174,7 @@ public:
         Zi(params->mOutSize, alloc), Zg(params->mOutSize, alloc),
         Zf(params->mOutSize, alloc), Zo(params->mOutSize, alloc);
 
-    // previous state as eigen array
-    cp << _impl::asEigen<Eigen::Array>(prevState);
+    mState.mCp <<= prevState.mC;
 
     // concatentate input and previous output
     mState.mXH.matrix() << _impl::asEigen<Eigen::Matrix>(inData),
@@ -193,8 +192,8 @@ public:
     mState.mO.array() = logistic(Zo);
 
     // elem-wise mult and sum
-    mState.mC.array() =
-        mState.mG.array() * mState.mI.array() + cp * mState.mF.array();
+    mState.mC.array() = mState.mG.array() * mState.mI.array() +
+                        mState.mCp.array() * mState.mF.array();
     mState.mH.array() = mState.mC.array() * mState.mC.array();
 
     outState <<= mState.mC;
