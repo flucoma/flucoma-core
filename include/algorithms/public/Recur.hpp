@@ -125,9 +125,9 @@ public:
     mNodes.emplace_back(mParams);
 
     double loss = 0.0;
-    for (index i = 0; i < input.rows(); ++i)
-      loss += mNodes.rbegin()[i + 1].backwardFrame(
-          output.row(input.rows() - 1 - i), mNodes.rbegin()[i + 2].getState());
+    for (index i = 1; i < input.rows() + 1; ++i)
+      loss += mNodes.rbegin()[i].backwardFrame(
+          output.row(input.rows() - i), mNodes.rbegin()[i + 1].getState());
 
     return loss;
   };
