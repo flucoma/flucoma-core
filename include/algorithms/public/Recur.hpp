@@ -63,9 +63,16 @@ private:
   EigenArrayXMap mArray;
 };
 
-template <class Cell>
+
+template <class CellType>
 class Recur
 {
+  using CellSeries = rt::vector<CellType>;
+  using CellState = typename CellType::StateType;
+  using ParamType = typename CellType::ParamType;
+  using ParamPtr = typename CellType::ParamPtr;
+  using ParamLock = typename CellType::ParamLock;
+
 public:
   explicit Recur() = default;
   ~Recur() = default;
@@ -80,7 +87,7 @@ public:
     if (mInitialized) mTrained = true;
   }
 
-  typename Cell::ParamPtr getParams() const { return mParams; }
+  ParamPtr getParams() const { return mParams; }
 
   void clear()
   {
@@ -90,7 +97,7 @@ public:
 
   void init(index inSize, index outSize)
   {
-    mParams = std::make_shared<Cell::ParamType>(inSize, outSize);
+    mParams = std::make_shared<ParamType>(inSize, outSize);
 
     mInSize = inSize;
     mOutSize = outSize;
@@ -164,21 +171,10 @@ private:
   index mInSize, mOutSize;
 
   // rt vector of cells (each have ptr to params)
-  // pointer so Recur can be default constructible
-  rt::vector<Cell>         mNodes;
-  typename Cell::ParamLock mParams;
+  // pointer rather than ref so Recur can be default constructible
+  CellSeries mNodes;
+  ParamLock  mParams;
 };
-
-double loss(InputRealVectorView a, InputRealVectorView b)
-{
-  ScopedEigenMap<Eigen::VectorXd> _a{_impl::asEigen<Eigen::Matrix>(a)},
-      _b{_impl::asEigen<Eigen::Matrix>(b)};
-
-  return (_a - _b) * (_a - _b);
-}
-
-template <>
-class Recur<LSTMCell>;
 
 } // namespace algorithm
 } // namespace fluid
