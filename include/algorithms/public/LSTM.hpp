@@ -176,6 +176,7 @@ public:
 
     mState.mX <<= inData;
     mState.mCp <<= prevState.mC;
+    mState.mHp <<= prevState.mH;
 
     // concatentate input and previous output
     mState.mXH.matrix() << asEigen<Matrix>(inData), prevState.mH.matrix();
@@ -194,7 +195,7 @@ public:
     // elem-wise mult and sum
     mState.mC.array() = mState.mG.array() * mState.mI.array() +
                         mState.mCp.array() * mState.mF.array();
-    mState.mH.array() = mState.mC.array() * mState.mC.array();
+    mState.mH.array() = mState.mC.array() * mState.mO.array();
   }
 
   // in many to one, all cells except the last one have no target output
@@ -257,7 +258,7 @@ public:
     mState.mDC.array() = dC * mState.mF.array();
     mState.mDH.array() = dXH(Eigen::lastN(params->mOutSize));
 
-    return (mState.mH.matrix() - asEigen<Matrix>(dataTarget)).norm();
+    return (mState.mH.matrix() - asEigen<Matrix>(dataTarget)).squaredNorm();
   }
 
 private:
