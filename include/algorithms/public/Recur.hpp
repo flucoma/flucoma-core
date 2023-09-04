@@ -23,6 +23,62 @@ under the European Union’s Horizon 2020 research and innovation programme
 namespace fluid {
 namespace algorithm {
 
+class MatrixParam
+{
+  using MatrixXd = Eigen::MatrixXd;
+  using ArrayXXd = Eigen::ArrayXXd;
+
+  using EigenMatrixMap = Eigen::Map<MatrixXd>;
+  using EigenArrayXXMap = Eigen::Map<ArrayXXd>;
+
+public:
+  template <typename... Args>
+  MatrixParam(Args&&... args)
+      : mContainer{std::forward<Args>(args)...},
+        mMatrix{mContainer.data(), mContainer.rows(), mContainer.cols()},
+        mArray{mContainer.data(), mContainer.rows(), mContainer.cols()}
+  {}
+
+  operator RealMatrixView() { return mContainer; }
+  operator InputRealMatrixView() const { return mContainer; }
+
+  EigenMatrixMap  matrix() { return mMatrix; }
+  EigenArrayXXMap array() { return mArray; }
+
+private:
+  RealMatrix      mContainer;
+  EigenMatrixMap  mMatrix;
+  EigenArrayXXMap mArray;
+};
+
+class VectorParam
+{
+  using VectorXd = Eigen::VectorXd;
+  using ArrayXd = Eigen::ArrayXd;
+
+  using EigenVectorMap = Eigen::Map<VectorXd>;
+  using EigenArrayXMap = Eigen::Map<ArrayXd>;
+
+public:
+  template <typename... Args>
+  VectorParam(Args&&... args)
+      : mContainer{std::forward<Args>(args)...},
+        mMatrix{mContainer.data(), mContainer.size()},
+        mArray{mContainer.data(), mContainer.size()}
+  {}
+
+  operator RealVectorView() { return mContainer; }
+  operator InputRealVectorView() const { return mContainer; }
+
+  EigenVectorMap matrix() { return mMatrix; }
+  EigenArrayXMap array() { return mArray; }
+
+private:
+  RealVector     mContainer;
+  EigenVectorMap mMatrix;
+  EigenArrayXMap mArray;
+};
+
 template <class Cell>
 class Recur
 {
