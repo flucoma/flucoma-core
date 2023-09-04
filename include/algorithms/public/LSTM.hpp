@@ -149,13 +149,15 @@ class LSTMCell
   using EigenArrayMap = Eigen::Map<ArrayXd>;
 
 public:
+  // Recur typedefs
+  using StateType = LSTMState;
   using ParamType = LSTMParam;
   using ParamPtr = std::weak_ptr<ParamType>;
   using ParamLock = std::shared_ptr<ParamType>;
 
   LSTMCell(ParamPtr p) : mParams(p), mState(p) {}
 
-  LSTMState& getState() { return mState; }
+  StateType& getState() { return mState; }
 
   void forwardFrame(InputRealVectorView inData, InputRealVectorView prevState,
                     InputRealVectorView prevData, RealVectorView outState,
