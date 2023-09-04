@@ -24,11 +24,8 @@ namespace algorithm {
 
 class MatrixParam : public RealMatrix
 {
-  using MatrixXd = Eigen::MatrixXd;
-  using ArrayXXd = Eigen::ArrayXXd;
-
-  using EigenMatrixMap = Eigen::Map<MatrixXd>;
-  using EigenArrayXXMap = Eigen::Map<ArrayXXd>;
+  using EigenMatrixMap = Eigen::Map<Eigen::MatrixXd>;
+  using EigenArrayXXMap = Eigen::Map<Eigen::ArrayXXd>;
 
 public:
   template <typename... Args>
@@ -48,11 +45,8 @@ private:
 
 class VectorParam : public RealVector
 {
-  using VectorXd = Eigen::VectorXd;
-  using ArrayXd = Eigen::ArrayXd;
-
-  using EigenVectorMap = Eigen::Map<VectorXd>;
-  using EigenArrayXMap = Eigen::Map<ArrayXd>;
+  using EigenVectorMap = Eigen::Map<Eigen::VectorXd>;
+  using EigenArrayXMap = Eigen::Map<Eigen::ArrayXd>;
 
 public:
   template <typename... Args>
