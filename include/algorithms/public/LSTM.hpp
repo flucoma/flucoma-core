@@ -159,26 +159,26 @@ public:
 
   StateType& getState() { return mState; }
 
-  void forwardFrame(InputRealVectorView inData, InputRealVectorView prevState,
-                    InputRealVectorView prevData, RealVectorView outState,
-                    RealVectorView outData,
-                    Allocator&     alloc = FluidDefaultAllocator())
+  void forwardFrame(InputRealVectorView inData, StateType& prevState,
+                    Allocator& alloc = FluidDefaultAllocator())
   {
+    using _impl::asEigen, Eigen::Matrix;
+
     ParamLock params = mParams.lock();
 
-    assert(inData.size() == params->mInSize);
-    assert(prevState.size() == params->mOutSize);
-    assert(prevData.size() == params->mOutSize);
+    assert(inData.size() == mState.mInSize);
+    assert(prevState.mInSize == mState.mInSize);
+    assert(prevState.mOutSize == mState.mOutSize);
 
-    ScopedEigenMap<ArrayXd> cp(params->mOutSize, alloc),
-        Zi(params->mOutSize, alloc), Zg(params->mOutSize, alloc),
-        Zf(params->mOutSize, alloc), Zo(params->mOutSize, alloc);
+    ScopedEigenMap<ArrayXd> Zi(params->mOutSize, alloc),
+        Zg(params->mOutSize, alloc), Zf(params->mOutSize, alloc),
+        Zo(params->mOutSize, alloc);
 
+    mState.mX <<= inData;
     mState.mCp <<= prevState.mC;
 
     // concatentate input and previous output
-    mState.mXH.matrix() << _impl::asEigen<Eigen::Matrix>(inData),
-        _impl::asEigen<Eigen::Matrix>(prevData);
+    mState.mXH.matrix() << asEigen<Matrix>(inData), prevState.mH.matrix();
 
     // matrix mult
     Zi = params->mWi.matrix() * mState.mXH.matrix() + params->mBi.matrix();
@@ -195,26 +195,24 @@ public:
     mState.mC.array() = mState.mG.array() * mState.mI.array() +
                         mState.mCp.array() * mState.mF.array();
     mState.mH.array() = mState.mC.array() * mState.mC.array();
-
-    outState <<= mState.mC;
-    outData <<= mState.mH;
   }
 
   // in many to one, all cells except the last one have no target output
-  double backwardDatalessFrame(InputRealVectorView dataDerivative,
-                               InputRealVectorView stateDerivative,
+  double backwardDatalessFrame(StateType& nextState,
                                Allocator& alloc = FluidDefaultAllocator())
   {
-    backwardFrame(mState.mH, dataDerivative, stateDerivative, alloc);
+    backwardFrame(mState.mH, nextState, alloc);
     return 0.0;
   }
 
-  double backwardFrame(InputRealVectorView dataTarget,
-                       InputRealVectorView dataDerivative,
-                       InputRealVectorView stateDerivative,
-                       Allocator&          alloc = FluidDefaultAllocator())
+  double backwardFrame(InputRealVectorView dataTarget, StateType& nextState,
+                       Allocator& alloc = FluidDefaultAllocator())
   {
-    using _impl::asEigen;
+    using _impl::asEigen, Eigen::Array, Eigen::Matrix;
+
+    assert(dataTarget.size() == mState.mOutSize);
+    assert(nextState.mInSize == mState.mInSize);
+    assert(nextState.mOutSize == mState.mOutSize);
 
     ParamLock params = mParams.lock();
 
@@ -226,9 +224,9 @@ public:
         dZi(params->mOutSize, alloc), dZg(params->mOutSize, alloc),
         dZf(params->mOutSize, alloc), dZo(params->mOutSize, alloc);
 
-    dLdh = asEigen<Eigen::Array>(dataDerivative) +
-           2 * (mState.mH.array() - asEigen<Eigen::Array>(dataTarget));
-    dLdc = asEigen<Eigen::Array>(stateDerivative);
+    dLdh = nextState.mDH.array() +
+           2 * (mState.mH.array() - asEigen<Array>(dataTarget));
+    dLdc = nextState.mDC.array();
 
     dC = mState.mO.array() * dLdh + dLdc;
     dI = mState.mG.array() * dC;
@@ -259,7 +257,7 @@ public:
     mState.mDC.array() = dC * mState.mF.array();
     mState.mDH.array() = dXH(Eigen::lastN(params->mOutSize));
 
-    return (mState.mH.matrix() - asEigen<Eigen::Matrix>(dataTarget)).norm();
+    return (mState.mH.matrix() - asEigen<Matrix>(dataTarget)).norm();
   }
 
 private:
