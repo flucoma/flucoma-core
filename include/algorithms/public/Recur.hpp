@@ -10,7 +10,6 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "LSTM.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidDataSet.hpp"
 #include "../../data/FluidIndex.hpp"
@@ -23,7 +22,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 namespace fluid {
 namespace algorithm {
 
-class MatrixParam
+class MatrixParam : public RealMatrix
 {
   using MatrixXd = Eigen::MatrixXd;
   using ArrayXXd = Eigen::ArrayXXd;
@@ -34,24 +33,20 @@ class MatrixParam
 public:
   template <typename... Args>
   MatrixParam(Args&&... args)
-      : mContainer{std::forward<Args>(args)...},
+      : RealMatrix{std::forward<Args>(args)...},
         mMatrix{mContainer.data(), mContainer.rows(), mContainer.cols()},
         mArray{mContainer.data(), mContainer.rows(), mContainer.cols()}
   {}
-
-  operator RealMatrixView() { return mContainer; }
-  operator InputRealMatrixView() const { return mContainer; }
 
   EigenMatrixMap  matrix() { return mMatrix; }
   EigenArrayXXMap array() { return mArray; }
 
 private:
-  RealMatrix      mContainer;
   EigenMatrixMap  mMatrix;
   EigenArrayXXMap mArray;
 };
 
-class VectorParam
+class VectorParam : public RealVector
 {
   using VectorXd = Eigen::VectorXd;
   using ArrayXd = Eigen::ArrayXd;
@@ -62,19 +57,15 @@ class VectorParam
 public:
   template <typename... Args>
   VectorParam(Args&&... args)
-      : mContainer{std::forward<Args>(args)...},
+      : RealVector{std::forward<Args>(args)...},
         mMatrix{mContainer.data(), mContainer.size()},
         mArray{mContainer.data(), mContainer.size()}
   {}
-
-  operator RealVectorView() { return mContainer; }
-  operator InputRealVectorView() const { return mContainer; }
 
   EigenVectorMap matrix() { return mMatrix; }
   EigenArrayXMap array() { return mArray; }
 
 private:
-  RealVector     mContainer;
   EigenVectorMap mMatrix;
   EigenArrayXMap mArray;
 };
