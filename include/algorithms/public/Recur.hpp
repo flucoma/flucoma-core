@@ -140,25 +140,17 @@ public:
     assert(output.cols() == mOutSize);
     assert(input.rows() == output.rows() || output.rows() == 1);
 
-    Cell       lstm(mParams);
-    RealVector nowState(mParams->mOutSize), nowHidden(mParams->mOutSize),
-        nextState(mParams->mOutSize), nextHidden(mParams->mOutSize);
-
-    nowState.fill(0.0);
-    nowHidden.fill(0.0);
+    CellType  cell(mParams);
+    CellState lastState = cell.getState();
 
     for (index i = 0; i < input.rows(); ++i)
     {
-      lstm.forwardFrame(input.row(i), nowState, nowHidden, nextState,
-                        nextHidden);
+      cell.forwardFrame(input.row(i), lastState);
 
-      nowState << nextState;
-      nowHidden << nextHidden;
+      if (output.rows() > 1 || i == input.rows() - 1)
+        output.row(i) <<= cell.getState().output();
 
-      if (output.rows() > 1 || row == input.rows() - 1)
-      {
-        output.row(i) <<= nowHidden;
-      }
+      lastState = cell.getState();
     }
   };
 
