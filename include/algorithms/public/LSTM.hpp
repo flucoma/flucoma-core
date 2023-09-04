@@ -120,13 +120,18 @@ class LSTMState
   using ParamLock = std::shared_ptr<LSTMParam>;
 
   LSTMState(ParamLock p)
-      : mX(p->mInSize), mXH(p->mLayerSize), mCp(p->mOutSize), mHp(p->mOutSize),
-        mI(p->mOutSize), mG(p->mOutSize), mF(p->mOutSize), mO(p->mOutSize),
-        mC(p->mOutSize), mH(p->mOutSize), mDC(p->mOutSize), mDH(p->mOutSize)
+      : mInSize(p->mInSize), mLayerSize(p->mLayerSize), mOutSize(p->mOutSize),
+        mX(mInSize), mXH(mLayerSize), mCp(mOutSize), mHp(mOutSize),
+        mI(mOutSize), mG(mOutSize), mF(mOutSize), mO(mOutSize), mC(mOutSize),
+        mH(mOutSize), mDC(mOutSize), mDH(mOutSize)
   {}
 
 public:
-  LSTMState(ParamPtr p) : LSTMState(p.lock()){};
+  LSTMState(ParamPtr p) : LSTMState{p.lock()} {};
+
+  RealVector output() { return mH; }
+
+  index mInSize, mLayerSize, mOutSize;
 
   // state at time t
   VectorParam mX, mXH, mCp, mHp, mI, mG, mF, mO, mC, mH;
