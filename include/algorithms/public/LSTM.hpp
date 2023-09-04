@@ -282,6 +282,9 @@ public:
     // elem-wise mult and sum
     mState.mEAC = mState.mEAG * mState.mEAI + cp * mState.mEAF;
     mState.mEAH = mState.mEAC * mState.mEAC;
+
+    outState <<= mState.mC;
+    outData <<= mState.mH;
   }
 
   void backwardFrame(InputRealVectorView outputDerivative,
@@ -327,6 +330,9 @@ public:
 
     mState.mEADC = dC * mState.mEAF;
     mState.mEADH = dXH(Eigen::lastN(params->mOutSize));
+
+    prevStateDerivative <<= mState.mDC;
+    prevDataDerivative <<= mState.mDH;
   }
 
 private:
