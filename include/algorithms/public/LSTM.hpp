@@ -287,8 +287,10 @@ public:
     outData <<= mState.mH;
   }
 
-  void backwardFrame(InputRealVectorView outputDerivative,
+  void backwardFrame(InputRealVectorView dataDerivative,
                      InputRealVectorView stateDerivative,
+                     RealVectorView      prevDataDerivative,
+                     RealVectorView      prevStateDerivative,
                      Allocator&          alloc = FluidDefaultAllocator())
   {
     ParamLock params = mParams.lock();
@@ -301,7 +303,7 @@ public:
         dZi(params->mOutSize, alloc), dZg(params->mOutSize, alloc),
         dZf(params->mOutSize, alloc), dZo(params->mOutSize, alloc);
 
-    dLdh = _impl::asEigen<Eigen::Array>(outputDerivative);
+    dLdh = _impl::asEigen<Eigen::Array>(dataDerivative);
     dLdc = _impl::asEigen<Eigen::Array>(stateDerivative);
 
     dC = mState.mEAO * dLdh + dLdc;
