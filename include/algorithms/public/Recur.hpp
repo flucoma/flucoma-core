@@ -33,9 +33,9 @@ class MatrixParam : public RealMatrix
 public:
   template <typename... Args>
   MatrixParam(Args&&... args)
-      : RealMatrix{std::forward<Args>(args)...},
-        mMatrix{mContainer.data(), mContainer.rows(), mContainer.cols()},
-        mArray{mContainer.data(), mContainer.rows(), mContainer.cols()}
+      : RealMatrix(std::forward<Args>(args)...),
+        mMatrix{this->data(), this->rows(), this->cols()},
+        mArray{this->data(), this->rows(), this->cols()}
   {}
 
   EigenMatrixMap  matrix() { return mMatrix; }
@@ -57,9 +57,8 @@ class VectorParam : public RealVector
 public:
   template <typename... Args>
   VectorParam(Args&&... args)
-      : RealVector{std::forward<Args>(args)...},
-        mMatrix{mContainer.data(), mContainer.size()},
-        mArray{mContainer.data(), mContainer.size()}
+      : RealVector(std::forward<Args>(args)...),
+        mMatrix{this->data(), this->size()}, mArray{this->data(), this->size()}
   {}
 
   EigenVectorMap matrix() { return mMatrix; }
@@ -105,11 +104,11 @@ public:
     mInitialized = true;
   };
 
-  void fit(InputRealMatrixView input, InputRealMatrixView output)
+  double fit(InputRealMatrixView input, InputRealMatrixView output)
   {
     // check the input sizes and check either N-N or N-1
-    assert(input.cols() == inSize);
-    assert(output.cols() == outSize);
+    assert(input.cols() == mInSize);
+    assert(output.cols() == mOutSize);
     assert(input.rows() == output.rows() || output.rows() == 1);
 
     RealVector nowState(mParams->mOutSize), nowHidden(mParams->mOutSize),
