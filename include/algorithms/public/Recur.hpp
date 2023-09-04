@@ -40,7 +40,7 @@ public:
     if (mInitialized) mTrained = true;
   }
 
-  Cell::ParamPtr getParams() const { return mParams; }
+  typename Cell::ParamPtr getParams() const { return mParams; }
 
   void clear()
   {
@@ -50,9 +50,10 @@ public:
 
   void init(index inSize, index outSize)
   {
+    mParams = std::make_shared<Cell::ParamType>(inSize, outSize);
+
     mInSize = inSize;
     mOutSize = outSize;
-    mParams = std::make_shared<Cell::ParamType>(inSize, outSize);
 
     mInitialized = true;
   };
@@ -90,8 +91,8 @@ public:
 
   void process(InputRealMatrixView input, RealMatrixView output)
   {
-    assert(input.cols() == inSize);
-    assert(output.cols() == outSize);
+    assert(input.cols() == mInSize);
+    assert(output.cols() == mOutSize);
     assert(input.rows() == output.rows() || output.rows() == 1);
 
     Cell       lstm(mParams);
@@ -124,8 +125,8 @@ private:
 
   // rt vector of cells (each have ptr to params)
   // pointer so Recur can be default constructible
-  rt::vector<Cell> mNodes;
-  Cell::ParamLock  mParams;
+  rt::vector<Cell>         mNodes;
+  typename Cell::ParamLock mParams;
 };
 
 double loss(InputRealVectorView a, InputRealVectorView b)
