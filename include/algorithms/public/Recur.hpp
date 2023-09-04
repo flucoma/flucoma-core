@@ -112,29 +112,27 @@ public:
     assert(output.cols() == mOutSize);
     assert(input.rows() == output.rows() || output.rows() == 1);
 
-    RealVector nowState(mParams->mOutSize), nowHidden(mParams->mOutSize),
-        nextState(mParams->mOutSize), nextHidden(mParams->mOutSize);
+    mNodes.clear();
+    mNodes.emplace_back(mParams);
 
     for (index i = 0; i < input.rows(); ++i)
     {
       mNodes.emplace_back(mParams);
-      mNodes.back().forwardFrame(input.row(i), nowState, nowHidden, nextState,
-                                 nextHidden);
-
-      nowState << nextState;
-      nowHidden << nextHidden;
+      mNodes.rbegin()[0].forwardFrame(input.row(i),
+                                      mNodes.rbegin()[1].getState());
     }
 
+    mNodes.emplace_back(mParams);
 
-    for (index row = input.rows() - 1; row > 0; --row)
-    {
-      mNodes.back().forwardFrame(input.row(i), nowState, nowHidden, nextState,
-                                 nextHidden);
+    double loss = 0.0;
+    for (index i = 0; i < input.rows(); ++i)
+      loss += mNodes.rbegin()[i + 1].backwardFrame(
+          output.row(input.rows() - 1 - i), mNodes.rbegin()[i + 2].getState());
 
-      nowState << nextState;
-      nowHidden << nextHidden;
-    }
+    return loss;
   };
+
+  void update(double lr = 0.5) { mParams->apply(lr); }
 
   void process(InputRealMatrixView input, RealMatrixView output)
   {
