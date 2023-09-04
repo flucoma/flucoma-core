@@ -122,14 +122,14 @@ public:
     auto gen = [&dist, &mersenne_engine]() { return dist(mersenne_engine); };
 
     std::generate(mWi.begin(), mWi.end(), gen);
-    std::generate(mWi.begin(), mWi.end(), gen);
-    std::generate(mWi.begin(), mWi.end(), gen);
-    std::generate(mWi.begin(), mWi.end(), gen);
+    std::generate(mWg.begin(), mWg.end(), gen);
+    std::generate(mWf.begin(), mWf.end(), gen);
+    std::generate(mWo.begin(), mWo.end(), gen);
 
-    std::generate(mWi.begin(), mWi.end(), gen);
-    std::generate(mWi.begin(), mWi.end(), gen);
-    std::generate(mWi.begin(), mWi.end(), gen);
-    std::generate(mWi.begin(), mWi.end(), gen);
+    std::generate(mBi.begin(), mBi.end(), gen);
+    std::generate(mBg.begin(), mBg.end(), gen);
+    std::generate(mBf.begin(), mBf.end(), gen);
+    std::generate(mBo.begin(), mBo.end(), gen);
   };
 
   void apply(double lr)
