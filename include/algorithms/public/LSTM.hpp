@@ -10,6 +10,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
+#include "Recur.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidDataSet.hpp"
 #include "../../data/FluidIndex.hpp"
@@ -18,25 +19,6 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <random>
-
-// MATRIX WIGHT NAMING SYSTEM BECAUSE IT IS VERY SUCCINCT SINCE I DONT WANT
-// REALLY LONG LINES
-// regex: m(E[MA])?D?[WB][igfo]
-//
-// m prefix => code style, member of class
-// E => not real matrix, is a view (Eigen::Map)
-// [MA] => eigen matrix view and eigen array view, respectively
-// D => derivative of relevant matrix
-// [WB] => weight matrix or bias vector
-// [igfo] => what the weight is for: input gate, input weighting, forget gate,
-//           output gate, respectively
-// p => previous state
-//
-// e.g. mWi -> input gate weights
-//      mCp -> previous cell state vector
-//      mDBo -> derivative of output gate biases
-//      mEMWf -> eigen matrix map of the forget gate weights
-//      mEADBf -> eigen array map of the derivative of the forget gate biases
 
 namespace fluid {
 namespace algorithm {
@@ -73,47 +55,7 @@ public:
         mBi(mOutSize), mBg(mOutSize), mBf(mOutSize), mBo(mOutSize),
 
         // allocate the memory for the bias derivatives
-        mDBi(mOutSize), mDBg(mOutSize), mDBf(mOutSize), mDBo(mOutSize),
-
-        // create matrix eigen maps for the weights
-        mEMWi(mWi.data(), mWi.rows(), mWi.cols()),
-        mEMWg(mWg.data(), mWg.rows(), mWg.cols()),
-        mEMWf(mWf.data(), mWf.rows(), mWf.cols()),
-        mEMWo(mWo.data(), mWo.rows(), mWo.cols()),
-
-        // create matrix eigen maps for the biases
-        mEMBi(mBi.data(), mBi.size()), mEMBg(mBg.data(), mBg.size()),
-        mEMBf(mBf.data(), mBf.size()), mEMBo(mBo.data(), mBo.size()),
-
-        // create matrix eigen maps for the weight derivatives
-        mEMDWi(mDWi.data(), mDWi.rows(), mDWi.cols()),
-        mEMDWg(mDWg.data(), mDWg.rows(), mDWg.cols()),
-        mEMDWf(mDWf.data(), mDWf.rows(), mDWf.cols()),
-        mEMDWo(mDWo.data(), mDWo.rows(), mDWo.cols()),
-
-        // create array eigen maps for the bias derivatives
-        mEMDBi(mDBi.data(), mDBi.size()), mEMDBg(mDBg.data(), mDBg.size()),
-        mEMDBf(mDBf.data(), mDBf.size()), mEMDBo(mDBo.data(), mDBo.size()),
-
-        // create array eigen maps for the weights
-        mEAWi(mWi.data(), mWi.rows(), mWi.cols()),
-        mEAWg(mWg.data(), mWg.rows(), mWg.cols()),
-        mEAWf(mWf.data(), mWf.rows(), mWf.cols()),
-        mEAWo(mWo.data(), mWo.rows(), mWo.cols()),
-
-        // create array eigen maps for the biases
-        mEABi(mBi.data(), mBi.size()), mEABg(mBg.data(), mBg.size()),
-        mEABf(mBf.data(), mBf.size()), mEABo(mBo.data(), mBo.size()),
-
-        // create array eigen maps for the weight derivatives
-        mEADWi(mDWi.data(), mDWi.rows(), mDWi.cols()),
-        mEADWg(mDWg.data(), mDWg.rows(), mDWg.cols()),
-        mEADWf(mDWf.data(), mDWf.rows(), mDWf.cols()),
-        mEADWo(mDWo.data(), mDWo.rows(), mDWo.cols()),
-
-        // create array eigen maps for the bias derivatives
-        mEADBi(mDBi.data(), mDBi.size()), mEADBg(mDBg.data(), mDBg.size()),
-        mEADBf(mDBf.data(), mDBf.size()), mEADBo(mDBo.data(), mDBo.size())
+        mDBi(mOutSize), mDBg(mOutSize), mDBf(mOutSize), mDBo(mOutSize)
   {
     std::random_device rnd_device;
     std::mt19937       mersenne_engine{rnd_device()};
@@ -134,15 +76,15 @@ public:
 
   void apply(double lr)
   {
-    mEAWi -= lr * mEADWi;
-    mEAWg -= lr * mEADWg;
-    mEAWf -= lr * mEADWf;
-    mEAWo -= lr * mEADWo;
+    mWi.array() -= lr * mDWi.array();
+    mWg.array() -= lr * mDWg.array();
+    mWf.array() -= lr * mDWf.array();
+    mWo.array() -= lr * mDWo.array();
 
-    mEABi -= lr * mEADBi;
-    mEABg -= lr * mEADBg;
-    mEABf -= lr * mEADBf;
-    mEABo -= lr * mEADBo;
+    mBi.array() -= lr * mDBi.array();
+    mBg.array() -= lr * mDBg.array();
+    mBf.array() -= lr * mDBf.array();
+    mBo.array() -= lr * mDBo.array();
 
     // clear weight derivatives
     mDWi.fill(0.0);
@@ -160,22 +102,10 @@ public:
   const index mInSize, mLayerSize, mOutSize;
 
   // parameters
-  RealMatrix mWi, mWg, mWf, mWo;
-  RealMatrix mDWi, mDWg, mDWf, mDWo;
-  RealVector mBi, mBg, mBf, mBo;
-  RealVector mDBi, mDBg, mDBf, mDBo;
-
-  // eigen maps to the parameters for linear algebra
-  EigenMatrixMap mEMWi, mEMWg, mEMWf, mEMWo;
-  EigenMatrixMap mEMDWi, mEMDWg, mEMDWf, mEMDWo;
-  EigenVectorMap mEMBi, mEMBg, mEMBf, mEMBo;
-  EigenVectorMap mEMDBi, mEMDBg, mEMDBf, mEMDBo;
-
-  // eigen maps to the parameters for element-wise algebra
-  EigenArrayXXMap mEAWi, mEAWg, mEAWf, mEAWo;
-  EigenArrayXXMap mEADWi, mEADWg, mEADWf, mEADWo;
-  EigenArrayXMap  mEABi, mEABg, mEABf, mEABo;
-  EigenArrayXMap  mEADBi, mEADBg, mEADBf, mEADBo;
+  MatrixParam mWi, mWg, mWf, mWo;
+  MatrixParam mDWi, mDWg, mDWf, mDWo;
+  VectorParam mBi, mBg, mBf, mBo;
+  VectorParam mDBi, mDBg, mDBf, mDBo;
 };
 
 class LSTMState
@@ -190,41 +120,17 @@ class LSTMState
   using ParamLock = std::shared_ptr<LSTMParam>;
 
   LSTMState(ParamLock p)
-      : mXH(p->mLayerSize), mCp(p->mOutSize), mHp(p->mOutSize), mI(p->mOutSize),
-        mG(p->mOutSize), mF(p->mOutSize), mO(p->mOutSize), mC(p->mOutSize),
-        mH(p->mOutSize), mDC(p->mOutSize), mDH(p->mOutSize),
-
-        mEMXH(mXH.data(), mXH.size()), mEMI(mI.data(), mI.size()),
-        mEMCp(mCp.data(), mCp.size()), mEMHp(mHp.data(), mHp.size()),
-        mEMG(mG.data(), mG.size()), mEMF(mF.data(), mF.size()),
-        mEMO(mO.data(), mO.size()), mEMC(mC.data(), mC.size()),
-        mEMH(mH.data(), mH.size()),
-
-        mEMDC(mDC.data(), mDC.size()), mEMDH(mDH.data(), mDH.size()),
-
-        mEAXH(mXH.data(), mXH.size()), mEAI(mI.data(), mI.size()),
-        mEACp(mCp.data(), mCp.size()), mEAHp(mHp.data(), mHp.size()),
-        mEAG(mG.data(), mG.size()), mEAF(mF.data(), mF.size()),
-        mEAO(mO.data(), mO.size()), mEAC(mC.data(), mC.size()),
-        mEAH(mH.data(), mH.size()),
-
-        mEADC(mDC.data(), mDC.size()), mEADH(mDH.data(), mDH.size())
+      : mX(p->mInSize), mXH(p->mLayerSize), mCp(p->mOutSize), mHp(p->mOutSize),
+        mI(p->mOutSize), mG(p->mOutSize), mF(p->mOutSize), mO(p->mOutSize),
+        mC(p->mOutSize), mH(p->mOutSize), mDC(p->mOutSize), mDH(p->mOutSize)
   {}
 
 public:
   LSTMState(ParamPtr p) : LSTMState(p.lock()){};
 
   // state at time t
-  RealVector mXH, mCp, mHp, mI, mG, mF, mO, mC, mH;
-  RealVector mDC, mDH;
-
-  // eigen maps to the states for linear algebra
-  EigenVectorMap mEMXH, mEMCp, mEMHp, mEMI, mEMG, mEMF, mEMO, mEMC, mEMH;
-  EigenVectorMap mEMDC, mEMDH;
-
-  // eigen maps to the states for element-wise algebra
-  EigenArrayXMap mEAXH, mEACp, mEAHp, mEAI, mEAG, mEAF, mEAO, mEAC, mEAH;
-  EigenArrayXMap mEADC, mEADH;
+  VectorParam mX, mXH, mCp, mHp, mI, mG, mF, mO, mC, mH;
+  VectorParam mDC, mDH;
 };
 
 class LSTMCell
@@ -265,34 +171,45 @@ public:
     cp << _impl::asEigen<Eigen::Array>(prevState);
 
     // concatentate input and previous output
-    mState.mEMXH << _impl::asEigen<Eigen::Matrix>(inData),
+    mState.mXH.matrix() << _impl::asEigen<Eigen::Matrix>(inData),
         _impl::asEigen<Eigen::Matrix>(prevData);
 
     // matrix mult
-    Zi = params->mEMWi * mState.mEMXH + params->mEMBi;
-    Zg = params->mEMWg * mState.mEMXH + params->mEMBg;
-    Zf = params->mEMWf * mState.mEMXH + params->mEMBf;
-    Zo = params->mEMWo * mState.mEMXH + params->mEMBo;
+    Zi = params->mWi.matrix() * mState.mXH.matrix() + params->mBi.matrix();
+    Zg = params->mWg.matrix() * mState.mXH.matrix() + params->mBg.matrix();
+    Zf = params->mWf.matrix() * mState.mXH.matrix() + params->mBf.matrix();
+    Zo = params->mWo.matrix() * mState.mXH.matrix() + params->mBo.matrix();
 
-    mState.mEAI = logistic(Zi);
-    mState.mEAG = tanh(Zg);
-    mState.mEAF = logistic(Zf);
-    mState.mEAO = logistic(Zo);
+    mState.mI.array() = logistic(Zi);
+    mState.mG.array() = tanh(Zg);
+    mState.mF.array() = logistic(Zf);
+    mState.mO.array() = logistic(Zo);
 
     // elem-wise mult and sum
-    mState.mEAC = mState.mEAG * mState.mEAI + cp * mState.mEAF;
-    mState.mEAH = mState.mEAC * mState.mEAC;
+    mState.mC.array() =
+        mState.mG.array() * mState.mI.array() + cp * mState.mF.array();
+    mState.mH.array() = mState.mC.array() * mState.mC.array();
 
     outState <<= mState.mC;
     outData <<= mState.mH;
   }
 
-  void backwardFrame(InputRealVectorView dataDerivative,
-                     InputRealVectorView stateDerivative,
-                     RealVectorView      prevDataDerivative,
-                     RealVectorView      prevStateDerivative,
-                     Allocator&          alloc = FluidDefaultAllocator())
+  // in many to one, all cells except the last one have no target output
+  double backwardDatalessFrame(InputRealVectorView dataDerivative,
+                               InputRealVectorView stateDerivative,
+                               Allocator& alloc = FluidDefaultAllocator())
   {
+    backwardFrame(mState.mH, dataDerivative, stateDerivative, alloc);
+    return 0.0;
+  }
+
+  double backwardFrame(InputRealVectorView dataTarget,
+                       InputRealVectorView dataDerivative,
+                       InputRealVectorView stateDerivative,
+                       Allocator&          alloc = FluidDefaultAllocator())
+  {
+    using _impl::asEigen;
+
     ParamLock params = mParams.lock();
 
     ScopedEigenMap<ArrayXd> dC(params->mOutSize, alloc),
@@ -303,38 +220,40 @@ public:
         dZi(params->mOutSize, alloc), dZg(params->mOutSize, alloc),
         dZf(params->mOutSize, alloc), dZo(params->mOutSize, alloc);
 
-    dLdh = _impl::asEigen<Eigen::Array>(dataDerivative);
-    dLdc = _impl::asEigen<Eigen::Array>(stateDerivative);
+    dLdh = asEigen<Eigen::Array>(dataDerivative) +
+           2 * (mState.mH.array() - asEigen<Eigen::Array>(dataTarget));
+    dLdc = asEigen<Eigen::Array>(stateDerivative);
 
-    dC = mState.mEAO * dLdh + dLdc;
-    dI = mState.mEAG * dC;
-    dG = mState.mEAI * dC;
-    dF = mState.mEACp * dC;
-    dO = mState.mEAC * dLdh;
+    dC = mState.mO.array() * dLdh + dLdc;
+    dI = mState.mG.array() * dC;
+    dG = mState.mI.array() * dC;
+    dF = mState.mCp.array() * dC;
+    dO = mState.mC.array() * dLdh;
 
-    dZi = mState.mEAI * (1.0 - mState.mEAI) * dI;
-    dZg = (1.0 - (mState.mEAG) * (mState.mEAG)) * dG;
-    dZf = mState.mEAF * (1.0 - mState.mEAF) * dF;
-    dZo = mState.mEAO * (1.0 - mState.mEAO) * dO;
+    dZi = mState.mI.array() * (1.0 - mState.mI.array()) * dI;
+    dZg = (1.0 - (mState.mG.array()) * (mState.mG.array())) * dG;
+    dZf = mState.mF.array() * (1.0 - mState.mF.array()) * dF;
+    dZo = mState.mO.array() * (1.0 - mState.mO.array()) * dO;
 
-    params->mEMDWi += dZi * mState.mEMXH.transpose();
-    params->mEMDWg += dZg * mState.mEMXH.transpose();
-    params->mEMDWf += dZf * mState.mEMXH.transpose();
-    params->mEMDWo += dZo * mState.mEMXH.transpose();
+    params->mDWi.matrix() += dZi * mState.mXH.matrix().transpose();
+    params->mDWg.matrix() += dZg * mState.mXH.matrix().transpose();
+    params->mDWf.matrix() += dZf * mState.mXH.matrix().transpose();
+    params->mDWo.matrix() += dZo * mState.mXH.matrix().transpose();
 
-    params->mEMDBi += dZi;
-    params->mEMDBg += dZg;
-    params->mEMDBf += dZf;
-    params->mEMDBo += dZo;
+    params->mDBi.matrix() += dZi;
+    params->mDBg.matrix() += dZg;
+    params->mDBf.matrix() += dZf;
+    params->mDBo.matrix() += dZo;
 
-    dXH = params->mEMWi.transpose() * dZi + params->mEMWg.transpose() * dZg +
-          params->mEMWf.transpose() * dZf + params->mEMWo.transpose() * dZo;
+    dXH = params->mWi.matrix().transpose() * dZi +
+          params->mWg.matrix().transpose() * dZg +
+          params->mWf.matrix().transpose() * dZf +
+          params->mWo.matrix().transpose() * dZo;
 
-    mState.mEADC = dC * mState.mEAF;
-    mState.mEADH = dXH(Eigen::lastN(params->mOutSize));
+    mState.mDC.array() = dC * mState.mF.array();
+    mState.mDH.array() = dXH(Eigen::lastN(params->mOutSize));
 
-    prevStateDerivative <<= mState.mDC;
-    prevDataDerivative <<= mState.mDH;
+    return (mState.mH.matrix() - asEigen<Eigen::Matrix>(dataTarget)).norm();
   }
 
 private:
