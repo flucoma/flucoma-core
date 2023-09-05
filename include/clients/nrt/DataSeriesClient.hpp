@@ -145,15 +145,16 @@ public:
     BufferAdaptor::Access buf(data.get());
     if (!buf.exists()) return Error(InvalidBuffer);
 
-    Result resizeResult = buf.resize(mAlgorithm.getNumFrames(id),
-                                     mAlgorithm.dims(), buf.sampleRate());
+    index numFrames = mAlgorithm.getNumFrames(id);
+    if (numFrames < 0) return Error(PointNotFound);
+
+    Result resizeResult =
+        buf.resize(numFrames, mAlgorithm.dims(), buf.sampleRate());
     if (!resizeResult.ok())
       return {resizeResult.status(), resizeResult.message()};
 
-    RealMatrix point(mAlgorithm.getNumFrames(id), mAlgorithm.dims());
-    point <<= buf.allFrames().transpose();
-
-    bool result = mAlgorithm.getSeries(id, point);
+    RealMatrix point(numFrames, mAlgorithm.dims());
+    bool       result = mAlgorithm.getSeries(id, point);
     if (result)
     {
       buf.allFrames() <<= point.transpose();
