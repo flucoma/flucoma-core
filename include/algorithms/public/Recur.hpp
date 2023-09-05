@@ -29,18 +29,11 @@ class MatrixParam : public RealMatrix
 
 public:
   template <typename... Args>
-  MatrixParam(Args&&... args)
-      : RealMatrix(std::forward<Args>(args)...),
-        mMatrix{this->data(), this->rows(), this->cols()},
-        mArray{this->data(), this->rows(), this->cols()}
+  MatrixParam(Args&&... args) : RealMatrix(std::forward<Args>(args)...)
   {}
 
-  EigenMatrixMap  matrix() { return mMatrix; }
-  EigenArrayXXMap array() { return mArray; }
-
-private:
-  EigenMatrixMap  mMatrix;
-  EigenArrayXXMap mArray;
+  EigenMatrixMap matrix() { return {this->data(), this->rows(), this->cols()}; }
+  EigenArrayXXMap array() { return {this->data(), this->rows(), this->cols()}; }
 };
 
 class VectorParam : public RealVector
@@ -50,17 +43,11 @@ class VectorParam : public RealVector
 
 public:
   template <typename... Args>
-  VectorParam(Args&&... args)
-      : RealVector(std::forward<Args>(args)...),
-        mMatrix{this->data(), this->size()}, mArray{this->data(), this->size()}
+  VectorParam(Args&&... args) : RealVector(std::forward<Args>(args)...)
   {}
 
-  EigenVectorMap matrix() { return mMatrix; }
-  EigenArrayXMap array() { return mArray; }
-
-private:
-  EigenVectorMap mMatrix;
-  EigenArrayXMap mArray;
+  EigenVectorMap matrix() { return {this->data(), this->size()}; }
+  EigenArrayXMap array() { return {this->data(), this->size()}; }
 };
 
 
