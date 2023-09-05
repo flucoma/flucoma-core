@@ -87,16 +87,16 @@ public:
     mBo.array() -= lr * mDBo.array();
 
     // clear weight derivatives
-    mDWi.fill(0.0);
-    mDWg.fill(0.0);
-    mDWf.fill(0.0);
-    mDWo.fill(0.0);
+    std::fill(mDWi.begin(), mDWi.end(), 0.0);
+    std::fill(mDWg.begin(), mDWg.end(), 0.0);
+    std::fill(mDWf.begin(), mDWf.end(), 0.0);
+    std::fill(mDWo.begin(), mDWo.end(), 0.0);
 
     // clear bias derivatives
-    mDBi.fill(0.0);
-    mDBg.fill(0.0);
-    mDBf.fill(0.0);
-    mDBo.fill(0.0);
+    std::fill(mDBi.begin(), mDBi.end(), 0.0);
+    std::fill(mDBg.begin(), mDBg.end(), 0.0);
+    std::fill(mDBf.begin(), mDBf.end(), 0.0);
+    std::fill(mDBo.begin(), mDBo.end(), 0.0);
   }
 
   const index mInSize, mLayerSize, mOutSize;
@@ -129,7 +129,7 @@ class LSTMState
 public:
   LSTMState(ParamPtr p) : LSTMState{p.lock()} {};
 
-  RealVector output() { return mH; }
+  RealVectorView output() { return mH; }
 
   index mInSize, mLayerSize, mOutSize;
 
@@ -187,10 +187,10 @@ public:
     Zf = params->mWf.matrix() * mState.mXH.matrix() + params->mBf.matrix();
     Zo = params->mWo.matrix() * mState.mXH.matrix() + params->mBo.matrix();
 
-    mState.mI.array() = logistic(Zi);
-    mState.mG.array() = tanh(Zg);
-    mState.mF.array() = logistic(Zf);
-    mState.mO.array() = logistic(Zo);
+    mState.mI.array() = Zi.logistic();
+    mState.mG.array() = Zg.tanh();
+    mState.mF.array() = Zf.logistic();
+    mState.mO.array() = Zo.logistic();
 
     // elem-wise mult and sum
     mState.mC.array() = mState.mG.array() * mState.mI.array() +
