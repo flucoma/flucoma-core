@@ -316,8 +316,8 @@ public:
 
     if (size() == 0) return "{}";
     result << endl
-           << "points: " << size() << endl
-           << "frame size: " << pointSize() << endl;
+           << "series: " << size() << endl
+           << "cols: " << pointSize() << endl;
 
     if (size() < maxRows)
     {
