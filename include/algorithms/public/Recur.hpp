@@ -95,19 +95,12 @@ public:
 
   void process(InputRealMatrixView input, RealMatrixView output)
   {
-    assert(input.cols() == mInSize);
-    assert(output.cols() == mOutSize);
     assert(input.rows() == output.rows() || output.rows() == 1);
-
-    CellType cell(mParams);
 
     for (index i = 0; i < input.rows(); ++i)
     {
-      cell.forwardFrame(input.row(i), *mState);
-      *mState = cell.getState();
-
-      if (output.rows() > 1 || i == input.rows() - 1)
-        output.row(i) <<= mState->output();
+      processFrame(input.row(i));
+      output.row(output.rows() == 1 ? 0 : i) <<= mState->output();
     }
   };
 
@@ -122,7 +115,7 @@ public:
     assert(input.size() == mInSize);
     assert(output.size() == mOutSize);
 
-    CellType cell(mParams);
+    static CellType cell(mParams);
 
     cell.forwardFrame(input, *mState);
     *mState = cell.getState();
