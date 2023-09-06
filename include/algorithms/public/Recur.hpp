@@ -111,6 +111,23 @@ public:
     }
   };
 
+  void processFrame(InputRealVectorView input, RealVectorView output)
+  {
+    processFrame(input);
+    output <<= mState->output();
+  };
+
+  void processFrame(InputRealVectorView input)
+  {
+    assert(input.size() == mInSize);
+    assert(output.size() == mOutSize);
+
+    CellType cell(mParams);
+
+    cell.forwardFrame(input, *mState);
+    *mState = cell.getState();
+  };
+
 private:
   bool mInitialized{false};
   bool mTrained{false};
