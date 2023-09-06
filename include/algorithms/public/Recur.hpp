@@ -120,10 +120,16 @@ public:
     }
   };
 
+  void processFrame(InputRealVectorView input, RealVectorView output)
+  {
+    assert(output.size() == mOutSize);
+    processFrame(input);
+    output <<= mState->output();
+  }
+
   void processFrame(InputRealVectorView input)
   {
     assert(input.size() == mInSize);
-    assert(output.size() == mOutSize);
 
     // static so only allocate memory once
     static CellType cell(mParams);
