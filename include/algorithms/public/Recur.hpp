@@ -80,11 +80,14 @@ public:
     double loss = 0.0;
     for (index i = input.rows(); i > 1; --i)
     {
-      loss +=
-          mNodes[i].backwardFrame(output.row(i - 1), mNodes[i + 1].getState());
+      if (output.rows() > 1 || i == input.rows())
+        loss += mNodes[i].backwardFrame(output.row(i - 1),
+                                        mNodes[i + 1].getState());
+      else
+        mNodes[i].backwardDatalessFrame(mNodes[i + 1].getState());
     }
 
-    return loss;
+    return loss / input.rows();
   };
 
   void update(double lr = 0.5) { mParams->apply(lr); }

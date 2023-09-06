@@ -253,7 +253,8 @@ public:
     asEigen<Array>(mState.mDH) = dXH(Eigen::lastN(params->mOutSize));
 
     return (asEigen<Matrix>(mState.mH) - asEigen<Matrix>(dataTarget))
-        .squaredNorm();
+               .squaredNorm() /
+           dataTarget.size();
   }
 
 private:
