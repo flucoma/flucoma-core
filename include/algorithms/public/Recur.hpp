@@ -51,8 +51,20 @@ public:
 
   ParamWeakPtr getParams() const { return mParams; }
 
-  void clear() { mParams.reset(); }
-  void reset() { mState.reset(); }
+  void clear()
+  {
+    mParams.reset();
+    mParams = std::make_shared<ParamType>(inSize, outSize);
+  }
+  void reset()
+  {
+    if (mInitialized)
+    {
+      mState.reset();
+      mState = std::make_unique<StateType>(mParams);
+    }
+  }
+
   void update(double lr) { mParams->update(lr); }
 
   void init(index inSize, index outSize)
