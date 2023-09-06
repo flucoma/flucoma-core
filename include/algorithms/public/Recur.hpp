@@ -25,29 +25,35 @@ namespace algorithm {
 template <class CellType>
 class Recur
 {
+public:
   using CellSeries = rt::vector<CellType>;
-  using CellState = typename CellType::StateType;
+
+  using StateType = typename CellType::StateType;
+  using StatePtr = std::unique_ptr<StateType>;
+
   using ParamType = typename CellType::ParamType;
-  using ParamPtr = typename CellType::ParamPtr;
-  using ParamLock = typename CellType::ParamLock;
+  using ParamWeakPtr = typename CellType::ParamPtr;
+  using ParamPtr = typename CellType::ParamLock;
 
 public:
   explicit Recur() = default;
   ~Recur() = default;
 
-  index size() const { return mInitialized ? asSigned(mNodes.size()) : 0; }
   index initialized() const { return mInitialized; }
+  index size() const { return mInitialized ? mInSize : 0; }
   index dims() const { return mInitialized ? mOutSize : 0; }
 
   bool trained() const { return mInitialized ? mTrained : false; }
-  void setTrained() const
+  void setTrained()
   {
     if (mInitialized) mTrained = true;
   }
 
-  ParamPtr getParams() const { return mParams; }
+  ParamWeakPtr getParams() const { return mParams; }
 
-  void clear() { mParams.reset(); };
+  void clear() { mParams.reset(); }
+  void reset() { mState.reset(); }
+  void update(double lr) { mParams->update(lr); }
 
   void init(index inSize, index outSize)
   {
@@ -91,8 +97,6 @@ public:
     return loss / input.rows();
   };
 
-  void update(double lr = 0.5) { mParams->update(lr); }
-
   void process(InputRealMatrixView input, RealMatrixView output)
   {
     assert(input.rows() == output.rows() || output.rows() == 1);
@@ -104,17 +108,12 @@ public:
     }
   };
 
-  void processFrame(InputRealVectorView input, RealVectorView output)
-  {
-    processFrame(input);
-    output <<= mState->output();
-  };
-
   void processFrame(InputRealVectorView input)
   {
     assert(input.size() == mInSize);
     assert(output.size() == mOutSize);
 
+    // static so only allocate memory once
     static CellType cell(mParams);
 
     cell.forwardFrame(input, *mState);
