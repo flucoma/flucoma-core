@@ -105,6 +105,7 @@ class LSTMState
   using ParamPtr = std::weak_ptr<LSTMParam>;
   using ParamLock = std::shared_ptr<LSTMParam>;
 
+public:
   LSTMState(ParamLock p)
       : mInSize(p->mInSize), mLayerSize(p->mLayerSize), mOutSize(p->mOutSize),
         mX(mInSize), mXH(mLayerSize), mCp(mOutSize), mHp(mOutSize),
@@ -112,7 +113,6 @@ class LSTMState
         mH(mOutSize), mDC(mOutSize), mDH(mOutSize)
   {}
 
-public:
   LSTMState(ParamPtr p) : LSTMState{p.lock()} {};
 
   RealVectorView output() { return mH; }

@@ -47,11 +47,7 @@ public:
 
   ParamPtr getParams() const { return mParams; }
 
-  void clear()
-  {
-    mParams.reset();
-    mNodes.clear();
-  };
+  void clear() { mParams.reset(); };
 
   void init(index inSize, index outSize)
   {
@@ -70,22 +66,23 @@ public:
     assert(output.cols() == mOutSize);
     assert(input.rows() == output.rows() || output.rows() == 1);
 
-    mNodes.clear();
+    CellSeries mNodes;
     mNodes.emplace_back(mParams);
 
     for (index i = 0; i < input.rows(); ++i)
     {
       mNodes.emplace_back(mParams);
-      mNodes.rbegin()[0].forwardFrame(input.row(i),
-                                      mNodes.rbegin()[1].getState());
+      mNodes[i + 1].forwardFrame(input.row(i), mNodes[i].getState());
     }
 
     mNodes.emplace_back(mParams);
 
     double loss = 0.0;
-    for (index i = 1; i < input.rows() + 1; ++i)
-      loss += mNodes.rbegin()[i].backwardFrame(
-          output.row(input.rows() - i), mNodes.rbegin()[i + 1].getState());
+    for (index i = input.rows(); i > 1; --i)
+    {
+      loss +=
+          mNodes[i].backwardFrame(output.row(i - 1), mNodes[i + 1].getState());
+    }
 
     return loss;
   };
@@ -98,17 +95,15 @@ public:
     assert(output.cols() == mOutSize);
     assert(input.rows() == output.rows() || output.rows() == 1);
 
-    CellType  cell(mParams);
-    CellState lastState = cell.getState();
+    CellType cell(mParams);
 
     for (index i = 0; i < input.rows(); ++i)
     {
-      cell.forwardFrame(input.row(i), lastState);
+      cell.forwardFrame(input.row(i), *mState);
+      *mState = cell.getState();
 
       if (output.rows() > 1 || i == input.rows() - 1)
-        output.row(i) <<= cell.getState().output();
-
-      lastState = cell.getState();
+        output.row(i) <<= mState->output();
     }
   };
 
@@ -120,8 +115,8 @@ private:
 
   // rt vector of cells (each have ptr to params)
   // pointer rather than ref so Recur can be default constructible
-  CellSeries mNodes;
-  ParamLock  mParams;
+  ParamPtr mParams;
+  StatePtr mState;
 };
 
 } // namespace algorithm
