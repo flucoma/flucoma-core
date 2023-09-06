@@ -64,7 +64,7 @@ public:
     std::generate(mBo.begin(), mBo.end(), gen);
   };
 
-  void apply(double lr)
+  void update(double lr)
   {
     using _impl::asEigen, Eigen::Matrix, Eigen::Array;
 

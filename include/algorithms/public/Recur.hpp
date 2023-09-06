@@ -52,6 +52,7 @@ public:
   void init(index inSize, index outSize)
   {
     mParams = std::make_shared<ParamType>(inSize, outSize);
+    mState = std::make_unique<StateType>(mParams);
 
     mInSize = inSize;
     mOutSize = outSize;
@@ -90,7 +91,7 @@ public:
     return loss / input.rows();
   };
 
-  void update(double lr = 0.5) { mParams->apply(lr); }
+  void update(double lr = 0.5) { mParams->update(lr); }
 
   void process(InputRealMatrixView input, RealMatrixView output)
   {
