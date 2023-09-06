@@ -22,35 +22,6 @@ under the European Union’s Horizon 2020 research and innovation programme
 namespace fluid {
 namespace algorithm {
 
-class MatrixParam : public RealMatrix
-{
-  using EigenMatrixMap = Eigen::Map<Eigen::MatrixXd>;
-  using EigenArrayXXMap = Eigen::Map<Eigen::ArrayXXd>;
-
-public:
-  template <typename... Args>
-  MatrixParam(Args&&... args) : RealMatrix(std::forward<Args>(args)...)
-  {}
-
-  EigenMatrixMap matrix() { return {this->data(), this->rows(), this->cols()}; }
-  EigenArrayXXMap array() { return {this->data(), this->rows(), this->cols()}; }
-};
-
-class VectorParam : public RealVector
-{
-  using EigenVectorMap = Eigen::Map<Eigen::VectorXd>;
-  using EigenArrayXMap = Eigen::Map<Eigen::ArrayXd>;
-
-public:
-  template <typename... Args>
-  VectorParam(Args&&... args) : RealVector(std::forward<Args>(args)...)
-  {}
-
-  EigenVectorMap matrix() { return {this->data(), this->size()}; }
-  EigenArrayXMap array() { return {this->data(), this->size()}; }
-};
-
-
 template <class CellType>
 class Recur
 {

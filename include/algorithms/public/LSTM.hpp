@@ -28,16 +28,6 @@ namespace algorithm {
 
 class LSTMParam
 {
-  using VectorXd = Eigen::VectorXd;
-  using MatrixXd = Eigen::MatrixXd;
-  using ArrayXd = Eigen::ArrayXd;
-  using ArrayXXd = Eigen::ArrayXXd;
-
-  using EigenMatrixMap = Eigen::Map<MatrixXd>;
-  using EigenVectorMap = Eigen::Map<VectorXd>;
-  using EigenArrayXMap = Eigen::Map<ArrayXd>;
-  using EigenArrayXXMap = Eigen::Map<ArrayXXd>;
-
 public:
   LSTMParam(index inputSize, index outputSize)
       : mInSize{inputSize}, mLayerSize{inputSize + outputSize},
@@ -76,15 +66,17 @@ public:
 
   void apply(double lr)
   {
-    mWi.array() -= lr * mDWi.array();
-    mWg.array() -= lr * mDWg.array();
-    mWf.array() -= lr * mDWf.array();
-    mWo.array() -= lr * mDWo.array();
+    using _impl::asEigen, Eigen::Matrix, Eigen::Array;
 
-    mBi.array() -= lr * mDBi.array();
-    mBg.array() -= lr * mDBg.array();
-    mBf.array() -= lr * mDBf.array();
-    mBo.array() -= lr * mDBo.array();
+    asEigen<Array>(mWi) -= lr * asEigen<Array>(mDWi);
+    asEigen<Array>(mWg) -= lr * asEigen<Array>(mDWg);
+    asEigen<Array>(mWf) -= lr * asEigen<Array>(mDWf);
+    asEigen<Array>(mWo) -= lr * asEigen<Array>(mDWo);
+
+    asEigen<Array>(mBi) -= lr * asEigen<Array>(mDBi);
+    asEigen<Array>(mBg) -= lr * asEigen<Array>(mDBg);
+    asEigen<Array>(mBf) -= lr * asEigen<Array>(mDBf);
+    asEigen<Array>(mBo) -= lr * asEigen<Array>(mDBo);
 
     // clear weight derivatives
     std::fill(mDWi.begin(), mDWi.end(), 0.0);
@@ -102,20 +94,14 @@ public:
   const index mInSize, mLayerSize, mOutSize;
 
   // parameters
-  MatrixParam mWi, mWg, mWf, mWo;
-  MatrixParam mDWi, mDWg, mDWf, mDWo;
-  VectorParam mBi, mBg, mBf, mBo;
-  VectorParam mDBi, mDBg, mDBf, mDBo;
+  RealMatrix mWi, mWg, mWf, mWo;
+  RealMatrix mDWi, mDWg, mDWf, mDWo;
+  RealVector mBi, mBg, mBf, mBo;
+  RealVector mDBi, mDBg, mDBf, mDBo;
 };
 
 class LSTMState
 {
-  using VectorXd = Eigen::VectorXd;
-  using ArrayXd = Eigen::ArrayXd;
-
-  using EigenVectorMap = Eigen::Map<VectorXd>;
-  using EigenArrayXMap = Eigen::Map<ArrayXd>;
-
   using ParamPtr = std::weak_ptr<LSTMParam>;
   using ParamLock = std::shared_ptr<LSTMParam>;
 
@@ -134,8 +120,8 @@ public:
   index mInSize, mLayerSize, mOutSize;
 
   // state at time t
-  VectorParam mX, mXH, mCp, mHp, mI, mG, mF, mO, mC, mH;
-  VectorParam mDC, mDH;
+  RealVector mX, mXH, mCp, mHp, mI, mG, mF, mO, mC, mH;
+  RealVector mDC, mDH;
 };
 
 class LSTMCell
@@ -143,10 +129,6 @@ class LSTMCell
   using VectorXd = Eigen::VectorXd;
   using MatrixXd = Eigen::MatrixXd;
   using ArrayXd = Eigen::ArrayXd;
-
-  using EigenMatrixMap = Eigen::Map<MatrixXd>;
-  using EigenVectorMap = Eigen::Map<VectorXd>;
-  using EigenArrayMap = Eigen::Map<ArrayXd>;
 
 public:
   // Recur typedefs
@@ -162,7 +144,7 @@ public:
   void forwardFrame(InputRealVectorView inData, StateType& prevState,
                     Allocator& alloc = FluidDefaultAllocator())
   {
-    using _impl::asEigen, Eigen::Matrix;
+    using _impl::asEigen, Eigen::Array, Eigen::Matrix, Eigen::ArrayXd;
 
     ParamLock params = mParams.lock();
 
@@ -179,23 +161,30 @@ public:
     mState.mHp <<= prevState.mH;
 
     // concatentate input and previous output
-    mState.mXH.matrix() << asEigen<Matrix>(inData), prevState.mH.matrix();
+    asEigen<Matrix>(mState.mXH) << asEigen<Matrix>(inData),
+        asEigen<Matrix>(prevState.mH);
 
     // matrix mult
-    Zi = params->mWi.matrix() * mState.mXH.matrix() + params->mBi.matrix();
-    Zg = params->mWg.matrix() * mState.mXH.matrix() + params->mBg.matrix();
-    Zf = params->mWf.matrix() * mState.mXH.matrix() + params->mBf.matrix();
-    Zo = params->mWo.matrix() * mState.mXH.matrix() + params->mBo.matrix();
+    Zi = asEigen<Matrix>(params->mWi) * asEigen<Matrix>(mState.mXH) +
+         asEigen<Matrix>(params->mBi);
+    Zg = asEigen<Matrix>(params->mWg) * asEigen<Matrix>(mState.mXH) +
+         asEigen<Matrix>(params->mBg);
+    Zf = asEigen<Matrix>(params->mWf) * asEigen<Matrix>(mState.mXH) +
+         asEigen<Matrix>(params->mBf);
+    Zo = asEigen<Matrix>(params->mWo) * asEigen<Matrix>(mState.mXH) +
+         asEigen<Matrix>(params->mBo);
 
-    mState.mI.array() = Zi.logistic();
-    mState.mG.array() = Zg.tanh();
-    mState.mF.array() = Zf.logistic();
-    mState.mO.array() = Zo.logistic();
+    asEigen<Array>(mState.mI) = Zi.logistic();
+    asEigen<Array>(mState.mG) = Zg.tanh();
+    asEigen<Array>(mState.mF) = Zf.logistic();
+    asEigen<Array>(mState.mO) = Zo.logistic();
 
     // elem-wise mult and sum
-    mState.mC.array() = mState.mG.array() * mState.mI.array() +
-                        mState.mCp.array() * mState.mF.array();
-    mState.mH.array() = mState.mC.array() * mState.mO.array();
+    asEigen<Array>(mState.mC) =
+        asEigen<Array>(mState.mG) * asEigen<Array>(mState.mI) +
+        asEigen<Array>(mState.mCp) * asEigen<Array>(mState.mF);
+    asEigen<Array>(mState.mH) =
+        asEigen<Array>(mState.mC) * asEigen<Array>(mState.mO);
   }
 
   // in many to one, all cells except the last one have no target output
@@ -225,40 +214,46 @@ public:
         dZi(params->mOutSize, alloc), dZg(params->mOutSize, alloc),
         dZf(params->mOutSize, alloc), dZo(params->mOutSize, alloc);
 
-    dLdh = nextState.mDH.array() +
-           2 * (mState.mH.array() - asEigen<Array>(dataTarget));
-    dLdc = nextState.mDC.array();
+    dLdh = asEigen<Array>(nextState.mDH) +
+           2 * (asEigen<Array>(mState.mH) - asEigen<Array>(dataTarget));
+    dLdc = asEigen<Array>(nextState.mDC);
 
-    dC = mState.mO.array() * dLdh + dLdc;
-    dI = mState.mG.array() * dC;
-    dG = mState.mI.array() * dC;
-    dF = mState.mCp.array() * dC;
-    dO = mState.mC.array() * dLdh;
+    dC = asEigen<Array>(mState.mO) * dLdh + dLdc;
+    dI = asEigen<Array>(mState.mG) * dC;
+    dG = asEigen<Array>(mState.mI) * dC;
+    dF = asEigen<Array>(mState.mCp) * dC;
+    dO = asEigen<Array>(mState.mC) * dLdh;
 
-    dZi = mState.mI.array() * (1.0 - mState.mI.array()) * dI;
-    dZg = (1.0 - (mState.mG.array()) * (mState.mG.array())) * dG;
-    dZf = mState.mF.array() * (1.0 - mState.mF.array()) * dF;
-    dZo = mState.mO.array() * (1.0 - mState.mO.array()) * dO;
+    dZi = asEigen<Array>(mState.mI) * (1.0 - asEigen<Array>(mState.mI)) * dI;
+    dZg =
+        (1.0 - (asEigen<Array>(mState.mG)) * (asEigen<Array>(mState.mG))) * dG;
+    dZf = asEigen<Array>(mState.mF) * (1.0 - asEigen<Array>(mState.mF)) * dF;
+    dZo = asEigen<Array>(mState.mO) * (1.0 - asEigen<Array>(mState.mO)) * dO;
 
-    params->mDWi.matrix() += dZi * mState.mXH.matrix().transpose();
-    params->mDWg.matrix() += dZg * mState.mXH.matrix().transpose();
-    params->mDWf.matrix() += dZf * mState.mXH.matrix().transpose();
-    params->mDWo.matrix() += dZo * mState.mXH.matrix().transpose();
+    asEigen<Matrix>(params->mDWi) +=
+        dZi * asEigen<Matrix>(mState.mXH).transpose();
+    asEigen<Matrix>(params->mDWg) +=
+        dZg * asEigen<Matrix>(mState.mXH).transpose();
+    asEigen<Matrix>(params->mDWf) +=
+        dZf * asEigen<Matrix>(mState.mXH).transpose();
+    asEigen<Matrix>(params->mDWo) +=
+        dZo * asEigen<Matrix>(mState.mXH).transpose();
 
-    params->mDBi.matrix() += dZi;
-    params->mDBg.matrix() += dZg;
-    params->mDBf.matrix() += dZf;
-    params->mDBo.matrix() += dZo;
+    asEigen<Matrix>(params->mDBi) += dZi;
+    asEigen<Matrix>(params->mDBg) += dZg;
+    asEigen<Matrix>(params->mDBf) += dZf;
+    asEigen<Matrix>(params->mDBo) += dZo;
 
-    dXH = params->mWi.matrix().transpose() * dZi +
-          params->mWg.matrix().transpose() * dZg +
-          params->mWf.matrix().transpose() * dZf +
-          params->mWo.matrix().transpose() * dZo;
+    dXH = asEigen<Matrix>(params->mWi).transpose() * dZi +
+          asEigen<Matrix>(params->mWg).transpose() * dZg +
+          asEigen<Matrix>(params->mWf).transpose() * dZf +
+          asEigen<Matrix>(params->mWo).transpose() * dZo;
 
-    mState.mDC.array() = dC * mState.mF.array();
-    mState.mDH.array() = dXH(Eigen::lastN(params->mOutSize));
+    asEigen<Array>(mState.mDC) = dC * asEigen<Array>(mState.mF);
+    asEigen<Array>(mState.mDH) = dXH(Eigen::lastN(params->mOutSize));
 
-    return (mState.mH.matrix() - asEigen<Matrix>(dataTarget)).squaredNorm();
+    return (asEigen<Matrix>(mState.mH) - asEigen<Matrix>(dataTarget))
+        .squaredNorm();
   }
 
 private:
