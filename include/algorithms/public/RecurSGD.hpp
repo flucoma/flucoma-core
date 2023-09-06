@@ -37,31 +37,31 @@ public:
                         RealMatrixView out, index nIter, index batchSize,
                         double learningRate)
   {
-    index nExamples = in.size();
-    index inputSize = model.size();
-    index outputSize = model.dims();
-
-    assert(inputSize == in[0].cols());
-    assert(outputSize == out.cols());
+    assert(model.size() == in[0].cols());
+    assert(model.dims() == out.cols());
 
     rt::vector<index> permutation(in.size());
     std::iota(permutation.begin(), permutation.end(), 0);
 
-    double error = 0;
-    index  nBatches = 1;
+    double error;
+    index  nBatches;
     while (nIter-- > 0)
     {
       error = 0.0;
+      nBatches = 0;
       std::shuffle(permutation.begin(), permutation.end(),
                    std::mt19937{std::random_device{}});
 
-      for (index batchStart = 0; batchStart < nTrain; batchStart += batchSize)
+      for (index batchStart = 0; batchStart < in.size();
+           batchStart += batchSize)
       {
-        index thisBatchSize =
-            (batchStart + batchSize) < nTrain ? batchSize : nTrain - batchStart;
+        index thisBatchSize = (batchStart + batchSize) < in.size()
+                                  ? batchSize
+                                  : in.size() - batchStart;
 
         for (index i = batchStart; i < batchStart + thisBatchSize; ++i)
-          error += model.fit(in[permutation[i]], out.row(permutation[i]));
+          error += model.fit(in[permutation[i]],
+                             out.row(permutation[i]).transpose());
 
         model.update(learningRate);
         ++nBatches;
@@ -71,33 +71,33 @@ public:
     model.setTrained();
     return error / nBatches;
   }
+
   double trainManyToMany(Recur<CellType>&                      model,
                          const rt::vector<InputRealMatrixView> in,
                          const rt::vector<InputRealMatrixView> out, index nIter,
                          index batchSize, double learningRate)
   {
-    index nExamples = in.size();
-    index inputSize = model.size();
-    index outputSize = model.dims();
-
-    assert(inputSize == in[0].cols());
-    assert(outputSize == out.cols());
+    assert(model.size() == in[0].cols());
+    assert(model.dims() == out.cols());
 
     rt::vector<index> permutation(in.size());
     std::iota(permutation.begin(), permutation.end(), 0);
 
-    double error = 0;
-    index  nBatches = 1;
+    double error;
+    index  nBatches;
     while (nIter-- > 0)
     {
       error = 0.0;
+      nBatches = 0;
       std::shuffle(permutation.begin(), permutation.end(),
                    std::mt19937{std::random_device{}});
 
-      for (index batchStart = 0; batchStart < nTrain; batchStart += batchSize)
+      for (index batchStart = 0; batchStart < in.size();
+           batchStart += batchSize)
       {
-        index thisBatchSize =
-            (batchStart + batchSize) < nTrain ? batchSize : nTrain - batchStart;
+        index thisBatchSize = (batchStart + batchSize) < in.size()
+                                  ? batchSize
+                                  : in.size() - batchStart;
 
         for (index i = batchStart; i < batchStart + thisBatchSize; ++i)
           error += model.fit(in[permutation[i]], out[permutation[i]]);
