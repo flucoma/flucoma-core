@@ -13,15 +13,55 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "DataClient.hpp"
 #include "DataSeriesClient.hpp"
 #include "DataSetClient.hpp"
+#include "LabelSetClient.hpp"
 #include "NRTClient.hpp"
 #include "../../algorithms/public/LSTM.hpp"
+#include "../../algorithms/public/LabelSetEncoder.hpp"
 #include "../../algorithms/public/Recur.hpp"
+#include "../../algorithms/public/RecurSGD.hpp"
+#include "../../data/FluidJSON.hpp"
 #include <string>
 
 namespace fluid {
 namespace client {
 namespace lstmclassifier {
 
+struct LSTMClassifierData
+{
+  using LSTMType = algorithm::Recur<algorithm::LSTMCell>;
+  using LabelEncoder = algorithm::LabelSetEncoder;
+
+  LSTMType     lstm;
+  LabelEncoder encoder;
+  index        size() const { return lstm.size(); }
+  index        dims() const { return lstm.dims(); }
+  void         clear()
+  {
+    lstm.clear();
+    lstm.reset();
+    encoder.clear();
+  }
+  bool initialized() const { return lstm.initialized(); }
+};
+
+
+void to_json(nlohmann::json& j, const LSTMClassifierData& data)
+{
+  j["lstm"] = data.lstm;
+  j["labels"] = data.encoder;
+}
+
+bool check_json(const nlohmann::json& j, const LSTMClassifierData&)
+{
+  return fluid::check_json(j, {"lstm", "labels"},
+                           {JSONTypes::OBJECT, JSONTypes::OBJECT});
+}
+
+void from_json(const nlohmann::json& j, LSTMClassifierData& data)
+{
+  j.at("lstm").get_to(data.lstm);
+  j.at("labels").get_to(data.encoder);
+}
 constexpr auto LSTMClassifierParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
     LongParam("maxIter", "Maximum Number of Iterations", 1000, Min(1)),
