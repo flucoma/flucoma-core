@@ -82,7 +82,10 @@ public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
   using InputBufferPtr = std::shared_ptr<const BufferAdaptor>;
-  using StringVector = FluidTensor<rt::string, 1>;
+  using IndexVector = FluidTensor<index, 1>;
+  using StringVector = FluidTensor<string, 1>;
+  using DataSet = FluidDataSet<string, double, 1>;
+  using LabelSet = FluidDataSet<string, string, 1>;
 
   using ParamDescType = decltype(LSTMClassifierParams);
   using ParamSetViewType = ParameterSetView<ParamDescType>;
@@ -119,6 +122,18 @@ public:
   MessageResult<double> predict(InputDataSeriesClientRef dataseriesClient) {}
   MessageResult<double> predictPoint(InputDataSeriesClientRef dataseriesClient)
   {}
+  MessageResult<void> clear()
+  {
+    mAlgorithm.lstm.clear();
+    mAlgorithm.encoder.clear();
+    return OK();
+  }
+
+  MessageResult<void> reset()
+  {
+    mAlgorithm.lstm.reset();
+    return OK();
+  }
 
   static auto getMessageDescriptors()
   {
