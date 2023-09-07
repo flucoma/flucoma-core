@@ -27,6 +27,7 @@ class Recur
 {
 public:
   using CellSeries = rt::vector<CellType>;
+  using CellPtr = std::unique_ptr<CellType>;
 
   using StateType = typename CellType::StateType;
   using StatePtr = std::unique_ptr<StateType>;
@@ -49,8 +50,12 @@ public:
 
     mBottomParams = std::make_shared<ParamType>(*other.mBottomParams);
     mTopParams = std::make_shared<ParamType>(*other.mTopParams);
+
     mBottomState = std::make_unique<StateType>(*other.mBottomState);
     mTopState = std::make_unique<StateType>(*other.mTopState);
+
+    mBottomCell = std::make_unique<CellType>(mBottomParams);
+    mTopCell = std::make_unique<CellType>(mTopParams);
   }
 
   Recur<CellType>& operator=(Recur<CellType>& other)
@@ -64,8 +69,12 @@ public:
 
     mBottomParams = std::make_shared<ParamType>(*other.mBottomParams);
     mTopParams = std::make_shared<ParamType>(*other.mTopParams);
+
     mBottomState = std::make_unique<StateType>(*other.mBottomState);
     mTopState = std::make_unique<StateType>(*other.mTopState);
+
+    mBottomCell = std::make_unique<CellType>(mBottomParams);
+    mTopCell = std::make_unique<CellType>(mTopParams);
 
     return *this;
   }
@@ -87,13 +96,20 @@ public:
   {
     mBottomParams = std::make_shared<ParamType>(mInSize, mHiddenSize);
     mTopParams = std::make_shared<ParamType>(mHiddenSize, mOutSize);
+
     mBottomState = std::make_unique<StateType>(mBottomParams);
     mTopState = std::make_unique<StateType>(mTopParams);
+
+    mBottomCell = std::make_unique<CellType>(mBottomParams);
+    mTopCell = std::make_unique<CellType>(mTopParams);
   }
   void reset()
   {
     mBottomState = std::make_unique<StateType>(mBottomParams);
     mTopState = std::make_unique<StateType>(mTopParams);
+
+    mBottomCell = std::make_unique<CellType>(mBottomParams);
+    mTopCell = std::make_unique<CellType>(mTopParams);
   }
 
   void update(double lr)
@@ -113,8 +129,12 @@ public:
 
     mBottomParams = std::make_shared<ParamType>(inSize, hiddenSize);
     mTopParams = std::make_shared<ParamType>(hiddenSize, outSize);
+
     mBottomState = std::make_unique<StateType>(mBottomParams);
     mTopState = std::make_unique<StateType>(mTopParams);
+
+    mBottomCell = std::make_unique<CellType>(mBottomParams);
+    mTopCell = std::make_unique<CellType>(mTopParams);
   };
 
   double fit(InputRealMatrixView input, InputRealMatrixView output)
@@ -216,14 +236,11 @@ public:
   {
     assert(input.size() == mInSize);
 
-    // static so only allocate memory once
-    static CellType bottomCell(mBottomParams), topCell(mTopParams);
+    mBottomCell->forwardFrame(input, *mBottomState);
+    mBottomState = std::make_unique<StateType>(mBottomCell->getState());
 
-    bottomCell.forwardFrame(input, *mBottomState);
-    mBottomState = std::make_unique<StateType>(bottomCell.getState());
-
-    topCell.forwardFrame(mBottomState->output(), *mTopState);
-    mTopState = std::make_unique<StateType>(topCell.getState());
+    mTopCell->forwardFrame(mBottomState->output(), *mTopState);
+    mTopState = std::make_unique<StateType>(mTopCell->getState());
   };
 
 private:
@@ -232,9 +249,10 @@ private:
 
   index mInSize, mHiddenSize, mOutSize;
 
-  // pointer rather than ref so Recur can be default constructible
-  ParamPtr mBottomParams, mTopParams;
-  StatePtr mBottomState, mTopState;
+  // pointers rather than ref so Recur can be default constructible
+  ParamPtr mBottomParams, mTopParams; // parameters of two layers
+  StatePtr mBottomState, mTopState;   // previous state
+  CellPtr  mBottomCell, mTopCell;     // the recurrent cell themselves
 };
 
 } // namespace algorithm
