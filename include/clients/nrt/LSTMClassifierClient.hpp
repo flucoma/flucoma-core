@@ -118,9 +118,6 @@ public:
     return {};
   }
 
-  MessageResult<double> predict(InputDataSeriesClientRef dataseriesClient) {}
-  MessageResult<double> predictPoint(InputDataSeriesClientRef dataseriesClient)
-  {}
   MessageResult<void> clear()
   {
     mAlgorithm.lstm.clear();
@@ -185,6 +182,43 @@ public:
     return recursgd.trainManyToOne(mAlgorithm.lstm, data, oneHot, get<kIter>(),
                                    get<kBatch>(), get<kRate>());
   }
+
+  MessageResult<void> predict(InputDataSeriesClientRef dataSeriesClient,
+                              LabelSetClientRef        labelSetClient)
+  {
+    const auto sourceClientPtr = dataSeriesClient.get().lock();
+    if (!sourceClientPtr) return Error<void>(NoDataSet);
+
+    const auto sourceDataSeries = sourceClientPtr->getDataSeries();
+    if (sourceDataSeries.size() == 0) return Error<void>(EmptyDataSet);
+
+    const auto targetClientPtr = labelSetClient.get().lock();
+    if (!targetClientPtr) return Error<void>(NoLabelSet);
+
+    if (!mAlgorithm.lstm.trained()) return Error(NoDataFitted);
+    if (sourceDataSeries.dims() != mAlgorithm.dims())
+      return Error(WrongPointSize);
+
+    RealMatrix output(sourceDataSeries.size(), mAlgorithm.encoder.numLabels());
+    auto&      data = sourceDataSeries.getData();
+    for (index i = 0; i < output.rows(); i++)
+    {
+      mAlgorithm.lstm.reset();
+      mAlgorithm.lstm.process(data[i], output.row(i));
+    }
+
+    LabelSet     result(1);
+    StringVector ids{sourceDataSeries.getIds()};
+    for (index i = 0; i < output.size(); i++)
+    {
+      StringVector label = {mAlgorithm.encoder.decodeOneHot(output.row(i))};
+      result.add(ids(i), label);
+    }
+
+    targetClientPtr->setLabelSet(result);
+    return OK();
+  }
+
   MessageResult<string> predictPoint(InputBufferPtr buffer)
   {
     if (!buffer) return Error<string>(NoBuffer);
@@ -205,6 +239,7 @@ public:
     auto& label = mAlgorithm.encoder.decodeOneHot(dest);
     return label;
   }
+
   static auto getMessageDescriptors()
   {
     return defineMessages(
