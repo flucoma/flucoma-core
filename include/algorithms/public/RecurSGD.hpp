@@ -48,23 +48,23 @@ public:
 
     double error;
     index  nBatches;
+
     while (nIter-- > 0)
     {
       error = 0.0;
       nBatches = 0;
       std::shuffle(permutation.begin(), permutation.end(),
-                   std::mt19937{std::random_device{}});
+                   std::mt19937{std::random_device{}()});
 
-      for (index batchStart = 0; batchStart < in.size();
+      for (index batchStart = 0; asUnsigned(batchStart) < in.size();
            batchStart += batchSize)
       {
-        index thisBatchSize = (batchStart + batchSize) < in.size()
+        index thisBatchSize = asUnsigned(batchStart + batchSize) < in.size()
                                   ? batchSize
                                   : in.size() - batchStart;
 
         for (index i = batchStart; i < batchStart + thisBatchSize; ++i)
-          error += model.fit(in[permutation[i]],
-                             out.row(permutation[i]).transpose());
+          error += model.fit(in[permutation[i]], out.row(permutation[i]));
 
         model.update(learningRate);
         ++nBatches;
@@ -99,7 +99,7 @@ public:
       error = 0.0;
       nBatches = 0;
       std::shuffle(permutation.begin(), permutation.end(),
-                   std::mt19937{std::random_device{}});
+                   std::mt19937{std::random_device{}()});
 
       for (index batchStart = 0; batchStart < in.size();
            batchStart += batchSize)
