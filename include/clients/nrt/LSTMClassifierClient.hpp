@@ -118,7 +118,6 @@ public:
     return {};
   }
 
-  MessageResult<double> fit(InputDataSeriesClientRef dataseriesClient) {}
   MessageResult<double> predict(InputDataSeriesClientRef dataseriesClient) {}
   MessageResult<double> predictPoint(InputDataSeriesClientRef dataseriesClient)
   {}
@@ -135,6 +134,57 @@ public:
     return OK();
   }
 
+  MessageResult<double> fit(InputDataSeriesClientRef dataSeriesClient,
+                            InputLabelSetClientRef   labelSetClient)
+  {
+    using namespace algorithm;
+
+    const auto sourceClientPtr = dataSeriesClient.get().lock();
+    if (!sourceClientPtr) return Error<double>(NoDataSet);
+
+    const auto sourceDataSeries = sourceClientPtr->getDataSeries();
+    if (sourceDataSeries.size() == 0) return Error<double>(EmptyDataSet);
+
+    const auto targetClientPtr = labelSetClient.get().lock();
+    if (!targetClientPtr) return Error<double>(NoLabelSet);
+
+    const auto targetLabelSet = targetClientPtr->getLabelSet();
+    if (targetLabelSet.size() == 0) return Error<double>(EmptyLabelSet);
+
+    if (mAlgorithm.initialized())
+    {
+      if (sourceDataSeries.dims() != mAlgorithm.dims())
+        return Error<double>(DimensionsDontMatch);
+      if (get<kHidden>() != mAlgorithm.lstm.hiddenDims())
+        mAlgorithm.lstm.init(sourceDataSeries.dims(), get<kHidden>(),
+                             mAlgorithm.encoder.numLabels());
+    }
+    else
+    {
+      mAlgorithm.encoder.fit(targetLabelSet);
+      mAlgorithm.lstm.init(sourceDataSeries.dims(), get<kHidden>(),
+                           mAlgorithm.encoder.numLabels());
+    }
+
+    if (sourceDataSeries.size() != targetLabelSet.size())
+      return Error<double>(SizesDontMatch);
+
+    auto data = sourceDataSeries.getData();
+    auto tgt = targetLabelSet.getData();
+    auto ids = sourceDataSeries.getIds();
+
+    RealMatrix oneHot(targetLabelSet.size(), mAlgorithm.encoder.numLabels());
+    for (index i = 0; i < targetLabelSet.size(); i++)
+    {
+      index id = targetLabelSet.getIndex(ids[i]);
+      if (id < 0) return Error<double>(PointNotFound);
+      mAlgorithm.encoder.encodeOneHot(tgt.row(id)(0), oneHot.row(i));
+    }
+
+    RecurSGD<LSTMCell> recursgd;
+    return recursgd.trainManyToOne(mAlgorithm.lstm, data, oneHot, get<kIter>(),
+                                   get<kBatch>(), get<kRate>());
+  }
   static auto getMessageDescriptors()
   {
     return defineMessages(
@@ -142,15 +192,13 @@ public:
         makeMessage("predict", &LSTMClassifierClient::predict),
         makeMessage("predictPoint", &LSTMClassifierClient::predictPoint));
   }
-
-private:
 };
 
 using LSTMClassifierRef = SharedClientRef<const LSTMClassifierClient>;
 
 } // namespace lstmclassifier
 
-using NRTThreadedDTWClient =
+using NRTThreadedLSTMClassifierClient =
     NRTThreadingAdaptor<typename lstmclassifier::LSTMClassifierRef::SharedType>;
 
 } // namespace client
