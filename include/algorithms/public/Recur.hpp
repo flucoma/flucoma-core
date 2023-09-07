@@ -39,6 +39,36 @@ public:
   explicit Recur() = default;
   ~Recur() = default;
 
+  Recur(Recur<CellType>& other)
+  {
+    mInSize = other.mInSize;
+    mHiddenSize = other.mHiddenSize;
+    mOutSize = other.mOutSize;
+
+    mInitialized = true;
+
+    mBottomParams = std::make_shared<ParamType>(*other.mBottomParams);
+    mTopParams = std::make_shared<ParamType>(*other.mTopParams);
+    mBottomState = std::make_unique<StateType>(*other.mBottomState);
+    mTopState = std::make_unique<StateType>(*other.mTopState);
+  }
+
+  Recur<CellType>& operator=(Recur<CellType>& other)
+  {
+    mInSize = other.mInSize;
+    mHiddenSize = other.mHiddenSize;
+    mOutSize = other.mOutSize;
+
+    mTrained = false;
+    mInitialized = true;
+
+    mBottomParams.reset(std::make_shared<ParamType>(*other.mBottomParams));
+    mTopParams.reset(std::make_shared<ParamType>(*other.mTopParams));
+    mBottomState.reset(std::make_unique<StateType>(*other.mBottomState));
+    mTopState.reset(std::make_unique<StateType>(*other.mTopState));
+
+    return *this;
+  }
 
   index initialized() const { return mInitialized; }
   index dims() const { return mInitialized ? mInSize : 0; }
