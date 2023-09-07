@@ -246,6 +246,13 @@ public:
         makeMessage("fit", &LSTMClassifierClient::fit),
         makeMessage("predict", &LSTMClassifierClient::predict),
         makeMessage("predictPoint", &LSTMClassifierClient::predictPoint),
+        makeMessage("clear", &LSTMClassifierClient::clear),
+        makeMessage("reset", &LSTMClassifierClient::reset),
+        makeMessage("print", &LSTMClassifierClient::reset),
+        makeMessage("load", &LSTMClassifierClient::load),
+        makeMessage("dump", &LSTMClassifierClient::dump),
+        makeMessage("write", &LSTMClassifierClient::write),
+        makeMessage("read", &LSTMClassifierClient::read));
   }
 };
 
