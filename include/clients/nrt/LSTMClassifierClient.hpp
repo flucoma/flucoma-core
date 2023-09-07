@@ -62,20 +62,21 @@ void from_json(const nlohmann::json& j, LSTMClassifierData& data)
   j.at("lstm").get_to(data.lstm);
   j.at("labels").get_to(data.encoder);
 }
+
 constexpr auto LSTMClassifierParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
-    LongParam("maxIter", "Maximum Number of Iterations", 1000, Min(1)),
+    LongParam("maxIter", "Maximum Number of Iterations", 50, Min(1)),
+    LongParam("hiddenSize", "Size of Intermediate LSTM layer", 50, Min(1)),
     FloatParam("learnRate", "Learning Rate", 0.01, Min(0.0), Max(1.0)),
     LongParam("batchSize", "Batch Size", 50, Min(1)));
 
-class LSTMClassifierClient
-    : public FluidBaseClient,
-      OfflineIn,
-      OfflineOut,
-      ModelObject,
-      public DataClient<algorithm::Recur<algorithm::LSTMCell>>
+class LSTMClassifierClient : public FluidBaseClient,
+                             OfflineIn,
+                             OfflineOut,
+                             ModelObject,
+                             public DataClient<LSTMClassifierData>
 {
-  enum { kName, kMaxIter, kLearnRate, kBatchSize, kValidation };
+  enum { kName, kIter, kHidden, kRate, kBatch };
 
 public:
   using string = std::string;
