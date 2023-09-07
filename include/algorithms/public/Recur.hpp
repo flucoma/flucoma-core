@@ -54,6 +54,28 @@ public:
     mBottomState = std::make_unique<StateType>(*other.mBottomState);
     mTopState = std::make_unique<StateType>(*other.mTopState);
 
+    // clear initialise the cells
+    mBottomCell = std::make_unique<CellType>(mBottomParams);
+    mTopCell = std::make_unique<CellType>(mTopParams);
+  }
+
+  Recur(Recur<CellType>&& other)
+  {
+    mInSize = other.mInSize;
+    mHiddenSize = other.mHiddenSize;
+    mOutSize = other.mOutSize;
+
+    mInitialized = true;
+
+    mBottomParams = other.mBottomParams;
+    mTopParams = other.mTopParams;
+
+    // unique pointers so must release other's ownership of the memory then
+    // reclaim it
+    mBottomState = std::make_unique<StateType>(other.mBottomState.release());
+    mTopState = std::make_unique<StateType>(other.mTopState.release());
+
+    // clear initialise the cells
     mBottomCell = std::make_unique<CellType>(mBottomParams);
     mTopCell = std::make_unique<CellType>(mTopParams);
   }
@@ -73,6 +95,32 @@ public:
     mBottomState = std::make_unique<StateType>(*other.mBottomState);
     mTopState = std::make_unique<StateType>(*other.mTopState);
 
+    // clear initialise the cells
+    mBottomCell = std::make_unique<CellType>(mBottomParams);
+    mTopCell = std::make_unique<CellType>(mTopParams);
+
+    return *this;
+  }
+
+  Recur<CellType>& operator=(Recur<CellType>&& other)
+  {
+    mInSize = other.mInSize;
+    mHiddenSize = other.mHiddenSize;
+    mOutSize = other.mOutSize;
+
+    mTrained = false;
+    mInitialized = true;
+
+    // shared pointers so takes co-ownership, extends lifetime
+    mBottomParams = other.mBottomParams;
+    mTopParams = other.mTopParams;
+
+    // unique pointers so must release other's ownership of the memory then
+    // reclaim it
+    mBottomState = std::make_unique<StateType>(other.mBottomState.release());
+    mTopState = std::make_unique<StateType>(other.mTopState.release());
+
+    // clear initialise the cells
     mBottomCell = std::make_unique<CellType>(mBottomParams);
     mTopCell = std::make_unique<CellType>(mTopParams);
 
