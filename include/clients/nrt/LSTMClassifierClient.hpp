@@ -185,12 +185,32 @@ public:
     return recursgd.trainManyToOne(mAlgorithm.lstm, data, oneHot, get<kIter>(),
                                    get<kBatch>(), get<kRate>());
   }
+  MessageResult<string> predictPoint(InputBufferPtr buffer)
+  {
+    if (!buffer) return Error<string>(NoBuffer);
+    BufferAdaptor::ReadAccess inBuf(buffer.get());
+    if (!inBuf.exists()) return Error<string>(InvalidBuffer);
+
+    if (inBuf.numChans() != mAlgorithm.lstm.dims())
+      return Error<string>(WrongPointSize);
+    if (!mAlgorithm.lstm.trained()) return Error<string>(NoDataFitted);
+
+    RealMatrix src(inBuf.numFrames(), inBuf.numChans());
+    src <<= inBuf.allFrames().transpose();
+
+    RealVector dest(mAlgorithm.lstm.size());
+    mAlgorithm.lstm.reset();
+    mAlgorithm.lstm.process(src, dest);
+
+    auto& label = mAlgorithm.encoder.decodeOneHot(dest);
+    return label;
+  }
   static auto getMessageDescriptors()
   {
     return defineMessages(
         makeMessage("fit", &LSTMClassifierClient::fit),
         makeMessage("predict", &LSTMClassifierClient::predict),
-        makeMessage("predictPoint", &LSTMClassifierClient::predictPoint));
+        makeMessage("predictPoint", &LSTMClassifierClient::predictPoint),
   }
 };
 
