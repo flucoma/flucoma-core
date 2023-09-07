@@ -34,7 +34,7 @@ public:
 
   double trainManyToOne(Recur<CellType>&                      model,
                         const rt::vector<InputRealMatrixView> in,
-                        RealMatrixView out, index nIter, index batchSize,
+                        InputRealMatrixView out, index nIter, index batchSize,
                         double learningRate)
   {
     assert(model.dims() == in[0].cols());
@@ -63,6 +63,7 @@ public:
                                   ? batchSize
                                   : in.size() - batchStart;
 
+        model.reset();
         for (index i = batchStart; i < batchStart + thisBatchSize; ++i)
           error += model.fit(in[permutation[i]], out.row(permutation[i]));
 
@@ -108,6 +109,7 @@ public:
                                   ? batchSize
                                   : in.size() - batchStart;
 
+        model.reset();
         for (index i = batchStart; i < batchStart + thisBatchSize; ++i)
           error += model.fit(in[permutation[i]], out[permutation[i]]);
 

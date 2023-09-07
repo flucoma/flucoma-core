@@ -81,6 +81,7 @@ public:
 
   index initialized() const { return mInitialized; }
   index dims() const { return mInitialized ? mInSize : 0; }
+  index hiddenDims() const { return mInitialized ? mHiddenSize : 0; }
   index size() const { return mInitialized ? mOutSize : 0; }
 
   bool trained() const { return mInitialized ? mTrained : false; }
@@ -103,6 +104,7 @@ public:
     mBottomCell = std::make_unique<CellType>(mBottomParams);
     mTopCell = std::make_unique<CellType>(mTopParams);
   }
+
   void reset()
   {
     mBottomState = std::make_unique<StateType>(mBottomParams);
