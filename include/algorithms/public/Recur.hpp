@@ -62,10 +62,10 @@ public:
     mTrained = false;
     mInitialized = true;
 
-    mBottomParams.reset(std::make_shared<ParamType>(*other.mBottomParams));
-    mTopParams.reset(std::make_shared<ParamType>(*other.mTopParams));
-    mBottomState.reset(std::make_unique<StateType>(*other.mBottomState));
-    mTopState.reset(std::make_unique<StateType>(*other.mTopState));
+    mBottomParams = std::make_shared<ParamType>(*other.mBottomParams);
+    mTopParams = std::make_shared<ParamType>(*other.mTopParams);
+    mBottomState = std::make_unique<StateType>(*other.mBottomState);
+    mTopState = std::make_unique<StateType>(*other.mTopState);
 
     return *this;
   }
@@ -84,16 +84,15 @@ public:
 
   void clear()
   {
-    mParams.reset();
-    mParams = std::make_shared<ParamType>(inSize, outSize);
+    mBottomParams = std::make_shared<ParamType>(mInSize, mHiddenSize);
+    mTopParams = std::make_shared<ParamType>(mHiddenSize, mOutSize);
+    mBottomState = std::make_unique<StateType>(mBottomParams);
+    mTopState = std::make_unique<StateType>(mTopParams);
   }
   void reset()
   {
-    if (mInitialized)
-    {
-      mState.reset();
-      mState = std::make_unique<StateType>(mParams);
-    }
+    mBottomState = std::make_unique<StateType>(mBottomParams);
+    mTopState = std::make_unique<StateType>(mTopParams);
   }
 
   void update(double lr)
@@ -220,10 +219,10 @@ public:
     static CellType bottomCell(mBottomParams), topCell(mTopParams);
 
     bottomCell.forwardFrame(input, *mBottomState);
-    *mBottomState = bottomCell.getState();
+    mBottomState = std::make_unique<StateType>(bottomCell.getState());
 
     topCell.forwardFrame(mBottomState->output(), *mTopState);
-    *mTopState = topCell.getState();
+    mTopState = std::make_unique<StateType>(topCell.getState());
   };
 
 private:
