@@ -39,9 +39,10 @@ public:
   explicit Recur() = default;
   ~Recur() = default;
 
+
   index initialized() const { return mInitialized; }
-  index size() const { return mInitialized ? mInSize : 0; }
-  index dims() const { return mInitialized ? mOutSize : 0; }
+  index dims() const { return mInitialized ? mInSize : 0; }
+  index size() const { return mInitialized ? mOutSize : 0; }
 
   bool trained() const { return mInitialized ? mTrained : false; }
   void setTrained()
@@ -65,17 +66,25 @@ public:
     }
   }
 
-  void update(double lr) { mParams->update(lr); }
-
-  void init(index inSize, index outSize)
+  void update(double lr)
   {
-    mParams = std::make_shared<ParamType>(inSize, outSize);
-    mState = std::make_unique<StateType>(mParams);
+    mTopParams->update(lr);
+    mBottomParams->update(lr);
+  }
+
+  void init(index inSize, index hiddenSize, index outSize)
+  {
 
     mInSize = inSize;
+    mHiddenSize = hiddenSize;
     mOutSize = outSize;
 
     mInitialized = true;
+
+    mBottomParams = std::make_shared<ParamType>(inSize, hiddenSize);
+    mTopParams = std::make_shared<ParamType>(hiddenSize, outSize);
+    mBottomState = std::make_unique<StateType>(mBottomParams);
+    mTopState = std::make_unique<StateType>(mTopParams);
   };
 
   double fit(InputRealMatrixView input, InputRealMatrixView output)
@@ -83,48 +92,94 @@ public:
     // check the input sizes and check either N-N or N-1
     assert(input.cols() == mInSize);
     assert(output.cols() == mOutSize);
-    assert(input.rows() == output.rows() || output.rows() == 1);
+    assert(input.rows() == output.rows());
 
-    CellSeries mNodes;
-    mNodes.emplace_back(mParams);
+    CellSeries bottomNodes, topNodes;
+
+    bottomNodes.emplace_back(mBottomParams);
+    topNodes.emplace_back(mTopParams);
 
     for (index i = 0; i < input.rows(); ++i)
     {
-      mNodes.emplace_back(mParams);
-      mNodes[i + 1].forwardFrame(input.row(i), mNodes[i].getState());
+      bottomNodes.emplace_back(mBottomParams);
+      bottomNodes[i + 1].forwardFrame(input.row(i), bottomNodes[i].getState());
+
+      topNodes.emplace_back(mTopParams);
+      topNodes[i + 1].forwardFrame(bottomNodes[i + 1].getState().output(),
+                                   topNodes[i].getState());
     }
 
-    mNodes.emplace_back(mParams);
+    bottomNodes.emplace_back(mBottomParams);
+    topNodes.emplace_back(mTopParams);
 
     double loss = 0.0;
     for (index i = input.rows(); i > 1; --i)
     {
-      if (output.rows() > 1 || i == input.rows())
-        loss += mNodes[i].backwardFrame(output.row(i - 1),
-                                        mNodes[i + 1].getState());
-      else
-        mNodes[i].backwardDatalessFrame(mNodes[i + 1].getState());
+      loss += topNodes[i].backwardFrame(output.row(i - 1),
+                                        topNodes[i + 1].getState());
+      bottomNodes[i].backwardFrame(topNodes[i].getState(),
+                                   bottomNodes[i + 1].getState());
+    }
+    return loss / input.rows();
+  };
+
+  double fit(InputRealMatrixView input, InputRealVectorView output)
+  {
+    // check the input sizes and check either N-N or N-1
+    assert(input.cols() == mInSize);
+    assert(output.size() == mOutSize);
+
+    CellSeries bottomNodes, topNodes;
+
+    bottomNodes.emplace_back(mBottomParams);
+    topNodes.emplace_back(mTopParams);
+
+    for (index i = 0; i < input.rows(); ++i)
+    {
+      bottomNodes.emplace_back(mBottomParams);
+      bottomNodes[i + 1].forwardFrame(input.row(i), bottomNodes[i].getState());
+
+      topNodes.emplace_back(mTopParams);
+      topNodes[i + 1].forwardFrame(bottomNodes[i + 1].getState().output(),
+                                   topNodes[i].getState());
     }
 
-    return loss / input.rows();
+    bottomNodes.emplace_back(mBottomParams);
+    topNodes.emplace_back(mTopParams);
+
+    double loss = topNodes[input.rows()].backwardFrame(
+        output, topNodes.back().getState());
+    bottomNodes[input.rows()].backwardFrame(topNodes[input.rows()].getState(),
+                                            bottomNodes.back().getState());
+
+    for (index i = input.rows() - 1; i > 1; --i)
+    {
+      topNodes[i].backwardFrame(topNodes[i + 1].getState());
+      bottomNodes[i].backwardFrame(topNodes[i].getState(),
+                                   bottomNodes[i + 1].getState());
+    }
+
+    return loss;
   };
 
   void process(InputRealMatrixView input, RealMatrixView output)
   {
-    assert(input.rows() == output.rows() || output.rows() == 1);
-
+    assert(input.rows() == output.rows());
     for (index i = 0; i < input.rows(); ++i)
-    {
-      processFrame(input.row(i));
-      output.row(output.rows() == 1 ? 0 : i) <<= mState->output();
-    }
+      processFrame(input.row(i), output.row(i));
+  };
+
+  void process(InputRealMatrixView input, RealVectorView output)
+  {
+    assert(input.cols() == output.size());
+    for (index i = 0; i < input.rows(); ++i) processFrame(input.row(i), output);
   };
 
   void processFrame(InputRealVectorView input, RealVectorView output)
   {
     assert(output.size() == mOutSize);
     processFrame(input);
-    output <<= mState->output();
+    output <<= mTopState->output();
   }
 
   void processFrame(InputRealVectorView input)
@@ -132,22 +187,24 @@ public:
     assert(input.size() == mInSize);
 
     // static so only allocate memory once
-    static CellType cell(mParams);
+    static CellType bottomCell(mBottomParams), topCell(mTopParams);
 
-    cell.forwardFrame(input, *mState);
-    *mState = cell.getState();
+    bottomCell.forwardFrame(input, *mBottomState);
+    *mBottomState = bottomCell.getState();
+
+    topCell.forwardFrame(mBottomState->output(), *mTopState);
+    *mTopState = topCell.getState();
   };
 
 private:
   bool mInitialized{false};
   bool mTrained{false};
 
-  index mInSize, mOutSize;
+  index mInSize, mHiddenSize, mOutSize;
 
-  // rt vector of cells (each have ptr to params)
   // pointer rather than ref so Recur can be default constructible
-  ParamPtr mParams;
-  StatePtr mState;
+  ParamPtr mBottomParams, mTopParams;
+  StatePtr mBottomState, mTopState;
 };
 
 } // namespace algorithm

@@ -110,18 +110,19 @@ public:
       : mInSize(p->mInSize), mLayerSize(p->mLayerSize), mOutSize(p->mOutSize),
         mX(mInSize), mXH(mLayerSize), mCp(mOutSize), mHp(mOutSize),
         mI(mOutSize), mG(mOutSize), mF(mOutSize), mO(mOutSize), mC(mOutSize),
-        mH(mOutSize), mDC(mOutSize), mDH(mOutSize)
+        mH(mOutSize), mDX(mInSize), mDC(mOutSize), mDH(mOutSize)
   {}
 
   LSTMState(ParamPtr p) : LSTMState{p.lock()} {};
 
   RealVectorView output() { return mH; }
+  RealVectorView inputDerivative() { return mDX; }
 
   index mInSize, mLayerSize, mOutSize;
 
   // state at time t
   RealVector mX, mXH, mCp, mHp, mI, mG, mF, mO, mC, mH;
-  RealVector mDC, mDH;
+  RealVector mDX, mDC, mDH;
 };
 
 class LSTMCell
@@ -187,20 +188,46 @@ public:
         asEigen<Array>(mState.mC) * asEigen<Array>(mState.mO);
   }
 
-  // in many to one, all cells except the last one have no target output
-  double backwardDatalessFrame(StateType& nextState,
-                               Allocator& alloc = FluidDefaultAllocator())
+  void backwardFrame(StateType& upState, StateType& nextState,
+                     Allocator& alloc = FluidDefaultAllocator())
   {
-    backwardFrame(mState.mH, nextState, alloc);
-    return 0.0;
+    calculateBackwardFrame(upState.inputDerivative(), nextState, alloc);
   }
 
-  double backwardFrame(InputRealVectorView dataTarget, StateType& nextState,
+  double backwardFrame(InputRealVectorView target, StateType& nextState,
                        Allocator& alloc = FluidDefaultAllocator())
+  {
+    using _impl::asEigen, _impl::asFluid, Eigen::Matrix, Eigen::Array;
+
+    assert(target.size() == mState.output().size());
+    ScopedEigenMap<Eigen::ArrayXd> inputDerivative(target.size(), alloc);
+
+    inputDerivative = asEigen<Array>(mState.output()) - asEigen<Array>(target);
+    calculateBackwardFrame(asFluid(inputDerivative), nextState, alloc);
+
+    return (asEigen<Matrix>(mState.output()) - asEigen<Matrix>(target))
+               .squaredNorm() /
+           target.size();
+  }
+
+  void backwardFrame(StateType& nextState,
+                     Allocator& alloc = FluidDefaultAllocator())
+  {
+    RealVector zeroes(mState.mOutSize);
+    calculateBackwardFrame(zeroes, nextState, alloc);
+  }
+
+private:
+  LSTMState mState;
+  ParamPtr  mParams;
+
+  void calculateBackwardFrame(RealVectorView inputDerivative,
+                              StateType&     nextState,
+                              Allocator&     alloc = FluidDefaultAllocator())
   {
     using _impl::asEigen, Eigen::Array, Eigen::Matrix;
 
-    assert(dataTarget.size() == mState.mOutSize);
+    assert(inputDerivative.size() == mState.mOutSize);
     assert(nextState.mInSize == mState.mInSize);
     assert(nextState.mOutSize == mState.mOutSize);
 
@@ -214,8 +241,7 @@ public:
         dZi(params->mOutSize, alloc), dZg(params->mOutSize, alloc),
         dZf(params->mOutSize, alloc), dZo(params->mOutSize, alloc);
 
-    dLdh = asEigen<Array>(nextState.mDH) +
-           2 * (asEigen<Array>(mState.mH) - asEigen<Array>(dataTarget));
+    dLdh = asEigen<Array>(nextState.mDH) + asEigen<Array>(inputDerivative);
     dLdc = asEigen<Array>(nextState.mDC);
 
     dC = asEigen<Array>(mState.mO) * dLdh + dLdc;
@@ -250,16 +276,9 @@ public:
           asEigen<Matrix>(params->mWo).transpose() * dZo;
 
     asEigen<Array>(mState.mDC) = dC * asEigen<Array>(mState.mF);
+    asEigen<Array>(mState.mDX) = dXH(Eigen::seqN(0, params->mInSize));
     asEigen<Array>(mState.mDH) = dXH(Eigen::lastN(params->mOutSize));
-
-    return (asEigen<Matrix>(mState.mH) - asEigen<Matrix>(dataTarget))
-               .squaredNorm() /
-           dataTarget.size();
   }
-
-private:
-  LSTMState mState;
-  ParamPtr  mParams;
 };
 
 } // namespace algorithm
