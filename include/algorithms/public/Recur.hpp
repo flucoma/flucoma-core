@@ -80,7 +80,8 @@ public:
     if (mInitialized) mTrained = true;
   }
 
-  ParamWeakPtr getParams() const { return mParams; }
+  ParamWeakPtr getTopParams() const { return mTopParams; }
+  ParamWeakPtr getBottomParams() const { return mBottomParams; }
 
   void clear()
   {

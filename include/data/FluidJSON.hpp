@@ -8,6 +8,8 @@
 #include <algorithms/public/PCA.hpp>
 #include <algorithms/public/MLP.hpp>
 #include <algorithms/public/UMAP.hpp>
+#include <algorithms/public/Recur.hpp>
+#include <algorithms/public/LSTM.hpp>
 #include <algorithms/public/Standardization.hpp>
 #include <algorithms/public/LabelSetEncoder.hpp>
 #include <data/FluidDataSet.hpp>
@@ -518,51 +520,83 @@ void from_json(const nlohmann::json &j, UMAP &umap) {
 // LSTM
 void to_json(nlohmann::json& j, const Recur<LSTMCell>& lstm)
 {
-  LSTMCell::ParamLock params = lstm.getParams().lock();
+  typename Recur<LSTMCell>::ParamPtr topParams = lstm.getTopParams().lock(),
+                                     bottomParams =
+                                         lstm.getBottomParams().lock();
 
-  j["inSize"] = params->mInSize;
-  j["outSize"] = params->mOutSize;
+  j["inSize"] = bottomParams->mInSize;
+  j["hiddenSize"] = bottomParams->mOutSize;
+  j["outSize"] = topParams->mOutSize;
 
-  j["inputWeights"] = params->mWi;
-  j["stateWeights"] = params->mWg;
-  j["forgetWeights"] = params->mWf;
-  j["outputWeights"] = params->mWo;
+  j["bottomInputWeights"] = bottomParams->mWi;
+  j["bottomStateWeights"] = bottomParams->mWg;
+  j["bottomForgetWeights"] = bottomParams->mWf;
+  j["bottomOutputWeights"] = bottomParams->mWo;
 
-  j["inputBias"] = params->mBi;
-  j["stateBias"] = params->mBg;
-  j["forgetBias"] = params->mBf;
-  j["outputBias"] = params->mBo;
+  j["bottomInputBias"] = bottomParams->mBi;
+  j["bottomStateBias"] = bottomParams->mBg;
+  j["bottomForgetBias"] = bottomParams->mBf;
+  j["bottomOutputBias"] = bottomParams->mBo;
+
+  j["topInputWeights"] = topParams->mWi;
+  j["topStateWeights"] = topParams->mWg;
+  j["topForgetWeights"] = topParams->mWf;
+  j["topOutputWeights"] = topParams->mWo;
+
+  j["topInputBias"] = topParams->mBi;
+  j["topStateBias"] = topParams->mBg;
+  j["topForgetBias"] = topParams->mBf;
+  j["topOutputBias"] = topParams->mBo;
 }
 
 bool check_json(const nlohmann::json& j, const Recur<LSTMCell>&)
 {
   return fluid::check_json(
       j,
-      {"inSize", "outSize", "inputWeights", "stateWeights", "forgetWeights",
-       "outputWeights", "inputBias", "stateBias", "forgetBias", "outputBias"},
-      {JSONTypes::NUMBER, JSONTypes::NUMBER, JSONTypes::ARRAY, JSONTypes::ARRAY,
+      {"inSize", "hiddenSize", "outSize", "bottomInputWeights",
+       "bottomStateWeights", "bottomForgetWeights", "bottomOutputWeights",
+       "bottomInputBias", "bottomStateBias", "bottomForgetBias",
+       "bottomOutputBias", "topInputWeights", "topStateWeights",
+       "topForgetWeights", "topOutputWeights", "topInputBias", "topStateBias",
+       "topForgetBias", "topOutputBias"},
+      {JSONTypes::NUMBER, JSONTypes::NUMBER, JSONTypes::NUMBER,
        JSONTypes::ARRAY, JSONTypes::ARRAY, JSONTypes::ARRAY, JSONTypes::ARRAY,
-       JSONTypes::ARRAY, JSONTypes::ARRAY});
+       JSONTypes::ARRAY, JSONTypes::ARRAY, JSONTypes::ARRAY, JSONTypes::ARRAY,
+       JSONTypes::ARRAY, JSONTypes::ARRAY, JSONTypes::ARRAY, JSONTypes::ARRAY,
+       JSONTypes::ARRAY, JSONTypes::ARRAY, JSONTypes::ARRAY, JSONTypes::ARRAY});
 }
 
 void from_json(const nlohmann::json& j, Recur<LSTMCell>& lstm)
 {
   index inSize = j.at("inSize").get<index>();
+  index hiddenSize = j.at("hiddenSize").get<index>();
   index outSize = j.at("outSize").get<index>();
 
-  lstm.init(inSize, outSize);
+  lstm.init(inSize, hiddenSize, outSize);
 
-  LSTMCell::ParamLock params = lstm.getParams().lock();
+  typename Recur<LSTMCell>::ParamPtr topParams = lstm.getTopParams().lock(),
+                                     bottomParams =
+                                         lstm.getBottomParams().lock();
 
-  j.at("inputWeights").get_to(params->mWi);
-  j.at("stateWeights").get_to(params->mWg);
-  j.at("forgetWeights").get_to(params->mWf);
-  j.at("outputWeights").get_to(params->mWo);
+  j.at("bottomInputWeights").get_to(bottomParams->mWi);
+  j.at("bottomStateWeights").get_to(bottomParams->mWg);
+  j.at("bottomForgetWeights").get_to(bottomParams->mWf);
+  j.at("bottomOutputWeights").get_to(bottomParams->mWo);
 
-  j.at("inputBias").get_to(params->mBi);
-  j.at("stateBias").get_to(params->mBg);
-  j.at("forgetBias").get_to(params->mBf);
-  j.at("outputBias").get_to(params->mBo);
+  j.at("bottomInputBias").get_to(bottomParams->mBi);
+  j.at("bottomStateBias").get_to(bottomParams->mBg);
+  j.at("bottomForgetBias").get_to(bottomParams->mBf);
+  j.at("bottomOutputBias").get_to(bottomParams->mBo);
+
+  j.at("topInputWeights").get_to(topParams->mWi);
+  j.at("topStateWeights").get_to(topParams->mWg);
+  j.at("topForgetWeights").get_to(topParams->mWf);
+  j.at("topOutputWeights").get_to(topParams->mWo);
+
+  j.at("topInputBias").get_to(topParams->mBi);
+  j.at("topStateBias").get_to(topParams->mBg);
+  j.at("topForgetBias").get_to(topParams->mBf);
+  j.at("topOutputBias").get_to(topParams->mBo);
 
   lstm.setTrained();
 }
