@@ -37,8 +37,11 @@ public:
                         RealMatrixView out, index nIter, index batchSize,
                         double learningRate)
   {
-    assert(model.size() == in[0].cols());
-    assert(model.dims() == out.cols());
+    assert(model.dims() == in[0].cols());
+    assert(model.size() == out.cols());
+    assert(std::adjacent_find(in.begin(), in.end(), [](auto& a, auto& b) {
+             return a.cols() != b.cols();
+           }) == in.end());
 
     rt::vector<index> permutation(in.size());
     std::iota(permutation.begin(), permutation.end(), 0);
@@ -77,8 +80,14 @@ public:
                          const rt::vector<InputRealMatrixView> out, index nIter,
                          index batchSize, double learningRate)
   {
-    assert(model.size() == in[0].cols());
-    assert(model.dims() == out.cols());
+    assert(model.dims() == in[0].cols());
+    assert(model.size() == out[0].cols());
+    assert(std::adjacent_find(in.begin(), in.end(), [](auto& a, auto& b) {
+             return a.cols() != b.cols();
+           }) == in.end());
+    assert(std::adjacent_find(out.begin(), out.end(), [](auto& a, auto& b) {
+             return a.cols() != b.cols();
+           }) == out.end());
 
     rt::vector<index> permutation(in.size());
     std::iota(permutation.begin(), permutation.end(), 0);
