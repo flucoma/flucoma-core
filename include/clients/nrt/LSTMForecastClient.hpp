@@ -41,7 +41,7 @@ class LSTMForecastClient
       ModelObject,
       public DataClient<algorithm::Recur<algorithm::LSTMCell>>
 {
-  enum { kName, kIter, kHidden, kRate, kBatch };
+  enum { kName, kIter, kHidden, kRate, kBatch, kForecastLength };
 
 public:
   using string = std::string;
@@ -50,6 +50,7 @@ public:
   using IndexVector = FluidTensor<index, 1>;
   using StringVector = FluidTensor<string, 1>;
   using DataSet = FluidDataSet<string, double, 1>;
+  using DataSeries = FluidDataSeries<string, double, 1>;
   using LabelSet = FluidDataSet<string, string, 1>;
 
   using ParamDescType = decltype(LSTMForecastParams);
