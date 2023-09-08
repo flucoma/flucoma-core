@@ -146,17 +146,33 @@ public:
       return Error(PointNotFound);
   }
 
-  MessageResult<RealVector> predictPoint(InputBufferPtr data) const
+  MessageResult<void> predictPoint(InputBufferPtr in, BufferPtr out) const
   {
-    BufferAdaptor::ReadAccess buf = data.get();
-    RealMatrix                series(buf.numFrames(), buf.numChans());
+    if (!in || !out) return Error(NoBuffer);
 
-    if (buf.numChans() < mAlgorithm.series.dims())
-      return Error<RealVector>(WrongPointSize);
+    BufferAdaptor::ReadAccess inBuf = in.get();
+    BufferAdaptor::Access     outBuf = out.get();
 
-    series <<= buf.allFrames().transpose();
+    if (!inBuf.exists()) return Error(InvalidBuffer);
+    if (!outBuf.exists()) return Error(InvalidBuffer);
 
-    return kNearestWeightedSum(series);
+    if (inBuf.numChans() < mAlgorithm.series.dims())
+      return Error(WrongPointSize);
+
+    Result resizeResult =
+        outBuf.resize(mAlgorithm.mappings.dims(), 1, inBuf.sampleRate());
+    if (!resizeResult.ok()) return Error(BufferAlloc);
+
+    RealMatrix series(inBuf.numFrames(), inBuf.numChans());
+    series <<= inBuf.allFrames().transpose();
+
+    MessageResult<RealVector> result = kNearestWeightedSum(series);
+    if (result.ok())
+      outBuf.samps(0, result.value().size(), 0) <<= result.value();
+    else
+      return Error(result.message());
+
+    return OK();
   }
 
   MessageResult<void> predict(InputDataSeriesClientRef source,
