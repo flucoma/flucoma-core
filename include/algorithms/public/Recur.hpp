@@ -131,11 +131,14 @@ public:
 
   index initialized() const { return mInitialized; }
   index dims() const { return mInitialized ? mInSize : 0; }
-  index hiddenDims() const { return mInitialized ? mHiddenSize : 0; }
   index size() const { return mInitialized ? mOutSize : 0; }
 
+  index inputDims() const { return mInitialized ? mInputSize : 0; }
+  index hiddenDims() const { return mInitialized ? mHiddenSize : 0; }
+  index outputDims() const { return mInitialized ? mOutSize : 0; }
+
   bool trained() const { return mTrained; }
-  void setTrained() { mTrained = true; }
+  void setTrained(bool set = true) { mTrained = set; }
 
   ParamWeakPtr getTopParams() const { return mTopParams; }
   ParamWeakPtr getBottomParams() const { return mBottomParams; }
@@ -156,6 +159,9 @@ public:
 
   void reset()
   {
+    mBottomParams->reset();
+    mTopParams->reset();
+
     mBottomState = std::make_unique<StateType>(mBottomParams);
     mTopState = std::make_unique<StateType>(mTopParams);
 
@@ -167,18 +173,13 @@ public:
   {
     mTopParams->update(lr);
     mBottomParams->update(lr);
-
-    mTrained = true;
   }
 
   void init(index inSize, index hiddenSize, index outSize)
   {
-
     mInSize = inSize;
     mHiddenSize = hiddenSize;
     mOutSize = outSize;
-
-    mInitialized = true;
 
     mBottomParams = std::make_shared<ParamType>(inSize, hiddenSize);
     mTopParams = std::make_shared<ParamType>(hiddenSize, outSize);
@@ -188,6 +189,8 @@ public:
 
     mBottomCell = std::make_unique<CellType>(mBottomParams);
     mTopCell = std::make_unique<CellType>(mTopParams);
+
+    mInitialized = true;
   };
 
   double fit(InputRealMatrixView input, InputRealMatrixView output)
@@ -216,7 +219,7 @@ public:
     }
 
     double loss = 0.0;
-    loss += topNodes.back().backwardFrame(output.row(input.rows() - 1),
+    loss += topNodes.back().backwardFrame(output.row(output.rows() - 1),
                                           StateType{mTopParams});
     bottomNodes.back().backwardFrame(topNodes.back().getState(),
                                      StateType{mBottomParams});
@@ -234,7 +237,6 @@ public:
 
   double fit(InputRealMatrixView input, InputRealVectorView output)
   {
-    // check the input sizes and check either N-N or N-1
     assert(input.cols() == mInSize);
     assert(output.size() == mOutSize);
 
@@ -257,8 +259,7 @@ public:
                                topNodes[i - 1].getState());
     }
 
-    double loss = 0.0;
-    loss += topNodes.back().backwardFrame(output, StateType{mTopParams});
+    double loss = topNodes.back().backwardFrame(output, StateType{mTopParams});
     bottomNodes.back().backwardFrame(topNodes.back().getState(),
                                      StateType{mBottomParams});
 
@@ -286,7 +287,7 @@ public:
     topNodes[0].forwardFrame(bottomNodes[0].getState().output(),
                              StateType{mTopParams});
 
-    for (index i = 1; i < input.rows() - 1; ++i)
+    for (index i = 1; i < data.rows() - 1; ++i)
     {
       bottomNodes.emplace_back(mBottomParams);
       bottomNodes[i].forwardFrame(data.row(i), bottomNodes[i - 1].getState());
@@ -297,17 +298,12 @@ public:
     }
 
     double loss = 0.0;
-    loss += topNodes.back().backwardFrame(data.row(input.rows() - 1),
+    loss += topNodes.back().backwardFrame(data.row(data.rows() - 1),
                                           StateType{mTopParams});
     bottomNodes.back().backwardFrame(topNodes.back().getState(),
                                      StateType{mBottomParams});
 
-    // input.rows() - 1 - 1 - 1
-    // second to last input row of vector one smaller than input
-    // 1 2 3 4 5 (6)  7
-    // 0 1 2 3 4 (5) (6) => only seven cells on 8 inputs, need to know next one
-    // first case above, then for loop (sadly no iterators, need index)
-    for (index i = input.rows() - 3; i >= 0; --i)
+    for (index i = data.rows() - 3; i >= 0; --i)
     {
       loss += topNodes[i].backwardFrame(data.row(i + 1),
                                         topNodes[i + 1].getState());
@@ -315,7 +311,7 @@ public:
                                    bottomNodes[i + 1].getState());
     }
 
-    return loss / (input.rows() - 1);
+    return loss / (data.rows() - 1);
   };
 
   void process(InputRealMatrixView input, RealMatrixView output)
@@ -327,7 +323,8 @@ public:
 
   void process(InputRealMatrixView input, RealVectorView output)
   {
-    for (index i = 0; i < input.rows(); ++i) processFrame(input.row(i), output);
+    for (index i = 0; i < input.rows(); ++i) processFrame(input.row(i));
+    output <<= mTopState->output();
   };
 
   void process(InputRealMatrixView input)

@@ -520,7 +520,7 @@ void from_json(const nlohmann::json &j, UMAP &umap) {
 // LSTM
 void to_json(nlohmann::json& j, const Recur<LSTMCell>& lstm)
 {
-  typename Recur<LSTMCell>::ParamPtr topParams = lstm.getTopParams().lock(),
+  auto topParams = lstm.getTopParams().lock(),
                                      bottomParams =
                                          lstm.getBottomParams().lock();
 

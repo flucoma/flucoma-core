@@ -35,24 +35,24 @@ public:
   double trainManyToOne(Recur<CellType>&                      model,
                         const rt::vector<InputRealMatrixView> in,
                         InputRealMatrixView out, index nIter, index batchSize,
-                        double learningRate)
+                        double learningRate, double maxCost = 100)
   {
-    assert(model.dims() == in[0].cols());
     assert(model.size() == out.cols());
-    assert(std::adjacent_find(in.begin(), in.end(), [](auto& a, auto& b) {
-             return a.cols() != b.cols();
+    assert(std::find(in.begin(), in.end(), [](auto& x) {
+             return model.inputDims() != x.cols();
            }) == in.end());
 
     rt::vector<index> permutation(in.size());
     std::iota(permutation.begin(), permutation.end(), 0);
 
     double error;
-    index  nBatches;
+    index  normalise;
 
     while (nIter-- > 0)
     {
       error = 0.0;
-      nBatches = 0;
+      normalise = 0;
+
       std::shuffle(permutation.begin(), permutation.end(),
                    std::mt19937{std::random_device{}()});
 
@@ -68,37 +68,40 @@ public:
           error += model.fit(in[permutation[i]], out.row(permutation[i]));
 
         model.update(learningRate);
-        ++nBatches;
+        normalise += thisBatchSize;
       }
+
+      if (error > maxCost) model.clear();
     }
 
-    model.setTrained();
-    return error / nBatches;
+    model.setTrained(true);
+    return error / normalise;
   }
 
   double trainManyToMany(Recur<CellType>&                      model,
                          const rt::vector<InputRealMatrixView> in,
                          const rt::vector<InputRealMatrixView> out, index nIter,
-                         index batchSize, double learningRate)
+                         index batchSize, double learningRate,
+                         double maxCost = 100)
   {
-    assert(model.dims() == in[0].cols());
-    assert(model.size() == out[0].cols());
-    assert(std::adjacent_find(in.begin(), in.end(), [](auto& a, auto& b) {
-             return a.cols() != b.cols();
+    assert(std::find(in.begin(), in.end(), [](auto& x) {
+             return model.inputDims() != x.cols();
            }) == in.end());
-    assert(std::adjacent_find(out.begin(), out.end(), [](auto& a, auto& b) {
-             return a.cols() != b.cols();
+    assert(std::find(out.begin(), out.end(), [](auto& x) {
+             return model.outputDims() != x.cols();
            }) == out.end());
 
     rt::vector<index> permutation(in.size());
     std::iota(permutation.begin(), permutation.end(), 0);
 
     double error;
-    index  nBatches;
+    index  normalise;
+
     while (nIter-- > 0)
     {
       error = 0.0;
-      nBatches = 0;
+      normalise = 0;
+
       std::shuffle(permutation.begin(), permutation.end(),
                    std::mt19937{std::random_device{}()});
 
@@ -114,33 +117,38 @@ public:
           error += model.fit(in[permutation[i]], out[permutation[i]]);
 
         model.update(learningRate);
-        ++nBatches;
+        normalise += thisBatchSize;
       }
+
+      if (error > maxCost) model.clear();
     }
 
-    model.setTrained();
-    return error / nBatches;
+    model.setTrained(true);
+    return error / normalise;
   }
 
 
   double trainPredictor(Recur<CellType>&                      model,
                         const rt::vector<InputRealMatrixView> in, index nIter,
-                        index batchSize, double learningRate)
+                        index batchSize, double learningRate,
+                        double maxCost = 100)
   {
-    assert(model.dims() == in[0].cols());
-    assert(std::adjacent_find(in.begin(), in.end(), [](auto& a, auto& b) {
-             return a.cols() != b.cols();
-           }) == in.end());
+    assert(model.inputDims() == model.outputDims());
+    assert(std::find(data.begin(), data.end(), [](auto& x) {
+             return model.dims() != x.cols();
+           }) == data.end());
 
     rt::vector<index> permutation(in.size());
     std::iota(permutation.begin(), permutation.end(), 0);
 
     double error;
-    index  nBatches;
+    index  normalise;
+
     while (nIter-- > 0)
     {
       error = 0.0;
-      nBatches = 0;
+      normalise = 0;
+
       std::shuffle(permutation.begin(), permutation.end(),
                    std::mt19937{std::random_device{}()});
 
@@ -153,15 +161,17 @@ public:
 
         model.reset();
         for (index i = batchStart; i < batchStart + thisBatchSize; ++i)
-          error += model.fit(in[permutation[i]], in[permutation[i]]);
+          error += model.fit(in[permutation[i]]);
 
         model.update(learningRate);
-        ++nBatches;
+        normalise += thisBatchSize;
       }
+
+      if (error > maxCost) model.clear();
     }
 
-    model.setTrained();
-    return error / nBatches;
+    model.setTrained(true);
+    return error / normalise;
   }
 };
 

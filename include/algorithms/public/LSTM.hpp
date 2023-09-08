@@ -47,9 +47,7 @@ public:
         // allocate the memory for the bias derivatives
         mDBi(mOutSize), mDBg(mOutSize), mDBf(mOutSize), mDBo(mOutSize)
   {
-    std::random_device rnd_device;
-    std::mt19937       mersenne_engine{rnd_device()};
-
+    std::mt19937 mersenne_engine{std::random_device{}()};
     std::uniform_real_distribution<double> dist{-1.0, 1.0};
     auto gen = [&dist, &mersenne_engine]() { return dist(mersenne_engine); };
 
@@ -66,7 +64,7 @@ public:
 
   void update(double lr)
   {
-    using _impl::asEigen, Eigen::Matrix, Eigen::Array;
+    using _impl::asEigen, Eigen::Array;
 
     asEigen<Array>(mWi) -= lr * asEigen<Array>(mDWi);
     asEigen<Array>(mWg) -= lr * asEigen<Array>(mDWg);
@@ -78,6 +76,11 @@ public:
     asEigen<Array>(mBf) -= lr * asEigen<Array>(mDBf);
     asEigen<Array>(mBo) -= lr * asEigen<Array>(mDBo);
 
+    reset();
+  }
+
+  void reset()
+  {
     // clear weight derivatives
     std::fill(mDWi.begin(), mDWi.end(), 0.0);
     std::fill(mDWg.begin(), mDWg.end(), 0.0);
@@ -118,7 +121,7 @@ public:
   RealVectorView output() { return mH; }
   RealVectorView inputDerivative() { return mDX; }
 
-  index mInSize, mLayerSize, mOutSize;
+  const index mInSize, mLayerSize, mOutSize;
 
   // state at time t
   RealVector mX, mXH, mCp, mHp, mI, mG, mF, mO, mC, mH;
