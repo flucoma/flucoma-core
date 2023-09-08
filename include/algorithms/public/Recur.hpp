@@ -46,6 +46,7 @@ public:
     mHiddenSize = other.mHiddenSize;
     mOutSize = other.mOutSize;
 
+    mTrained = other.mTrained;
     mInitialized = true;
 
     mBottomParams = std::make_shared<ParamType>(*other.mBottomParams);
@@ -65,6 +66,7 @@ public:
     mHiddenSize = other.mHiddenSize;
     mOutSize = other.mOutSize;
 
+    mTrained = other.mTrained;
     mInitialized = true;
 
     mBottomParams = other.mBottomParams;
@@ -86,7 +88,7 @@ public:
     mHiddenSize = other.mHiddenSize;
     mOutSize = other.mOutSize;
 
-    mTrained = false;
+    mTrained = other.mTrained;
     mInitialized = true;
 
     mBottomParams = std::make_shared<ParamType>(*other.mBottomParams);
@@ -108,7 +110,7 @@ public:
     mHiddenSize = other.mHiddenSize;
     mOutSize = other.mOutSize;
 
-    mTrained = false;
+    mTrained = other.mTrained;
     mInitialized = true;
 
     // shared pointers so takes co-ownership, extends lifetime
@@ -151,6 +153,8 @@ public:
 
     mBottomCell = std::make_unique<CellType>(mBottomParams);
     mTopCell = std::make_unique<CellType>(mTopParams);
+
+    mTrained = false;
   }
 
   void reset()
@@ -166,6 +170,8 @@ public:
   {
     mTopParams->update(lr);
     mBottomParams->update(lr);
+
+    mTrained = true;
   }
 
   void init(index inSize, index hiddenSize, index outSize)
@@ -338,6 +344,7 @@ public:
 
   void processFrame(InputRealVectorView input)
   {
+    assert(mTrained);
     assert(input.size() == mInSize);
 
     mBottomCell->forwardFrame(input, *mBottomState);
