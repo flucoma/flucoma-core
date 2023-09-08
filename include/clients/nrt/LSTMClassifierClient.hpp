@@ -200,7 +200,8 @@ public:
       return Error(WrongPointSize);
 
     RealMatrix output(sourceDataSeries.size(), mAlgorithm.encoder.numLabels());
-    auto&      data = sourceDataSeries.getData();
+
+    auto& data = sourceDataSeries.getData();
     for (index i = 0; i < output.rows(); i++)
     {
       mAlgorithm.lstm.reset();
@@ -224,10 +225,11 @@ public:
     if (!buffer) return Error<string>(NoBuffer);
     BufferAdaptor::ReadAccess inBuf(buffer.get());
     if (!inBuf.exists()) return Error<string>(InvalidBuffer);
+    if (inBuf.numFrames() == 0) return Error<string>(EmptyBuffer);
 
+    if (!mAlgorithm.lstm.trained()) return Error<string>(NoDataFitted);
     if (inBuf.numChans() != mAlgorithm.lstm.dims())
       return Error<string>(WrongPointSize);
-    if (!mAlgorithm.lstm.trained()) return Error<string>(NoDataFitted);
 
     RealMatrix src(inBuf.numFrames(), inBuf.numChans());
     src <<= inBuf.allFrames().transpose();
