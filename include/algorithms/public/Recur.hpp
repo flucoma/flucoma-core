@@ -74,8 +74,8 @@ public:
 
     // unique pointers so must release other's ownership of the memory then
     // reclaim it
-    mBottomState = std::make_unique<StateType>(other.mBottomState.release());
-    mTopState = std::make_unique<StateType>(other.mTopState.release());
+    mBottomState = std::move(other.mBottomState);
+    mTopState = std::move(other.mTopState);
 
     // clear initialise the cells
     mBottomCell = std::make_unique<CellType>(mBottomParams);
@@ -119,8 +119,8 @@ public:
 
     // unique pointers so must release other's ownership of the memory then
     // reclaim it
-    mBottomState = std::make_unique<StateType>(other.mBottomState.release());
-    mTopState = std::make_unique<StateType>(other.mTopState.release());
+    mBottomState = std::move(other.mBottomState);
+    mTopState = std::move(other.mTopState);
 
     // clear initialise the cells
     mBottomCell = std::make_unique<CellType>(mBottomParams);
@@ -134,11 +134,8 @@ public:
   index hiddenDims() const { return mInitialized ? mHiddenSize : 0; }
   index size() const { return mInitialized ? mOutSize : 0; }
 
-  bool trained() const { return mInitialized ? mTrained : false; }
-  void setTrained()
-  {
-    if (mInitialized) mTrained = true;
-  }
+  bool trained() const { return mTrained; }
+  void setTrained() { mTrained = true; }
 
   ParamWeakPtr getTopParams() const { return mTopParams; }
   ParamWeakPtr getBottomParams() const { return mBottomParams; }
@@ -195,7 +192,6 @@ public:
 
   double fit(InputRealMatrixView input, InputRealMatrixView output)
   {
-    // check the input sizes and check either N-N or N-1
     assert(input.cols() == mInSize);
     assert(output.cols() == mOutSize);
     assert(input.rows() == output.rows());
@@ -331,7 +327,6 @@ public:
 
   void process(InputRealMatrixView input, RealVectorView output)
   {
-    assert(input.cols() == output.size());
     for (index i = 0; i < input.rows(); ++i) processFrame(input.row(i), output);
   };
 
