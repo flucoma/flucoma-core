@@ -28,8 +28,8 @@ namespace lstmregressor {
 
 constexpr auto LSTMRegressorParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
-    LongParam("maxIter", "Maximum Number of Iterations", 50, Min(1)),
-    LongParam("hiddenSize", "Size of Intermediate LSTM layer", 50, Min(1)),
+    LongParam("maxIter", "Maximum Number of Iterations", 5, Min(1)),
+    LongParam("hiddenSize", "Size of Intermediate LSTM layer", 10, Min(1)),
     FloatParam("learnRate", "Learning Rate", 0.01, Min(0.0), Max(1.0)),
     LongParam("batchSize", "Batch Size", 50, Min(1)));
 
