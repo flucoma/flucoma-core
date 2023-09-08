@@ -123,34 +123,48 @@ public:
                                                get<kBatch>(), get<kRate>());
   }
 
-  MessageResult<void> predict(InputDataSeriesClientRef dataSeriesClient,
-                              DataSetClientRef         dataSetClient)
+  MessageResult<void> predict(InputDataSeriesClientRef sourceDataSeriesClient,
+                              DataSeriesClientRef      targetDataSeriesClient,
+                              index forecastLengthOverride = -1)
   {
-    // const auto sourceClientPtr = dataSeriesClient.get().lock();
-    // if (!sourceClientPtr) return Error<void>(NoDataSet);
+    assert(mAlgorithm.dims() == mAlgorithm.size());
 
-    // const auto sourceDataSeries = sourceClientPtr->getDataSeries();
-    // if (sourceDataSeries.size() == 0) return Error<void>(EmptyDataSet);
+    index forecastLength = forecastLengthOverride < 0 ? get<kForecastLength>()
+                                                      : forecastLengthOverride;
 
-    // const auto targetClientPtr = dataSetClient.get().lock();
-    // if (!targetClientPtr) return Error<void>(NoDataSet);
+    const auto sourceClientPtr = sourceDataSeriesClient.get().lock();
+    if (!sourceClientPtr) return Error<void>(NoDataSet);
 
-    // if (!mAlgorithm.trained()) return Error(NoDataFitted);
-    // if (sourceDataSeries.dims() != mAlgorithm.dims())
-    //   return Error(WrongPointSize);
+    const auto sourceDataSeries = sourceClientPtr->getDataSeries();
+    if (sourceDataSeries.size() == 0) return Error<void>(EmptyDataSet);
 
-    // RealMatrix   output(sourceDataSeries.size(), mAlgorithm.size());
-    // StringVector ids{sourceDataSeries.getIds()};
+    const auto targetClientPtr = targetDataSeriesClient.get().lock();
+    if (!targetClientPtr) return Error<void>(NoDataSet);
 
-    // auto& data = sourceDataSeries.getData();
-    // for (index i = 0; i < output.rows(); i++)
-    // {
-    //   mAlgorithm.reset();
-    //   mAlgorithm.process(data[i], output.row(i));
-    // }
+    if (!mAlgorithm.trained()) return Error(NoDataFitted);
+    if (sourceDataSeries.dims() != mAlgorithm.dims())
+      return Error(WrongPointSize);
 
-    // DataSet result(ids, output);
-    // targetClientPtr->setDataSet(result);
+    StringVector ids{sourceDataSeries.getIds()};
+    DataSeries   result(mAlgorithm.size());
+    RealVector   output(mAlgorithm.size()), pred(mAlgorithm.size());
+
+    auto& data = sourceDataSeries.getData();
+    for (index i = 1; i < sourceDataSeries.size(); i++)
+    {
+      index thisLength = forecastLength > 0 ? forecastLength : data[i].rows();
+
+      mAlgorithm.reset();
+      mAlgorithm.process(data[i], output);
+
+      for (index f = 0; f < thisLength; f++)
+      {
+        mAlgorithm.processFrame(output, pred);
+        result.addFrame(ids[i], pred);
+      }
+    }
+
+    targetClientPtr->setDataSeries(result);
 
     return OK();
   }
