@@ -24,7 +24,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 namespace client {
-namespace lstmclassifier {
+namespace lstmregressor {
 
 constexpr auto LSTMRegressorParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
@@ -144,7 +144,7 @@ public:
     if (sourceDataSeries.size() == 0) return Error<void>(EmptyDataSet);
 
     const auto targetClientPtr = dataSetClient.get().lock();
-    if (!targetClientPtr) return Error<void>(NoLabelSet);
+    if (!targetClientPtr) return Error<void>(NoDataSet);
 
     if (!mAlgorithm.trained()) return Error(NoDataFitted);
     if (sourceDataSeries.dims() != mAlgorithm.dims())
@@ -166,23 +166,33 @@ public:
     return OK();
   }
 
-  MessageResult<RealVector> predictPoint(InputBufferPtr buffer)
+  MessageResult<void> predictPoint(InputBufferPtr in, BufferPtr out)
   {
-    if (!buffer) return Error<RealVector>(NoBuffer);
-    BufferAdaptor::ReadAccess inBuf(buffer.get());
-    if (!inBuf.exists()) return Error<RealVector>(InvalidBuffer);
+    if (!in || !out) return Error(NoBuffer);
 
-    if (inBuf.numChans() != mAlgorithm.dims())
-      return Error<RealVector>(WrongPointSize);
-    if (!mAlgorithm.trained()) return Error<RealVector>(NoDataFitted);
+    BufferAdaptor::ReadAccess inBuf(in.get());
+    BufferAdaptor::Access     outBuf(out.get());
+
+    if (!inBuf.exists()) return Error(InvalidBuffer);
+    if (!outBuf.exists()) return Error(InvalidBuffer);
+    if (inBuf.numFrames() == 0) return Error(EmptyBuffer);
+
+    if (!mAlgorithm.trained()) return Error(NoDataFitted);
+    if (inBuf.numChans() != mAlgorithm.dims()) return Error(WrongPointSize);
+
+    Result resizeResult =
+        outBuf.resize(mAlgorithm.size(), 1, inBuf.sampleRate());
 
     RealMatrix src(inBuf.numFrames(), inBuf.numChans());
     RealVector dest(mAlgorithm.size());
     src <<= inBuf.allFrames().transpose();
+
     mAlgorithm.reset();
     mAlgorithm.process(src, dest);
 
-    return dest;
+    outBuf.samps(0, dest.size(), 0) <<= dest;
+
+    return OK();
   }
 
   static auto getMessageDescriptors()
@@ -203,10 +213,10 @@ public:
 
 using LSTMRegressorRef = SharedClientRef<const LSTMRegressorClient>;
 
-} // namespace lstmclassifier
+} // namespace lstmregressor
 
 using NRTThreadedLSTMRegressorClient =
-    NRTThreadingAdaptor<typename lstmclassifier::LSTMRegressorRef::SharedType>;
+    NRTThreadingAdaptor<typename lstmregressor::LSTMRegressorRef::SharedType>;
 
 } // namespace client
 } // namespace fluid
