@@ -155,25 +155,46 @@ public:
     return OK();
   }
 
-  MessageResult<RealVector> predictPoint(InputBufferPtr buffer)
+  MessageResult<void> predictPoint(InputBufferPtr in, BufferPtr out,
+                                   index forecastLengthOverride = -1)
   {
-    // if (!buffer) return Error<RealVector>(NoBuffer);
-    // BufferAdaptor::ReadAccess inBuf(buffer.get());
-    // if (!inBuf.exists()) return Error<RealVector>(InvalidBuffer);
-    // if (inBuf.numFrames() == 0) return Error<RealVector>(EmptyBuffer);
 
-    // if (!mAlgorithm.trained()) return Error<RealVector>(NoDataFitted);
-    // if (inBuf.numChans() != mAlgorithm.dims())
-    //   return Error<RealVector>(WrongPointSize);
+    index forecastLength = forecastLengthOverride < 0 ? get<kForecastLength>()
+                                                      : forecastLengthOverride;
 
-    // RealMatrix src(inBuf.numFrames(), inBuf.numChans());
-    // src <<= inBuf.allFrames().transpose();
+    if (!in || !out) return Error(NoBuffer);
+    BufferAdaptor::ReadAccess inBuf(in.get());
+    BufferAdaptor::Access     outBuf(out.get());
 
-    RealVector dest(mAlgorithm.size());
-    // mAlgorithm.reset();
-    // mAlgorithm.process(src, dest);
+    if (!inBuf.exists()) return Error(InvalidBuffer);
+    if (!outBuf.exists()) return Error(InvalidBuffer);
+    if (inBuf.numFrames() == 0) return Error(EmptyBuffer);
 
-    return dest;
+    if (!mAlgorithm.trained()) return Error(NoDataFitted);
+    if (inBuf.numChans() != mAlgorithm.dims()) return Error(WrongPointSize);
+
+    forecastLength = forecastLength > 0 ? forecastLength : inBuf.numFrames();
+    Result resizeResult =
+        outBuf.resize(forecastLength, inBuf.numChans(), inBuf.sampleRate());
+
+    RealMatrix src(inBuf.numFrames(), inBuf.numChans());
+    src <<= inBuf.allFrames().transpose();
+
+    RealMatrix dest(forecastLength, mAlgorithm.size());
+    RealVector output(mAlgorithm.size()), pred(mAlgorithm.size());
+
+    mAlgorithm.reset();
+    mAlgorithm.process(src, output);
+
+    for (index i = 0; i < forecastLength; i++)
+    {
+      mAlgorithm.processFrame(output, pred);
+      dest.row(i) <<= pred;
+    }
+
+    outBuf.allFrames().transpose() <<= dest;
+
+    return OK();
   }
 
   static auto getMessageDescriptors()
