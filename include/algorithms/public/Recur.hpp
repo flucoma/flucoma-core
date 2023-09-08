@@ -270,6 +270,52 @@ public:
     return loss;
   };
 
+  double fit(InputRealMatrixView data)
+  {
+    assert(data.cols() == mInSize);
+    assert(data.cols() == mOutSize);
+
+    CellSeries bottomNodes, topNodes;
+
+    bottomNodes.emplace_back(mBottomParams);
+    bottomNodes[0].forwardFrame(data.row(0), StateType{mBottomParams});
+
+    topNodes.emplace_back(mTopParams);
+    topNodes[0].forwardFrame(bottomNodes[0].getState().output(),
+                             StateType{mTopParams});
+
+    for (index i = 1; i < input.rows() - 1; ++i)
+    {
+      bottomNodes.emplace_back(mBottomParams);
+      bottomNodes[i].forwardFrame(data.row(i), bottomNodes[i - 1].getState());
+
+      topNodes.emplace_back(mTopParams);
+      topNodes[i].forwardFrame(bottomNodes[i].getState().output(),
+                               topNodes[i - 1].getState());
+    }
+
+    double loss = 0.0;
+    loss += topNodes.back().backwardFrame(data.row(input.rows() - 1),
+                                          StateType{mTopParams});
+    bottomNodes.back().backwardFrame(topNodes.back().getState(),
+                                     StateType{mBottomParams});
+
+    // input.rows() - 1 - 1 - 1
+    // second to last input row of vector one smaller than input
+    // 1 2 3 4 5 (6)  7
+    // 0 1 2 3 4 (5) (6) => only seven cells on 8 inputs, need to know next one
+    // first case above, then for loop (sadly no iterators, need index)
+    for (index i = input.rows() - 3; i >= 0; --i)
+    {
+      loss += topNodes[i].backwardFrame(data.row(i + 1),
+                                        topNodes[i + 1].getState());
+      bottomNodes[i].backwardFrame(topNodes[i].getState(),
+                                   bottomNodes[i + 1].getState());
+    }
+
+    return loss / (input.rows() - 1);
+  };
+
   void process(InputRealMatrixView input, RealMatrixView output)
   {
     assert(input.rows() == output.rows());

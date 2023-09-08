@@ -121,6 +121,48 @@ public:
     model.setTrained();
     return error / nBatches;
   }
+
+
+  double trainPredictor(Recur<CellType>&                      model,
+                        const rt::vector<InputRealMatrixView> in, index nIter,
+                        index batchSize, double learningRate)
+  {
+    assert(model.dims() == in[0].cols());
+    assert(std::adjacent_find(in.begin(), in.end(), [](auto& a, auto& b) {
+             return a.cols() != b.cols();
+           }) == in.end());
+
+    rt::vector<index> permutation(in.size());
+    std::iota(permutation.begin(), permutation.end(), 0);
+
+    double error;
+    index  nBatches;
+    while (nIter-- > 0)
+    {
+      error = 0.0;
+      nBatches = 0;
+      std::shuffle(permutation.begin(), permutation.end(),
+                   std::mt19937{std::random_device{}()});
+
+      for (index batchStart = 0; batchStart < in.size();
+           batchStart += batchSize)
+      {
+        index thisBatchSize = (batchStart + batchSize) < in.size()
+                                  ? batchSize
+                                  : in.size() - batchStart;
+
+        model.reset();
+        for (index i = batchStart; i < batchStart + thisBatchSize; ++i)
+          error += model.fit(in[permutation[i]], in[permutation[i]]);
+
+        model.update(learningRate);
+        ++nBatches;
+      }
+    }
+
+    model.setTrained();
+    return error / nBatches;
+  }
 };
 
 } // namespace algorithm
