@@ -330,6 +330,11 @@ public:
     for (index i = 0; i < input.rows(); ++i) processFrame(input.row(i), output);
   };
 
+  void process(InputRealMatrixView input)
+  {
+    for (index i = 0; i < input.rows(); ++i) processFrame(input.row(i));
+  };
+
   void processFrame(InputRealVectorView input, RealVectorView output)
   {
     assert(output.size() == mOutSize);
