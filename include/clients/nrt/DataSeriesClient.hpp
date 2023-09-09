@@ -405,8 +405,6 @@ public:
         makeMessage("read", &DataSeriesClient::read),
         makeMessage("kNearest", &DataSeriesClient::kNearest),
         makeMessage("kNearestDist", &DataSeriesClient::kNearestDist),
-        makeMessage("toBuffer", &DataSeriesClient::getSeries),
-        makeMessage("fromBuffer", &DataSeriesClient::setSeries),
         makeMessage("getIds", &DataSeriesClient::getIds),
         makeMessage("getDataSet", &DataSeriesClient::getDataSet));
   }
