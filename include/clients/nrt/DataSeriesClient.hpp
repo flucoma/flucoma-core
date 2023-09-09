@@ -246,10 +246,10 @@ public:
         bool                                    overwrite)
   {
     auto dataseriesClientPtr = dataseriesClient.get().lock();
-    if (!dataseriesClientPtr) return Error(NoDataSet);
+    if (!dataseriesClientPtr) return Error(NoDataSeries);
 
     auto srcDataSeries = dataseriesClientPtr->getDataSeries();
-    if (srcDataSeries.size() == 0) return Error(EmptyDataSet);
+    if (srcDataSeries.size() == 0) return Error(EmptyDataSeries);
     if (srcDataSeries.pointSize() != mAlgorithm.pointSize())
       return Error(WrongPointSize);
 
@@ -279,7 +279,7 @@ public:
   MessageResult<void> getIds(LabelSetClientRef dest)
   {
     auto destPtr = dest.get().lock();
-    if (!destPtr) return Error(NoDataSet);
+    if (!destPtr) return Error(NoLabelSet);
     destPtr->setLabelSet(getIdsLabelSet());
 
     return OK();
