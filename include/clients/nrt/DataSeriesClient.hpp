@@ -321,8 +321,6 @@ public:
         makeMessage("clear", &DataSeriesClient::clear),
         makeMessage("write", &DataSeriesClient::write),
         makeMessage("read", &DataSeriesClient::read),
-        makeMessage("toBuffer", &DataSeriesClient::getSeries),
-        makeMessage("fromBuffer", &DataSeriesClient::setSeries),
         makeMessage("getIds", &DataSeriesClient::getIds),
         makeMessage("getDataSet", &DataSeriesClient::getDataSet));
   }
