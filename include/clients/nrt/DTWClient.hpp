@@ -75,10 +75,10 @@ public:
                              string id1, string id2)
   {
     auto dataseriesClientPtr = dataseriesClient.get().lock();
-    if (!dataseriesClientPtr) return Error<double>(NoDataSet);
+    if (!dataseriesClientPtr) return Error<double>(NoDataSeries);
 
     auto srcDataSeries = dataseriesClientPtr->getDataSeries();
-    if (srcDataSeries.size() == 0) return Error<double>(EmptyDataSet);
+    if (srcDataSeries.size() == 0) return Error<double>(EmptyDataSeries);
 
     index i1 = srcDataSeries.getIndex(id1), i2 = srcDataSeries.getIndex(id2);
 

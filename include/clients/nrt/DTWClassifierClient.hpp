@@ -113,13 +113,13 @@ public:
                           InputLabelSetClientRef   labelSetClient)
   {
     auto dataSeriesClientPtr = dataSeriesClient.get().lock();
-    if (!dataSeriesClientPtr) return Error(NoDataSet);
+    if (!dataSeriesClientPtr) return Error(NoDataSeries);
 
     auto labelSetPtr = labelSetClient.get().lock();
     if (!labelSetPtr) return Error(NoLabelSet);
 
     auto dataSeries = dataSeriesClientPtr->getDataSeries();
-    if (dataSeries.size() == 0) return Error(EmptyDataSet);
+    if (dataSeries.size() == 0) return Error(EmptyDataSeries);
 
     auto labelSet = labelSetPtr->getLabelSet();
     if (labelSet.size() == 0) return Error(EmptyLabelSet);
@@ -160,13 +160,13 @@ public:
   {
 
     auto sourcePtr = source.get().lock();
-    if (!sourcePtr) return Error(NoDataSet);
+    if (!sourcePtr) return Error(NoDataSeries);
 
     auto destPtr = dest.get().lock();
     if (!destPtr) return Error(NoLabelSet);
 
     auto dataSeries = sourcePtr->getDataSeries();
-    if (dataSeries.size() == 0) return Error(EmptyDataSet);
+    if (dataSeries.size() == 0) return Error(EmptyDataSeries);
 
     if (dataSeries.pointSize() != mAlgorithm.dims())
       return Error(WrongPointSize);

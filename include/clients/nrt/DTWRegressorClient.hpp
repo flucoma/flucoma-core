@@ -117,16 +117,16 @@ public:
                           InputDataSetClientRef    dataSetClient)
   {
     auto dataSeriesClientPtr = dataSeriesClient.get().lock();
-    if (!dataSeriesClientPtr) return Error(NoDataSet);
+    if (!dataSeriesClientPtr) return Error(NoDataSeries);
 
     auto dataSetPtr = dataSetClient.get().lock();
     if (!dataSetPtr) return Error(NoDataSet);
 
     auto dataSeries = dataSeriesClientPtr->getDataSeries();
-    if (dataSeries.size() == 0) return Error(EmptyDataSet);
+    if (dataSeries.size() == 0) return Error(EmptyDataSeries);
 
     auto dataSet = dataSetPtr->getDataSet();
-    if (dataSet.size() == 0) return Error(EmptyLabelSet);
+    if (dataSet.size() == 0) return Error(EmptyDataSet);
 
     if (dataSeries.size() != dataSet.size()) return Error(SizesDontMatch);
 
@@ -180,13 +180,13 @@ public:
   {
 
     auto sourcePtr = source.get().lock();
-    if (!sourcePtr) return Error(NoDataSet);
+    if (!sourcePtr) return Error(NoDataSeries);
 
     auto destPtr = dest.get().lock();
     if (!destPtr) return Error(NoLabelSet);
 
     auto dataSeries = sourcePtr->getDataSeries();
-    if (dataSeries.size() == 0) return Error(EmptyDataSet);
+    if (dataSeries.size() == 0) return Error(EmptyDataSeries);
 
     if (dataSeries.pointSize() != mAlgorithm.series.dims())
       return Error(WrongPointSize);
