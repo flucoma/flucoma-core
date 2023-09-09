@@ -285,8 +285,8 @@ public:
     return OK();
   }
 
-  MessageResult<FluidTensor<rt::string, 1>>
-  kNearest(InputBufferPtr data, index nNeighbours, index p = 2) const
+  MessageResult<FluidTensor<rt::string, 1>> kNearest(InputBufferPtr data,
+                                                     index nNeighbours) const
   {
     // check for nNeighbours > 0 and < size of DS
     if (nNeighbours > mAlgorithm.size())
@@ -307,10 +307,9 @@ public:
 
     auto ds = mAlgorithm.getData();
 
-    std::transform(indices.begin(), indices.end(), distances.begin(),
-                   [&series, &ds, &p, this](index i) {
-                     return distance(series, ds[i], p);
-                   });
+    std::transform(
+        indices.begin(), indices.end(), distances.begin(),
+        [&series, &ds, this](index i) { return distance(series, ds[i], 2); });
 
     std::sort(indices.begin(), indices.end(), [&distances](index a, index b) {
       return distances[asUnsigned(a)] < distances[asUnsigned(b)];
@@ -328,8 +327,8 @@ public:
     return labels;
   }
 
-  MessageResult<FluidTensor<double, 1>>
-  kNearestDist(InputBufferPtr data, index nNeighbours, index p = 2) const
+  MessageResult<FluidTensor<double, 1>> kNearestDist(InputBufferPtr data,
+                                                     index nNeighbours) const
   {
     // check for nNeighbours > 0 and < size of DS
     if (nNeighbours > mAlgorithm.size())
@@ -350,10 +349,9 @@ public:
 
     auto ds = mAlgorithm.getData();
 
-    std::transform(indices.begin(), indices.end(), distances.begin(),
-                   [&series, &ds, &p, this](index i) {
-                     return distance(series, ds[i], p);
-                   });
+    std::transform(
+        indices.begin(), indices.end(), distances.begin(),
+        [&series, &ds, this](index i) { return distance(series, ds[i], 2); });
 
     std::sort(indices.begin(), indices.end(), [&distances](index a, index b) {
       return distances[asUnsigned(a)] < distances[asUnsigned(b)];
