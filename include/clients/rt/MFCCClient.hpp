@@ -130,7 +130,7 @@ public:
       output[0](Slice(nCoefs, get<kNCoefs>().max() - nCoefs)).fill(0);
   }
 
-  index latency() { return get<kFFT>().winSize(); }
+  index latency() const { return get<kFFT>().winSize(); }
 
   void reset(FluidContext& c)
   {

@@ -106,7 +106,7 @@ public:
     output[0](0) = static_cast<T>(mDescriptor);
   }
 
-  index latency() { return static_cast<index>(get<kFFT>().hopSize()); }
+  index latency() const { return static_cast<index>(get<kFFT>().hopSize()); }
 
   AnalysisSize analysisSettings()
   {

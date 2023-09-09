@@ -118,7 +118,7 @@ public:
     output[0](Slice(nBands, get<kNBands>().max() - nBands)).fill(0);
   }
 
-  index latency() { return get<kFFT>().winSize(); }
+  index latency() const { return get<kFFT>().winSize(); }
 
   void reset(FluidContext& c)
   {

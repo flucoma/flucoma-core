@@ -125,7 +125,7 @@ public:
     output[0]<<= out.row(0);
   }
 
-  index latency() { return static_cast<index>(get<kFFT>().hopSize()); }
+  index latency() const { return static_cast<index>(get<kFFT>().hopSize()); }
 
   void reset(FluidContext& c)
   {    

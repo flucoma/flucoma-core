@@ -129,7 +129,7 @@ public:
     if (output[0].data()) output[0] <<= out.row(0);
   }
 
-  index latency()
+  index latency() const
   {
     return get<kPadding>() + get<kBlockSize>() - get<kOrder>();
   }

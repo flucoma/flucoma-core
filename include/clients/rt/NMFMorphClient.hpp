@@ -69,7 +69,7 @@ public:
     setOutputLabels({"morphed signal"});
   }
 
-  index latency() { return get<kFFT>().winSize(); }
+  index latency() const { return get<kFFT>().winSize(); }
 
   void reset(FluidContext&) { mSTFTProcessor.reset(); }
 

@@ -79,6 +79,7 @@ public:
         mMelBands{40, get<kFFT>().max(), c.allocator()},
         mDCT{40, 13, c.allocator()},
         mChroma{12, get<kFFT>().max(), c.allocator()},
+        mYinFFT(get<kFFT>().maxFrameSize(), c.allocator()),
         mLoudness{get<kFFT>().max(), c.allocator()}
   {
     audioChannelsIn(1);
@@ -181,7 +182,7 @@ public:
     output[0](0) = static_cast<T>(mDescriptor);
   }
 
-  index latency()
+  index latency() const
   {
     index filterSize = get<kFilterSize>();
     if (filterSize % 2) filterSize++;

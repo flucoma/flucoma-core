@@ -94,7 +94,7 @@ public:
           get<kSlowRampDownTime>(), hiPassFreq, get<kDebounce>()));
     }
   }
-  index latency() { return 0; }
+  index latency() const { return 0; }
 
   void reset(FluidContext&)
   {

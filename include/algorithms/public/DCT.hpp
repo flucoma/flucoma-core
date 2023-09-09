@@ -41,6 +41,11 @@ public:
     assert(inputSize <= mTable.cols());
     assert(outputSize <= mTable.rows());
 
+    // Do not reinitialise if there is no need
+      
+    if (mInitialized && mInputSize == inputSize && mOutputSize == outputSize)
+      return;
+      
     mInputSize = inputSize;
     mOutputSize = outputSize;
     mTable.setZero();
