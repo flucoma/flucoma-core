@@ -289,8 +289,10 @@ public:
                                                      index nNeighbours) const
   {
     // check for nNeighbours > 0 and < size of DS
+    if (mAlgorithm.size() == 0)
+      return Error<FluidTensor<rt::string, 1>>(EmptyDataSeries);
     if (nNeighbours > mAlgorithm.size())
-      return Error<FluidTensor<rt::string, 1>>(SmallDataSet);
+      return Error<FluidTensor<rt::string, 1>>(LargeK);
     if (nNeighbours <= 0) return Error<FluidTensor<rt::string, 1>>(SmallK);
 
     BufferAdaptor::ReadAccess buf(data.get());
@@ -331,8 +333,10 @@ public:
                                                      index nNeighbours) const
   {
     // check for nNeighbours > 0 and < size of DS
+    if (mAlgorithm.size() == 0)
+      return Error<FluidTensor<double, 1>>(EmptyDataSeries);
     if (nNeighbours > mAlgorithm.size())
-      return Error<FluidTensor<double, 1>>(SmallDataSet);
+      return Error<FluidTensor<double, 1>>(LargeK);
     if (nNeighbours <= 0) return Error<FluidTensor<double, 1>>(SmallK);
 
     BufferAdaptor::ReadAccess buf(data.get());
