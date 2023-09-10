@@ -67,8 +67,8 @@ constexpr auto DTWRegressorParams = defineParameters(
     LongParam("numNeighbours", "Number of Nearest Neighbours", 3, Min(1)),
     EnumParam("constraint", "Constraint Type", 0, "Unconstrained", "Ikatura",
               "Sakoe-Chiba"),
-    FloatParam("radius", "Sakoe-Chiba Constraint Radius", 2, Min(0)),
-    FloatParam("gradient", "Ikatura Parallelogram max gradient", 1, Min(1)));
+    FloatParam("constraintParam", "Sakoe-Chiba radius or Ikatura max gradient",
+               3, Min(0)));
 
 class DTWRegressorClient : public FluidBaseClient,
                            OfflineIn,
@@ -76,7 +76,7 @@ class DTWRegressorClient : public FluidBaseClient,
                            ModelObject,
                            public DataClient<DTWRegressorData>
 {
-  enum { kName, kNumNeighbors, kConstraint, kRadius, kGradient };
+  enum { kName, kNumNeighbors, kConstraint, kParam };
 
 public:
   using string = std::string;
@@ -230,19 +230,6 @@ public:
   }
 
 private:
-  float constraintParam(algorithm::DTWConstraint constraint) const
-  {
-    using namespace algorithm;
-
-    switch (constraint)
-    {
-    case DTWConstraint::kIkatura: return get<kGradient>();
-    case DTWConstraint::kSakoeChiba: return get<kRadius>();
-    }
-
-    return 0.0;
-  }
-
   MessageResult<RealVector>
   kNearestWeightedSum(InputRealMatrixView series,
                       Allocator&          alloc = FluidDefaultAllocator()) const
@@ -269,8 +256,8 @@ private:
     std::transform(
         indices.begin(), indices.end(), distances.begin(),
         [&series, &ds, &constraint, this](index i) {
-          double dist = mAlgorithm.dtw.process(series, ds[i], constraint,
-                                               constraintParam(constraint));
+          double dist =
+              mAlgorithm.dtw.process(series, ds[i], constraint, get<kParam>());
           return std::max(std::numeric_limits<double>::epsilon(), dist);
         });
 
