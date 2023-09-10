@@ -63,8 +63,8 @@ constexpr auto DTWClassifierParams = defineParameters(
     LongParam("numNeighbours", "Number of Nearest Neighbours", 3, Min(1)),
     EnumParam("constraint", "Constraint Type", 0, "Unconstrained", "Ikatura",
               "Sakoe-Chiba"),
-    FloatParam("radius", "Sakoe-Chiba Constraint Radius", 2, Min(0)),
-    FloatParam("gradient", "Ikatura Parallelogram max gradient", 1, Min(1)));
+    FloatParam("constraintParam", "Sakoe-Chiba radius or Ikatura max gradient",
+               3, Min(0)));
 
 class DTWClassifierClient : public FluidBaseClient,
                             OfflineIn,
@@ -72,7 +72,7 @@ class DTWClassifierClient : public FluidBaseClient,
                             ModelObject,
                             public DataClient<DTWClassifierData>
 {
-  enum { kName, kNumNeighbors, kConstraint, kRadius, kGradient };
+  enum { kName, kNumNeighbors, kConstraint, kParam };
 
 public:
   using string = std::string;
@@ -113,13 +113,13 @@ public:
                           InputLabelSetClientRef   labelSetClient)
   {
     auto dataSeriesClientPtr = dataSeriesClient.get().lock();
-    if (!dataSeriesClientPtr) return Error(NoDataSet);
+    if (!dataSeriesClientPtr) return Error(NoDataSeries);
 
     auto labelSetPtr = labelSetClient.get().lock();
     if (!labelSetPtr) return Error(NoLabelSet);
 
     auto dataSeries = dataSeriesClientPtr->getDataSeries();
-    if (dataSeries.size() == 0) return Error(EmptyDataSet);
+    if (dataSeries.size() == 0) return Error(EmptyDataSeries);
 
     auto labelSet = labelSetPtr->getLabelSet();
     if (labelSet.size() == 0) return Error(EmptyLabelSet);
@@ -160,13 +160,13 @@ public:
   {
 
     auto sourcePtr = source.get().lock();
-    if (!sourcePtr) return Error(NoDataSet);
+    if (!sourcePtr) return Error(NoDataSeries);
 
     auto destPtr = dest.get().lock();
     if (!destPtr) return Error(NoLabelSet);
 
     auto dataSeries = sourcePtr->getDataSeries();
-    if (dataSeries.size() == 0) return Error(EmptyDataSet);
+    if (dataSeries.size() == 0) return Error(EmptyDataSeries);
 
     if (dataSeries.pointSize() != mAlgorithm.dims())
       return Error(WrongPointSize);
@@ -202,19 +202,6 @@ public:
   }
 
 private:
-  float constraintParam(algorithm::DTWConstraint constraint) const
-  {
-    using namespace algorithm;
-
-    switch (constraint)
-    {
-    case DTWConstraint::kIkatura: return get<kGradient>();
-    case DTWConstraint::kSakoeChiba: return get<kRadius>();
-    }
-
-    return 0.0;
-  }
-
   MessageResult<string> kNearestModeLabel(InputRealMatrixView series) const
   {
     index k = get<kNumNeighbors>();
@@ -236,8 +223,8 @@ private:
     std::transform(
         indices.begin(), indices.end(), distances.begin(),
         [&series, &ds, &constraint, this](index i) {
-          double dist = mAlgorithm.dtw.process(series, ds[i], constraint,
-                                               constraintParam(constraint));
+          double dist =
+              mAlgorithm.dtw.process(series, ds[i], constraint, get<kParam>());
           return std::max(std::numeric_limits<double>::epsilon(), dist);
         });
 

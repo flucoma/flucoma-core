@@ -246,10 +246,10 @@ public:
         bool                                    overwrite)
   {
     auto dataseriesClientPtr = dataseriesClient.get().lock();
-    if (!dataseriesClientPtr) return Error(NoDataSet);
+    if (!dataseriesClientPtr) return Error(NoDataSeries);
 
     auto srcDataSeries = dataseriesClientPtr->getDataSeries();
-    if (srcDataSeries.size() == 0) return Error(EmptyDataSet);
+    if (srcDataSeries.size() == 0) return Error(EmptyDataSeries);
     if (srcDataSeries.pointSize() != mAlgorithm.pointSize())
       return Error(WrongPointSize);
 
@@ -265,7 +265,7 @@ public:
     return OK();
   }
 
-  MessageResult<void> getDataSet(DataSetClientRef dest, index time) const
+  MessageResult<void> getDataSet(index time, DataSetClientRef dest) const
   {
     auto destPtr = dest.get().lock();
     if (!destPtr) return Error(NoDataSet);
@@ -279,18 +279,20 @@ public:
   MessageResult<void> getIds(LabelSetClientRef dest)
   {
     auto destPtr = dest.get().lock();
-    if (!destPtr) return Error(NoDataSet);
+    if (!destPtr) return Error(NoLabelSet);
     destPtr->setLabelSet(getIdsLabelSet());
 
     return OK();
   }
 
-  MessageResult<FluidTensor<rt::string, 1>>
-  kNearest(InputBufferPtr data, index nNeighbours, index p = 2) const
+  MessageResult<FluidTensor<rt::string, 1>> kNearest(InputBufferPtr data,
+                                                     index nNeighbours) const
   {
     // check for nNeighbours > 0 and < size of DS
+    if (mAlgorithm.size() == 0)
+      return Error<FluidTensor<rt::string, 1>>(EmptyDataSeries);
     if (nNeighbours > mAlgorithm.size())
-      return Error<FluidTensor<rt::string, 1>>(SmallDataSet);
+      return Error<FluidTensor<rt::string, 1>>(LargeK);
     if (nNeighbours <= 0) return Error<FluidTensor<rt::string, 1>>(SmallK);
 
     BufferAdaptor::ReadAccess buf(data.get());
@@ -307,10 +309,9 @@ public:
 
     auto ds = mAlgorithm.getData();
 
-    std::transform(indices.begin(), indices.end(), distances.begin(),
-                   [&series, &ds, &p, this](index i) {
-                     return distance(series, ds[i], p);
-                   });
+    std::transform(
+        indices.begin(), indices.end(), distances.begin(),
+        [&series, &ds, this](index i) { return distance(series, ds[i], 2); });
 
     std::sort(indices.begin(), indices.end(), [&distances](index a, index b) {
       return distances[asUnsigned(a)] < distances[asUnsigned(b)];
@@ -328,12 +329,14 @@ public:
     return labels;
   }
 
-  MessageResult<FluidTensor<double, 1>>
-  kNearestDist(InputBufferPtr data, index nNeighbours, index p = 2) const
+  MessageResult<FluidTensor<double, 1>> kNearestDist(InputBufferPtr data,
+                                                     index nNeighbours) const
   {
     // check for nNeighbours > 0 and < size of DS
+    if (mAlgorithm.size() == 0)
+      return Error<FluidTensor<double, 1>>(EmptyDataSeries);
     if (nNeighbours > mAlgorithm.size())
-      return Error<FluidTensor<double, 1>>(SmallDataSet);
+      return Error<FluidTensor<double, 1>>(LargeK);
     if (nNeighbours <= 0) return Error<FluidTensor<double, 1>>(SmallK);
 
     BufferAdaptor::ReadAccess buf(data.get());
@@ -350,10 +353,9 @@ public:
 
     auto ds = mAlgorithm.getData();
 
-    std::transform(indices.begin(), indices.end(), distances.begin(),
-                   [&series, &ds, &p, this](index i) {
-                     return distance(series, ds[i], p);
-                   });
+    std::transform(
+        indices.begin(), indices.end(), distances.begin(),
+        [&series, &ds, this](index i) { return distance(series, ds[i], 2); });
 
     std::sort(indices.begin(), indices.end(), [&distances](index a, index b) {
       return distances[asUnsigned(a)] < distances[asUnsigned(b)];
@@ -407,8 +409,6 @@ public:
         makeMessage("read", &DataSeriesClient::read),
         makeMessage("kNearest", &DataSeriesClient::kNearest),
         makeMessage("kNearestDist", &DataSeriesClient::kNearestDist),
-        makeMessage("toBuffer", &DataSeriesClient::getSeries),
-        makeMessage("fromBuffer", &DataSeriesClient::setSeries),
         makeMessage("getIds", &DataSeriesClient::getIds),
         makeMessage("getDataSet", &DataSeriesClient::getDataSet));
   }

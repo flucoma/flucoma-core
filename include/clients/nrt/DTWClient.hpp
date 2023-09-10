@@ -25,9 +25,8 @@ constexpr auto DTWParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
     EnumParam("constraint", "Constraint Type", 0, "Unconstrained", "Ikatura",
               "Sakoe-Chiba"),
-    LongParam("radius", "Sakoe-Chiba Constraint Radius", 2, Min(0)),
-    FloatParam("gradient", "Ikatura Parallelogram max gradient", 1.0,
-               Min(1.0)));
+    FloatParam("constraintParam", "Sakoe-Chiba radius or Ikatura max gradient",
+               3, Min(0)));
 
 class DTWClient : public FluidBaseClient,
                   OfflineIn,
@@ -35,7 +34,7 @@ class DTWClient : public FluidBaseClient,
                   ModelObject,
                   public DataClient<algorithm::DTW>
 {
-  enum { kName, kConstraint, kRadius, kGradient };
+  enum { kName, kConstraint, kParam };
 
 public:
   using string = std::string;
@@ -75,10 +74,10 @@ public:
                              string id1, string id2)
   {
     auto dataseriesClientPtr = dataseriesClient.get().lock();
-    if (!dataseriesClientPtr) return Error<double>(NoDataSet);
+    if (!dataseriesClientPtr) return Error<double>(NoDataSeries);
 
     auto srcDataSeries = dataseriesClientPtr->getDataSeries();
-    if (srcDataSeries.size() == 0) return Error<double>(EmptyDataSet);
+    if (srcDataSeries.size() == 0) return Error<double>(EmptyDataSeries);
 
     index i1 = srcDataSeries.getIndex(id1), i2 = srcDataSeries.getIndex(id2);
 
@@ -90,8 +89,7 @@ public:
     algorithm::DTWConstraint constraint =
         (algorithm::DTWConstraint) get<kConstraint>();
 
-    return mAlgorithm.process(series1, series2, constraint,
-                              constraintParam(constraint));
+    return mAlgorithm.process(series1, series2, constraint, get<kParam>());
   }
 
   MessageResult<double> bufCost(InputBufferPtr data1, InputBufferPtr data2)
@@ -116,27 +114,13 @@ public:
         (algorithm::DTWConstraint) get<kConstraint>();
 
     return mAlgorithm.process(buf1frames, buf2frames, constraint,
-                              constraintParam(constraint));
+                              get<kParam>());
   }
 
   static auto getMessageDescriptors()
   {
     return defineMessages(makeMessage("cost", &DTWClient::cost),
                           makeMessage("bufCost", &DTWClient::bufCost));
-  }
-
-private:
-  float constraintParam(algorithm::DTWConstraint constraint)
-  {
-    using namespace algorithm;
-
-    switch (constraint)
-    {
-    case DTWConstraint::kIkatura: return get<kGradient>();
-    case DTWConstraint::kSakoeChiba: return get<kRadius>();
-    }
-
-    return 0.0;
   }
 };
 
