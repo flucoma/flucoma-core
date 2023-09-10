@@ -104,6 +104,9 @@ public:
     if (pos == mIndex.end()) return false;
 
     if (time >= mData[pos->second].rows()) return false;
+    if (time < -mData[pos->second].rows()) return false;
+
+    time += time < 0 ? mData[pos->second].rows() : 0;
 
     frame <<= mData[pos->second].row(time);
 
@@ -116,7 +119,10 @@ public:
     auto pos = mIndex.find(id);
     if (pos != mIndex.end())
     {
-      assert(time < mData[pos->second].rows());
+      assert(time < mData[pos->second].rows() ||
+             time >= -mData[pos->second].rows());
+
+      time += time < 0 ? mData[pos->second].rows() : 0;
       return mData[pos->second].row(time);
     }
     else { return FluidTensorView<const dataType, N>{nullptr, 0, 0}; }
@@ -148,6 +154,9 @@ public:
     if (pos == mIndex.end()) return false;
 
     if (time >= mData[pos->second].rows()) return false;
+    if (time < -mData[pos->second].rows()) return false;
+
+    time += time < 0 ? mData[pos->second].rows() : 0;
     mData[pos->second].row(time) <<= frame;
 
     return true;
@@ -174,13 +183,15 @@ public:
     auto pos = mIndex.find(id);
     if (pos == mIndex.end()) return false;
 
-    index current = pos->second;
-    if (time >= mData[current].rows()) return false;
+    if (time >= mData[pos->second].rows()) return false;
+    if (time < -mData[pos->second].rows()) return false;
 
-    if (mData[current].rows() == 1)
+    time += time < 0 ? mData[pos->second].rows() : 0;
+
+    if (mData[pos->second].rows() == 1)
       return removeSeries(id);
     else
-      mData[current].deleteRow(time);
+      mData[pos->second].deleteRow(time);
 
     return true;
   }
@@ -190,14 +201,13 @@ public:
     auto pos = mIndex.find(id);
     if (pos == mIndex.end()) return false;
 
-    index current = pos->second;
-    mData.erase(mData.begin() + current);
-    mIds.deleteRow(current);
+    mData.erase(mData.begin() + pos->second);
+    mIds.deleteRow(pos->second);
     mIndex.erase(id);
 
     for (auto& point : mIndex)
     {
-      if (point.second > current) point.second--;
+      if (point.second > pos->second) point.second--;
     }
 
     return true;
