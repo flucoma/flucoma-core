@@ -202,6 +202,8 @@ private:
         return col < 0 ? 0 : col > mCols - 1 ? mCols - 1 : col;
       }
       }
+
+      return 0;
     };
 
     index lastCol(index row)
@@ -226,6 +228,8 @@ private:
         return col < 0 ? 0 : col > mCols - 1 ? mCols - 1 : col;
       }
       }
+
+      return mCols - 1;
     };
   }; // struct Constraint
 };
