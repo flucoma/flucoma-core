@@ -264,7 +264,7 @@ public:
     return OK();
   }
 
-  MessageResult<void> getDataSet(DataSetClientRef dest, index time) const
+  MessageResult<void> getDataSet(index time, DataSetClientRef dest) const
   {
     auto destPtr = dest.get().lock();
     if (!destPtr) return Error(NoDataSet);
