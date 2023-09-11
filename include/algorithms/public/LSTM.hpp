@@ -25,7 +25,7 @@ namespace fluid {
 namespace algorithm {
 
 // many thanks to Nico from https://nicodjimenez.github.io/2014/08/08/lstm.html,
-// you saved my sanity here
+// you saved my sanity here, matrix derivatives didnt click until now
 
 class LSTMParam
 {
