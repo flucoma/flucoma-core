@@ -94,9 +94,9 @@ public:
     return OK();
   }
 
-    MessageResult<void> write(string fileName)
+  MessageResult<void> write(string fileName)
   {
-    if (!mAlgorithm.lstm.initialized() || !mAlgorithm.encoder.initialized())
+    if (!mAlgorithm.initialized() || !mAlgorithm.initialized())
       return Error(NoDataFitted);
 
     return DataClient::write(fileName);
@@ -104,7 +104,7 @@ public:
 
   MessageResult<string> dump()
   {
-    if (!mAlgorithm.lstm.initialized() || !mAlgorithm.encoder.initialized())
+    if (!mAlgorithm.initialized() || !mAlgorithm.initialized())
       return Error<string>(NoDataFitted);
 
     return DataClient::dump();
@@ -146,7 +146,7 @@ public:
     auto tgt = targetDataSet.getData();
 
     return LSTMTrainer().trainManyToOne(mAlgorithm, data, tgt, get<kIter>(),
-                                   get<kBatch>(), get<kRate>());
+                                        get<kBatch>(), get<kRate>());
   }
 
   MessageResult<void> predict(InputDataSeriesClientRef dataSeriesClient,

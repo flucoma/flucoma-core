@@ -98,7 +98,7 @@ public:
 
   MessageResult<void> write(string fileName)
   {
-    if (!mAlgorithm.lstm.initialized() || !mAlgorithm.encoder.initialized())
+    if (!mAlgorithm.initialized() || !mAlgorithm.initialized())
       return Error(NoDataFitted);
 
     return DataClient::write(fileName);
@@ -106,7 +106,7 @@ public:
 
   MessageResult<string> dump()
   {
-    if (!mAlgorithm.lstm.initialized() || !mAlgorithm.encoder.initialized())
+    if (!mAlgorithm.initialized() || !mAlgorithm.initialized())
       return Error<string>(NoDataFitted);
 
     return DataClient::dump();
