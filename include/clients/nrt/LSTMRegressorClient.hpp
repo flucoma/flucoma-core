@@ -129,8 +129,7 @@ public:
     auto data = sourceDataSeries.getData();
     auto tgt = targetDataSet.getData();
 
-    RecurSGD<LSTMCell> recursgd;
-    return recursgd.trainManyToOne(mAlgorithm, data, tgt, get<kIter>(),
+    return LSTMTrainer().trainManyToOne(mAlgorithm, data, tgt, get<kIter>(),
                                    get<kBatch>(), get<kRate>());
   }
 

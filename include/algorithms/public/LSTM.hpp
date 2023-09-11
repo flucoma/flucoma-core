@@ -11,6 +11,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "Recur.hpp"
+#include "RecurSGD.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidDataSet.hpp"
 #include "../../data/FluidIndex.hpp"
@@ -283,6 +284,12 @@ private:
     asEigen<Array>(mState.mDH) = dXH(Eigen::lastN(params->mOutSize));
   }
 };
+
+LSTMRecurSGD& LSTMTrainer()
+{
+  static RecurSgd<LSTMCell> trainer{};
+  return trainer;
+}
 
 } // namespace algorithm
 } // namespace fluid

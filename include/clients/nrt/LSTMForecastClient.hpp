@@ -119,7 +119,8 @@ public:
                       sourceDataSeries.dims());
 
     auto data = sourceDataSeries.getData();
-    return RecurSGD<LSTMCell>{}.trainPredictor(mAlgorithm, data, get<kIter>(),
+
+    return LSTMTrainer().trainPredictor(mAlgorithm, data, get<kIter>(),
                                                get<kBatch>(), get<kRate>());
   }
 

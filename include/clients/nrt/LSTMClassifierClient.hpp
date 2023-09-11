@@ -178,9 +178,9 @@ public:
       mAlgorithm.encoder.encodeOneHot(tgt.row(id)(0), oneHot.row(i));
     }
 
-    RecurSGD<LSTMCell> recursgd;
-    return recursgd.trainManyToOne(mAlgorithm.lstm, data, oneHot, get<kIter>(),
-                                   get<kBatch>(), get<kRate>());
+    return LSTMTrainer().trainManyToOne(mAlgorithm.lstm, data, oneHot,
+                                               get<kIter>(), get<kBatch>(),
+                                               get<kRate>());
   }
 
   MessageResult<void> predict(InputDataSeriesClientRef dataSeriesClient,
