@@ -285,9 +285,9 @@ private:
   }
 };
 
-RecurSgd<LSTMCell>& LSTMTrainer()
+RecurSGD<LSTMCell>& LSTMTrainer()
 {
-  static RecurSgd<LSTMCell> trainer{};
+  static RecurSGD<LSTMCell> trainer{};
   return trainer;
 }
 
