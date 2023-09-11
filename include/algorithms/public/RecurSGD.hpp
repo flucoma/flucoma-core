@@ -28,19 +28,20 @@ class RecurSGD
   using ArrayXd = Eigen::ArrayXd;
   using ArrayXXd = Eigen::ArrayXXd;
 
+  using InputDataSeriesView = const rt::vector<InputRealMatrixView>;
+
 public:
   explicit RecurSGD() = default;
   ~RecurSGD() = default;
 
-  double trainManyToOne(Recur<CellType>&                      model,
-                        const rt::vector<InputRealMatrixView> in,
+  double trainManyToOne(Recur<CellType>& model, InputDataSeriesView in,
                         InputRealMatrixView out, index nIter, index batchSize,
                         double learningRate, double maxCost = 100)
   {
     assert(model.size() == out.cols());
-    assert(std::find(in.begin(), in.end(), [](auto& x) {
+    assert(in.end() == std::find_if(in.begin(), in.end(), [&model](auto& x) {
              return model.inputDims() != x.cols();
-           }) == in.end());
+           }));
 
     rt::vector<index> permutation(in.size());
     std::iota(permutation.begin(), permutation.end(), 0);
@@ -78,18 +79,16 @@ public:
     return error / normalise;
   }
 
-  double trainManyToMany(Recur<CellType>&                      model,
-                         const rt::vector<InputRealMatrixView> in,
-                         const rt::vector<InputRealMatrixView> out, index nIter,
-                         index batchSize, double learningRate,
-                         double maxCost = 100)
+  double trainManyToMany(Recur<CellType>& model, InputDataSeriesView in,
+                         InputDataSeriesView out, index nIter, index batchSize,
+                         double learningRate, double maxCost = 100)
   {
-    assert(std::find(in.begin(), in.end(), [](auto& x) {
+    assert(in.end() == std::find_if(in.begin(), in.end(), [&model](auto& x) {
              return model.inputDims() != x.cols();
-           }) == in.end());
-    assert(std::find(out.begin(), out.end(), [](auto& x) {
+           }));
+    assert(out.end() == std::find_if(out.begin(), out.end(), [&model](auto& x) {
              return model.outputDims() != x.cols();
-           }) == out.end());
+           }));
 
     rt::vector<index> permutation(in.size());
     std::iota(permutation.begin(), permutation.end(), 0);
@@ -128,17 +127,17 @@ public:
   }
 
 
-  double trainPredictor(Recur<CellType>&                      model,
-                        const rt::vector<InputRealMatrixView> in, index nIter,
-                        index batchSize, double learningRate,
+  double trainPredictor(Recur<CellType>& model, InputDataSeriesView data,
+                        index nIter, index batchSize, double learningRate,
                         double maxCost = 100)
   {
     assert(model.inputDims() == model.outputDims());
-    assert(std::find(data.begin(), data.end(), [](auto& x) {
+    assert(data.end() ==
+           std::find_if(data.begin(), data.end(), [&model](auto& x) {
              return model.dims() != x.cols();
-           }) == data.end());
+           }));
 
-    rt::vector<index> permutation(in.size());
+    rt::vector<index> permutation(data.size());
     std::iota(permutation.begin(), permutation.end(), 0);
 
     double error;
@@ -152,16 +151,16 @@ public:
       std::shuffle(permutation.begin(), permutation.end(),
                    std::mt19937{std::random_device{}()});
 
-      for (index batchStart = 0; batchStart < in.size();
+      for (index batchStart = 0; batchStart < data.size();
            batchStart += batchSize)
       {
-        index thisBatchSize = (batchStart + batchSize) < in.size()
+        index thisBatchSize = (batchStart + batchSize) < data.size()
                                   ? batchSize
-                                  : in.size() - batchStart;
+                                  : data.size() - batchStart;
 
         model.reset();
         for (index i = batchStart; i < batchStart + thisBatchSize; ++i)
-          error += model.fit(in[permutation[i]]);
+          error += model.fit(data[permutation[i]]);
 
         model.update(learningRate);
         normalise += thisBatchSize;
