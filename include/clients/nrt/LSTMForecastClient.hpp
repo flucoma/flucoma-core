@@ -96,6 +96,22 @@ public:
     return OK();
   }
 
+  MessageResult<void> write(string fileName)
+  {
+    if (!mAlgorithm.lstm.initialized() || !mAlgorithm.encoder.initialized())
+      return Error(NoDataFitted);
+
+    return DataClient::write(fileName);
+  }
+
+  MessageResult<string> dump()
+  {
+    if (!mAlgorithm.lstm.initialized() || !mAlgorithm.encoder.initialized())
+      return Error<string>(NoDataFitted);
+
+    return DataClient::dump();
+  }
+
   MessageResult<double> fit(InputDataSeriesClientRef dataSeriesClient)
   {
     using namespace algorithm;
@@ -121,7 +137,7 @@ public:
     auto data = sourceDataSeries.getData();
 
     return LSTMTrainer().trainPredictor(mAlgorithm, data, get<kIter>(),
-                                               get<kBatch>(), get<kRate>());
+                                        get<kBatch>(), get<kRate>());
   }
 
   MessageResult<void> predict(InputDataSeriesClientRef sourceDataSeriesClient,

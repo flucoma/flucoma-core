@@ -94,6 +94,22 @@ public:
     return OK();
   }
 
+    MessageResult<void> write(string fileName)
+  {
+    if (!mAlgorithm.lstm.initialized() || !mAlgorithm.encoder.initialized())
+      return Error(NoDataFitted);
+
+    return DataClient::write(fileName);
+  }
+
+  MessageResult<string> dump()
+  {
+    if (!mAlgorithm.lstm.initialized() || !mAlgorithm.encoder.initialized())
+      return Error<string>(NoDataFitted);
+
+    return DataClient::dump();
+  }
+
   MessageResult<double> fit(InputDataSeriesClientRef dataSeriesClient,
                             InputDataSetClientRef    dataSetClient)
   {
