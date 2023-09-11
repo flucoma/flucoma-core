@@ -521,32 +521,31 @@ void from_json(const nlohmann::json &j, UMAP &umap) {
 void to_json(nlohmann::json& j, const Recur<LSTMCell>& lstm)
 {
   auto topParams = lstm.getTopParams().lock(),
-                                     bottomParams =
-                                         lstm.getBottomParams().lock();
+       bottomParams = lstm.getBottomParams().lock();
 
   j["inSize"] = bottomParams->mInSize;
   j["hiddenSize"] = bottomParams->mOutSize;
   j["outSize"] = topParams->mOutSize;
 
-  j["bottomInputWeights"] = bottomParams->mWi;
-  j["bottomStateWeights"] = bottomParams->mWg;
-  j["bottomForgetWeights"] = bottomParams->mWf;
-  j["bottomOutputWeights"] = bottomParams->mWo;
+  j["bottomInputWeights"] = RealMatrixView(bottomParams->mWi);
+  j["bottomStateWeights"] = RealMatrixView(bottomParams->mWg);
+  j["bottomForgetWeights"] = RealMatrixView(bottomParams->mWf);
+  j["bottomOutputWeights"] = RealMatrixView(bottomParams->mWo);
 
-  j["bottomInputBias"] = bottomParams->mBi;
-  j["bottomStateBias"] = bottomParams->mBg;
-  j["bottomForgetBias"] = bottomParams->mBf;
-  j["bottomOutputBias"] = bottomParams->mBo;
+  j["bottomInputBias"] = RealVectorView(bottomParams->mBi);
+  j["bottomStateBias"] = RealVectorView(bottomParams->mBg);
+  j["bottomForgetBias"] = RealVectorView(bottomParams->mBf);
+  j["bottomOutputBias"] = RealVectorView(bottomParams->mBo);
 
-  j["topInputWeights"] = topParams->mWi;
-  j["topStateWeights"] = topParams->mWg;
-  j["topForgetWeights"] = topParams->mWf;
-  j["topOutputWeights"] = topParams->mWo;
+  j["topInputWeights"] = RealMatrixView(topParams->mWi);
+  j["topStateWeights"] = RealMatrixView(topParams->mWg);
+  j["topForgetWeights"] = RealMatrixView(topParams->mWf);
+  j["topOutputWeights"] = RealMatrixView(topParams->mWo);
 
-  j["topInputBias"] = topParams->mBi;
-  j["topStateBias"] = topParams->mBg;
-  j["topForgetBias"] = topParams->mBf;
-  j["topOutputBias"] = topParams->mBo;
+  j["topInputBias"] = RealVectorView(topParams->mBi);
+  j["topStateBias"] = RealVectorView(topParams->mBg);
+  j["topForgetBias"] = RealVectorView(topParams->mBf);
+  j["topOutputBias"] = RealVectorView(topParams->mBo);
 }
 
 bool check_json(const nlohmann::json& j, const Recur<LSTMCell>&)
@@ -574,9 +573,8 @@ void from_json(const nlohmann::json& j, Recur<LSTMCell>& lstm)
 
   lstm.init(inSize, hiddenSize, outSize);
 
-  typename Recur<LSTMCell>::ParamPtr topParams = lstm.getTopParams().lock(),
-                                     bottomParams =
-                                         lstm.getBottomParams().lock();
+  auto topParams = lstm.getTopParams().lock(),
+       bottomParams = lstm.getBottomParams().lock();
 
   j.at("bottomInputWeights").get_to(bottomParams->mWi);
   j.at("bottomStateWeights").get_to(bottomParams->mWg);

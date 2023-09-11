@@ -133,7 +133,7 @@ public:
   index dims() const { return mInitialized ? mInSize : 0; }
   index size() const { return mInitialized ? mOutSize : 0; }
 
-  index inputDims() const { return mInitialized ? mInputSize : 0; }
+  index inputDims() const { return mInitialized ? mInSize : 0; }
   index hiddenDims() const { return mInitialized ? mHiddenSize : 0; }
   index outputDims() const { return mInitialized ? mOutSize : 0; }
 
@@ -181,8 +181,8 @@ public:
     mHiddenSize = hiddenSize;
     mOutSize = outSize;
 
-    mBottomParams = std::make_shared<ParamType>(inSize, hiddenSize);
-    mTopParams = std::make_shared<ParamType>(hiddenSize, outSize);
+    mBottomParams = std::make_shared<ParamType>(mInSize, mHiddenSize);
+    mTopParams = std::make_shared<ParamType>(mHiddenSize, mOutSize);
 
     mBottomState = std::make_unique<StateType>(mBottomParams);
     mTopState = std::make_unique<StateType>(mTopParams);
