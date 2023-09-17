@@ -18,7 +18,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../common/ParameterTypes.hpp"
 // #include "../../algorithms/public/RunningStats.hpp"
 #include "../../data/TensorTypes.hpp"
-#include "../../algorithms/util/PartialTracking.hpp"
+#include "../../algorithms/public/VoiceAllocator.hpp"
 
 namespace fluid {
 namespace client {
@@ -57,8 +57,6 @@ class VoiceAllocatorClient : public FluidBaseClient,
                              public ControlIn,
                              ControlOut
 {
-    template <typename T>
-    using vector = rt::vector<T>;
     using VoicePeak = algorithm::VoicePeak;
     using SinePeak = algorithm::SinePeak;
 
@@ -82,43 +80,30 @@ public:
   }
 
   VoiceAllocatorClient(ParamSetViewType& p, FluidContext& c)
-      : mParams(p), mTracking(c.allocator()),
-      mSizeTracker{ 0 },
-      mFreeVoices(c.allocator()), mActiveVoices(c.allocator()),
-      mActiveVoiceData(0, c.allocator()),
-      mFreqs(get<kNVoices>().max(), c.allocator()),
-      mLogMags(get<kNVoices>().max(), c.allocator()),
-      mVoiceIDs(get<kNVoices>().max(), c.allocator())
+      : mParams(p), mSizeTracker{ 0 },
+      mVoiceAllocator(get<kNVoices>(), c.allocator())
   {
     controlChannelsIn(2);
     controlChannelsOut({3, get<kNVoices>(), get<kNVoices>().max()});
     setInputLabels({"frequencies", "magnitudes"});
     setOutputLabels({"frequencies", "magnitudes", "state"});
-    mTracking.init();
-  }
-
-  void init(index nVoices)
-  {
-      while (!mActiveVoices.empty()) { mActiveVoices.pop_back(); }
-      while (!mFreeVoices.empty()) { mFreeVoices.pop(); }
-      for (index i = 0; i < nVoices; ++i) { mFreeVoices.push(i); }
-      mActiveVoiceData.resize(nVoices);
-      for (VoicePeak each : mActiveVoiceData) { each = { 0, 0, 0 }; }
   }
 
   template <typename T>
   void process(std::vector<HostVector<T>>& input,
                std::vector<HostVector<T>>& output, FluidContext& c)
   {
-    index nVoices = get<kNVoices>();
-
-    if (mSizeTracker.changed(nVoices))
+    if (!input[0].data()) return;
+    if (!output[0].data() && !output[1].data()) return;
+    if (!mVoiceAllocator.initialized() || mSizeTracker.changed(get<kNVoices>()))
     {
-      controlChannelsOut({4, nVoices}); //update the dynamic out size
-      init(nVoices);
+      controlChannelsOut({ 4, get<kNVoices>() }); //update the dynamic out size
+      mVoiceAllocator.init(get<kNVoices>(), c.allocator());
     }
 
-    vector<SinePeak> incomingVoices(0, c.allocator());
+    rt::vector<SinePeak> incomingVoices(0, c.allocator());
+    rt::vector<VoicePeak> outgoingVoices(0, c.allocator());
+
     for (index i = 0; i < input[0].size(); ++i)
     {
         if (input[1].row(i) != 0 && input[0].row(i) != 0)
@@ -128,104 +113,18 @@ public:
         }
     }
 
-    double maxAmp = -144;
-    for (SinePeak voice : incomingVoices)
-    {
-        if (voice.logMag > maxAmp) { maxAmp = voice.logMag; }
-    }
+    mVoiceAllocator.processFrame(incomingVoices, outgoingVoices, get<kMinTrackLen>(), get<kBirthLowThreshold>(), get<kBirthHighTreshold>(), 0, get<kTrackMagRange>(), get<kTrackFreqRange>(), get<kTrackProb>(), get<kPrioritisedVoices>(), c.allocator());
 
-    mTracking.processFrame(incomingVoices, maxAmp, get<kMinTrackLen>(), get<kBirthLowThreshold>(), get<kBirthHighTreshold>(), 0, get<kTrackMagRange>(), get<kTrackFreqRange>(), get<kTrackProb>(), c.allocator());
-
-    vector<VoicePeak> outgoingVoices(0, c.allocator());
-    outgoingVoices = mTracking.getActiveVoices(c.allocator());
-    outgoingVoices = sortVoices(outgoingVoices, get<kPrioritisedVoices>());
-    if (outgoingVoices.size() > nVoices)
-        outgoingVoices.resize(nVoices);
-    outgoingVoices = allocatorAlgorithm(outgoingVoices, c.allocator());
-
-    for (index i = 0; i < nVoices; ++i)
+    for (index i = 0; i < static_cast<index>(get<kNVoices>()); ++i)
     {
         output[2].row(i) = static_cast<index>(outgoingVoices[i].state);
         output[1].row(i) = outgoingVoices[i].logMag;
         output[0].row(i) = outgoingVoices[i].freq;
     }
-
-    mTracking.prune();
-  }
-
-  vector<VoicePeak> sortVoices(vector<VoicePeak>& incomingVoices, index sortingMethod)
-  {
-      switch (sortingMethod)
-      {
-      case 0: //lowest
-          std::sort(incomingVoices.begin(), incomingVoices.end(),
-                    [](const VoicePeak& voice1, const VoicePeak& voice2)
-                    { return voice1.freq < voice2.freq; });
-          break;
-      case 1: //loudest
-          std::sort(incomingVoices.begin(), incomingVoices.end(),
-                    [](const VoicePeak& voice1, const VoicePeak& voice2)
-                    { return voice1.logMag > voice2.logMag; });
-          break;
-      }
-      return incomingVoices;
-  }
-
-  vector<VoicePeak> allocatorAlgorithm(vector<VoicePeak>& incomingVoices, Allocator& alloc)
-  {
-      //move released to free
-      for (index existing = 0; existing < mActiveVoiceData.size(); ++existing)
-      {
-          if (mActiveVoiceData[existing].state == algorithm::VoiceState::kReleaseState)
-              mActiveVoiceData[existing].state = algorithm::VoiceState::kFreeState;
-      }
-
-      //handle existing voices - killing or sustaining
-      for (index existing = 0; existing < mActiveVoices.size(); ++existing)
-      {
-          bool killVoice = true;
-          for (index incoming = 0; incoming < incomingVoices.size(); ++incoming)
-          {
-              //remove incoming voice events & allows corresponding voice to live if it already exists
-              if (mActiveVoiceData[mActiveVoices[existing]].voiceID == incomingVoices[incoming].voiceID)
-              {
-                  killVoice = false;
-                  mActiveVoiceData[mActiveVoices[existing]] = incomingVoices[incoming]; //update freq/mag
-                  mActiveVoiceData[mActiveVoices[existing]].state = algorithm::VoiceState::kSustainState;
-                  incomingVoices.erase(incomingVoices.begin() + incoming);
-                  break;
-              }
-          }
-          if (killVoice) //voice off
-          {
-              mActiveVoiceData[mActiveVoices[existing]].state = algorithm::VoiceState::kReleaseState;
-              mFreeVoices.push(mActiveVoices[existing]);
-              mActiveVoices.erase(mActiveVoices.begin() + existing);
-              --existing;
-          }
-      }
-
-      //handle new voice allocation
-      for (index incoming = 0; incoming < incomingVoices.size(); ++incoming)
-      {
-          if (!mFreeVoices.empty()) //voice on
-          {
-              index newVoiceIndex = mFreeVoices.front();
-              mFreeVoices.pop();
-              mActiveVoices.push_back(newVoiceIndex);
-              algorithm::VoiceState prevState = mActiveVoiceData[newVoiceIndex].state;
-              mActiveVoiceData[newVoiceIndex] = incomingVoices[incoming];
-              if (prevState == algorithm::VoiceState::kReleaseState) //mark as stolen
-                  mActiveVoiceData[newVoiceIndex].state = algorithm::VoiceState::kStolenState;
-          }
-      }
-
-      return mActiveVoiceData;
   }
 
   MessageResult<void> clear()
   {
-    init(get<kNVoices>());
     return {};
   }
 
@@ -237,15 +136,8 @@ public:
   index latency() const { return 0; }
 
 private:
-  //  algorithm::RunningStats mAlgorithm;
-    rt::queue<index>                           mFreeVoices;
-    rt::deque<index>                           mActiveVoices;
-    vector<VoicePeak>                           mActiveVoiceData;
-    algorithm::PartialTracking                  mTracking;
+    algorithm::VoiceAllocator                   mVoiceAllocator;
     ParameterTrackChanges<index>                mSizeTracker;
-    FluidTensor<double, 1>                      mFreqs;
-    FluidTensor<double, 1>                      mLogMags;
-    FluidTensor<double, 1>                      mVoiceIDs;
 };
 
 } // namespace voiceallocator
