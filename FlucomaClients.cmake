@@ -161,4 +161,4 @@ add_client(MLPClassifier clients/nrt/MLPClassifierClient.hpp CLASS NRTThreadedML
 add_client(Grid clients/nrt/GridClient.hpp CLASS NRTThreadedGridClient GROUP MANIPULATION)
 add_client(LSTMClassifier clients/nrt/LSTMClassifierClient.hpp CLASS NRTThreadedLSTMClassifierClient GROUP MANIPULATION)
 add_client(LSTMRegressor clients/nrt/LSTMRegressorClient.hpp CLASS NRTThreadedLSTMRegressorClient GROUP MANIPULATION)
-add_client(LSTMForecast clients/nrt/LSTMForecaseClient.hpp CLASS NRTThreadedLSTMForecastClient GROUP MANIPULATION)
+add_client(LSTMForecast clients/nrt/LSTMForecastClient.hpp CLASS NRTThreadedLSTMForecastClient GROUP MANIPULATION)
