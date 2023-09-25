@@ -146,7 +146,7 @@ public:
       return Error(PointNotFound);
   }
 
-  MessageResult<void> predictPoint(InputBufferPtr in, BufferPtr out) const
+  MessageResult<void> predictSeries(InputBufferPtr in, BufferPtr out) const
   {
     if (!in || !out) return Error(NoBuffer);
 
@@ -220,7 +220,7 @@ public:
     return defineMessages(
         makeMessage("fit", &DTWRegressorClient::fit),
         makeMessage("predict", &DTWRegressorClient::predict),
-        makeMessage("predictPoint", &DTWRegressorClient::predictPoint),
+        makeMessage("predictSeries", &DTWRegressorClient::predictSeries),
         makeMessage("clear", &DTWRegressorClient::clear),
         makeMessage("size", &DTWRegressorClient::size),
         makeMessage("load", &DTWRegressorClient::load),

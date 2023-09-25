@@ -142,7 +142,7 @@ public:
       return Error(EmptyLabel);
   }
 
-  MessageResult<string> predictPoint(InputBufferPtr data) const
+  MessageResult<string> predictSeries(InputBufferPtr data) const
   {
     BufferAdaptor::ReadAccess buf = data.get();
     RealMatrix                series(buf.numFrames(), buf.numChans());
@@ -192,7 +192,7 @@ public:
     return defineMessages(
         makeMessage("fit", &DTWClassifierClient::fit),
         makeMessage("predict", &DTWClassifierClient::predict),
-        makeMessage("predictPoint", &DTWClassifierClient::predictPoint),
+        makeMessage("predictSeries", &DTWClassifierClient::predictSeries),
         makeMessage("clear", &DTWClassifierClient::clear),
         makeMessage("size", &DTWClassifierClient::size),
         makeMessage("load", &DTWClassifierClient::load),
