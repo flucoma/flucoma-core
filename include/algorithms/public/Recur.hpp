@@ -242,12 +242,16 @@ public:
 
     CellSeries bottomNodes, topNodes;
 
-    bottomNodes.emplace_back(mBottomParams);
-    bottomNodes[0].forwardFrame(input.row(0), StateType{mBottomParams});
+    {
+      StateType bottomState{mBottomParams}, topState{mTopParams};
 
-    topNodes.emplace_back(mTopParams);
-    topNodes[0].forwardFrame(bottomNodes[0].getState().output(),
-                             StateType{mTopParams});
+      bottomNodes.emplace_back(mBottomParams);
+      bottomNodes[0].forwardFrame(input.row(0), bottomState);
+
+      topNodes.emplace_back(mTopParams);
+      topNodes[0].forwardFrame(bottomNodes[0].getState().output(),
+                              topState);
+    }
 
     for (index i = 1; i < input.rows(); ++i)
     {
@@ -258,16 +262,22 @@ public:
       topNodes[i].forwardFrame(bottomNodes[i].getState().output(),
                                topNodes[i - 1].getState());
     }
+    
+    double loss;
 
-    double loss = topNodes.back().backwardFrame(output, StateType{mTopParams});
-    bottomNodes.back().backwardFrame(topNodes.back().getState(),
-                                     StateType{mBottomParams});
-
-    for (index i = input.rows() - 2; i >= 0; --i)
     {
-      topNodes[i].backwardFrame(topNodes[i + 1].getState());
-      bottomNodes[i].backwardFrame(topNodes[i].getState(),
-                                   bottomNodes[i + 1].getState());
+      StateType bottomState{mBottomParams}, topState{mTopParams};
+
+      loss = topNodes.back().backwardFrame(output, topState);
+      bottomNodes.back().backwardFrame(topNodes.back().getState(),
+                                      bottomState);
+
+      for (index i = input.rows() - 2; i >= 0; --i)
+      {
+        topNodes[i].backwardFrame(topNodes[i + 1].getState());
+        bottomNodes[i].backwardFrame(topNodes[i].getState(),
+                                    bottomNodes[i + 1].getState());
+      }
     }
 
     return loss;
@@ -280,12 +290,16 @@ public:
 
     CellSeries bottomNodes, topNodes;
 
-    bottomNodes.emplace_back(mBottomParams);
-    bottomNodes[0].forwardFrame(data.row(0), StateType{mBottomParams});
+    {
+      StateType bottomState{mBottomParams}, topState{mTopParams};
 
-    topNodes.emplace_back(mTopParams);
-    topNodes[0].forwardFrame(bottomNodes[0].getState().output(),
-                             StateType{mTopParams});
+      bottomNodes.emplace_back(mBottomParams);
+      bottomNodes[0].forwardFrame(data.row(0), bottomState);
+
+      topNodes.emplace_back(mTopParams);
+      topNodes[0].forwardFrame(bottomNodes[0].getState().output(),
+                              topState);
+    }
 
     for (index i = 1; i < data.rows() - 1; ++i)
     {
@@ -298,10 +312,15 @@ public:
     }
 
     double loss = 0.0;
-    loss += topNodes.back().backwardFrame(data.row(data.rows() - 1),
-                                          StateType{mTopParams});
-    bottomNodes.back().backwardFrame(topNodes.back().getState(),
-                                     StateType{mBottomParams});
+    
+    {
+      StateType bottomState{mBottomParams}, topState{mTopParams};
+
+      loss += topNodes.back().backwardFrame(data.row(data.rows() - 1),
+                                            topState);
+      bottomNodes.back().backwardFrame(topNodes.back().getState(),
+                                      bottomState);
+    }
 
     for (index i = data.rows() - 3; i >= 0; --i)
     {
