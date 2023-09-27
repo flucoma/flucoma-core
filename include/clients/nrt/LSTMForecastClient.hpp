@@ -186,7 +186,7 @@ public:
     return OK();
   }
 
-  MessageResult<void> predictPoint(InputBufferPtr in, BufferPtr out,
+  MessageResult<void> predictSeries(InputBufferPtr in, BufferPtr out,
                                    index forecastLengthOverride = -1)
   {
 
@@ -233,7 +233,7 @@ public:
     return defineMessages(
         makeMessage("fit", &LSTMForecastClient::fit),
         makeMessage("predict", &LSTMForecastClient::predict),
-        makeMessage("predictPoint", &LSTMForecastClient::predictPoint),
+        makeMessage("predictSeries", &LSTMForecastClient::predictSeries),
         makeMessage("clear", &LSTMForecastClient::clear),
         makeMessage("reset", &LSTMForecastClient::reset),
         makeMessage("print", &LSTMForecastClient::reset),

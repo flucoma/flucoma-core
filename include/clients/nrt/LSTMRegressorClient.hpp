@@ -181,7 +181,7 @@ public:
     return OK();
   }
 
-  MessageResult<void> predictPoint(InputBufferPtr in, BufferPtr out)
+  MessageResult<void> predictSeries(InputBufferPtr in, BufferPtr out)
   {
     if (!in || !out) return Error(NoBuffer);
 
@@ -215,7 +215,7 @@ public:
     return defineMessages(
         makeMessage("fit", &LSTMRegressorClient::fit),
         makeMessage("predict", &LSTMRegressorClient::predict),
-        makeMessage("predictPoint", &LSTMRegressorClient::predictPoint),
+        makeMessage("predictSeries", &LSTMRegressorClient::predictSeries),
         makeMessage("clear", &LSTMRegressorClient::clear),
         makeMessage("reset", &LSTMRegressorClient::reset),
         makeMessage("print", &LSTMRegressorClient::reset),

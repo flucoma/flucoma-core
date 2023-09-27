@@ -236,7 +236,7 @@ public:
     return OK();
   }
 
-  MessageResult<string> predictPoint(InputBufferPtr buffer)
+  MessageResult<string> predictSeries(InputBufferPtr buffer)
   {
     if (!buffer) return Error<string>(NoBuffer);
     BufferAdaptor::ReadAccess inBuf(buffer.get());
@@ -263,7 +263,7 @@ public:
     return defineMessages(
         makeMessage("fit", &LSTMClassifierClient::fit),
         makeMessage("predict", &LSTMClassifierClient::predict),
-        makeMessage("predictPoint", &LSTMClassifierClient::predictPoint),
+        makeMessage("predictSeries", &LSTMClassifierClient::predictSeries),
         makeMessage("clear", &LSTMClassifierClient::clear),
         makeMessage("reset", &LSTMClassifierClient::reset),
         makeMessage("print", &LSTMClassifierClient::reset),
