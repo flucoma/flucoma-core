@@ -24,9 +24,9 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 namespace fluid {
 namespace client {
-namespace lstmforecast {
+namespace lstmforecaster {
 
-constexpr auto LSTMForecastParams = defineParameters(
+constexpr auto LSTMForecasterParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
     LongParam("maxIter", "Maximum Number of Iterations", 5, Min(1)),
     LongParam("hiddenSize", "Size of Intermediate LSTM layer", 10, Min(1)),
@@ -34,7 +34,7 @@ constexpr auto LSTMForecastParams = defineParameters(
     LongParam("batchSize", "Batch Size", 50, Min(1)),
     LongParam("forecastLength", "Length of forecasted data", 0, Min(0)));
 
-class LSTMForecastClient
+class LSTMForecasterClient
     : public FluidBaseClient,
       OfflineIn,
       OfflineOut,
@@ -53,7 +53,7 @@ public:
   using DataSeries = FluidDataSeries<string, double, 1>;
   using LabelSet = FluidDataSet<string, string, 1>;
 
-  using ParamDescType = decltype(LSTMForecastParams);
+  using ParamDescType = decltype(LSTMForecasterParams);
   using ParamSetViewType = ParameterSetView<ParamDescType>;
   using ParamValues = typename ParamSetViewType::ValueTuple;
 
@@ -69,10 +69,10 @@ public:
 
   static constexpr auto& getParameterDescriptors()
   {
-    return LSTMForecastParams;
+    return LSTMForecasterParams;
   }
 
-  LSTMForecastClient(ParamSetViewType& p, FluidContext&) : mParams(p)
+  LSTMForecasterClient(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});
@@ -231,25 +231,25 @@ public:
   static auto getMessageDescriptors()
   {
     return defineMessages(
-        makeMessage("fit", &LSTMForecastClient::fit),
-        makeMessage("predict", &LSTMForecastClient::predict),
-        makeMessage("predictSeries", &LSTMForecastClient::predictSeries),
-        makeMessage("clear", &LSTMForecastClient::clear),
-        makeMessage("reset", &LSTMForecastClient::reset),
-        makeMessage("print", &LSTMForecastClient::reset),
-        makeMessage("load", &LSTMForecastClient::load),
-        makeMessage("dump", &LSTMForecastClient::dump),
-        makeMessage("write", &LSTMForecastClient::write),
-        makeMessage("read", &LSTMForecastClient::read));
+        makeMessage("fit", &LSTMForecasterClient::fit),
+        makeMessage("predict", &LSTMForecasterClient::predict),
+        makeMessage("predictSeries", &LSTMForecasterClient::predictSeries),
+        makeMessage("clear", &LSTMForecasterClient::clear),
+        makeMessage("reset", &LSTMForecasterClient::reset),
+        makeMessage("print", &LSTMForecasterClient::reset),
+        makeMessage("load", &LSTMForecasterClient::load),
+        makeMessage("dump", &LSTMForecasterClient::dump),
+        makeMessage("write", &LSTMForecasterClient::write),
+        makeMessage("read", &LSTMForecasterClient::read));
   }
 };
 
-using LSTMForecastRef = SharedClientRef<const LSTMForecastClient>;
+using LSTMForecasterRef = SharedClientRef<const LSTMForecasterClient>;
 
-} // namespace lstmforecast
+} // namespace lstmforecaster
 
-using NRTThreadedLSTMForecastClient =
-    NRTThreadingAdaptor<typename lstmforecast::LSTMForecastRef::SharedType>;
+using NRTThreadedLSTMForecasterClient =
+    NRTThreadingAdaptor<typename lstmforecaster::LSTMForecasterRef::SharedType>;
 
 } // namespace client
 } // namespace fluid
