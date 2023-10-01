@@ -26,12 +26,16 @@ namespace fluid {
 namespace client {
 namespace lstmforecaster {
 
+constexpr std::initializer_list<index> HiddenLayerDefaults = {10};
+
 constexpr auto LSTMForecasterParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
+    LongArrayParam("hiddenLayers", "Hidden Layer Sizes", HiddenLayerDefaults),
     LongParam("maxIter", "Maximum Number of Iterations", 5, Min(1)),
-    LongParam("hiddenSize", "Size of Intermediate LSTM layer", 10, Min(1)),
     FloatParam("learnRate", "Learning Rate", 0.01, Min(0.0), Max(1.0)),
+    FloatParam("momentum", "Momentum", 0.9, Min(0.0), Max(0.99)),
     LongParam("batchSize", "Batch Size", 50, Min(1)),
+    FloatParam("validation", "Validation Amount", 0.2, Min(0), Max(0.9)),
     LongParam("forecastLength", "Length of forecasted data", 0, Min(0)));
 
 class LSTMForecasterClient
@@ -41,7 +45,7 @@ class LSTMForecasterClient
       ModelObject,
       public DataClient<algorithm::Recur<algorithm::LSTMCell>>
 {
-  enum { kName, kIter, kHidden, kRate, kBatch, kForecastLength };
+  enum { kName, kHidden, kIter, kRate, kMomentum, kBatch, kValidation, kForecastLength };
 
 public:
   using string = std::string;

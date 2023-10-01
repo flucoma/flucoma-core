@@ -26,12 +26,16 @@ namespace fluid {
 namespace client {
 namespace lstmregressor {
 
+constexpr std::initializer_list<index> HiddenLayerDefaults = {10};
+
 constexpr auto LSTMRegressorParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
+    LongArrayParam("hiddenLayers", "Hidden Layer Sizes", HiddenLayerDefaults),
     LongParam("maxIter", "Maximum Number of Iterations", 5, Min(1)),
-    LongParam("hiddenSize", "Size of Intermediate LSTM layer", 10, Min(1)),
     FloatParam("learnRate", "Learning Rate", 0.01, Min(0.0), Max(1.0)),
-    LongParam("batchSize", "Batch Size", 50, Min(1)));
+    FloatParam("momentum", "Momentum", 0.9, Min(0.0), Max(0.99)),
+    LongParam("batchSize", "Batch Size", 50, Min(1)),
+    FloatParam("validation", "Validation Amount", 0.2, Min(0), Max(0.9)));
 
 class LSTMRegressorClient
     : public FluidBaseClient,
@@ -40,7 +44,7 @@ class LSTMRegressorClient
       ModelObject,
       public DataClient<algorithm::Recur<algorithm::LSTMCell>>
 {
-  enum { kName, kIter, kHidden, kRate, kBatch };
+  enum { kName, kHidden, kIter, kRate, kMomentum, kBatch, kValidation };
 
 public:
   using string = std::string;
