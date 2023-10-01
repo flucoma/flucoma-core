@@ -368,7 +368,7 @@ public:
   void process(InputRealMatrixView input, RealVectorView output)
   {
     for (index i = 0; i < input.rows(); ++i) processFrame(input.row(i));
-    output <<= mTopState->output();
+    output <<= mStates.back()->output();
   };
 
   void process(InputRealMatrixView input)
@@ -378,21 +378,28 @@ public:
 
   void processFrame(InputRealVectorView input, RealVectorView output)
   {
-    assert(output.size() == mOutSize);
+    assert(output.size() == mSizes[mSize]);
     processFrame(input);
-    output <<= mTopState->output();
+    output <<= mStates.back()->output();
   }
 
   void processFrame(InputRealVectorView input)
   {
     assert(mTrained);
-    assert(input.size() == mInSize);
+    assert(input.size() == mSizes[0]);
 
-    mBottomCell->forwardFrame(input, *mBottomState);
-    mBottomState = std::make_unique<StateType>(mBottomCell->getState());
+    assert(mParams.size() == mSize);
+    assert(mStates.size() == mSize);
+    assert(mCells.size() == mSize);
 
-    mTopCell->forwardFrame(mBottomState->output(), *mTopState);
-    mTopState = std::make_unique<StateType>(mTopCell->getState());
+    mCells[0]->forwardFrame(input, *mStates[0]);
+    mStates[0] = std::make_unique<StateType>(mCells[0]->getState());
+
+    for (index i = 1; i < mSize; ++i)
+    {
+      mCells[i]->forwardFrame(mStates[i - 1]->output(), *mStates[i]);
+      mStates[i] = std::make_unique<StateType>(mCells[i]->getState());
+    }
   };
 
 private:
