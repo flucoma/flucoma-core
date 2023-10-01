@@ -138,18 +138,22 @@ public:
   }
 
   index initialized() const { return mInitialized; }
-  index dims() const { return mInitialized ? mInSize : 0; }
-  index size() const { return mInitialized ? mOutSize : 0; }
+  index dims() const { return mInitialized ? mSizes[0] : 0; }
+  index size() const { return mInitialized ? mSize : 0; }
 
-  index inputDims() const { return mInitialized ? mInSize : 0; }
-  index hiddenDims() const { return mInitialized ? mHiddenSize : 0; }
-  index outputDims() const { return mInitialized ? mOutSize : 0; }
+  IndexInputVectorView getSizes() const { return mSizes; }
+
+  index inputDims() const { return mInitialized ? mSizes[0] : 0; }
+  index outputDims() const { return mInitialized ? mSizes[mSize] : 0; }
 
   bool trained() const { return mTrained; }
   void setTrained(bool set = true) { mTrained = set; }
 
-  ParamWeakPtr getTopParams() const { return mTopParams; }
-  ParamWeakPtr getBottomParams() const { return mBottomParams; }
+  ParamWeakPtr getNthParams(index i) const 
+  { 
+    assert(i >= 0 && i < mSize); 
+    return mParams[i]; 
+  }
 
   void clear()
   {

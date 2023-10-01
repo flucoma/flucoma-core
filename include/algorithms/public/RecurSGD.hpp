@@ -38,7 +38,7 @@ public:
                         InputRealMatrixView out, index nIter, index batchSize,
                         double learningRate, double maxCost = 100)
   {
-    assert(model.size() == out.cols());
+    assert(model.outputDims() == out.cols());
     assert(in.end() == std::find_if(in.begin(), in.end(), [&model](auto& x) {
              return model.inputDims() != x.cols();
            }));
