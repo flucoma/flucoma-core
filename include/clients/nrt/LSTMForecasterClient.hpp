@@ -126,17 +126,15 @@ public:
     const auto sourceDataSeries = sourceClientPtr->getDataSeries();
     if (sourceDataSeries.size() == 0) return Error<double>(EmptyDataSet);
 
-    if (mAlgorithm.initialized())
-    {
-      if (sourceDataSeries.dims() != mAlgorithm.dims())
+    if (mAlgorithm.initialized() && sourceDataSeries.dims() != mAlgorithm.dims())
         return Error<double>(DimensionsDontMatch);
-      if (get<kHidden>() != mAlgorithm.hiddenDims())
+    
+    if (mTracker.changed(sourceDataSeries.dims(), get<kHidden>(), 
+                                    sourceDataSeries.dims()))
+    {
         mAlgorithm.init(sourceDataSeries.dims(), get<kHidden>(),
                         sourceDataSeries.dims());
     }
-    else
-      mAlgorithm.init(sourceDataSeries.dims(), get<kHidden>(),
-                      sourceDataSeries.dims());
 
     auto data = sourceDataSeries.getData();
 
@@ -148,7 +146,7 @@ public:
                               DataSeriesClientRef      targetDataSeriesClient,
                               index forecastLengthOverride = -1)
   {
-    assert(mAlgorithm.dims() == mAlgorithm.size());
+    assert(mAlgorithm.inputDims() == mAlgorithm.outputDims());
 
     index forecastLength = forecastLengthOverride < 0 ? get<kForecastLength>()
                                                       : forecastLengthOverride;
@@ -167,8 +165,8 @@ public:
       return Error(WrongPointSize);
 
     StringVector ids{sourceDataSeries.getIds()};
-    DataSeries   result(mAlgorithm.size());
-    RealVector   output(mAlgorithm.size()), pred(mAlgorithm.size());
+    DataSeries   result(mAlgorithm.outputDims());
+    RealVector   output(mAlgorithm.outputDims()), pred(mAlgorithm.outputDims());
 
     auto& data = sourceDataSeries.getData();
     for (index i = 1; i < sourceDataSeries.size(); i++)
@@ -215,8 +213,8 @@ public:
     RealMatrix src(inBuf.numFrames(), inBuf.numChans());
     src <<= inBuf.allFrames().transpose();
 
-    RealMatrix dest(forecastLength, mAlgorithm.size());
-    RealVector output(mAlgorithm.size()), pred(mAlgorithm.size());
+    RealMatrix dest(forecastLength, mAlgorithm.outputDims());
+    RealVector output(mAlgorithm.outputDims()), pred(mAlgorithm.outputDims());
 
     mAlgorithm.reset();
     mAlgorithm.process(src, output);
@@ -246,6 +244,9 @@ public:
         makeMessage("write", &LSTMForecasterClient::write),
         makeMessage("read", &LSTMForecasterClient::read));
   }
+    
+private:
+  ParameterTrackChanges<index, IndexVector, index> mTracker;
 };
 
 using LSTMForecasterRef = SharedClientRef<const LSTMForecasterClient>;

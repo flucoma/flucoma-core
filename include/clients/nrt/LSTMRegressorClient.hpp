@@ -131,20 +131,18 @@ public:
     const auto targetDataSet = targetClientPtr->getDataSet();
     if (targetDataSet.size() == 0) return Error<double>(EmptyDataSet);
 
-    if (mAlgorithm.initialized())
-    {
-      if (sourceDataSeries.dims() != mAlgorithm.dims())
-        return Error<double>(DimensionsDontMatch);
-      if (get<kHidden>() != mAlgorithm.hiddenDims())
-        mAlgorithm.init(sourceDataSeries.dims(), get<kHidden>(),
-                        targetDataSet.dims());
-    }
-    else
-      mAlgorithm.init(sourceDataSeries.dims(), get<kHidden>(),
-                      targetDataSet.dims());
-
     if (sourceDataSeries.size() != targetDataSet.size())
       return Error<double>(SizesDontMatch);
+
+    if (mAlgorithm.initialized() && sourceDataSeries.dims() != mAlgorithm.dims())
+        return Error<double>(DimensionsDontMatch);
+    
+    if (mTracker.changed(sourceDataSeries.dims(), get<kHidden>(), 
+                                    targetDataSet.pointSize()))
+    {
+      mAlgorithm.init(sourceDataSeries.dims(), get<kHidden>(),
+                             targetDataSet.pointSize());
+    }
 
     auto data = sourceDataSeries.getData();
     auto tgt = targetDataSet.getData();
@@ -169,7 +167,7 @@ public:
     if (sourceDataSeries.dims() != mAlgorithm.dims())
       return Error(WrongPointSize);
 
-    RealMatrix   output(sourceDataSeries.size(), mAlgorithm.size());
+    RealMatrix   output(sourceDataSeries.size(), mAlgorithm.outputDims());
     StringVector ids{sourceDataSeries.getIds()};
 
     auto& data = sourceDataSeries.getData();
@@ -200,10 +198,10 @@ public:
     if (inBuf.numChans() != mAlgorithm.dims()) return Error(WrongPointSize);
 
     Result resizeResult =
-        outBuf.resize(mAlgorithm.size(), 1, inBuf.sampleRate());
+        outBuf.resize(mAlgorithm.outputDims(), 1, inBuf.sampleRate());
 
     RealMatrix src(inBuf.numFrames(), inBuf.numChans());
-    RealVector dest(mAlgorithm.size());
+    RealVector dest(mAlgorithm.outputDims());
     src <<= inBuf.allFrames().transpose();
 
     mAlgorithm.reset();
@@ -228,6 +226,9 @@ public:
         makeMessage("write", &LSTMRegressorClient::write),
         makeMessage("read", &LSTMRegressorClient::read));
   }
+  
+private:
+  ParameterTrackChanges<index, IndexVector, index> mTracker;
 };
 
 using LSTMRegressorRef = SharedClientRef<const LSTMRegressorClient>;

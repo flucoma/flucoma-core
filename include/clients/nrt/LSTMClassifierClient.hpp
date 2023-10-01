@@ -168,29 +168,30 @@ public:
     const auto targetLabelSet = targetClientPtr->getLabelSet();
     if (targetLabelSet.size() == 0) return Error<double>(EmptyLabelSet);
 
-    if (mAlgorithm.initialized())
-    {
-      if (sourceDataSeries.dims() != mAlgorithm.dims())
-        return Error<double>(DimensionsDontMatch);
-      if (get<kHidden>() != mAlgorithm.lstm.hiddenDims())
-        mAlgorithm.lstm.init(sourceDataSeries.dims(), get<kHidden>(),
-                             mAlgorithm.encoder.numLabels());
-    }
-    else
-    {
-      mAlgorithm.encoder.fit(targetLabelSet);
-      mAlgorithm.lstm.init(sourceDataSeries.dims(), get<kHidden>(),
-                           mAlgorithm.encoder.numLabels());
-    }
-
     if (sourceDataSeries.size() != targetLabelSet.size())
       return Error<double>(SizesDontMatch);
+
+    if (mAlgorithm.initialized() && sourceDataSeries.dims() != mAlgorithm.dims())
+      return Error<double>(DimensionsDontMatch);
+
+    mAlgorithm.encoder.fit(targetLabelSet);
+
+    if (mTracker.changed(sourceDataSeries.dims(),
+                         mAlgorithm.encoder.numLabels(), get<kHidden>()))
+    {
+      mAlgorithm.lstm.init(sourceDataSeries.dims(), get<kHidden>(),
+                             mAlgorithm.encoder.numLabels());
+    }
+
+    mAlgorithm.lstm.setTrained(false);
 
     auto data = sourceDataSeries.getData();
     auto tgt = targetLabelSet.getData();
     auto ids = sourceDataSeries.getIds();
 
     RealMatrix oneHot(targetLabelSet.size(), mAlgorithm.encoder.numLabels());
+    oneHot.fill(0);
+    
     for (index i = 0; i < targetLabelSet.size(); i++)
     {
       index id = targetLabelSet.getIndex(ids[i]);
@@ -254,7 +255,7 @@ public:
     RealMatrix src(inBuf.numFrames(), inBuf.numChans());
     src <<= inBuf.allFrames().transpose();
 
-    RealVector dest(mAlgorithm.lstm.size());
+    RealVector dest(mAlgorithm.lstm.outputDims());
     mAlgorithm.lstm.reset();
     mAlgorithm.lstm.process(src, dest);
 
@@ -276,6 +277,9 @@ public:
         makeMessage("write", &LSTMClassifierClient::write),
         makeMessage("read", &LSTMClassifierClient::read));
   }
+
+private:
+  ParameterTrackChanges<index, index, IndexVector> mTracker;
 };
 
 using LSTMClassifierRef = SharedClientRef<const LSTMClassifierClient>;
