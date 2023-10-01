@@ -138,138 +138,170 @@ public:
 
   void clear()
   {
-    mBottomParams = std::make_shared<ParamType>(mInSize, mHiddenSize);
-    mTopParams = std::make_shared<ParamType>(mHiddenSize, mOutSize);
-
-    mBottomState = std::make_unique<StateType>(mBottomParams);
-    mTopState = std::make_unique<StateType>(mTopParams);
-
-    mBottomCell = std::make_unique<CellType>(mBottomParams);
-    mTopCell = std::make_unique<CellType>(mTopParams);
+    for (index i = 0; i < mSize; i++) {
+      mParams[i] = std::make_shared<ParamType>(mSizes[i], mSizes[i + 1]);
+      mStates[i] = std::make_unique<StateType>(mParams[i]);
+      mCells[i] = std::make_unique<CellType>(mParams[i]);
+    }
 
     mTrained = false;
   }
 
   void reset()
   {
-    mBottomParams->reset();
-    mTopParams->reset();
-
-    mBottomState = std::make_unique<StateType>(mBottomParams);
-    mTopState = std::make_unique<StateType>(mTopParams);
-
-    mBottomCell = std::make_unique<CellType>(mBottomParams);
-    mTopCell = std::make_unique<CellType>(mTopParams);
+    for (index i = 0; i < mSize; i++) {
+      mParams[i]->reset();
+      mStates[i] = std::make_unique<StateType>(mParams[i]);
+      mCells[i] = std::make_unique<CellType>(mParams[i]);
+    }
   }
 
   void update(double lr)
   {
-    mTopParams->update(lr);
-    mBottomParams->update(lr);
+    for (index i = 0; i < mSize; i++)
+      mParams[i]->update(lr);
   }
 
-  void init(index inSize, index hiddenSize, index outSize)
+  void resize(IndexVectorView sizes)
   {
-    mInSize = inSize;
-    mHiddenSize = hiddenSize;
-    mOutSize = outSize;
+    mSizes.resize(other.mSizes.size());
+    mSizes <<= sizes;
 
-    mBottomParams = std::make_shared<ParamType>(mInSize, mHiddenSize);
-    mTopParams = std::make_shared<ParamType>(mHiddenSize, mOutSize);
+    mSize = mSizes.size() - 1;
 
-    mBottomState = std::make_unique<StateType>(mBottomParams);
-    mTopState = std::make_unique<StateType>(mTopParams);
+    mCells.resize(mSize);
+    mParams.resize(mSize);
+    mStates.resize(mSize);
 
-    mBottomCell = std::make_unique<CellType>(mBottomParams);
-    mTopCell = std::make_unique<CellType>(mTopParams);
+    mTrained = false;
+  }
 
-    mInitialized = true;
+  void init(index inSize, IndexVectorView hiddenSizes, index outSize)
+  {
+    IndexVector sizes(hiddenSizes.size() + 2);
+
+    sizes[0] = inSize, sizes[hiddenSizes.size() + 1] = outSize;
+    std::copy(hiddenSizes.begin(), hiddenSizes.end(), sizes.begin() + 1);
+
+    init(sizes);
   };
 
+  void init(IndexVectorView sizes)
+  {
+    mSizes.resize(sizes.size());
+    mSizes <<= sizes;
+    mSize = mSizes.size() - 1;
+
+    mCells.resize(mSize);
+    mParams.resize(mSize);
+    mStates.resize(mSize);
+
+    for (index i = 0; i < mSize; i++)
+    {
+      mParams[i] = std::make_shared<ParamType>(mSizes[i], mSizes[i + 1]);
+      mStates[i] = std::make_unique<StateType>(mParams[i]);
+      mCells[i] = std::make_unique<CellType>(mParams[i]);
+    }
+
+    mInitialized = true;
+  }
+
+// TODO: parallelise the diagonals for propagating data.
   double fit(InputRealMatrixView input, InputRealMatrixView output)
   {
-    assert(input.cols() == mInSize);
-    assert(output.cols() == mOutSize);
+    assert(input.cols() == mSizes[0]);
+    assert(output.cols() == mSizes[mSize]);
     assert(input.rows() == output.rows());
 
-    CellSeries bottomNodes, topNodes;
+    // forward pass
+    CellVectorVector nodes(mSize);
 
-    bottomNodes.emplace_back(mBottomParams);
-    bottomNodes[0].forwardFrame(input.row(0), StateType{mBottomParams});
+    nodes[0].emplace_back(mParams[0]);
+    nodes[0][0].forwardFrame(input.row(0), StateType{mParams[0]});
 
-    topNodes.emplace_back(mTopParams);
-    topNodes[0].forwardFrame(bottomNodes[0].getState().output(),
-                             StateType{mTopParams});
+    for (index n = 1; n < mSize; ++n)
+    {
+      nodes[n].emplace_back(mParams[n]);
+      nodes[n][i].forwardFrame(nodes[n - 1][0].getState().output(), StateType{mParams[n]});
+    }
 
     for (index i = 1; i < input.rows(); ++i)
     {
-      bottomNodes.emplace_back(mBottomParams);
-      bottomNodes[i].forwardFrame(input.row(i), bottomNodes[i - 1].getState());
+      nodes[0].emplace_back(mParams[0]);
+      nodes[0][i].forwardFrame(input.row(i), nodes[0][i - 1].getState());
 
-      topNodes.emplace_back(mTopParams);
-      topNodes[i].forwardFrame(bottomNodes[i].getState().output(),
-                               topNodes[i - 1].getState());
+      for (index n = 1; n < mSize; ++n)
+      {
+        nodes[n].emplace_back(mParams[n]);
+        nodes[n][i].forwardFrame(nodes[n - 1][i].getState().output(), nodes[n][i - 1].getState());
+      }
     }
 
+    // backpropagation
     double loss = 0.0;
-    loss += topNodes.back().backwardFrame(output.row(output.rows() - 1),
-                                          StateType{mTopParams});
-    bottomNodes.back().backwardFrame(topNodes.back().getState(),
-                                     StateType{mBottomParams});
+
+    loss += nodes.back().back().backwardFrame(output.row(output.rows() - 1), StateType{mParams.back()});
+    for (index n = nodes.size() - 2; n >= 0; --n)
+    {
+      nodes[n].back().backwardFrame(nodes[n + 1].back().getState(), StateType{mParams[n]});
+    }
 
     for (index i = input.rows() - 2; i >= 0; --i)
     {
-      loss +=
-          topNodes[i].backwardFrame(output.row(i), topNodes[i + 1].getState());
-      bottomNodes[i].backwardFrame(topNodes[i].getState(),
-                                   bottomNodes[i + 1].getState());
+      loss += nodes.back()[i].backwardFrame(output.row(i), nodes.back()[i + 1].getState());
+      for (index n = nodes.size() - 2; n >= 0; --n)
+      {
+        nodes[n][i].backwardFrame(nodes[n + 1][i].getState(), nodes[n][i + 1].getState());
+      }
     }
 
     return loss / input.rows();
   };
 
   double fit(InputRealMatrixView input, InputRealVectorView output)
-  {
-    assert(input.cols() == mInSize);
-    assert(output.size() == mOutSize);
+  {    
+    assert(input.cols() == mSizes[0]);
+    assert(output.size() == mSizes[mSize]);
 
-    CellSeries bottomNodes, topNodes;
+    // forward pass
+    CellVectorVector nodes(mSize);
 
+    nodes[0].emplace_back(mParams[0]);
+    nodes[0][0].forwardFrame(input.row(0), StateType{mParams[0]});
+
+    for (index n = 1; n < mSize; ++n)
     {
-      StateType bottomState{mBottomParams}, topState{mTopParams};
-
-      bottomNodes.emplace_back(mBottomParams);
-      bottomNodes[0].forwardFrame(input.row(0), bottomState);
-
-      topNodes.emplace_back(mTopParams);
-      topNodes[0].forwardFrame(bottomNodes[0].getState().output(),
-                              topState);
+      nodes[n].emplace_back(mParams[n]);
+      nodes[n][0].forwardFrame(nodes[n - 1][0].getState().output(), StateType{mParams[n]});
     }
 
     for (index i = 1; i < input.rows(); ++i)
     {
-      bottomNodes.emplace_back(mBottomParams);
-      bottomNodes[i].forwardFrame(input.row(i), bottomNodes[i - 1].getState());
+      nodes[0].emplace_back(mParams[0]);
+      nodes[0][i].forwardFrame(input.row(i), nodes[0][i - 1].getState());
 
-      topNodes.emplace_back(mTopParams);
-      topNodes[i].forwardFrame(bottomNodes[i].getState().output(),
-                               topNodes[i - 1].getState());
+      for (index n = 1; n < mSize; ++n)
+      {
+        nodes[n].emplace_back(mParams[n]);
+        nodes[n][i].forwardFrame(nodes[n - 1][i].getState().output(), nodes[n][i - 1].getState());
+      }
     }
-    
+
+    // backpropagation
     double loss;
 
+    loss = nodes.back().back().backwardFrame(output, StateType{mParams.back()});
+    for (index n = nodes.size() - 2; n >= 0; --n)
     {
-      StateType bottomState{mBottomParams}, topState{mTopParams};
+      nodes[n].back().backwardFrame(nodes[n + 1].back().getState(), StateType{mParams[n]});
+    }
 
-      loss = topNodes.back().backwardFrame(output, topState);
-      bottomNodes.back().backwardFrame(topNodes.back().getState(),
-                                      bottomState);
-
-      for (index i = input.rows() - 2; i >= 0; --i)
+    for (index i = input.rows() - 2; i >= 0; --i)
+    {
+      nodes.back()[i].backwardFrame(nodes.back()[i + 1].getState());
+      for (index n = nodes.size() - 2; n >= 0; --n)
       {
-        topNodes[i].backwardFrame(topNodes[i + 1].getState());
-        bottomNodes[i].backwardFrame(topNodes[i].getState(),
-                                    bottomNodes[i + 1].getState());
+        nodes[n][i].backwardFrame(nodes[n + 1][i].getState(), nodes[n][i + 1].getState());
       }
     }
 
@@ -278,49 +310,49 @@ public:
 
   double fit(InputRealMatrixView data)
   {
-    assert(data.cols() == mInSize);
-    assert(data.cols() == mOutSize);
+    assert(data.cols() == mSizes[0]);
+    assert(data.cols() == mSizes[mSize]);
 
-    CellSeries bottomNodes, topNodes;
+    // forward pass
+    CellVectorVector nodes(mSize);
 
+    nodes[0].emplace_back(mParams[0]);
+    nodes[0][0].forwardFrame(data.row(0), StateType{mParams[0]});
+
+    for (index n = 1; n < mSize; ++n)
     {
-      StateType bottomState{mBottomParams}, topState{mTopParams};
-
-      bottomNodes.emplace_back(mBottomParams);
-      bottomNodes[0].forwardFrame(data.row(0), bottomState);
-
-      topNodes.emplace_back(mTopParams);
-      topNodes[0].forwardFrame(bottomNodes[0].getState().output(),
-                              topState);
+      nodes[n].emplace_back(mParams[n]);
+      nodes[n][0].forwardFrame(nodes[n - 1][0].getState().output(), StateType{mParams[n]});
     }
 
     for (index i = 1; i < data.rows() - 1; ++i)
     {
-      bottomNodes.emplace_back(mBottomParams);
-      bottomNodes[i].forwardFrame(data.row(i), bottomNodes[i - 1].getState());
+      nodes[0].emplace_back(mParams[0]);
+      nodes[0][i].forwardFrame(data.row(i), nodes[0][i - 1].getState());
 
-      topNodes.emplace_back(mTopParams);
-      topNodes[i].forwardFrame(bottomNodes[i].getState().output(),
-                               topNodes[i - 1].getState());
+      for (index n = 1; n < mSize; ++n)
+      {
+        nodes[n].emplace_back(mParams[n]);
+        nodes[n][i].forwardFrame(nodes[n - 1][i].getState().output(), nodes[n][i - 1].getState());
+      }
     }
 
+    // backpropagation
     double loss = 0.0;
-    
-    {
-      StateType bottomState{mBottomParams}, topState{mTopParams};
 
-      loss += topNodes.back().backwardFrame(data.row(data.rows() - 1),
-                                            topState);
-      bottomNodes.back().backwardFrame(topNodes.back().getState(),
-                                      bottomState);
+    loss += nodes.back().back().backwardFrame(data.row(data.rows() - 1), StateType{mParams.back()});
+    for (index n = nodes.size() - 2; n >= 0; --n)
+    {
+      nodes[n].back().backwardFrame(nodes[n + 1].back().getState(), StateType{mParams[n]});
     }
 
     for (index i = data.rows() - 3; i >= 0; --i)
     {
-      loss += topNodes[i].backwardFrame(data.row(i + 1),
-                                        topNodes[i + 1].getState());
-      bottomNodes[i].backwardFrame(topNodes[i].getState(),
-                                   bottomNodes[i + 1].getState());
+      loss += nodes.back()[i].backwardFrame(data.row(i + 1), nodes.back()[i + 1].getState());
+      for (index n = nodes.size() - 2; n >= 0; --n)
+      {
+        nodes[n][i].backwardFrame(nodes[n + 1][i].getState(), nodes[n][i + 1].getState());
+      }
     }
 
     return loss / (data.rows() - 1);
