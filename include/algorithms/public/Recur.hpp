@@ -26,7 +26,7 @@ template <class CellType>
 class Recur
 {
 public:
-  using CellSeries = rt::vector<CellType>;
+  using CellVectorVector = rt::vector<rt::vector<CellType>>;
   using CellPtr = std::unique_ptr<CellType>;
 
   using StateType = typename CellType::StateType;
@@ -37,6 +37,14 @@ public:
   using ParamPtr = typename CellType::ParamLock;
 
 public:
+  using IndexVector = FluidTensor<index, 1>;
+  using IndexVectorView = FluidTensorView<index, 1>;
+  using IndexInputVectorView = FluidTensorView<const index, 1>;
+
+  using ParamVector = rt::vector<ParamPtr>;
+  using StateVector = rt::vector<StatePtr>;
+  using CellVector = rt::vector<CellPtr>;
+
   explicit Recur() = default;
   ~Recur() = default;
 
@@ -374,12 +382,13 @@ private:
   bool mInitialized{false};
   bool mTrained{false};
 
-  index mInSize, mHiddenSize, mOutSize;
+  IndexVector mSizes;
+  index mSize;
 
   // pointers rather than ref so Recur can be default constructible
-  ParamPtr mBottomParams, mTopParams; // parameters of two layers
-  StatePtr mBottomState, mTopState;   // previous state
-  CellPtr  mBottomCell, mTopCell;     // the recurrent cell themselves
+  ParamVector mParams; // parameters of the layers
+  StateVector mStates; // previous states
+  CellVector  mCells;  // the recurrent cells themselves
 };
 
 } // namespace algorithm
