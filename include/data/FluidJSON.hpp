@@ -520,81 +520,59 @@ void from_json(const nlohmann::json &j, UMAP &umap) {
 // LSTM
 void to_json(nlohmann::json& j, const Recur<LSTMCell>& lstm)
 {
-  auto topParams = lstm.getTopParams().lock(),
-       bottomParams = lstm.getBottomParams().lock();
+  j["size"] = lstm.size();
+  j["sizes"] = lstm.getSizes();
+  nlohmann::json& layers = j["layers"];
 
-  j["inSize"] = bottomParams->mInSize;
-  j["hiddenSize"] = bottomParams->mOutSize;
-  j["outSize"] = topParams->mOutSize;
+  for (index i = 0; i < lstm.size(); i++) 
+  {
+    nlohmann::json l;
+    auto params = lstm.getNthParams(i).lock();
 
-  j["bottomInputWeights"] = RealMatrixView(bottomParams->mWi);
-  j["bottomStateWeights"] = RealMatrixView(bottomParams->mWg);
-  j["bottomForgetWeights"] = RealMatrixView(bottomParams->mWf);
-  j["bottomOutputWeights"] = RealMatrixView(bottomParams->mWo);
+    l["inputWeights"] = RealMatrixView(params->mWi);
+    l["stateWeights"] = RealMatrixView(params->mWg);
+    l["forgetWeights"] = RealMatrixView(params->mWf);
+    l["outputWeights"] = RealMatrixView(params->mWo);
 
-  j["bottomInputBias"] = RealVectorView(bottomParams->mBi);
-  j["bottomStateBias"] = RealVectorView(bottomParams->mBg);
-  j["bottomForgetBias"] = RealVectorView(bottomParams->mBf);
-  j["bottomOutputBias"] = RealVectorView(bottomParams->mBo);
+    l["inputBias"] = RealVectorView(params->mBi);
+    l["stateBias"] = RealVectorView(params->mBg);
+    l["forgetBias"] = RealVectorView(params->mBf);
+    l["outputBias"] = RealVectorView(params->mBo);
 
-  j["topInputWeights"] = RealMatrixView(topParams->mWi);
-  j["topStateWeights"] = RealMatrixView(topParams->mWg);
-  j["topForgetWeights"] = RealMatrixView(topParams->mWf);
-  j["topOutputWeights"] = RealMatrixView(topParams->mWo);
-
-  j["topInputBias"] = RealVectorView(topParams->mBi);
-  j["topStateBias"] = RealVectorView(topParams->mBg);
-  j["topForgetBias"] = RealVectorView(topParams->mBf);
-  j["topOutputBias"] = RealVectorView(topParams->mBo);
+    layers.push_back(l);
+  }
 }
 
 bool check_json(const nlohmann::json& j, const Recur<LSTMCell>&)
 {
   return fluid::check_json(
       j,
-      {"inSize", "hiddenSize", "outSize", "bottomInputWeights",
-       "bottomStateWeights", "bottomForgetWeights", "bottomOutputWeights",
-       "bottomInputBias", "bottomStateBias", "bottomForgetBias",
-       "bottomOutputBias", "topInputWeights", "topStateWeights",
-       "topForgetWeights", "topOutputWeights", "topInputBias", "topStateBias",
-       "topForgetBias", "topOutputBias"},
-      {JSONTypes::NUMBER, JSONTypes::NUMBER, JSONTypes::NUMBER,
-       JSONTypes::ARRAY, JSONTypes::ARRAY, JSONTypes::ARRAY, JSONTypes::ARRAY,
-       JSONTypes::ARRAY, JSONTypes::ARRAY, JSONTypes::ARRAY, JSONTypes::ARRAY,
-       JSONTypes::ARRAY, JSONTypes::ARRAY, JSONTypes::ARRAY, JSONTypes::ARRAY,
-       JSONTypes::ARRAY, JSONTypes::ARRAY, JSONTypes::ARRAY, JSONTypes::ARRAY});
+      {"size", "sizes", "layers"},
+      {JSONTypes::NUMBER, JSONTypes::ARRAY, JSONTypes::ARRAY});
 }
 
 void from_json(const nlohmann::json& j, Recur<LSTMCell>& lstm)
 {
-  index inSize = j.at("inSize").get<index>();
-  index hiddenSize = j.at("hiddenSize").get<index>();
-  index outSize = j.at("outSize").get<index>();
+  FluidTensor<index, 1> sizes(j.at("size").get<index>() + 1);
+  j.at("sizes").get_to(sizes);
 
-  lstm.init(inSize, hiddenSize, outSize);
+  lstm.init(sizes);
 
-  auto topParams = lstm.getTopParams().lock(),
-       bottomParams = lstm.getBottomParams().lock();
+  for(index i = 0; i < lstm.size(); i++)
+  {
+    const nlohmann::json& l = j.at("layers")[i];
+    auto params = lstm.getNthParams(i).lock();
 
-  j.at("bottomInputWeights").get_to(bottomParams->mWi);
-  j.at("bottomStateWeights").get_to(bottomParams->mWg);
-  j.at("bottomForgetWeights").get_to(bottomParams->mWf);
-  j.at("bottomOutputWeights").get_to(bottomParams->mWo);
+    l.at("inputWeights").get_to(params->mWi);
+    l.at("stateWeights").get_to(params->mWg);
+    l.at("forgetWeights").get_to(params->mWf);
+    l.at("outputWeights").get_to(params->mWo);
 
-  j.at("bottomInputBias").get_to(bottomParams->mBi);
-  j.at("bottomStateBias").get_to(bottomParams->mBg);
-  j.at("bottomForgetBias").get_to(bottomParams->mBf);
-  j.at("bottomOutputBias").get_to(bottomParams->mBo);
-
-  j.at("topInputWeights").get_to(topParams->mWi);
-  j.at("topStateWeights").get_to(topParams->mWg);
-  j.at("topForgetWeights").get_to(topParams->mWf);
-  j.at("topOutputWeights").get_to(topParams->mWo);
-
-  j.at("topInputBias").get_to(topParams->mBi);
-  j.at("topStateBias").get_to(topParams->mBg);
-  j.at("topForgetBias").get_to(topParams->mBf);
-  j.at("topOutputBias").get_to(topParams->mBo);
+    l.at("inputBias").get_to(params->mBi);
+    l.at("stateBias").get_to(params->mBg);
+    l.at("forgetBias").get_to(params->mBf);
+    l.at("outputBias").get_to(params->mBo);
+  }
 
   lstm.setTrained();
 }
