@@ -50,89 +50,70 @@ public:
 
   Recur(Recur<CellType>& other)
   {
-    mInSize = other.mInSize;
-    mHiddenSize = other.mHiddenSize;
-    mOutSize = other.mOutSize;
+    resize(other.mSizes);
 
     mTrained = other.mTrained;
     mInitialized = true;
 
-    mBottomParams = std::make_shared<ParamType>(*other.mBottomParams);
-    mTopParams = std::make_shared<ParamType>(*other.mTopParams);
-
-    mBottomState = std::make_unique<StateType>(*other.mBottomState);
-    mTopState = std::make_unique<StateType>(*other.mTopState);
-
-    // clear initialise the cells
-    mBottomCell = std::make_unique<CellType>(mBottomParams);
-    mTopCell = std::make_unique<CellType>(mTopParams);
+    for (index i = 0; i < mSize; i++) {
+      mParams[i] = std::make_shared<ParamType>(*other.mParams[i]);
+      mStates[i] = std::make_unique<StateType>(*other.mStates[i]);
+      mCells[i] = std::make_unique<CellType>(mParams[i]);
+    }
   }
 
   Recur(Recur<CellType>&& other)
   {
-    mInSize = other.mInSize;
-    mHiddenSize = other.mHiddenSize;
-    mOutSize = other.mOutSize;
+    mSizes = std::move(other.mSizes);
+    mSize = mSizes.size() - 1;
+
+    mCells.resize(mSize);
+    mParams.resize(mSize);
+    mStates.resize(mSize);
 
     mTrained = other.mTrained;
     mInitialized = true;
 
-    mBottomParams = other.mBottomParams;
-    mTopParams = other.mTopParams;
-
-    // unique pointers so must release other's ownership of the memory then
-    // reclaim it
-    mBottomState = std::move(other.mBottomState);
-    mTopState = std::move(other.mTopState);
-
-    // clear initialise the cells
-    mBottomCell = std::make_unique<CellType>(mBottomParams);
-    mTopCell = std::make_unique<CellType>(mTopParams);
+    for (index i = 0; i < mSize; i++) {
+      mParams[i] = other.mParams[i];
+      mStates[i] = std::move(other.mStates[i]);
+      mCells[i] = std::make_unique<CellType>(mParams[i]);
+    }
   }
 
   Recur<CellType>& operator=(Recur<CellType>& other)
   {
-    mInSize = other.mInSize;
-    mHiddenSize = other.mHiddenSize;
-    mOutSize = other.mOutSize;
+    resize(other.mSizes);
 
     mTrained = other.mTrained;
     mInitialized = true;
 
-    mBottomParams = std::make_shared<ParamType>(*other.mBottomParams);
-    mTopParams = std::make_shared<ParamType>(*other.mTopParams);
-
-    mBottomState = std::make_unique<StateType>(*other.mBottomState);
-    mTopState = std::make_unique<StateType>(*other.mTopState);
-
-    // clear initialise the cells
-    mBottomCell = std::make_unique<CellType>(mBottomParams);
-    mTopCell = std::make_unique<CellType>(mTopParams);
+    for (index i = 0; i < mSize; i++) {
+      mParams[i] = std::make_shared<ParamType>(*other.mParams[i]);
+      mStates[i] = std::make_unique<StateType>(*other.mStates[i]);
+      mCells[i] = std::make_unique<CellType>(mParams[i]);
+    }
 
     return *this;
   }
 
   Recur<CellType>& operator=(Recur<CellType>&& other)
   {
-    mInSize = other.mInSize;
-    mHiddenSize = other.mHiddenSize;
-    mOutSize = other.mOutSize;
+    mSizes = std::move(other.mSizes);
+    mSize = mSizes.size() - 1;
+
+    mCells.resize(mSize);
+    mParams.resize(mSize);
+    mStates.resize(mSize);
 
     mTrained = other.mTrained;
     mInitialized = true;
 
-    // shared pointers so takes co-ownership, extends lifetime
-    mBottomParams = other.mBottomParams;
-    mTopParams = other.mTopParams;
-
-    // unique pointers so must release other's ownership of the memory then
-    // reclaim it
-    mBottomState = std::move(other.mBottomState);
-    mTopState = std::move(other.mTopState);
-
-    // clear initialise the cells
-    mBottomCell = std::make_unique<CellType>(mBottomParams);
-    mTopCell = std::make_unique<CellType>(mTopParams);
+    for (index i = 0; i < mSize; i++) {
+      mParams[i] = other.mParams[i];
+      mStates[i] = std::move(other.mStates[i]);
+      mCells[i] = std::make_unique<CellType>(mParams[i]);
+    }
 
     return *this;
   }
