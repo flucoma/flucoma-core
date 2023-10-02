@@ -220,7 +220,7 @@ public:
       StateType emptyState{mParams[0]};
 
       nodes[0].emplace_back(mParams[0]);
-      nodes[0][0].forwardFrame(input.row(0), tempState);
+      nodes[0][0].forwardFrame(input.row(0), emptyState);
     }
 
     for (index n = 1; n < mSize; ++n)
