@@ -164,7 +164,7 @@ public:
 
   void resize(IndexVectorView sizes)
   {
-    mSizes.resize(other.mSizes.size());
+    mSizes.resize(sizes.size());
     mSizes <<= sizes;
 
     mSize = mSizes.size() - 1;
@@ -216,13 +216,19 @@ public:
     // forward pass
     CellVectorVector nodes(mSize);
 
-    nodes[0].emplace_back(mParams[0]);
-    nodes[0][0].forwardFrame(input.row(0), StateType{mParams[0]});
+    {
+      StateType emptyState{mParams[0]};
+
+      nodes[0].emplace_back(mParams[0]);
+      nodes[0][0].forwardFrame(input.row(0), tempState);
+    }
 
     for (index n = 1; n < mSize; ++n)
     {
+      StateType emptyState{mParams[n]};
+
       nodes[n].emplace_back(mParams[n]);
-      nodes[n][i].forwardFrame(nodes[n - 1][0].getState().output(), StateType{mParams[n]});
+      nodes[n][0].forwardFrame(nodes[n - 1][0].getState().output(), emptyState);
     }
 
     for (index i = 1; i < input.rows(); ++i)
@@ -240,10 +246,15 @@ public:
     // backpropagation
     double loss = 0.0;
 
-    loss += nodes.back().back().backwardFrame(output.row(output.rows() - 1), StateType{mParams.back()});
+    {
+      StateType emptyState{mParams.back()};
+      loss += nodes.back().back().backwardFrame(output.row(output.rows() - 1), emptyState);
+    }
+    
     for (index n = nodes.size() - 2; n >= 0; --n)
     {
-      nodes[n].back().backwardFrame(nodes[n + 1].back().getState(), StateType{mParams[n]});
+      StateType emptyState{mParams[n]};
+      nodes[n].back().backwardFrame(nodes[n + 1].back().getState(), emptyState);
     }
 
     for (index i = input.rows() - 2; i >= 0; --i)
@@ -266,13 +277,19 @@ public:
     // forward pass
     CellVectorVector nodes(mSize);
 
-    nodes[0].emplace_back(mParams[0]);
-    nodes[0][0].forwardFrame(input.row(0), StateType{mParams[0]});
+    {
+      StateType emptyState{mParams[0]};
+
+      nodes[0].emplace_back(mParams[0]);
+      nodes[0][0].forwardFrame(input.row(0), emptyState);
+    }
 
     for (index n = 1; n < mSize; ++n)
     {
+      StateType emptyState{mParams[n]};
+
       nodes[n].emplace_back(mParams[n]);
-      nodes[n][0].forwardFrame(nodes[n - 1][0].getState().output(), StateType{mParams[n]});
+      nodes[n][0].forwardFrame(nodes[n - 1][0].getState().output(), emptyState);
     }
 
     for (index i = 1; i < input.rows(); ++i)
@@ -290,10 +307,15 @@ public:
     // backpropagation
     double loss;
 
-    loss = nodes.back().back().backwardFrame(output, StateType{mParams.back()});
+    {
+      StateType emptyState{mParams.back()};
+      loss = nodes.back().back().backwardFrame(output, emptyState);
+    }
+
     for (index n = nodes.size() - 2; n >= 0; --n)
     {
-      nodes[n].back().backwardFrame(nodes[n + 1].back().getState(), StateType{mParams[n]});
+      StateType emptyState{mParams[n]};
+      nodes[n].back().backwardFrame(nodes[n + 1].back().getState(), emptyState);
     }
 
     for (index i = input.rows() - 2; i >= 0; --i)
@@ -316,13 +338,19 @@ public:
     // forward pass
     CellVectorVector nodes(mSize);
 
-    nodes[0].emplace_back(mParams[0]);
-    nodes[0][0].forwardFrame(data.row(0), StateType{mParams[0]});
+    {
+      StateType emptyState{mParams[0]};
+
+      nodes[0].emplace_back(mParams[0]);
+      nodes[0][0].forwardFrame(data.row(0), emptyState);
+    }
 
     for (index n = 1; n < mSize; ++n)
     {
+      StateType emptyState{mParams[n]};
+
       nodes[n].emplace_back(mParams[n]);
-      nodes[n][0].forwardFrame(nodes[n - 1][0].getState().output(), StateType{mParams[n]});
+      nodes[n][0].forwardFrame(nodes[n - 1][0].getState().output(), emptyState);
     }
 
     for (index i = 1; i < data.rows() - 1; ++i)
@@ -340,10 +368,15 @@ public:
     // backpropagation
     double loss = 0.0;
 
-    loss += nodes.back().back().backwardFrame(data.row(data.rows() - 1), StateType{mParams.back()});
+    {
+      StateType emptyState{mParams.back()};
+      loss += nodes.back().back().backwardFrame(data.row(data.rows() - 1), emptyState);
+    }
+
     for (index n = nodes.size() - 2; n >= 0; --n)
     {
-      nodes[n].back().backwardFrame(nodes[n + 1].back().getState(), StateType{mParams[n]});
+      StateType emptyState{mParams[n]};
+      nodes[n].back().backwardFrame(nodes[n + 1].back().getState(), emptyState);
     }
 
     for (index i = data.rows() - 3; i >= 0; --i)
