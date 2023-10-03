@@ -45,7 +45,16 @@ class LSTMForecasterClient
       ModelObject,
       public DataClient<algorithm::Recur<algorithm::LSTMCell>>
 {
-  enum { kName, kHidden, kIter, kRate, kMomentum, kBatch, kValidation, kForecastLength };
+  enum {
+    kName,
+    kHidden,
+    kIter,
+    kRate,
+    kMomentum,
+    kBatch,
+    kValidation,
+    kForecastLength
+  };
 
 public:
   using string = std::string;
@@ -126,20 +135,22 @@ public:
     const auto sourceDataSeries = sourceClientPtr->getDataSeries();
     if (sourceDataSeries.size() == 0) return Error<double>(EmptyDataSet);
 
-    if (mAlgorithm.initialized() && sourceDataSeries.dims() != mAlgorithm.dims())
-        return Error<double>(DimensionsDontMatch);
-    
-    if (mTracker.changed(sourceDataSeries.dims(), get<kHidden>(), 
-                                    sourceDataSeries.dims()))
+    if (mAlgorithm.initialized() &&
+        sourceDataSeries.dims() != mAlgorithm.dims())
+      return Error<double>(DimensionsDontMatch);
+
+    if (mTracker.changed(sourceDataSeries.dims(), get<kHidden>(),
+                         sourceDataSeries.dims()))
     {
-        mAlgorithm.init(sourceDataSeries.dims(), get<kHidden>(),
-                        sourceDataSeries.dims());
+      mAlgorithm.init(sourceDataSeries.dims(), get<kHidden>(),
+                      sourceDataSeries.dims());
     }
 
     auto data = sourceDataSeries.getData();
 
     return LSTMTrainer().trainPredictor(mAlgorithm, data, get<kIter>(),
-                                        get<kBatch>(), get<kRate>());
+                                        get<kBatch>(), get<kRate>(),
+                                        get<kMomentum>(), get<kValidation>());
   }
 
   MessageResult<void> predict(InputDataSeriesClientRef sourceDataSeriesClient,
@@ -189,7 +200,7 @@ public:
   }
 
   MessageResult<void> predictSeries(InputBufferPtr in, BufferPtr out,
-                                   index forecastLengthOverride = -1)
+                                    index forecastLengthOverride = -1)
   {
 
     index forecastLength = forecastLengthOverride < 0 ? get<kForecastLength>()
@@ -244,7 +255,7 @@ public:
         makeMessage("write", &LSTMForecasterClient::write),
         makeMessage("read", &LSTMForecasterClient::read));
   }
-    
+
 private:
   ParameterTrackChanges<index, IndexVector, index> mTracker;
 };

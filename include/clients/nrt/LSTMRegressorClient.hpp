@@ -134,21 +134,23 @@ public:
     if (sourceDataSeries.size() != targetDataSet.size())
       return Error<double>(SizesDontMatch);
 
-    if (mAlgorithm.initialized() && sourceDataSeries.dims() != mAlgorithm.dims())
-        return Error<double>(DimensionsDontMatch);
-    
-    if (mTracker.changed(sourceDataSeries.dims(), get<kHidden>(), 
-                                    targetDataSet.pointSize()))
+    if (mAlgorithm.initialized() &&
+        sourceDataSeries.dims() != mAlgorithm.dims())
+      return Error<double>(DimensionsDontMatch);
+
+    if (mTracker.changed(sourceDataSeries.dims(), get<kHidden>(),
+                         targetDataSet.pointSize()))
     {
       mAlgorithm.init(sourceDataSeries.dims(), get<kHidden>(),
-                             targetDataSet.pointSize());
+                      targetDataSet.pointSize());
     }
 
     auto data = sourceDataSeries.getData();
     auto tgt = targetDataSet.getData();
 
     return LSTMTrainer().trainManyToOne(mAlgorithm, data, tgt, get<kIter>(),
-                                        get<kBatch>(), get<kRate>());
+                                        get<kBatch>(), get<kRate>(),
+                                        get<kMomentum>(), get<kValidation>());
   }
 
   MessageResult<void> predict(InputDataSeriesClientRef dataSeriesClient,
@@ -226,7 +228,7 @@ public:
         makeMessage("write", &LSTMRegressorClient::write),
         makeMessage("read", &LSTMRegressorClient::read));
   }
-  
+
 private:
   ParameterTrackChanges<index, IndexVector, index> mTracker;
 };

@@ -156,10 +156,10 @@ public:
     }
   }
 
-  void update(double lr)
+  void update(double lr, double mo)
   {
     for (index i = 0; i < mSize; i++)
-      mParams[i]->update(lr);
+      mParams[i]->update(lr, mo);
   }
 
   void resize(IndexVectorView sizes)

@@ -36,7 +36,7 @@ public:
 
   double trainManyToOne(Recur<CellType>& model, InputDataSeriesView in,
                         InputRealMatrixView out, index nIter, index batchSize,
-                        double learningRate, double validation = 0.1)
+                        double learningRate, double momentum, double validation)
   {
     assert(in.size() == out.rows());
     assert(model.outputDims() == out.cols());
@@ -44,21 +44,21 @@ public:
              return model.inputDims() != x.cols();
            }));
 
-    double error = trainSGD(
-        model, in.size(), nIter, batchSize, learningRate,
-        validation, [&in, &out, &model](index i) -> double {
-          assert(i >= 0 && i < in.size());
-          assert(i >= 0 && i < out.rows());
+    double error = trainSGD(model, in.size(), nIter, batchSize, learningRate,
+                            momentum, validation, [&in, &out, &model](index i) {
+                              assert(i >= 0 && i < in.size());
+                              assert(i >= 0 && i < out.rows());
 
-          return model.fit(in[i], out.row(i));
-        });
+                              return model.fit(in[i], out.row(i));
+                            });
 
     return error;
   }
 
   double trainManyToMany(Recur<CellType>& model, InputDataSeriesView in,
                          InputDataSeriesView out, index nIter, index batchSize,
-                         double learningRate, double validation = 0.1)
+                         double learningRate, double momentum,
+                         double validation)
   {
     assert(in.size() == out.size());
     assert(in.end() == std::find_if(in.begin(), in.end(), [&model](auto& x) {
@@ -69,7 +69,7 @@ public:
            }));
 
     double error = trainSGD(model, in.size(), nIter, batchSize, learningRate,
-                            validation, [&in, &out, &model](index i) -> double {
+                            momentum, validation, [&in, &out, &model](index i) {
                               assert(i >= 0 && i < in.size());
                               assert(i >= 0 && i < out.size());
 
@@ -82,7 +82,7 @@ public:
 
   double trainPredictor(Recur<CellType>& model, InputDataSeriesView data,
                         index nIter, index batchSize, double learningRate,
-                        double validation = 0.1)
+                        double momentum, double validation)
   {
     assert(model.inputDims() == model.outputDims());
     assert(data.end() ==
@@ -91,7 +91,7 @@ public:
            }));
 
     double error = trainSGD(model, data.size(), nIter, batchSize, learningRate,
-                            validation, [&data, &model](index i) -> double {
+                            momentum, validation, [&data, &model](index i) {
                               assert(i >= 0 && i < data.size());
                               return model.fit(data[i]);
                             });
@@ -101,8 +101,8 @@ public:
 
 private:
   double trainSGD(Recur<CellType>& model, index corpusSize, index nIter,
-                  index batchSize, double learningRate, double validation,
-                  std::function<double(index)> fit)
+                  index batchSize, double learningRate, double momentum,
+                  double validation, std::function<double(index)> fit)
   {
     rt::vector<index> permutation(corpusSize);
     std::iota(permutation.begin(), permutation.end(), 0);
@@ -120,18 +120,16 @@ private:
       std::shuffle(permutation.begin(), permutation.end(),
                    std::mt19937{std::random_device{}()});
 
-      for (index batchStart = 0; batchStart < nTrain;
-           batchStart += batchSize)
+      for (index batchStart = 0; batchStart < nTrain; batchStart += batchSize)
       {
-        index thisBatchSize = (batchStart + batchSize) < nTrain
-                                  ? batchSize
-                                  : nTrain - batchStart;
+        index thisBatchSize =
+            (batchStart + batchSize) < nTrain ? batchSize : nTrain - batchStart;
 
         model.reset();
         for (index i = batchStart; i < batchStart + thisBatchSize; ++i)
           error += fit(permutation[i]);
 
-        model.update(learningRate);
+        model.update(learningRate, momentum);
       }
 
       for (index i = nTrain; i < corpusSize; ++i)
@@ -148,10 +146,7 @@ private:
 
     model.setTrained(true);
 
-    for (index i = 0; i < corpusSize; ++i)
-    {
-      error += fit(i);
-    }
+    for (index i = 0; i < corpusSize; ++i) { error += fit(i); }
 
     return error / corpusSize;
   }

@@ -42,11 +42,17 @@ public:
         mDWi(mOutSize, mLayerSize), mDWg(mOutSize, mLayerSize),
         mDWf(mOutSize, mLayerSize), mDWo(mOutSize, mLayerSize),
 
+        // allocate the memory for the previous weight derivatives
+        mPDWi(mOutSize, mLayerSize), mPDWg(mOutSize, mLayerSize),
+        mPDWf(mOutSize, mLayerSize), mPDWo(mOutSize, mLayerSize),
+
         // allocate the memory for the biases
         mBi(mOutSize), mBg(mOutSize), mBf(mOutSize), mBo(mOutSize),
 
         // allocate the memory for the bias derivatives
-        mDBi(mOutSize), mDBg(mOutSize), mDBf(mOutSize), mDBo(mOutSize)
+        mDBi(mOutSize), mDBg(mOutSize), mDBf(mOutSize), mDBo(mOutSize),
+
+        mPDBi(mOutSize), mPDBg(mOutSize), mPDBf(mOutSize), mPDBo(mOutSize)
   {
     std::mt19937 mersenne_engine{std::random_device{}()};
     std::uniform_real_distribution<double> dist{-1.0, 1.0};
@@ -63,21 +69,44 @@ public:
     std::generate(mBo.begin(), mBo.end(), gen);
   };
 
-  void update(double lr)
+  void update(double lr, double mo)
   {
     using _impl::asEigen, Eigen::Array;
 
-    asEigen<Array>(mWi) -= lr * asEigen<Array>(mDWi);
-    asEigen<Array>(mWg) -= lr * asEigen<Array>(mDWg);
-    asEigen<Array>(mWf) -= lr * asEigen<Array>(mDWf);
-    asEigen<Array>(mWo) -= lr * asEigen<Array>(mDWo);
+    double weight = lr * (1.0 - mo);
+    double prevWeight = lr * mo;
 
-    asEigen<Array>(mBi) -= lr * asEigen<Array>(mDBi);
-    asEigen<Array>(mBg) -= lr * asEigen<Array>(mDBg);
-    asEigen<Array>(mBf) -= lr * asEigen<Array>(mDBf);
-    asEigen<Array>(mBo) -= lr * asEigen<Array>(mDBo);
+    asEigen<Array>(mWi) -= lr * ((1.0 - mo) * asEigen<Array>(mDWi) + mo * asEigen<Array>(mPDWi));
+    asEigen<Array>(mWg) -= lr * ((1.0 - mo) * asEigen<Array>(mDWg) + mo * asEigen<Array>(mPDWg));
+    asEigen<Array>(mWf) -= lr * ((1.0 - mo) * asEigen<Array>(mDWf) + mo * asEigen<Array>(mPDWf));
+    asEigen<Array>(mWo) -= lr * ((1.0 - mo) * asEigen<Array>(mDWo) + mo * asEigen<Array>(mPDWo));
 
-    reset();
+    asEigen<Array>(mBi) -= lr * ((1.0 - mo) * asEigen<Array>(mDBi) + mo * asEigen<Array>(mPDBi));
+    asEigen<Array>(mBg) -= lr * ((1.0 - mo) * asEigen<Array>(mDBg) + mo * asEigen<Array>(mPDBg));
+    asEigen<Array>(mBf) -= lr * ((1.0 - mo) * asEigen<Array>(mDBf) + mo * asEigen<Array>(mPDBf));
+    asEigen<Array>(mBo) -= lr * ((1.0 - mo) * asEigen<Array>(mDBo) + mo * asEigen<Array>(mPDBo));
+
+    mPDWi <<= mDWi;
+    mPDWg <<= mDWg;
+    mPDWf <<= mDWf;
+    mPDWo <<= mDWo;
+
+    mPDBi <<= mDBi;
+    mPDBg <<= mDBg;
+    mPDBf <<= mDBf;
+    mPDBo <<= mDBo;
+
+    // clear weight derivatives
+    std::fill(mDWi.begin(), mDWi.end(), 0.0);
+    std::fill(mDWg.begin(), mDWg.end(), 0.0);
+    std::fill(mDWf.begin(), mDWf.end(), 0.0);
+    std::fill(mDWo.begin(), mDWo.end(), 0.0);
+
+    // clear bias derivatives
+    std::fill(mDBi.begin(), mDBi.end(), 0.0);
+    std::fill(mDBg.begin(), mDBg.end(), 0.0);
+    std::fill(mDBf.begin(), mDBf.end(), 0.0);
+    std::fill(mDBo.begin(), mDBo.end(), 0.0);
   }
 
   void reset()
@@ -93,6 +122,18 @@ public:
     std::fill(mDBg.begin(), mDBg.end(), 0.0);
     std::fill(mDBf.begin(), mDBf.end(), 0.0);
     std::fill(mDBo.begin(), mDBo.end(), 0.0);
+
+    // clear previous weight derivatives
+    std::fill(mPDWi.begin(), mPDWi.end(), 0.0);
+    std::fill(mPDWg.begin(), mPDWg.end(), 0.0);
+    std::fill(mPDWf.begin(), mPDWf.end(), 0.0);
+    std::fill(mPDWo.begin(), mPDWo.end(), 0.0);
+
+    // clear previous bias derivatives
+    std::fill(mPDBi.begin(), mPDBi.end(), 0.0);
+    std::fill(mPDBg.begin(), mPDBg.end(), 0.0);
+    std::fill(mPDBf.begin(), mPDBf.end(), 0.0);
+    std::fill(mPDBo.begin(), mPDBo.end(), 0.0);
   }
 
   const index mInSize, mLayerSize, mOutSize;
@@ -102,6 +143,10 @@ public:
   RealMatrix mDWi, mDWg, mDWf, mDWo;
   RealVector mBi, mBg, mBf, mBo;
   RealVector mDBi, mDBg, mDBf, mDBo;
+
+  // previous updates
+  RealMatrix mPDWi, mPDWg, mPDWf, mPDWo;
+  RealVector mPDBi, mPDBg, mPDBf, mPDBo;
 };
 
 class LSTMState

@@ -171,7 +171,8 @@ public:
     if (sourceDataSeries.size() != targetLabelSet.size())
       return Error<double>(SizesDontMatch);
 
-    if (mAlgorithm.initialized() && sourceDataSeries.dims() != mAlgorithm.dims())
+    if (mAlgorithm.initialized() &&
+        sourceDataSeries.dims() != mAlgorithm.dims())
       return Error<double>(DimensionsDontMatch);
 
     mAlgorithm.encoder.fit(targetLabelSet);
@@ -180,7 +181,7 @@ public:
                          mAlgorithm.encoder.numLabels(), get<kHidden>()))
     {
       mAlgorithm.lstm.init(sourceDataSeries.dims(), get<kHidden>(),
-                             mAlgorithm.encoder.numLabels());
+                           mAlgorithm.encoder.numLabels());
     }
 
     mAlgorithm.lstm.setTrained(false);
@@ -191,7 +192,7 @@ public:
 
     RealMatrix oneHot(targetLabelSet.size(), mAlgorithm.encoder.numLabels());
     oneHot.fill(0);
-    
+
     for (index i = 0; i < targetLabelSet.size(); i++)
     {
       index id = targetLabelSet.getIndex(ids[i]);
@@ -199,9 +200,9 @@ public:
       mAlgorithm.encoder.encodeOneHot(tgt.row(id)(0), oneHot.row(i));
     }
 
-    return LSTMTrainer().trainManyToOne(mAlgorithm.lstm, data, oneHot,
-                                               get<kIter>(), get<kBatch>(),
-                                               get<kRate>());
+    return LSTMTrainer().trainManyToOne(
+        mAlgorithm.lstm, data, oneHot, get<kIter>(), get<kBatch>(),
+        get<kRate>(), get<kMomentum>(), get<kValidation>());
   }
 
   MessageResult<void> predict(InputDataSeriesClientRef dataSeriesClient,
