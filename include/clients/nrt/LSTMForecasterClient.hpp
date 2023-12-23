@@ -180,7 +180,7 @@ public:
     RealVector   output(mAlgorithm.outputDims()), pred(mAlgorithm.outputDims());
 
     auto& data = sourceDataSeries.getData();
-    for (index i = 1; i < sourceDataSeries.size(); i++)
+    for (index i = 0; i < sourceDataSeries.size(); i++)
     {
       index thisLength = forecastLength > 0 ? forecastLength : data[i].rows();
 
