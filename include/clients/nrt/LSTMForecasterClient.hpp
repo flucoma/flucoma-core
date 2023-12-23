@@ -185,12 +185,14 @@ public:
       index thisLength = forecastLength > 0 ? forecastLength : data[i].rows();
 
       mAlgorithm.reset();
-      mAlgorithm.process(data[i], output);
-
-      for (index f = 0; f < thisLength; f++)
+      mAlgorithm.process(data[i], pred);
+      result.addFrame(ids[i], pred);
+      
+      for (index f = 1; f < thisLength; f++)
       {
-        mAlgorithm.processFrame(output, pred);
-        result.addFrame(ids[i], pred);
+        mAlgorithm.processFrame(pred, output);
+        result.addFrame(ids[i], output);
+        pred <<= output;
       }
     }
 
@@ -228,12 +230,15 @@ public:
     RealVector output(mAlgorithm.outputDims()), pred(mAlgorithm.outputDims());
 
     mAlgorithm.reset();
-    mAlgorithm.process(src, output);
+    mAlgorithm.process(src, pred);
 
-    for (index i = 0; i < forecastLength; i++)
+    dest.row(0) <<= pred;
+
+    for (index i = 1; i < forecastLength; i++)
     {
-      mAlgorithm.processFrame(output, pred);
-      dest.row(i) <<= pred;
+      mAlgorithm.processFrame(pred, output);
+      dest.row(i) <<= output;
+      pred <<= output;
     }
 
     outBuf.allFrames().transpose() <<= dest;
