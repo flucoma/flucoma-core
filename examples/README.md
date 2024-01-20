@@ -9,7 +9,7 @@ mkdir build && cd build
 # CMake to configure targets
 cmake .. -DBUILD_EXAMPLES=ON
 
-# build example target, currently only `describe`
+# build an example target, currently two options: 'describe' and 'dataset'
 cmake --build . --target describe
 #    OR
 make describe
