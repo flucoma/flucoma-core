@@ -1,4 +1,4 @@
-foreach (EXAMPLE  describe)
+foreach (EXAMPLE dataset describe)
 
 	add_executable (
 			${EXAMPLE} ${EXAMPLE}.cpp
