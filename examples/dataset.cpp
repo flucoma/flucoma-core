@@ -10,7 +10,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 /*
 This program demonstrates the use of the fluid decomposition toolbox
-to compute a summary of spectral features of an audio file
+to produces a dataset with the summary of spectral features on files
 */
 
 #include <AudioFile/IAudioFile.h>

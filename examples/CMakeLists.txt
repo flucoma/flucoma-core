@@ -1,4 +1,4 @@
-foreach (EXAMPLE dataset describe)
+foreach (EXAMPLE dataset describe umap)
 
 	add_executable (
 			${EXAMPLE} ${EXAMPLE}.cpp
