@@ -49,6 +49,7 @@ public:
     using namespace _impl;
     mMin = min;
     mMax = max;
+    mRange = mMax - mMin;
     mDataMin = asEigen<Array>(dataMin);
     mDataMax = asEigen<Array>(dataMax);
     mDataRange = mDataMax - mDataMin;
