@@ -71,14 +71,15 @@ public:
 
     mSlide.updateCoeffs(rampUpTime, rampDownTime);
 
-    double filtered = in;
+    if (std::isfinite(in)) mPrevValid = in;
+    double filtered = mPrevValid;
     if (hiPassFreq != mHiPassFreq)
     {
       initFilters(hiPassFreq);
       mHiPassFreq = hiPassFreq;
     }
     if (mHiPassFreq > 0)
-      filtered = mHiPass2.processSample(mHiPass1.processSample(in));
+      filtered = mHiPass2.processSample(mHiPass1.processSample(filtered));
 
     double rectified = abs(filtered);
     double dB = 20 * log10(rectified);
@@ -261,6 +262,7 @@ private:
   index  mLatency;
   index  mFillCount;
   double mHiPassFreq{0};
+  double mPrevValid = 0;
 
   index mMinTimeAboveThreshold{440};
   index mDownwardLookupTime{10};
