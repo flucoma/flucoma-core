@@ -29,13 +29,12 @@ class EnvelopeGate
 
 public:
   EnvelopeGate(index maxSize, Allocator& alloc = FluidDefaultAllocator())
-      : mInputBuffer(maxSize, alloc),
-        mOutputBuffer(maxSize, alloc)
+      : mInputBuffer(maxSize, alloc), mOutputBuffer(maxSize, alloc)
   {}
 
   void init(double onThreshold, double offThreshold, double hiPassFreq,
-      index minTimeAboveThreshold, index upwardLookupTime,
-      index minTimeBelowThreshold, index downwardLookupTime)
+            index minTimeAboveThreshold, index upwardLookupTime,
+            index minTimeBelowThreshold, index downwardLookupTime)
   {
     using namespace std;
 
@@ -44,8 +43,8 @@ public:
     mMinTimeBelowThreshold = minTimeBelowThreshold,
     mDownwardLookupTime = downwardLookupTime;
     mDownwardLatency = max<index>(minTimeBelowThreshold, mDownwardLookupTime);
-    mLatency = max<index>(
-        mMinTimeAboveThreshold + mUpwardLookupTime, mDownwardLatency);
+    mLatency = max<index>(mMinTimeAboveThreshold + mUpwardLookupTime,
+                          mDownwardLatency);
     if (mLatency < 0) mLatency = 1;
     assert(mLatency <= mInputBuffer.size());
     mHiPassFreq = hiPassFreq;
@@ -63,8 +62,8 @@ public:
   }
 
   double processSample(const double in, double onThreshold, double offThreshold,
-      index rampUpTime, index rampDownTime, double hiPassFreq,
-      index minEventDuration, index minSilenceDuration)
+                       index rampUpTime, index rampDownTime, double hiPassFreq,
+                       index minEventDuration, index minSilenceDuration)
   {
     using namespace std;
     assert(mInitialized);
@@ -123,7 +122,7 @@ public:
       {
         index onsetIndex =
             refineStart(mWriteHead - mMinTimeAboveThreshold - mUpwardLookupTime,
-                mUpwardLookupTime);
+                        mUpwardLookupTime);
 
         index blockSize = mWriteHead > onsetIndex
                               ? mWriteHead - onsetIndex
@@ -249,14 +248,8 @@ private:
       mOnStateCount = 0;
       mOffStateCount = 1;
     }
-    else if (mInputState && nextState)
-    {
-      mOnStateCount++;
-    }
-    else if (!mInputState && !nextState)
-    {
-      mOffStateCount++;
-    }
+    else if (mInputState && nextState) { mOnStateCount++; }
+    else if (!mInputState && !nextState) { mOffStateCount++; }
   }
 
   index  mLatency;

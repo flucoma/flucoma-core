@@ -33,10 +33,9 @@ public:
     mInitialized = true;
   }
 
-  double processSample(const double in, 
-                       double floor, index fastRampUpTime, index slowRampUpTime,
-                       index fastRampDownTime, index slowRampDownTime,
-                       double hiPassFreq)
+  double processSample(const double in, double floor, index fastRampUpTime,
+                       index slowRampUpTime, index fastRampDownTime,
+                       index slowRampDownTime, double hiPassFreq)
   {
     using namespace std;
     assert(mInitialized);
@@ -44,11 +43,13 @@ public:
     mSlowSlide.updateCoeffs(slowRampUpTime, slowRampDownTime);
     if (std::isfinite(in)) mPrevValid = in;
     double filtered = mPrevValid;
-    if (hiPassFreq != mHiPassFreq) {
+    if (hiPassFreq != mHiPassFreq)
+    {
       initFilters(hiPassFreq);
       mHiPassFreq = hiPassFreq;
     }
-    if (mHiPassFreq > 0) {
+    if (mHiPassFreq > 0)
+    {
       filtered = mHiPass2.processSample(mHiPass1.processSample(filtered));
     }
     double rectified = abs(filtered);
