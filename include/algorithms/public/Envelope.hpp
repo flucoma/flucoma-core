@@ -71,7 +71,7 @@ private:
 
   double mHiPassFreq{0};
   bool   mInitialized{false};
-  double mPrevValid = 0;
+  double mPrevValid{0};
 
   ButterworthHPFilter mHiPass1;
   ButterworthHPFilter mHiPass2;

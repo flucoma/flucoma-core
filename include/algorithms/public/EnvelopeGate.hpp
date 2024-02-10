@@ -255,7 +255,7 @@ private:
   index  mLatency;
   index  mFillCount;
   double mHiPassFreq{0};
-  double mPrevValid = 0;
+  double mPrevValid{0};
 
   index mMinTimeAboveThreshold{440};
   index mDownwardLookupTime{10};
