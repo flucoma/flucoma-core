@@ -29,13 +29,12 @@ class EnvelopeGate
 
 public:
   EnvelopeGate(index maxSize, Allocator& alloc = FluidDefaultAllocator())
-      : mInputBuffer(maxSize, alloc),
-        mOutputBuffer(maxSize, alloc)
+      : mInputBuffer(maxSize, alloc), mOutputBuffer(maxSize, alloc)
   {}
 
   void init(double onThreshold, double offThreshold, double hiPassFreq,
-      index minTimeAboveThreshold, index upwardLookupTime,
-      index minTimeBelowThreshold, index downwardLookupTime)
+            index minTimeAboveThreshold, index upwardLookupTime,
+            index minTimeBelowThreshold, index downwardLookupTime)
   {
     using namespace std;
 
@@ -44,8 +43,8 @@ public:
     mMinTimeBelowThreshold = minTimeBelowThreshold,
     mDownwardLookupTime = downwardLookupTime;
     mDownwardLatency = max<index>(minTimeBelowThreshold, mDownwardLookupTime);
-    mLatency = max<index>(
-        mMinTimeAboveThreshold + mUpwardLookupTime, mDownwardLatency);
+    mLatency = max<index>(mMinTimeAboveThreshold + mUpwardLookupTime,
+                          mDownwardLatency);
     if (mLatency < 0) mLatency = 1;
     assert(mLatency <= mInputBuffer.size());
     mHiPassFreq = hiPassFreq;
@@ -63,22 +62,23 @@ public:
   }
 
   double processSample(const double in, double onThreshold, double offThreshold,
-      index rampUpTime, index rampDownTime, double hiPassFreq,
-      index minEventDuration, index minSilenceDuration)
+                       index rampUpTime, index rampDownTime, double hiPassFreq,
+                       index minEventDuration, index minSilenceDuration)
   {
     using namespace std;
     assert(mInitialized);
 
     mSlide.updateCoeffs(rampUpTime, rampDownTime);
 
-    double filtered = in;
+    if (std::isfinite(in)) mPrevValid = in;
+    double filtered = mPrevValid;
     if (hiPassFreq != mHiPassFreq)
     {
       initFilters(hiPassFreq);
       mHiPassFreq = hiPassFreq;
     }
     if (mHiPassFreq > 0)
-      filtered = mHiPass2.processSample(mHiPass1.processSample(in));
+      filtered = mHiPass2.processSample(mHiPass1.processSample(filtered));
 
     double rectified = abs(filtered);
     double dB = 20 * log10(rectified);
@@ -122,7 +122,7 @@ public:
       {
         index onsetIndex =
             refineStart(mWriteHead - mMinTimeAboveThreshold - mUpwardLookupTime,
-                mUpwardLookupTime);
+                        mUpwardLookupTime);
 
         index blockSize = mWriteHead > onsetIndex
                               ? mWriteHead - onsetIndex
@@ -248,19 +248,14 @@ private:
       mOnStateCount = 0;
       mOffStateCount = 1;
     }
-    else if (mInputState && nextState)
-    {
-      mOnStateCount++;
-    }
-    else if (!mInputState && !nextState)
-    {
-      mOffStateCount++;
-    }
+    else if (mInputState && nextState) { mOnStateCount++; }
+    else if (!mInputState && !nextState) { mOffStateCount++; }
   }
 
   index  mLatency;
   index  mFillCount;
   double mHiPassFreq{0};
+  double mPrevValid{0};
 
   index mMinTimeAboveThreshold{440};
   index mDownwardLookupTime{10};
