@@ -71,7 +71,7 @@ public:
     audioChannelsIn(1);
     controlChannelsOut({1, 1});
     setInputLabels({"audio input"});
-    setOutputLabels({"1 when slice detected, 0 otherwise"});
+    setOutputLabels({"spectral difference"});
   }
 
   template <typename T>

@@ -28,7 +28,7 @@ public:
   void init(double floor, double hiPassFreq)
   {
     mEnvelope.init(floor,hiPassFreq);
-    mDebounceCount = 1;
+    mDebounceCount = 0;
     mPrevValue = 0;
     mState = false;
   }
@@ -63,7 +63,7 @@ public:
 
 private:
   Envelope mEnvelope;
-  index  mDebounceCount{1};
+  index  mDebounceCount{0};
   double mPrevValue{0};
   bool   mState{false};
 };

@@ -65,7 +65,7 @@ public:
     audioChannelsIn(1);
     audioChannelsOut(1);
     FluidBaseClient::setInputLabels({"audio input"});
-    FluidBaseClient::setOutputLabels({"1 when slice detected, 0 otherwise"});
+    FluidBaseClient::setOutputLabels({"amplitude differential"});
   }
 
   template <typename T>

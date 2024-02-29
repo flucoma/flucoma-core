@@ -38,7 +38,7 @@ public:
   void init(index windowSize, index fftSize, index filterSize)
   {
     mODF.init(windowSize, fftSize, filterSize);
-    mDebounceCount = 1;
+    mDebounceCount = 0;
   }
 
   /// input window isn't necessarily a single framre because it should encompass
@@ -66,7 +66,7 @@ public:
   }
 
 private:
-  index                   mDebounceCount{1};
+  index                   mDebounceCount{0};
   OnsetDetectionFunctions mODF;
   double                  mPrevFuncVal{0.0};
 };
