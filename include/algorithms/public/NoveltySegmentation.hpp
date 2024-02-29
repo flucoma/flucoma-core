@@ -36,7 +36,7 @@ public:
       Allocator& alloc = FluidDefaultAllocator())
   {
     mNovelty.init(kernelSize, filterSize, nDims, alloc);
-    mDebounceCount = 1;
+    mDebounceCount = 0;
     mPeakBuffer.setZero();
   }
 
@@ -64,7 +64,7 @@ public:
 private:
   NoveltyFeature          mNovelty;
   ScopedEigenMap<ArrayXd> mPeakBuffer;
-  index                   mDebounceCount{1};
+  index                   mDebounceCount{0};
 };
 } // namespace algorithm
 } // namespace fluid
