@@ -13,7 +13,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../data/FluidIndex.hpp"
 #include "../../data/FluidMemory.hpp"
 #include <Eigen/Core>
-#include <HISSTools_FFT/HISSTools_FFT.h>
+#include <fft/fft.hpp>
 
 namespace fluid {
 namespace algorithm {
@@ -25,13 +25,13 @@ public:
   FFTSetup(index maxSize) : mMaxSize{maxSize}
   {
     assert(maxSize > 0 && "FFT Max Size must be > 0!");
-    hisstools_create_setup(&mSetup,
+    htl::create_fft_setup(&mSetup,
                            asUnsigned(static_cast<index>(std::log2(maxSize))));
   }
 
   ~FFTSetup()
   {
-    hisstools_destroy_setup(mSetup);
+    htl::destroy_fft_setup(mSetup);
     mSetup = 0;
   }
 
@@ -47,11 +47,11 @@ public:
     return *this;
   }
 
-  FFT_SETUP_D operator()() const noexcept { return mSetup; }
+  htl::setup_type<double> operator()() const noexcept { return mSetup; }
   index       maxSize() const noexcept { return mMaxSize; }
 
 private:
-  FFT_SETUP_D mSetup{nullptr};
+  htl::setup_type<double> mSetup{nullptr};
   index       mMaxSize;
 };
 } // namespace impl
@@ -94,7 +94,7 @@ public:
 
     mSplit.realp = mRealBuffer.data();
     mSplit.imagp = mImagBuffer.data();
-    hisstools_rfft(mSetup, input.derived().data(), &mSplit,
+    htl::rfft(mSetup, input.derived().data(), &mSplit,
                    asUnsigned(input.size()), asUnsigned(mLog2Size));
     mSplit.realp[mFrameSize - 1] = mSplit.imagp[0];
     mSplit.imagp[mFrameSize - 1] = 0;
@@ -108,7 +108,7 @@ public:
   }
 
 protected:
-  static FFT_SETUP_D getFFTSetup()
+  static htl::setup_type<double> getFFTSetup()
   {
     static const impl::FFTSetup static_setup(65536);
     return static_setup();
@@ -119,10 +119,10 @@ protected:
   index mFrameSize{513};
   index mLog2Size{10};
 
-  FFT_SETUP_D         mSetup;
-  FFT_SPLIT_COMPLEX_D mSplit;
-  rt::vector<double>  mRealBuffer;
-  rt::vector<double>  mImagBuffer;
+  htl::setup_type<double>   mSetup;
+  htl::split_type<double>   mSplit;
+  rt::vector<double>        mRealBuffer;
+  rt::vector<double>        mImagBuffer;
 
 private:
   rt::vector<std::complex<double>> mOutputBuffer;
@@ -150,7 +150,7 @@ public:
       mSplit.imagp[i] = input(i).imag();
     }
     mSplit.imagp[0] = mSplit.realp[mFrameSize - 1];
-    hisstools_rifft(mSetup, &mSplit, mOutputBuffer.data(),
+    htl::rifft(mSetup, &mSplit, mOutputBuffer.data(),
                     asUnsigned(mLog2Size));
     return {mOutputBuffer.data(), mSize};
   }

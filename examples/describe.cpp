@@ -13,7 +13,7 @@ This program demonstrates the use of the fluid decomposition toolbox
 to compute a summary of spectral features of an audio file
 */
 
-#include <AudioFile/IAudioFile.h>
+#include <audio_file/in_file.hpp>
 #include <Eigen/Core>
 #include <algorithms/public/DCT.hpp>
 #include <algorithms/public/Loudness.hpp>
@@ -67,12 +67,12 @@ int main(int argc, char* argv[])
   }
   const char* inputFile = argv[1];
 
-  HISSTools::IAudioFile file(inputFile);
+  htl::in_audio_file file(inputFile);
 
-  index nSamples = file.getFrames();
-  auto  samplingRate = file.getSamplingRate();
+  index nSamples = file.frames();
+  auto  samplingRate = file.sampling_rate();
 
-  if (!file.isOpen())
+  if (!file.is_open())
   {
     cout << "Input file could not be opened\n";
     return -2;
@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
   loudness.init(windowSize, samplingRate);
 
   RealVector in(nSamples);
-  file.readChannel(in.data(), nSamples, 0);
+  file.read_channel(in.data(), nSamples, 0);
   RealVector padded(in.size() + windowSize + hopSize);
   index      nFrames = floor((padded.size() - windowSize) / hopSize);
   RealMatrix pitchMat(nFrames, 2);
