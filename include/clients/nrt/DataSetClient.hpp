@@ -249,6 +249,46 @@ public:
     return labels;
   }
 
+  
+  MessageResult<FluidTensor<double, 1>> kNearestDist(InputBufferPtr data,
+                                                     index nNeighbours) const
+  {
+    // check for nNeighbours > 0 and < size of DS
+    if (nNeighbours > mAlgorithm.size())
+      return Error<FluidTensor<double, 1>>(SmallDataSet);
+    if (nNeighbours <= 0) return Error<FluidTensor<double, 1>>(SmallK);
+
+    InBufferCheck bufCheck(mAlgorithm.dims());
+
+    if (!bufCheck.checkInputs(data.get()))
+      return Error<FluidTensor<double, 1>>(bufCheck.error());
+
+    FluidTensor<const double, 1> point(
+        BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0));
+
+    std::vector<index> indices(asUnsigned(mAlgorithm.size()));
+    std::iota(indices.begin(), indices.end(), 0);
+    std::vector<double> distances(asUnsigned(mAlgorithm.size()));
+
+    auto ds = mAlgorithm.getData();
+
+    std::transform(
+        indices.begin(), indices.end(), distances.begin(),
+        [&point, &ds, this](index i) { return distance(point, ds.row(i)); });
+
+    std::sort(indices.begin(), indices.end(), [&distances](index a, index b) {
+      return distances[asUnsigned(a)] < distances[asUnsigned(b)];
+    });
+
+    FluidTensor<double, 1> labels(nNeighbours);
+
+    std::transform(
+        indices.begin(), indices.begin() + nNeighbours, labels.begin(),
+        [&distances](index i) { return distances[asUnsigned(i)]; });
+
+    return labels;
+  }
+
   MessageResult<void> clear()
   {
     mAlgorithm = DataSet(0);
@@ -283,6 +323,7 @@ public:
         makeMessage("fromBuffer", &DataSetClient::fromBuffer),
         makeMessage("toBuffer", &DataSetClient::toBuffer),
         makeMessage("getIds", &DataSetClient::getIds),
+        makeMessage("kNearestDist", &DataSetClient::kNearestDist),
         makeMessage("kNearest", &DataSetClient::kNearest));
   }
 

@@ -3,11 +3,11 @@
 ## Bulletproof configuration
 
 ```sh
-# in flucoma-core root directory, create a build directory and cd into it
+# in flucoma-core root directory, create a build directory and CD into it
 mkdir build && cd build
 
 # CMake to configure targets
-cmake .. -DBUILD_EXAXMPLES=ON
+cmake .. -DBUILD_EXAMPLES=ON
 
 # build example target, currently only `describe`
 cmake --build . --target describe
