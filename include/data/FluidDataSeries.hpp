@@ -311,8 +311,11 @@ public:
       result << setw(10) << "..." << std::endl;
 
       for (index t = maxFrames / 2; t > 0; t--)
-        result << setw(10) << "t" << (series.rows() - t) << ": "
-               << printFrame(series.row(size() - t), maxCols) << endl;
+      {
+        index rownum = series.rows() - t;
+        result << setw(10) << "t" << (rownum) << ": "
+               << printFrame(series.row(rownum), maxCols) << endl;
+      }
     }
 
     return result.str();
