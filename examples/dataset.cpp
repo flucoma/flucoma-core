@@ -13,7 +13,6 @@ This program demonstrates the use of the fluid decomposition toolbox
 to produces a dataset with the summary of spectral features on files
 */
 
-#include <AudioFile/IAudioFile.h>
 #include <Eigen/Core>
 #include <algorithms/public/DCT.hpp>
 #include <algorithms/public/Loudness.hpp>
@@ -22,11 +21,12 @@ to produces a dataset with the summary of spectral features on files
 #include <algorithms/public/STFT.hpp>
 #include <algorithms/public/SpectralShape.hpp>
 #include <algorithms/public/YINFFT.hpp>
+#include <audio_file/in_file.hpp>
+#include <data/FluidDataSet.hpp>
 #include <data/FluidIndex.hpp>
+#include <data/FluidJSON.hpp>
 #include <data/FluidMemory.hpp>
 #include <data/TensorTypes.hpp>
-#include <data/FluidDataSet.hpp>
-#include <data/FluidJSON.hpp>
 #include <cstdio>
 #include <iomanip>
 #include <iostream>
@@ -54,21 +54,23 @@ int main(int argc, char* argv[])
 
   if (argc <= 2)
   {
-    std::cerr << "usage: describe output_file.json input_file_1.wav input_file_2.wav...\n";
+    std::cerr << "usage: describe output_file.json input_file_1.wav "
+                 "input_file_2.wav...\n";
     return 1;
   }
 
   FluidDataSet<std::string, double, 1> dataset(168);
 
   const char* outputFile = argv[1];
-  for (int i = 2; i < argc; i++) {
-    const char* inputFile = argv[i];
-    HISSTools::IAudioFile file(inputFile);
+  for (int i = 2; i < argc; i++)
+  {
+    const char*        inputFile = argv[i];
+    htl::in_audio_file file(inputFile);
 
-    index nSamples = file.getFrames();
-    auto  samplingRate = file.getSamplingRate();
+    index nSamples = file.frames();
+    auto  samplingRate = file.sampling_rate();
 
-    if (!file.isOpen())
+    if (!file.is_open())
     {
       std::cerr << "input file " << inputFile << " could not be opened\n";
       return -2;
@@ -98,7 +100,7 @@ int main(int argc, char* argv[])
     loudness.init(windowSize, samplingRate);
 
     RealVector in(nSamples);
-    file.readChannel(in.data(), nSamples, 0);
+    file.read_channel(in.data(), nSamples, 0);
     RealVector padded(in.size() + windowSize + hopSize);
     index      nFrames = floor((padded.size() - windowSize) / hopSize);
     RealMatrix pitchMat(nFrames, 2);
@@ -121,22 +123,22 @@ int main(int argc, char* argv[])
       stft.processFrame(window, frame);
       stft.magnitude(frame, magnitude);
       bands.processFrame(magnitude, mels, false, false, true,
-                        FluidDefaultAllocator());
+                         FluidDefaultAllocator());
       dct.processFrame(mels, mfccs);
       mfccMat.row(i) <<= mfccs;
       yin.processFrame(magnitude, pitch, minFreq, maxFreq, samplingRate);
       pitchMat.row(i) <<= pitch;
       shape.processFrame(magnitude, shapeDesc, samplingRate, 0, -1, 0.95, false,
-                        false, FluidDefaultAllocator());
+                         false, FluidDefaultAllocator());
       shapeMat.row(i) <<= shapeDesc;
       loudness.processFrame(window, loudnessDesc, true, true);
       loudnessMat.row(i) <<= loudnessDesc;
     }
 
-    RealVector  pitchStats = computeStats(pitchMat, stats);
-    RealVector  loudnessStats = computeStats(loudnessMat, stats);
-    RealVector  shapeStats = computeStats(shapeMat, stats);
-    RealVector  mfccStats = computeStats(mfccMat, stats);
+    RealVector pitchStats = computeStats(pitchMat, stats);
+    RealVector loudnessStats = computeStats(loudnessMat, stats);
+    RealVector shapeStats = computeStats(shapeMat, stats);
+    RealVector mfccStats = computeStats(mfccMat, stats);
 
     RealVector allStats(168);
 
@@ -150,11 +152,11 @@ int main(int argc, char* argv[])
 
   auto outputJSON = JSONFile(outputFile, "w");
   outputJSON.write(dataset);
-  
+
   if (!outputJSON.ok())
   {
     std::cerr << "failed to write output to " << outputFile << "\n";
   }
-  
+
   return 0;
 }

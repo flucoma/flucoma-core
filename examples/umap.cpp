@@ -13,13 +13,13 @@ This program demonstrates the use of the fluid decomposition toolbox
 to apply an algorithm on an input dataset
 */
 
+#include "algorithms/public/UMAP.hpp"
 #include <Eigen/Core>
+#include <data/FluidDataSet.hpp>
 #include <data/FluidIndex.hpp>
+#include <data/FluidJSON.hpp>
 #include <data/FluidMemory.hpp>
 #include <data/TensorTypes.hpp>
-#include <data/FluidDataSet.hpp>
-#include <data/FluidJSON.hpp>
-#include "algorithms/public/UMAP.hpp"
 #include <cstdio>
 #include <iomanip>
 #include <iostream>
@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
   const char* inputFile = argv[1];
   const char* outputFile = argv[2];
 
-  auto inputJSON = JSONFile(inputFile, "r");
+  auto           inputJSON = JSONFile(inputFile, "r");
   nlohmann::json j = inputJSON.read();
 
   if (!inputJSON.ok())
@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
     std::cerr << "failed to read input " << inputFile << "\n";
     return 2;
   }
-  
+
   if (!check_json(j, datasetIN))
   {
     std::cerr << "Invalid JSON format\n";
@@ -59,18 +59,18 @@ int main(int argc, char* argv[])
   }
 
   datasetIN = j.get<FluidDataSet<std::string, double, 1>>();
-  
+
   algorithm::UMAP algorithm;
 
   datasetOUT = algorithm.train(datasetIN, 15, 2, 0.1, 200, 0.1);
 
   auto outputJSON = JSONFile(outputFile, "w");
   outputJSON.write(datasetOUT);
-  
+
   if (!outputJSON.ok())
   {
     std::cerr << "failed to write output to " << outputFile << "\n";
   }
-  
+
   return 0;
 }
