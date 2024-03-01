@@ -26,7 +26,7 @@ public:
   {
     assert(maxSize > 0 && "FFT Max Size must be > 0!");
     htl::create_fft_setup(&mSetup,
-                           asUnsigned(static_cast<index>(std::log2(maxSize))));
+                          asUnsigned(static_cast<index>(std::log2(maxSize))));
   }
 
   ~FFTSetup()
@@ -48,11 +48,11 @@ public:
   }
 
   htl::setup_type<double> operator()() const noexcept { return mSetup; }
-  index       maxSize() const noexcept { return mMaxSize; }
+  index                   maxSize() const noexcept { return mMaxSize; }
 
 private:
   htl::setup_type<double> mSetup{nullptr};
-  index       mMaxSize;
+  index                   mMaxSize;
 };
 } // namespace impl
 
@@ -66,8 +66,7 @@ public:
 
   FFT() = delete;
 
-  FFT(index size, Allocator& alloc = FluidDefaultAllocator())
-  noexcept
+  FFT(index size, Allocator& alloc = FluidDefaultAllocator()) noexcept
       : mMaxSize(size), mSize(size), mFrameSize(size / 2 + 1),
         mLog2Size(static_cast<index>(std::log2(size))), mSetup(getFFTSetup()),
         mRealBuffer(asUnsigned(mFrameSize), alloc),
@@ -94,8 +93,8 @@ public:
 
     mSplit.realp = mRealBuffer.data();
     mSplit.imagp = mImagBuffer.data();
-    htl::rfft(mSetup, input.derived().data(), &mSplit,
-                   asUnsigned(input.size()), asUnsigned(mLog2Size));
+    htl::rfft(mSetup, input.derived().data(), &mSplit, asUnsigned(input.size()),
+              asUnsigned(mLog2Size));
     mSplit.realp[mFrameSize - 1] = mSplit.imagp[0];
     mSplit.imagp[mFrameSize - 1] = 0;
     mSplit.imagp[0] = 0;
@@ -119,10 +118,10 @@ protected:
   index mFrameSize{513};
   index mLog2Size{10};
 
-  htl::setup_type<double>   mSetup;
-  htl::split_type<double>   mSplit;
-  rt::vector<double>        mRealBuffer;
-  rt::vector<double>        mImagBuffer;
+  htl::setup_type<double> mSetup;
+  htl::split_type<double> mSplit;
+  rt::vector<double>      mRealBuffer;
+  rt::vector<double>      mImagBuffer;
 
 private:
   rt::vector<std::complex<double>> mOutputBuffer;
@@ -150,8 +149,7 @@ public:
       mSplit.imagp[i] = input(i).imag();
     }
     mSplit.imagp[0] = mSplit.realp[mFrameSize - 1];
-    htl::rifft(mSetup, &mSplit, mOutputBuffer.data(),
-                    asUnsigned(mLog2Size));
+    htl::rifft(mSetup, &mSplit, mOutputBuffer.data(), asUnsigned(mLog2Size));
     return {mOutputBuffer.data(), mSize};
   }
 

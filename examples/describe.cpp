@@ -13,7 +13,6 @@ This program demonstrates the use of the fluid decomposition toolbox
 to compute a summary of spectral features of an audio file
 */
 
-#include <audio_file/in_file.hpp>
 #include <Eigen/Core>
 #include <algorithms/public/DCT.hpp>
 #include <algorithms/public/Loudness.hpp>
@@ -22,6 +21,7 @@ to compute a summary of spectral features of an audio file
 #include <algorithms/public/STFT.hpp>
 #include <algorithms/public/SpectralShape.hpp>
 #include <algorithms/public/YINFFT.hpp>
+#include <audio_file/in_file.hpp>
 #include <data/FluidIndex.hpp>
 #include <data/FluidMemory.hpp>
 #include <data/TensorTypes.hpp>
