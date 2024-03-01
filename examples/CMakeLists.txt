@@ -5,7 +5,7 @@ foreach (EXAMPLE  describe)
 	)
 
 	target_link_libraries(
-		${EXAMPLE} PRIVATE FLUID_DECOMPOSITION  HISSTools_AudioFile HISSTools_FFT
+		${EXAMPLE} PRIVATE FLUID_DECOMPOSITION
 	)
 
 	target_compile_options(${EXAMPLE} PRIVATE ${FLUID_ARCH})
