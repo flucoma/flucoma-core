@@ -9,6 +9,6 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Signals.cpp.in ${CMAKE_BINARY_DIR}/Si
 add_library(TestSignals STATIC ${CMAKE_BINARY_DIR}/Signals.cpp)
 target_include_directories(TestSignals PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(TestSignals PRIVATE 
-  FLUID_DECOMPOSITION HISSTools_AudioFile
+  FLUID_DECOMPOSITION
 )
 target_compile_features(TestSignals PUBLIC cxx_std_14)
