@@ -140,12 +140,20 @@ void to_json(nlohmann::json &j, const FluidDataSeries<std::string, T, 1> &ds) {
   auto ids = ds.getIds();
   auto data = ds.getData();
   j["cols"] = ds.pointSize();
-  char timestring[6];
+  index maxlength = 0;
+  for (index r = 0; r < ds.size(); r++) {
+    auto length = data[r].rows();
+      maxlength = std::max(maxlength, length);
+  }
+  index stringlen = std::ceil(std::log10(maxlength-1));
+  std::stringstream timestring;
   for (index r = 0; r < ds.size(); r++) {
     auto series = data[r];
     for (index s = 0; s < series.rows(); s++) {
-      std::snprintf(timestring,6,"T%04ld",s);
-      j["data"][ids[r]][timestring] = data[r].row(s);
+        timestring.str("");
+        timestring.clear();
+      timestring << std::setw(stringlen) << std::setfill('0') << s;
+      j["data"][ids[r]][timestring.str()] = data[r].row(s);
     }
   }
 }
