@@ -299,13 +299,13 @@ public:
     if (series.rows() < maxFrames)
     {
       for (index t = 0; t < series.rows(); t++)
-        result << setw(10) << "t" << t << ": "
+        result << setw(10) << t << ": "
                << printFrame(series.row(t), maxCols) << endl;
     }
     else
     {
       for (index t = 0; t < maxFrames / 2; t++)
-        result << setw(10) << "t" << t << ": "
+        result << setw(10) << t << ": "
                << printFrame(series.row(t), maxCols) << endl;
 
       result << setw(10) << "..." << std::endl;
@@ -313,7 +313,7 @@ public:
       for (index t = maxFrames / 2; t > 0; t--)
       {
         index rownum = series.rows() - t;
-        result << setw(10) << "t" << (rownum) << ": "
+        result << setw(10) << (rownum) << ": "
                << printFrame(series.row(rownum), maxCols) << endl;
       }
     }
