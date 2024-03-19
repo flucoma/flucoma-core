@@ -1,5 +1,5 @@
 #include "Signals.hpp"
-#include <AudioFile/IAudioFile.h>
+#include <audio_file/in_file.hpp>
 #include <data/FluidTensor.hpp>
 #include <algorithm>
 #include <cmath>
@@ -78,19 +78,19 @@ FluidTensor<double, 1> make_smoothSine()
 FluidTensor<double, 2> load(const std::string& audio_path,
                             const std::string& file)
 {
-  HISSTools::IAudioFile f(audio_path + "/" + file);
-  auto                  e = f.getErrors();
+  htl::in_audio_file f(audio_path + "/" + file);
+  auto                  e = f.get_errors();
   if (e.size())
   {
-    throw std::runtime_error(HISSTools::BaseAudioFile::getErrorString(e[0]));
+    throw std::runtime_error(f.error_string(e[0]));
   }
 
-  FluidTensor<double, 2> data(f.getChannels(), f.getFrames());
-  f.readInterleaved(data.data(), f.getFrames());
-  e = f.getErrors();
+  FluidTensor<double, 2> data(f.channels(), f.frames());
+  f.read_interleaved(data.data(), f.frames());
+  e = f.get_errors();
   if (e.size())
   {
-    throw std::runtime_error(HISSTools::BaseAudioFile::getErrorString(e[0]));
+    throw std::runtime_error(f.error_string(e[0]));
   }
 
   return data;

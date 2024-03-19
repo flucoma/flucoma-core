@@ -1,6 +1,6 @@
 /*
 Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
-Copyright 2017-2019 University of Huddersfield.
+Copyright University of Huddersfield.
 Licensed under the BSD-3 License.
 See license.md file in the project root for full license information.
 This project has received funding from the European Research Council (ERC)
@@ -29,7 +29,7 @@ using HostVector = FluidTensorView<T, 1>;
 constexpr auto RunningStatsParams =
     defineParameters(LongParam("history", "History Size", 2, Min(2)));
 
-class RunningStatsClient : public FluidBaseClient, public ControlIn, ControlOut
+class RunningStatsClient : public FluidBaseClient, public ControlOutFollowsIn
 {
 public:
   using ParamDescType = decltype(RunningStatsParams);
@@ -87,7 +87,7 @@ public:
     return defineMessages(makeMessage("clear", &RunningStatsClient::clear));
   }
 
-  index latency() { return 0; }
+  index latency() const { return 0; }
 
 private:
   algorithm::RunningStats mAlgorithm;

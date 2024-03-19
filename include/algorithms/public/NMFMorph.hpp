@@ -1,6 +1,6 @@
 /*
 Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
-Copyright 2017-2019 University of Huddersfield.
+Copyright University of Huddersfield.
 Licensed under the BSD-3 License.
 See license.md file in the project root for full license information.
 This project has received funding from the European Research Council (ERC)
@@ -100,7 +100,7 @@ public:
     mInitialized = true;
   }
 
-  bool initialized() { return mInitialized; }
+  bool initialized() const { return mInitialized; }
 
   void processFrame(ComplexVectorView v, double interpolation, Allocator& alloc)
   {

@@ -1,6 +1,6 @@
 /*
 Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
-Copyright 2017-2019 University of Huddersfield.
+Copyright University of Huddersfield.
 Licensed under the BSD-3 License.
 See license.md file in the project root for full license information.
 This project has received funding from the European Research Council (ERC)
@@ -79,6 +79,7 @@ public:
         mMelBands{40, get<kFFT>().max(), c.allocator()},
         mDCT{40, 13, c.allocator()},
         mChroma{12, get<kFFT>().max(), c.allocator()},
+        mYinFFT(get<kFFT>().maxFrameSize(), c.allocator()),
         mLoudness{get<kFFT>().max(), c.allocator()}
   {
     audioChannelsIn(1);
@@ -181,7 +182,7 @@ public:
     output[0](0) = static_cast<T>(mDescriptor);
   }
 
-  index latency()
+  index latency() const
   {
     index filterSize = get<kFilterSize>();
     if (filterSize % 2) filterSize++;

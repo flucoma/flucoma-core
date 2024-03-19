@@ -1,5 +1,5 @@
 # Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
-# Copyright 2017-2019 University of Huddersfield.
+# Copyright University of Huddersfield.
 # Licensed under the BSD-3 License.
 # See license.md file in the project root for full license information.
 # This project has received funding from the European Research Council (ERC)
@@ -56,7 +56,7 @@ FetchContent_Declare(
   HISSTools
   GIT_REPOSITORY https://github.com/AlexHarker/HISSTools_Library
   GIT_PROGRESS TRUE
-  GIT_TAG 559b5c8
+  GIT_TAG f3292ad 
 )
 
 FetchContent_Declare(
@@ -96,6 +96,7 @@ FetchContent_Declare(
   GIT_TAG main
 )
 
+set(FMT_INSTALL OFF CACHE BOOL "")
 FetchContent_Declare(
   fmt
   GIT_SHALLOW TRUE  
@@ -167,21 +168,6 @@ if(NOT fmt_POPULATED)
 endif()
 add_subdirectory(${fmt_SOURCE_DIR} ${fmt_BINARY_DIR} EXCLUDE_FROM_ALL)
 
-# HISSTools FFT target
-add_library(
-  HISSTools_FFT STATIC "${hisstools_SOURCE_DIR}/HISSTools_FFT/HISSTools_FFT.cpp"
-)
-
-target_link_libraries(
-  HISSTools_FFT PRIVATE ${ACCELERATE}
-)
-
-target_include_directories(HISSTools_FFT PUBLIC "${hisstools_SOURCE_DIR}")
-
-set_target_properties(HISSTools_FFT PROPERTIES
-    POSITION_INDEPENDENT_CODE ON
-)
-
 # Brute force staic runtime on windwos
 if(MSVC)
   foreach(flag_var
@@ -193,13 +179,6 @@ if(MSVC)
   endforeach()
 endif()
 
-#HISSTools Audiofile Target
-add_library(
-  HISSTools_AudioFile STATIC
-  "${hisstools_SOURCE_DIR}/AudioFile/BaseAudioFile.cpp"
-  "${hisstools_SOURCE_DIR}/AudioFile/IAudioFile.cpp"
-  "${hisstools_SOURCE_DIR}/AudioFile/OAudioFile.cpp"
-)
 
 #Fluid Decomposition header-only target
 add_library(FLUID_DECOMPOSITION INTERFACE)
@@ -211,13 +190,12 @@ target_include_directories(
   FLUID_DECOMPOSITION SYSTEM INTERFACE #we don't want warnings from Eigen or HissTools
   "${eigen_SOURCE_DIR}"
   "${spectra_SOURCE_DIR}/include"
-  "${hisstools_SOURCE_DIR}"
+  "${hisstools_SOURCE_DIR}/include"
   "${memory_SOURCE_DIR}/include/foonathan"
   "${fmt_SOURCE_DIR}/include"
 )
 target_link_libraries(
   FLUID_DECOMPOSITION INTERFACE 
-  HISSTools_FFT 
   flucoma_VERSION_LIB 
   tl::optional
   nlohmann_json::nlohmann_json
@@ -243,16 +221,12 @@ target_compile_definitions(FLUID_DECOMPOSITION INTERFACE EIGEN_MPL2_ONLY=1)
 
 if(APPLE)
   #targeting <= 10.9, need to really emphasise that we want libc++ both to compiler and linker
-  target_compile_options(HISSTools_FFT PUBLIC -stdlib=libc++)
-  target_compile_options(HISSTools_AudioFile PUBLIC -stdlib=libc++)
   target_compile_options(FLUID_DECOMPOSITION INTERFACE -stdlib=libc++)
-  target_link_libraries(FLUID_DECOMPOSITION INTERFACE -stdlib=libc++)
+  target_link_libraries(FLUID_DECOMPOSITION INTERFACE -stdlib=libc++ ${ACCELERATE})
 endif()
 
 #Apply any vector instruction flags
 if(DEFINED FLUID_ARCH)
-  target_compile_options(HISSTools_FFT PUBLIC ${FLUID_ARCH})
-  target_compile_options(HISSTools_AudioFile PUBLIC ${FLUID_ARCH})
   target_compile_options(FLUID_DECOMPOSITION INTERFACE ${FLUID_ARCH})
 endif()
 

@@ -1,6 +1,6 @@
 /*
 Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
-Copyright 2017-2019 University of Huddersfield.
+Copyright University of Huddersfield.
 Licensed under the BSD-3 License.
 See license.md file in the project root for full license information.
 This project has received funding from the European Research Council (ERC)
@@ -34,12 +34,17 @@ constexpr bool isAudio = isAudioIn<T> || isAudioOut<T>;
 struct Control
 {};
 struct ControlIn : Control 
-{}; 
+{};
 struct ControlOut : Control
 {};
+struct ControlOutFollowsIn : ControlIn, ControlOut
+{};
+
 
 template <typename T>
 constexpr bool isControlIn = std::is_base_of<ControlIn, T>::value;
+template <typename T>
+constexpr bool isControlOutFollowsIn = std::is_base_of<ControlOutFollowsIn, T>::value;
 template <typename T>
 constexpr bool isControlOut = std::is_base_of<ControlOut, T>::value;
 template <typename T>

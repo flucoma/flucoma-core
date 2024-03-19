@@ -1,6 +1,6 @@
 /*
 Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
-Copyright 2017-2019 University of Huddersfield.
+Copyright University of Huddersfield.
 Licensed under the BSD-3 License.
 See license.md file in the project root for full license information.
 This project has received funding from the European Research Council (ERC)
@@ -36,7 +36,7 @@ public:
       Allocator& alloc = FluidDefaultAllocator())
   {
     mNovelty.init(kernelSize, filterSize, nDims, alloc);
-    mDebounceCount = 1;
+    mDebounceCount = 0;
     mPeakBuffer.setZero();
   }
 
@@ -64,7 +64,7 @@ public:
 private:
   NoveltyFeature          mNovelty;
   ScopedEigenMap<ArrayXd> mPeakBuffer;
-  index                   mDebounceCount{1};
+  index                   mDebounceCount{0};
 };
 } // namespace algorithm
 } // namespace fluid
