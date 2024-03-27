@@ -11,6 +11,7 @@
 #include <algorithms/public/Standardization.hpp>
 #include <algorithms/public/LabelSetEncoder.hpp>
 #include <data/FluidDataSet.hpp>
+#include <data/FluidDataSeries.hpp>
 #include <data/FluidIndex.hpp>
 #include <data/FluidTensor.hpp>
 #include <data/TensorTypes.hpp>
@@ -130,6 +131,52 @@ void from_json(const nlohmann::json &j, FluidDataSet<std::string, T, 1> &ds) {
   for (auto r = rows.begin(); r != rows.end(); ++r) {
     r.value().get_to(tmp);
     ds.add(r.key(), tmp);
+  }
+}
+
+// FluidDataSeries
+template <typename T>
+void to_json(nlohmann::json &j, const FluidDataSeries<std::string, T, 1> &ds) {
+  auto ids = ds.getIds();
+  auto data = ds.getData();
+  j["cols"] = ds.pointSize();
+  std::stringstream timestring;
+  for (index r = 0; r < ds.size(); r++) {
+    auto series = data[r];
+    index stringlen = std::ceil(std::log10(series.rows() - 1));
+    for (index s = 0; s < series.rows(); s++) {
+      timestring.str("");
+      timestring.clear();
+      timestring << std::setw(stringlen) << std::setfill('0') << s;
+      j["data"][ids[r]][timestring.str()] = data[r].row(s);
+    }
+  }
+}
+
+template <typename T>
+bool check_json(const nlohmann::json &j,
+                const FluidDataSeries<std::string, T, 1> &) {
+  return fluid::check_json(j,
+    {"cols", "data"},
+    {JSONTypes::NUMBER, JSONTypes::OBJECT}
+  );
+}
+
+template <typename T>
+void from_json(const nlohmann::json &j, FluidDataSeries<std::string, T, 1> &ds) {
+  auto data = j.at("data");
+  index pointSize = j.at("cols").get<index>();
+  FluidTensor<T, 1> tmp(pointSize);
+  
+  ds.resize(pointSize);
+
+  for (auto r = data.begin(); r != data.end(); ++r) 
+  {
+    for (auto s = r->begin(); s != r->end(); ++s) 
+    {
+      s.value().get_to(tmp);
+      ds.addFrame(r.key(), FluidTensorView<T, 1>{tmp});
+    }
   }
 }
 
