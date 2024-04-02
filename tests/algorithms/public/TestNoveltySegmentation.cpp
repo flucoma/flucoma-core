@@ -144,7 +144,7 @@ NoveltyPitchTest(fluid::FluidTensorView<const double, 1> testSignal, Params p)
   FluidTensor<double, 1>               pitchFrame(2);
 
   auto stft = STFT{p.window, p.fft, p.hop};
-  auto pitch = fluid::algorithm::YINFFT();
+  auto pitch = fluid::algorithm::YINFFT((p.fft / 2) + 1);
 
   auto makeInput = [&stft, &pitch, &stftFrame, &magnitudes,
                     &pitchFrame](auto source) {

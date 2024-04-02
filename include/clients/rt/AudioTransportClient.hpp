@@ -89,7 +89,7 @@ public:
     if (output[0].data()) output[0] <<= result;
   }
 
-  index latency() { return get<kFFT>().winSize(); }
+  index latency() const { return get<kFFT>().winSize(); }
   void  reset(FluidContext&) { mBufferedProcess.reset(); }
 
 private:

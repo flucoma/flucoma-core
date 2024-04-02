@@ -1,6 +1,6 @@
 /*
 Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
-Copyright 2017-2019 University of Huddersfield.
+Copyright University of Huddersfield.
 Licensed under the BSD-3 License.
 See license.md file in the project root for full license information.
 This project has received funding from the European Research Council (ERC)
@@ -36,7 +36,7 @@ public:
     index  comparison;
     double value;
 
-    bool test(RealVectorView point)
+    bool test(InputRealVectorView point)
     {
       using namespace std;
       switch (comparison)
@@ -129,7 +129,7 @@ public:
 
 private:
   void addRow(
-      string id, RealVectorView point, const DataSet& current, DataSet& out)
+      string id, InputRealVectorView point, const DataSet& current, DataSet& out)
   {
     mTmpPoint.fill(0);
     index currentSize = current.pointSize();

@@ -1,6 +1,6 @@
 /*
 Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
-Copyright 2017-2019 University of Huddersfield.
+Copyright University of Huddersfield.
 Licensed under the BSD-3 License.
 See license.md file in the project root for full license information.
 This project has received funding from the European Research Council (ERC)
@@ -33,23 +33,24 @@ public:
     mInitialized = true;
   }
 
-  double processSample(const double in, 
-                       double floor, index fastRampUpTime, index slowRampUpTime,
-                       index fastRampDownTime, index slowRampDownTime,
-                       double hiPassFreq)
+  double processSample(const double in, double floor, index fastRampUpTime,
+                       index slowRampUpTime, index fastRampDownTime,
+                       index slowRampDownTime, double hiPassFreq)
   {
     using namespace std;
     assert(mInitialized);
     mFastSlide.updateCoeffs(fastRampUpTime, fastRampDownTime);
     mSlowSlide.updateCoeffs(slowRampUpTime, slowRampDownTime);
-    double filtered = in;
+    if (std::isfinite(in)) mPrevValid = in;
+    double filtered = mPrevValid;
     if (hiPassFreq != mHiPassFreq)
     {
       initFilters(hiPassFreq);
       mHiPassFreq = hiPassFreq;
     }
-    if (mHiPassFreq > 0){
-      filtered = mHiPass2.processSample(mHiPass1.processSample(in));
+    if (mHiPassFreq > 0)
+    {
+      filtered = mHiPass2.processSample(mHiPass1.processSample(filtered));
     }
     double rectified = abs(filtered);
     double dB = 20 * log10(rectified);
@@ -59,7 +60,7 @@ public:
     return fast - slow;
   }
 
-  bool initialized() { return mInitialized; }
+  bool initialized() const { return mInitialized; }
 
 private:
   void initFilters(double cutoff)
@@ -70,6 +71,7 @@ private:
 
   double mHiPassFreq{0};
   bool   mInitialized{false};
+  double mPrevValid{0};
 
   ButterworthHPFilter mHiPass1;
   ButterworthHPFilter mHiPass2;

@@ -1,6 +1,6 @@
 /*
 Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
-Copyright 2017-2019 University of Huddersfield.
+Copyright University of Huddersfield.
 Licensed under the BSD-3 License.
 See license.md file in the project root for full license information.
 This project has received funding from the European Research Council (ERC)
@@ -71,7 +71,7 @@ public:
     audioChannelsIn(1);
     controlChannelsOut({1, 1});
     setInputLabels({"audio input"});
-    setOutputLabels({"1 when slice detected, 0 otherwise"});
+    setOutputLabels({"spectral difference"});
   }
 
   template <typename T>
@@ -106,7 +106,7 @@ public:
     output[0](0) = static_cast<T>(mDescriptor);
   }
 
-  index latency() { return static_cast<index>(get<kFFT>().hopSize()); }
+  index latency() const { return static_cast<index>(get<kFFT>().hopSize()); }
 
   AnalysisSize analysisSettings()
   {

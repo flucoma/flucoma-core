@@ -85,11 +85,12 @@ public:
     return true;
   }
 
-  FluidTensorView<dataType, N> get(idType const& id) const
+  FluidTensorView<const dataType, N> get(idType const& id) const
   {
     auto pos = mIndex.find(id);
-    return pos != mIndex.end() ? mData.row(pos->second)
-                               : FluidTensorView<dataType, N>{nullptr, 0, 0};
+    return pos != mIndex.end()
+               ? mData.row(pos->second)
+               : FluidTensorView<const dataType, N>{nullptr, 0, 0};
   }
 
   index getIndex(idType const& id) const
@@ -127,14 +128,18 @@ public:
     return true;
   }
 
-  FluidTensorView<dataType, N + 1> getData() const { return mData; }
-  FluidTensorView<idType, 1>       getIds() const { return mIds; }
-  index                            pointSize() const { return mDim.size; }
-  index                            dims() const { return mDim.size; }
-  index                            size() const { return mIds.size(); }
-  bool                             initialized() { return (size() > 0); }
+  FluidTensorView<dataType, N + 1>       getData() { return mData; }
+  FluidTensorView<idType, 1>             getIds() { return mIds; }
+  FluidTensorView<const dataType, N + 1> getData() const { return mData; }
+  FluidTensorView<const idType, 1>       getIds() const { return mIds; }
 
-  std::string printRow(FluidTensorView<dataType, N> row, index maxCols) const
+  index pointSize() const { return mDim.size; }
+  index dims() const { return mDim.size; }
+  index size() const { return mIds.size(); }
+  bool  initialized() const { return (size() > 0); }
+
+  std::string printRow(FluidTensorView<const dataType, N> row,
+                       index                              maxCols) const
   {
     using namespace std;
     ostringstream result;
@@ -199,9 +204,9 @@ private:
     for (index i = 0; i < mIds.size(); i++) { mIndex.insert({mIds[i], i}); }
   }
 
-  mutable std::unordered_map<idType, index> mIndex;
-  mutable FluidTensor<idType, 1>            mIds;
-  mutable FluidTensor<dataType, N + 1>      mData;
-  FluidTensorSlice<N>                       mDim;
+  std::unordered_map<idType, index> mIndex;
+  FluidTensor<idType, 1>            mIds;
+  FluidTensor<dataType, N + 1>      mData;
+  FluidTensorSlice<N>               mDim;
 };
 } // namespace fluid

@@ -1,6 +1,6 @@
 /*
 Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
-Copyright 2017-2019 University of Huddersfield.
+Copyright University of Huddersfield.
 Licensed under the BSD-3 License.
 See license.md file in the project root for full license information.
 This project has received funding from the European Research Council (ERC)
@@ -139,8 +139,6 @@ private:
       StringVector ids{srcDataSet.getIds()};
       RealMatrix   data(srcDataSet.size(), srcDataSet.pointSize());
       if (!mAlgorithm.initialized()) return Error(NoDataFitted);
-      mAlgorithm.setMin(get<kMin>());
-      mAlgorithm.setMax(get<kMax>());
       mAlgorithm.process(srcDataSet.getData(), data, invert);
       FluidDataSet<string, double, 1> result(ids, data);
       destPtr->setDataSet(result);
@@ -166,8 +164,6 @@ private:
     RealVector src(mAlgorithm.dims());
     RealVector dest(mAlgorithm.dims());
     src <<= BufferAdaptor::ReadAccess(in.get()).samps(0, mAlgorithm.dims(), 0);
-    mAlgorithm.setMin(get<kMin>());
-    mAlgorithm.setMax(get<kMax>());
     mAlgorithm.processFrame(src, dest, invert);
     outBuf.samps(0, mAlgorithm.dims(), 0) <<= dest;
     return OK();
@@ -239,14 +235,12 @@ public:
       RealVector dest(algorithm.dims());
       src <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                 .samps(0, algorithm.dims(), 0);
-//      algorithm.setMin(get<kMin>());
-//      algorithm.setMax(get<kMax>());
       algorithm.processFrame(src, dest, get<kInvert>() == 1);
       outBuf.samps(0, algorithm.dims(), 0) <<= dest;
     }
   }
 
-  index latency() { return 0; }
+  index latency() const { return 0; }
 };
 
 

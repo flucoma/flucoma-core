@@ -1,6 +1,6 @@
 /*
 Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
-Copyright 2017-2019 University of Huddersfield.
+Copyright University of Huddersfield.
 Licensed under the BSD-3 License.
 See license.md file in the project root for full license information.
 This project has received funding from the European Research Council (ERC)
@@ -305,16 +305,16 @@ public:
   }
 
   template <size_t N>
-  typename ParamType<N>::type applyConstraintsTo(typename ParamType<N>::type x)
+  typename ParamType<N>::type applyConstraintsTo(typename ParamType<N>::type x) const
   {
     const index offset = std::get<N>(std::make_tuple(Os...));
     auto&       constraints = constraint<N>();
     return constrain<offset, N, kAll>(x, constraints, nullptr);
   }
 
-  template <size_t N>
-  auto applyConstraintToMax(index x) -> std::enable_if_t<
-      std::is_same_v<typename ParamType<N>::type, LongRuntimeMaxParam>, index>
+  template <size_t N, typename = std::enable_if_t<
+    std::is_same_v<typename ParamType<N>::type, LongRuntimeMaxParam>, index>>
+  auto applyConstraintToMax(index x) const
   {
     const auto constraints = GetIncreasingConstraints(constraint<N>());
     if constexpr (std::tuple_size<decltype(constraints)>::value)
@@ -465,7 +465,7 @@ public:
   {} // no-op for non-shared parameter set?
 
   template <size_t N>
-  auto descriptorAt()
+  auto descriptorAt() const
   {
     return descriptor<N>();
   }
@@ -570,7 +570,7 @@ private:
 
   template <size_t Offset, size_t N, ConstraintTypes C, typename T,
             typename... Constraints>
-  T constrain(T& thisParam, const std::tuple<Constraints...>& c, Result* r)
+  T constrain(T& thisParam, const std::tuple<Constraints...>& c, Result* r) const
   {
     using CT = std::tuple<Constraints...>;
     // clang < 3.7: index_sequence_for doesn't work here
@@ -592,7 +592,7 @@ private:
   template <size_t Offset, size_t N, typename T, typename Constraints,
             size_t... Is>
   T constrainImpl(T& thisParam, Constraints& c, std::index_sequence<Is...>,
-                  Result* r)
+                  Result* r) const
   {
     T res = thisParam;
     static_cast<void>(r);

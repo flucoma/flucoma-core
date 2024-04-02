@@ -1,6 +1,6 @@
 /*
 Part of the Fluid Corpus Manipulation Project (http://www.flucoma.org/)
-Copyright 2017-2019 University of Huddersfield.
+Copyright University of Huddersfield.
 Licensed under the BSD-3 License.
 See license.md file in the project root for full license information.
 This project has received funding from the European Research Council (ERC)
@@ -13,22 +13,23 @@ This program demonstrates the use of the fluid decomposition toolbox
 to compute a summary of spectral features of an audio file
 */
 
-#include <AudioFile/IAudioFile.h>
 #include <Eigen/Core>
 #include <algorithms/public/DCT.hpp>
 #include <algorithms/public/Loudness.hpp>
 #include <algorithms/public/MelBands.hpp>
+#include <algorithms/public/MultiStats.hpp>
 #include <algorithms/public/STFT.hpp>
 #include <algorithms/public/SpectralShape.hpp>
-#include <algorithms/public/MultiStats.hpp>
 #include <algorithms/public/YINFFT.hpp>
+#include <audio_file/in_file.hpp>
 #include <data/FluidIndex.hpp>
+#include <data/FluidMemory.hpp>
 #include <data/TensorTypes.hpp>
 #include <cstdio>
 #include <iomanip>
 #include <iostream>
 
-fluid::RealVector computeStats(fluid::RealMatrixView   matrix,
+fluid::RealVector computeStats(fluid::RealMatrixView        matrix,
                                fluid::algorithm::MultiStats stats)
 {
   fluid::index      dim = matrix.cols();
@@ -66,12 +67,12 @@ int main(int argc, char* argv[])
   }
   const char* inputFile = argv[1];
 
-  HISSTools::IAudioFile file(inputFile);
+  htl::in_audio_file file(inputFile);
 
-  index nSamples = file.getFrames();
-  auto  samplingRate = file.getSamplingRate();
+  index nSamples = file.frames();
+  auto  samplingRate = file.sampling_rate();
 
-  if (!file.isOpen())
+  if (!file.is_open())
   {
     cout << "Input file could not be opened\n";
     return -2;
@@ -90,8 +91,8 @@ int main(int argc, char* argv[])
   STFT          stft{windowSize, fftSize, hopSize};
   MelBands      bands{nBands, fftSize};
   DCT           dct{nBands, nCoefs};
-  YINFFT        yin;
-  SpectralShape shape;
+  YINFFT        yin{nBins, FluidDefaultAllocator()};
+  SpectralShape shape(FluidDefaultAllocator());
   Loudness      loudness{windowSize};
   MultiStats    stats;
 
@@ -101,7 +102,7 @@ int main(int argc, char* argv[])
   loudness.init(windowSize, samplingRate);
 
   RealVector in(nSamples);
-  file.readChannel(in.data(), nSamples, 0);
+  file.read_channel(in.data(), nSamples, 0);
   RealVector padded(in.size() + windowSize + hopSize);
   index      nFrames = floor((padded.size() - windowSize) / hopSize);
   RealMatrix pitchMat(nFrames, 2);
@@ -123,12 +124,14 @@ int main(int argc, char* argv[])
     RealVectorView window = padded(fluid::Slice(i * hopSize, windowSize));
     stft.processFrame(window, frame);
     stft.magnitude(frame, magnitude);
-    bands.processFrame(magnitude, mels, false, false, true);
+    bands.processFrame(magnitude, mels, false, false, true,
+                       FluidDefaultAllocator());
     dct.processFrame(mels, mfccs);
     mfccMat.row(i) <<= mfccs;
     yin.processFrame(magnitude, pitch, minFreq, maxFreq, samplingRate);
     pitchMat.row(i) <<= pitch;
-    shape.processFrame(magnitude, shapeDesc, samplingRate);
+    shape.processFrame(magnitude, shapeDesc, samplingRate, 0, -1, 0.95, false,
+                       false, FluidDefaultAllocator());
     shapeMat.row(i) <<= shapeDesc;
     loudness.processFrame(window, loudnessDesc, true, true);
     loudnessMat.row(i) <<= loudnessDesc;
