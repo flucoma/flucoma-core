@@ -161,6 +161,7 @@ struct NRTAmpGate
     std::vector<HostVectorView> output{binaryOut.row(0)};
 
     // convert binary to spikes
+    client.reset(c);
     client.process(input, output, c);
 
     // add onset at start if needed
