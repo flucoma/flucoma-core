@@ -60,7 +60,7 @@ public:
     mTracking.prune();
   }
 
-  void reset() { ; }
+  void reset() {mInitialized = false;}
 
   bool initialized() const { return mInitialized; }
 
