@@ -81,7 +81,8 @@ public:
     controlChannelsIn(2);
     controlChannelsOut({3, get<kNVoices>(), get<kNVoices>().max()});
     setInputLabels({"frequencies", "magnitudes"});
-    setOutputLabels({"frequencies", "magnitudes", "state"});
+    setOutputLabels({"frequencies", "magnitudes", "states"});
+    mVoiceAllocator.init(get<kNVoices>(), c.allocator());
   }
 
   template <typename T>
