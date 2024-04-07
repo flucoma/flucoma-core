@@ -75,8 +75,8 @@ public:
   }
 
   VoiceAllocatorClient(ParamSetViewType& p, FluidContext& c)
-      : mParams(p), mSizeTracker{ 0 },
-      mVoiceAllocator(get<kNVoices>(), c.allocator())
+    : mParams(p), mVoiceAllocator(get<kNVoices>().max(), c.allocator()),
+    mSizeTracker{ 0 }
   {
     controlChannelsIn(2);
     controlChannelsOut({3, get<kNVoices>(), get<kNVoices>().max()});
