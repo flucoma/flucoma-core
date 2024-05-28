@@ -47,6 +47,9 @@ using deque = foonathan::memory::deque<T, Allocator>;
 
 template <typename T>
 using queue = foonathan::memory::queue<T, Allocator>;
+
+template <typename T, typename U>
+using unordered_map = foonathan::memory::unordered_map<T, U, Allocator>;
 } // namespace rt
 
 inline Allocator& FluidDefaultAllocator()
