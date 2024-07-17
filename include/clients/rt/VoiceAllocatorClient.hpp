@@ -12,6 +12,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #include "../common/AudioClient.hpp"
 #include "../common/FluidBaseClient.hpp"
+#include "../common/FluidNRTClientWrapper.hpp"
 #include "../common/FluidSource.hpp"
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
@@ -125,6 +126,11 @@ public:
     return {};
   }
 
+    void reset(FluidContext&)
+    {
+        clear();
+    }
+
   static auto getMessageDescriptors()
   {
     return defineMessages(makeMessage("clear", &VoiceAllocatorClient::clear));
@@ -142,5 +148,17 @@ private:
 using VoiceAllocatorClient =
     ClientWrapper<voiceallocator::VoiceAllocatorClient>;
 
+auto constexpr NRTVoiceAllocatorParams = makeNRTParams<voiceallocator::VoiceAllocatorClient>(
+    InputBufferParam("frequencies", "Source F Buffer"),
+    InputBufferParam("magnitudes", "Source M Buffer"),
+    BufferParam("freqed", "dest f Buffer"),
+    BufferParam("magned", "dest m Buffer"),
+    BufferParam("voiced", "dest v Buffer")
+    );
+
+using NRTVoiceAllocatorClient = NRTDualControlAdaptor<voiceallocator::VoiceAllocatorClient,
+                           decltype(NRTVoiceAllocatorParams), NRTVoiceAllocatorParams, 2, 3>;
+
+using NRTThreadedVoiceAllocatorClient = NRTThreadingAdaptor<NRTVoiceAllocatorClient>;
 } // namespace client
 } // namespace fluid

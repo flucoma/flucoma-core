@@ -117,6 +117,17 @@ struct IsControlOut<ClientWrapper<T>>
   constexpr static bool value{std::is_base_of<ControlOut, T>::value};
 };
 
+template <typename T>
+struct IsControlIn
+{
+  constexpr static bool value = std::is_base_of<ControlIn, T>::value;
+};
+
+template <typename T>
+struct IsControlIn<ClientWrapper<T>>
+{
+  constexpr static bool value{std::is_base_of<ControlIn, T>::value};
+};
 
 template <class RTClient>
 struct AddPadding
@@ -126,11 +137,11 @@ struct AddPadding
   static constexpr bool HasFFT =
       impl::FilterTupleIndices<IsFFTParam, Types, Index>::type::size() > 0;
   static constexpr bool HasControlOut = IsControlOut<RTClient>::value;
-  //  static constexpr size_t value = HasControlOut? 2 : 1;
+  static constexpr bool HasControlIn = IsControlIn<RTClient>::value;
 
   static constexpr size_t value = HasFFT && HasControlOut    ? 2
                                   : HasFFT && !HasControlOut ? 1
-                                  : !HasFFT && HasControlOut ? 3
+                                  : !HasFFT && HasControlOut && !HasControlIn ? 3
                                                              : 0;
 
 
@@ -659,6 +670,81 @@ struct StreamingControl
   }
 };
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename HostMatrix, typename HostVectorView>
+struct ControlControl
+{
+  template <typename Client, typename InputList, typename OutputList>
+  static Result process(Client& client, InputList& inputBuffers,
+                        OutputList& outputBuffers, index nFrames, index nChans,
+                        std::pair<index, index> userPadding, FluidContext& c)
+  {
+    // To account for process latency we need to copy the buffers with padding
+    std::vector<HostMatrix> inputData;
+    index                   maxFeatures = client.maxControlChannelsOut();
+
+    inputData.reserve(inputBuffers.size());
+
+    index startPadding = client.latency() + userPadding.first;
+    index totalPadding = startPadding + userPadding.first;
+
+    index paddedLength = nFrames + totalPadding;
+      
+    std::fill_n(std::back_inserter(inputData), inputBuffers.size(),
+                HostMatrix(nChans, paddedLength));
+
+    std::vector<HostMatrix> outputData;
+    outputData.reserve(outputBuffers.size());
+    std::fill_n(std::back_inserter(outputData), outputBuffers.size(),
+                HostMatrix(nChans * maxFeatures, paddedLength));// TODO: check padded behaviour for output
+
+    double     sampleRate{0};
+      
+    // Copy input data (strangely by time series so we have to iterate later)
+    for (index i = 0; i < nChans; ++i)
+    {
+      for (index j = 0; j < asSigned(inputBuffers.size()); ++j)
+      {
+        BufferAdaptor::ReadAccess thisInput(inputBuffers[asUnsigned(j)].buffer);
+        if (i == 0 && j == 0) sampleRate = thisInput.sampleRate();
+        inputData[asUnsigned(j)].row(i)(Slice(userPadding.first, nFrames)) <<=
+            thisInput.samps(inputBuffers[asUnsigned(j)].startFrame, nFrames,
+                            inputBuffers[asUnsigned(j)].startChan + i);
+      }
+    }
+
+      std::vector<HostVectorView> inputs(inputBuffers.size(), {nullptr, 0, 0});
+      std::vector<HostVectorView> outputs(outputBuffers.size(), {nullptr, 0, 0});
+      
+      // run the algorithm
+        client.reset(c);
+
+    for (index i = 0; i < nFrames; ++i) // iterate each frame as time series
+    {
+      for (std::size_t j = 0; j < inputBuffers.size(); ++j)
+        inputs[j] = inputData[j].col(i);
+      for (std::size_t j = 0; j < outputBuffers.size(); ++j)
+        outputs[j] = outputData[j].col(i);
+
+      client.process(inputs, outputs, c);
+    }
+
+    // copy to outbuf
+      for (index i = 0; i < asSigned(outputBuffers.size()); ++i)
+      {
+        if (!outputBuffers[asUnsigned(i)]) continue;
+        BufferAdaptor::Access thisOutput(outputBuffers[asUnsigned(i)]);
+        Result                r = thisOutput.resize(nFrames, nChans, sampleRate);
+        if (!r.ok()) return r;
+        for (index j = 0; j < nChans; ++j)
+          thisOutput.samps(j) <<=
+              outputData[asUnsigned(i)].row(j)(Slice(startPadding, nFrames));
+      }
+      
+    return {};
+  }
+};
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename HostMatrix, typename HostVectorView>
@@ -740,6 +826,10 @@ using NRTControlAdaptor =
     impl::NRTClientWrapper<impl::StreamingControl, RTClient, Params, PD, Ins,
                            Outs>;
 
+template <class RTClient, typename Params, Params& PD, index Ins, index Outs>
+using NRTDualControlAdaptor =
+    impl::NRTClientWrapper<impl::ControlControl, RTClient, Params, PD, Ins,
+                           Outs>;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
