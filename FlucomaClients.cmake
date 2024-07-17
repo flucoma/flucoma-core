@@ -118,6 +118,7 @@ add_client(BufThreadDemo clients/nrt/FluidThreadTestClient.hpp CLASS NRTThreaded
 add_client(BufThresh clients/nrt/BufThreshClient.hpp CLASS NRTThreadedBufferThreshClient )
 add_client(BufTransientSlice clients/rt/TransientSliceClient.hpp CLASS NRTThreadedTransientSliceClient )
 add_client(BufTransients clients/rt/TransientClient.hpp CLASS NRTThreadedTransientsClient )
+add_kr_in_client(BufVoiceAllocator clients/rt/VoiceAllocatorClient.hpp CLASS NRTThreadedVoiceAllocatorClient )
 add_client(Chroma clients/rt/ChromaClient.hpp CLASS RTChromaClient )
 add_client(Gain clients/rt/GainClient.hpp CLASS RTGainClient NOINSTALL)
 add_client(HPSS clients/rt/HPSSClient.hpp CLASS RTHPSSClient )
@@ -137,9 +138,9 @@ add_client(SineFeature clients/rt/SineFeatureClient.hpp CLASS RTSineFeatureClien
 add_client(Sines clients/rt/SinesClient.hpp CLASS RTSinesClient )
 add_client(SpectralShape clients/rt/SpectralShapeClient.hpp CLASS RTSpectralShapeClient )
 add_kr_in_client(Stats clients/rt/RunningStatsClient.hpp CLASS RunningStatsClient )
-add_kr_in_client(VoiceAllocator clients/rt/VoiceAllocatorClient.hpp CLASS VoiceAllocatorClient )
 add_client(TransientSlice clients/rt/TransientSliceClient.hpp CLASS RTTransientSliceClient )
 add_client(Transients clients/rt/TransientClient.hpp CLASS RTTransientClient )
+add_kr_in_client(VoiceAllocator clients/rt/VoiceAllocatorClient.hpp CLASS VoiceAllocatorClient )
 
 #lib manipulation client group 
 add_client(DataSet clients/nrt/DataSetClient.hpp CLASS NRTThreadedDataSetClient GROUP MANIPULATION)
