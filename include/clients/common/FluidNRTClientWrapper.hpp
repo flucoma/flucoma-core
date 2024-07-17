@@ -716,6 +716,8 @@ struct ControlControl
       std::vector<HostVectorView> inputs(inputBuffers.size(), {nullptr, 0, 0});
       std::vector<HostVectorView> outputs(outputBuffers.size(), {nullptr, 0, 0});
       
+      FluidTask* task = c.task();
+
       // run the algorithm
         client.reset(c);
 
@@ -727,6 +729,11 @@ struct ControlControl
         outputs[j] = outputData[j].col(i);
 
       client.process(inputs, outputs, c);
+        
+        if (task && !task->processUpdate(
+                        static_cast<double>(i),
+                        static_cast<double>(nFrames)))
+            break;
     }
 
     // copy to outbuf
