@@ -141,8 +141,9 @@ struct AddPadding
 
   static constexpr size_t value = HasFFT && HasControlOut    ? 2
                                   : HasFFT && !HasControlOut ? 1
-                                  : !HasFFT && HasControlOut && !HasControlIn ? 3
-                                                             : 0;
+                                  : !HasFFT && HasControlOut && !HasControlIn
+                                      ? 3
+                                      : 0;
 
 
   //  static constexpr size_t value = std::conditional_t<HasFFT,
@@ -180,7 +181,7 @@ public:
   static constexpr auto isControl =
       std::is_same<AdaptorType<HostMatrix, HostVectorView>,
                    StreamingControl<HostMatrix, HostVectorView>>();
-  
+
   using ParamDescType = ParamType;
   using ParamSetType = ParameterSet<ParamDescType>;
   using ParamSetViewType = ParameterSetView<ParamDescType>;
@@ -230,8 +231,8 @@ public:
 
 
   NRTClientWrapper(NRTClientWrapper&& x)
-      : mParams{std::move(x.mParams)},
-        mNRTContext{std::move(x.mNRTContext)}, mClient{std::move(x.mClient)}
+      : mParams{std::move(x.mParams)}, mNRTContext{std::move(x.mNRTContext)},
+        mClient{std::move(x.mClient)}
   {
     mRealTimeParams =
         RTParamSetViewType(RTClient::getParameterDescriptors(),
@@ -592,12 +593,12 @@ struct StreamingControl
     std::fill_n(std::back_inserter(inputData), inputBuffers.size(),
                 HostMatrix(nChans, paddedLength));
 
-    std::vector<HostMatrix> outputData; 
+    std::vector<HostMatrix> outputData;
     outputData.reserve(outputBuffers.size());
     std::fill_n(std::back_inserter(outputData), outputBuffers.size(),
                 HostMatrix(nChans * maxFeatures, nAnalysisFrames));
 
-    double     sampleRate{0};
+    double sampleRate{0};
     // Copy input data
     for (index i = 0; i < nChans; ++i)
     {
@@ -630,10 +631,9 @@ struct StreamingControl
               inputData[asUnsigned(k)].row(i)(Slice(t, controlRate)));
         }
 
-        for(auto& out: outputData)
+        for (auto& out : outputData)
         {
-          outputs.push_back(
-            out.col(j)(Slice(i * maxFeatures, maxFeatures)));
+          outputs.push_back(out.col(j)(Slice(i * maxFeatures, maxFeatures)));
         }
 
         client.process(inputs, outputs, c);
@@ -661,11 +661,11 @@ struct StreamingControl
       for (index i = 0; i < nFeatures; ++i)
       {
         for (index j = 0; j < nChans; ++j)
-          thisOutput.samps(i + j * nFeatures) <<=
-              outs.second->row(i + j * maxFeatures)(Slice(latencyHops, keepHops));
+          thisOutput.samps(i + j * nFeatures) <<= outs.second->row(
+              i + j * maxFeatures)(Slice(latencyHops, keepHops));
       }
     }
-    
+
     return {};
   }
 };
@@ -689,17 +689,19 @@ struct ControlControl
     index totalPadding = startPadding + userPadding.first;
 
     index paddedLength = nFrames + totalPadding;
-      
+
     std::fill_n(std::back_inserter(inputData), inputBuffers.size(),
                 HostMatrix(nChans, paddedLength));
 
     std::vector<HostMatrix> outputData;
     outputData.reserve(outputBuffers.size());
-    std::fill_n(std::back_inserter(outputData), outputBuffers.size(),
-                HostMatrix(nChans * maxFeatures, paddedLength));// TODO: check padded behaviour for output
+    std::fill_n(
+        std::back_inserter(outputData), outputBuffers.size(),
+        HostMatrix(nChans * maxFeatures,
+                   paddedLength)); // TODO: check padded behaviour for output
 
-    double     sampleRate{0};
-      
+    double sampleRate{0};
+
     // Copy input data (strangely by time series so we have to iterate later)
     for (index i = 0; i < nChans; ++i)
     {
@@ -713,13 +715,13 @@ struct ControlControl
       }
     }
 
-      std::vector<HostVectorView> inputs(inputBuffers.size(), {nullptr, 0, 0});
-      std::vector<HostVectorView> outputs(outputBuffers.size(), {nullptr, 0, 0});
-      
-      FluidTask* task = c.task();
+    std::vector<HostVectorView> inputs(inputBuffers.size(), {nullptr, 0, 0});
+    std::vector<HostVectorView> outputs(outputBuffers.size(), {nullptr, 0, 0});
 
-      // run the algorithm
-        client.reset(c);
+    FluidTask* task = c.task();
+
+    // run the algorithm
+    client.reset(c);
 
     for (index i = 0; i < nFrames; ++i) // iterate each frame as time series
     {
@@ -729,25 +731,24 @@ struct ControlControl
         outputs[j] = outputData[j].col(i);
 
       client.process(inputs, outputs, c);
-        
-        if (task && !task->processUpdate(
-                        static_cast<double>(i),
-                        static_cast<double>(nFrames)))
-            break;
+
+      if (task && !task->processUpdate(static_cast<double>(i),
+                                       static_cast<double>(nFrames)))
+        break;
     }
 
     // copy to outbuf
-      for (index i = 0; i < asSigned(outputBuffers.size()); ++i)
-      {
-        if (!outputBuffers[asUnsigned(i)]) continue;
-        BufferAdaptor::Access thisOutput(outputBuffers[asUnsigned(i)]);
-        Result                r = thisOutput.resize(nFrames, nChans, sampleRate);
-        if (!r.ok()) return r;
-        for (index j = 0; j < nChans; ++j)
-          thisOutput.samps(j) <<=
-              outputData[asUnsigned(i)].row(j)(Slice(startPadding, nFrames));
-      }
-      
+    for (index i = 0; i < asSigned(outputBuffers.size()); ++i)
+    {
+      if (!outputBuffers[asUnsigned(i)]) continue;
+      BufferAdaptor::Access thisOutput(outputBuffers[asUnsigned(i)]);
+      Result                r = thisOutput.resize(nFrames, nChans, sampleRate);
+      if (!r.ok()) return r;
+      for (index j = 0; j < nChans; ++j)
+        thisOutput.samps(j) <<=
+            outputData[asUnsigned(i)].row(j)(Slice(startPadding, nFrames));
+    }
+
     return {};
   }
 };
@@ -1022,10 +1023,7 @@ public:
           state = kDoneStillProcessing;
           mThreadedTask->mState = kDoneStillProcessing;
         }
-        else
-        {
-          mThreadedTask = nullptr;
-        }
+        else { mThreadedTask = nullptr; }
       }
 
       return state;
@@ -1123,8 +1121,8 @@ private:
     };
 
     ThreadedTask(ClientPointer client, NRTJob& job, bool synchronous)
-        : mProcessParams(job.mParams), mState(kNoProcess),
-          mClient(client), mContext{mTask}, mCallback{job.mCallback}
+        : mProcessParams(job.mParams), mState(kNoProcess), mClient(client),
+          mContext{mTask}, mCallback{job.mCallback}
     {
 
       assert(mClient.get() != nullptr); // right?

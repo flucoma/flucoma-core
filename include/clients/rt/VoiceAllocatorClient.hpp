@@ -17,8 +17,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../common/ParameterConstraints.hpp"
 #include "../common/ParameterSet.hpp"
 #include "../common/ParameterTypes.hpp"
-#include "../../data/TensorTypes.hpp"
 #include "../../algorithms/public/VoiceAllocator.hpp"
+#include "../../data/TensorTypes.hpp"
 
 namespace fluid {
 namespace client {
@@ -39,22 +39,27 @@ enum VoiceAllocatorParamIndex {
 };
 
 constexpr auto VoiceAllocatorParams = defineParameters(
-    LongParamRuntimeMax<Primary>( "numVoices", "Number of Voices", 1, Min(1)),
-    EnumParam("prioritisedVoices", "Prioritised Voice Quality", 0, "Lowest Frequency", "Loudest Magnitude"),
-    FloatParam("birthLowThreshold", "Track Birth Low Frequency Threshold", -24, Min(-144), Max(0)),
-    FloatParam("birthHighThreshold", "Track Birth High Frequency Threshold", -60, Min(-144), Max(0)),
+    LongParamRuntimeMax<Primary>("numVoices", "Number of Voices", 1, Min(1)),
+    EnumParam("prioritisedVoices", "Prioritised Voice Quality", 0,
+              "Lowest Frequency", "Loudest Magnitude"),
+    FloatParam("birthLowThreshold", "Track Birth Low Frequency Threshold", -24,
+               Min(-144), Max(0)),
+    FloatParam("birthHighThreshold", "Track Birth High Frequency Threshold",
+               -60, Min(-144), Max(0)),
     LongParam("minTrackLen", "Minimum Track Length", 1, Min(1)),
-    FloatParam("trackMagRange", "Tracking Magnitude Range (dB)", 15., Min(1.), Max(200.)),
-    FloatParam("trackFreqRange", "Tracking Frequency Range (Hz)", 50., Min(1.), Max(10000.)),
-    FloatParam("trackProb", "Tracking Matching Probability", 0.5, Min(0.0), Max(1.0))
-    );
+    FloatParam("trackMagRange", "Tracking Magnitude Range (dB)", 15., Min(1.),
+               Max(200.)),
+    FloatParam("trackFreqRange", "Tracking Frequency Range (Hz)", 50., Min(1.),
+               Max(10000.)),
+    FloatParam("trackProb", "Tracking Matching Probability", 0.5, Min(0.0),
+               Max(1.0)));
 
 class VoiceAllocatorClient : public FluidBaseClient,
                              public ControlIn,
                              ControlOut
 {
-    using VoicePeak = algorithm::VoicePeak;
-    using SinePeak = algorithm::SinePeak;
+  using VoicePeak = algorithm::VoicePeak;
+  using SinePeak = algorithm::SinePeak;
 
 public:
   using ParamDescType = decltype(VoiceAllocatorParams);
@@ -76,8 +81,8 @@ public:
   }
 
   VoiceAllocatorClient(ParamSetViewType& p, FluidContext& c)
-    : mParams(p), mVoiceAllocator(get<kNVoices>().max(), c.allocator()),
-    mSizeTracker{ 0 }
+      : mParams(p), mVoiceAllocator(get<kNVoices>().max(), c.allocator()),
+        mSizeTracker{0}
   {
     controlChannelsIn(2);
     controlChannelsOut({3, get<kNVoices>(), get<kNVoices>().max()});
@@ -94,29 +99,35 @@ public:
     if (!output[0].data() && !output[1].data()) return;
     if (!mVoiceAllocator.initialized() || mSizeTracker.changed(get<kNVoices>()))
     {
-      controlChannelsOut({ 4, get<kNVoices>() }); //update the dynamic out size
+      controlChannelsOut({4, get<kNVoices>()}); // update the dynamic out size
       mVoiceAllocator.init(get<kNVoices>(), c.allocator());
     }
 
-    rt::vector<SinePeak> incomingVoices(0, c.allocator());
+    rt::vector<SinePeak>  incomingVoices(0, c.allocator());
     rt::vector<VoicePeak> outgoingVoices(0, c.allocator());
 
     for (index i = 0; i < input[0].size(); ++i)
     {
-        if (input[1].row(i) != 0 && input[0].row(i) != 0)
-        {
-            double logMag = 20 * log10(std::max(static_cast<double>(input[1].row(i)), algorithm::epsilon));
-            incomingVoices.push_back({ input[0].row(i), logMag, false });
-        }
+      if (input[1].row(i) != 0 && input[0].row(i) != 0)
+      {
+        double logMag =
+            20 * log10(std::max(static_cast<double>(input[1].row(i)),
+                                algorithm::epsilon));
+        incomingVoices.push_back({input[0].row(i), logMag, false});
+      }
     }
 
-    mVoiceAllocator.processFrame(incomingVoices, outgoingVoices, get<kMinTrackLen>(), get<kBirthLowThreshold>(), get<kBirthHighTreshold>(), 0, get<kTrackMagRange>(), get<kTrackFreqRange>(), get<kTrackProb>(), get<kPrioritisedVoices>(), c.allocator());
+    mVoiceAllocator.processFrame(
+        incomingVoices, outgoingVoices, get<kMinTrackLen>(),
+        get<kBirthLowThreshold>(), get<kBirthHighTreshold>(), 0,
+        get<kTrackMagRange>(), get<kTrackFreqRange>(), get<kTrackProb>(),
+        get<kPrioritisedVoices>(), c.allocator());
 
     for (index i = 0; i < static_cast<index>(get<kNVoices>()); ++i)
     {
-        output[2].row(i) = static_cast<index>(outgoingVoices[i].state);
-        output[1].row(i) = outgoingVoices[i].logMag;
-        output[0].row(i) = outgoingVoices[i].freq;
+      output[2].row(i) = static_cast<index>(outgoingVoices[i].state);
+      output[1].row(i) = outgoingVoices[i].logMag;
+      output[0].row(i) = outgoingVoices[i].freq;
     }
   }
 
@@ -126,10 +137,7 @@ public:
     return {};
   }
 
-    void reset(FluidContext&)
-    {
-        clear();
-    }
+  void reset(FluidContext&) { clear(); }
 
   static auto getMessageDescriptors()
   {
@@ -139,8 +147,8 @@ public:
   index latency() const { return 0; }
 
 private:
-    algorithm::VoiceAllocator                   mVoiceAllocator;
-    ParameterTrackChanges<index>                mSizeTracker;
+  algorithm::VoiceAllocator    mVoiceAllocator;
+  ParameterTrackChanges<index> mSizeTracker;
 };
 
 } // namespace voiceallocator
@@ -148,17 +156,20 @@ private:
 using VoiceAllocatorClient =
     ClientWrapper<voiceallocator::VoiceAllocatorClient>;
 
-auto constexpr NRTVoiceAllocatorParams = makeNRTParams<voiceallocator::VoiceAllocatorClient>(
-    InputBufferParam("frequencies", "Source F Buffer"),
-    InputBufferParam("magnitudes", "Source M Buffer"),
-    BufferParam("freqed", "dest f Buffer"),
-    BufferParam("magned", "dest m Buffer"),
-    BufferParam("voiced", "dest v Buffer")
-    );
+auto constexpr NRTVoiceAllocatorParams =
+    makeNRTParams<voiceallocator::VoiceAllocatorClient>(
+        InputBufferParam("frequencies", "Source F Buffer"),
+        InputBufferParam("magnitudes", "Source M Buffer"),
+        BufferParam("freqed", "dest f Buffer"),
+        BufferParam("magned", "dest m Buffer"),
+        BufferParam("voiced", "dest v Buffer"));
 
-using NRTVoiceAllocatorClient = NRTDualControlAdaptor<voiceallocator::VoiceAllocatorClient,
-                           decltype(NRTVoiceAllocatorParams), NRTVoiceAllocatorParams, 2, 3>;
+using NRTVoiceAllocatorClient =
+    NRTDualControlAdaptor<voiceallocator::VoiceAllocatorClient,
+                          decltype(NRTVoiceAllocatorParams),
+                          NRTVoiceAllocatorParams, 2, 3>;
 
-using NRTThreadedVoiceAllocatorClient = NRTThreadingAdaptor<NRTVoiceAllocatorClient>;
+using NRTThreadedVoiceAllocatorClient =
+    NRTThreadingAdaptor<NRTVoiceAllocatorClient>;
 } // namespace client
 } // namespace fluid
