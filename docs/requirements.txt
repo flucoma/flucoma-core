@@ -2,3 +2,4 @@ sphinx
 breathe
 myst-parser
 sphinx-book-theme
+schema
