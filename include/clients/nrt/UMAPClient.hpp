@@ -79,8 +79,8 @@ public:
     auto src = srcPtr->getDataSet();
     auto dest = destPtr->getDataSet();
     if (src.size() == 0) return Error(EmptyDataSet);
-    if (get<kNumNeighbors>() > src.size())
-      return Error("Number of Neighbours is larger than dataset");
+    if (get<kNumNeighbors>() >= src.size())
+      return Error("Number of Neighbours is greater or equal to the size of the the dataset");
     FluidDataSet<string, double, 1> result;
     try
     {
