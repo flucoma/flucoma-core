@@ -144,10 +144,10 @@ public:
     return OK();
   }
 
-  MessageResult<void> limit(index rows)
+  MessageResult<void> limit(index points)
   {
-    if (rows <= 0) return Error("invalid value");
-    mAlgorithm.limit(rows);
+    if (points <= 0) return Error("invalid limit on the number of points");
+    mAlgorithm.limit(points);
     return OK();
   }
 
