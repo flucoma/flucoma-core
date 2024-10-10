@@ -170,7 +170,7 @@ public:
     using namespace std;
     if (size() == 0) return "{}";
     ostringstream result;
-    result << endl << "point" << (size() > 1 ? "s: " : ": ") << size() << "     col" << (pointSize() > 1 ? "s: " : ": ") << pointSize() << endl;
+    result << endl << "points:" << size() << "     cols:" << pointSize() << endl;
     if (size() < maxRows)
     {
       for (index r = 0; r < size(); r++)
