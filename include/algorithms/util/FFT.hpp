@@ -63,8 +63,6 @@ class FFT
 public:
   using MapXcd = Eigen::Map<Eigen::ArrayXcd>;
 
- //TODO: why is this here? 
- static void setup() { getFFTSetup(); }
 
   FFT() = delete;
 
