@@ -39,8 +39,8 @@ public:
   FFTSetup(FFTSetup const&) = delete;
   FFTSetup& operator=(FFTSetup const&) = delete;
 
-  FFTSetup(FFTSetup&& other) { *this = std::move(other); };
-  FFTSetup& operator=(FFTSetup&& other)
+  FFTSetup(FFTSetup&& other) noexcept { *this = std::move(other); };
+  FFTSetup& operator=(FFTSetup&& other) noexcept
   {
     using std::swap;
     swap(mMaxSize, other.mMaxSize);
