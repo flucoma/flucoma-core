@@ -20,7 +20,7 @@ namespace knnregressor {
 
 struct KNNRegressorData
 {
-  algorithm::KDTree                    tree{0};
+  algorithm::KDTree                    tree{algorithm::KDTree()};
   FluidDataSet<std::string, double, 1> target{1};
   index                                size() const { return target.size(); }
   index                                dims() const { return tree.dims(); }

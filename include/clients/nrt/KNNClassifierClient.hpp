@@ -22,7 +22,7 @@ namespace knnclassifier {
 
 struct KNNClassifierData
 {
-  algorithm::KDTree                         tree{0};
+  algorithm::KDTree                         tree{algorithm::KDTree()};
   FluidDataSet<std::string, std::string, 1> labels{1};
   index size() const { return labels.size(); }
   index dims() const { return tree.dims(); }
