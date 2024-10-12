@@ -41,7 +41,10 @@ void to_json(nlohmann::json& j, const KNNRegressorData& data)
 bool check_json(const nlohmann::json& j, const KNNRegressorData&)
 {
   return fluid::check_json(j, {"tree", "target"},
-                           {JSONTypes::OBJECT, JSONTypes::OBJECT});
+                           {JSONTypes::OBJECT, JSONTypes::OBJECT}) &&
+         fluid::algorithm::check_json(j.at("tree"), algorithm::KDTree()) &&
+         fluid::check_json(j.at("labels"),
+                           FluidDataSet<std::string, std::string, 1>());
 }
 
 void from_json(const nlohmann::json& j, KNNRegressorData& data)
