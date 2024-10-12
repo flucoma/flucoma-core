@@ -22,11 +22,11 @@ namespace knnclassifier {
 
 struct KNNClassifierData
 {
-  algorithm::KDTree                         tree{0};
+  algorithm::KDTree                         tree{algorithm::KDTree()};
   FluidDataSet<std::string, std::string, 1> labels{1};
-  index                                     size() const { return labels.size(); }
-  index                                     dims() const { return tree.dims(); }
-  void                                      clear()
+  index size() const { return labels.size(); }
+  index dims() const { return tree.dims(); }
+  void  clear()
   {
     labels = FluidDataSet<std::string, std::string, 1>(1);
     tree.clear();
@@ -43,7 +43,10 @@ void to_json(nlohmann::json& j, const KNNClassifierData& data)
 bool check_json(const nlohmann::json& j, const KNNClassifierData&)
 {
   return fluid::check_json(j, {"tree", "labels"},
-                           {JSONTypes::OBJECT, JSONTypes::OBJECT});
+                           {JSONTypes::OBJECT, JSONTypes::OBJECT}) &&
+         fluid::algorithm::check_json(j.at("tree"), algorithm::KDTree()) &&
+         fluid::check_json(j.at("labels"),
+                           FluidDataSet<std::string, std::string, 1>());
 }
 
 void from_json(const nlohmann::json& j, KNNClassifierData& data)
@@ -132,14 +135,14 @@ public:
     algorithm::KNNClassifier classifier;
     RealVector               point(mAlgorithm.tree.dims());
     point <<= BufferAdaptor::ReadAccess(data.get())
-                .samps(0, mAlgorithm.tree.dims(), 0);
+                  .samps(0, mAlgorithm.tree.dims(), 0);
     std::string result = classifier.predict(mAlgorithm.tree, point,
                                             mAlgorithm.labels, k, weight);
     return result;
   }
 
-  MessageResult<void> predict(InputDataSetClientRef  source,
-                              LabelSetClientRef dest) const
+  MessageResult<void> predict(InputDataSetClientRef source,
+                              LabelSetClientRef     dest) const
   {
     index k = get<kNumNeighbors>();
     bool  weight = get<kWeight>() != 0;
@@ -163,7 +166,7 @@ public:
     {
       RealVectorView point = data.row(i);
       StringVector   label = {classifier.predict(mAlgorithm.tree, point,
-                                               mAlgorithm.labels, k, weight)};
+                                                 mAlgorithm.labels, k, weight)};
       result.add(ids(i), label);
     }
     destPtr->setLabelSet(result);
@@ -186,7 +189,7 @@ public:
         makeMessage("read", &KNNClassifierClient::read));
   }
 
-  index encodeIndex(std::string const& label) const 
+  index encodeIndex(std::string const& label) const
   {
     return mLabelSetEncoder.encodeIndex(label);
   }
