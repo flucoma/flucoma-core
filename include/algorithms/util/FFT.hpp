@@ -14,6 +14,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../data/FluidMemory.hpp"
 #include <Eigen/Core>
 #include <fft/fft.hpp>
+#include <optional> 
 
 namespace fluid {
 namespace algorithm {
@@ -38,8 +39,8 @@ public:
   FFTSetup(FFTSetup const&) = delete;
   FFTSetup& operator=(FFTSetup const&) = delete;
 
-  FFTSetup(FFTSetup&& other) { *this = std::move(other); };
-  FFTSetup& operator=(FFTSetup&& other)
+  FFTSetup(FFTSetup&& other) noexcept { *this = std::move(other); };
+  FFTSetup& operator=(FFTSetup&& other) noexcept
   {
     using std::swap;
     swap(mMaxSize, other.mMaxSize);
@@ -62,13 +63,13 @@ class FFT
 public:
   using MapXcd = Eigen::Map<Eigen::ArrayXcd>;
 
-  static void setup() { getFFTSetup(); }
 
   FFT() = delete;
 
   FFT(index size, Allocator& alloc = FluidDefaultAllocator()) noexcept
       : mMaxSize(size), mSize(size), mFrameSize(size / 2 + 1),
-        mLog2Size(static_cast<index>(std::log2(size))), mSetup(getFFTSetup()),
+        mLog2Size(static_cast<index>(std::log2(size))), 
+        mSetup(getFFTSetup(*this, size)),
         mRealBuffer(asUnsigned(mFrameSize), alloc),
         mImagBuffer(asUnsigned(mFrameSize), alloc),
         mOutputBuffer(asUnsigned(mFrameSize), alloc)
@@ -106,11 +107,18 @@ public:
     return {mOutputBuffer.data(), mFrameSize};
   }
 
+private: 
+  std::optional<impl::FFTSetup> mLocalSetup;   
 protected:
-  static htl::setup_type<double> getFFTSetup()
-  {
-    static const impl::FFTSetup static_setup(65536);
-    return static_setup();
+  static constexpr index default_max = 65536; 
+  static htl::setup_type<double> getFFTSetup(FFT& _this, index size)
+  {    
+    static const impl::FFTSetup static_setup(default_max);
+    if(size <= default_max) return static_setup(); 
+    else {
+      _this.mLocalSetup = std::optional<impl::FFTSetup>(size); 
+      return _this.mLocalSetup->operator()(); 
+    }      
   }
 
   index mMaxSize{16384};
@@ -126,6 +134,7 @@ protected:
 private:
   rt::vector<std::complex<double>> mOutputBuffer;
 };
+
 
 class IFFT : public FFT
 {
