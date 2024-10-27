@@ -35,10 +35,12 @@ class Interpolator
   };
 
 public:
-  Interpolator(index maxtaps, index maxfactor, Allocator& alloc)
-      : mMaxTaps{maxtaps}, mMaxFactor{maxfactor},
-        mMaxLatency{(mMaxTaps + mMaxFactor - 1) / mMaxFactor},
-        mBuffer(asUnsigned(mMaxLatency), alloc), mCount(asUnsigned(mMaxFactor), alloc),
+  Interpolator(index maxtaps, index maxfactor, index minFactor,
+               Allocator& alloc)
+      : mMaxTaps{maxtaps}, mMaxFactor{maxfactor}, mMinFactor{minFactor},
+        mMaxLatency{(mMaxTaps + mMinFactor - 1) / minFactor},
+        mBuffer(asUnsigned(mMaxLatency), alloc),
+        mCount(asUnsigned(mMaxFactor), alloc),
         mFilters(mMaxFactor, mMaxLatency, alloc),
         mIndex(mMaxFactor, mMaxLatency, alloc)
   {}
@@ -47,6 +49,7 @@ public:
   {
     assert(taps <= mMaxTaps);
     assert(factor <= mMaxFactor);
+    assert(factor >= mMinFactor); 
     assert(factor > 0);
     assert(taps > 0);
 
@@ -121,7 +124,8 @@ private:
 
   index mMaxTaps;
   index mMaxFactor;
-  index mMaxLatency;
+  index mMinFactor; 
+  index mMaxLatency;  
 
   index mTaps;
   index mFactor;
@@ -142,17 +146,18 @@ class TruePeak
 {
   static constexpr index nTaps = 49;
   static constexpr index maxFactor = 4;
+  static constexpr index minFactor = 2; 
 
 public:
   TruePeak(index maxSize, Allocator& alloc)
-      : mInterpolator(nTaps, maxFactor, alloc), mBuffer{maxFactor * maxSize,
-                                                        alloc}
+      : mInterpolator(nTaps, maxFactor, minFactor, alloc),
+        mBuffer{maxFactor * maxSize, alloc}
   {}
 
   void init(index /*size*/, double sampleRate, Allocator&)
   {
     mSampleRate = sampleRate;
-    mFactor = sampleRate < (2 * 44100) ? 4 : 2;
+    mFactor = sampleRate < (2 * 44100) ? maxFactor : minFactor;
     mInterpolator.init(nTaps, mFactor);
   }
 
