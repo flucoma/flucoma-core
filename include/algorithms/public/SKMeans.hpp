@@ -33,7 +33,8 @@ public:
     using namespace Eigen;
     using namespace _impl;
     assert(!mTrained || (dataset.pointSize() == mDims && mK == k));
-    MatrixXd dataPoints = asEigen<Matrix>(dataset.getData());
+    MatrixXd dataPoints =
+        asEigen<Matrix>(dataset.getData()).colwise().normalized();
     MatrixXd dataPointsT = dataPoints.transpose();
     if (mTrained) { mAssignments = assignClusters(dataPointsT);}
     else
