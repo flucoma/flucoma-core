@@ -88,9 +88,8 @@ private:
   {
     for (index i = 0; i < mAssignments.cols(); i++)
     {
-      double val = mEmbedding(mAssignments(i), i);
       mEmbedding.col(i).setZero();
-      mEmbedding(mAssignments(i), i) = val;
+      mEmbedding(mAssignments(i), i) = 1.0;
     }
   }
 
