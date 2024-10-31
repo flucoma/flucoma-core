@@ -18,6 +18,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <queue>
+#include <random>
 #include <string>
 
 namespace fluid {
@@ -27,8 +28,16 @@ class SKMeans : public KMeans
 {
 
 public:
+
+  enum Initializer { 
+    // Random partition assigns points to random clusters at init
+    Random_Partition,  
+    //'Forgy' initializes means with k random data points
+    Forgy   
+  }; 
+
   void train(const FluidDataSet<std::string, double, 1>& dataset, index k,
-             index maxIter)
+             index maxIter, unsigned initialize )
   {
     using namespace Eigen;
     using namespace _impl;
@@ -41,14 +50,14 @@ public:
     {
       mK = k;
       mDims = dataset.pointSize();
-      initMeans(dataPoints);
+      initMeans(dataPoints, initialize);
     }
 
     while (maxIter-- > 0)
     {
       mEmbedding = mMeans.matrix() * dataPointsT;
       auto assignments = assignClusters(mEmbedding);
-      if (!changed(assignments)) { break; }
+      if (mAssignments.rows() && !changed(assignments)) { break; }
       else
         mAssignments = assignments;
       updateEmbedding();
@@ -69,19 +78,34 @@ public:
   }
 
 private:
-
-  void initMeans(Eigen::MatrixXd& dataPoints)
+  void initMeans(Eigen::MatrixXd& dataPoints, unsigned initializer)
   {
     using namespace Eigen;
     mMeans = ArrayXXd::Zero(mK, mDims);
-    mAssignments =
-        ((0.5 + (0.5 * ArrayXd::Random(dataPoints.rows()))) * (mK - 1))
-            .round()
-            .cast<int>();
-    mEmbedding = MatrixXd::Zero(mK, dataPoints.rows());
-    for (index i = 0; i < dataPoints.rows(); i++)
-      mEmbedding(mAssignments(i), i) = 1;
-    computeMeans(dataPoints);
+
+    switch (initializer)
+    {
+    default:
+    case Initializer::Random_Partition:
+      mAssignments =
+          ((0.5 + (0.5 * ArrayXd::Random(dataPoints.rows()))) * (mK - 1))
+              .round()
+              .cast<int>();
+      mEmbedding = MatrixXd::Zero(mK, dataPoints.rows());
+      for (index i = 0; i < dataPoints.rows(); i++)
+        mEmbedding(mAssignments(i), i) = 1;
+      computeMeans(dataPoints);
+      break;
+
+    case Initializer::Forgy: // means from random selection of data points
+      ArrayXidx dataIndices =
+          ArrayXidx::LinSpaced(dataPoints.rows(), 0, dataPoints.rows() - 1);
+      std::vector<Index> samples(mK);
+      std::sample(dataIndices.begin(), dataIndices.end(), samples.begin(), mK,
+                  std::mt19937{std::random_device{}()});
+      mMeans = dataPoints(samples, Eigen::all);
+      break;
+    }
   }
 
   void updateEmbedding()
