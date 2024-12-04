@@ -33,7 +33,8 @@ public:
     using namespace Eigen;
     using namespace _impl;
     assert(!mTrained || (dataset.pointSize() == mDims && mK == k));
-    MatrixXd dataPoints = asEigen<Matrix>(dataset.getData());
+    MatrixXd dataPoints =
+        asEigen<Matrix>(dataset.getData()).rowwise().normalized();
     MatrixXd dataPointsT = dataPoints.transpose();
     if (mTrained) { mAssignments = assignClusters(dataPointsT);}
     else
@@ -87,9 +88,8 @@ private:
   {
     for (index i = 0; i < mAssignments.cols(); i++)
     {
-      double val = mEmbedding(mAssignments(i), i);
       mEmbedding.col(i).setZero();
-      mEmbedding(mAssignments(i), i) = val;
+      mEmbedding(mAssignments(i), i) = 1.0;
     }
   }
 
