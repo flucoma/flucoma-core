@@ -35,7 +35,7 @@ public:
 
   TransientExtraction(index maxOrder, index maxBlockSize, index maxPadSize,
       Allocator& alloc = FluidDefaultAllocator())
-      : mModel(maxOrder, maxBlockSize + (2 * maxPadSize), alloc),
+      : mModel(maxOrder, asUnsigned(maxBlockSize + (2 * maxPadSize) + maxOrder), alloc),
         mInput(asUnsigned(maxBlockSize + (2 * maxPadSize) + maxOrder), alloc),
         mDetect(asUnsigned(maxBlockSize), alloc),
         mForwardError(asUnsigned(maxBlockSize + maxOrder), alloc),
