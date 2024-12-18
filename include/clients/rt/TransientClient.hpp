@@ -37,11 +37,16 @@ enum TransientParamIndex {
   kDebounce
 };
 
+constexpr index transientMaxOrder = 200; 
+constexpr index transientMaxBlockSize = 4096; 
+constexpr index transientMaxPadding = 256;
+
 constexpr auto TransientParams = defineParameters(
     LongParam("order", "Order", 20, Min(10), LowerLimit<kWinSize>(),
-              UpperLimit<kBlockSize>(), Max(200)),
-    LongParam("blockSize", "Block Size", 256, Min(100), LowerLimit<kOrder>(), Max(4096)),
-    LongParam("padSize", "Padding", 128, Min(0)),
+              UpperLimit<kBlockSize>(), Max(transientMaxOrder)),
+    LongParam("blockSize", "Block Size", 256, Min(100), LowerLimit<kOrder>(),
+              Max(transientMaxBlockSize)),
+    LongParam("padSize", "Padding", 128, Min(0), Max(transientMaxPadding)),
     FloatParam("skew", "Skew", 0, Min(-10), Max(10)),
     FloatParam("threshFwd", "Forward Threshold", 2, Min(0)),
     FloatParam("threshBack", "Backward Threshold", 1.1, Min(0)),
@@ -67,10 +72,13 @@ public:
   static constexpr auto& getParameterDescriptors() { return TransientParams; }
 
   TransientClient(ParamSetViewType& p, FluidContext const& c)
-    : mParams(p), maxWindowIn{2 * get<kBlockSize>() + get<kPadding>()},
-      maxWindowOut{get<kBlockSize>()},
-      mBufferedProcess{maxWindowIn, maxWindowOut, 1, 2, c.hostVectorSize(), c.allocator()},
-      mExtractor{get<kOrder>(), get<kBlockSize>(), get<kPadding>(), c.allocator()}
+      : mParams(p),
+        maxWindowIn{2 * transientMaxBlockSize + transientMaxPadding},
+        maxWindowOut{transientMaxBlockSize},
+        mExtractor{transientMaxOrder, transientMaxBlockSize,
+                   transientMaxPadding, c.allocator()},
+        mBufferedProcess{maxWindowIn, maxWindowOut, 1, 2,           
+                         c.hostVectorSize(), c.allocator()}
   {
     audioChannelsIn(1);
     audioChannelsOut(2);
@@ -88,26 +96,20 @@ public:
     index blockSize = get<kBlockSize>();
     index padding = get<kPadding>();
     index hostVecSize = input[0].size();
-//    index maxWinIn = 2 * blockSize + padding;
-//    index maxWinOut = blockSize - order;
 
     if (mTrackValues.changed(order, blockSize, padding, hostVecSize) ||
         !mExtractor.initialized())
     {
       mExtractor.init(order, blockSize, padding);
-//      mBufferedProcess.hostSize(hostVecSize);
-//      mBufferedProcess.maxSize(maxWinIn, maxWinOut,
-//                               FluidBaseClient::audioChannelsIn(),
-//                               FluidBaseClient::audioChannelsOut());
     }
 
     double skew = pow(2, get<kSkew>());
     double threshFwd = get<kThreshFwd>();
-    double thresBack = get<kThreshBack>();
+    double threshBack = get<kThreshBack>();
     index  halfWindow = static_cast<index>(round(get<kWinSize>() / 2));
     index  debounce = get<kDebounce>();
 
-    mExtractor.setDetectionParameters(skew, threshFwd, thresBack, halfWindow,
+    mExtractor.setDetectionParameters(skew, threshFwd, threshBack, halfWindow,
                                       debounce);
 
     RealMatrix in(1, hostVecSize, c.allocator());

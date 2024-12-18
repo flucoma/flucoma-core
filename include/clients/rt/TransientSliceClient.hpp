@@ -36,11 +36,16 @@ enum TransientParamIndex {
   kMinSeg
 };
 
+constexpr index transientMaxOrder = 200; 
+constexpr index transientMaxBlockSize = 4096; 
+constexpr index transientMaxPadding = 256;
+
 constexpr auto TransientSliceParams = defineParameters(
     LongParam("order", "Order", 20, Min(10), LowerLimit<kWinSize>(),
-              UpperLimit<kBlockSize>(), Max(200)),
-    LongParam("blockSize", "Block Size", 256, Min(100), LowerLimit<kOrder>(), Max(4096)),
-    LongParam("padSize", "Padding", 128, Min(0)),
+              UpperLimit<kBlockSize>(), Max(transientMaxOrder)),
+    LongParam("blockSize", "Block Size", 256, Min(100), LowerLimit<kOrder>(),
+              Max(transientMaxBlockSize)),
+    LongParam("padSize", "Padding", 128, Min(0), Max(transientMaxPadding)),
     FloatParam("skew", "Skew", 0, Min(-10), Max(10)),
     FloatParam("threshFwd", "Forward Threshold", 2, Min(0)),
     FloatParam("threshBack", "Backward Threshold", 1.1, Min(0)),
@@ -72,10 +77,13 @@ public:
   }
 
   TransientSliceClient(ParamSetViewType& p, FluidContext& c)
-    : mParams{p},mMaxWindowIn{2 * get<kBlockSize>() + get<kPadding>()},
-      mMaxWindowOut{get<kBlockSize>()},
-      mExtractor{get<kOrder>(), get<kBlockSize>(), get<kPadding>(), c.allocator()},
-      mBufferedProcess{mMaxWindowIn, mMaxWindowOut, 1, 1, c.hostVectorSize(), c.allocator()}
+      : mParams{p},
+        mMaxWindowIn{2 * transientMaxBlockSize + transientMaxPadding},
+        mMaxWindowOut{transientMaxBlockSize},
+        mExtractor{transientMaxOrder, transientMaxBlockSize,
+                   transientMaxPadding, c.allocator()},
+        mBufferedProcess{mMaxWindowIn,       mMaxWindowOut, 1, 1,
+                         c.hostVectorSize(), c.allocator()}
   {
     audioChannelsIn(1);
     audioChannelsOut(1);
