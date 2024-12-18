@@ -35,7 +35,8 @@ class ARModel
 
 public:
   ARModel(index maxOrder, index maxBlockSize, Allocator& alloc)
-      : mParameters(maxOrder, alloc),
+      : mOrder{maxOrder},
+        mParameters(maxOrder, alloc),
         mWindow(maxBlockSize + maxOrder, alloc),
         mSpectralIn(nextPower2(2 * maxBlockSize), alloc),
         mSpectralOut(nextPower2(2 * maxBlockSize), alloc),
@@ -43,12 +44,17 @@ public:
         mIFFT(nextPower2(2 * maxBlockSize), alloc)
   {}
 
-  void init(index order) { mParameters.head(order).setZero(); }
+  void init(index order) 
+  { 
+    assert(order <= mParameters.size() && "Order > maxOrder. Check your constructor arguments!"); 
+    mOrder = order;     
+    mParameters.head(order).setZero(); 
+  }
 
 
   const double* getParameters() const { return mParameters.data(); }
   double        variance() const { return mVariance; }
-  index         order() const { return mParameters.size(); }
+  index         order() const { return mOrder; }
 
   void estimate(FluidTensorView<const double, 1> input, index nIterations,
       double robustFactor, Allocator& alloc)
@@ -131,18 +137,18 @@ private:
            "array bounds error in AR model prediction: input too short");
     assert(fIdx(1) < input.size() &&
            "array bounds error in AR model prediction: input too short");
-    assert(fIdx(mParameters.size()) >= -input.descriptor().start &&
+    assert(fIdx(mOrder) >= -input.descriptor().start &&
            "array bounds error in AR model prediction: input too short");
-    assert(fIdx(mParameters.size()) < input.size() &&
+    assert(fIdx(mOrder) < input.size() &&
            "array bounds error in AR model prediction: input too short");
     assert(((numPredictions - 1) + fIdx(1)) >= -input.descriptor().start &&
            "array bounds error in AR model prediction: input too short");
     assert(((numPredictions - 1) + fIdx(1)) < input.size() &&
            "array bounds error in AR model prediction: input too short");
-    assert(((numPredictions - 1) + fIdx(mParameters.size())) >=
+    assert(((numPredictions - 1) + fIdx(mOrder)) >=
                -input.descriptor().start &&
            "array bounds error in AR model prediction: input too short");
-    assert(((numPredictions - 1) + fIdx(mParameters.size())) < input.size() &&
+    assert(((numPredictions - 1) + fIdx(mOrder)) < input.size() &&
            "array bounds error in AR model prediction: input too short");
 
     const double* input_ptr = input.data();
@@ -150,7 +156,7 @@ private:
     for (index p = 0; p < numPredictions; p++)
     {
       double estimate = 0;
-      for (index i = 0; i < mParameters.size(); i++)
+      for (index i = 0; i < mOrder; i++)
         estimate += mParameters(i) * (input_ptr + p)[fIdx(i + 1)];
       output[p] = fOut(input_ptr[p], estimate);
     }
@@ -161,8 +167,7 @@ private:
   {
     index size = input.size();
 
-    // copy input to a 32 byte aligned block (otherwise risk segfaults on Linux)
-    //    FluidEigenMap<const Eigen::Matrix> frame =
+    // copy input to a 32 byte aligned block (otherwise risk segfaults on Linux)    
     ScopedEigenMap<VectorXd> frame(size, alloc);
     frame = _impl::asEigen<Eigen::Matrix>(input);
 
@@ -170,7 +175,7 @@ private:
     {
       if (mWindow.size() != size)
       {
-        mWindow.setZero(); // = ArrayXd::Zero(size);
+        mWindow.setZero(); 
         WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](
             size, mWindow.head(size));
       }
@@ -178,24 +183,16 @@ private:
       frame.array() *= mWindow.head(size);
     }
 
-    //    VectorXd autocorrelation(size);
+    
     ScopedEigenMap<VectorXd> autocorrelation(size, alloc);
     autocorrelate(frame, autocorrelation);
-    //    algorithm::autocorrelateReal(autocorrelation.data(), frame.data(),
 
-    //                                 asUnsigned(size));
-
-    // Resize to the desired order (only keep coefficients for up to the order
-    // we need)
-    double pN = mParameters.size() < size ? autocorrelation(mParameters.size())
-                                          : autocorrelation(0);
-    //    autocorrelation.conservativeResize(mParameters.size());
-
+    double pN = mOrder < size ? autocorrelation(mOrder) : autocorrelation(0);
+  
     // Form a toeplitz matrix
-    //    MatrixXd mat = toeplitz(autocorrelation);
-    ScopedEigenMap<MatrixXd> mat(mParameters.size(), mParameters.size(), alloc);
-    mat = MatrixXd::NullaryExpr(mParameters.size(), mParameters.size(),
-        [&autocorrelation, n = mParameters.size()](
+    ScopedEigenMap<MatrixXd> mat(mOrder, mOrder, alloc);
+    mat = MatrixXd::NullaryExpr(mOrder, mOrder,
+        [&autocorrelation, n = mOrder](
             Eigen::Index row, Eigen::Index col) {
           index idx = row - col;
           if (idx < 0) idx += n;
@@ -205,44 +202,44 @@ private:
     // Yule Walker
     autocorrelation(0) = pN;
     std::rotate(autocorrelation.data(), autocorrelation.data() + 1,
-        autocorrelation.data() + mParameters.size());
-    mParameters = mat.llt().solve(autocorrelation.head(mParameters.size()));
+        autocorrelation.data() + mOrder);
+    mParameters.head(mOrder) = mat.llt().solve(autocorrelation.head(mOrder));
 
     if (updateVariance)
     {
       // Calculate variance
       double variance = mat(0, 0);
 
-      for (index i = 0; i < mParameters.size() - 1; i++)
+      for (index i = 0; i < mOrder - 1; i++)
         variance -= mParameters(i) * mat(0, i + 1);
 
       setVariance(
-          (variance - (mParameters(mParameters.size() - 1) * pN)) / size);
+          (variance - (mParameters(mOrder - 1) * pN)) / size);
     }
   }
 
   void robustEstimate(FluidTensorView<const double, 1> input, index nIterations,
       double robustFactor, Allocator& alloc)
   {
-    FluidTensor<double, 1> estimates(input.size() + mParameters.size(), alloc);
+    FluidTensor<double, 1> estimates(input.size() + mOrder, alloc);
 
     // Calculate an initial estimate of parameters
     directEstimate(input, true, alloc);
 
-    assert(input.descriptor().start >= mParameters.size() &&
+    assert(input.descriptor().start >= mOrder &&
            "too little offset into input data");
 
     // Initialise Estimates
-    for (index i = 0; i < input.size() + mParameters.size(); i++)
-      estimates[i] = input.data()[i - mParameters.size()];
+    for (index i = 0; i < input.size() + mOrder; i++)
+      estimates[i] = input.data()[i - mOrder];
 
     // Variance
-    robustVariance(estimates(Slice(mParameters.size())), input, robustFactor);
+    robustVariance(estimates(Slice(mOrder)), input, robustFactor);
 
     // Iterate
     for (index iterations = nIterations; iterations--;)
       robustIteration(
-          estimates(Slice(mParameters.size())), input, robustFactor, alloc);
+          estimates(Slice(mOrder)), input, robustFactor, alloc);
   }
 
   double robustResidual(double input, double prediction, double cs)
@@ -324,6 +321,7 @@ private:
     return static_cast<index>(std::pow(2, std::ceil(std::log2(n))));
   }
 
+  index                    mOrder; 
   ScopedEigenMap<VectorXd> mParameters;
   double                   mVariance{0.0};
   ScopedEigenMap<ArrayXd>  mWindow;
