@@ -39,7 +39,7 @@ enum TransientParamIndex {
 
 constexpr index transientMaxOrder = 200; 
 constexpr index transientMaxBlockSize = 4096; 
-constexpr index transientMaxPadding = 256;
+constexpr index transientMaxPadding = 1024;
 
 constexpr auto TransientParams = defineParameters(
     LongParam("order", "Order", 20, Min(10), LowerLimit<kWinSize>(),
