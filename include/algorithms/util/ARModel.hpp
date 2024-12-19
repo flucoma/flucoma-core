@@ -10,8 +10,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "FluidEigenMappings.hpp"
 #include "FFT.hpp"
+#include "FluidEigenMappings.hpp"
 #include "Toeplitz.hpp"
 #include "../public/WindowFuncs.hpp"
 #include "../../data/FluidIndex.hpp"
@@ -35,7 +35,7 @@ class ARModel
 
 public:
   ARModel(index maxOrder, index maxBlockSize, Allocator& alloc)
-      : mParameters(maxOrder, alloc),
+      : mOrder{maxOrder}, mParameters(maxOrder, alloc),
         mWindow(maxBlockSize + maxOrder, alloc),
         mSpectralIn(nextPower2(2 * maxBlockSize), alloc),
         mSpectralOut(nextPower2(2 * maxBlockSize), alloc),
@@ -43,15 +43,21 @@ public:
         mIFFT(nextPower2(2 * maxBlockSize), alloc)
   {}
 
-  void init(index order) { mParameters.head(order).setZero(); }
+  void init(index order)
+  {
+    assert(order <= mParameters.size() &&
+           "Order > maxOrder. Check your constructor arguments!");
+    mOrder = order;
+    mParameters.head(order).setZero();
+  }
 
 
   const double* getParameters() const { return mParameters.data(); }
   double        variance() const { return mVariance; }
-  index         order() const { return mParameters.size(); }
+  index         order() const { return mOrder; }
 
   void estimate(FluidTensorView<const double, 1> input, index nIterations,
-      double robustFactor, Allocator& alloc)
+                double robustFactor, Allocator& alloc)
   {
     if (nIterations > 0)
       robustEstimate(input, nIterations, robustFactor, alloc);
@@ -63,7 +69,7 @@ public:
   {
     double prediction;
     modelPredict(input, FluidTensorView<double, 1>(&prediction, 0, 1),
-        std::negate<index>{}, Predict{});
+                 std::negate<index>{}, Predict{});
     return prediction;
   }
 
@@ -71,7 +77,7 @@ public:
   {
     double prediction;
     modelPredict(input, FluidTensorView<double, 1>(&prediction, 0, 1),
-        Identity{}, Predict{});
+                 Identity{}, Predict{});
     return prediction;
   }
 
@@ -89,14 +95,14 @@ public:
     return error;
   }
 
-  void forwardErrorArray(
-      FluidTensorView<const double, 1> input, FluidTensorView<double, 1> errors)
+  void forwardErrorArray(FluidTensorView<const double, 1> input,
+                         FluidTensorView<double, 1>       errors)
   {
     modelPredict(input, errors, std::negate<index>{}, Error{});
   }
 
-  void backwardErrorArray(
-      FluidTensorView<const double, 1> input, FluidTensorView<double, 1> errors)
+  void backwardErrorArray(FluidTensorView<const double, 1> input,
+                          FluidTensorView<double, 1>       errors)
   {
     modelPredict(input, errors, Identity{}, Error{});
   }
@@ -124,25 +130,25 @@ private:
 
   template <typename Indexer, typename OutputFn>
   void modelPredict(FluidTensorView<const double, 1> input,
-      FluidTensorView<double, 1> output, Indexer fIdx, OutputFn fOut)
+                    FluidTensorView<double, 1> output, Indexer fIdx,
+                    OutputFn fOut)
   {
     index numPredictions = output.size();
     assert(fIdx(1) >= -input.descriptor().start &&
            "array bounds error in AR model prediction: input too short");
     assert(fIdx(1) < input.size() &&
            "array bounds error in AR model prediction: input too short");
-    assert(fIdx(mParameters.size()) >= -input.descriptor().start &&
+    assert(fIdx(mOrder) >= -input.descriptor().start &&
            "array bounds error in AR model prediction: input too short");
-    assert(fIdx(mParameters.size()) < input.size() &&
+    assert(fIdx(mOrder) < input.size() &&
            "array bounds error in AR model prediction: input too short");
     assert(((numPredictions - 1) + fIdx(1)) >= -input.descriptor().start &&
            "array bounds error in AR model prediction: input too short");
     assert(((numPredictions - 1) + fIdx(1)) < input.size() &&
            "array bounds error in AR model prediction: input too short");
-    assert(((numPredictions - 1) + fIdx(mParameters.size())) >=
-               -input.descriptor().start &&
+    assert(((numPredictions - 1) + fIdx(mOrder)) >= -input.descriptor().start &&
            "array bounds error in AR model prediction: input too short");
-    assert(((numPredictions - 1) + fIdx(mParameters.size())) < input.size() &&
+    assert(((numPredictions - 1) + fIdx(mOrder)) < input.size() &&
            "array bounds error in AR model prediction: input too short");
 
     const double* input_ptr = input.data();
@@ -150,19 +156,18 @@ private:
     for (index p = 0; p < numPredictions; p++)
     {
       double estimate = 0;
-      for (index i = 0; i < mParameters.size(); i++)
+      for (index i = 0; i < mOrder; i++)
         estimate += mParameters(i) * (input_ptr + p)[fIdx(i + 1)];
       output[p] = fOut(input_ptr[p], estimate);
     }
   }
 
   void directEstimate(FluidTensorView<const double, 1> input,
-      bool updateVariance, Allocator& alloc)
+                      bool updateVariance, Allocator& alloc)
   {
     index size = input.size();
 
     // copy input to a 32 byte aligned block (otherwise risk segfaults on Linux)
-    //    FluidEigenMap<const Eigen::Matrix> frame =
     ScopedEigenMap<VectorXd> frame(size, alloc);
     frame = _impl::asEigen<Eigen::Matrix>(input);
 
@@ -170,33 +175,25 @@ private:
     {
       if (mWindow.size() != size)
       {
-        mWindow.setZero(); // = ArrayXd::Zero(size);
-        WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](
-            size, mWindow.head(size));
+        mWindow.setZero();
+        WindowFuncs::map()[WindowFuncs::WindowTypes::kHann](size,
+                                                            mWindow.head(size));
       }
 
       frame.array() *= mWindow.head(size);
     }
 
-    //    VectorXd autocorrelation(size);
+
     ScopedEigenMap<VectorXd> autocorrelation(size, alloc);
     autocorrelate(frame, autocorrelation);
-    //    algorithm::autocorrelateReal(autocorrelation.data(), frame.data(),
 
-    //                                 asUnsigned(size));
-
-    // Resize to the desired order (only keep coefficients for up to the order
-    // we need)
-    double pN = mParameters.size() < size ? autocorrelation(mParameters.size())
-                                          : autocorrelation(0);
-    //    autocorrelation.conservativeResize(mParameters.size());
+    double pN = mOrder < size ? autocorrelation(mOrder) : autocorrelation(0);
 
     // Form a toeplitz matrix
-    //    MatrixXd mat = toeplitz(autocorrelation);
-    ScopedEigenMap<MatrixXd> mat(mParameters.size(), mParameters.size(), alloc);
-    mat = MatrixXd::NullaryExpr(mParameters.size(), mParameters.size(),
-        [&autocorrelation, n = mParameters.size()](
-            Eigen::Index row, Eigen::Index col) {
+    ScopedEigenMap<MatrixXd> mat(mOrder, mOrder, alloc);
+    mat = MatrixXd::NullaryExpr(
+        mOrder, mOrder,
+        [&autocorrelation, n = mOrder](Eigen::Index row, Eigen::Index col) {
           index idx = row - col;
           if (idx < 0) idx += n;
           return autocorrelation(idx);
@@ -205,54 +202,53 @@ private:
     // Yule Walker
     autocorrelation(0) = pN;
     std::rotate(autocorrelation.data(), autocorrelation.data() + 1,
-        autocorrelation.data() + mParameters.size());
-    mParameters = mat.llt().solve(autocorrelation.head(mParameters.size()));
+                autocorrelation.data() + mOrder);
+    mParameters.head(mOrder) = mat.llt().solve(autocorrelation.head(mOrder));
 
     if (updateVariance)
     {
       // Calculate variance
       double variance = mat(0, 0);
 
-      for (index i = 0; i < mParameters.size() - 1; i++)
+      for (index i = 0; i < mOrder - 1; i++)
         variance -= mParameters(i) * mat(0, i + 1);
 
-      setVariance(
-          (variance - (mParameters(mParameters.size() - 1) * pN)) / size);
+      setVariance((variance - (mParameters(mOrder - 1) * pN)) / size);
     }
   }
 
   void robustEstimate(FluidTensorView<const double, 1> input, index nIterations,
-      double robustFactor, Allocator& alloc)
+                      double robustFactor, Allocator& alloc)
   {
-    FluidTensor<double, 1> estimates(input.size() + mParameters.size(), alloc);
+    FluidTensor<double, 1> estimates(input.size() + mOrder, alloc);
 
     // Calculate an initial estimate of parameters
     directEstimate(input, true, alloc);
 
-    assert(input.descriptor().start >= mParameters.size() &&
+    assert(input.descriptor().start >= mOrder &&
            "too little offset into input data");
 
     // Initialise Estimates
-    for (index i = 0; i < input.size() + mParameters.size(); i++)
-      estimates[i] = input.data()[i - mParameters.size()];
+    for (index i = 0; i < input.size() + mOrder; i++)
+      estimates[i] = input.data()[i - mOrder];
 
     // Variance
-    robustVariance(estimates(Slice(mParameters.size())), input, robustFactor);
+    robustVariance(estimates(Slice(mOrder)), input, robustFactor);
 
     // Iterate
     for (index iterations = nIterations; iterations--;)
-      robustIteration(
-          estimates(Slice(mParameters.size())), input, robustFactor, alloc);
+      robustIteration(estimates(Slice(mOrder)), input, robustFactor, alloc);
   }
 
   double robustResidual(double input, double prediction, double cs)
   {
-    assert(cs > 0); 
+    assert(cs > 0);
     return cs * psiFunction((input - prediction) / cs);
   }
 
-  void robustVariance(FluidTensorView<double, 1> estimates,
-      FluidTensorView<const double, 1> input, double robustFactor)
+  void robustVariance(FluidTensorView<double, 1>       estimates,
+                      FluidTensorView<const double, 1> input,
+                      double                           robustFactor)
   {
     double residualSqSum = 0.0;
 
@@ -261,23 +257,24 @@ private:
     {
       const double residual =
           robustResidual(input[i], fowardPrediction(estimates(Slice(i))),
-              robustFactor * sqrt(mVariance));
+                         robustFactor * sqrt(mVariance));
       residualSqSum += residual * residual;
     }
 
     setVariance(residualSqSum / input.size());
   }
 
-  void robustIteration(FluidTensorView<double, 1> estimates,
-      FluidTensorView<const double, 1> input, double robustFactor,
-      Allocator& alloc)
+  void robustIteration(FluidTensorView<double, 1>       estimates,
+                       FluidTensorView<const double, 1> input,
+                       double robustFactor, Allocator& alloc)
   {
     // Iterate to find new filtered input
     for (index i = 0; i < input.size(); i++)
     {
       const double prediction = fowardPrediction(estimates(Slice(i)));
-      estimates[i] = prediction + robustResidual(input[i], prediction,
-                                      robustFactor * sqrt(mVariance));
+      estimates[i] =
+          prediction +
+          robustResidual(input[i], prediction, robustFactor * sqrt(mVariance));
     }
 
     // New parameters
@@ -289,7 +286,7 @@ private:
   {
     variance = std::max(mMinVariance, variance);
     mVariance = variance;
-    assert(mVariance >= 0); 
+    assert(mVariance >= 0);
   }
 
   // Huber PSI function
@@ -299,8 +296,8 @@ private:
   }
 
   template <typename DerivedA, typename DerivedB>
-  void autocorrelate(
-      const Eigen::DenseBase<DerivedA>& in, Eigen::DenseBase<DerivedB>& out)
+  void autocorrelate(const Eigen::DenseBase<DerivedA>& in,
+                     Eigen::DenseBase<DerivedB>&       out)
   {
     mSpectralIn.head(in.size()) = in;
 
@@ -324,6 +321,7 @@ private:
     return static_cast<index>(std::pow(2, std::ceil(std::log2(n))));
   }
 
+  index                    mOrder;
   ScopedEigenMap<VectorXd> mParameters;
   double                   mVariance{0.0};
   ScopedEigenMap<ArrayXd>  mWindow;

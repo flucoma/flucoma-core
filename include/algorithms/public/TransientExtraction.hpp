@@ -42,7 +42,10 @@ public:
         mBackwardError(asUnsigned(maxBlockSize + maxOrder), alloc),
         mForwardWindowedError(asUnsigned(maxBlockSize), alloc),
         mBackwardWindowedError(asUnsigned(maxBlockSize), alloc)
-  {}
+  {
+    assert(maxBlockSize >= maxOrder && "Max block size needs to be >= max order"); 
+    assert(maxPadSize >= maxOrder && "Max pad size needs to be >= max order"); 
+  }
 
   void init(index order, index blockSize, index padSize)
   {
