@@ -20,7 +20,7 @@ namespace knnregressor {
 
 struct KNNRegressorData
 {
-  algorithm::KDTree                    tree{0};
+  algorithm::KDTree                    tree{algorithm::KDTree()};
   FluidDataSet<std::string, double, 1> target{1};
   index                                size() const { return target.size(); }
   index                                dims() const { return tree.dims(); }
@@ -41,7 +41,10 @@ void to_json(nlohmann::json& j, const KNNRegressorData& data)
 bool check_json(const nlohmann::json& j, const KNNRegressorData&)
 {
   return fluid::check_json(j, {"tree", "target"},
-                           {JSONTypes::OBJECT, JSONTypes::OBJECT});
+                           {JSONTypes::OBJECT, JSONTypes::OBJECT}) &&
+         fluid::algorithm::check_json(j.at("tree"), algorithm::KDTree()) &&
+         fluid::check_json(j.at("labels"),
+                           FluidDataSet<std::string, std::string, 1>());
 }
 
 void from_json(const nlohmann::json& j, KNNRegressorData& data)
@@ -128,24 +131,25 @@ public:
     if (mAlgorithm.tree.size() < k) return Error(NotEnoughData);
 
     InBufferCheck bufCheck(mAlgorithm.tree.dims());
-    if (!bufCheck.checkInputs(in.get()))
-      return Error(bufCheck.error());
+    if (!bufCheck.checkInputs(in.get())) return Error(bufCheck.error());
     BufferAdaptor::ReadAccess inBuf(in.get());
-    BufferAdaptor::Access outBuf(out.get());
+    BufferAdaptor::Access     outBuf(out.get());
     if (!outBuf.exists()) return Error(InvalidBuffer);
-    Result resizeResult = outBuf.resize(mAlgorithm.target.dims(), 1, inBuf.sampleRate());
+    Result resizeResult =
+        outBuf.resize(mAlgorithm.target.dims(), 1, inBuf.sampleRate());
     if (!resizeResult.ok()) return Error(BufferAlloc);
     algorithm::KNNRegressor regressor;
     RealVector              input(mAlgorithm.tree.dims());
     RealVector              output(mAlgorithm.target.dims());
     input <<= inBuf.samps(0, mAlgorithm.tree.dims(), 0);
-    regressor.predict(mAlgorithm.tree, mAlgorithm.target, input, output, k, weight);
+    regressor.predict(mAlgorithm.tree, mAlgorithm.target, input, output, k,
+                      weight);
     outBuf.samps(0) <<= output;
     return OK();
   }
 
   MessageResult<void> predict(InputDataSetClientRef source,
-                              DataSetClientRef dest) const
+                              DataSetClientRef      dest) const
   {
     index k = get<kNumNeighbors>();
     bool  weight = get<kWeight>() != 0;
@@ -169,7 +173,8 @@ public:
     for (index i = 0; i < dataSet.size(); i++)
     {
       RealVectorView point = data.row(i);
-      regressor.predict(mAlgorithm.tree, mAlgorithm.target, point, prediction, k, weight);
+      regressor.predict(mAlgorithm.tree, mAlgorithm.target, point, prediction,
+                        k, weight);
       result.add(ids(i), prediction);
     }
     destPtr->setDataSet(result);
@@ -262,9 +267,10 @@ public:
       RealVector output(algorithm.target.dims(), c.allocator());
 
       input <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
-                  .samps(0, algorithm.tree.dims(), 0);
+                    .samps(0, algorithm.tree.dims(), 0);
 
-      regressor.predict(algorithm.tree, algorithm.target, input, output, k, weight, c.allocator());
+      regressor.predict(algorithm.tree, algorithm.target, input, output, k,
+                        weight, c.allocator());
       outBuf.samps(0) <<= output;
     }
   }

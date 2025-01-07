@@ -40,7 +40,7 @@ constexpr auto NMFCrossParams = defineParameters(
     InputBufferParam("target", "Target Buffer"),
     BufferParam("output", "Output Buffer"),
     LongParam("timeSparsity", "Time Sparsity", 7, Min(1), Odd()),
-    LongParam("polyphony", "Polyphony", 10, Min(1), Odd(),
+    LongParam("polyphony", "Polyphony", 11, Min(1), Odd(),
               FrameSizeUpperLimit<kFFT>()),
     LongParam("continuity", "Continuity", 7, Min(1), Odd()),
     LongParam("iterations", "Number of Iterations", 50, Min(1)),
