@@ -124,6 +124,21 @@ public:
     mPos = (mPos + 1) % mH.cols();
   }
 
+  void processFrame(ComplexVectorView v, RealVectorView hFrame, double interpolation) {
+    using namespace Eigen;
+    using namespace _impl;
+    MatrixXd W = MatrixXd::Zero(mW1.rows(), mW1.cols());
+    for (int i = 0; i < W.cols(); i++) {
+      ArrayXd out = ArrayXd::Zero(mW2.rows());
+      mOT[i].interpolate(interpolation, out);
+      W.col(i) = out;
+    }
+
+    VectorXd frame = W * asEigen<Matrix>(hFrame);
+    RealVectorView mag1 = asFluid(frame);
+    mRTPGHI.processFrame(mag1, v, mWindowSize, mFFTSize, mHopSize, 1e-6);
+  }
+
 private:
   ScopedEigenMap<MatrixXd>     mW1;
   ScopedEigenMap<MatrixXd>     mW2;
