@@ -187,7 +187,7 @@ public:
     index filterSize = get<kFilterSize>();
     if (filterSize % 2) filterSize++;
     return get<kFFT>().hopSize() *
-           (1 + ((get<kKernelSize>() + 1) >> 1) + (filterSize >> 1));
+      (((get<kKernelSize>() + 1) >> 1) + (filterSize >> 1)) + get<kFFT>().winSize();
   }
 
   AnalysisSize analysisSettings()
