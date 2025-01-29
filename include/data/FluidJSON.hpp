@@ -10,6 +10,7 @@
 #include <algorithms/public/UMAP.hpp>
 #include <algorithms/public/Standardization.hpp>
 #include <algorithms/public/LabelSetEncoder.hpp>
+#include <algorithms/public/PolynomialRegressor.hpp>
 #include <data/FluidDataSet.hpp>
 #include <data/FluidIndex.hpp>
 #include <data/FluidTensor.hpp>
@@ -471,6 +472,34 @@ void from_json(const nlohmann::json &j, UMAP &umap) {
   double b = j.at("b").get<index>();
   index k = j.at("k").get<index>();
   umap.init(embedding, tree, k, a, b);
+}
+
+// PolynomialRegressor
+void to_json(nlohmann::json &j, const PolynomialRegressor &reg) {
+  RealMatrix coefficients(reg.degree() + 1, reg.dims());
+
+  reg.getCoefficients(coefficients);
+
+  j["tikhonov"] = reg.tihkonov();
+  j["coefficients"] = RealMatrixView(coefficients);
+}
+
+bool check_json(const nlohmann::json &j, const PolynomialRegressor &) {
+  return fluid::check_json(j,
+    {"tikhonov", "coefficients"},
+    {JSONTypes::NUMBER, JSONTypes::ARRAY}
+  );
+}
+
+void from_json(const nlohmann::json &j, PolynomialRegressor &reg) {
+  RealMatrix embedding(reg.degree() + 1, reg.dims());
+  double tikhonov;
+
+  j.at("tikhonov").get_to(tikhonov);
+  j.at("coefficients").get_to(embedding);
+
+  reg.setTikhonov(tikhonov);
+  reg.setCoefficients(embedding); 
 }
 
 } // namespace algorithm
