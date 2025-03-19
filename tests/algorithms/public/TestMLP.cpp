@@ -5,7 +5,6 @@
 #include <catch2/catch.hpp>
 #include <data/FluidJSON.hpp> 
 #include <clients/nrt/MLPClassifierClient.hpp>
-#include <data/MappedDataLoader.hpp> 
 #include <data/FluidIndex.hpp>
 #include <data/FluidJSON.hpp>
 #include <data/FluidTensor.hpp>
