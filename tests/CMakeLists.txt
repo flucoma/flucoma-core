@@ -134,6 +134,7 @@ add_test_executable(TestEnvelopeGate algorithms/public/TestEnvelopeGate.cpp)
 
 add_test_executable(TestTransientSlice algorithms/public/TestTransientSlice.cpp)
 
+add_test_executable(TestMLP algorithms/public/TestMLP.cpp)
 
 target_link_libraries(TestNoveltySeg PRIVATE TestSignals)
 target_link_libraries(TestOnsetSeg PRIVATE TestSignals)
@@ -164,5 +165,7 @@ catch_discover_tests(TestTransientSlice WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 catch_discover_tests(TestFluidSource WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 catch_discover_tests(TestFluidSink WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 catch_discover_tests(TestBufferedProcess WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+
+catch_discover_tests(TestMLP WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 
 add_compile_tests("FluidTensor Compilation Tests" data/compile_tests/TestFluidTensor_Compile.cpp) 
