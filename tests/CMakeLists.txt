@@ -85,7 +85,7 @@ FetchContent_Declare(
   ApprovalCPP 
   GIT_SHALLOW    TRUE
   GIT_REPOSITORY https://github.com/approvals/ApprovalTests.cpp.git
-  GIT_TAG        master
+  GIT_TAG        v.10.12.2
 )
 FetchContent_MakeAvailable(ApprovalCPP)
 
