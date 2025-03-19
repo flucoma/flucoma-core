@@ -168,6 +168,7 @@ public:
     index    nRows = out.rows();
     ArrayXXd chain =
         ArrayXXd::Zero(nRows, mLayers[mLayers.size() - 1].inputSize());
+    out *= 2.0; //MSE loss derivative 
     mLayers[mLayers.size() - 1].backward(out, chain);
     for (index i = asSigned(mLayers.size() - 2); i >= 0; i--)
     {
