@@ -50,7 +50,7 @@ public:
                       double validationFraction, bool shuffle = true)
       : detail::DataSampler<FluidDataSetSampler>(in.size(), batchSize,
                                                  validationFraction, shuffle),
-        mIdxMaps{indexMap(in, out)}
+        mIdxMaps{in.indexMap(out)}
   {}
 };
 } // namespace fluid
