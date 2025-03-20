@@ -1,8 +1,8 @@
 #pragma once
 
-#include "data/FluidIndex.hpp"
-#include "data/FluidTensor.hpp"
-#include "data/TensorTypes.hpp"
+#include "FluidIndex.hpp"
+#include "FluidTensor.hpp"
+#include "TensorTypes.hpp"
 #include <iomanip>
 #include <iostream>
 #include <string>
@@ -13,6 +13,8 @@ namespace fluid {
 template <typename idType, typename dataType, index N>
 class FluidDataSet
 {
+  template<typename ID, typename U, index M> 
+  friend class FluidDataSet; 
 
 public:
   explicit FluidDataSet() = default;
@@ -64,7 +66,7 @@ public:
     }
   }
 
-  bool add(idType const& id, FluidTensorView<dataType, N> point)
+  bool add(idType const& id, FluidTensorView<const dataType, N> point)
   {
     assert(sameExtents(mDim, point.descriptor()));
     index pos = mData.rows();
@@ -194,6 +196,40 @@ public:
       }
     }
     return result.str();
+  }
+
+  template<typename T, index M> 
+  friend auto indexMap(FluidDataSet<idType, T, M> const& x, FluidDataSet const& y)
+    -> std::pair<std::vector<index>,std::vector<index>>
+  {
+    using std::pair, std::vector, std::begin, std::end; 
+
+    pair<vector<index>, vector<index>> result; 
+    result.first.reserve(x.size());
+    result.second.reserve(x.size());
+
+    auto firstID = begin(x.getIds());
+    auto lastID = end(x.getIds());
+
+    std::transform(firstID, lastID, std::back_inserter(result.first),
+                   [&x](auto const& id) { return x.mIndex.at(id); });
+    std::transform(firstID, lastID, std::back_inserter(result.second),
+                   [&y](auto const& id) { return y.mIndex.at(id); });
+
+    return result;
+  }
+
+  template <class U, index M>
+  std::vector<idType> checkIDs(FluidDataSet<idType, U, M> const& other) const
+  {
+    std::vector<idType> result;
+
+    std::for_each(mIndex.begin(), mIndex.end(), [&result, &other](auto& item) {
+      if (other.mIndex.find(item.first) == other.mIndex.end())
+        result.push_back(item.first);
+    });
+
+    return result;
   }
 
 private:
