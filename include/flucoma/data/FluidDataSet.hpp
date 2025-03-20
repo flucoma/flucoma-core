@@ -13,7 +13,7 @@ namespace fluid {
 template <typename idType, typename dataType, index N>
 class FluidDataSet
 {
-  template<typename ID, typename U, index M> 
+  template<typename, typename, index> 
   friend class FluidDataSet; 
 
 public:
@@ -199,7 +199,7 @@ public:
   }
 
   template<typename T, index M> 
-  friend auto indexMap(FluidDataSet<idType, T, M> const& x, FluidDataSet const& y)
+  auto indexMap(FluidDataSet<idType, T, M> const& x) const
     -> std::pair<std::vector<index>,std::vector<index>>
   {
     using std::pair, std::vector, std::begin, std::end; 
@@ -212,9 +212,9 @@ public:
     auto lastID = end(x.getIds());
 
     std::transform(firstID, lastID, std::back_inserter(result.first),
-                   [&x](auto const& id) { return x.mIndex.at(id); });
+                   [this](auto const& id) { return mIndex.at(id); });
     std::transform(firstID, lastID, std::back_inserter(result.second),
-                   [&y](auto const& id) { return y.mIndex.at(id); });
+                   [&x](auto const& id) { return x.mIndex.at(id); });
 
     return result;
   }
