@@ -14,7 +14,9 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "NRTClient.hpp"
 #include "../../algorithms/public/MLP.hpp"
 #include "../../algorithms/public/SGD.hpp"
+#include "../../data/FluidDataSetSampler.hpp"
 #include <string>
+
 
 namespace fluid {
 namespace client {
@@ -108,8 +110,8 @@ public:
     if (!targetClientPtr) return Error<double>(NoDataSet);
     auto targetDataSet = targetClientPtr->getDataSet();
     if (targetDataSet.size() == 0) return Error<double>(EmptyDataSet);
-    if (sourceDataSet.size() != targetDataSet.size())
-      return Error<double>(SizesDontMatch);
+    if (sourceDataSet.size() > targetDataSet.size())
+      return Error<double>(TooFewOutputPoints);
     index outputAct = get<kOutputActivation>() == -1 ? get<kActivation>()
                                                      : get<kOutputActivation>();
     if (!mAlgorithm.initialized() ||
@@ -121,15 +123,29 @@ public:
                       get<kHidden>(), get<kActivation>(), outputAct);
     }
 
-    mAlgorithm.setTrained(false);
-    DataSet        result(1);
-    auto           data = sourceDataSet.getData();
-    auto           tgt = targetDataSet.getData();
-    algorithm::SGD sgd;
-    double         error =
-        sgd.train(mAlgorithm, data, tgt, get<kIter>(), get<kBatchSize>(),
-                  get<kRate>(), get<kMomentum>(), get<kVal>());
-    return error;
+    if (auto missingIDs = sourceDataSet.checkIDs(targetDataSet);
+        missingIDs.size() == 0)
+    {
+      mAlgorithm.setTrained(false);
+      DataSet             result(1);
+      auto                data = sourceDataSet.getData();
+      auto                tgt = targetDataSet.getData();
+      FluidDataSetSampler sampler(sourceDataSet, targetDataSet,
+                                  get<kBatchSize>(), get<kVal>(), true);
+      algorithm::SGD      sgd;
+      double error = sgd.train(mAlgorithm, data, tgt, sampler, get<kIter>(),
+                               get<kRate>(), get<kMomentum>());
+      return error;
+    }
+    else
+    {
+      std::ostringstream oss;
+      oss << "Can't train because these IDs are missing from the output data: ";
+      std::copy(missingIDs.begin(), missingIDs.end() - 1,
+                std::ostream_iterator<std::string>(oss, ","));
+      oss << missingIDs.back();
+      return {Result::Status::kError, oss.str()};
+    }
   }
 
   MessageResult<void> predict(InputDataSetClientRef srcClient,

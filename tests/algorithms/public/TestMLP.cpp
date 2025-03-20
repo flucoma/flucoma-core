@@ -8,6 +8,7 @@
 #include <flucoma/data/FluidIndex.hpp>
 #include <flucoma/data/FluidJSON.hpp>
 #include <flucoma/data/FluidTensor.hpp>
+#include <flucoma/data/FluidDataSetSampler.hpp>
 #include <iostream>
 
 namespace fluid::algorithm {
@@ -170,6 +171,67 @@ TEST_CASE("MLP works on precomputed example")
   REQUIRE_THAT(yy[0], WithinAbs(0.7565, 1e-3));
 }
 
+std::pair<FluidDataSet<std::string, index, 1>,FluidDataSet<std::string, index, 1>> makeUnalignedDataSets(index size){
+  
+  FluidTensor<std::string, 1> ids_input(size);
+  FluidTensor<index, 2> data_input(size,1);
+
+  std::generate(ids_input.begin(), ids_input.end(),
+                [n = 0]() mutable { return std::to_string(n++); });
+  
+  std::generate(data_input.begin(), data_input.end(), [n = 0]() mutable { return n++; });
+  
+  FluidDataSet<std::string, index,1> dataset_in (ids_input, data_input); 
+
+  //shuffle outputs 
+  std::vector<index> lookup(size); 
+  std::iota(lookup.begin(), lookup.end(), 0); 
+  std::random_device rd;
+  std::mt19937 g(rd());
+  std::shuffle(lookup.begin(), lookup.end(), g); 
+
+  FluidTensor<std::string, 1> ids_output(size);
+  FluidTensor<index, 2> data_output(size,1);
+
+  std::transform(lookup.begin(), lookup.end(), ids_output.begin(),
+                 [&lookup, &ids_input](index i) { return ids_input[i]; });
+
+  std::transform(lookup.begin(), lookup.end(), data_output.begin(),
+                 [&lookup, &data_input](index i) { return data_input(i,0); });
+  
+  FluidDataSet<std::string, index,1> dataset_out (ids_output, data_output); 
+
+  return { dataset_in, dataset_out }; 
+
+}
+
+
+TEST_CASE("Test batch loader for mismatched fluid datasets")
+{  
+  const index         batchSize = 64;
+  const index         N = 300;
+  auto                data = makeUnalignedDataSets(N);
+  index               datacount = 0;
+  FluidDataSetSampler ds(data.first, data.second, 64, 0, true);
+  
+  REQUIRE_FALSE(ds.begin() == ds.end());
+
+  auto  inputs = data.first.getData().col(0);
+  auto  outputs = data.second.getData().col(0);
+  index i = 0;
+  for (auto batch : ds)
+  {
+    std::cout << "ping\n";
+    index expectedSize = i++ == 0 ? batchSize + (N % batchSize) : batchSize;
+    CHECK(batch->rows() == expectedSize);
+    auto inputidx = batch->col(0);
+    auto outputidx = batch->col(1);
+    for (index j = 0; j < batch->rows(); ++j)
+    {
+      CHECK(inputs[inputidx[j]] == outputs[outputidx[j]]);
+    }
+  }
+}
 
 
 } // namespace fluid::algorithm

@@ -15,10 +15,10 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../data/FluidDataSet.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/FluidTensor.hpp"
+#include "../../data/SimpleDataSampler.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <limits>
-#include <random>
 
 namespace fluid {
 namespace algorithm {
@@ -27,72 +27,63 @@ class SGD
 {
   using ArrayXd = Eigen::ArrayXd;
   using ArrayXXd = Eigen::ArrayXXd;
-  using Permutation = Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>;
 
 public:
-  explicit SGD() = default;
-  ~SGD() = default;
 
-  double train(MLP& model, const RealMatrixView in, RealMatrixView out,
+  double train(MLP& model, InputRealMatrixView in, RealMatrixView out,
                index nIter, index batchSize, double learningRate,
                double momentum, double valFrac)
+  {
+    return train(model, in, out,
+                 SimpleDataSampler(in.rows(), batchSize, valFrac, true), nIter,
+                 learningRate, momentum);
+  }
+
+  template <typename Sampler>
+  double train(MLP& model, InputRealMatrixView in, RealMatrixView out,
+               Sampler&& loader, index nIter, double learningRate,
+               double momentum)
   {
     using namespace _impl;
     using namespace std;
     using namespace Eigen;
-    index       nExamples = in.rows();
-    index       inputSize = in.cols();
-    index       outputSize = out.cols();
-    ArrayXXd    input = asEigen<Eigen::Array>(in);
-    ArrayXXd    output = asEigen<Eigen::Array>(out);
-    Permutation valPerm(nExamples);
-    valPerm.setIdentity();
-    shuffle(valPerm.indices().data(),
-            valPerm.indices().data() + valPerm.indices().size(),
-            mt19937{random_device{}()});
-    input = valPerm * input.matrix();
-    output = valPerm * output.matrix();
-    index nVal = std::lround(nExamples * valFrac);
-    index nTrain = nExamples - nVal;
+    index nExamples = in.rows();
+    // index inputSize = in.cols();
+    index outputSize = out.cols();
 
-    ArrayXXd trainInput = input.block(0, 0, nTrain, inputSize);
-    ArrayXXd trainOutput = output.block(0, 0, nTrain, outputSize);
-    ArrayXXd valInput = input.block(nTrain, 0, nVal, inputSize);
-    ArrayXXd valOutput = output.block(nTrain, 0, nVal, outputSize);
+    auto                    valIdx = loader.validationSet();
+    std::optional<ArrayXXd> valInput;
+    std::optional<ArrayXXd> valOutput;
+    if (valIdx)
+    {
+      valInput =
+          ArrayXXd(asEigen<Eigen::Array>(in)(valIdx->col(0), Eigen::all));
+      valOutput =
+          ArrayXXd(asEigen<Eigen::Array>(in)(valIdx->col(1), Eigen::all));
+    }
 
-    Permutation iterPerm(nTrain);
-    iterPerm.setIdentity();
     double error = 0;
     index  patience = mInitialPatience;
     double prevValLoss = std::numeric_limits<double>::max();
     while (nIter-- > 0)
     {
-      shuffle(iterPerm.indices().data(),
-              iterPerm.indices().data() + iterPerm.indices().size(),
-              mt19937{random_device{}()});
-      ArrayXXd inPerm = iterPerm * trainInput.matrix();
-      ArrayXXd outPerm = iterPerm * trainOutput.matrix();
-      for (index batchStart = 0; batchStart < inPerm.rows();
-           batchStart += batchSize)
+      for (auto batch : loader)
       {
-        index thisBatchSize = (batchStart + batchSize) <= nTrain
-                                  ? batchSize
-                                  : nTrain - batchStart;
-        ArrayXXd batchIn =
-            inPerm.block(batchStart, 0, thisBatchSize, inPerm.cols());
+        index    thisBatchSize = batch->rows();
+        ArrayXXd batchIn = asEigen<Eigen::Array>(in)(batch->col(0), Eigen::all);
         ArrayXXd batchOut =
-            outPerm.block(batchStart, 0, thisBatchSize, outPerm.cols());
+            asEigen<Eigen::Array>(out)(batch->col(1), Eigen::all);
         ArrayXXd batchPred = ArrayXXd::Zero(thisBatchSize, outputSize);
         model.forward(batchIn, batchPred);
         ArrayXXd diff = batchPred - batchOut;
         model.backward(diff);
         model.update(learningRate, momentum);
       }
-      if (nVal > 0)
+      if (valIdx)
       {
-        ArrayXXd valPred = ArrayXXd::Zero(nVal, outputSize);
-        model.forward(valInput, valPred);
-        double valLoss = model.loss(valPred, valOutput);
+        ArrayXXd valPred = ArrayXXd::Zero(valInput->rows(), outputSize);
+        model.forward(*valInput, valPred);
+        double valLoss = model.loss(valPred, *valOutput);
         if (valLoss < prevValLoss)
           patience = mInitialPatience;
         else
@@ -101,6 +92,13 @@ public:
         prevValLoss = valLoss;
       }
     }
+
+    auto trainingIdx = loader.trainingSet();
+    nExamples = trainingIdx->rows();
+    ArrayXXd input = asEigen<Eigen::Array>(in)(trainingIdx->col(0), Eigen::all);
+    ArrayXXd output =
+        asEigen<Eigen::Array>(out)(trainingIdx->col(1), Eigen::all);
+
     ArrayXXd finalPred = ArrayXXd::Zero(nExamples, outputSize);
     model.forward(input, finalPred);
     bool isNan = !((finalPred == finalPred)).all();

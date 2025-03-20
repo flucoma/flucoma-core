@@ -16,6 +16,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../algorithms/public/LabelSetEncoder.hpp"
 #include "../../algorithms/public/MLP.hpp"
 #include "../../algorithms/public/SGD.hpp"
+#include "../../data/FluidDataSetSampler.hpp"
 #include <string>
 
 namespace fluid {
@@ -149,8 +150,8 @@ public:
     if (!targetClientPtr) return Error<double>(NoLabelSet);
     auto targetDataSet = targetClientPtr->getLabelSet();
     if (targetDataSet.size() == 0) return Error<double>(EmptyLabelSet);
-    if (sourceDataSet.size() != targetDataSet.size())
-      return Error<double>(SizesDontMatch);
+    if (sourceDataSet.size() > targetDataSet.size())
+      return Error<double>(TooFewOutputPoints);
 
     mAlgorithm.encoder.fit(targetDataSet);
 
@@ -162,24 +163,40 @@ public:
                           mAlgorithm.encoder.numLabels(), get<kHidden>(),
                           get<kActivation>(), 1); // sigmoid output
     }
-    mAlgorithm.mlp.setTrained(false);
-    DataSet result(1);
-    auto    data = sourceDataSet.getData();
-    auto    tgt = targetDataSet.getData();
-
-    RealMatrix oneHot(targetDataSet.size(), mAlgorithm.encoder.numLabels());
-    oneHot.fill(0);
-    for (index i = 0; i < targetDataSet.size(); i++)
+    
+    if (auto missingIDs = sourceDataSet.checkIDs(targetDataSet);
+        missingIDs.size() == 0)
     {
-      mAlgorithm.encoder.encodeOneHot(tgt.row(i)(0), oneHot.row(i));
+      mAlgorithm.mlp.setTrained(false);
+      DataSet result(1);
+      auto    data = sourceDataSet.getData();
+      auto    tgt = targetDataSet.getData();
+  
+      RealMatrix oneHot(targetDataSet.size(), mAlgorithm.encoder.numLabels());
+      oneHot.fill(0);
+      for (index i = 0; i < targetDataSet.size(); i++)
+      {
+        mAlgorithm.encoder.encodeOneHot(tgt.row(i)(0), oneHot.row(i));
+      }
+  
+      FluidDataSetSampler sampler(sourceDataSet, targetDataSet,
+        get<kBatchSize>(), get<kVal>(), true);
+
+      algorithm::SGD sgd;
+      double error = sgd.train(mAlgorithm.mlp, data, oneHot, sampler, get<kIter>(),
+                               get<kRate>(), get<kMomentum>());
+
+      return error;
     }
-
-    algorithm::SGD sgd;
-    double         error =
-        sgd.train(mAlgorithm.mlp, data, oneHot, get<kIter>(), get<kBatchSize>(),
-                  get<kRate>(), get<kMomentum>(), get<kVal>());
-
-    return error;
+    else
+    {
+      std::ostringstream oss;
+      oss << "Can't train because these IDs are missing from the output data: ";
+      std::copy(missingIDs.begin(), missingIDs.end() - 1,
+                std::ostream_iterator<std::string>(oss, ","));
+      oss << missingIDs.back();
+      return {Result::Status::kError, oss.str()};
+    }
   }
 
   MessageResult<void> predict(InputDataSetClientRef  srcClient,
