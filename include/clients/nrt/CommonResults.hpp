@@ -40,6 +40,7 @@ static const std::string FileRead{"Couldn't read file"};
 static const std::string FileWrite{"Couldn't write file"};
 static const std::string NotImplemented{"Not implemented"};
 static const std::string SizesDontMatch{"Sizes do not match"};
+static const std::string TooFewOutputPoints{"Not enough output points"};
 static const std::string DimensionsDontMatch{"Dimensions do not match"};
 
 template <typename T>
