@@ -59,7 +59,7 @@ public:
       valInput =
           ArrayXXd(asEigen<Eigen::Array>(in)(valIdx->col(0), Eigen::all));
       valOutput =
-          ArrayXXd(asEigen<Eigen::Array>(in)(valIdx->col(1), Eigen::all));
+          ArrayXXd(asEigen<Eigen::Array>(out)(valIdx->col(1), Eigen::all));
     }
 
     double error = 0;
