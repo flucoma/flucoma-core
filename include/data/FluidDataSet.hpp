@@ -205,8 +205,8 @@ public:
     using std::pair, std::vector, std::begin, std::end; 
 
     pair<vector<index>, vector<index>> result; 
-    result.first.reserve(x.size());
-    result.second.reserve(x.size());
+    result.first.reserve(asUnsigned(x.size()));
+    result.second.reserve(asUnsigned(x.size()));
 
     auto firstID = begin(x.getIds());
     auto lastID = end(x.getIds());
