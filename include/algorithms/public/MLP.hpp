@@ -30,8 +30,6 @@ class MLP
   using ArrayXXd = Eigen::ArrayXXd;
 
 public:
-  explicit MLP() = default;
-  ~MLP() = default;
 
   void init(index inputSize, index outputSize,
             FluidTensor<index, 1> hiddenSizes, index hiddenAct, index outputAct)

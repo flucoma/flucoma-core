@@ -182,5 +182,49 @@ TEST_CASE("FluidDataSet prints consistent summaries for approval","[FluidDataSet
 
         Approvals::verify(d.print()); 
     }
+}
 
+TEST_CASE("checkIDs works as expected")
+{
+  using fluid::index;
+  FluidTensor<index, 1> d(100);
+  std::iota(d.begin(), d.end(), 0);
+  using DS = fluid::FluidDataSet<index, index, 1>;
+
+  DS src(d, FluidTensorView<index, 2>(d).transpose());
+
+  SECTION("No False Postives")
+  {
+    DS   tgt(src);
+    auto missing = src.checkIDs(tgt);
+    CHECK(missing.size() == 0);
+  }
+
+  SECTION("Order insensitive")
+  {
+    std::vector<index> idx(100);
+    std::iota(idx.begin(), idx.end(), 0);
+    std::shuffle(idx.begin(), idx.end(), std::mt19937(std::random_device()()));
+    FluidTensor<index, 1> shuffled(100);
+    // shuffled <<= idx;
+    std::copy(idx.begin(), idx.end(), shuffled.begin());
+    DS   tgt(shuffled, FluidTensorView<index, 2>(shuffled).transpose());
+    auto missing = src.checkIDs(tgt);
+    CHECK(missing.size() == 0);
+    SECTION("Finds random deletions")
+    {
+      auto chop = shuffled(Slice(0, 50));
+      auto remain = shuffled(Slice(50, 50));
+
+      DS tgt_snip(remain, FluidTensorView<index, 2>(remain).transpose());
+
+      auto missing = src.checkIDs(tgt_snip);
+
+      std::vector<index> expected(50);
+      std::copy(chop.begin(), chop.end(), expected.begin());
+      std::sort(expected.begin(), expected.end());
+      std::sort(missing.begin(), missing.end());
+      CHECK_THAT(missing, Catch::Matchers::Equals(expected));
+    }
+  }
 }

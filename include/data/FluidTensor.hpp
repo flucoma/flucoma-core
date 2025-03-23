@@ -331,7 +331,8 @@ public:
 
   index extent(index n) const { return mDesc.extents[asUnsigned(n)]; };
   index rows() const { return extent(0); }
-  index cols() const { return extent(1); }
+  template <typename dummy = index>
+  std::enable_if_t<N >= 2, dummy> cols() const { return extent(1); }
   index size() const { return asSigned(mContainer.size()); }
   const FluidTensorSlice<N>& descriptor() const { return mDesc; }
   FluidTensorSlice<N>&       descriptor() { return mDesc; }
@@ -710,7 +711,15 @@ public:
 
   const FluidTensorSlice<N> descriptor() const { return mDesc; }
   FluidTensorSlice<N>       descriptor() { return mDesc; }
-
+ 
+  bool operator==(const FluidTensorView& rhs) const {
+    return  data() == rhs.data(); 
+  }
+  
+  bool operator!=(const FluidTensorView& rhs) const {
+    return !(*this == rhs); 
+ }
+ 
   friend void swap(FluidTensorView& first, FluidTensorView& second)
   {
     using std::swap;
