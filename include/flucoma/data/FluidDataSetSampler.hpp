@@ -22,8 +22,7 @@ Pairing two unordered DataSets for supervised use
 
 namespace fluid {
 
-class FluidDataSetSampler
-    : public detail::DataSampler<FluidDataSetSampler>
+class FluidDataSetSampler : public detail::DataSampler<FluidDataSetSampler>
 {
   friend detail::DataSampler<FluidDataSetSampler>;
 
@@ -38,9 +37,9 @@ class FluidDataSetSampler
     auto outputSamples = dst.col(1);
 
     transform(start, end, begin(inputSamples),
-              [&idx = mIdxMaps](index i) { return idx.first[i]; });
+              [&idx = mIdxMaps](index i) { return idx.first[asUnsigned(i)]; });
     transform(start, end, begin(outputSamples),
-              [&idx = mIdxMaps](index i) { return idx.second[i]; });
+              [&idx = mIdxMaps](index i) { return idx.second[asUnsigned(i)]; });
     return dst;
   }
 

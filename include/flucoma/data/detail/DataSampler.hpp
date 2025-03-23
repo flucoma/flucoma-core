@@ -70,7 +70,7 @@ class DataSampler
   std::vector<index> makeIndex(index size, bool shuffle)
   {
     using std::begin, std::end;
-    std::vector<index> result(size);
+    std::vector<index> result(asUnsigned(size));
     std::iota(begin(result), end(result), 0);
     if (shuffle) std::shuffle(begin(result), end(result), mGen);
     return result;
@@ -122,6 +122,8 @@ public:
     return derived().map(batchStart, batchEnd, mBatch)(Slice(0, thisBatchSize),
                                                        Slice(0));
   }
+
+  index maxBatchSize() { return mBatchSize + (mTrainCount % mBatchSize); }
 
   std::optional<FluidTensorView<index, 2>> validationSet()
   {
