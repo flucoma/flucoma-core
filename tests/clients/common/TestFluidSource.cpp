@@ -1,8 +1,8 @@
 #define CATCH_CONFIG_MAIN
 #include <catch2/catch.hpp>
 // #include <catch2/catch_test_macros.hpp>
-#include <clients/common/FluidSource.hpp>
-#include <data/FluidTensor.hpp>
+#include <flucoma/clients/common/FluidSource.hpp>
+#include <flucoma/data/FluidTensor.hpp>
 #include <CatchUtils.hpp>
 #include <algorithm>
 #include <array>

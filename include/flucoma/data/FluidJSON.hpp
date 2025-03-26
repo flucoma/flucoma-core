@@ -1,19 +1,19 @@
 #pragma once
 
-#include <algorithms/public/KDTree.hpp>
-#include <algorithms/public/KMeans.hpp>
-#include <algorithms/public/SKMeans.hpp>
-#include <algorithms/public/Normalization.hpp>
-#include <algorithms/public/RobustScaling.hpp>
-#include <algorithms/public/PCA.hpp>
-#include <algorithms/public/MLP.hpp>
-#include <algorithms/public/UMAP.hpp>
-#include <algorithms/public/Standardization.hpp>
-#include <algorithms/public/LabelSetEncoder.hpp>
-#include <data/FluidDataSet.hpp>
-#include <data/FluidIndex.hpp>
-#include <data/FluidTensor.hpp>
-#include <data/TensorTypes.hpp>
+#include "FluidDataSet.hpp"
+#include "FluidIndex.hpp"
+#include "FluidTensor.hpp"
+#include "TensorTypes.hpp"
+#include "../algorithms/public/KDTree.hpp"
+#include "../algorithms/public/KMeans.hpp"
+#include "../algorithms/public/SKMeans.hpp"
+#include "../algorithms/public/Normalization.hpp"
+#include "../algorithms/public/RobustScaling.hpp"
+#include "../algorithms/public/PCA.hpp"
+#include "../algorithms/public/MLP.hpp"
+#include "../algorithms/public/UMAP.hpp"
+#include "../algorithms/public/Standardization.hpp"
+#include "../algorithms/public/LabelSetEncoder.hpp"
 #include <fstream>
 #include <nlohmann/json.hpp>
 
