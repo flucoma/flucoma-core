@@ -2,12 +2,12 @@
 #include <catch2/catch.hpp> 
 // #include <catch2/catch_test_macros.hpp>
 // #include <catch2/matchers/catch_matchers_templated.hpp>
-#include <data/FluidIndex.hpp>
-#include <data/FluidTensor_Support.hpp> 
-#include <data/FluidMeta.hpp> 
+#include <flucoma/data/FluidIndex.hpp>
+#include <flucoma/data/FluidTensor_Support.hpp> 
+#include <flucoma/data/FluidMeta.hpp> 
 #include <CatchUtils.hpp> 
 
-#include <data/FluidTensor.hpp> 
+#include <flucoma/data/FluidTensor.hpp> 
 
 #include <array>
 #include <algorithm> 

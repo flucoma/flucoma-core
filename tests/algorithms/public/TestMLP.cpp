@@ -1,13 +1,13 @@
 #define CATCH_CONFIG_MAIN
-#include <algorithms/public/MLP.hpp>
-#include <algorithms/public/SGD.hpp>
-#include <algorithms/util/NNFuncs.hpp>
+#include <flucoma/algorithms/public/MLP.hpp>
+#include <flucoma/algorithms/public/SGD.hpp>
+#include <flucoma/algorithms/util/NNFuncs.hpp>
 #include <catch2/catch.hpp>
-#include <data/FluidJSON.hpp> 
-#include <clients/nrt/MLPClassifierClient.hpp>
-#include <data/FluidIndex.hpp>
-#include <data/FluidJSON.hpp>
-#include <data/FluidTensor.hpp>
+#include <flucoma/data/FluidJSON.hpp> 
+#include <flucoma/clients/nrt/MLPClassifierClient.hpp>
+#include <flucoma/data/FluidIndex.hpp>
+#include <flucoma/data/FluidJSON.hpp>
+#include <flucoma/data/FluidTensor.hpp>
 #include <iostream>
 
 namespace fluid::algorithm {
