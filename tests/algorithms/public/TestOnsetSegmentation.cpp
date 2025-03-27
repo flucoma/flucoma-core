@@ -2,11 +2,11 @@
 
 #include "SlicerTestHarness.hpp"
 #include <TestUtils.hpp> 
-#include <algorithms/public/OnsetSegmentation.hpp>
-#include <algorithms/public/STFT.hpp>
+#include <flucoma/algorithms/public/OnsetSegmentation.hpp>
+#include <flucoma/algorithms/public/STFT.hpp>
 #include <catch2/catch.hpp>
-#include <data/FluidIndex.hpp>
-#include <data/FluidTensor.hpp>
+#include <flucoma/data/FluidIndex.hpp>
+#include <flucoma/data/FluidTensor.hpp>
 #include <Signals.hpp>
 #include <algorithm>
 #include <array>

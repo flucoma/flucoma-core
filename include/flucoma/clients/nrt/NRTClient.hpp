@@ -12,7 +12,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #include "ClientInputChecks.hpp"
 #include "CommonResults.hpp"
-#include "clients/common/FluidInputTrigger.hpp"
+#include "../common/FluidInputTrigger.hpp"
 #include "../common/FluidBaseClient.hpp"
 #include "../common/FluidNRTClientWrapper.hpp"
 #include "../common/MessageSet.hpp"

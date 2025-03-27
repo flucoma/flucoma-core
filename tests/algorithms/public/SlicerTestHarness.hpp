@@ -1,7 +1,7 @@
 #pragma once
 
-#include <algorithms/public/STFT.hpp>
-#include <data/FluidTensor.hpp>
+#include <flucoma/algorithms/public/STFT.hpp>
+#include <flucoma/data/FluidTensor.hpp>
 #include <algorithm>
 #include <complex>
 #include <vector>

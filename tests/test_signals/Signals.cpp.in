@@ -1,6 +1,6 @@
 #include "Signals.hpp"
 #include <audio_file/in_file.hpp>
-#include <data/FluidTensor.hpp>
+#include <flucoma/data/FluidTensor.hpp>
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>

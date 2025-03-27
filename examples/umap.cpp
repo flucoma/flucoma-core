@@ -13,13 +13,14 @@ This program demonstrates the use of the fluid decomposition toolbox
 to apply an algorithm on an input dataset
 */
 
-#include "algorithms/public/UMAP.hpp"
+#include <flucoma/algorithms/public/UMAP.hpp>
+#include <flucoma/data/FluidDataSet.hpp>
+#include <flucoma/data/FluidIndex.hpp>
+#include <flucoma/data/FluidJSON.hpp>
+#include <flucoma/data/FluidMemory.hpp>
+#include <flucoma/data/TensorTypes.hpp>
+
 #include <Eigen/Core>
-#include <data/FluidDataSet.hpp>
-#include <data/FluidIndex.hpp>
-#include <data/FluidJSON.hpp>
-#include <data/FluidMemory.hpp>
-#include <data/TensorTypes.hpp>
 #include <cstdio>
 #include <iomanip>
 #include <iostream>

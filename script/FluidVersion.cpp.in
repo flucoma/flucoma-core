@@ -8,7 +8,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 (grant agreement No 725899).
 */
 
-#include "FluidVersion.hpp"
+#include "flucoma/FluidVersion.hpp"
 
 namespace fluid {
 namespace client {

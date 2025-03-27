@@ -1,8 +1,8 @@
 #pragma once
 
-#include "data/FluidIndex.hpp"
-#include "data/FluidTensor.hpp"
-#include "data/TensorTypes.hpp"
+#include "FluidIndex.hpp"
+#include "FluidTensor.hpp"
+#include "TensorTypes.hpp"
 #include <iomanip>
 #include <iostream>
 #include <string>

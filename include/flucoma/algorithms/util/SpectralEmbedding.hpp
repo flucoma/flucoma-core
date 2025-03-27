@@ -1,5 +1,5 @@
 #pragma once
-#include "data/FluidIndex.hpp"
+#include "../../data/FluidIndex.hpp"
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 #include <Spectra/MatOp/SparseSymMatProd.h>

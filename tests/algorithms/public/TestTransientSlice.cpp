@@ -2,11 +2,11 @@
 #define CATCH_CONFIG_MAIN
 
 #include "SlicerTestHarness.hpp"
-#include <algorithms/public/TransientSegmentation.hpp>
+#include <flucoma/algorithms/public/TransientSegmentation.hpp>
 #include <ApprovalTests.hpp>
 // #include <catch2/catch.hpp>
-#include <data/FluidIndex.hpp>
-#include <data/FluidTensor.hpp>
+#include <flucoma/data/FluidIndex.hpp>
+#include <flucoma/data/FluidTensor.hpp>
 #include <Signals.hpp>
 #include <TestUtils.hpp>
 #include <algorithm>
