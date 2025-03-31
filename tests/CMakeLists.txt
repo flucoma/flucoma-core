@@ -70,6 +70,10 @@ endfunction()
 
 Include(FetchContent)
 
+if(APPLE) 
+  # std::uncaught_exceptions needs OS 10.12+
+  set(CATCH_CONFIG_CPP17_UNCAUGHT_EXCEPTIONS OFF CACHE BOOL "")
+endif()
 # get catch 
 FetchContent_Declare(
   Catch2
