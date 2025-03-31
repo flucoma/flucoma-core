@@ -70,6 +70,7 @@ endfunction()
 
 Include(FetchContent)
 
+set(CATCH_CONFIG_NO_CPP17_UNCAUGHT_EXCEPTIONS ON CACHE BOOL "" FORCE)
 # get catch 
 FetchContent_Declare(
   Catch2
@@ -99,14 +100,13 @@ target_link_libraries(TestUtils INTERFACE
 )
 target_compile_definitions(TestUtils INTERFACE 
   APPROVAL_TESTS_HIDE_DEPRECATED_CODE=1
-  CATCH_CONFIG_NO_CPP17_UNCAUGHT_EXCEPTIONS
 )
 
-if(APPLE)
-  target_compile_definitions(TestUtils INTERFACE   
-    CATCH_CONFIG_NO_CPP17_UNCAUGHT_EXCEPTIONS
-  )
-endif()
+# if(APPLE)
+#   target_compile_definitions(TestUtils INTERFACE   
+#     CATCH_CONFIG_NO_CPP17_UNCAUGHT_EXCEPTIONS
+#   )
+# endif()
 
 function(add_test_executable target_name source_file)
   add_executable(${target_name} ${source_file})
