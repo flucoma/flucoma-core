@@ -7,27 +7,7 @@ add_subdirectory(test_signals)
 
 # a handler to catch sigabrt for us on death tests
 add_library(AbortHandler OBJECT AbortHandler.cpp)
-
-# function (add_assert_fail_test testname sourcedir)
-#   try_compile(
-#     testname_BUILT "${CMAKE_BINARY_DIR}/tmp/${testname}" "${sourcedir}" FluidTensorDeathTests
-#     OUTPUT_VARIABLE whathappened
-#   )
-#   message(WARNING ${whathappened})
-# 
-#   if(NOT testname_BUILT)
-#     message(ERROR "Could not build assertion death tests in ${sourcedir}")
-#   endif()
-# 
-#   add_custom_command(${testname}_BUILD)
-#   add_executable(${testname} "${sourcefile}")
-#   target_link_libraries(${testname} PRIVATE FLUID_DECOMPOSITION)
-# 
-#   add_test(NAME ${testname}
-#     COMMAND ${testname} 
-#   )
-#   set_tests_properties(${testname} PROPERTIES WILL_FAIL true)
-# endfunction()
+target_compile_features(AbortHandler PUBLIC cxx_std_17)
 
 ###### compilation tests 
 function (add_compile_tests test_name_stub sourcefile) 
