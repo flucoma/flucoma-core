@@ -70,7 +70,9 @@ endfunction()
 
 Include(FetchContent)
 
-set(CATCH_CONFIG_NO_CPP17_UNCAUGHT_EXCEPTIONS ON CACHE BOOL "" FORCE)
+if(APPLE) # Needed for C++17 < macOS 10.12. Made conditional b/c gives a warning with GCC on Linux
+  set(CATCH_CONFIG_NO_CPP17_UNCAUGHT_EXCEPTIONS ON CACHE BOOL "" FORCE)
+endif()
 # get catch 
 FetchContent_Declare(
   Catch2
@@ -101,12 +103,6 @@ target_link_libraries(TestUtils INTERFACE
 target_compile_definitions(TestUtils INTERFACE 
   APPROVAL_TESTS_HIDE_DEPRECATED_CODE=1
 )
-
-# if(APPLE)
-#   target_compile_definitions(TestUtils INTERFACE   
-#     CATCH_CONFIG_NO_CPP17_UNCAUGHT_EXCEPTIONS
-#   )
-# endif()
 
 function(add_test_executable target_name source_file)
   add_executable(${target_name} ${source_file})
