@@ -1,10 +1,9 @@
-#define APPROVALS_CATCH
-#define CATCH_CONFIG_MAIN
+#define APPROVALS_CATCH2_V3 
 
 #include "SlicerTestHarness.hpp"
 #include <flucoma/algorithms/public/TransientSegmentation.hpp>
 #include <ApprovalTests.hpp>
-// #include <catch2/catch.hpp>
+#include <catch2/matchers/catch_matchers_vector.hpp>
 #include <flucoma/data/FluidIndex.hpp>
 #include <flucoma/data/FluidTensor.hpp>
 #include <Signals.hpp>
@@ -97,8 +96,7 @@ TEST_CASE("TransientSlice is predictable on impulses",
   auto params =
       TestParams{Order(20),      BlockSize(256),  Padding(128),
                  Skew(0),        ThreshFwd(2),    ThreshBack(1.1),
-                 WindowSize(14), ClumpLength(25), MinSliceLength(1000)};
-
+                 WindowSize(14), ClumpLength(25), MinSliceLength(1000)};        
   auto  matcher = Catch::Matchers::Approx(expected);
   index margin = 8;
   matcher.margin(margin);

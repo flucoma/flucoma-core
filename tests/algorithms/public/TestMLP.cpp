@@ -2,7 +2,7 @@
 #include <flucoma/algorithms/public/MLP.hpp>
 #include <flucoma/algorithms/public/SGD.hpp>
 #include <flucoma/algorithms/util/NNFuncs.hpp>
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 #include <flucoma/data/FluidJSON.hpp> 
 #include <flucoma/clients/nrt/MLPClassifierClient.hpp>
 #include <flucoma/data/FluidIndex.hpp>
