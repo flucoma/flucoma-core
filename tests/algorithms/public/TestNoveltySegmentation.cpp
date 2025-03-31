@@ -5,7 +5,7 @@
 #include <flucoma/algorithms/public/NoveltySegmentation.hpp>
 #include <flucoma/algorithms/public/STFT.hpp>
 #include <flucoma/algorithms/public/YINFFT.hpp>
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 #include <flucoma/data/FluidIndex.hpp>
 #include <flucoma/data/FluidTensor.hpp>
 #include <Signals.hpp>

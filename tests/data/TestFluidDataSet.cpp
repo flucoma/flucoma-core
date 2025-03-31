@@ -1,9 +1,6 @@
-#define APPROVALS_CATCH
-#define CATCH_CONFIG_MAIN 
-// #include <catch2/catch.hpp> 
-#include <ApprovalTests.hpp>
 
-// #include <catch2/catch_test_macros.hpp>
+#define APPROVALS_CATCH2_V3 
+#include <ApprovalTests.hpp>
 #include <flucoma/data/FluidTensor.hpp> 
 #include <flucoma/data/FluidMeta.hpp> 
 #include <flucoma/data/FluidDataSet.hpp> 

@@ -4,7 +4,7 @@
 #include <TestUtils.hpp> 
 #include <flucoma/algorithms/public/OnsetSegmentation.hpp>
 #include <flucoma/algorithms/public/STFT.hpp>
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 #include <flucoma/data/FluidIndex.hpp>
 #include <flucoma/data/FluidTensor.hpp>
 #include <Signals.hpp>
@@ -129,7 +129,7 @@ TEST_CASE("OnsetSegmentation can produce the same results as SC tests",
     index                     margin = params.margin;
     matcher.margin(margin);
 
-    INFO("stereo impulse test")
+    INFO("stereo impulse test");
     CHECK(result.size() == points.size());
     CHECK_THAT(result, matcher);
   }
@@ -219,7 +219,7 @@ TEST_CASE("OnsetSegmentation can produce the same results as SC tests",
     auto result = runOneTest(params.p);
 
     CHECK(result.size() == params.p.expected().size());
-    CHECK_THAT(result, Catch::Equals(params.p.expected()));
+    CHECK_THAT(result, Catch::Matchers::Equals(params.p.expected()));
   }
 
   SECTION("Test Filtersize")
@@ -266,7 +266,7 @@ TEST_CASE("OnsetSegmentation can produce the same results as SC tests",
     INFO("Filter Size " << index(params.filterSize));
     auto result = runOneTest(params);
     CHECK(result.size() == params.expected().size());
-    CHECK_THAT(result, Catch::Equals(params.expected()));
+    CHECK_THAT(result, Catch::Matchers::Equals(params.expected()));
   }
 
   SECTION("frame delta")
@@ -290,7 +290,7 @@ TEST_CASE("OnsetSegmentation can produce the same results as SC tests",
     INFO("frame delta test");
     auto result = runOneTest(params);
     CHECK(result.size() == params.expected().size());
-    CHECK_THAT(result, Catch::Equals(params.expected()));
+    CHECK_THAT(result, Catch::Matchers::Equals(params.expected()));
   }
 }
 

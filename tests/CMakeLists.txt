@@ -70,41 +70,39 @@ endfunction()
 
 Include(FetchContent)
 
+if(APPLE) # Needed for C++17 < macOS 10.12. Made conditional b/c gives a warning with GCC on Linux
+  set(CATCH_CONFIG_NO_CPP17_UNCAUGHT_EXCEPTIONS ON CACHE BOOL "" FORCE)
+endif()
 # get catch 
 FetchContent_Declare(
   Catch2
   GIT_SHALLOW    TRUE
   GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-  GIT_TAG        v2.x
+  GIT_TAG        devel
 )
 FetchContent_MakeAvailable(Catch2)
 list(APPEND CMAKE_MODULE_PATH ${Catch2_SOURCE_DIR}/contrib)
+list(APPEND CMAKE_MODULE_PATH ${Catch2_SOURCE_DIR}/extras)
 
 # get approvaltests.cpp 
 FetchContent_Declare( 
   ApprovalCPP 
   GIT_SHALLOW    TRUE
   GIT_REPOSITORY https://github.com/approvals/ApprovalTests.cpp.git
-  GIT_TAG        v.10.12.2
+  GIT_TAG        v.10.13.0
 )
 FetchContent_MakeAvailable(ApprovalCPP)
 
 add_library(TestUtils INTERFACE)
 target_include_directories(TestUtils  INTERFACE include)
 target_link_libraries(TestUtils INTERFACE
-  Catch2::Catch2
+  Catch2::Catch2WithMain
   FLUID_DECOMPOSITION
   ApprovalTests::ApprovalTests
 )
 target_compile_definitions(TestUtils INTERFACE 
   APPROVAL_TESTS_HIDE_DEPRECATED_CODE=1
 )
-
-if(APPLE)
-  target_compile_definitions(TestUtils INTERFACE   
-    CATCH_CONFIG_NO_CPP17_UNCAUGHT_EXCEPTIONS
-  )
-endif()
 
 function(add_test_executable target_name source_file)
   add_executable(${target_name} ${source_file})
