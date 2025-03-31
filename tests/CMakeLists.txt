@@ -70,10 +70,6 @@ endfunction()
 
 Include(FetchContent)
 
-if(APPLE) 
-  # std::uncaught_exceptions needs OS 10.12+
-  set(CATCH_CONFIG_CPP17_UNCAUGHT_EXCEPTIONS OFF CACHE BOOL "")
-endif()
 # get catch 
 FetchContent_Declare(
   Catch2
@@ -103,6 +99,7 @@ target_link_libraries(TestUtils INTERFACE
 )
 target_compile_definitions(TestUtils INTERFACE 
   APPROVAL_TESTS_HIDE_DEPRECATED_CODE=1
+  CATCH_CONFIG_NO_CPP17_UNCAUGHT_EXCEPTIONS
 )
 
 if(APPLE)
