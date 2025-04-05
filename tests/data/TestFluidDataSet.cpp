@@ -10,6 +10,7 @@
 #include <vector>
 #include <algorithm> 
 #include <string> 
+#include <random>
 
 using DataSet = fluid::FluidDataSet<std::string, int, 1>; 
 using fluid::FluidTensor; 
