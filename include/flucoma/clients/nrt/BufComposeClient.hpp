@@ -199,7 +199,7 @@ public:
     {
       Result resizeResult =
           destination.resize(destinationOrig.cols(), destinationOrig.rows(),
-                             destination.sampleRate());
+                             source.sampleRate());
       if (!resizeResult.ok()) return resizeResult;
       for (index i = 0; i < destination.numChans(); ++i)
         destination.samps(i) <<= destinationOrig.row(i);
