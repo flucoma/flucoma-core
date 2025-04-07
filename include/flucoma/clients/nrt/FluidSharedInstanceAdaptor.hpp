@@ -169,7 +169,7 @@ public:
   typename ParamType<N>::type
   applyConstraintToMax(typename ParamType<N>::type x) const
   {
-    return mParams->template applyConstraintToMax(x);
+    return mParams->template applyConstraintToMax<N>(x);
   }
 
   template <template <size_t N, typename T> class Func, typename... Args>
