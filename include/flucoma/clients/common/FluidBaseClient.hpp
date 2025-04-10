@@ -213,7 +213,7 @@ public:
   template <size_t N, typename T>
   void set(T&& x, Result* reportage) noexcept
   {
-    mParams.template set(std::forward<T>(x), reportage);
+    mParams.template set<N>(std::forward<T>(x), reportage);
   }
 
   auto latency() const { return mClient.latency(); }
