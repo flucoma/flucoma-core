@@ -283,7 +283,7 @@ public:
 
     std::transform(
         indices.begin(), indices.begin() + nNeighbours, labels.begin(),
-        [&distances](index i) { return distances[asUnsigned(i)]; });
+        [&distances](index i) { return pow(distances[asUnsigned(i)], 0.5); });
 
     return labels;
   }
