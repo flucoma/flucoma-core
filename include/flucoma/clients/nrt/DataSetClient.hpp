@@ -96,10 +96,7 @@ public:
       buf.samps(0, mAlgorithm.dims(), 0) <<= point;
       return OK();
     }
-    else
-    {
-      return Error(PointNotFound);
-    }
+    else { return Error(PointNotFound); }
   }
 
   MessageResult<void> updatePoint(string id, InputBufferPtr data)
@@ -135,7 +132,7 @@ public:
   }
 
   MessageResult<void> merge(SharedClientRef<const DataSetClient> datasetClient,
-                            bool                           overwrite)
+                            bool                                 overwrite)
   {
     auto datasetClientPtr = datasetClient.get().lock();
     if (!datasetClientPtr) return Error(NoDataSet);
@@ -166,7 +163,9 @@ public:
     {
       auto& labelSet = labelsPtr->getLabelSet();
       if (labelSet.size() != bufView.rows())
-      { return Error("Label set size needs to match the buffer size"); }
+      {
+        return Error("Label set size needs to match the buffer size");
+      }
       mAlgorithm = DataSet(labelSet.getData().col(0),
                            FluidTensorView<const float, 2>(bufView));
     }
@@ -239,17 +238,17 @@ public:
 
     FluidTensor<rt::string, 1> labels(nNeighbours);
 
-    std::transform(
-        indices.begin(), indices.begin() + nNeighbours, labels.begin(),
-        [this](index i) {
-          std::string const& id = mAlgorithm.getIds()[i];
-          return rt::string{id, 0, id.size(), FluidDefaultAllocator()};
-        });
+    std::transform(indices.begin(), indices.begin() + nNeighbours,
+                   labels.begin(), [this](index i) {
+                     std::string const& id = mAlgorithm.getIds()[i];
+                     return rt::string{id, 0, id.size(),
+                                       FluidDefaultAllocator()};
+                   });
 
     return labels;
   }
 
-  
+
   MessageResult<FluidTensor<double, 1>> kNearestDist(InputBufferPtr data,
                                                      index nNeighbours) const
   {
@@ -294,7 +293,7 @@ public:
     mAlgorithm = DataSet(0);
     return OK();
   }
-  
+
   MessageResult<string> print()
   {
     return "DataSet " + std::string(get<kName>()) + ": " + mAlgorithm.print();
@@ -337,12 +336,13 @@ private:
     seq.generate(newIds);
     return LabelSet(newIds, labels);
   };
-  
-  double distance(FluidTensorView<const double, 1> point1, FluidTensorView<const double, 1> point2) const
-  {    
-    return std::transform_reduce(point1.begin(), point1.end(), point2.begin(), 0.0, std::plus{}, [](double v1, double v2){
-      return (v1-v2) * (v1-v2);
-    });
+
+  double distance(FluidTensorView<const double, 1> point1,
+                  FluidTensorView<const double, 1> point2) const
+  {
+    return std::transform_reduce(
+        point1.begin(), point1.end(), point2.begin(), 0.0, std::plus{},
+        [](double v1, double v2) { return (v1 - v2) * (v1 - v2); });
   };
 };
 
