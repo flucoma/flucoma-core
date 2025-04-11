@@ -299,8 +299,8 @@ public:
     return "DataSet " + std::string(get<kName>()) + ": " + mAlgorithm.print();
   }
 
-  const DataSet getDataSet() const { return mAlgorithm; }
-  void          setDataSet(DataSet ds) { mAlgorithm = ds; }
+  const DataSet& getDataSet() const { return mAlgorithm; }
+  void           setDataSet(const DataSet& ds) { mAlgorithm = ds; }
 
   static auto getMessageDescriptors()
   {
