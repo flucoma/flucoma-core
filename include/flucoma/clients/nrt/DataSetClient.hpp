@@ -351,8 +351,140 @@ private:
 using DataSetClientRef = SharedClientRef<dataset::DataSetClient>;
 using InputDataSetClientRef = SharedClientRef<const dataset::DataSetClient>;
 
+namespace dataset {
+
+constexpr auto DataSetReadParams = defineParameters(
+    InputDataSetClientRef::makeParam("dataSet", "DataSet Name"),
+    LongParam("numNeighbours", "Number of Nearest Neighbours", 1),
+    InputDataSetClientRef::makeParam("outputDataSet", "Output DataSet Name"),
+    InputBufferParam("inputPointBuffer", "Input Point Buffer"),
+    BufferParam("predictionBuffer", "Prediction Buffer"));
+
+class DataSetRead : public FluidBaseClient, ControlIn, ControlOut
+{
+  enum { kDataSet, kNumNeighbors, kOutputDataSet, kInputBuffer, kOutputBuffer };
+
+public:
+  using ParamDescType = decltype(DataSetReadParams);
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors() { return DataSetReadParams; }
+
+  DataSetRead(ParamSetViewType& p, FluidContext& c)
+      : mParams(p), mRTBuffer(c.allocator())
+  {
+    controlChannelsIn(1);
+    controlChannelsOut({1, 1});
+  }
+
+  index latency() const { return 0; }
+
+  template <typename T>
+  void process(std::vector<FluidTensorView<T, 1>>& input,
+               std::vector<FluidTensorView<T, 1>>& output, FluidContext& c)
+  {
+    if (input[0](0) > 0)
+    {
+      auto inputDSpointer = get<kDataSet>().get().lock();
+      if (!inputDSpointer)
+        return; // c.reportError("FluidDataSet RT Query: No FluidDataSet
+                // found");
+
+      index k = get<kNumNeighbors>();
+      if (k > inputDSpointer->size() || k < 0)
+        return; // c.reportError("FluidDataSet RT Query has wrong k size");
+
+      index dims = inputDSpointer->dims();
+
+      InOutBuffersCheck bufCheck(dims);
+      if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
+                                get<kOutputBuffer>().get()))
+        return; // c.reportError("FluidDataSet RT Query i/o buffers are
+                // unavailable");
+
+      auto outputDSpointer = get<kOutputDataSet>().get().lock();
+      if (!outputDSpointer)
+        return; // c.reportError("FluidDataSet RT Query could not obtain
+                // reference (output) FluidDataSet");  //TODO: we might as well
+                // consider passing the distances in this case (and in kdtree
+                // too!)
+
+      index pointSize = outputDSpointer->dims();
+
+      auto  outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
+      index maxK = outBuf.samps(0).size() / pointSize;
+      if (maxK <= 0) return;
+      index outputSize = maxK * pointSize;
+
+      RealVector point(dims, c.allocator());
+      point <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+                    .samps(0, dims, 0);
+      if (mRTBuffer.size() != outputSize)
+      {
+        mRTBuffer = RealVector(outputSize, c.allocator());
+        mRTBuffer.fill(0);
+      }
+
+      std::vector<index> indices(asUnsigned(inputDSpointer->size()));
+      std::iota(indices.begin(), indices.end(), 0);
+      std::vector<double> distances(asUnsigned(inputDSpointer->size()));
+
+      auto inputdata = inputDSpointer->getDataSet().getData();
+
+      std::transform(indices.begin(), indices.end(), distances.begin(),
+                     [&point, &inputdata, this](index i) {
+                       return distance(point, inputdata.row(i));
+                     });
+
+      std::sort(indices.begin(), indices.end(), [&distances](index a, index b) {
+        return distances[asUnsigned(a)] < distances[asUnsigned(b)];
+      });
+
+      mNumValidKs = std::min(asSigned(indices.size()), maxK);
+
+      for (index i = 0; i < mNumValidKs; i++)
+      {
+        outputDSpointer->getDataSet().get(
+            inputDSpointer->getDataSet().getIds()[indices[i]],
+            mRTBuffer(Slice(i * pointSize, pointSize)));
+      }
+
+      outBuf.samps(0, outputSize, 0) <<= mRTBuffer;
+    }
+
+    output[0](0) = mNumValidKs;
+  }
+
+private:
+  RealVector mRTBuffer;
+  index      mNumValidKs = 0;
+  SharedClientRef<const dataset::DataSetClient>
+      mDataSetClient; // TODO fix here too
+
+  double distance(FluidTensorView<const double, 1> point1,
+                  FluidTensorView<const double, 1> point2) const
+  {
+    return std::transform_reduce(
+        point1.begin(), point1.end(), point2.begin(), 0.0, std::plus{},
+        [](double v1, double v2) { return (v1 - v2) * (v1 - v2); });
+  };
+};
+
+} // namespace dataset
+
 using NRTThreadedDataSetClient =
     NRTThreadingAdaptor<typename DataSetClientRef::SharedType>;
+using RTDataSetReadClient = ClientWrapper<dataset::DataSetRead>;
 
 } // namespace client
 } // namespace fluid
