@@ -413,13 +413,12 @@ public:
                 // unavailable");
 
       auto outputDSpointer = get<kOutputDataSet>().get().lock();
-      if (!outputDSpointer)
-        return; // c.reportError("FluidDataSet RT Query could not obtain
-                // reference (output) FluidDataSet");  //TODO: we might as well
-                // consider passing the distances in this case (and in kdtree
-                // too!)
+      //      if (!outputDSpointer)
+      //        return; // c.reportError("FluidDataSet RT Query could not obtain
+      // reference (output) FluidDataSet");
 
-      index pointSize = outputDSpointer->dims();
+      index pointSize =
+          outputDSpointer ? (index) outputDSpointer->dims() : (index) 1;
 
       auto  outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
       index maxK = outBuf.samps(0).size() / pointSize;
@@ -452,11 +451,22 @@ public:
 
       mNumValidKs = std::min(asSigned(indices.size()), maxK);
 
-      for (index i = 0; i < mNumValidKs; i++)
+      if (outputDSpointer)
       {
-        outputDSpointer->getDataSet().get(
-            inputDSpointer->getDataSet().getIds()[indices[i]],
-            mRTBuffer(Slice(i * pointSize, pointSize)));
+        for (index i = 0; i < mNumValidKs; i++)
+        {
+          outputDSpointer->getDataSet().get(
+              inputDSpointer->getDataSet().getIds()[indices[i]],
+              mRTBuffer(Slice(i * pointSize, pointSize)));
+        }
+      }
+
+      else
+      {
+        for (index i = 0; i < mNumValidKs; i++)
+        {
+          mRTBuffer[i] = distances[indices[i]];
+        }
       }
 
       outBuf.samps(0, outputSize, 0) <<= mRTBuffer;
