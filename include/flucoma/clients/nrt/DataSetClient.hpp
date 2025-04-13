@@ -40,7 +40,9 @@ auto sortedDistances(FluidTensorView<const double, 1> x,
 {
   rt::vector<std::pair<index, double>> distances(Y.rows(), alloc);
   std::generate(distances.begin(), distances.end(), [n = 0, &x, &Y]() mutable {
-    return std::make_pair(n, distance(x, Y.row(n++)));
+    auto result = std::make_pair(n, distance(x, Y.row(n)));
+    n++;
+    return result;
   });
   std::sort(distances.begin(), distances.end(),
             [](auto& x, auto& y) { return x.second < y.second; });
@@ -281,8 +283,7 @@ public:
     FluidTensor<double, 1> distOut(nNeighbours);
 
     std::transform(distances.begin(), distances.begin() + nNeighbours,
-                   distOut.begin(),
-                   [](auto& i) { return pow(i.second, 0.5); });
+                   distOut.begin(), [](auto& i) { return pow(i.second, 0.5); });
 
     return distOut;
   }
