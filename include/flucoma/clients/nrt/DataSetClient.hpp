@@ -242,9 +242,6 @@ public:
     FluidTensor<const double, 1> point(
         BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0));
 
-    std::vector<index> indices(asUnsigned(mAlgorithm.size()));
-    std::iota(indices.begin(), indices.end(), 0);
-
     auto ds = mAlgorithm.getData();
     auto distances = sortedDistances(point, ds, FluidDefaultAllocator());
 
@@ -277,9 +274,6 @@ public:
 
     FluidTensor<const double, 1> point(
         BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0));
-
-    std::vector<index> indices(asUnsigned(mAlgorithm.size()));
-    std::iota(indices.begin(), indices.end(), 0);
 
     auto ds = mAlgorithm.getData();
     auto distances = sortedDistances(point, ds, FluidDefaultAllocator());
