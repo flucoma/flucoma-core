@@ -406,42 +406,30 @@ public:
                 // unavailable");
 
       auto lookupDSpointer = get<kLookupDataSet>().get().lock();
-      //      if (!lookupDSpointer)
-      //        return; // c.reportError("FluidDataSet RT Query could not obtain
-      // reference (output) FluidDataSet");
 
       index pointSize = lookupDSpointer ? lookupDSpointer->dims().value() : 1;
 
-      auto  outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-      index maxK = outBuf.samps(0).size() / pointSize;
-      if (maxK <= 0) return;
-      index outputSize = maxK * pointSize;
+      auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
+      mNumValidKs = outBuf.samps(0).size() / pointSize;
+      if (mNumValidKs <= 0)
+      {
+        output[0](0) = 0;
+        return;
+      }
+      index outputSize = mNumValidKs * pointSize;
 
       RealVector point(dims, c.allocator());
       point <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                     .samps(0, dims, 0);
+
       if (mRTBuffer.size() != outputSize)
       {
         mRTBuffer = RealVector(outputSize, c.allocator());
         mRTBuffer.fill(0);
       }
 
-      std::vector<index> indices(asUnsigned(inputDSpointer->size()));
-      std::iota(indices.begin(), indices.end(), 0);
-      std::vector<double> distances(asUnsigned(inputDSpointer->size()));
-
       auto inputdata = inputDSpointer->getDataSet().getData();
-
-      std::transform(indices.begin(), indices.end(), distances.begin(),
-                     [&point, &inputdata, this](index i) {
-                       return distance(point, inputdata.row(i));
-                     });
-
-      std::sort(indices.begin(), indices.end(), [&distances](index a, index b) {
-        return distances[asUnsigned(a)] < distances[asUnsigned(b)];
-      });
-
-      mNumValidKs = std::min(asSigned(indices.size()), maxK);
+      auto distances = sortedDistances(point, inputdata, c.allocator());
 
       if (lookupDSpointer)
       {
@@ -449,7 +437,7 @@ public:
         auto inputDSids = inputDSpointer->getDataSet().getIds();
         for (index i = 0; i < mNumValidKs; i++)
         {
-          lookupDS.get(inputDSids[indices[i]],
+          lookupDS.get(inputDSids[distances[i].first],
                        mRTBuffer(Slice(i * pointSize, pointSize)));
         }
       }
@@ -458,7 +446,7 @@ public:
       {
         for (index i = 0; i < mNumValidKs; i++)
         {
-          mRTBuffer[i] = distances[indices[i]];
+          mRTBuffer[i] = std::sqrt(distances[i].second);
         }
       }
 
