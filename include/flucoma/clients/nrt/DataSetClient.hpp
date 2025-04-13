@@ -283,7 +283,8 @@ public:
     FluidTensor<double, 1> distOut(nNeighbours);
 
     std::transform(distances.begin(), distances.begin() + nNeighbours,
-                   distOut.begin(), [](auto& i) { return pow(i.second, 0.5); });
+                   distOut.begin(),
+                   [](auto& i) { return std::sqrt(i.second); });
 
     return distOut;
   }
