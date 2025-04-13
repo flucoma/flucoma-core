@@ -422,35 +422,32 @@ public:
       point <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                     .samps(0, dims, 0);
 
-      if (mRTBuffer.size() != outputSize)
-      {
-        mRTBuffer = RealVector(outputSize, c.allocator());
-        mRTBuffer.fill(0);
-      }
-
       auto inputdata = inputDSpointer->getDataSet().getData();
       auto distances = sortedDistances(point, inputdata, c.allocator());
+      auto outSamps = outBuf.samps(0);
 
       if (lookupDSpointer)
       {
         auto lookupDS = lookupDSpointer->getDataSet();
         auto inputDSids = inputDSpointer->getDataSet().getIds();
-        for (index i = 0; i < mNumValidKs; i++)
-        {
-          lookupDS.get(inputDSids[distances[i].first],
-                       mRTBuffer(Slice(i * pointSize, pointSize)));
-        }
+        std::for_each_n(distances.begin(), mNumValidKs,
+                        [pointSize, &outSamps, &lookupDS, &inputDSids,
+                         n = 0](auto& p) mutable {
+                          if (auto point = lookupDS.get(inputDSids[p.first]);
+                              point.data() != nullptr)
+                          {
+                            outSamps(Slice(n, pointSize)) <<= point;
+                          }
+                          n += pointSize;
+                        });
       }
-
       else
       {
-        for (index i = 0; i < mNumValidKs; i++)
-        {
-          mRTBuffer[i] = std::sqrt(distances[i].second);
-        }
+        std::for_each_n(distances.begin(), mNumValidKs,
+                        [&outSamps, n = 0](auto& p) mutable {
+                          outSamps[n++] = std::sqrt(p.second);
+                        });
       }
-
-      outBuf.samps(0, outputSize, 0) <<= mRTBuffer;
     }
 
     output[0](0) = mNumValidKs;
