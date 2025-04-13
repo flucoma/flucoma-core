@@ -27,6 +27,26 @@ enum { kName };
 constexpr auto DataSetParams =
     defineParameters(StringParam<Fixed<true>>("name", "Name of the DataSet"));
 
+double distance(FluidTensorView<const double, 1> point1,
+                FluidTensorView<const double, 1> point2)
+{
+  return std::transform_reduce(
+      point1.begin(), point1.end(), point2.begin(), 0.0, std::plus{},
+      [](double v1, double v2) { return (v1 - v2) * (v1 - v2); });
+};
+
+auto sortedDistances(FluidTensorView<const double, 1> x,
+                     FluidTensorView<const double, 2> Y, Allocator& alloc)
+{
+  rt::vector<std::pair<index, double>> distances(Y.rows(), alloc);
+  std::generate(distances.begin(), distances.end(), [n = 0, &x, &Y]() mutable {
+    return std::make_pair(n, distance(x, Y.row(n++)));
+  });
+  std::sort(distances.begin(), distances.end(),
+            [](auto& x, auto& y) { return x.second < y.second; });
+  return distances;
+}
+
 class DataSetClient : public FluidBaseClient,
                       OfflineIn,
                       OfflineOut,
@@ -224,23 +244,16 @@ public:
 
     std::vector<index> indices(asUnsigned(mAlgorithm.size()));
     std::iota(indices.begin(), indices.end(), 0);
-    std::vector<double> distances(asUnsigned(mAlgorithm.size()));
 
     auto ds = mAlgorithm.getData();
-
-    std::transform(
-        indices.begin(), indices.end(), distances.begin(),
-        [&point, &ds, this](index i) { return distance(point, ds.row(i)); });
-
-    std::sort(indices.begin(), indices.end(), [&distances](index a, index b) {
-      return distances[asUnsigned(a)] < distances[asUnsigned(b)];
-    });
+    auto distances = sortedDistances(point, ds, FluidDefaultAllocator());
 
     FluidTensor<rt::string, 1> labels(nNeighbours);
+    auto                       dsIds = mAlgorithm.getIds();
 
-    std::transform(indices.begin(), indices.begin() + nNeighbours,
-                   labels.begin(), [this](index i) {
-                     std::string const& id = mAlgorithm.getIds()[i];
+    std::transform(distances.begin(), distances.begin() + nNeighbours,
+                   labels.begin(), [dsIds](auto& i) {
+                     std::string const& id = dsIds[i.first];
                      return rt::string{id, 0, id.size(),
                                        FluidDefaultAllocator()};
                    });
@@ -267,25 +280,17 @@ public:
 
     std::vector<index> indices(asUnsigned(mAlgorithm.size()));
     std::iota(indices.begin(), indices.end(), 0);
-    std::vector<double> distances(asUnsigned(mAlgorithm.size()));
 
     auto ds = mAlgorithm.getData();
+    auto distances = sortedDistances(point, ds, FluidDefaultAllocator());
 
-    std::transform(
-        indices.begin(), indices.end(), distances.begin(),
-        [&point, &ds, this](index i) { return distance(point, ds.row(i)); });
+    FluidTensor<double, 1> distOut(nNeighbours);
 
-    std::sort(indices.begin(), indices.end(), [&distances](index a, index b) {
-      return distances[asUnsigned(a)] < distances[asUnsigned(b)];
-    });
+    std::transform(distances.begin(), distances.begin() + nNeighbours,
+                   distOut.begin(),
+                   [](auto& i) { return pow(i.second, 0.5); });
 
-    FluidTensor<double, 1> labels(nNeighbours);
-
-    std::transform(
-        indices.begin(), indices.begin() + nNeighbours, labels.begin(),
-        [&distances](index i) { return pow(distances[asUnsigned(i)], 0.5); });
-
-    return labels;
+    return distOut;
   }
 
   MessageResult<void> clear()
@@ -335,14 +340,6 @@ private:
     labels.col(0) <<= mAlgorithm.getIds();
     seq.generate(newIds);
     return LabelSet(newIds, labels);
-  };
-
-  double distance(FluidTensorView<const double, 1> point1,
-                  FluidTensorView<const double, 1> point2) const
-  {
-    return std::transform_reduce(
-        point1.begin(), point1.end(), point2.begin(), 0.0, std::plus{},
-        [](double v1, double v2) { return (v1 - v2) * (v1 - v2); });
   };
 };
 
@@ -476,18 +473,9 @@ public:
   }
 
 private:
-  RealVector mRTBuffer;
-  index      mNumValidKs = 0;
-  SharedClientRef<const dataset::DataSetClient>
-      mDataSetClient; // TODO fix here too
-
-  double distance(FluidTensorView<const double, 1> point1,
-                  FluidTensorView<const double, 1> point2) const
-  {
-    return std::transform_reduce(
-        point1.begin(), point1.end(), point2.begin(), 0.0, std::plus{},
-        [](double v1, double v2) { return (v1 - v2) * (v1 - v2); });
-  };
+  RealVector            mRTBuffer;
+  index                 mNumValidKs = 0;
+  InputDataSetClientRef mDataSetClient;
 };
 
 } // namespace dataset
