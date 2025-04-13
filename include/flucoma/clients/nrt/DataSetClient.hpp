@@ -356,13 +356,13 @@ namespace dataset {
 constexpr auto DataSetReadParams = defineParameters(
     InputDataSetClientRef::makeParam("dataSet", "DataSet Name"),
     LongParam("numNeighbours", "Number of Nearest Neighbours", 1),
-    InputDataSetClientRef::makeParam("outputDataSet", "Output DataSet Name"),
+    InputDataSetClientRef::makeParam("lookupDataSet", "Lookup DataSet Name"),
     InputBufferParam("inputPointBuffer", "Input Point Buffer"),
     BufferParam("predictionBuffer", "Prediction Buffer"));
 
 class DataSetRead : public FluidBaseClient, ControlIn, ControlOut
 {
-  enum { kDataSet, kNumNeighbors, kOutputDataSet, kInputBuffer, kOutputBuffer };
+  enum { kDataSet, kNumNeighbors, kLookupDataSet, kInputBuffer, kOutputBuffer };
 
 public:
   using ParamDescType = decltype(DataSetReadParams);
@@ -412,13 +412,12 @@ public:
         return; // c.reportError("FluidDataSet RT Query i/o buffers are
                 // unavailable");
 
-      auto outputDSpointer = get<kOutputDataSet>().get().lock();
-      //      if (!outputDSpointer)
+      auto lookupDSpointer = get<kLookupDataSet>().get().lock();
+      //      if (!lookupDSpointer)
       //        return; // c.reportError("FluidDataSet RT Query could not obtain
       // reference (output) FluidDataSet");
 
-      index pointSize =
-          outputDSpointer ? (index) outputDSpointer->dims() : (index) 1;
+      index pointSize = lookupDSpointer ? lookupDSpointer->dims().value() : 1;
 
       auto  outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
       index maxK = outBuf.samps(0).size() / pointSize;
@@ -451,11 +450,11 @@ public:
 
       mNumValidKs = std::min(asSigned(indices.size()), maxK);
 
-      if (outputDSpointer)
+      if (lookupDSpointer)
       {
         for (index i = 0; i < mNumValidKs; i++)
         {
-          outputDSpointer->getDataSet().get(
+          lookupDSpointer->getDataSet().get(
               inputDSpointer->getDataSet().getIds()[indices[i]],
               mRTBuffer(Slice(i * pointSize, pointSize)));
         }
