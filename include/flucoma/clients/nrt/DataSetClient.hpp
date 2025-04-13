@@ -374,7 +374,7 @@ public:
   static constexpr auto& getParameterDescriptors() { return DataSetReadParams; }
 
   DataSetRead(ParamSetViewType& p, FluidContext& c)
-      : mParams(p), mRTBuffer(c.allocator())
+      : mParams(p)
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});
@@ -454,7 +454,6 @@ public:
   }
 
 private:
-  RealVector            mRTBuffer;
   index                 mNumValidKs = 0;
   InputDataSetClientRef mDataSetClient;
 };
