@@ -452,11 +452,12 @@ public:
 
       if (lookupDSpointer)
       {
+        auto lookupDS = lookupDSpointer->getDataSet();
+        auto inputDSids = inputDSpointer->getDataSet().getIds();
         for (index i = 0; i < mNumValidKs; i++)
         {
-          lookupDSpointer->getDataSet().get(
-              inputDSpointer->getDataSet().getIds()[indices[i]],
-              mRTBuffer(Slice(i * pointSize, pointSize)));
+          lookupDS.get(inputDSids[indices[i]],
+                       mRTBuffer(Slice(i * pointSize, pointSize)));
         }
       }
 
