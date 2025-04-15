@@ -27,6 +27,29 @@ enum { kName };
 constexpr auto DataSetParams =
     defineParameters(StringParam<Fixed<true>>("name", "Name of the DataSet"));
 
+template <typename T, typename U>
+double distance(FluidTensorView<T, 1> point1, FluidTensorView<U, 1> point2)
+{
+  return std::transform_reduce(
+      point1.begin(), point1.end(), point2.begin(), 0.0, std::plus{},
+      [](double v1, double v2) { return (v1 - v2) * (v1 - v2); });
+};
+
+template <typename T, typename U>
+auto sortedDistances(FluidTensorView<T, 1> x, FluidTensorView<U, 2> Y,
+                     Allocator& alloc)
+{
+  rt::vector<std::pair<index, double>> distances(Y.rows(), alloc);
+  std::generate(distances.begin(), distances.end(), [n = 0, &x, &Y]() mutable {
+    auto result = std::make_pair(n, distance(x, Y.row(n)));
+    n++;
+    return result;
+  });
+  std::sort(distances.begin(), distances.end(),
+            [](auto& x, auto& y) { return x.second < y.second; });
+  return distances;
+}
+
 class DataSetClient : public FluidBaseClient,
                       OfflineIn,
                       OfflineOut,
@@ -96,10 +119,7 @@ public:
       buf.samps(0, mAlgorithm.dims(), 0) <<= point;
       return OK();
     }
-    else
-    {
-      return Error(PointNotFound);
-    }
+    else { return Error(PointNotFound); }
   }
 
   MessageResult<void> updatePoint(string id, InputBufferPtr data)
@@ -135,7 +155,7 @@ public:
   }
 
   MessageResult<void> merge(SharedClientRef<const DataSetClient> datasetClient,
-                            bool                           overwrite)
+                            bool                                 overwrite)
   {
     auto datasetClientPtr = datasetClient.get().lock();
     if (!datasetClientPtr) return Error(NoDataSet);
@@ -166,7 +186,9 @@ public:
     {
       auto& labelSet = labelsPtr->getLabelSet();
       if (labelSet.size() != bufView.rows())
-      { return Error("Label set size needs to match the buffer size"); }
+      {
+        return Error("Label set size needs to match the buffer size");
+      }
       mAlgorithm = DataSet(labelSet.getData().col(0),
                            FluidTensorView<const float, 2>(bufView));
     }
@@ -220,36 +242,26 @@ public:
     if (!bufCheck.checkInputs(data.get()))
       return Error<FluidTensor<rt::string, 1>>(bufCheck.error());
 
-    FluidTensor<const double, 1> point(
-        BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0));
-
-    std::vector<index> indices(asUnsigned(mAlgorithm.size()));
-    std::iota(indices.begin(), indices.end(), 0);
-    std::vector<double> distances(asUnsigned(mAlgorithm.size()));
+    auto point =
+        BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0);
 
     auto ds = mAlgorithm.getData();
-
-    std::transform(
-        indices.begin(), indices.end(), distances.begin(),
-        [&point, &ds, this](index i) { return distance(point, ds.row(i)); });
-
-    std::sort(indices.begin(), indices.end(), [&distances](index a, index b) {
-      return distances[asUnsigned(a)] < distances[asUnsigned(b)];
-    });
+    auto distances = sortedDistances(point, ds, FluidDefaultAllocator());
 
     FluidTensor<rt::string, 1> labels(nNeighbours);
+    auto                       dsIds = mAlgorithm.getIds();
 
-    std::transform(
-        indices.begin(), indices.begin() + nNeighbours, labels.begin(),
-        [this](index i) {
-          std::string const& id = mAlgorithm.getIds()[i];
-          return rt::string{id, 0, id.size(), FluidDefaultAllocator()};
-        });
+    std::transform(distances.begin(), distances.begin() + nNeighbours,
+                   labels.begin(), [dsIds](auto& i) {
+                     std::string const& id = dsIds[i.first];
+                     return rt::string{id, 0, id.size(),
+                                       FluidDefaultAllocator()};
+                   });
 
     return labels;
   }
 
-  
+
   MessageResult<FluidTensor<double, 1>> kNearestDist(InputBufferPtr data,
                                                      index nNeighbours) const
   {
@@ -263,30 +275,19 @@ public:
     if (!bufCheck.checkInputs(data.get()))
       return Error<FluidTensor<double, 1>>(bufCheck.error());
 
-    FluidTensor<const double, 1> point(
-        BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0));
-
-    std::vector<index> indices(asUnsigned(mAlgorithm.size()));
-    std::iota(indices.begin(), indices.end(), 0);
-    std::vector<double> distances(asUnsigned(mAlgorithm.size()));
+    auto point =
+        BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0);
 
     auto ds = mAlgorithm.getData();
+    auto distances = sortedDistances(point, ds, FluidDefaultAllocator());
 
-    std::transform(
-        indices.begin(), indices.end(), distances.begin(),
-        [&point, &ds, this](index i) { return distance(point, ds.row(i)); });
+    FluidTensor<double, 1> distOut(nNeighbours);
 
-    std::sort(indices.begin(), indices.end(), [&distances](index a, index b) {
-      return distances[asUnsigned(a)] < distances[asUnsigned(b)];
-    });
+    std::transform(distances.begin(), distances.begin() + nNeighbours,
+                   distOut.begin(),
+                   [](auto& i) { return std::sqrt(i.second); });
 
-    FluidTensor<double, 1> labels(nNeighbours);
-
-    std::transform(
-        indices.begin(), indices.begin() + nNeighbours, labels.begin(),
-        [&distances](index i) { return distances[asUnsigned(i)]; });
-
-    return labels;
+    return distOut;
   }
 
   MessageResult<void> clear()
@@ -294,14 +295,14 @@ public:
     mAlgorithm = DataSet(0);
     return OK();
   }
-  
+
   MessageResult<string> print()
   {
     return "DataSet " + std::string(get<kName>()) + ": " + mAlgorithm.print();
   }
 
-  const DataSet getDataSet() const { return mAlgorithm; }
-  void          setDataSet(DataSet ds) { mAlgorithm = ds; }
+  const DataSet& getDataSet() const { return mAlgorithm; }
+  void           setDataSet(const DataSet& ds) { mAlgorithm = ds; }
 
   static auto getMessageDescriptors()
   {
@@ -337,13 +338,6 @@ private:
     seq.generate(newIds);
     return LabelSet(newIds, labels);
   };
-  
-  double distance(FluidTensorView<const double, 1> point1, FluidTensorView<const double, 1> point2) const
-  {    
-    return std::transform_reduce(point1.begin(), point1.end(), point2.begin(), 0.0, std::plus{}, [](double v1, double v2){
-      return (v1-v2) * (v1-v2);
-    });
-  };
 };
 
 } // namespace dataset
@@ -351,8 +345,124 @@ private:
 using DataSetClientRef = SharedClientRef<dataset::DataSetClient>;
 using InputDataSetClientRef = SharedClientRef<const dataset::DataSetClient>;
 
+namespace dataset {
+
+constexpr auto DataSetReadParams = defineParameters(
+    InputDataSetClientRef::makeParam("dataSet", "DataSet Name"),
+    LongParam("numNeighbours", "Number of Nearest Neighbours", 1),
+    InputDataSetClientRef::makeParam("lookupDataSet", "Lookup DataSet Name"),
+    InputBufferParam("inputPointBuffer", "Input Point Buffer"),
+    BufferParam("predictionBuffer", "Prediction Buffer"));
+
+class DataSetRead : public FluidBaseClient, ControlIn, ControlOut
+{
+  enum { kDataSet, kNumNeighbors, kLookupDataSet, kInputBuffer, kOutputBuffer };
+
+public:
+  using ParamDescType = decltype(DataSetReadParams);
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors() { return DataSetReadParams; }
+
+  DataSetRead(ParamSetViewType& p, FluidContext& c) : mParams(p)
+  {
+    controlChannelsIn(1);
+    controlChannelsOut({1, 1});
+  }
+
+  index latency() const { return 0; }
+
+  template <typename T>
+  void process(std::vector<FluidTensorView<T, 1>>& input,
+               std::vector<FluidTensorView<T, 1>>& output, FluidContext& c)
+  {
+    if (input[0](0) > 0)
+    {
+      output[0](0) = 0;
+
+      auto inputDSpointer = get<kDataSet>().get().lock();
+      if (!inputDSpointer)
+        return; // c.reportError("FluidDataSet RT Query: No FluidDataSet
+                // found");
+
+      index k = get<kNumNeighbors>();
+      if (k > inputDSpointer->size() || k < 0)
+        return; // c.reportError("FluidDataSet RT Query has wrong k size");
+
+      index dims = inputDSpointer->dims();
+
+      InOutBuffersCheck bufCheck(dims);
+      if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
+                                get<kOutputBuffer>().get()))
+        return; // c.reportError("FluidDataSet RT Query i/o buffers are
+                // unavailable");
+
+      auto lookupDSpointer = get<kLookupDataSet>().get().lock();
+
+      index pointSize = lookupDSpointer ? lookupDSpointer->dims().value() : 1;
+
+      auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
+      auto outSamps = outBuf.samps(0);
+
+      index numPoints = outSamps.size() / pointSize;
+      if (numPoints <= 0)
+        return; // c.reportError("FluidDataSet RT Query output buffer is too
+                // small for one point")
+
+      auto point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+                       .samps(0, dims, 0);
+
+      auto inputdata = inputDSpointer->getDataSet().getData();
+      auto distances = sortedDistances(point, inputdata, c.allocator());
+
+      if (lookupDSpointer)
+      {
+        auto lookupDS = lookupDSpointer->getDataSet();
+        auto ids = inputDSpointer->getDataSet().getIds();
+
+        auto lookupFn = [&lookupDS, ids, outSamps, pointSize,
+                         n = 0](auto p) mutable {
+          auto id = ids[p.first];
+          if (auto point = lookupDS.get(id); point.data() != nullptr)
+            outSamps(Slice(n, pointSize)) <<= point;
+          n += pointSize;
+        };
+
+        std::for_each_n(distances.begin(), numPoints, lookupFn);
+      }
+      else
+      {
+        std::transform(distances.begin(), distances.begin() + numPoints,
+                       outSamps.begin(),
+                       [](auto p) { return std::sqrt(p.second); });
+      }
+
+      mLastNumPoints = numPoints;
+    }
+
+    output[0](0) = mLastNumPoints;
+  }
+
+private:
+  index                 mLastNumPoints{0};
+  InputDataSetClientRef mDataSetClient;
+};
+
+} // namespace dataset
+
 using NRTThreadedDataSetClient =
     NRTThreadingAdaptor<typename DataSetClientRef::SharedType>;
+using RTDataSetReadClient = ClientWrapper<dataset::DataSetRead>;
 
 } // namespace client
 } // namespace fluid
