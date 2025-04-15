@@ -27,16 +27,17 @@ enum { kName };
 constexpr auto DataSetParams =
     defineParameters(StringParam<Fixed<true>>("name", "Name of the DataSet"));
 
-double distance(FluidTensorView<const double, 1> point1,
-                FluidTensorView<const double, 1> point2)
+template <typename T, typename U>
+double distance(FluidTensorView<T, 1> point1, FluidTensorView<U, 1> point2)
 {
   return std::transform_reduce(
       point1.begin(), point1.end(), point2.begin(), 0.0, std::plus{},
       [](double v1, double v2) { return (v1 - v2) * (v1 - v2); });
 };
 
-auto sortedDistances(FluidTensorView<const double, 1> x,
-                     FluidTensorView<const double, 2> Y, Allocator& alloc)
+template <typename T, typename U>
+auto sortedDistances(FluidTensorView<T, 1> x, FluidTensorView<U, 2> Y,
+                     Allocator& alloc)
 {
   rt::vector<std::pair<index, double>> distances(Y.rows(), alloc);
   std::generate(distances.begin(), distances.end(), [n = 0, &x, &Y]() mutable {
@@ -241,8 +242,8 @@ public:
     if (!bufCheck.checkInputs(data.get()))
       return Error<FluidTensor<rt::string, 1>>(bufCheck.error());
 
-    FluidTensor<const double, 1> point(
-        BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0));
+    auto point =
+        BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0);
 
     auto ds = mAlgorithm.getData();
     auto distances = sortedDistances(point, ds, FluidDefaultAllocator());
@@ -274,8 +275,8 @@ public:
     if (!bufCheck.checkInputs(data.get()))
       return Error<FluidTensor<double, 1>>(bufCheck.error());
 
-    FluidTensor<const double, 1> point(
-        BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0));
+    auto point =
+        BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0);
 
     auto ds = mAlgorithm.getData();
     auto distances = sortedDistances(point, ds, FluidDefaultAllocator());
@@ -373,8 +374,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return DataSetReadParams; }
 
-  DataSetRead(ParamSetViewType& p, FluidContext& c)
-      : mParams(p)
+  DataSetRead(ParamSetViewType& p, FluidContext& c) : mParams(p)
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});
@@ -388,6 +388,8 @@ public:
   {
     if (input[0](0) > 0)
     {
+      output[0](0) = 0;
+
       auto inputDSpointer = get<kDataSet>().get().lock();
       if (!inputDSpointer)
         return; // c.reportError("FluidDataSet RT Query: No FluidDataSet
@@ -410,51 +412,49 @@ public:
       index pointSize = lookupDSpointer ? lookupDSpointer->dims().value() : 1;
 
       auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-      mNumValidKs = outBuf.samps(0).size() / pointSize;
-      if (mNumValidKs <= 0)
-      {
-        output[0](0) = 0;
-        return;
-      }
-      index outputSize = mNumValidKs * pointSize;
+      auto outSamps = outBuf.samps(0);
 
-      RealVector point(dims, c.allocator());
-      point <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
-                    .samps(0, dims, 0);
+      index numPoints = outSamps.size() / pointSize;
+      if (numPoints <= 0)
+        return; // c.reportError("FluidDataSet RT Query output buffer is too
+                // small for one point")
+
+      auto point = BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+                       .samps(0, dims, 0);
 
       auto inputdata = inputDSpointer->getDataSet().getData();
       auto distances = sortedDistances(point, inputdata, c.allocator());
-      auto outSamps = outBuf.samps(0);
 
       if (lookupDSpointer)
       {
         auto lookupDS = lookupDSpointer->getDataSet();
-        auto inputDSids = inputDSpointer->getDataSet().getIds();
-        std::for_each_n(distances.begin(), mNumValidKs,
-                        [pointSize, &outSamps, &lookupDS, &inputDSids,
-                         n = 0](auto& p) mutable {
-                          if (auto point = lookupDS.get(inputDSids[p.first]);
-                              point.data() != nullptr)
-                          {
-                            outSamps(Slice(n, pointSize)) <<= point;
-                          }
-                          n += pointSize;
-                        });
+        auto ids = inputDSpointer->getDataSet().getIds();
+
+        auto lookupFn = [&lookupDS, ids, outSamps, pointSize,
+                         n = 0](auto p) mutable {
+          auto id = ids[p.first];
+          if (auto point = lookupDS.get(id); point.data() != nullptr)
+            outSamps(Slice(n, pointSize)) <<= point;
+          n += pointSize;
+        };
+
+        std::for_each_n(distances.begin(), numPoints, lookupFn);
       }
       else
       {
-        std::for_each_n(distances.begin(), mNumValidKs,
-                        [&outSamps, n = 0](auto& p) mutable {
-                          outSamps[n++] = std::sqrt(p.second);
-                        });
+        std::transform(distances.begin(), distances.begin() + numPoints,
+                       outSamps.begin(),
+                       [](auto p) { return std::sqrt(p.second); });
       }
+
+      mLastNumPoints = numPoints;
     }
 
-    output[0](0) = mNumValidKs;
+    output[0](0) = mLastNumPoints;
   }
 
 private:
-  index                 mNumValidKs = 0;
+  index                 mLastNumPoints{0};
   InputDataSetClientRef mDataSetClient;
 };
 
