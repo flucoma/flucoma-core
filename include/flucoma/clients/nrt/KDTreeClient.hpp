@@ -194,7 +194,7 @@ public:
   {
     if (input[0](0) > 0)
     {
-      output[0](0) = 0;
+      output[0](0) = mLastNumPoints = 0;
 
       auto kdtreeptr = get<kTree>().get().lock();
       if (!kdtreeptr)
@@ -256,7 +256,7 @@ public:
       mLastNumPoints = ids.size();
     }
 
-    output[0](0) = mLastNumPoints;
+    output[0](0) = mLastNumPoints; // updates the output if successful or if not triggered
   }
 
 
