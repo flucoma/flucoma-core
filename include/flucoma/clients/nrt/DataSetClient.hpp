@@ -388,7 +388,7 @@ public:
   {
     if (input[0](0) > 0)
     {
-      output[0](0) = 0;
+      output[0](0) = mLastNumPoints = 0; // if triggered, reset output to 0
 
       auto inputDSpointer = get<kDataSet>().get().lock();
       if (!inputDSpointer)
@@ -447,10 +447,10 @@ public:
                        [](auto p) { return std::sqrt(p.second); });
       }
 
-      mLastNumPoints = numPoints;
+      mLastNumPoints = numPoints; // update valid number of point post successful query
     }
 
-    output[0](0) = mLastNumPoints;
+    output[0](0) = mLastNumPoints; // outputs the number of points from the valid last querying
   }
 
 private:
