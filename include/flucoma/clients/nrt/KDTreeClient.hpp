@@ -253,7 +253,7 @@ public:
                        outSamps.begin(), [](auto p) { return std::sqrt(p); });
       }
 
-      mLastNumPoints = std::min(ids.size(), numPoints);
+      mLastNumPoints = std::min(asSigned(ids.size()), numPoints);
     }
 
     output[0](0) =
