@@ -149,13 +149,20 @@ constexpr auto KDTreeQueryParams = defineParameters(
     KDTreeRef::makeParam("tree", "KDTree"),
     LongParam("numNeighbours", "Number of Nearest Neighbours", 1),
     FloatParam("radius", "Maximum distance", 0, Min(0)),
-    InputDataSetClientRef::makeParam("dataSet", "DataSet Name"),
+    InputDataSetClientRef::makeParam("lookupDataSet", "Lookup DataSet Name"),
     InputBufferParam("inputPointBuffer", "Input Point Buffer"),
     BufferParam("predictionBuffer", "Prediction Buffer"));
 
 class KDTreeQuery : public FluidBaseClient, ControlIn, ControlOut
 {
-  enum { kTree, kNumNeighbors, kRadius, kDataSet, kInputBuffer, kOutputBuffer };
+  enum {
+    kTree,
+    kNumNeighbors,
+    kRadius,
+    kLookupDataSet,
+    kInputBuffer,
+    kOutputBuffer
+  };
 
 public:
   using ParamDescType = decltype(KDTreeQueryParams);
@@ -173,8 +180,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return KDTreeQueryParams; }
 
-  KDTreeQuery(ParamSetViewType& p, FluidContext& c)
-      : mParams(p), mRTBuffer(c.allocator())
+  KDTreeQuery(ParamSetViewType& p, FluidContext& c) : mParams(p)
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});
@@ -188,74 +194,74 @@ public:
   {
     if (input[0](0) > 0)
     {
+      output[0](0) = 0;
+
       auto kdtreeptr = get<kTree>().get().lock();
       if (!kdtreeptr)
-      {
-        // c.reportError("FluidKDTree RT Query: No FluidKDTree found");
-        return;
-      }
+        return; // c.reportError("FluidKDTree RT Query: No FluidKDTree found");
 
       if (!kdtreeptr->initialized())
-      {
-        // c.reportError("FluidKDTree RT Query: tree not fitted");
-        return;
-      }
+        return; // c.reportError("FluidKDTree RT Query: tree not fitted");
 
       index k = get<kNumNeighbors>();
       if (k > kdtreeptr->size() || k < 0)
         return; // c.reportError("FluidKDTree RT Query has wrong k size");
-      index             dims = kdtreeptr->dims();
+
+      index dims = kdtreeptr->dims();
+
       InOutBuffersCheck bufCheck(dims);
       if (!bufCheck.checkInputs(get<kInputBuffer>().get(),
                                 get<kOutputBuffer>().get()))
         return; // c.reportError("FluidKDTree RT Query i/o buffers are
                 // unavailable");
-      auto datasetClientPtr = get<kDataSet>().get().lock();
-      if (!datasetClientPtr)
-        datasetClientPtr = kdtreeptr->getDataSet().get().lock();
 
-      if (!datasetClientPtr)
-      {
-        // c.reportError("Could not obtain reference FluidDataSet");
-        return;
-      }
+      auto lookupDSpointer = get<kLookupDataSet>().get().lock();
 
-      auto  dataset = datasetClientPtr->getDataSet();
-      index pointSize = dataset.pointSize();
-      auto  outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
-      index maxK = outBuf.samps(0).size() / pointSize;
-      if (maxK <= 0) return;
-      index outputSize = maxK * pointSize;
+      index pointSize = lookupDSpointer ? lookupDSpointer->dims().value() : 1;
+
+      auto outBuf = BufferAdaptor::Access(get<kOutputBuffer>().get());
+      auto outSamps = outBuf.samps(0);
+
+      index numPoints = outSamps.size() / pointSize;
+      if (numPoints <= 0)
+        return; // c.reportError("FluidKDTree RT Query output buffer is too
+                // small for one point")
 
       RealVector point(dims, c.allocator());
       point <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                     .samps(0, dims, 0);
-      if (mRTBuffer.size() != outputSize)
-      {
-        mRTBuffer = RealVector(outputSize, c.allocator());
-        mRTBuffer.fill(0);
-      }
 
       auto [dists, ids] = kdtreeptr->algorithm().kNearest(
           point, k, get<kRadius>(), c.allocator());
 
-      mNumValidKs = std::min(asSigned(ids.size()), maxK);
-
-      for (index i = 0; i < mNumValidKs; i++)
+      if (lookupDSpointer)
       {
-        dataset.get(*ids[asUnsigned(i)],
-                    mRTBuffer(Slice(i * pointSize, pointSize)));
+        auto lookupDS = lookupDSpointer->getDataSet();
+
+        auto lookupFn = [&lookupDS, outSamps, pointSize,
+                         n = 0](auto id) mutable {
+          if (auto point = lookupDS.get(*id); point.data() != nullptr)
+            outSamps(Slice(n, pointSize)) <<= point;
+          n += pointSize;
+        };
+
+        std::for_each_n(ids.begin(), numPoints, lookupFn);
       }
-      outBuf.samps(0, outputSize, 0) <<= mRTBuffer;
+      else
+      {
+        std::transform(dists.begin(), dists.begin() + numPoints,
+                       outSamps.begin(), [](auto p) { return std::sqrt(p); });
+      }
+
+      mLastNumPoints = ids.size();
     }
 
-    output[0](0) = mNumValidKs;
+    output[0](0) = mLastNumPoints;
   }
 
 
 private:
-  RealVector            mRTBuffer;
-  index                 mNumValidKs = 0;
+  index                 mLastNumPoints{0};
   InputDataSetClientRef mDataSetClient;
 };
 
