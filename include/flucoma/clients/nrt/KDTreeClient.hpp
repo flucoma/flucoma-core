@@ -253,7 +253,7 @@ public:
                        outSamps.begin(), [](auto p) { return std::sqrt(p); });
       }
 
-      mLastNumPoints = ids.size();
+      mLastNumPoints = min(ids.size(), numPoints);
     }
 
     output[0](0) = mLastNumPoints; // updates the output if successful or if not triggered
