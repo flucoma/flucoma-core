@@ -26,9 +26,9 @@ constexpr auto SKMeansParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
     LongParam("numClusters", "Number of Clusters", 4, Min(0)),
     FloatParam("encodingThreshold", "Encoding Threshold", 0.25, Min(0), Max(1)),
-    LongParam("maxIter", "Max number of Iterations", 100, Min(1)), 
-    EnumParam("initialize","Initialize method",0, "Random Assignment", "Sampled Means") 
-  );
+    LongParam("maxIter", "Max number of Iterations", 100, Min(1)),
+    EnumParam("initialize", "Initialize method", 0, "Random Assignment",
+              "Random Points", "Sampling"));
 
 class SKMeansClient : public FluidBaseClient,
                       OfflineIn,
@@ -71,6 +71,8 @@ public:
     return {};
   }
 
+  using InitMethod = algorithm::SKMeans::InitMethod;
+
   MessageResult<IndexVector> fit(DataSetClientRef datasetClient)
   {
     index k = get<kNumClusters>();
@@ -80,8 +82,8 @@ public:
     auto dataSet = datasetClientPtr->getDataSet();
     if (dataSet.size() == 0) return Error<IndexVector>(EmptyDataSet);
     if (k <= 1) return Error<IndexVector>(SmallK);
-    if(mTracker.changed(k)) mAlgorithm.clear(); 
-    mAlgorithm.train(dataSet, k, maxIter, get<kInit>());
+    if(mTracker.changed(k)) mAlgorithm.clear();
+    mAlgorithm.train(dataSet, k, maxIter, static_cast<InitMethod>(get<kInit>()));
     IndexVector assignments(dataSet.size());
     mAlgorithm.getAssignments(assignments);
     return getCounts(assignments, k);
@@ -101,8 +103,8 @@ public:
     if (!labelsetClientPtr) return Error<IndexVector>(NoLabelSet);
     if (k <= 1) return Error<IndexVector>(SmallK);
     if (maxIter <= 0) maxIter = 100;
-    if(mTracker.changed(k)) mAlgorithm.clear(); 
-    mAlgorithm.train(dataSet, k, maxIter, get<kInit>());
+    if(mTracker.changed(k)) mAlgorithm.clear();
+    mAlgorithm.train(dataSet, k, maxIter, static_cast<InitMethod>(get<kInit>()));
     IndexVector assignments(dataSet.size());
     mAlgorithm.getAssignments(assignments);
     StringVectorView ids = dataSet.getIds();
@@ -172,8 +174,8 @@ public:
     if (dataSet.size() == 0) return Error<IndexVector>(EmptyDataSet);
     if (k <= 1) return Error<IndexVector>(SmallK);
     if (maxIter <= 0) maxIter = 100;
-    if(mTracker.changed(k)) mAlgorithm.clear(); 
-    mAlgorithm.train(dataSet, k, maxIter,get<kInit>());
+    if(mTracker.changed(k)) mAlgorithm.clear();
+    mAlgorithm.train(dataSet, k, maxIter, static_cast<InitMethod>(get<kInit>()));
     IndexVector assignments(dataSet.size());
     mAlgorithm.getAssignments(assignments);
     encode(srcClient, dstClient);
