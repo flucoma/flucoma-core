@@ -203,7 +203,7 @@ public:
   }
 
   MessageResult<void> toBuffer(BufferPtr data, bool transpose,
-                               LabelSetClientRef labels)
+                               LabelSetClientRef labels, bool flip)
   {
     if (!data) return Error(NoBuffer);
     BufferAdaptor::Access buf(data.get());
@@ -217,7 +217,7 @@ public:
                   : FluidTensorView<const double, 2>(mAlgorithm.getData())
                         .transpose();
     auto labelsPtr = labels.get().lock();
-    if (labelsPtr) labelsPtr->setLabelSet(getIdsLabelSet());
+    if (labelsPtr) labelsPtr->setLabelSet(getIdsLabelSet(flip));
     return OK();
   }
 
@@ -225,7 +225,7 @@ public:
   {
     auto destPtr = dest.get().lock();
     if (!destPtr) return Error(NoDataSet);
-    destPtr->setLabelSet(getIdsLabelSet());
+    destPtr->setLabelSet(getIdsLabelSet(false));
     return OK();
   }
 
@@ -329,13 +329,19 @@ public:
   }
 
 private:
-  LabelSet getIdsLabelSet()
-  {
-    algorithm::DataSetIdSequence seq("", 0, 0);
-    FluidTensor<string, 1>       newIds(mAlgorithm.size());
-    FluidTensor<string, 2>       labels(mAlgorithm.size(), 1);
-    labels.col(0) <<= mAlgorithm.getIds();
-    seq.generate(newIds);
+  LabelSet getIdsLabelSet(bool flip)
+    {
+      algorithm::DataSetIdSequence seq("", 0, 0);
+      FluidTensor<string, 1>       newIds(mAlgorithm.size());
+      FluidTensor<string, 2>       labels(mAlgorithm.size(), 1);
+      
+      if (flip) {
+          seq.generate(labels.col(0));
+          newIds <<= mAlgorithm.getIds();
+      } else {
+              labels.col(0) <<= mAlgorithm.getIds();
+              seq.generate(newIds);
+      }
     return LabelSet(newIds, labels);
   };
 };
