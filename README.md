@@ -4,9 +4,16 @@ This library comprises a suite of C++ algorithms used by the Fluid Corpus Manipu
 
 # Dependencies
 
-* [CMake](http://cmake.org) (>=3.11)
+
+* [CMake](http://cmake.org) (>=3.18)
 * [Eigen](https://gitlab.com/libeigen/eigen) (3.4)
 * [HISSTools Library](https://github.com/AlexHarker/HISSTools_Library)
+* [Spectra](https://github.com/yixuan/spectra)
+* [Memory](https://github.com/foonathan/memory.git)
+* [fmt](https://github.com/fmtlib/fmt)
+* [nlohmann JSON](https://github.com/nlohmann/json)
+
+
 
 # Building
 It is unlikely that you will need or want to build this repository directly. Rather, the pattern is to build from one of the repositories for a specific creative coding host, which uses this library as a dependency:
@@ -25,7 +32,7 @@ To build these, clone the repo, change to its directory, and run CMake:
 mkdir -p build && cd build
 cmake ..
 ```
-By default, CMake will download Eigen and the HISSTools library directly at this point. This is the simplest option, and guarantees that the versions used match the versions we build and test against.
+By default, CMake will download the dependencies above directly at this point. This is the simplest option, and guarantees that the versions used match the versions we build and test against.
 
 However, to use versions already on your file system, you can set CMake cache variables `EIGEN_PATH` and `HISS_PATH`:
 
@@ -38,7 +45,7 @@ Because CMake is a system for generating build scripts, rather than a build syst
 * On Windows, Visual Studio can consume CMake projects directly. When used this way, the cache variables are set in a `JSON` file that MSVC uses to configure CMake.
 
 # Portability
-The code base uses standard-compliant C++14 and, as such, should be portable to a range of platforms. So far, it has been successfully deployed to macOS (>= Mac OS X 10.7, using clang); Windows (10 and up, using MSVC); and Linux (Ubuntu 16.04 and up, using GCC), for 32-bit and 64-bit intel architectures. Please check that your compiler version supports the full C++14 feature set.
+The code base uses standard-compliant C++17 and, as such, should be portable to a range of platforms. So far, it has been successfully deployed to macOS (>= Mac OS X 10.7, using clang); Windows (10 and up, using MSVC); and Linux (Ubuntu 16.04 and up, using GCC), for 32-bit and 64-bit intel architectures. Please check that your compiler version supports the full C++14 feature set.
 
 In principle, it should be possible to build for other architectures, but this has not yet been properly explored and certain parts of the build process may make assumptions about Intel-ness.
 
