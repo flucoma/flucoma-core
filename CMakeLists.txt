@@ -140,13 +140,16 @@ target_compile_features(FLUID_DECOMPOSITION INTERFACE cxx_std_17)
 
 target_include_directories(FLUID_DECOMPOSITION INTERFACE 
   "${CMAKE_CURRENT_SOURCE_DIR}/include" 
-  SYSTEM INTERFACE 
+)
+
+target_include_directories(FLUID_DECOMPOSITION SYSTEM INTERFACE 
   "${eigen_SOURCE_DIR}"
   "${spectra_SOURCE_DIR}/include"
   "${hisstools_SOURCE_DIR}/include"
   "${memory_SOURCE_DIR}/include/foonathan"
   "${fmt_SOURCE_DIR}/include"
 )
+
 target_link_libraries(FLUID_DECOMPOSITION INTERFACE 
   flucoma_VERSION_LIB 
   tl::optional

@@ -189,7 +189,7 @@ MessageSet<std::tuple<Args...>> defineMessages(Args&&... args)
   return {std::forward<Args>(args)...};
 }
 
-auto NoMessages = defineMessages();
+inline auto NoMessages = defineMessages();
 
 } // namespace client
 } // namespace fluid
