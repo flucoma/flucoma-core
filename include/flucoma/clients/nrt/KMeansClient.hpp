@@ -25,7 +25,7 @@ constexpr auto KMeansParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
     LongParam("numClusters", "Number of Clusters", 4, Min(1)),
     LongParam("maxIter", "Max number of Iterations", 100, Min(1)),
-    EnumParam("initialize", "Initialize method", 0, "Random Assignment",
+    EnumParam("initMethod", "Initialize method", 0, "Random Assignment",
               "Random Points", "Sampling"));
 
 class KMeansClient : public FluidBaseClient,
