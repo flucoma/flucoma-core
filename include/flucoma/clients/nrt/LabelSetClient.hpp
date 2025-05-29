@@ -153,7 +153,7 @@ public:
     std::sort(ids.begin(), ids.end(), [](auto& x, auto& y) { return x < y; });
 
     std::string& prev = ids[0];
-    std::string& current = ids[0];
+    std::string& current = ids[1];
 
     for (auto i = 1; i < ids.size(); ++i)
     {
