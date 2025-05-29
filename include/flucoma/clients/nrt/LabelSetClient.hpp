@@ -142,8 +142,35 @@ public:
     return OK();
   }
 
-  MessageResult<string> print() 
-  { 
+  MessageResult<void> swapIdsAndLabels(LabelSetClientRef dest)
+  {
+    auto destPtr = dest.get().lock();
+    if (!destPtr) return Error(NoDataSet);
+
+    FluidTensor<string, 1> ids(mAlgorithm.size());
+    ids <<= mAlgorithm.getData().col(0);
+
+    std::sort(ids.begin(), ids.end(), [](auto& x, auto& y) { return x < y; });
+
+    std::string& prev = ids[0];
+    std::string& current = ids[0];
+
+    for (auto i = 1; i < ids.size(); ++i)
+    {
+      current = ids[i];
+      if (current == prev) return Error(DuplicateIdentifier);
+      prev = current;
+    }
+
+    FluidTensor<string, 2> labels(mAlgorithm.size(), 1);
+    labels.col(0) <<= mAlgorithm.getIds();
+
+    destPtr->setLabelSet(LabelSet(ids, labels));
+    return OK();
+  }
+
+  MessageResult<string> print()
+  {
     return "LabelSet " + std::string(get<kName>()) + ": " + mAlgorithm.print();
   }
 
@@ -164,7 +191,8 @@ public:
         makeMessage("clear", &LabelSetClient::clear),
         makeMessage("write", &LabelSetClient::write),
         makeMessage("read", &LabelSetClient::read),
-        makeMessage("getIds", &LabelSetClient::getIds));
+        makeMessage("getIds", &LabelSetClient::getIds),
+        makeMessage("swapIdsAndLabels", &LabelSetClient::swapIdsAndLabels));
   }
 
   const LabelSet getLabelSet() const { return mAlgorithm; }
