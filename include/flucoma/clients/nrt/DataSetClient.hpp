@@ -203,7 +203,7 @@ public:
   }
 
   MessageResult<void> toBuffer(BufferPtr data, bool transpose,
-                               LabelSetClientRef labels, bool flip)
+                               LabelSetClientRef labels, bool labelwise)
   {
     if (!data) return Error(NoBuffer);
     BufferAdaptor::Access buf(data.get());
@@ -217,7 +217,7 @@ public:
                   : FluidTensorView<const double, 2>(mAlgorithm.getData())
                         .transpose();
     auto labelsPtr = labels.get().lock();
-    if (labelsPtr) labelsPtr->setLabelSet(getIdsLabelSet(flip));
+    if (labelsPtr) labelsPtr->setLabelSet(getIdsLabelSet(labelwise));
     return OK();
   }
 
@@ -329,21 +329,16 @@ public:
   }
 
 private:
-  LabelSet getIdsLabelSet(bool flip)
-    {
-      algorithm::DataSetIdSequence seq("", 0, 0);
-      FluidTensor<string, 1>       newIds(mAlgorithm.size());
-      FluidTensor<string, 2>       labels(mAlgorithm.size(), 1);
-      
-      if (flip) {
-          seq.generate(labels.col(0));
-          newIds <<= mAlgorithm.getIds();
-      } else {
-              labels.col(0) <<= mAlgorithm.getIds();
-              seq.generate(newIds);
-      }
-    return LabelSet(newIds, labels);
-  };
+  LabelSet getIdsLabelSet(bool labelwise)
+  {
+    algorithm::DataSetIdSequence seq("", 0, 0);
+    FluidTensor<string, 1>       indices(mAlgorithm.size());
+    seq.generate(indices);
+    return labelwise ? LabelSet(indices,
+                                FluidTensorView<string, 2>(mAlgorithm.getIds()).transpose())
+                     : LabelSet(mAlgorithm.getIds(),
+                                FluidTensorView<string, 2>(indices).transpose());
+  }
 };
 
 } // namespace dataset
