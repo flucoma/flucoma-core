@@ -60,10 +60,12 @@ Result spikesToTimes(FluidTensorView<T, 2> changePoints, BufferAdaptor* output,
   for (index i = 0; i < changePoints.rows(); ++i)
   {
     // Arg sort
-    std::vector<index> indices(asUnsigned(changePoints.row(i).size()));
+    auto thisrow = changePoints.row(i); 
+    std::vector<index> indices(asUnsigned(thisrow.size()));
     std::iota(indices.begin(), indices.end(), 0);
-    std::sort(indices.begin(), indices.end(), [&](index i1, index i2) {
-      return changePoints.row(i)[i1] > changePoints.row(i)[i2];
+    std::sort(indices.begin(), indices.end(), [&thisrow](index i1, index i2) 
+    {
+      return thisrow(i1) > thisrow(i2);       
     });
 
     // Now put the gathered indicies into ascending order
