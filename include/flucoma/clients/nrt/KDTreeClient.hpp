@@ -78,22 +78,12 @@ public:
   MessageResult<StringVector> kNearest(InputBufferPtr  data,
                                        Optional<index> nNeighbours) const
   {
-    // we can deprecate ancillary parameters in favour of optional args by
-    // falling back to using parameters when arg not present
     index k = nNeighbours ? nNeighbours.value() : get<kNumNeighbors>();
-    // alternatively we could just be hardcore and ignore parameters and have
-    // message handlers fallback to a default when arg missing (which would be
-    // eventual behaviour, I guess) index k =  nNeighbours.value_or(1);
-    if (k > mAlgorithm.size()) return Error<StringVector>(SmallDataSet);
-    // if (k <= 0 && get<kRadius>() <= 0) return Error<StringVector>(SmallK);
-    if (!mAlgorithm.initialized()) return Error<StringVector>(NoDataFitted);
-    InBufferCheck bufCheck(mAlgorithm.dims());
-    if (!bufCheck.checkInputs(data.get()))
-      return Error<StringVector>(bufCheck.error());
-    RealVector point(mAlgorithm.dims());
-    point <<=
-        BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0);
-    auto [dists, ids] = mAlgorithm.kNearest(point, k, get<kRadius>());
+
+    auto reply = computeKnearest(data, k);
+    auto dists = reply.value().first;
+    auto ids = reply.value().second;
+
     StringVector result(asSigned(ids.size()));
     std::transform(ids.cbegin(), ids.cend(), result.begin(),
                    [](const std::string* x) {
@@ -105,19 +95,9 @@ public:
   MessageResult<RealVector> kNearestDist(InputBufferPtr  data,
                                          Optional<index> nNeighbours) const
   {
-    // TODO: refactor with kNearest
     index k = nNeighbours ? nNeighbours.value() : get<kNumNeighbors>();
-    if (k > mAlgorithm.size()) return Error<RealVector>(SmallDataSet);
-    // if (k <= 0 && get<kRadius>() <= 0) return Error<RealVector>(SmallK);
-    if (!mAlgorithm.initialized()) return Error<RealVector>(NoDataFitted);
-    InBufferCheck bufCheck(mAlgorithm.dims());
-    if (!bufCheck.checkInputs(data.get()))
-      return Error<RealVector>(bufCheck.error());
-    RealVector point(mAlgorithm.dims());
-    point <<=
-        BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0);
-    auto [dist, ids] = mAlgorithm.kNearest(point, k, get<kRadius>());
-    return {dist};
+    auto  reply = computeKnearest(data, k);
+    return {reply.value().first};
   }
 
   static auto getMessageDescriptors()
@@ -141,6 +121,24 @@ public:
 
 private:
   InputDataSetClientRef mDataSetClient;
+
+  MessageResult<algorithm::KDTree::KNNResult>
+  computeKnearest(InputBufferPtr data, index k) const
+  {
+    if (k > mAlgorithm.size())
+      return Error<algorithm::KDTree::KNNResult>(SmallDataSet);
+    if (k <= 0 && get<kRadius>() <= 0)
+      return Error<algorithm::KDTree::KNNResult>(SmallK);
+    if (!mAlgorithm.initialized())
+      return Error<algorithm::KDTree::KNNResult>(NoDataFitted);
+    InBufferCheck bufCheck(mAlgorithm.dims());
+    if (!bufCheck.checkInputs(data.get()))
+      return Error<algorithm::KDTree::KNNResult>(bufCheck.error());
+    RealVector point(mAlgorithm.dims());
+    point <<=
+        BufferAdaptor::ReadAccess(data.get()).samps(0, mAlgorithm.dims(), 0);
+    return {mAlgorithm.kNearest(point, k, get<kRadius>())};
+  }
 };
 
 using KDTreeRef = SharedClientRef<const KDTreeClient>;
