@@ -246,10 +246,7 @@ public:
         std::for_each_n(ids.begin(), numPoints, lookupFn);
       }
       else
-      {
-        std::transform(dists.begin(), dists.begin() + numPoints,
-                       outSamps.begin(), [](auto p) { return p; });
-      }
+        std::copy_n(dists.begin(), numPoints, outSamps.begin());
 
       mLastNumPoints = std::min(asSigned(ids.size()), numPoints);
     }
