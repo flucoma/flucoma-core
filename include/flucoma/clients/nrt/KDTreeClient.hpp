@@ -248,7 +248,7 @@ public:
       else
       {
         std::transform(dists.begin(), dists.begin() + numPoints,
-                       outSamps.begin(), [](auto p) { return std::sqrt(p); });
+                       outSamps.begin(), [](auto p) { return p; });
       }
 
       mLastNumPoints = std::min(asSigned(ids.size()), numPoints);
