@@ -57,7 +57,7 @@ public:
 
   bool ok() const noexcept { return (mStatus == Status::kOk); }
 
-  Status status() { return mStatus; }
+  Status status() const noexcept { return mStatus; }
 
   void set(Status r) noexcept { mStatus = r; }
 
@@ -92,6 +92,16 @@ public:
   operator T() const { return mData; }
   T& value() { return mData; }
   const T& value() const { return mData; }
+
+  template <typename U>
+  MessageResult(MessageResult<U> const& x) : Result(x.status(), x.message())
+  {
+    if constexpr (std::is_convertible_v<T, U>)
+    {
+      if (x.ok()) mData = x.mData;
+    }
+  }
+
 private:
   T    mData;
   bool hasData;

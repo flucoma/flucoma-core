@@ -81,6 +81,8 @@ public:
     index k = nNeighbours ? nNeighbours.value() : get<kNumNeighbors>();
 
     auto reply = computeKnearest(data, k);
+    if (!reply.ok()) return reply;
+
     auto dists = reply.value().first;
     auto ids = reply.value().second;
 
