@@ -17,12 +17,18 @@ namespace fluid {
 namespace client {
 namespace datasetquery {
 
-enum { kName };
+constexpr auto DataSetQueryParams =
+    defineParameters(StringParam<Fixed<true>>("name", "Name"));
 
-constexpr auto DataSetQueryParams = defineParameters();
+class DataSetQueryClient : public FluidBaseClient,
+                           OfflineIn,
+                           OfflineOut,
+                           ModelObject,
+                           public DataClient<algorithm::DataSetQuery>
 
-class DataSetQueryClient : public FluidBaseClient, OfflineIn, OfflineOut
 {
+  enum { kName };
+
 public:
   using string = std::string;
   using DataSet = FluidDataSet<string, double, 1>;
@@ -50,7 +56,7 @@ public:
     return DataSetQueryParams;
   }
 
-  DataSetQueryClient(ParamSetViewType& p,  FluidContext&) : mParams(p) {}
+  DataSetQueryClient(ParamSetViewType& p, FluidContext&) : mParams(p) {}
 
   MessageResult<void> addColumn(index column)
   {
@@ -101,7 +107,7 @@ public:
 
 
   MessageResult<void> transform(InputDataSetClientRef sourceClient,
-                                DataSetClientRef destClient)
+                                DataSetClientRef      destClient)
   {
     if (mAlgorithm.numColumns() <= 0) return Error("No columns");
     auto srcPtr = sourceClient.get().lock();
@@ -120,7 +126,7 @@ public:
 
   MessageResult<void> transformJoin(InputDataSetClientRef source1Client,
                                     InputDataSetClientRef source2Client,
-                                    DataSetClientRef destClient)
+                                    DataSetClientRef      destClient)
   {
     auto src1Ptr = source1Client.get().lock();
     auto src2Ptr = source2Client.get().lock();
@@ -165,12 +171,87 @@ public:
         makeMessage("limit", &DataSetQueryClient::limit));
   }
 
+  const algorithm::DataSetQuery& algorithm() const { return mAlgorithm; }
+
 private:
   algorithm::DataSetQuery mAlgorithm;
 };
+
+using DSQueryRef = SharedClientRef<const DataSetQueryClient>;
+
+constexpr auto DataSetRTQueryParams = defineParameters(
+    DSQueryRef::makeParam("dataSetQuery", "DataSetQuery"),
+    InputDataSetClientRef::makeParam("sourceClient", "Source DataSet Name"),
+    DataSetClientRef::makeParam("destClient", "Destination DataSet Name"));
+
+class DataSetRTQuery : public FluidBaseClient, ControlIn, ControlOut
+{
+  enum { kDSQ, kSourceDataSet, kDestDataSet };
+
+public:
+  using ParamDescType = decltype(DataSetRTQueryParams);
+  using ParamSetViewType = ParameterSetView<ParamDescType>;
+
+  std::reference_wrapper<ParamSetViewType> mParams;
+
+  void setParams(ParamSetViewType& p) { mParams = p; }
+
+  template <size_t N>
+  auto& get() const
+  {
+    return mParams.get().template get<N>();
+  }
+
+  static constexpr auto& getParameterDescriptors()
+  {
+    return DataSetRTQueryParams;
+  }
+
+  DataSetRTQuery(ParamSetViewType& p, FluidContext& c) : mParams(p)
+  {
+    controlChannelsIn(1);
+    controlChannelsOut({1, 1});
+  }
+
+  index latency() const { return 0; }
+
+  template <typename T>
+  void process(std::vector<FluidTensorView<T, 1>>& input,
+               std::vector<FluidTensorView<T, 1>>& output, FluidContext& c)
+  {
+    if (input[0](0) > 0)
+    {
+      output[0](0) = 0; // start with error output as default
+
+      auto DSQptr = get<kDSQ>().get().lock();
+      if (!DSQptr)
+        return; // c.reportError("FluidDataSetQuery RT Query: No
+                // FluidDataSetQuery found");
+                //      if (DSQptr->algorithm().numColumns() <= 0)
+      //        return; // c.reportError("FluidDataSetQuery RT Query: No colums
+
+      auto sourceDSptr = get<kSourceDataSet>().get().lock();
+      if (!sourceDSptr)
+        return; // c.reportError("FluidDataSetQuery RT Query: invalid Source
+                // FluidDataSet");
+
+      auto destDSptr = get<kDestDataSet>().get().lock();
+      if (!destDSptr)
+        return; // c.reportError("FluidDataSetQuery RT Query: invalid
+                // Destination FluidDataSet");
+
+      output[0](0) = 1; // reaching here means success as a trigger output
+    }
+  }
+
+private:
+};
+
 } // namespace datasetquery
 
 using NRTThreadedDataSetQueryClient =
     NRTThreadingAdaptor<ClientWrapper<datasetquery::DataSetQueryClient>>;
+using RTDataSetQueryClient = ClientWrapper<datasetquery::DataSetRTQuery>;
+
 } // namespace client
 } // namespace fluid
