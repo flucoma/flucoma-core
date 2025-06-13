@@ -81,6 +81,8 @@ public:
     index k = nNeighbours ? nNeighbours.value() : get<kNumNeighbors>();
 
     auto reply = computeKnearest(data, k);
+    if (!reply.ok()) return reply;
+
     auto dists = reply.value().first;
     auto ids = reply.value().second;
 
@@ -97,6 +99,8 @@ public:
   {
     index k = nNeighbours ? nNeighbours.value() : get<kNumNeighbors>();
     auto  reply = computeKnearest(data, k);
+    if (!reply.ok()) return reply;
+
     return {reply.value().first};
   }
 
@@ -127,7 +131,7 @@ private:
   {
     if (k > mAlgorithm.size())
       return Error<algorithm::KDTree::KNNResult>(SmallDataSet);
-    if (k <= 0 && get<kRadius>() <= 0)
+    if (k < 0 && get<kRadius>() < 0)
       return Error<algorithm::KDTree::KNNResult>(SmallK);
     if (!mAlgorithm.initialized())
       return Error<algorithm::KDTree::KNNResult>(NoDataFitted);
@@ -246,10 +250,7 @@ public:
         std::for_each_n(ids.begin(), numPoints, lookupFn);
       }
       else
-      {
-        std::transform(dists.begin(), dists.begin() + numPoints,
-                       outSamps.begin(), [](auto p) { return p; });
-      }
+        std::copy_n(dists.begin(), numPoints, outSamps.begin());
 
       mLastNumPoints = std::min(asSigned(ids.size()), numPoints);
     }
