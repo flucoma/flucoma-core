@@ -81,7 +81,7 @@ public:
     index nChannels{0};
     index nFrames{0};
 
-    float sourceSR;
+    double sourceSR;
 
     {
       BufferAdaptor::ReadAccess source(get<kSource>().get());
