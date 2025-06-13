@@ -81,6 +81,8 @@ public:
     index nChannels{0};
     index nFrames{0};
 
+    double sourceSR;
+
     {
       BufferAdaptor::ReadAccess source(get<kSource>().get());
 
@@ -106,6 +108,8 @@ public:
       if (get<kStartChan>() >= source.numChans())
         return {Result::Status::kError, "Start channel ", get<kStartChan>(),
                 " out of range."};
+      
+      sourceSR = source.sampleRate();
     }
 
     index             dstStart = get<kDestOffset>();
@@ -161,7 +165,7 @@ public:
 
     // Access sources inside own scope block, so they'll be unlocked before
     // we need to (possibly) resize the desintation buffer which could
-    // (possibly)  also be one of the sources
+    // (possibly) also be one of the sources
     {
       BufferAdaptor::ReadAccess source(get<kSource>().get());
       auto                      gain = get<kGain>();
@@ -199,7 +203,7 @@ public:
     {
       Result resizeResult =
           destination.resize(destinationOrig.cols(), destinationOrig.rows(),
-                             destination.sampleRate());
+                             sourceSR);
       if (!resizeResult.ok()) return resizeResult;
       for (index i = 0; i < destination.numChans(); ++i)
         destination.samps(i) <<= destinationOrig.row(i);
