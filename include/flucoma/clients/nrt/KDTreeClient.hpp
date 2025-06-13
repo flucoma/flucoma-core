@@ -131,7 +131,7 @@ private:
   {
     if (k > mAlgorithm.size())
       return Error<algorithm::KDTree::KNNResult>(SmallDataSet);
-    if (k <= 0 && get<kRadius>() <= 0)
+    if (k < 0 && get<kRadius>() < 0)
       return Error<algorithm::KDTree::KNNResult>(SmallK);
     if (!mAlgorithm.initialized())
       return Error<algorithm::KDTree::KNNResult>(NoDataFitted);
