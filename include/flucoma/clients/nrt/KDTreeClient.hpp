@@ -99,6 +99,8 @@ public:
   {
     index k = nNeighbours ? nNeighbours.value() : get<kNumNeighbors>();
     auto  reply = computeKnearest(data, k);
+    if (!reply.ok()) return reply;
+
     return {reply.value().first};
   }
 
