@@ -213,8 +213,6 @@ public:
     controlChannelsOut({1, 1});
   }
 
-  index latency() const { return 0; }
-
   template <typename T>
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext& c)
@@ -243,14 +241,15 @@ public:
       output[0](0) = 1; // reaching here means success as a trigger output
     }
   }
+    
+    index latency() const { return 0; }
 
-private:
 };
 
 } // namespace datasetquery
 
 using NRTThreadedDataSetQueryClient =
-    NRTThreadingAdaptor<ClientWrapper<datasetquery::DataSetQueryClient>>;
+    NRTThreadingAdaptor<typename datasetquery::DSQueryRef::SharedType>;
 using RTDataSetQueryClient = ClientWrapper<datasetquery::DataSetRTQuery>;
 
 } // namespace client
