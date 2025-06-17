@@ -334,10 +334,10 @@ private:
     algorithm::DataSetIdSequence seq("", 0, 0);
     FluidTensor<string, 1>       indices(mAlgorithm.size());
     seq.generate(indices);
-    return labelwise ? LabelSet(indices,
-                                FluidTensorView<string, 2>(mAlgorithm.getIds()).transpose())
-                     : LabelSet(mAlgorithm.getIds(),
-                                FluidTensorView<string, 2>(indices).transpose());
+    return labelwise ? LabelSet(mAlgorithm.getIds(),
+                                FluidTensorView<string, 2>(indices).transpose())
+                     : LabelSet(indices,
+                                FluidTensorView<string, 2>(mAlgorithm.getIds()).transpose());
   }
 };
 

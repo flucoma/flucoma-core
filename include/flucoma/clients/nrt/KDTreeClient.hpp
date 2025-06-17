@@ -236,23 +236,32 @@ public:
       auto [dists, ids] = kdtreeptr->algorithm().kNearest(
           point, k, get<kRadius>(), c.allocator());
 
+      index numValid = 0;
+
       if (lookupDSpointer)
       {
         auto lookupDS = lookupDSpointer->getDataSet();
 
-        auto lookupFn = [&lookupDS, outSamps, pointSize,
-                         n = 0](auto id) mutable {
+        auto lookupFn = [&lookupDS, outSamps, pointSize, n = 0,
+                         &numValid](auto id) mutable {
           if (auto point = lookupDS.get(*id); point.data() != nullptr)
+          {
             outSamps(Slice(n, pointSize)) <<= point;
-          n += pointSize;
+            n += pointSize;
+            numValid += 1;
+          }
         };
 
-        std::for_each_n(ids.begin(), numPoints, lookupFn);
+        std::for_each_n(ids.begin(), std::min(asSigned(ids.size()), numPoints),
+                        lookupFn);
       }
       else
-        std::copy_n(dists.begin(), numPoints, outSamps.begin());
+      {
+        numValid = std::min(asSigned(ids.size()), numPoints);
+        std::copy_n(dists.begin(), numValid, outSamps.begin());
+      }
 
-      mLastNumPoints = std::min(asSigned(ids.size()), numPoints);
+      mLastNumPoints = numValid;
     }
 
     output[0](0) =
