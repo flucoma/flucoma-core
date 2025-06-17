@@ -305,7 +305,7 @@ public:
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
   {
-    output[0] <<= input[0];
+    output[0](0) = 0;
     if (input[0](0) > 0)
     {
       auto MLPRef = get<kModel>().get().lock();
@@ -341,6 +341,7 @@ public:
                 .samps(0, inputSize, 0);
       algorithm.processFrame(src, dest, inputTap, outputTap);
       outBuf.samps(0, outputSize, 0) <<= dest;
+      output[0](0) = 1;
     }
   }
 

@@ -320,7 +320,7 @@ public:
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
   {
-    output[0] = input[0];
+    output[0](0) = 0;
     if (input[0](0) > 0)
     {
       auto kmeansPtr = get<kModel>().get().lock();
@@ -342,6 +342,7 @@ public:
       point <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                   .samps(0, dims, 0);
       outSamps[0] = kmeansPtr->algorithm().vq(point);
+      output[0](0) = 1;
     }
   }
 

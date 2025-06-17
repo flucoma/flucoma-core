@@ -240,7 +240,7 @@ public:
   void process(std::vector<FluidTensorView<T, 1>>& in,
                std::vector<FluidTensorView<T, 1>>& out, FluidContext& c)
   {
-    out[0] <<= in[0];
+    out[0](0) = 0;
     if (in[0](0) > 0)
     {
       auto knnPtr = get<kModel>().get().lock();
@@ -272,6 +272,7 @@ public:
       regressor.predict(algorithm.tree, algorithm.target, input, output, k,
                         weight, c.allocator());
       outBuf.samps(0) <<= output;
+      out[0](0) = 1;
     }
   }
 

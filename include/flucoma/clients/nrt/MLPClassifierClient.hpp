@@ -320,7 +320,7 @@ public:
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
   {
-    output[0] <<= input[0];
+    output[0](0) = 0;
     if (input[0](0) > 0)
     {
       auto mlpPtr = get<kModel>().get().lock();
@@ -350,6 +350,7 @@ public:
       auto& label = algorithm.encoder.decodeOneHot(dest);
       outBuf.samps(0)[0] =
           static_cast<double>(algorithm.encoder.encodeIndex(label));
+      output[0](0) = 1;
     }
   }
 
