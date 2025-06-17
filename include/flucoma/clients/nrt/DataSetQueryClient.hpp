@@ -171,13 +171,10 @@ public:
         makeMessage("limit", &DataSetQueryClient::limit));
   }
 
-  const algorithm::DataSetQuery& algorithm() const { return mAlgorithm; }
-
-private:
-  algorithm::DataSetQuery mAlgorithm;
+  algorithm::DataSetQuery& algorithm() { return mAlgorithm; }
 };
 
-using DSQueryRef = SharedClientRef<const DataSetQueryClient>;
+using DSQueryRef = SharedClientRef<DataSetQueryClient>;
 
 constexpr auto DataSetRTQueryParams = defineParameters(
     DSQueryRef::makeParam("dataSetQuery", "DataSetQuery"),
@@ -217,33 +214,48 @@ public:
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext& c)
   {
+    output[0](0) = 0; // start with error output as default
+
     if (input[0](0) > 0)
     {
-      output[0](0) = 0; // start with error output as default
-
       auto DSQptr = get<kDSQ>().get().lock();
       if (!DSQptr)
         return; // c.reportError("FluidDataSetQuery RT Query: No
                 // FluidDataSetQuery found");
-                //      if (DSQptr->algorithm().numColumns() <= 0)
-      //        return; // c.reportError("FluidDataSetQuery RT Query: No colums
+      if (DSQptr->algorithm().numColumns() <= 0)
+        return; // c.reportError("FluidDataSetQuery RT Query: No colums
 
       auto sourceDSptr = get<kSourceDataSet>().get().lock();
       if (!sourceDSptr)
         return; // c.reportError("FluidDataSetQuery RT Query: invalid Source
                 // FluidDataSet");
 
+      auto src = sourceDSptr->getDataSet();
+      if (src.size() == 0)
+        return; // c.reportError("FluidDataSetQuery RT Query: empty Source
+                // FluidDataSet");
+      if (src.pointSize() <= DSQptr->algorithm().maxColumn())
+        return; // c.reportError("FluidDataSetQuery RT Query: wrong point
+                // size");
+
+
       auto destDSptr = get<kDestDataSet>().get().lock();
       if (!destDSptr)
         return; // c.reportError("FluidDataSetQuery RT Query: invalid
                 // Destination FluidDataSet");
 
+      index                       resultSize = DSQptr->algorithm().numColumns();
+      DataSetQueryClient::DataSet result(resultSize);
+      DSQptr->algorithm().process(src, mEmpty, result);
+      destDSptr->setDataSet(result);
       output[0](0) = 1; // reaching here means success as a trigger output
     }
   }
-    
-    index latency() const { return 0; }
 
+  index latency() const { return 0; }
+
+private:
+  DataSetQueryClient::DataSet mEmpty;
 };
 
 } // namespace datasetquery
