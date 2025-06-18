@@ -14,17 +14,17 @@ to compute a summary of spectral features of an audio file
 */
 
 #include <Eigen/Core>
-#include <algorithms/public/DCT.hpp>
-#include <algorithms/public/Loudness.hpp>
-#include <algorithms/public/MelBands.hpp>
-#include <algorithms/public/MultiStats.hpp>
-#include <algorithms/public/STFT.hpp>
-#include <algorithms/public/SpectralShape.hpp>
-#include <algorithms/public/YINFFT.hpp>
+#include <flucoma/algorithms/public/DCT.hpp>
+#include <flucoma/algorithms/public/Loudness.hpp>
+#include <flucoma/algorithms/public/MelBands.hpp>
+#include <flucoma/algorithms/public/MultiStats.hpp>
+#include <flucoma/algorithms/public/STFT.hpp>
+#include <flucoma/algorithms/public/SpectralShape.hpp>
+#include <flucoma/algorithms/public/YINFFT.hpp>
 #include <audio_file/in_file.hpp>
-#include <data/FluidIndex.hpp>
-#include <data/FluidMemory.hpp>
-#include <data/TensorTypes.hpp>
+#include <flucoma/data/FluidIndex.hpp>
+#include <flucoma/data/FluidMemory.hpp>
+#include <flucoma/data/TensorTypes.hpp>
 #include <cstdio>
 #include <iomanip>
 #include <iostream>

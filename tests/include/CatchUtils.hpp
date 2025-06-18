@@ -3,12 +3,12 @@
 
 #pragma once 
 
-#include <catch2/catch.hpp> 
+#include <catch2/catch_all.hpp> 
 
 namespace fluid { 
 
 template<typename Range>
-struct EqualsRangeMatcher : public Catch::MatcherBase<Range> { //Catch::Matchers::MatcherGenericBase {
+struct EqualsRangeMatcher : public Catch::Matchers::MatcherBase<Range> { //Catch::Matchers::MatcherGenericBase {
     EqualsRangeMatcher(Range&& range):
         range{ range }
     {}

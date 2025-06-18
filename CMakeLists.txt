@@ -8,9 +8,7 @@
 
 cmake_minimum_required (VERSION 3.18)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
   cmake_policy(SET CMP0135 NEW)
@@ -26,9 +24,7 @@ if(hasParent)
 endif()
 
 if(APPLE)
-  set(CMAKE_OSX_DEPLOYMENT_TARGET "10.8" CACHE STRING "")
-  #A consequence of targetting 10.8. Needs to be set globally from 10.15 onwards in order for the test program to compile successfully during configure 
-  string(APPEND CMAKE_CXX_FLAGS " -stdlib=libc++")
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9" CACHE STRING "")
 endif()
 
 project (flucoma-core LANGUAGES CXX)
@@ -51,7 +47,9 @@ ENDIF (APPLE)
 # Grab the Fluid Decpomposition header files so they can be added to IDE builds
 file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/include/**/*.hpp")
 
-# Either download or point to dependencies
+############################################################################################################
+# Dependencies
+############################################################################################################
 FetchContent_Declare(
   HISSTools
   GIT_REPOSITORY https://github.com/AlexHarker/HISSTools_Library
@@ -66,6 +64,7 @@ FetchContent_Declare(
   GIT_PROGRESS TRUE
   GIT_BRANCH "3.4"
   GIT_TAG "3.4.0"
+  SOURCE_SUBDIR "include" # eigen's cmake doesn't do anything useful for us, skip it
 )
 
 FetchContent_Declare(
@@ -75,6 +74,7 @@ FetchContent_Declare(
   GIT_PROGRESS TRUE
   GIT_BRANCH "master"
   GIT_TAG "v1.0.1"
+  SOURCE_SUBDIR "include" #spectra behaves badly as cmake sub-project, so skip its cmake
 )
 
 FetchContent_Declare(
@@ -83,9 +83,11 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/TartanLlama/optional.git  
   GIT_PROGRESS TRUE
 )
+set(OPTIONAL_BUILD_PACKAGE OFF CACHE BOOL "" FORCE)
+set(OPTIONAL_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 
 #see https://json.nlohmann.me/integration/cmake/#fetchcontent
-FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz)
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
 set(JSON_SystemInclude ON CACHE BOOL "")
 
 FetchContent_Declare(
@@ -121,117 +123,58 @@ if(JSON_PATH)
   get_filename_component(FETCHCONTENT_SOURCE_DIR_JSON ${JSON_PATH} ABSOLUTE)  
 endif()
 
-FetchContent_GetProperties(HISSTools)
-if(NOT hisstools_POPULATED)
-  FetchContent_Populate(HISSTools)
-endif()
-
-FetchContent_GetProperties(Eigen)
-if(NOT eigen_POPULATED)
-  FetchContent_Populate(Eigen)
-endif()
-
-FetchContent_GetProperties(Spectra)
-if(NOT spectra_POPULATED)
-  FetchContent_Populate(Spectra)
-endif()
-
-set(OPTIONAL_BUILD_PACKAGE OFF CACHE BOOL "" FORCE)
-set(OPTIONAL_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-FetchContent_GetProperties(tl_optional)
-if(NOT tl_optional_POPULATED)
-  FetchContent_Populate(tl_optional)
-endif()
-
-add_subdirectory(${tl_optional_SOURCE_DIR} ${tl_optional_BINARY_DIR} EXCLUDE_FROM_ALL)
-
-FetchContent_GetProperties(json)
-if(NOT json_POPULATED)
-  FetchContent_Populate(json)  
-endif()
-
-add_subdirectory(${json_SOURCE_DIR} ${json_BINARY_DIR} EXCLUDE_FROM_ALL)
+FetchContent_MakeAvailable(HISSTools Eigen Spectra tl_optional json Memory fmt)
 
 set(FOONATHAN_MEMORY_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
 set(FOONATHAN_MEMORY_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(FOONATHAN_MEMORY_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 
-FetchContent_GetProperties(Memory)
-if(NOT memory_POPULATED)
-  FetchContent_Populate(Memory)
-endif()
-add_subdirectory(${memory_SOURCE_DIR} ${memory_BINARY_DIR} EXCLUDE_FROM_ALL)
 
-FetchContent_GetProperties(fmt)
-if(NOT fmt_POPULATED)
-  FetchContent_Populate(fmt)
-endif()
-add_subdirectory(${fmt_SOURCE_DIR} ${fmt_BINARY_DIR} EXCLUDE_FROM_ALL)
-
-# Brute force staic runtime on windwos
-if(MSVC)
-  foreach(flag_var
-      CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
-      CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
-    if(${flag_var} MATCHES "/MD")
-      string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
-    endif()
-  endforeach()
-endif()
-
-
-#Fluid Decomposition header-only target
+############################################################################################################
+# flucoma-core target, gathers dependencies, our headers and transitive build requirements 
+############################################################################################################
 add_library(FLUID_DECOMPOSITION INTERFACE)
 
-target_include_directories(
-  FLUID_DECOMPOSITION INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include" 
+# this should pass on to all consumers of this target 
+target_compile_features(FLUID_DECOMPOSITION INTERFACE cxx_std_17)
+
+target_include_directories(FLUID_DECOMPOSITION INTERFACE 
+  "${CMAKE_CURRENT_SOURCE_DIR}/include" 
 )
-target_include_directories(
-  FLUID_DECOMPOSITION SYSTEM INTERFACE #we don't want warnings from Eigen or HissTools
+
+target_include_directories(FLUID_DECOMPOSITION SYSTEM INTERFACE 
   "${eigen_SOURCE_DIR}"
   "${spectra_SOURCE_DIR}/include"
   "${hisstools_SOURCE_DIR}/include"
   "${memory_SOURCE_DIR}/include/foonathan"
   "${fmt_SOURCE_DIR}/include"
 )
-target_link_libraries(
-  FLUID_DECOMPOSITION INTERFACE 
+
+target_link_libraries(FLUID_DECOMPOSITION INTERFACE 
   flucoma_VERSION_LIB 
   tl::optional
   nlohmann_json::nlohmann_json
   foonathan_memory
   fmt::fmt
+  $<$<PLATFORM_ID:Darwin>:${ACCELERATE}>
 )
 target_sources(
   FLUID_DECOMPOSITION INTERFACE ${HEADERS}
 )
 
-if(MSVC)
-  target_compile_definitions(
-    FLUID_DECOMPOSITION INTERFACE NOMINMAX _USE_MATH_DEFINES
-  )
-endif()
+target_compile_definitions(FLUID_DECOMPOSITION INTERFACE
+  EIGEN_MPL2_ONLY=1
+  $<$<CXX_COMPILER_ID:MSVC>:FLUID_DECOMPOSITION INTERFACE NOMINMAX _USE_MATH_DEFINES>
+)
 
 #GCC vomits on using HostVector = HostVector<U> without this flag on
-if(CMAKE_COMPILER_IS_GNUCXX)
-  target_compile_options(FLUID_DECOMPOSITION INTERFACE -fpermissive)
-endif()
+target_compile_options(FLUID_DECOMPOSITION INTERFACE 
+  $<$<CXX_COMPILER_ID:Gnu>:-fpermissive>
+)
 
-target_compile_definitions(FLUID_DECOMPOSITION INTERFACE EIGEN_MPL2_ONLY=1)
-
-if(APPLE)
-  #targeting <= 10.9, need to really emphasise that we want libc++ both to compiler and linker
-  target_compile_options(FLUID_DECOMPOSITION INTERFACE -stdlib=libc++)
-  target_link_libraries(FLUID_DECOMPOSITION INTERFACE -stdlib=libc++ ${ACCELERATE})
-endif()
-
-#Apply any vector instruction flags
-if(DEFINED FLUID_ARCH)
-  target_compile_options(FLUID_DECOMPOSITION INTERFACE ${FLUID_ARCH})
-endif()
-
-#Examples
-
+############################################################################################################
+# Examples
+############################################################################################################
 option(BUILD_EXAMPLES "Build C++ example code (off by default)" OFF)
 
 if(BUILD_EXAMPLES)
@@ -240,6 +183,9 @@ add_subdirectory(
 )
 endif() 
 
+############################################################################################################
+# Tests 
+############################################################################################################
 enable_testing()
 
 if(FLUCOMA_TESTS)

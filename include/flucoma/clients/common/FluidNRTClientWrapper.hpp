@@ -129,6 +129,7 @@ struct IsControlIn<ClientWrapper<T>>
   constexpr static bool value{std::is_base_of<ControlIn, T>::value};
 };
 
+
 template <class RTClient>
 struct AddPadding
 {
@@ -144,12 +145,6 @@ struct AddPadding
                                   : !HasFFT && HasControlOut && !HasControlIn
                                       ? 3
                                       : 0;
-
-
-  //  static constexpr size_t value = std::conditional_t<HasFFT,
-  //      std::conditional_t<HasControlOut, std::integral_constant<size_t, 2>,
-  //                         std::integral_constant<size_t, 1>>,
-  //      std::integral_constant<size_t, 0>>()();
 };
 
 // Special case for Loudness :`-(
@@ -233,6 +228,7 @@ public:
   NRTClientWrapper(NRTClientWrapper&& x)
       : mParams{std::move(x.mParams)}, mNRTContext{std::move(x.mNRTContext)},
         mClient{std::move(x.mClient)}
+
   {
     mRealTimeParams =
         RTParamSetViewType(RTClient::getParameterDescriptors(),
@@ -594,11 +590,13 @@ struct StreamingControl
                 HostMatrix(nChans, paddedLength));
 
     std::vector<HostMatrix> outputData;
+
     outputData.reserve(outputBuffers.size());
     std::fill_n(std::back_inserter(outputData), outputBuffers.size(),
                 HostMatrix(nChans * maxFeatures, nAnalysisFrames));
 
     double sampleRate{0};
+
     // Copy input data
     for (index i = 0; i < nChans; ++i)
     {
@@ -634,6 +632,7 @@ struct StreamingControl
         for (auto& out : outputData)
         {
           outputs.push_back(out.col(j)(Slice(i * maxFeatures, maxFeatures)));
+
         }
 
         client.process(inputs, outputs, c);
@@ -749,6 +748,7 @@ struct ControlControl
             outputData[asUnsigned(i)].row(j)(Slice(startPadding, nFrames));
     }
 
+
     return {};
   }
 };
@@ -838,6 +838,7 @@ template <class RTClient, typename Params, Params& PD, index Ins, index Outs>
 using NRTDualControlAdaptor =
     impl::NRTClientWrapper<impl::ControlControl, RTClient, Params, PD, Ins,
                            Outs>;
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1024,6 +1025,7 @@ public:
           mThreadedTask->mState = kDoneStillProcessing;
         }
         else { mThreadedTask = nullptr; }
+
       }
 
       return state;
@@ -1123,6 +1125,7 @@ private:
     ThreadedTask(ClientPointer client, NRTJob& job, bool synchronous)
         : mProcessParams(job.mParams), mState(kNoProcess), mClient(client),
           mContext{mTask}, mCallback{job.mCallback}
+
     {
 
       assert(mClient.get() != nullptr); // right?

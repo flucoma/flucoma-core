@@ -50,13 +50,13 @@ struct VoicePeak
 
 struct SineTrack
 {
-
   SineTrack(Allocator& alloc) : peaks(alloc) {}
 
   SineTrack(rt::vector<SinePeak>&& p, index s, index e, bool a, bool ass,
             index t)
       : peaks{p}, startFrame{s}, endFrame{e}, active{a}, assigned{ass},
         trackId{t}
+
   {}
 
   rt::vector<SinePeak> peaks;

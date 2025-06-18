@@ -1,13 +1,13 @@
 #define CATCH_CONFIG_MAIN 
-#include <catch2/catch.hpp> 
+#include <catch2/catch_all.hpp> 
 // #include <catch2/catch_test_macros.hpp>
 // #include <catch2/matchers/catch_matchers_templated.hpp>
-#include <data/FluidIndex.hpp>
-#include <data/FluidTensor_Support.hpp> 
-#include <data/FluidMeta.hpp> 
+#include <flucoma/data/FluidIndex.hpp>
+#include <flucoma/data/FluidTensor_Support.hpp> 
+#include <flucoma/data/FluidMeta.hpp> 
 #include <CatchUtils.hpp> 
 
-#include <data/FluidTensor.hpp> 
+#include <flucoma/data/FluidTensor.hpp> 
 
 #include <array>
 #include <algorithm> 
@@ -98,7 +98,7 @@ TEST_CASE("FluidTensorSlice can construct sub-slices","[FluidTensorSupport]"){
     }
 }
 
-TEST_CASE("FluidTensorSlice operator() maps indices back to flat layout","[FluidTensorSuppport]"){
+TEST_CASE("FluidTensorSlice operator() maps indices back to flat layout","[FluidTensorSupport]"){
     std::array<int, 54> data; 
     std::iota(data.begin(),data.end(),0); 
 
@@ -112,8 +112,8 @@ TEST_CASE("FluidTensorSlice operator() maps indices back to flat layout","[Fluid
         FluidTensorSlice<2> x{18,3}; 
 
         for(int i = 0; i < 18; i++)
-            for(int j; j < 3; j++)
-               CHECK(data[x(i,j)] == data[(i * x.extents[1]) + j]);  
+          for (int j = 0; j < 3; j++)
+            CHECK(data[x(i, j)] == data[(i * x.extents[1]) + j]);  
     }
 
     SECTION("3D"){
