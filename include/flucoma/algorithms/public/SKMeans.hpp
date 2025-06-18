@@ -17,7 +17,9 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../data/FluidTensor.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
+#include <cassert>
 #include <queue>
+#include <random>
 #include <string>
 
 namespace fluid {
@@ -25,30 +27,32 @@ namespace algorithm {
 
 class SKMeans : public KMeans
 {
-
+  using MatrixLike = Eigen::Ref<const Eigen::MatrixXd>; 
 public:
+
+  using KMeans::InitMethod; 
+
   void train(const FluidDataSet<std::string, double, 1>& dataset, index k,
-             index maxIter)
+             index maxIter, InitMethod initialize )
   {
     using namespace Eigen;
     using namespace _impl;
     assert(!mTrained || (dataset.pointSize() == mDims && mK == k));
     MatrixXd dataPoints =
         asEigen<Matrix>(dataset.getData()).rowwise().normalized();
-    MatrixXd dataPointsT = dataPoints.transpose();
-    if (mTrained) { mAssignments = assignClusters(dataPointsT);}
+    if (mTrained) { mAssignments = assignClusters(dataPoints.transpose());}
     else
     {
       mK = k;
       mDims = dataset.pointSize();
-      initMeans(dataPoints);
+      initMeans(dataPoints, initialize);
     }
 
     while (maxIter-- > 0)
     {
-      mEmbedding = mMeans.matrix() * dataPointsT;
+      mEmbedding.noalias() = mMeans.matrix() * dataPoints.transpose();      
       auto assignments = assignClusters(mEmbedding);
-      if (!changed(assignments)) { break; }
+      if (mAssignments.rows() && !changed(assignments)) { break; }
       else
         mAssignments = assignments;
       updateEmbedding();
@@ -56,7 +60,6 @@ public:
     }
     mTrained = true;
   }
-
 
   void encode(RealMatrixView data, RealMatrixView out,
                  double alpha = 0.25) const
@@ -69,24 +72,34 @@ public:
   }
 
 private:
-
-  void initMeans(Eigen::MatrixXd& dataPoints)
+  void initMeans(Eigen::MatrixXd& dataPoints, InitMethod init)
   {
     using namespace Eigen;
     mMeans = ArrayXXd::Zero(mK, mDims);
-    mAssignments =
-        ((0.5 + (0.5 * ArrayXd::Random(dataPoints.rows()))) * (mK - 1))
-            .round()
-            .cast<int>();
-    mEmbedding = MatrixXd::Zero(mK, dataPoints.rows());
-    for (index i = 0; i < dataPoints.rows(); i++)
-      mEmbedding(mAssignments(i), i) = 1;
-    computeMeans(dataPoints);
+
+    using namespace _impl::kmeans_init;
+    switch(init)
+    {
+      case InitMethod::randomSampling: 
+      { 
+        mMeans = akmc2(dataPoints, mK,cosine); 
+        break; 
+      }
+      case InitMethod::randomPoint: 
+      {
+          mMeans = randomPoints(dataPoints, mK); 
+          break; 
+      }
+      default: { 
+        mMeans = randomPartition(dataPoints, mK); 
+        mMeans.matrix().rowwise().normalize(); 
+      }
+    }    
   }
 
   void updateEmbedding()
   {
-    for (index i = 0; i < mAssignments.cols(); i++)
+    for (index i = 0; i < mAssignments.rows(); i++)
     {
       mEmbedding.col(i).setZero();
       mEmbedding(mAssignments(i), i) = 1.0;
@@ -94,7 +107,8 @@ private:
   }
 
 
-  Eigen::VectorXi assignClusters(Eigen::MatrixXd& embedding) const
+  Eigen::VectorXi
+  assignClusters(MatrixLike const& embedding) const
   {
     Eigen::VectorXi assignments = Eigen::VectorXi::Zero(embedding.cols());
     for (index i = 0; i < embedding.cols(); i++)
@@ -107,9 +121,9 @@ private:
   }
 
 
-  void computeMeans(Eigen::MatrixXd& dataPoints)
+  void computeMeans(MatrixLike const& dataPoints)
   {
-    mMeans = mEmbedding * dataPoints;
+    mMeans.matrix().noalias() = mEmbedding * dataPoints;
     mMeans.matrix().rowwise().normalize();
   }
 
