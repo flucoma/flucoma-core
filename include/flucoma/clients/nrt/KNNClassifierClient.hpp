@@ -240,7 +240,7 @@ public:
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext& c)
   {
-    output[0] <<= input[0];
+    output[0](0) = 0;
     if (input[0](0) > 0)
     {
       auto knnPtr = get<kModel>().get().lock();
@@ -267,6 +267,7 @@ public:
       std::string const& result = classifier.predict(
           algorithm.tree, point, algorithm.labels, k, weight, c.allocator());
       outBuf.samps(0)[0] = static_cast<double>(knnPtr->encodeIndex(result));
+      output[0](0) = 1;
     }
   }
 
