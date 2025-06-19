@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.11)
+cmake_minimum_required (VERSION 3.28)
 
 ###### Utils 
 add_subdirectory(test_signals)
@@ -59,6 +59,7 @@ FetchContent_Declare(
   GIT_SHALLOW    TRUE
   GIT_REPOSITORY https://github.com/catchorg/Catch2.git
   GIT_TAG        devel
+  EXCLUDE_FROM_ALL
 )
 FetchContent_MakeAvailable(Catch2)
 list(APPEND CMAKE_MODULE_PATH ${Catch2_SOURCE_DIR}/contrib)
@@ -70,6 +71,7 @@ FetchContent_Declare(
   GIT_SHALLOW    TRUE
   GIT_REPOSITORY https://github.com/approvals/ApprovalTests.cpp.git
   GIT_TAG        v.10.13.0
+  EXCLUDE_FROM_ALL
 )
 FetchContent_MakeAvailable(ApprovalCPP)
 
