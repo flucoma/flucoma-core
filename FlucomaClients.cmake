@@ -83,6 +83,7 @@ function(get_core_client_class name var)
   set(${var} ${client_info} PARENT_SCOPE)
 endfunction()
 # 
+
 add_client(AmpFeature flucoma/clients/rt/AmpFeatureClient.hpp CLASS RTAmpFeatureClient )
 add_client(AmpGate flucoma/clients/rt/AmpGateClient.hpp CLASS RTAmpGateClient )
 add_client(AmpSlice flucoma/clients/rt/AmpSliceClient.hpp CLASS RTAmpSliceClient )
@@ -139,6 +140,8 @@ add_client(SpectralShape flucoma/clients/rt/SpectralShapeClient.hpp CLASS RTSpec
 add_kr_in_client(Stats flucoma/clients/rt/RunningStatsClient.hpp CLASS RunningStatsClient )
 add_client(TransientSlice flucoma/clients/rt/TransientSliceClient.hpp CLASS RTTransientSliceClient )
 add_client(Transients flucoma/clients/rt/TransientClient.hpp CLASS RTTransientClient )
+add_kr_in_client(VoiceAllocator flucoma/clients/rt/VoiceAllocatorClient.hpp CLASS VoiceAllocatorClient )
+
 
 #lib manipulation client group 
 add_client(DataSet flucoma/clients/nrt/DataSetClient.hpp CLASS NRTThreadedDataSetClient GROUP MANIPULATION)
