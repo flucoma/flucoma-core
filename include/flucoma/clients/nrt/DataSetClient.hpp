@@ -350,7 +350,7 @@ namespace dataset {
 
 constexpr auto DataSetReadParams = defineParameters(
     InputDataSetClientRef::makeParam("dataSet", "DataSet Name"),
-    LongParam("numNeighbours", "Number of Nearest Neighbours", 1),
+    LongParam("numNeighbours", "Number of Nearest Neighbours", 1, Min(1)),
     InputDataSetClientRef::makeParam("lookupDataSet", "Lookup DataSet Name"),
     InputBufferParam("inputPointBuffer", "Input Point Buffer"),
     BufferParam("predictionBuffer", "Prediction Buffer"));
