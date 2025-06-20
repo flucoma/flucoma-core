@@ -93,6 +93,7 @@ public:
     {
       auto srcDataSet = srcPtr->getDataSet();
       if (srcDataSet.size() == 0) return Error<double>(EmptyDataSet);
+      if (srcDataSet.size() < k) return Error<double>(SmallDataSet);
       if (!mAlgorithm.initialized()) return Error<double>(NoDataFitted);
       if (srcDataSet.pointSize() != mAlgorithm.dims())
         return Error<double>(WrongPointSize);
