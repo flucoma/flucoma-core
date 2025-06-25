@@ -104,7 +104,7 @@ bool add(idType const& id, FluidTensorView<const dataType, N> point)
       return pos->second;
   }
 
-  bool update(idType const& id, FluidTensorView<dataType, N> const point)
+bool update(idType const& id, FluidTensorView<const dataType, N> point)
   {
     auto pos = mIndex.find(id);
     if (pos == mIndex.end())
