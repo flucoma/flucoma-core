@@ -106,6 +106,7 @@ public:
     static_assert(std::is_convertible<U, T>::value,
                   "Cannot convert between container value types");
     std::copy(x.begin(), x.end(), mContainer.begin());
+    std::cout << "Debug failing test (value) \n" << x << '\n' << *this; 
   }
 
   template <typename U, size_t M>
@@ -117,6 +118,7 @@ public:
                   "Cannot convert between container value types");
 
     std::copy(x.begin(), x.end(), mContainer.begin());
+    std::cout << "Debug failing test (view) \n" << x << '\n' << *this; 
   }
 
   /// Conversion assignment
