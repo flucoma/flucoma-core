@@ -166,6 +166,9 @@ TEST_CASE("FluidTensor can be copied","[FluidTensor]"){
       CHECK(y.cols() == x.cols()); 
       CHECK(y.descriptor() == x.descriptor()); 
       CHECK(std::equal(y.begin(),y.end(),x.begin())); 
+      std::cout << "Copy Conversion Debug" << y << '\n' << x; 
+
+
   }
 }
 
