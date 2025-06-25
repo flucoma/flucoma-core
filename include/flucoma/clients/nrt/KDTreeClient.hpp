@@ -21,7 +21,7 @@ namespace kdtree {
 
 constexpr auto KDTreeParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
-    LongParam("numNeighbours", "Number of Nearest Neighbours", 1),
+    LongParam("numNeighbours", "Number of Nearest Neighbours", 1, Min(0)),
     FloatParam("radius", "Maximum distance", 0, Min(0)));
 
 class KDTreeClient : public FluidBaseClient,
@@ -79,6 +79,8 @@ public:
                                        Optional<index> nNeighbours) const
   {
     index k = nNeighbours ? nNeighbours.value() : get<kNumNeighbors>();
+      
+    if (k < 0) return Error(SmallK);
 
     auto reply = computeKnearest(data, k);
     if (!reply.ok()) return reply;
@@ -98,6 +100,9 @@ public:
                                          Optional<index> nNeighbours) const
   {
     index k = nNeighbours ? nNeighbours.value() : get<kNumNeighbors>();
+      
+    if (k < 0) return Error(SmallK);
+
     auto  reply = computeKnearest(data, k);
     if (!reply.ok()) return reply;
 
@@ -149,7 +154,7 @@ using KDTreeRef = SharedClientRef<const KDTreeClient>;
 
 constexpr auto KDTreeQueryParams = defineParameters(
     KDTreeRef::makeParam("tree", "KDTree"),
-    LongParam("numNeighbours", "Number of Nearest Neighbours", 1),
+    LongParam("numNeighbours", "Number of Nearest Neighbours", 1, Min(0)),
     FloatParam("radius", "Maximum distance", 0, Min(0)),
     InputDataSetClientRef::makeParam("lookupDataSet", "Lookup DataSet Name"),
     InputBufferParam("inputPointBuffer", "Input Point Buffer"),
