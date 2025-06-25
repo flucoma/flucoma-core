@@ -160,13 +160,14 @@ TEST_CASE("FluidTensor can be copied","[FluidTensor]"){
   }
 
   SECTION("Copy conversion") {
-      const FluidTensor<double, 2> y(x);  
-      CHECK(y.size() == x.size()); 
-      CHECK(y.rows() == x.rows()); 
-      CHECK(y.cols() == x.cols()); 
+      const  FluidTensor<int, 2> x2{{0,1,2,3,4},{5,6,7,8,9}};  
+      const FluidTensor<double, 2> y(x2);  
+      CHECK(y.size() == x2.size()); 
+      CHECK(y.rows() == x2.rows()); 
+      CHECK(y.cols() == x2.cols()); 
       CHECK(y.descriptor() == x.descriptor()); 
-      CHECK(std::equal(y.begin(),y.end(),x.begin())); 
-      std::cout << "Copy Conversion Debug" << y << '\n' << x; 
+      CHECK(std::equal(y.begin(),y.end(),x2.begin())); 
+      std::cout << "Copy Conversion Debug" << y << '\n' << x2; 
 
 
   }
