@@ -66,7 +66,7 @@ public:
     }
   }
 
-  bool add(idType const& id, FluidTensorView<const dataType, N> const point)
+bool add(idType const& id, FluidTensorView<const dataType, N> point)
   {
     assert(sameExtents(mDim, point.descriptor()));
     index pos = mData.rows();
