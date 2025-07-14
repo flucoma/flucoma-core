@@ -105,7 +105,21 @@ public:
   {
     static_assert(std::is_convertible<U, T>::value,
                   "Cannot convert between container value types");
+    
+    std::cout << "========== CONVERTER ===============\n";
+    for(auto& p: x) std::cout << p << ',';             
+    std::cout << "\n==================================\n";   
+    std::cout << "========== X ================\n";
+    std::cout << x;             
+    std::cout << "\n==================================\n";   
     std::copy(x.begin(), x.end(), mContainer.begin());
+    std::cout << "========== MI CONTAINTER ================\n";
+    for(auto& p: mContainer) std::cout << p << ',';             
+    std::cout << "\n==================================\n";   
+    std::cout << "========== MEEE ================\n";
+    std::cout << *this;              
+    std::cout << "\n==================================\n";   
+
   }
 
   template <typename U, size_t M>
