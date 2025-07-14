@@ -131,6 +131,10 @@ std::array<index, N> deriveExtents(const List& list)
 template <class InputIter, class Vec> // terminate
 void addList(InputIter first, InputIter last, Vec& vec)
 {
+  InputIter dum = first; 
+  for(;dum!=last; ++dum) std::cout << *dum << ','; 
+  std::cout << '\n';
+
   vec.insert(vec.end(), first, last);
 }
 
