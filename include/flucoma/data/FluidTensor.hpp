@@ -113,10 +113,12 @@ public:
     std::cout << x;             
     std::cout << "\n==================================\n";   
     // std::copy(x.begin(), x.end(), mContainer.begin());
-    std::transform(x.begin(), x.end(),mContainer.begin(),[](U in)->T
-    {
-      return static_cast<T>(in); 
-    }); 
+    // std::transform(x.begin(), x.end(),mContainer.begin(),[](U in)->T
+    // {
+    //   return static_cast<T>(in); 
+    // }); 
+    *this = x; 
+
     std::cout << "========== MI CONTAINTER ================\n";
     for(auto& p: mContainer) std::cout << p << ',';             
     std::cout << "\n==================================\n";   
