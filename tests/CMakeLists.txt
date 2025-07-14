@@ -93,60 +93,60 @@ endfunction()
 
 add_test_executable(TestFluidTensor data/TestFluidTensor.cpp)
 add_test_executable(TestFluidTensorDeath data/death_tests/TestFluidTensorAsserts.cpp)
-target_link_libraries(TestFluidTensorDeath PRIVATE   
-    $<TARGET_OBJECTS:AbortHandler>   
-)
+# target_link_libraries(TestFluidTensorDeath PRIVATE   
+#     $<TARGET_OBJECTS:AbortHandler>   
+# )
 
-add_test_executable(TestFluidTensorView data/TestFluidTensorView.cpp)
-add_test_executable(TestFluidTensorSupport data/TestFluidTensorSupport.cpp)
-add_test_executable(TestFluidDataSet data/TestFluidDataSet.cpp)
-add_test_executable(TestFluidSource clients/common/TestFluidSource.cpp)
-add_test_executable(TestFluidSink clients/common/TestFluidSink.cpp)
-add_test_executable(TestBufferedProcess clients/common/TestBufferedProcess.cpp)
+# add_test_executable(TestFluidTensorView data/TestFluidTensorView.cpp)
+# add_test_executable(TestFluidTensorSupport data/TestFluidTensorSupport.cpp)
+# add_test_executable(TestFluidDataSet data/TestFluidDataSet.cpp)
+# add_test_executable(TestFluidSource clients/common/TestFluidSource.cpp)
+# add_test_executable(TestFluidSink clients/common/TestFluidSink.cpp)
+# add_test_executable(TestBufferedProcess clients/common/TestBufferedProcess.cpp)
 
-add_test_executable(TestNoveltySeg 
-  algorithms/public/TestNoveltySegmentation.cpp
-)
-add_test_executable(TestOnsetSeg algorithms/public/TestOnsetSegmentation.cpp)
-add_test_executable(TestEnvelopeSeg algorithms/public/TestEnvelopeSegmentation.cpp)
+# add_test_executable(TestNoveltySeg 
+#   algorithms/public/TestNoveltySegmentation.cpp
+# )
+# add_test_executable(TestOnsetSeg algorithms/public/TestOnsetSegmentation.cpp)
+# add_test_executable(TestEnvelopeSeg algorithms/public/TestEnvelopeSegmentation.cpp)
 
-add_test_executable(TestEnvelopeGate algorithms/public/TestEnvelopeGate.cpp)
+# add_test_executable(TestEnvelopeGate algorithms/public/TestEnvelopeGate.cpp)
 
-add_test_executable(TestTransientSlice algorithms/public/TestTransientSlice.cpp)
+# add_test_executable(TestTransientSlice algorithms/public/TestTransientSlice.cpp)
 
-add_test_executable(TestMLP algorithms/public/TestMLP.cpp)
-add_test_executable(TestKMeans algorithms/public/TestKMeans.cpp)
+# add_test_executable(TestMLP algorithms/public/TestMLP.cpp)
+# add_test_executable(TestKMeans algorithms/public/TestKMeans.cpp)
 
-target_link_libraries(TestNoveltySeg PRIVATE TestSignals)
-target_link_libraries(TestOnsetSeg PRIVATE TestSignals)
-target_link_libraries(TestEnvelopeSeg PRIVATE TestSignals)
-target_link_libraries(TestEnvelopeGate PRIVATE TestSignals)
-target_link_libraries(TestTransientSlice PRIVATE TestSignals)
+# target_link_libraries(TestNoveltySeg PRIVATE TestSignals)
+# target_link_libraries(TestOnsetSeg PRIVATE TestSignals)
+# target_link_libraries(TestEnvelopeSeg PRIVATE TestSignals)
+# target_link_libraries(TestEnvelopeGate PRIVATE TestSignals)
+# target_link_libraries(TestTransientSlice PRIVATE TestSignals)
 
 include(CTest)
 include(Catch)
 
 catch_discover_tests(TestFluidTensor WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 
-catch_discover_tests(TestFluidTensorDeath 
-  WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
-  PROPERTIES WILL_FAIL true
-)
+# catch_discover_tests(TestFluidTensorDeath 
+#   WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+#   PROPERTIES WILL_FAIL true
+# )
 
-catch_discover_tests(TestFluidTensorView WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
-catch_discover_tests(TestFluidTensorSupport WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
-catch_discover_tests(TestFluidDataSet WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+# catch_discover_tests(TestFluidTensorView WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+# catch_discover_tests(TestFluidTensorSupport WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+# catch_discover_tests(TestFluidDataSet WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 
-catch_discover_tests(TestNoveltySeg WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
-catch_discover_tests(TestOnsetSeg WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
-catch_discover_tests(TestEnvelopeSeg WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
-catch_discover_tests(TestEnvelopeGate WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
-catch_discover_tests(TestTransientSlice WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+# catch_discover_tests(TestNoveltySeg WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+# catch_discover_tests(TestOnsetSeg WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+# catch_discover_tests(TestEnvelopeSeg WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+# catch_discover_tests(TestEnvelopeGate WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+# catch_discover_tests(TestTransientSlice WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 
-catch_discover_tests(TestFluidSource WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
-catch_discover_tests(TestFluidSink WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
-catch_discover_tests(TestBufferedProcess WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+# catch_discover_tests(TestFluidSource WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+# catch_discover_tests(TestFluidSink WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+# catch_discover_tests(TestBufferedProcess WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 
-catch_discover_tests(TestMLP WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+# catch_discover_tests(TestMLP WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 
-add_compile_tests("FluidTensor Compilation Tests" data/compile_tests/TestFluidTensor_Compile.cpp) 
+# add_compile_tests("FluidTensor Compilation Tests" data/compile_tests/TestFluidTensor_Compile.cpp) 

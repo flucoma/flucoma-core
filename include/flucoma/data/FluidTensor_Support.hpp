@@ -128,8 +128,8 @@ std::array<index, N> deriveExtents(const List& list)
 /// addList and insertFlat populate our container with the contents of
 /// a nested initializer list structure.
 
-template <class T, class Vec> // terminate
-void addList(const T* first, const T* last, Vec& vec)
+template <class InputIter, class Vec> // terminate
+void addList(InputIter first, InputIter last, Vec& vec)
 {
   vec.insert(vec.end(), first, last);
 }
