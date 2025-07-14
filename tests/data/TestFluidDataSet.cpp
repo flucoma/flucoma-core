@@ -4,7 +4,7 @@
 #include <flucoma/data/FluidTensor.hpp> 
 #include <flucoma/data/FluidMeta.hpp> 
 #include <flucoma/data/FluidDataSet.hpp> 
-#include <CatchUtils.hpp> 
+#include <catch2/catch_all.hpp> 
 
 #include <array>
 #include <vector>
@@ -16,7 +16,6 @@ using DataSet = fluid::FluidDataSet<std::string, int, 1>;
 using fluid::FluidTensor; 
 using fluid::FluidTensorView; 
 using fluid::Slice; 
-using fluid::EqualsRange; 
 
 //use a subdir for approval test results 
 auto directoryDisposer =
@@ -58,7 +57,7 @@ TEST_CASE("FluidDataSet can be constructed from data","[FluidDataSet]")
         CHECK(d.dims() == 5); 
         CHECK(d.getIds().size() == 2); 
         CHECK(d.getData().size() == 10);
-        REQUIRE_THAT(d.getData(),EqualsRange(points)); 
+        REQUIRE_THAT(d.getData(),Catch::Matchers::RangeEquals(points)); 
     } 
 
 }
@@ -74,16 +73,17 @@ TEST_CASE("FluidDataSet can have points added","[FluidDataSet]")
     CHECK(d.size() == 1);
     CHECK(d.initialized() == true); 
     CHECK(d.dims() == 5); 
-    REQUIRE_THAT(d.getData(),EqualsRange(points.row(0))); 
-    REQUIRE_THAT(d.getIds(),EqualsRange(labels(Slice(0,1))));   
+    REQUIRE_THAT(d.getData(),Catch::Matchers::RangeEquals(points.row(0))); 
+    REQUIRE_THAT(d.getIds(),Catch::Matchers::RangeEquals(labels(Slice(0,1))));   
 
     CHECK(d.add(labels.row(1),points.row(1)) == true); 
 
     CHECK(d.size() == 2);
     CHECK(d.initialized() == true); 
     CHECK(d.dims() == 5); 
-    REQUIRE_THAT(d.getData(),EqualsRange(points)); 
-    REQUIRE_THAT(d.getIds(),EqualsRange(labels));   
+    REQUIRE_THAT(d.getData(),Catch::Matchers::RangeEquals(points)); 
+
+    REQUIRE_THAT(d.getIds(),Catch::Matchers::RangeEquals(labels));   
 }
 
 TEST_CASE("FluidDataSet can have points retreived","[FluidDataSet]")
@@ -97,14 +97,14 @@ TEST_CASE("FluidDataSet can have points retreived","[FluidDataSet]")
     FluidTensor<int, 1> output{-1,-1,-1,-1,-1}; 
 
     CHECK(d.get(labels(0),output) == true); 
-    REQUIRE_THAT(output,EqualsRange(points.row(0))); 
+    REQUIRE_THAT(output,Catch::Matchers::RangeEquals(points.row(0))); 
 
     CHECK(d.get(labels(1),output) == true); 
-    REQUIRE_THAT(output,EqualsRange(points.row(1))); 
+    REQUIRE_THAT(output,Catch::Matchers::RangeEquals(points.row(1))); 
 
     CHECK(d.get("two",output) == false); 
     //output should be unchanged
-    REQUIRE_THAT(output,EqualsRange(points.row(1))); 
+    REQUIRE_THAT(output,Catch::Matchers::RangeEquals(points.row(1))); 
 }
 
 TEST_CASE("FluidDataSet can have points updated","[FluidDataSet]")
@@ -121,7 +121,7 @@ TEST_CASE("FluidDataSet can have points updated","[FluidDataSet]")
     FluidTensor<int, 1> output{-1,-1,-1,-1,-1}; 
     d.get(labels(0),output); 
     
-    REQUIRE_THAT(output,EqualsRange(points.row(1))); 
+    REQUIRE_THAT(output,Catch::Matchers::RangeEquals(points.row(1))); 
 }
 
 TEST_CASE("FluidDataSet can have points removed","[FluidDataSet]")
