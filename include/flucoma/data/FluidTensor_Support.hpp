@@ -131,11 +131,17 @@ std::array<index, N> deriveExtents(const List& list)
 template <class InputIter, class Vec> // terminate
 void addList(InputIter first, InputIter last, Vec& vec)
 {
+  
   InputIter dum = first; 
+  std::cout << "================Pre Insert===============\n";
   for(;dum!=last; ++dum) std::cout << *dum << ','; 
   std::cout << '\n';
 
   vec.insert(vec.end(), first, last);
+
+  std::cout << "================Post Insert===============\n";
+  for(const auto& x: vec) std::cout << x << ','; 
+  std::cout << "\n==========================================\n";
 }
 
 template <class T, class Vec> // recurse
