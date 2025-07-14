@@ -164,6 +164,10 @@ public:
     mContainer.reserve(asUnsigned(this->mDesc.size));
     impl::insertFlat(init, mContainer);
     assert(mContainer.size() == asUnsigned(this->mDesc.size));
+    std::cout << "checking assert condition\n";
+    std::cout << (mContainer.size() == asUnsigned(this->mDesc.size)) << '\n';
+    std::cout << "Look inside...\n" << *this; 
+
   }
 
   template <typename U>
