@@ -11,6 +11,8 @@ TEST_CASE("KMeans against hand worked example")
   FluidDataSet<std::string, double, 1> ds(ids, points);
 
   fluid::algorithm::KMeans algo;
+  FluidTensor<double, 2> initialMeans{{0,0},{1,1}};   
+  algo.setMeans(initialMeans); 
   algo.train(ds, 2, 2);
 
   FluidTensor<double, 2> means(2, 2);
