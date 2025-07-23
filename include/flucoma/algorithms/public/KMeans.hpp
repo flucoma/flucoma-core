@@ -162,8 +162,8 @@ public:
     using namespace _impl;
     assert(!mTrained || (dataset.pointSize() == mDims && mK == k));
     auto dataPoints = asEigen<Array>(dataset.getData());
-    if (mTrained) { mAssignments = assignClusters(dataPoints); }
-    else
+    
+    if(!mTrained)
     {
       mK = k;
       mDims = dataset.pointSize();
@@ -188,14 +188,14 @@ public:
     }
 
     while (maxIter-- > 0)
-    {
-      computeMeans(dataPoints);
+    {      
       auto assignments = assignClusters(dataPoints);
       if (!changed(assignments)) { break; }
       else
       {
         mAssignments = assignments;
       }
+      computeMeans(dataPoints);
     }
     mTrained = true;
   }
