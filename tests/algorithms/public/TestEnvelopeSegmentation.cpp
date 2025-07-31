@@ -1,10 +1,10 @@
 #define CATCH_CONFIG_MAIN
 
 #include "SlicerTestHarness.hpp"
-#include <algorithms/public/EnvelopeSegmentation.hpp>
-#include <catch2/catch.hpp>
-#include <data/FluidIndex.hpp>
-#include <data/FluidTensor.hpp>
+#include <flucoma/algorithms/public/EnvelopeSegmentation.hpp>
+#include <catch2/catch_all.hpp>
+#include <flucoma/data/FluidIndex.hpp>
+#include <flucoma/data/FluidTensor.hpp>
 #include <Signals.hpp>
 #include <TestUtils.hpp>
 #include <algorithm>
@@ -85,7 +85,7 @@ TEST_CASE("EnvSeg can be exactly precise with impulses", "[slicers][AmpSlice]")
                  Data(data),         Expected(exp),      Margin(1)};
 
   auto result = runTest(params.data(), params);
-  REQUIRE_THAT(result, Catch::Equals(exp));
+  REQUIRE_THAT(result, Catch::Matchers::Equals(exp));
 }
 
 TEST_CASE("EnvSeg is predictable with sharp sine bursts", "[slicers][AmpSlice]")
@@ -174,7 +174,7 @@ TEST_CASE("EnvSeg is predictable on real meaterial", "[slicers][AmpSlice]")
                  Data(data),         Expected(exp),        Margin(1)};
 
   auto result = runTest(params.data(), params);
-  REQUIRE_THAT(result, Catch::Equals(exp));
+  REQUIRE_THAT(result, Catch::Matchers::Equals(exp));
 }
 
 

@@ -1,24 +1,21 @@
-#define APPROVALS_CATCH
-#define CATCH_CONFIG_MAIN 
-// #include <catch2/catch.hpp> 
-#include <ApprovalTests.hpp>
 
-// #include <catch2/catch_test_macros.hpp>
-#include <data/FluidTensor.hpp> 
-#include <data/FluidMeta.hpp> 
-#include <data/FluidDataSet.hpp> 
-#include <CatchUtils.hpp> 
+#define APPROVALS_CATCH2_V3 
+#include <ApprovalTests.hpp>
+#include <flucoma/data/FluidTensor.hpp> 
+#include <flucoma/data/FluidMeta.hpp> 
+#include <flucoma/data/FluidDataSet.hpp> 
+#include <catch2/catch_all.hpp> 
 
 #include <array>
 #include <vector>
 #include <algorithm> 
 #include <string> 
+#include <random>
 
 using DataSet = fluid::FluidDataSet<std::string, int, 1>; 
 using fluid::FluidTensor; 
 using fluid::FluidTensorView; 
 using fluid::Slice; 
-using fluid::EqualsRange; 
 
 //use a subdir for approval test results 
 auto directoryDisposer =
@@ -60,7 +57,7 @@ TEST_CASE("FluidDataSet can be constructed from data","[FluidDataSet]")
         CHECK(d.dims() == 5); 
         CHECK(d.getIds().size() == 2); 
         CHECK(d.getData().size() == 10);
-        REQUIRE_THAT(d.getData(),EqualsRange(points)); 
+        REQUIRE_THAT(d.getData(),Catch::Matchers::RangeEquals(points)); 
     } 
 
 }
@@ -76,16 +73,17 @@ TEST_CASE("FluidDataSet can have points added","[FluidDataSet]")
     CHECK(d.size() == 1);
     CHECK(d.initialized() == true); 
     CHECK(d.dims() == 5); 
-    REQUIRE_THAT(d.getData(),EqualsRange(points.row(0))); 
-    REQUIRE_THAT(d.getIds(),EqualsRange(labels(Slice(0,1))));   
+    REQUIRE_THAT(d.getData(),Catch::Matchers::RangeEquals(points.row(0))); 
+    REQUIRE_THAT(d.getIds(),Catch::Matchers::RangeEquals(labels(Slice(0,1))));   
 
     CHECK(d.add(labels.row(1),points.row(1)) == true); 
 
     CHECK(d.size() == 2);
     CHECK(d.initialized() == true); 
     CHECK(d.dims() == 5); 
-    REQUIRE_THAT(d.getData(),EqualsRange(points)); 
-    REQUIRE_THAT(d.getIds(),EqualsRange(labels));   
+    REQUIRE_THAT(d.getData(),Catch::Matchers::RangeEquals(points)); 
+
+    REQUIRE_THAT(d.getIds(),Catch::Matchers::RangeEquals(labels));   
 }
 
 TEST_CASE("FluidDataSet can have points retreived","[FluidDataSet]")
@@ -99,14 +97,14 @@ TEST_CASE("FluidDataSet can have points retreived","[FluidDataSet]")
     FluidTensor<int, 1> output{-1,-1,-1,-1,-1}; 
 
     CHECK(d.get(labels(0),output) == true); 
-    REQUIRE_THAT(output,EqualsRange(points.row(0))); 
+    REQUIRE_THAT(output,Catch::Matchers::RangeEquals(points.row(0))); 
 
     CHECK(d.get(labels(1),output) == true); 
-    REQUIRE_THAT(output,EqualsRange(points.row(1))); 
+    REQUIRE_THAT(output,Catch::Matchers::RangeEquals(points.row(1))); 
 
     CHECK(d.get("two",output) == false); 
     //output should be unchanged
-    REQUIRE_THAT(output,EqualsRange(points.row(1))); 
+    REQUIRE_THAT(output,Catch::Matchers::RangeEquals(points.row(1))); 
 }
 
 TEST_CASE("FluidDataSet can have points updated","[FluidDataSet]")
@@ -123,7 +121,7 @@ TEST_CASE("FluidDataSet can have points updated","[FluidDataSet]")
     FluidTensor<int, 1> output{-1,-1,-1,-1,-1}; 
     d.get(labels(0),output); 
     
-    REQUIRE_THAT(output,EqualsRange(points.row(1))); 
+    REQUIRE_THAT(output,Catch::Matchers::RangeEquals(points.row(1))); 
 }
 
 TEST_CASE("FluidDataSet can have points removed","[FluidDataSet]")
@@ -182,5 +180,49 @@ TEST_CASE("FluidDataSet prints consistent summaries for approval","[FluidDataSet
 
         Approvals::verify(d.print()); 
     }
+}
 
+TEST_CASE("checkIDs works as expected")
+{
+  using fluid::index;
+  FluidTensor<index, 1> d(100);
+  std::iota(d.begin(), d.end(), 0);
+  using DS = fluid::FluidDataSet<index, index, 1>;
+
+  DS src(d, FluidTensorView<index, 2>(d).transpose());
+
+  SECTION("No False Postives")
+  {
+    DS   tgt(src);
+    auto missing = src.checkIDs(tgt);
+    CHECK(missing.size() == 0);
+  }
+
+  SECTION("Order insensitive")
+  {
+    std::vector<index> idx(100);
+    std::iota(idx.begin(), idx.end(), 0);
+    std::shuffle(idx.begin(), idx.end(), std::mt19937(std::random_device()()));
+    FluidTensor<index, 1> shuffled(100);
+    // shuffled <<= idx;
+    std::copy(idx.begin(), idx.end(), shuffled.begin());
+    DS   tgt(shuffled, FluidTensorView<index, 2>(shuffled).transpose());
+    auto missing = src.checkIDs(tgt);
+    CHECK(missing.size() == 0);
+    SECTION("Finds random deletions")
+    {
+      auto chop = shuffled(Slice(0, 50));
+      auto remain = shuffled(Slice(50, 50));
+
+      DS tgt_snip(remain, FluidTensorView<index, 2>(remain).transpose());
+
+      auto missing = src.checkIDs(tgt_snip);
+
+      std::vector<index> expected(50);
+      std::copy(chop.begin(), chop.end(), expected.begin());
+      std::sort(expected.begin(), expected.end());
+      std::sort(missing.begin(), missing.end());
+      CHECK_THAT(missing, Catch::Matchers::Equals(expected));
+    }
+  }
 }
