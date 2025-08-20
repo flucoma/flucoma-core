@@ -37,8 +37,7 @@ constexpr auto LoudnessParams = defineParameters(
     ChoicesParam("select","Selection of Outputs","loudness","peak"),
     EnumParam("kWeighting", "Apply K-Weighting", 1, "Off", "On"),
     EnumParam("truePeak", "Compute True Peak", 1, "Off", "On"),
-    LongParam("windowSize", "Window Size", 1024, Min(1),
-              UpperLimit<kMaxWindowSize>()),
+    LongParam("windowSize", "Window Size", 1024, UpperLimit<kMaxWindowSize>()),
     LongParam("hopSize", "Hop Size", 512, Min(1)),
     LongParam<Fixed<true>>("maxWindowSize", "Max Window Size", 16384, Min(4),
                            PowerOfTwo{}, Max(32768)) // 17640 next power of two
