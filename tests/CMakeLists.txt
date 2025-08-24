@@ -115,6 +115,7 @@ add_test_executable(TestEnvelopeGate algorithms/public/TestEnvelopeGate.cpp)
 add_test_executable(TestTransientSlice algorithms/public/TestTransientSlice.cpp)
 
 add_test_executable(TestMLP algorithms/public/TestMLP.cpp)
+add_test_executable(TestKMeans algorithms/public/TestKMeans.cpp)
 
 target_link_libraries(TestNoveltySeg PRIVATE TestSignals)
 target_link_libraries(TestOnsetSeg PRIVATE TestSignals)

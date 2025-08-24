@@ -105,7 +105,11 @@ public:
   {
     static_assert(std::is_convertible<U, T>::value,
                   "Cannot convert between container value types");
-    std::copy(x.begin(), x.end(), mContainer.begin());
+    // summer 2025: std::copy failing CI on windows (server 2022, MSVC 19.44)
+    // seems like it's not recognising conversion and trying a straight memmove or something
+    // std::copy(x.begin(), x.end(), mContainer.begin());
+    // works ok if forced through assignment operator instead !?
+    *this = x; 
   }
 
   template <typename U, size_t M>
