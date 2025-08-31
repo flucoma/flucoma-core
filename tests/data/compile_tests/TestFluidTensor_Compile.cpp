@@ -1,4 +1,4 @@
-#include <data/FluidTensor.hpp> 
+#include <flucoma/data/FluidTensor.hpp> 
 
 //None of these should compile
 int main() 
