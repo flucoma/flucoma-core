@@ -11,8 +11,12 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "DataSetClient.hpp"
+#include "LabelSetClient.hpp"
 #include "NRTClient.hpp"
+#include "../common/SharedClientUtils.hpp"
 #include "../../algorithms/public/UMAP.hpp"
+#include <map>
+#include <optional>
 
 namespace fluid {
 namespace client {
@@ -24,7 +28,11 @@ constexpr auto UMAPParams = defineParameters(
     LongParam("numNeighbours", "Number of Nearest Neighbours", 15, Min(1)),
     FloatParam("minDist", "Minimum Distance", 0.1, Min(0)),
     LongParam("iterations", "Number of Iterations", 200, Min(1)),
-    FloatParam("learnRate", "Learning Rate", 0.1, Min(0.0), Max(1.0)));
+    FloatParam("learnRate", "Learning Rate", 0.1, Min(0.0), Max(1.0)),
+    FloatParam("sameLabelBoost", "Same Label Boost Amount", 1.0, Min(0.0)),
+    FloatParam("diffLabelPenalty", "Different Label Penalty Amount", 1.0, Min(0.0), Max(1.0)),
+    FloatParam("unlabeledPenalty", "Unlabeled Penalty Amount", 1.0, Min(0.0), Max(1.0))
+  );
 
 class UMAPClient : public FluidBaseClient,
                    OfflineIn,
@@ -38,7 +46,10 @@ class UMAPClient : public FluidBaseClient,
     kNumNeighbors,
     kMinDistance,
     kNumIter,
-    kLearningRate
+    kLearningRate,
+    kSameLabelBoost,
+    kDiffLabelPenalty,
+    kUnlabeledPenalty,
   };
 
 public:
@@ -77,21 +88,82 @@ public:
     auto destPtr = destClient.get().lock();
     if (!srcPtr || !destPtr) return Error(NoDataSet);
     auto src = srcPtr->getDataSet();
-    auto dest = destPtr->getDataSet();
     if (src.size() == 0) return Error(EmptyDataSet);
     if (get<kNumNeighbors>() >= src.size())
       return Error("Number of Neighbours is greater or equal to the size of the the dataset");
+
     FluidDataSet<string, double, 1> result;
     try
     {
-      result = mAlgorithm.train(src, get<kNumNeighbors>(), get<kNumDimensions>(),
-                                get<kMinDistance>(), get<kNumIter>(),
-                                get<kLearningRate>());
-    }
-    catch (const std::runtime_error& e) //spectra library will throw if eigen decomp fails
+      result = mAlgorithm.train(
+          src, get<kNumNeighbors>(), get<kNumDimensions>(), get<kMinDistance>(),
+          get<kNumIter>(), get<kLearningRate>(),
+          std::nullopt,
+          get<kSameLabelBoost>(), get<kDiffLabelPenalty>(), get<kUnlabeledPenalty>()
+        );
+    } catch (const std::runtime_error& e) //spectra library will throw if eigen decomp fails
     {
       return {Result::Status::kError, e.what()};
     }
+    destPtr->setDataSet(result);
+    return OK();
+  }
+
+  MessageResult<void> semiSupervised(InputDataSetClientRef  sourceClient,
+                                   DataSetClientRef       destClient,
+                                   InputLabelSetClientRef labelsClient)
+  {
+    auto srcPtr = sourceClient.get().lock();
+    auto destPtr = destClient.get().lock();
+    if (!srcPtr || !destPtr) return Error(NoDataSet);
+    auto src = srcPtr->getDataSet();
+    if (src.size() == 0) return Error(EmptyDataSet);
+    if (get<kNumNeighbors>() >= src.size())
+      return Error("Number of Neighbours is greater or equal to the size of "
+                   "the the dataset");
+
+    std::optional<FluidTensor<int, 1>> labels;
+    if (auto labelsPtr = labelsClient.get().lock())
+    {
+      auto                  labelSet = labelsPtr->getLabelSet();
+      auto                  srcIds = src.getIds();
+      std::map<string, int> labelMap;
+      int                   nextClassId = 0;
+      FluidTensor<int, 1>   intLabels(src.size());
+      intLabels.fill(-1);
+
+      for (index i = 0; i < src.size(); ++i)
+      {
+        StringVector stringLabel(1);
+        if (labelSet.get(srcIds(i), stringLabel))
+        {
+          string currentLabel = stringLabel(0);
+          if (labelMap.find(currentLabel) == labelMap.end())
+          {
+            labelMap[currentLabel] = nextClassId++;
+          }
+          intLabels(i) = labelMap[currentLabel];
+        }
+      }
+      labels = intLabels;
+    }
+
+    FluidDataSet<string, double, 1> result;
+    try
+    {
+      result = mAlgorithm.train(
+          src, get<kNumNeighbors>(), get<kNumDimensions>(), get<kMinDistance>(),
+          get<kNumIter>(), get<kLearningRate>(),
+          labels.has_value()
+              ? std::optional<FluidTensorView<int, 1>>(labels.value())
+              : std::nullopt,
+          get<kSameLabelBoost>(), get<kDiffLabelPenalty>(), get<kUnlabeledPenalty>()
+        );
+    } catch (const std::runtime_error& e)
+    {
+      return {Result::Status::kError, e.what()};
+    }
+
     destPtr->setDataSet(result);
     return OK();
   }
@@ -104,11 +176,11 @@ public:
     if (src.size() == 0) return Error(EmptyDataSet);
     if (get<kNumNeighbors>() > src.size())
       return Error("Number of Neighbours is larger than dataset");
-    StringVector                    ids{src.getIds()};
-    FluidDataSet<string, double, 1> result;
-    result = mAlgorithm.train(src, get<kNumNeighbors>(), get<kNumDimensions>(),
-                              get<kMinDistance>(), get<kNumIter>(),
-                              get<kLearningRate>());
+
+    mAlgorithm.train(src, get<kNumNeighbors>(), get<kNumDimensions>(),
+                     get<kMinDistance>(), get<kNumIter>(),
+                     get<kLearningRate>());
+
     return OK();
   }
 
@@ -157,6 +229,7 @@ public:
   {
     return defineMessages(
         makeMessage("fitTransform", &UMAPClient::fitTransform),
+        makeMessage("semisup", &UMAPClient::semiSupervised),
         makeMessage("fit", &UMAPClient::fit),
         makeMessage("transform", &UMAPClient::transform),
         makeMessage("transformPoint", &UMAPClient::transformPoint),

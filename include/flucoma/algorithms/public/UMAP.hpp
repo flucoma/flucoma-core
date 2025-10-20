@@ -172,7 +172,12 @@ public:
   bool initialized() const { return mInitialized; }
 
   DataSet train(DataSet& in, index k = 15, index dims = 2, double minDist = 0.1,
-                index maxIter = 200, double learningRate = 1.0)
+                index maxIter = 200, double learningRate = 1.0,
+                std::optional<FluidTensorView<int, 1>> labels = std::nullopt,
+                double sameLabelBoost = 1.5, 
+                double diffLabelPenalty = 0.1,
+                double unlabeledPenalty = 1.0
+              )
   {
     using namespace Eigen;
     using namespace _impl;
@@ -191,6 +196,12 @@ public:
     computeHighDimProb(dists, sigma, knnGraph);
     SparseMatrixXd knnGraphT = knnGraph.transpose();
     knnGraph = (knnGraph + knnGraphT) - knnGraph.cwiseProduct(knnGraphT);
+
+    if (labels.has_value())
+    {
+      applySemiSupervisedWeights(knnGraph, labels.value(), sameLabelBoost,
+                                 diffLabelPenalty, unlabeledPenalty);
+    }
     mAB = findAB(minDist);
     mEmbedding = spectralEmbedding.train(knnGraph, dims);
     mEmbedding = normalizeEmbedding(mEmbedding);
@@ -270,6 +281,35 @@ public:
 
 
 private:
+  void applySemiSupervisedWeights(SparseMatrixXd&         graph,
+                                  FluidTensorView<int, 1> labels,
+                                  double                  sameLabelBoost = 1.5,
+                                  double diffLabelPenalty = 0.1,
+                                  double unlabeledPenalty = 1.0) const
+  {
+    const int unlabeledMarker = -1;
+
+    for (index k = 0; k < graph.outerSize(); ++k)
+    {
+      for (SparseMatrixXd::InnerIterator it(graph, k); it; ++it)
+      {
+        index row = it.row();
+        index col = it.col();
+
+        int labelRow = labels(row);
+        int labelCol = labels(col);
+
+        if (labelRow == unlabeledMarker || labelCol == unlabeledMarker)
+        {
+          it.valueRef() *= unlabeledPenalty;
+        }
+
+        if (labelRow == labelCol) { it.valueRef() *= sameLabelBoost; }
+        else { it.valueRef() *= diffLabelPenalty; }
+      }
+    }
+  }
+
   template <typename F, typename Derived>
   void traverseGraph(Eigen::SparseCompressedBase<Derived>& graph, F func) const
   {
