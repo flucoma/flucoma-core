@@ -67,7 +67,7 @@ constexpr auto BufNMFParams = defineParameters(
               "Fixed"),
     LongParam("components", "Number of Components", 1, Min(1)),
     LongParam("iterations", "Number of Iterations", 100, Min(1)),
-    LongParam("seed", "Random Seem", -1),
+    LongParam("seed", "Random Seed", -1),
     FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class NMFClient : public FluidBaseClient, public OfflineIn, public OfflineOut
