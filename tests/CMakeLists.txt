@@ -116,6 +116,7 @@ add_test_executable(TestTransientSlice algorithms/public/TestTransientSlice.cpp)
 
 add_test_executable(TestMLP algorithms/public/TestMLP.cpp)
 add_test_executable(TestKMeans algorithms/public/TestKMeans.cpp)
+add_test_executable(TestNMFCross algorithms/public/TestNMFCross.cpp)
 
 target_link_libraries(TestNoveltySeg PRIVATE TestSignals)
 target_link_libraries(TestOnsetSeg PRIVATE TestSignals)
@@ -153,5 +154,6 @@ catch_discover_tests(TestBufferedProcess WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
 catch_discover_tests(TestMLP WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 catch_discover_tests(TestKMeans WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 catch_discover_tests(TestEigenRandom WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+catch_discover_tests(TestNMFCross WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 add_compile_tests("FluidTensor Compilation Tests" data/compile_tests/TestFluidTensor_Compile.cpp) 
