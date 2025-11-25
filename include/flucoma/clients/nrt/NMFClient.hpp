@@ -47,6 +47,7 @@ enum NMFParamIndex {
   kEnvelopesUpdate,
   kRank,
   kIterations,
+  kRandomSeed, 
   kFFT
 };
 
@@ -66,6 +67,7 @@ constexpr auto BufNMFParams = defineParameters(
               "Fixed"),
     LongParam("components", "Number of Components", 1, Min(1)),
     LongParam("iterations", "Number of Iterations", 100, Min(1)),
+    LongParam("seed", "Random Seem", -1),
     FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class NMFClient : public FluidBaseClient, public OfflineIn, public OfflineOut
@@ -264,8 +266,9 @@ public:
                             : true;
           });
       nmf.process(magnitude, outputFilters, outputEnvelopes, outputMags,
-                  get<kRank>(), get<kIterations>() * needsAnalysis, !fixFilters, !fixEnvelopes,
-                  seededFilters, seededEnvelopes);
+                  get<kRank>(), get<kIterations>() * needsAnalysis, !fixFilters,
+                  !fixEnvelopes, get<kRandomSeed>(), seededFilters,
+                  seededEnvelopes);
 
       if (c.task() && c.task()->cancelled())
         return {Result::Status::kCancelled, ""};
