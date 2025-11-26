@@ -14,8 +14,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/EigenRandom.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidIndex.hpp"
-#include "../../data/TensorTypes.hpp"
 #include "../../data/FluidMemory.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <vector>
 
@@ -50,7 +50,7 @@ public:
     using namespace _impl;
     index    rank = W0.extent(0);
     FluidEigenMap<Matrix> W = asEigen<Matrix>(W0);
-    
+
     ScopedEigenMap<VectorXd> h(rank, alloc);
     h = EigenRandom<VectorXd>(rank, RandomSeed{randomSeed}, Range{0.0, 1.0});
     ScopedEigenMap<VectorXd> v0(x.size(), alloc);
