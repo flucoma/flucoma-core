@@ -127,7 +127,7 @@ public:
   using ArrayXi = Eigen::ArrayXi;
   using VectorXd = Eigen::VectorXd;
   using SparseMatrixXd = Eigen::SparseMatrix<double>;
-  using DataSet = FluidDataSet<std::string, double, 1>;
+  using DataSet = FluidDataSet<std::string, double, 1>; //fix me, this shouldn't care about id type
   template <typename T>
   using Ref = Eigen::Ref<T>;
 
@@ -194,7 +194,7 @@ public:
     knnGraph = (knnGraph + knnGraphT) - knnGraph.cwiseProduct(knnGraphT);
     mAB = findAB(minDist);
     mEmbedding = spectralEmbedding.train(knnGraph, dims);
-    mEmbedding = normalizeEmbedding(mEmbedding);
+    mEmbedding = normalizeEmbedding(mEmbedding, rng);
     knnGraph.makeCompressed();
     ArrayXi rowIndices(knnGraph.nonZeros());
     ArrayXi colIndices(knnGraph.nonZeros());
@@ -373,7 +373,7 @@ private:
       for (size_t j = 0; j < asUnsigned(k); j++)
       {
         size_t pos = discardFirst ? j + 1 : j;
-        index  neighborIndex = stoi(*nearestIds[pos]);
+        index  neighborIndex = stoi(*nearestIds[pos]);//fixme: dep on string 
         dists(i, asSigned(j)) = distances[pos];
         graph.insert(i, neighborIndex) = distances[pos];
       }
