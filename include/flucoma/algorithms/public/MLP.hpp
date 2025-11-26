@@ -13,6 +13,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/NNFuncs.hpp"
 #include "../util/NNLayer.hpp"
+#include "../util/EigenRandom.hpp"
 #include "../../data/FluidDataSet.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/FluidTensor.hpp"
@@ -32,7 +33,7 @@ class MLP
 public:
 
   void init(index inputSize, index outputSize,
-            FluidTensor<index, 1> hiddenSizes, index hiddenAct, index outputAct)
+            FluidTensor<index, 1> hiddenSizes, index hiddenAct, index outputAct, index seed = -1)
   {
     mLayers.clear();
     std::vector<index> sizes = {inputSize};
@@ -50,7 +51,7 @@ public:
       mLayers.push_back(NNLayer(sizes[asUnsigned(i)], sizes[asUnsigned(i + 1)],
                                 activations[asUnsigned(i)]));
     }
-    for (auto&& l : mLayers) l.init();
+    for (auto&& l : mLayers) l.init(seed);
     mInitialized = true;
     mTrained = false;
   }
@@ -75,9 +76,9 @@ public:
     mLayers[asUnsigned(layer)].init(weights, biases, layerType);
   }
 
-  void clear()
+  void clear(index seed)
   {
-    for (auto&& l : mLayers) l.init();
+    for (auto&& l : mLayers) l.init(seed);
     mInitialized = false;
     mTrained = false;
   }

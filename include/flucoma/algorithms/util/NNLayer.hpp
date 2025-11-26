@@ -11,6 +11,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "NNFuncs.hpp"
+#include "../util/EigenRandom.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/FluidMemory.hpp"
 #include "../../data/TensorTypes.hpp"
@@ -46,10 +47,10 @@ public:
     initGrads();
   }
 
-  void init()
+  void init(index seed = -1)
   {
     double dev = std::sqrt(6.0 / (mWeights.rows() + mWeights.cols()));
-    mWeights = dev * MatrixXd::Random(mWeights.rows(), mWeights.cols()).array();
+    mWeights = EigenRandom<MatrixXd>(mWeights.rows(), mWeights.cols(), RandomSeed{seed},Range{-dev, dev}).array();
     mBiases = VectorXd::Zero(mWeights.cols());
     initGrads();
   }
