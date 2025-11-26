@@ -104,7 +104,7 @@ public:
     bool isNan = !((finalPred == finalPred)).all();
     if (isNan)
     {
-      model.clear(-1);//this is wrong OWEN?
+      model.clear(-1); // this is wrong OWEN?
       return -1;
     }
     error = model.loss(finalPred, output);

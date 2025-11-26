@@ -10,15 +10,15 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
+#include "../util/EigenRandom.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/NNFuncs.hpp"
 #include "../util/NNLayer.hpp"
-#include "../util/EigenRandom.hpp"
 #include "../../data/FluidDataSet.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/FluidMemory.hpp"
 #include "../../data/FluidTensor.hpp"
 #include "../../data/TensorTypes.hpp"
-#include "../../data/FluidMemory.hpp"
 #include <Eigen/Core>
 #include <random>
 
@@ -31,9 +31,9 @@ class MLP
   using ArrayXXd = Eigen::ArrayXXd;
 
 public:
-
   void init(index inputSize, index outputSize,
-            FluidTensor<index, 1> hiddenSizes, index hiddenAct, index outputAct, index seed = -1)
+            FluidTensor<index, 1> hiddenSizes, index hiddenAct, index outputAct,
+            index seed = -1)
   {
     mLayers.clear();
     std::vector<index> sizes = {inputSize};

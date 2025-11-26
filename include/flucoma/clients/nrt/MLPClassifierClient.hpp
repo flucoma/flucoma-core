@@ -31,7 +31,7 @@ struct MLPClassifierData
   index                      dims() const { return mlp.dims(); }
   void                       clear()
   {
-    mlp.clear(-1);//this is wrong OWEN
+    mlp.clear(-1); // this is wrong OWEN
     encoder.clear();
   }
   bool initialized() const { return mlp.initialized(); }
@@ -67,8 +67,7 @@ constexpr auto MLPClassifierParams = defineParameters(
     FloatParam("momentum", "Momentum", 0.5, Min(0.0), Max(0.99)),
     LongParam("batchSize", "Batch Size", 50, Min(1)),
     FloatParam("validation", "Validation Amount", 0.2, Min(0), Max(0.9)),
-    LongParam("seed", "Random Seed", -1)
-);
+    LongParam("seed", "Random Seed", -1));
 
 
 class MLPClassifierClient : public FluidBaseClient,
@@ -164,9 +163,10 @@ public:
     {
       mAlgorithm.mlp.init(sourceDataSet.pointSize(),
                           mAlgorithm.encoder.numLabels(), get<kHidden>(),
-                          get<kActivation>(), 1, get<kRandomSeed>()); // sigmoid output
+                          get<kActivation>(), 1,
+                          get<kRandomSeed>()); // sigmoid output
     }
-    
+
     if (auto missingIDs = sourceDataSet.checkIDs(targetDataSet);
         missingIDs.size() == 0)
     {
