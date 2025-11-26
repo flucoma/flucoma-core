@@ -13,8 +13,10 @@ TEST_CASE("NMFCross is repeatable with user-supplied random seed")
   using Tensor = fluid::FluidTensor<double, 2>;
   NMFCross algo(3);
 
-  Tensor targetMag{{0.5, 0.4}, {0.1, 1.1}, {0.7, 0.8}, {0.3, 0.0}, {1.0, 0.9}, {0.2, 0.6}};
-  Tensor sourceMag{{0.0, 0.4}, {0.6, 0.7}, {0.8, 0.1}, {1.0, 0.5}, {1.1, 0.2}, {0.9, 0.3}};
+  Tensor targetMag{{0.5, 0.4}, {0.1, 1.1}, {0.7, 0.8},
+                   {0.3, 0.0}, {1.0, 0.9}, {0.2, 0.6}};
+  Tensor sourceMag{{0.0, 0.4}, {0.6, 0.7}, {0.8, 0.1},
+                   {1.0, 0.5}, {1.1, 0.2}, {0.9, 0.3}};
 
   std::vector Hs(3, Tensor(6, 6));
 

@@ -15,8 +15,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "STFT.hpp"
-#include "../util/FluidEigenMappings.hpp"
 #include "../util/EigenRandom.hpp"
+#include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>

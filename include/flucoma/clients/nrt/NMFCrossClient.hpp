@@ -156,7 +156,8 @@ public:
     });
 
     nmf.process(tgtMag, outputEnvelopes, W, get<kTimeSparsity>(),
-                std::min(srcWindows, get<kPolyphony>()), get<kContinuity>(), get<kRandomSeed>());
+                std::min(srcWindows, get<kPolyphony>()), get<kContinuity>(),
+                get<kRandomSeed>());
 
     r = checkTask(c, progressCount, progressTotal);
     if (!r.ok()) return r;
