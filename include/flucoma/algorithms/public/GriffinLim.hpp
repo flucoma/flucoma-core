@@ -13,6 +13,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "STFT.hpp"
 #include "../util/AlgorithmUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
+#include "../util/EigenRandom.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
@@ -25,8 +26,8 @@ class GriffinLim
 {
 
 public:
-  void process(ComplexMatrixView in, index nSamples, index nIter, index winSize,
-               index fftSize, index hopSize)
+  void process(ComplexMatrixView in, index nSamples, index nIter,
+               index winSize, index fftSize, index hopSize, index seed = -1)
   {
     using namespace Eigen;
     using namespace _impl;
@@ -36,9 +37,7 @@ public:
     auto      istft = ISTFT(winSize, fftSize, hopSize);
     ArrayXd   tmp = ArrayXd::Zero(nSamples);
     ArrayXXcd magnitude = asEigen<Array>(in).abs();
-    ArrayXXcd phase =
-        ArrayXXcd::Random(magnitude.rows(), magnitude.cols()) * 2 * 1i * pi;
-    phase = phase.exp();
+    ArrayXXcd phase = EigenRandomPhase<ArrayXXcd>(magnitude.rows(), magnitude.cols(), RandomSeed{seed});
     ArrayXXcd estimate = ArrayXXcd::Zero(magnitude.rows(), magnitude.cols());
     ArrayXXcd prev = ArrayXXcd::Zero(magnitude.rows(), magnitude.cols());
     for (index i = 0; i < nIter; i++)

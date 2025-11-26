@@ -168,7 +168,7 @@ public:
 
     GriffinLim gl;
     gl.process(result, tgtFrames, 50, fftParams.winSize(), fftParams.fftSize(),
-               fftParams.hopSize());
+               fftParams.hopSize(), get<kRandomSeed>());
 
     r = checkTask(c, ++progressCount, progressTotal);
     if (!r.ok()) return r;
