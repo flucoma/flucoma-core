@@ -1,30 +1,30 @@
 #define CATCH_CONFIG_MAIN
 
-#include <flucoma/algorithms/public/GriffinLim.hpp>
-#include <flucoma/data/FluidTensor.hpp>
-#include <flucoma/data/FluidIndex.hpp>
 #include <catch2/catch_all.hpp>
-#include <complex> 
-#include <vector> 
+#include <flucoma/algorithms/public/GriffinLim.hpp>
+#include <flucoma/data/FluidIndex.hpp>
+#include <flucoma/data/FluidTensor.hpp>
+#include <complex>
+#include <vector>
 
-namespace fluid{
+namespace fluid {
 TEST_CASE("GriffinLim is repeatable with user-supplied random seed")
 {
 
   using algorithm::GriffinLim;
   using Tensor = FluidTensor<std::complex<double>, 2>;
 
-  index win = 64; 
-  index fft = 64; 
-  index hop = 64; 
-  index bins = fft / 2 + 1; 
+  index win = 64;
+  index fft = 64;
+  index hop = 64;
+  index bins = fft / 2 + 1;
 
-  //only actually interested in 1 frame of results, but need padding in algo
-  Tensor raw_input(2,bins); 
-  raw_input(0,index(bins/2)) = std::polar(1.0,0.0); 
-  
-  std::vector<Tensor> inouts(3, raw_input); 
-  
+  // only actually interested in 1 frame of results, but need padding in algo
+  Tensor raw_input(2, bins);
+  raw_input(0, index(bins / 2)) = std::polar(1.0, 0.0);
+
+  std::vector<Tensor> inouts(3, raw_input);
+
   GriffinLim algo;
 
   algo.process(inouts[0], win, 1, win, fft, hop, 42);
@@ -42,4 +42,4 @@ TEST_CASE("GriffinLim is repeatable with user-supplied random seed")
     REQUIRE_THAT(inouts[1], !RangeEquals(inouts[2]));
   }
 }
-}
+} // namespace fluid
