@@ -6,11 +6,13 @@
 #include <iostream>
 #include <vector>
 
+namespace fluid {
+
 TEST_CASE("NMF is repeatable with user-supplied random seed")
 {
 
-  using fluid::algorithm::NMF;
-  using Tensor = fluid::FluidTensor<double, 2>;
+  using algorithm::NMF;
+  using Tensor = FluidTensor<double, 2>;
   NMF algo;
 
   Tensor input{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
@@ -42,3 +44,31 @@ TEST_CASE("NMF is repeatable with user-supplied random seed")
     REQUIRE_THAT(Vs[1], !RangeEquals(Vs[2]));
   }
 }
+
+TEST_CASE("NMF processFrame() is repeatable with user-supplied random seed")
+{
+  using fluid::algorithm::NMF;
+  using Tensor = fluid::FluidTensor<double, 2>;
+  using Vector = fluid::FluidTensor<double, 1>;
+  NMF algo;
+
+  Vector input{{1, 0, 1, 0}};
+  Tensor bases{{0, 0, 1, 0}, {1, 0, 0, 0}};
+  Vector v(4);
+
+  std::vector outputs(3, Vector(2));
+
+  index nIter{0};
+  algo.processFrame(input, bases, outputs[0], nIter, v, 42,
+                    FluidDefaultAllocator());
+  algo.processFrame(input, bases, outputs[1], nIter, v, 42,
+                    FluidDefaultAllocator());
+  algo.processFrame(input, bases, outputs[2], nIter, v, 7863,
+                    FluidDefaultAllocator());
+
+  using Catch::Matchers::RangeEquals;
+
+  REQUIRE_THAT(outputs[1], RangeEquals(outputs[0]));
+  REQUIRE_THAT(outputs[1], !RangeEquals(outputs[2]));
+}
+} // namespace fluid
