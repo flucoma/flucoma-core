@@ -64,11 +64,11 @@ public:
     for (index i = from; i < from + count; i++) { mColumns.emplace(i); }
   }
 
-  index numColumns() { return asSigned(mColumns.size()); }
+  index numColumns() const { return asSigned(mColumns.size()); }
 
-  bool hasAndConditions() { return (mAndConditions.size() > 0); }
+  bool hasAndConditions() const { return (mAndConditions.size() > 0); }
 
-  index maxColumn() { return mColumns.empty() ? 0 : *mColumns.rbegin(); }
+  index maxColumn() const { return mColumns.empty() ? 0 : *mColumns.rbegin(); }
 
   bool addCondition(
       index column, string comparison, double value, bool conjunction)
