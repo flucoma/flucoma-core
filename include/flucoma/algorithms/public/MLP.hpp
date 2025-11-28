@@ -32,8 +32,7 @@ class MLP
 
 public:
   void init(index inputSize, index outputSize,
-            FluidTensor<index, 1> hiddenSizes, index hiddenAct, index outputAct,
-            index seed = -1)
+            FluidTensor<index, 1> hiddenSizes, index hiddenAct, index outputAct, index seed)
   {
     mLayers.clear();
     std::vector<index> sizes = {inputSize};
@@ -76,9 +75,8 @@ public:
     mLayers[asUnsigned(layer)].init(weights, biases, layerType);
   }
 
-  void clear(index seed)
+  void clear()
   {
-    for (auto&& l : mLayers) l.init(seed);
     mInitialized = false;
     mTrained = false;
   }
@@ -219,6 +217,7 @@ public:
   bool                 mInitialized{false};
   bool                 mTrained{false};
   index mMaxLayerSize;
+  RandomSeed mSeed; 
 };
 } // namespace algorithm
 } // namespace fluid

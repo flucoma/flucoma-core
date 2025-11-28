@@ -47,10 +47,11 @@ public:
     initGrads();
   }
 
-  void init(index seed = -1)
+  void init(RandomSeed seed)
   {
     double dev = std::sqrt(6.0 / (mWeights.rows() + mWeights.cols()));
-    mWeights = EigenRandom<MatrixXd>(mWeights.rows(), mWeights.cols(), RandomSeed{seed},Range{-dev, dev}).array();
+    mWeights = EigenRandom<MatrixXd>(mWeights.rows(), mWeights.cols(), seed,
+                                     Range{-dev, dev});
     mBiases = VectorXd::Zero(mWeights.cols());
     initGrads();
   }

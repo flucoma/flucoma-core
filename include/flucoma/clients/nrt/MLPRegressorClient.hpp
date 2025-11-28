@@ -38,7 +38,7 @@ constexpr auto MLPRegressorParams = defineParameters(
     FloatParam("momentum", "Momentum", 0.9, Min(0.0), Max(0.99)),
     LongParam("batchSize", "Batch Size", 50, Min(1)),
     FloatParam("validation", "Validation Amount", 0.2, Min(0), Max(0.9)),
-    LongParam("seed", "Random Seed", -1));
+    LongParam("seed","Random Seed", -1));
 
 class MLPRegressorClient : public FluidBaseClient,
                            OfflineIn,
@@ -58,7 +58,7 @@ class MLPRegressorClient : public FluidBaseClient,
     kRate,
     kMomentum,
     kBatchSize,
-    kVal,
+    kVal, 
     kRandomSeed
   };
 

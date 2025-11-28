@@ -31,7 +31,7 @@ struct MLPClassifierData
   index                      dims() const { return mlp.dims(); }
   void                       clear()
   {
-    mlp.clear(-1); // this is wrong OWEN
+    mlp.clear(); 
     encoder.clear();
   }
   bool initialized() const { return mlp.initialized(); }
