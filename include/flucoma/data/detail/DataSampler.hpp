@@ -57,9 +57,9 @@ class DataSampler
   };
 
   bool                  mShuffle;
-  index                 mTrainCount;  
-  std::random_device    mRnd;
-  std::mt19937          mGen{mRnd()};
+  index                 mSeed;
+  index                 mTrainCount;    
+  std::mt19937          mGen;
   std::vector<index>    mIdx;
   index                 mBatchSize;
   FluidTensor<index, 2> mBatch;
@@ -78,10 +78,11 @@ class DataSampler
 
 protected:
   DataSampler(index size, index batchSize, double validationFraction,
-              bool shuffle)
-      : mShuffle{shuffle},
+              bool shuffle, index seed)
+      : mShuffle{shuffle}, mSeed{seed},
         mTrainCount{
             std::lrint((1 - std::clamp(validationFraction, 0.0, 1.0)) * size)},
+        mGen(static_cast<size_t>(seed > 0 ? seed : std::random_device()())),
         mIdx(makeIndex(size, mShuffle)),
         mBatchSize{std::min(mTrainCount, batchSize)},
         mBatch(batchSize + (mTrainCount % mBatchSize), 2),
@@ -90,12 +91,9 @@ protected:
 public:
   void reset()
   {
-    using std::begin, std::end;
-
+    if (mSeed > 0) mGen.seed(asUnsigned(mSeed));
     mBatchCount = 0;
-    if (mShuffle)
-      std::shuffle(begin(mIdx), begin(mIdx) + mTrainCount,
-                   mGen); // preserve validation set
+    mIdx = makeIndex(mIdx.size(), mShuffle);
   }
 
   // Returns in / out indices for this batch (not the data)
