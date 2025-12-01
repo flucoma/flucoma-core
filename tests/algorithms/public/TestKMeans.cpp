@@ -14,7 +14,7 @@ TEST_CASE("KMeans against hand worked example")
   fluid::algorithm::KMeans algo;
   FluidTensor<double, 2> initialMeans{{0,0},{1,1}};   
   algo.setMeans(initialMeans); 
-  algo.train(ds, 2, 2);
+  algo.train(ds, 2, 2, KMeans::InitMethod::randomPartion);
 
   FluidTensor<double, 2> means(2, 2);
   algo.getMeans(means);
