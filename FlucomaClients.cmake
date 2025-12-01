@@ -158,3 +158,7 @@ add_client(UMAP flucoma/clients/nrt/UMAPClient.hpp CLASS NRTThreadedUMAPClient G
 add_client(MLPRegressor flucoma/clients/nrt/MLPRegressorClient.hpp CLASS NRTThreadedMLPRegressorClient GROUP MANIPULATION)
 add_client(MLPClassifier flucoma/clients/nrt/MLPClassifierClient.hpp CLASS NRTThreadedMLPClassifierClient GROUP MANIPULATION)
 add_client(Grid flucoma/clients/nrt/GridClient.hpp CLASS NRTThreadedGridClient GROUP MANIPULATION)
+add_client(DataSeries flucoma/clients/nrt/DataSeriesClient.hpp CLASS NRTThreadedDataSeriesClient GROUP MANIPULATION)
+add_client(LSTMClassifier flucoma/clients/nrt/LSTMClassifierClient.hpp CLASS NRTThreadedLSTMClassifierClient GROUP MANIPULATION)
+add_client(LSTMRegressor flucoma/clients/nrt/LSTMRegressorClient.hpp CLASS NRTThreadedLSTMRegressorClient GROUP MANIPULATION)
+add_client(LSTMForecaster flucoma/clients/nrt/LSTMForecasterClient.hpp CLASS NRTThreadedLSTMForecasterClient GROUP MANIPULATION)
