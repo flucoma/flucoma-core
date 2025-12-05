@@ -102,7 +102,8 @@ public:
 
   bool initialized() const { return mInitialized; }
 
-  void processFrame(ComplexVectorView v, double interpolation, Allocator& alloc)
+  void processFrame(ComplexVectorView v, double interpolation, index seed,
+                    Allocator& alloc)
   {
     using namespace Eigen;
     using namespace _impl;
@@ -120,7 +121,8 @@ public:
     ScopedEigenMap<VectorXd> frame(W.rows(), alloc);
     frame = W * hFrame;
     RealVectorView mag1 = asFluid(frame);
-    mRTPGHI.processFrame(mag1, v, mWindowSize, mFFTSize, mHopSize, 1e-6, alloc);
+    mRTPGHI.processFrame(mag1, v, mWindowSize, mFFTSize, mHopSize, 1e-6, seed,
+                         alloc);
     mPos = (mPos + 1) % mH.cols();
   }
 
