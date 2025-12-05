@@ -22,12 +22,13 @@ namespace fluid {
 namespace client {
 namespace nmffilter {
 
-enum NMFFilterIndex { kFilterbuf, kMaxRank, kIterations, kFFT };
+enum NMFFilterIndex { kFilterbuf, kMaxRank, kIterations, kRandomSeed, kFFT };
 
 constexpr auto NMFFilterParams = defineParameters(
     InputBufferParam("bases", "Bases Buffer"),
     LongParamRuntimeMax<Primary>("maxComponents", "Maximum Number of Components", 20, Min(1)),
     LongParam("iterations", "Number of Iterations", 10, Min(1)),
+    LongParam("seed", "Random Seed", -1),
     FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class NMFFilterClient : public FluidBaseClient, public AudioIn, public AudioOut
@@ -103,7 +104,8 @@ public:
           [&](ComplexMatrixView in, ComplexMatrixView out) {
             algorithm::STFT::magnitude(in, tmpMagnitude);
             mNMF.processFrame(tmpMagnitude.row(0), tmpFilt, tmpOut,
-                              get<kIterations>(), tmpEstimate.row(0), c.allocator());
+                              get<kIterations>(), tmpEstimate.row(0),
+                              get<kRandomSeed>(), c.allocator());
             mMask.init(tmpEstimate);
             for (index i = 0; i < rank; ++i)
             {
