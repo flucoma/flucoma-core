@@ -129,6 +129,7 @@ target_link_libraries(TestEnvelopeGate PRIVATE TestSignals)
 target_link_libraries(TestTransientSlice PRIVATE TestSignals)
 
 add_test_executable(TestEigenRandom algorithms/util/TestEigenRandom.cpp)
+add_test_executable(TestNNDSVD algorithms/public/TestNNDSVD.cpp)
 add_test_executable(TestRTPGHI algorithms/util/TestRTPGHI.cpp)
 
 include(CTest)
@@ -158,6 +159,7 @@ catch_discover_tests(TestBufferedProcess WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
 catch_discover_tests(TestMLP WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 catch_discover_tests(TestKMeans WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 catch_discover_tests(TestEigenRandom WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+catch_discover_tests(TestNNDSVD WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 catch_discover_tests(TestNMF WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 catch_discover_tests(TestRTPGHI WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 catch_discover_tests(TestUMAP WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
