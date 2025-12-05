@@ -32,10 +32,10 @@ public:
 
   double train(MLP& model, InputRealMatrixView in, RealMatrixView out,
                index nIter, index batchSize, double learningRate,
-               double momentum, double valFrac)
+               double momentum, double valFrac, index seed)
   {
     return train(model, in, out,
-                 SimpleDataSampler(in.rows(), batchSize, valFrac, true), nIter,
+                 SimpleDataSampler(in.rows(), batchSize, valFrac, true, seed), nIter,
                  learningRate, momentum);
   }
 
@@ -47,6 +47,7 @@ public:
     using namespace _impl;
     using namespace std;
     using namespace Eigen;
+    MLP originalModel(model); 
     index nExamples = in.rows();
     // index inputSize = in.cols();
     index outputSize = out.cols();
@@ -104,7 +105,9 @@ public:
     bool isNan = !((finalPred == finalPred)).all();
     if (isNan)
     {
-      model.clear();
+      using std::swap; 
+      //just return model to exactly its pre-call state
+      swap(model,originalModel); 
       return -1;
     }
     error = model.loss(finalPred, output);

@@ -425,7 +425,7 @@ void from_json(const nlohmann::json &j, MLP &mlp) {
       hiddenSizes(i) =  j["layers"][asUnsigned(i)]["cols"].get<index>();
     }
   }
-  mlp.init(inputSize,outputSize, hiddenSizes, activation, finalActivation);
+  mlp.init(inputSize,outputSize, hiddenSizes, activation, finalActivation, -1);//FIXME why do we this line?
   for (index i = 0; i < nLayers; i++){
     auto l = j["layers"][asUnsigned(i)];
     index rows = l["rows"].get<index>();
