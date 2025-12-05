@@ -1,3 +1,4 @@
+#pragma once
 #include "../../data/FluidIndex.hpp"
 #include <Eigen/Core>
 #include <cmath>
