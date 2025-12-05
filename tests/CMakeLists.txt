@@ -116,6 +116,8 @@ add_test_executable(TestTransientSlice algorithms/public/TestTransientSlice.cpp)
 
 add_test_executable(TestMLP algorithms/public/TestMLP.cpp)
 add_test_executable(TestKMeans algorithms/public/TestKMeans.cpp)
+add_test_executable(TestNMFCross algorithms/public/TestNMFCross.cpp)
+add_test_executable(TestGriffinLim algorithms/public/TestGriffinLim.cpp)
 add_test_executable(TestNMF algorithms/public/TestNMF.cpp)
 add_test_executable(TestUMAP algorithms/public/TestUMAP.cpp)
 
@@ -159,6 +161,8 @@ catch_discover_tests(TestBufferedProcess WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
 catch_discover_tests(TestMLP WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 catch_discover_tests(TestKMeans WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 catch_discover_tests(TestEigenRandom WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+catch_discover_tests(TestNMFCross WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+catch_discover_tests(TestGriffinLim WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 catch_discover_tests(TestNNDSVD WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 catch_discover_tests(TestNMF WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 catch_discover_tests(TestRTPGHI WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
