@@ -18,13 +18,13 @@ namespace fluid {
 namespace algorithm {
 
 namespace impl {
-template <typename RefeferenceArray>
+template <typename RefeferenceArray, typename RNG>
 void optimizeLayout(Eigen::ArrayXXd& embedding, RefeferenceArray& reference,
                     Eigen::ArrayXi const&  embIndices,
                     Eigen::ArrayXi const&  refIndices,
                     Eigen::ArrayXd const&  epochsPerSample,
                     Eigen::VectorXd const& AB, bool updateReference,
-                    double learningRate, index maxIter, double gamma = 1.0)
+                    double learningRate, index maxIter, RNG& rng, double gamma = 1.0)
 {
   using namespace std;
   using namespace Eigen;
@@ -33,8 +33,6 @@ void optimizeLayout(Eigen::ArrayXXd& embedding, RefeferenceArray& reference,
   auto   distance = DistanceFuncs::map()[DistanceFuncs::Distance::kSqEuclidean];
   double a = AB(0);
   double b = AB(1);
-  random_device                   rd;
-  mt19937                         mt(rd());
   uniform_int_distribution<index> randomInt(0, reference.rows() - 1);
   ArrayXd epochsPerNegativeSample = epochsPerSample / negativeSampleRate;
   ArrayXd nextEpoch = epochsPerSample;
@@ -65,7 +63,7 @@ void optimizeLayout(Eigen::ArrayXXd& embedding, RefeferenceArray& reference,
                                              epochsPerNegativeSample(j));
       for (index k = 0; k < numNegative; k++)
       {
-        index negativeIndex = randomInt(mt);
+        index negativeIndex = randomInt(rng);
         if (negativeIndex == embIndices(j)) continue;
         ArrayXd negative = reference.row(negativeIndex);
         dist = distance(current, negative);
@@ -129,7 +127,7 @@ public:
   using ArrayXi = Eigen::ArrayXi;
   using VectorXd = Eigen::VectorXd;
   using SparseMatrixXd = Eigen::SparseMatrix<double>;
-  using DataSet = FluidDataSet<std::string, double, 1>;
+  using DataSet = FluidDataSet<std::string, double, 1>; //fix me, this shouldn't care about id type
   template <typename T>
   using Ref = Eigen::Ref<T>;
 
@@ -172,11 +170,14 @@ public:
   bool initialized() const { return mInitialized; }
 
   DataSet train(DataSet& in, index k = 15, index dims = 2, double minDist = 0.1,
-                index maxIter = 200, double learningRate = 1.0)
+                index maxIter = 200, double learningRate = 1.0, index seed = -1)
   {
     using namespace Eigen;
     using namespace _impl;
     using namespace std;
+
+    std::random_device rd; 
+    std::mt19937_64 rng(seed < 0 ? rd() : seed); 
     SpectralEmbedding      spectralEmbedding;
     index                  n = in.size();
     FluidTensor<string, 1> ids{in.getIds()};
@@ -193,7 +194,7 @@ public:
     knnGraph = (knnGraph + knnGraphT) - knnGraph.cwiseProduct(knnGraphT);
     mAB = findAB(minDist);
     mEmbedding = spectralEmbedding.train(knnGraph, dims);
-    mEmbedding = normalizeEmbedding(mEmbedding);
+    mEmbedding = normalizeEmbedding(mEmbedding, rng);
     knnGraph.makeCompressed();
     ArrayXi rowIndices(knnGraph.nonZeros());
     ArrayXi colIndices(knnGraph.nonZeros());
@@ -202,16 +203,18 @@ public:
     computeEpochsPerSample(knnGraph, epochsPerSample);
     epochsPerSample = (epochsPerSample == 0).select(-1, epochsPerSample);
     optimizeLayoutAndUpdate(mEmbedding, mEmbedding, rowIndices, colIndices,
-                   epochsPerSample, learningRate, maxIter);
+                   epochsPerSample, learningRate, maxIter, rng);
     DataSet out(ids, _impl::asFluid(mEmbedding));
     mInitialized = true;
     return out;
   }
 
-  DataSet transform(DataSet& in, index maxIter = 200, double learningRate = 1.0) const
+  DataSet transform(DataSet& in, index maxIter = 200, double learningRate = 1.0, index seed = -1) const
   {
     if (!mInitialized) return DataSet();
-    SparseMatrixXd knnGraph(in.size(), mEmbedding.rows());
+    std::random_device rd;
+    std::mt19937_64    rng(seed < 0 ? rd() : seed);
+    SparseMatrixXd     knnGraph(in.size(), mEmbedding.rows());
     ArrayXXd       dists = ArrayXXd::Zero(in.size(), mK);
     makeGraph(in, mK, knnGraph, dists, false);
     knnGraph.makeCompressed();
@@ -227,7 +230,7 @@ public:
     computeEpochsPerSample(knnGraph, epochsPerSample);
     epochsPerSample = (epochsPerSample == 0).select(-1, epochsPerSample);
     optimizeLayout(embedding, mEmbedding, rowIndices, colIndices,
-                   epochsPerSample, learningRate, maxIter);
+                   epochsPerSample, learningRate, maxIter, rng);
     DataSet out(in.getIds(), _impl::asFluid(embedding));
     return out;
   }
@@ -370,19 +373,23 @@ private:
       for (size_t j = 0; j < asUnsigned(k); j++)
       {
         size_t pos = discardFirst ? j + 1 : j;
-        index  neighborIndex = stoi(*nearestIds[pos]);
+        index  neighborIndex = stoi(*nearestIds[pos]);//fixme: dep on string 
         dists(i, asSigned(j)) = distances[pos];
         graph.insert(i, neighborIndex) = distances[pos];
       }
     }
   }
 
-  ArrayXXd normalizeEmbedding(const Ref<ArrayXXd>& embedding)
+  template <typename RNG>
+  ArrayXXd normalizeEmbedding(const Ref<ArrayXXd>& embedding, RNG& rng)
   {
     // based on umap python implementation
     double   expansion = 10.0 / embedding.abs().maxCoeff();
-    ArrayXXd noise =
-        1e-4 * ArrayXXd::Random(embedding.rows(), embedding.cols()); // uniform
+    std::normal_distribution dist(0.0, 1e-4);
+
+    auto noise =
+        ArrayXXd::NullaryExpr(embedding.rows(), embedding.cols(),
+                              [&dist, &rng]() { return dist(rng); });
     ArrayXXd result = (embedding * expansion) + noise;
     ArrayXd  min = result.colwise().minCoeff();
     ArrayXd  max = result.colwise().maxCoeff();
@@ -415,25 +422,27 @@ private:
     });
   }
 
+  template<typename RNG> 
   void optimizeLayoutAndUpdate(ArrayXXd& embedding, ArrayXXd& reference,
                                ArrayXi const& embIndices,
                                ArrayXi const& refIndices,
                                ArrayXd const& epochsPerSample,
-                               double learningRate, index maxIter,
+                               double learningRate, index maxIter,RNG& rng, 
                                double gamma = 1.0)
   {
     impl::optimizeLayout(embedding, reference, embIndices, refIndices,
-                         epochsPerSample, mAB, true, learningRate, maxIter,
+                         epochsPerSample, mAB, true, learningRate, maxIter, rng,
                          gamma);
   }
 
+  template<typename RNG> 
   void optimizeLayout(ArrayXXd& embedding, ArrayXXd const& reference,
                       ArrayXi const& embIndices, ArrayXi const& refIndices,
                       ArrayXd const& epochsPerSample, double learningRate,
-                      index maxIter, double gamma = 1.0) const
+                      index maxIter, RNG& rng, double gamma = 1.0) const
   {
     impl::optimizeLayout(embedding, reference, embIndices, refIndices,
-                         epochsPerSample, mAB, false, learningRate, maxIter,
+                         epochsPerSample, mAB, false, learningRate, maxIter, rng,
                          gamma);
   }
 

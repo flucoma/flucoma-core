@@ -10,14 +10,15 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
+#include "../util/EigenRandom.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../util/NNFuncs.hpp"
 #include "../util/NNLayer.hpp"
 #include "../../data/FluidDataSet.hpp"
 #include "../../data/FluidIndex.hpp"
+#include "../../data/FluidMemory.hpp"
 #include "../../data/FluidTensor.hpp"
 #include "../../data/TensorTypes.hpp"
-#include "../../data/FluidMemory.hpp"
 #include <Eigen/Core>
 #include <random>
 
@@ -30,9 +31,8 @@ class MLP
   using ArrayXXd = Eigen::ArrayXXd;
 
 public:
-
   void init(index inputSize, index outputSize,
-            FluidTensor<index, 1> hiddenSizes, index hiddenAct, index outputAct)
+            FluidTensor<index, 1> hiddenSizes, index hiddenAct, index outputAct, index seed)
   {
     mLayers.clear();
     std::vector<index> sizes = {inputSize};
@@ -50,7 +50,7 @@ public:
       mLayers.push_back(NNLayer(sizes[asUnsigned(i)], sizes[asUnsigned(i + 1)],
                                 activations[asUnsigned(i)]));
     }
-    for (auto&& l : mLayers) l.init();
+    for (auto&& l : mLayers) l.init(seed);
     mInitialized = true;
     mTrained = false;
   }
@@ -77,7 +77,6 @@ public:
 
   void clear()
   {
-    for (auto&& l : mLayers) l.init();
     mInitialized = false;
     mTrained = false;
   }
@@ -218,6 +217,7 @@ public:
   bool                 mInitialized{false};
   bool                 mTrained{false};
   index mMaxLayerSize;
+  RandomSeed mSeed; 
 };
 } // namespace algorithm
 } // namespace fluid
