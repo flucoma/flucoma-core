@@ -29,6 +29,7 @@ hidden: true
 maxdepth: 2
 caption: Developing Clients
 ---
+new_object_walkthrough.md
 clients/pitch.md
 clients/kdtree.md
 ```
