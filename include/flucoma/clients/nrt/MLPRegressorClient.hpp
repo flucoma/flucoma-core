@@ -118,7 +118,7 @@ public:
                                                      : get<kOutputActivation>();
     if (!mAlgorithm.initialized() ||
         mTracker.changed(sourceDataSet.pointSize(), targetDataSet.pointSize(),
-                         get<kHidden>(), get<kActivation>(), outputAct))
+                         get<kHidden>(), get<kActivation>(), outputAct, get<kRandomSeed>()))
     {
 
       mAlgorithm.init(sourceDataSet.pointSize(), targetDataSet.pointSize(),
@@ -134,7 +134,7 @@ public:
       auto                data = sourceDataSet.getData();
       auto                tgt = targetDataSet.getData();
       FluidDataSetSampler sampler(sourceDataSet, targetDataSet,
-                                  get<kBatchSize>(), get<kVal>(), true);
+                                  get<kBatchSize>(), get<kVal>(), true, get<kRandomSeed>());
       algorithm::SGD      sgd;
       double error = sgd.train(mAlgorithm, data, tgt, sampler, get<kIter>(),
                                get<kRate>(), get<kMomentum>());
@@ -243,7 +243,7 @@ public:
 
 private:
 
-  ParameterTrackChanges<index, index, IndexVector, index, index> mTracker;
+  ParameterTrackChanges<index, index, IndexVector, index, index, index> mTracker;
 
   MessageResult<ParamValues> updateParameters()
   {

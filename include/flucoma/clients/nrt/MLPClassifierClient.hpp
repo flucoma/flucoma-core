@@ -157,9 +157,10 @@ public:
 
     mAlgorithm.encoder.fit(targetDataSet);
 
-    if (mTracker.changed(sourceDataSet.pointSize(),
+    if (!mAlgorithm.initialized() ||
+        mTracker.changed(sourceDataSet.pointSize(),
                          mAlgorithm.encoder.numLabels(), get<kHidden>(),
-                         get<kActivation>()))
+                         get<kActivation>(), get<kRandomSeed>()))
     {
       mAlgorithm.mlp.init(sourceDataSet.pointSize(),
                           mAlgorithm.encoder.numLabels(), get<kHidden>(),
@@ -183,7 +184,7 @@ public:
       }
   
       FluidDataSetSampler sampler(sourceDataSet, targetDataSet,
-        get<kBatchSize>(), get<kVal>(), true);
+        get<kBatchSize>(), get<kVal>(), true, get<kRandomSeed>());
 
       algorithm::SGD sgd;
       double error = sgd.train(mAlgorithm.mlp, data, oneHot, sampler, get<kIter>(),
@@ -263,7 +264,7 @@ public:
 
 private:
 
-  ParameterTrackChanges<index, index, IndexVector, index> mTracker;
+  ParameterTrackChanges<index, index, IndexVector, index, index> mTracker;
 
   MessageResult<ParamValues> updateParameters()
   {
