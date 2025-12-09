@@ -32,29 +32,22 @@ namespace _impl::kmeans_init {
 /// @param input input data
 /// @param k number of clusters
 /// @return a 2D Eigen array of means
-Eigen::ArrayXXd randomPartition(const Eigen::MatrixXd& input, index k)
+auto randomPartition(const Eigen::MatrixXd& input, index k)
 {
   // Means come from randomly assigning points and taking average
   std::random_device              rd;
   std::mt19937                    gen(rd());
   std::uniform_int_distribution<index> distrib(0, k - 1);
-
   Eigen::ArrayXXd means = Eigen::ArrayXXd::Zero(k, input.cols());
-  Eigen::ArrayXd assignments(input.rows()); 
-  Eigen::ArrayXd mask = Eigen::ArrayXd::Constant(input.rows(), 1.0);
-
-  std::generate(assignments.begin(), assignments.end(),
-                [&distrib, &gen]() { return distrib(gen); });
-
-  for(index i = 0; i < k; ++i)
-  {
-    means.row(i) =
-        (input.array().colwise() * (assignments == i).select(mask, 0.0))
-            .colwise()
-            .mean();
-  }
-  
-  return means; 
+  Eigen::ArrayXi  weights(k);
+  std::for_each_n(input.rowwise().begin(), input.rows(),
+                  [&gen, &distrib, &means, &weights](auto row) {
+                    index label = distrib(gen);
+                    means(label, Eigen::all) += row.array();
+                    weights(label)++;
+                  });
+  means /= weights.replicate(1, 2).cast<double>();
+  return means;
 }
 
 /// @brief Initialize means by sampling `k` random points ('Forgy initialization')
@@ -187,9 +180,10 @@ public:
       mEmpty = std::vector<bool>(asUnsigned(mK), false);
     }
 
+    Eigen::VectorXi assignments(dataPoints.rows()); 
     while (maxIter-- > 0)
     {      
-      auto assignments = assignClusters(dataPoints);
+      assignments = assignClusters(dataPoints);
       if (!changed(assignments)) { break; }
       else
       {
