@@ -14,7 +14,7 @@ TEST_CASE("KMeans against hand worked example")
   fluid::algorithm::KMeans algo;
   FluidTensor<double, 2> initialMeans{{0,0},{1,1}};   
   algo.setMeans(initialMeans); 
-  algo.train(ds, 2, 2, KMeans::InitMethod::randomPartion);
+  algo.train(ds, 2, 2, KMeans::InitMethod::randomPartion, -1);
 
   FluidTensor<double, 2> means(2, 2);
   algo.getMeans(means);
@@ -29,6 +29,40 @@ TEST_CASE("KMeans against hand worked example")
 
   REQUIRE_THAT(means, Catch::Matchers::RangeEquals(expected_means, comp));
   REQUIRE_THAT(assignments, Catch::Matchers::RangeEquals({0, 0, 1, 1}));
+}
+
+TEST_CASE("KMeans is reproducable with manual random seed")
+{
+
+  using Tensor = FluidTensor<double, 2>;
+
+  Tensor      points{{0, 0}, {0.5, 0.}, {0.5, 1}, {1, 1}};
+  FluidTensor<std::string, 1> ids{"0", "1", "2", "3"};
+  FluidDataSet<std::string, double, 1> ds(ids, points);
+
+  std::vector means(3,Tensor(2,2));
+
+  auto initmethod = GENERATE(algorithm::KMeans::InitMethod::randomPartion,
+                             algorithm::KMeans::InitMethod::randomPoint,
+                             algorithm::KMeans::InitMethod::randomSampling);
+
+  algorithm::KMeans algo; 
+  algo.train(ds, 2, 1, initmethod,42);
+  algo.getMeans(means[0]); 
+  algo.clear(); 
+
+  algo.train(ds, 2, 1, initmethod,42);
+  algo.getMeans(means[1]); 
+  algo.clear(); 
+
+  algo.train(ds, 2, 1, initmethod,4398);
+  algo.getMeans(means[2]); 
+  algo.clear(); 
+  
+  using Catch::Matchers::RangeEquals; 
+
+  REQUIRE_THAT(means[1], RangeEquals(means[0])); 
+  REQUIRE_THAT(means[1], !RangeEquals(means[2])); 
 }
 
 } // namespace fluid::algorithm

@@ -11,6 +11,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "../util/DistanceFuncs.hpp"
+#include "../util/EigenRandom.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidDataSet.hpp"
 #include "../../data/FluidIndex.hpp"
@@ -32,11 +33,11 @@ namespace _impl::kmeans_init {
 /// @param input input data
 /// @param k number of clusters
 /// @return a 2D Eigen array of means
-auto randomPartition(const Eigen::MatrixXd& input, index k)
+auto randomPartition(const Eigen::MatrixXd& input, index k, index seed)
 {
   // Means come from randomly assigning points and taking average
   std::random_device              rd;
-  std::mt19937                    gen(rd());
+  std::mt19937                    gen(seed < 0? rd() : seed);  
   std::uniform_int_distribution<index> distrib(0, k - 1);
   Eigen::ArrayXXd means = Eigen::ArrayXXd::Zero(k, input.cols());
   Eigen::ArrayXi  weights(k);
@@ -54,11 +55,11 @@ auto randomPartition(const Eigen::MatrixXd& input, index k)
 /// @param input input data
 /// @param k number of clusters
 /// @return 2D Eigen expression of sampled input points
-auto randomPoints(const Eigen::MatrixXd& input, index k)
+auto randomPoints(const Eigen::MatrixXd& input, index k, index seed)
 {
   // Means come from k random points 
   std::random_device              rd;
-  std::mt19937                    gen(rd());
+  std::mt19937                    gen(seed < 0? rd() : seed);  
   std::uniform_int_distribution<index> distrib(0, input.rows() - 1);
 
   std::vector<index> rows(asUnsigned(k));
@@ -89,10 +90,10 @@ auto cosine = [](auto a, auto b){
 /// @param distance 
 /// @return 
 template<class DistanceFn>
-auto akmc2(Eigen::MatrixXd const& input, index k, DistanceFn distance)
+auto akmc2(Eigen::MatrixXd const& input, index k, DistanceFn distance, index seed)
 {
   std::random_device rd;
-  std::mt19937       gen(rd());
+  std::mt19937       gen(seed < 0? rd() : seed);  
   Eigen::MatrixXd centres(k, input.cols()); 
   
   // First mean sampled at random from input 
@@ -149,7 +150,7 @@ public:
   bool initialized() const { return mTrained; }
 
   void train(const FluidDataSet<std::string, double, 1>& dataset, index k,
-             index maxIter, InitMethod init)
+             index maxIter, InitMethod init, index seed)
   {
     using namespace Eigen;
     using namespace _impl;
@@ -166,15 +167,15 @@ public:
       {
         case InitMethod::randomSampling: 
         { 
-          mMeans = akmc2(dataPoints, mK, squareEuclidiean); 
+          mMeans = akmc2(dataPoints, mK, squareEuclidiean, seed); 
           break; 
         }
         case InitMethod::randomPoint: 
         {
-            mMeans = randomPoints(dataPoints, mK); 
+            mMeans = randomPoints(dataPoints, mK, seed); 
             break; 
         }
-        default: mMeans = randomPartition(dataPoints, mK); 
+        default: mMeans = randomPartition(dataPoints, mK, seed); 
       }
 
       mEmpty = std::vector<bool>(asUnsigned(mK), false);

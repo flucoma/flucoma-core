@@ -33,7 +33,7 @@ public:
   using KMeans::InitMethod; 
 
   void train(const FluidDataSet<std::string, double, 1>& dataset, index k,
-             index maxIter, InitMethod initialize )
+             index maxIter, InitMethod initialize, index seed)
   {
     using namespace Eigen;
     using namespace _impl;
@@ -45,7 +45,7 @@ public:
     {
       mK = k;
       mDims = dataset.pointSize();
-      initMeans(dataPoints, initialize);
+      initMeans(dataPoints, initialize, seed);
     }
 
     while (maxIter-- > 0)
@@ -72,7 +72,7 @@ public:
   }
 
 private:
-  void initMeans(Eigen::MatrixXd& dataPoints, InitMethod init)
+  void initMeans(Eigen::MatrixXd& dataPoints, InitMethod init, index seed)
   {
     using namespace Eigen;
     mMeans = ArrayXXd::Zero(mK, mDims);
@@ -81,17 +81,17 @@ private:
     switch(init)
     {
       case InitMethod::randomSampling: 
-      { 
-        mMeans = akmc2(dataPoints, mK,cosine); 
+      {
+        mMeans = akmc2(dataPoints, mK, cosine, seed);
         break; 
       }
       case InitMethod::randomPoint: 
       {
-          mMeans = randomPoints(dataPoints, mK); 
+          mMeans = randomPoints(dataPoints, mK, seed); 
           break; 
       }
       default: { 
-        mMeans = randomPartition(dataPoints, mK); 
+        mMeans = randomPartition(dataPoints, mK, seed); 
         mMeans.matrix().rowwise().normalize(); 
       }
     }    
