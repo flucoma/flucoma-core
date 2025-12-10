@@ -40,7 +40,7 @@ auto randomPartition(const Eigen::MatrixXd& input, index k, index seed)
   std::mt19937                    gen(seed < 0? rd() : seed);  
   std::uniform_int_distribution<index> distrib(0, k - 1);
   Eigen::ArrayXXd means = Eigen::ArrayXXd::Zero(k, input.cols());
-  Eigen::ArrayXi  weights(k);
+  Eigen::ArrayXi  weights = Eigen::ArrayXi::Zero(k);
   std::for_each_n(input.rowwise().begin(), input.rows(),
                   [&gen, &distrib, &means, &weights](auto row) {
                     index label = distrib(gen);
