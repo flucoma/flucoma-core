@@ -4,6 +4,7 @@
 #include "FluidIndex.hpp"
 #include "FluidTensor.hpp"
 #include "TensorTypes.hpp"
+#include "FluidDataSeries.hpp"
 #include "../algorithms/public/KDTree.hpp"
 #include "../algorithms/public/KMeans.hpp"
 #include "../algorithms/public/SKMeans.hpp"
@@ -14,6 +15,8 @@
 #include "../algorithms/public/UMAP.hpp"
 #include "../algorithms/public/Standardization.hpp"
 #include "../algorithms/public/LabelSetEncoder.hpp"
+#include "../algorithms/public/Recur.hpp"
+#include "../algorithms/public/LSTM.hpp"
 #include <fstream>
 #include <nlohmann/json.hpp>
 
@@ -130,6 +133,52 @@ void from_json(const nlohmann::json &j, FluidDataSet<std::string, T, 1> &ds) {
   for (auto r = rows.begin(); r != rows.end(); ++r) {
     r.value().get_to(tmp);
     ds.add(r.key(), tmp);
+  }
+}
+
+// FluidDataSeries
+template <typename T>
+void to_json(nlohmann::json &j, const FluidDataSeries<std::string, T, 1> &ds) {
+  auto ids = ds.getIds();
+  auto data = ds.getData();
+  j["cols"] = ds.pointSize();
+  std::stringstream timestring;
+  for (index r = 0; r < ds.size(); r++) {
+    auto series = data[r];
+    index stringlen = std::ceil(std::log10(series.rows() - 1));
+    for (index s = 0; s < series.rows(); s++) {
+      timestring.str("");
+      timestring.clear();
+      timestring << std::setw(stringlen) << std::setfill('0') << s;
+      j["data"][ids[r]][timestring.str()] = data[r].row(s);
+    }
+  }
+}
+
+template <typename T>
+bool check_json(const nlohmann::json &j,
+                const FluidDataSeries<std::string, T, 1> &) {
+  return fluid::check_json(j,
+    {"cols", "data"},
+    {JSONTypes::NUMBER, JSONTypes::OBJECT}
+  );
+}
+
+template <typename T>
+void from_json(const nlohmann::json &j, FluidDataSeries<std::string, T, 1> &ds) {
+  auto data = j.at("data");
+  index pointSize = j.at("cols").get<index>();
+  FluidTensor<T, 1> tmp(pointSize);
+  
+  ds.resize(pointSize);
+
+  for (auto r = data.begin(); r != data.end(); ++r) 
+  {
+    for (auto s = r->begin(); s != r->end(); ++s) 
+    {
+      s.value().get_to(tmp);
+      ds.addFrame(r.key(), FluidTensorView<T, 1>{tmp});
+    }
   }
 }
 
@@ -471,6 +520,66 @@ void from_json(const nlohmann::json &j, UMAP &umap) {
   double b = j.at("b").get<index>();
   index k = j.at("k").get<index>();
   umap.init(embedding, tree, k, a, b);
+}
+
+// LSTM
+void to_json(nlohmann::json& j, const Recur<LSTMCell>& lstm)
+{
+  j["size"] = lstm.size();
+  j["sizes"] = lstm.getSizes();
+  nlohmann::json& layers = j["layers"];
+
+  for (index i = 0; i < lstm.size(); i++) 
+  {
+    nlohmann::json l;
+    auto params = lstm.getNthParams(i).lock();
+
+    l["inputWeights"] = RealMatrixView(params->mWi);
+    l["stateWeights"] = RealMatrixView(params->mWg);
+    l["forgetWeights"] = RealMatrixView(params->mWf);
+    l["outputWeights"] = RealMatrixView(params->mWo);
+
+    l["inputBias"] = RealVectorView(params->mBi);
+    l["stateBias"] = RealVectorView(params->mBg);
+    l["forgetBias"] = RealVectorView(params->mBf);
+    l["outputBias"] = RealVectorView(params->mBo);
+
+    layers.push_back(l);
+  }
+}
+
+bool check_json(const nlohmann::json& j, const Recur<LSTMCell>&)
+{
+  return fluid::check_json(
+      j,
+      {"size", "sizes", "layers"},
+      {JSONTypes::NUMBER, JSONTypes::ARRAY, JSONTypes::ARRAY});
+}
+
+void from_json(const nlohmann::json& j, Recur<LSTMCell>& lstm)
+{
+  FluidTensor<index, 1> sizes(j.at("size").get<index>() + 1);
+  j.at("sizes").get_to(sizes);
+
+  lstm.init(sizes);
+
+  for(index i = 0; i < lstm.size(); i++)
+  {
+    const nlohmann::json& l = j.at("layers")[i];
+    auto params = lstm.getNthParams(i).lock();
+
+    l.at("inputWeights").get_to(params->mWi);
+    l.at("stateWeights").get_to(params->mWg);
+    l.at("forgetWeights").get_to(params->mWf);
+    l.at("outputWeights").get_to(params->mWo);
+
+    l.at("inputBias").get_to(params->mBi);
+    l.at("stateBias").get_to(params->mBg);
+    l.at("forgetBias").get_to(params->mBf);
+    l.at("outputBias").get_to(params->mBo);
+  }
+
+  lstm.setTrained();
 }
 
 } // namespace algorithm
