@@ -39,7 +39,10 @@ TEST_CASE("SKMeans is reproducable with manual random seed")
   };
 
   REQUIRE_THAT(means[1], RangeEquals(means[0], comp));
-  REQUIRE_THAT(means[1], !RangeEquals(means[2], comp));
+  if(static_cast<std::ptrdiff_t>(initmethod) != 2) // can converge for randomsampling
+  {
+    REQUIRE_THAT(means[1], !RangeEquals(means[2], comp));
+  }
 }
 
 } // namespace fluid::algorithm
