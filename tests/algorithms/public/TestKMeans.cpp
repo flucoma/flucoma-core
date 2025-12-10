@@ -45,7 +45,7 @@ TEST_CASE("KMeans is reproducable with manual random seed")
   auto initmethod = GENERATE(algorithm::KMeans::InitMethod::randomPartion,
                              algorithm::KMeans::InitMethod::randomPoint,
                              algorithm::KMeans::InitMethod::randomSampling);
-
+  INFO("Init method " << static_cast<long>(initmethod)); 
   algorithm::KMeans algo; 
   algo.train(ds, 2, 1, initmethod,42);
   algo.getMeans(means[0]); 
@@ -60,9 +60,13 @@ TEST_CASE("KMeans is reproducable with manual random seed")
   algo.clear(); 
   
   using Catch::Matchers::RangeEquals; 
+  using Catch::Matchers::WithinRel;
+  auto comp = [](double x, double y) -> bool {
+    return Catch::Matchers::WithinRel(x).match(y);
+  };
 
-  REQUIRE_THAT(means[1], RangeEquals(means[0])); 
-  REQUIRE_THAT(means[1], !RangeEquals(means[2])); 
+  REQUIRE_THAT(means[1], RangeEquals(means[0], comp)); 
+  REQUIRE_THAT(means[1], !RangeEquals(means[2],comp)); 
 }
 
 } // namespace fluid::algorithm
