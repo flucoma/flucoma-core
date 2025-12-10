@@ -27,7 +27,7 @@ constexpr auto SKMeansParams = defineParameters(
     LongParam("numClusters", "Number of Clusters", 4, Min(0)),
     FloatParam("encodingThreshold", "Encoding Threshold", 0.25, Min(0), Max(1)),
     LongParam("maxIter", "Max number of Iterations", 100, Min(1)),
-    EnumParam("initialize", "Initialize method", 0, "Random Assignment",
+    EnumParam("initMethod", "Initialize method", 0, "Random Assignment",
               "Random Points", "Sampling"));
 
 class SKMeansClient : public FluidBaseClient,
