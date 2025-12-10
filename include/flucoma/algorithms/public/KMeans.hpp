@@ -47,6 +47,7 @@ auto randomPartition(const Eigen::MatrixXd& input, index k, index seed)
                     means(label, Eigen::all) += row.array();
                     weights(label)++;
                   });
+  weights = (weights != 0).select(weights,1); 
   means /= weights.replicate(1, 2).cast<double>();
   return means;
 }
