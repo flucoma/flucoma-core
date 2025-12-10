@@ -69,28 +69,29 @@ auto randomPoints(const Eigen::MatrixXd& input, index k, index seed)
 }
 
 auto squareEuclidiean = [](Eigen::Ref<const Eigen::MatrixXd> const& a,
-                          Eigen::Ref<const Eigen::MatrixXd> const& b,
-                          bool squared = true) {
-  double a_sqnorm = a.squaredNorm(); 
-  double b_sqnorm = b.squaredNorm(); 
-  Eigen::ArrayXXd result = (a * b.transpose()).array();                             
-  result *= -2; 
-  result += (a_sqnorm + b_sqnorm);                         
-  return squared ? result: result.sqrt(); 
+                           Eigen::Ref<const Eigen::MatrixXd> const& b) {
+  double          a_sqnorm = a.squaredNorm();
+  double          b_sqnorm = b.squaredNorm();
+  Eigen::ArrayXXd result = (a * b.transpose()).array();
+  result *= -2;
+  result += (a_sqnorm + b_sqnorm);
+  return result;
 };
 
-auto cosine = [](auto a, auto b){
-  return 1.0 - (a * b.transpose()).array();  
-}; 
+auto squareCosine = [](Eigen::Ref<const Eigen::MatrixXd> const& a,
+                       Eigen::Ref<const Eigen::MatrixXd> const& b) {
+  return (1.0 - (a * b.transpose()).array()).pow(2);
+};
 
 /// @brief initilaize means using markov chain montecarlo approximation of Kmeans++ (kmc2)
 /// @tparam DistanceFn function object that performs distance calculation
 /// @param input 
 /// @param k 
 /// @param distance 
-/// @return 
-template<class DistanceFn>
-auto akmc2(Eigen::MatrixXd const& input, index k, DistanceFn distance, index seed)
+/// @return
+template <class DistanceFn>
+auto akmc2(Eigen::MatrixXd const& input, index k, DistanceFn&& distance,
+           index seed)
 {
   std::random_device rd;
   std::mt19937       gen(seed < 0? rd() : seed);  
@@ -101,7 +102,7 @@ auto akmc2(Eigen::MatrixXd const& input, index k, DistanceFn distance, index see
       std::uniform_int_distribution<index>(0, input.rows() - 1)(gen);
   centres.row(0) = input.row(centre0);
 
-  Eigen::ArrayXd q = distance(input, centres.row(0)).pow(2);   
+  Eigen::ArrayXd q = distance(input, centres.row(0));
   q /= (2 * q.sum() + 2 * q.rows());
   std::discrete_distribution  proposalDistribution(q.begin(), q.end());
 

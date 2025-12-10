@@ -82,7 +82,7 @@ private:
     {
       case InitMethod::randomSampling: 
       {
-        mMeans = akmc2(dataPoints, mK, cosine, seed);
+        mMeans = akmc2(dataPoints, mK, squareCosine, seed);
         break; 
       }
       case InitMethod::randomPoint: 
