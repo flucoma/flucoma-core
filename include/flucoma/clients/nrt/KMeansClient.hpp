@@ -26,7 +26,8 @@ constexpr auto KMeansParams = defineParameters(
     LongParam("numClusters", "Number of Clusters", 4, Min(1)),
     LongParam("maxIter", "Max number of Iterations", 100, Min(1)),
     EnumParam("initMethod", "Initialize method", 0, "Random Assignment",
-              "Random Points", "Sampling"));
+              "Random Points", "Sampling"), 
+    LongParam("seed","Random Seed", -1));
 
 class KMeansClient : public FluidBaseClient,
                      OfflineIn,
@@ -34,7 +35,7 @@ class KMeansClient : public FluidBaseClient,
                      ModelObject,
                      public DataClient<algorithm::KMeans>
 {
-  enum {kName, kNumClusters, kMaxIter, kInit}; 
+  enum {kName, kNumClusters, kMaxIter, kInit, kRandomSeed}; 
   ParameterTrackChanges<index> mTracker; 
 public:
   using string = std::string;
@@ -84,7 +85,8 @@ public:
     if (dataSet.size() == 0) return Error<IndexVector>(EmptyDataSet);
     if (k <= 1) return Error<IndexVector>(SmallK);
     if(mTracker.changed(k)) mAlgorithm.clear();
-    mAlgorithm.train(dataSet, k, maxIter, static_cast<InitMethod>(get<kInit>()));
+    mAlgorithm.train(dataSet, k, maxIter, static_cast<InitMethod>(get<kInit>()),
+                     get<kRandomSeed>());
     IndexVector assignments(dataSet.size());
     mAlgorithm.getAssignments(assignments);
     return getCounts(assignments, k);
@@ -104,7 +106,8 @@ public:
     if (k <= 1) return Error<IndexVector>(SmallK);
     if (maxIter <= 0) maxIter = 100;
     if(mTracker.changed(k)) mAlgorithm.clear();
-    mAlgorithm.train(dataSet, k, maxIter, static_cast<InitMethod>(get<kInit>()));
+    mAlgorithm.train(dataSet, k, maxIter, static_cast<InitMethod>(get<kInit>()),
+                     get<kRandomSeed>());
     IndexVector assignments(dataSet.size());
     mAlgorithm.getAssignments(assignments);
     StringVectorView ids = dataSet.getIds();
@@ -172,7 +175,8 @@ public:
     if (dataSet.size() == 0) return Error<IndexVector>(EmptyDataSet);
     if (k <= 1) return Error<IndexVector>(SmallK);
     if (maxIter <= 0) maxIter = 100;
-    mAlgorithm.train(dataSet, k, maxIter, static_cast<InitMethod>(get<kInit>()));
+    mAlgorithm.train(dataSet, k, maxIter, static_cast<InitMethod>(get<kInit>()),
+                     get<kRandomSeed>());
     IndexVector assignments(dataSet.size());
     mAlgorithm.getAssignments(assignments);
     transform(srcClient, dstClient);

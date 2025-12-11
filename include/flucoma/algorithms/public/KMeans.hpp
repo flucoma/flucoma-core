@@ -11,6 +11,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "../util/DistanceFuncs.hpp"
+#include "../util/EigenRandom.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidDataSet.hpp"
 #include "../../data/FluidIndex.hpp"
@@ -32,20 +33,21 @@ namespace _impl::kmeans_init {
 /// @param input input data
 /// @param k number of clusters
 /// @return a 2D Eigen array of means
-auto randomPartition(const Eigen::MatrixXd& input, index k)
+auto randomPartition(const Eigen::MatrixXd& input, index k, index seed)
 {
   // Means come from randomly assigning points and taking average
   std::random_device              rd;
-  std::mt19937                    gen(rd());
+  std::mt19937                    gen(seed < 0? rd() : seed);  
   std::uniform_int_distribution<index> distrib(0, k - 1);
   Eigen::ArrayXXd means = Eigen::ArrayXXd::Zero(k, input.cols());
-  Eigen::ArrayXi  weights(k);
+  Eigen::ArrayXi  weights = Eigen::ArrayXi::Zero(k);
   std::for_each_n(input.rowwise().begin(), input.rows(),
                   [&gen, &distrib, &means, &weights](auto row) {
                     index label = distrib(gen);
                     means(label, Eigen::all) += row.array();
                     weights(label)++;
                   });
+  weights = (weights != 0).select(weights,1); 
   means /= weights.replicate(1, 2).cast<double>();
   return means;
 }
@@ -54,11 +56,11 @@ auto randomPartition(const Eigen::MatrixXd& input, index k)
 /// @param input input data
 /// @param k number of clusters
 /// @return 2D Eigen expression of sampled input points
-auto randomPoints(const Eigen::MatrixXd& input, index k)
+auto randomPoints(const Eigen::MatrixXd& input, index k, index seed)
 {
   // Means come from k random points 
   std::random_device              rd;
-  std::mt19937                    gen(rd());
+  std::mt19937                    gen(seed < 0? rd() : seed);  
   std::uniform_int_distribution<index> distrib(0, input.rows() - 1);
 
   std::vector<index> rows(asUnsigned(k));
@@ -68,31 +70,32 @@ auto randomPoints(const Eigen::MatrixXd& input, index k)
 }
 
 auto squareEuclidiean = [](Eigen::Ref<const Eigen::MatrixXd> const& a,
-                          Eigen::Ref<const Eigen::MatrixXd> const& b,
-                          bool squared = true) {
-  double a_sqnorm = a.squaredNorm(); 
-  double b_sqnorm = b.squaredNorm(); 
-  Eigen::ArrayXXd result = (a * b.transpose()).array();                             
-  result *= -2; 
-  result += (a_sqnorm + b_sqnorm);                         
-  return squared ? result: result.sqrt(); 
+                           Eigen::Ref<const Eigen::MatrixXd> const& b) {
+  double          a_sqnorm = a.squaredNorm();
+  double          b_sqnorm = b.squaredNorm();
+  Eigen::ArrayXXd result = (a * b.transpose()).array();
+  result *= -2;
+  result += (a_sqnorm + b_sqnorm);
+  return result;
 };
 
-auto cosine = [](auto a, auto b){
-  return 1.0 - (a * b.transpose()).array();  
-}; 
+auto squareCosine = [](Eigen::Ref<const Eigen::MatrixXd> const& a,
+                       Eigen::Ref<const Eigen::MatrixXd> const& b) {
+  return (1.0 - (a * b.transpose()).array()).pow(2);
+};
 
 /// @brief initilaize means using markov chain montecarlo approximation of Kmeans++ (kmc2)
 /// @tparam DistanceFn function object that performs distance calculation
 /// @param input 
 /// @param k 
 /// @param distance 
-/// @return 
-template<class DistanceFn>
-auto akmc2(Eigen::MatrixXd const& input, index k, DistanceFn distance)
+/// @return
+template <class DistanceFn>
+auto akmc2(Eigen::MatrixXd const& input, index k, DistanceFn&& distance,
+           index seed)
 {
   std::random_device rd;
-  std::mt19937       gen(rd());
+  std::mt19937       gen(seed < 0? rd() : seed);  
   Eigen::MatrixXd centres(k, input.cols()); 
   
   // First mean sampled at random from input 
@@ -100,7 +103,7 @@ auto akmc2(Eigen::MatrixXd const& input, index k, DistanceFn distance)
       std::uniform_int_distribution<index>(0, input.rows() - 1)(gen);
   centres.row(0) = input.row(centre0);
 
-  Eigen::ArrayXd q = distance(input, centres.row(0)).pow(2);   
+  Eigen::ArrayXd q = distance(input, centres.row(0));
   q /= (2 * q.sum() + 2 * q.rows());
   std::discrete_distribution  proposalDistribution(q.begin(), q.end());
 
@@ -149,7 +152,7 @@ public:
   bool initialized() const { return mTrained; }
 
   void train(const FluidDataSet<std::string, double, 1>& dataset, index k,
-             index maxIter, InitMethod init)
+             index maxIter, InitMethod init, index seed)
   {
     using namespace Eigen;
     using namespace _impl;
@@ -166,15 +169,15 @@ public:
       {
         case InitMethod::randomSampling: 
         { 
-          mMeans = akmc2(dataPoints, mK, squareEuclidiean); 
+          mMeans = akmc2(dataPoints, mK, squareEuclidiean, seed); 
           break; 
         }
         case InitMethod::randomPoint: 
         {
-            mMeans = randomPoints(dataPoints, mK); 
+            mMeans = randomPoints(dataPoints, mK, seed); 
             break; 
         }
-        default: mMeans = randomPartition(dataPoints, mK); 
+        default: mMeans = randomPartition(dataPoints, mK, seed); 
       }
 
       mEmpty = std::vector<bool>(asUnsigned(mK), false);
