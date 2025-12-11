@@ -85,11 +85,9 @@ public:
     if (dataSet.size() == 0) return Error<IndexVector>(EmptyDataSet);
     if (k <= 1) return Error<IndexVector>(SmallK);
     if(mTracker.changed(k)) mAlgorithm.clear();
-    mAlgorithm.train(dataSet, k, maxIter, static_cast<InitMethod>(get<kInit>()),
-                     get<kRandomSeed>());
-    IndexVector assignments(dataSet.size());
-    mAlgorithm.getAssignments(assignments);
-    return getCounts(assignments, k);
+    auto [result, _] =
+        train(dataSet, k, maxIter, get<kInit>(), get<kRandomSeed>());
+    return result; 
   }
 
   MessageResult<IndexVector> fitPredict(InputDataSetClientRef  datasetClient,
@@ -106,13 +104,11 @@ public:
     if (k <= 1) return Error<IndexVector>(SmallK);
     if (maxIter <= 0) maxIter = 100;
     if(mTracker.changed(k)) mAlgorithm.clear();
-    mAlgorithm.train(dataSet, k, maxIter, static_cast<InitMethod>(get<kInit>()),
-                     get<kRandomSeed>());
-    IndexVector assignments(dataSet.size());
-    mAlgorithm.getAssignments(assignments);
+    auto [result, assignments] =
+        train(dataSet, k, maxIter, get<kInit>(), get<kRandomSeed>());
     StringVectorView ids = dataSet.getIds();
     labelsetClientPtr->setLabelSet(getLabels(ids, assignments));
-    return getCounts(assignments, k);
+    return result;   
   }
 
   MessageResult<IndexVector> predict(InputDataSetClientRef  datasetClient,
@@ -175,12 +171,10 @@ public:
     if (dataSet.size() == 0) return Error<IndexVector>(EmptyDataSet);
     if (k <= 1) return Error<IndexVector>(SmallK);
     if (maxIter <= 0) maxIter = 100;
-    mAlgorithm.train(dataSet, k, maxIter, static_cast<InitMethod>(get<kInit>()),
-                     get<kRandomSeed>());
-    IndexVector assignments(dataSet.size());
-    mAlgorithm.getAssignments(assignments);
+    auto [result, _] =
+        train(dataSet, k, maxIter, get<kInit>(), get<kRandomSeed>());
     transform(srcClient, dstClient);
-    return getCounts(assignments, k);
+    return result; 
   }
 
   MessageResult<index> predictPoint(InputBufferPtr data) const
@@ -263,6 +257,25 @@ public:
 
 
 private:
+  using DataSet = FluidDataSet<std::string, double, 1>;
+
+  std::pair<MessageResult<IndexVector>, IndexVector>
+  train(DataSet const& dataSet, index k, index maxIter , index initMethod, index randomSeed)
+  {
+    mAlgorithm.train(
+        dataSet, k, maxIter,
+        static_cast<algorithm::KMeans::InitMethod>(initMethod), randomSeed);
+    IndexVector assignments(dataSet.size());
+    mAlgorithm.getAssignments(assignments);
+    auto training_result = MessageResult<IndexVector>(getCounts(assignments,k)); 
+    if(mAlgorithm.nEmpty() > 0)
+    {
+      training_result.set(Result::Status::kWarning); 
+      training_result.addMessage("There were empty clusters; perhaps numClusters is too high."); 
+    }
+    return {training_result, assignments}; 
+  }
+
   IndexVector getCounts(IndexVector assignments, index k) const
   {
     IndexVector counts(k);

@@ -232,6 +232,7 @@ public:
   index size() const { return mMeans.rows(); }
   index getK() const { return mMeans.rows(); }
   index nAssigned() const { return mAssignments.size(); }
+  index nEmpty() const { return std::count(mEmpty.begin(), mEmpty.end(), true); }
 
   void getAssignments(FluidTensorView<index, 1> out) const
   {
@@ -295,7 +296,6 @@ protected:
       }
       if (kAssignment.size() == 0)
       {
-        std::cout << "Warning: empty cluster" << std::endl;
         mEmpty[asUnsigned(k)] = true;
         return;
       }
