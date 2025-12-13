@@ -37,7 +37,7 @@ auto randomPartition(const Eigen::MatrixXd& input, index k, index seed)
 {
   // Means come from randomly assigning points and taking average
   std::random_device              rd;
-  std::mt19937                    gen(seed < 0? rd() : seed);  
+  std::mt19937                    gen(static_cast<unsigned int>(seed < 0? rd() : seed));  
   std::uniform_int_distribution<index> distrib(0, k - 1);
   Eigen::ArrayXXd means = Eigen::ArrayXXd::Zero(k, input.cols());
   Eigen::ArrayXi  weights = Eigen::ArrayXi::Zero(k);
@@ -60,7 +60,7 @@ auto randomPoints(const Eigen::MatrixXd& input, index k, index seed)
 {
   // Means come from k random points 
   std::random_device              rd;
-  std::mt19937                    gen(seed < 0? rd() : seed);  
+  std::mt19937                    gen(static_cast<unsigned int>(seed < 0? rd() : seed));  
   std::uniform_int_distribution<index> distrib(0, input.rows() - 1);
 
   std::vector<index> rows(asUnsigned(k));
@@ -95,7 +95,7 @@ auto akmc2(Eigen::MatrixXd const& input, index k, DistanceFn&& distance,
            index seed)
 {
   std::random_device rd;
-  std::mt19937       gen(seed < 0? rd() : seed);  
+  std::mt19937       gen(static_cast<unsigned int>(seed < 0? rd() : seed));  
   Eigen::MatrixXd centres(k, input.cols()); 
   
   // First mean sampled at random from input 

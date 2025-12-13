@@ -46,7 +46,7 @@ public:
     if (weighted)
     {
       auto distanceArray =
-          Eigen::Map<Eigen::ArrayXd>(distances.data(), distances.size());
+          Eigen::Map<Eigen::ArrayXd>(distances.data(), asSigned(distances.size()));
 
       if ((distanceArray < epsilon).any())
       {

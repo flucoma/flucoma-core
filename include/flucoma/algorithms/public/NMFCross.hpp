@@ -61,9 +61,9 @@ public:
                index r, index p, index c, index randomSeed = -1) const
   {
     index nFrames = X.extent(0);
-    index nBins = X.extent(1);
+    // index nBins = X.extent(1);
     index rank = W0.extent(0);
-    nBins = W0.extent(1);
+    // nBins = W0.extent(1);
     MatrixXd W = asEigen<Matrix>(W0).transpose();
     MatrixXd H;
     H = EigenRandom<MatrixXd>(rank, nFrames, RandomSeed{randomSeed},

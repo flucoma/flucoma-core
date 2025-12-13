@@ -187,7 +187,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return KDTreeQueryParams; }
 
-  KDTreeQuery(ParamSetViewType& p, FluidContext& c) : mParams(p)
+  KDTreeQuery(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});

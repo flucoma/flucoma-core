@@ -82,7 +82,7 @@ protected:
       : mShuffle{shuffle}, mSeed{seed},
         mTrainCount{
             std::lrint((1 - std::clamp(validationFraction, 0.0, 1.0)) * size)},
-        mGen(static_cast<size_t>(seed > 0 ? seed : std::random_device()())),
+        mGen(static_cast<unsigned int>(seed > 0 ? seed : std::random_device()())),
         mIdx(makeIndex(size, mShuffle)),
         mBatchSize{std::min(mTrainCount, batchSize)},
         mBatch(batchSize + (mTrainCount % mBatchSize), 2),
@@ -91,9 +91,9 @@ protected:
 public:
   void reset()
   {
-    if (mSeed > 0) mGen.seed(asUnsigned(mSeed));
+    if (mSeed > 0) mGen.seed(static_cast<unsigned int>(mSeed));
     mBatchCount = 0;
-    mIdx = makeIndex(mIdx.size(), mShuffle);
+    mIdx = makeIndex(asSigned(mIdx.size()), mShuffle);
   }
 
   // Returns in / out indices for this batch (not the data)

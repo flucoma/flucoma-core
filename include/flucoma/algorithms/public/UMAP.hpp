@@ -177,7 +177,7 @@ public:
     using namespace std;
 
     std::random_device rd; 
-    std::mt19937_64 rng(seed < 0 ? rd() : seed); 
+    std::mt19937_64 rng(static_cast<unsigned int>(seed < 0 ? rd() : seed)); 
     SpectralEmbedding      spectralEmbedding;
     index                  n = in.size();
     FluidTensor<string, 1> ids{in.getIds()};
@@ -213,7 +213,7 @@ public:
   {
     if (!mInitialized) return DataSet();
     std::random_device rd;
-    std::mt19937_64    rng(seed < 0 ? rd() : seed);
+    std::mt19937_64    rng(static_cast<unsigned int>(seed < 0 ? rd() : seed));
     SparseMatrixXd     knnGraph(in.size(), mEmbedding.rows());
     ArrayXXd       dists = ArrayXXd::Zero(in.size(), mK);
     makeGraph(in, mK, knnGraph, dists, false);
