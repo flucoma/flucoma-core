@@ -8,7 +8,8 @@
 
 cmake_minimum_required (VERSION 3.28)
 
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+    CACHE STRING "The MSVC runtime library to link with on Windows (/MT[d] by default)")
 
 if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.28.0")
   cmake_policy(SET CMP0135 NEW)
