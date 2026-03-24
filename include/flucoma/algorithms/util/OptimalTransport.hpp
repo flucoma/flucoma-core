@@ -167,13 +167,13 @@ public:
       SpectralMass m2 = mS2[asUnsigned(std::get<1>(t))];
       index        interpolatedBin = std::lrint(
                  (1 - interpolation) * m1.centerBin + interpolation * m2.centerBin);
-      double interpolationFactor = interpolation;
-      if (m1.centerBin != m2.centerBin)
-      {
-        interpolationFactor =
-            ((double) interpolatedBin - (double) m1.centerBin) /
-            ((double) m2.centerBin - (double) m1.centerBin);
-      }
+      // double interpolationFactor = interpolation;
+      // if (m1.centerBin != m2.centerBin)
+      // {
+      //   interpolationFactor =
+      //       ((double) interpolatedBin - (double) m1.centerBin) /
+      //       ((double) m2.centerBin - (double) m1.centerBin);
+      // }
       placeMass(m1, interpolatedBin,
           (1 - interpolation) * std::get<2>(t) / m1.mass, mA, out);
       placeMass(m2, interpolatedBin, interpolation * std::get<2>(t) / m2.mass,

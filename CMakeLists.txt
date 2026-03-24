@@ -80,16 +80,6 @@ FetchContent_Declare(
   EXCLUDE_FROM_ALL
 )
 
-FetchContent_Declare(
-  tl_optional 
-  GIT_SHALLOW TRUE
-  GIT_REPOSITORY https://github.com/TartanLlama/optional.git  
-  GIT_PROGRESS TRUE
-  EXCLUDE_FROM_ALL
-)
-set(OPTIONAL_BUILD_PACKAGE OFF CACHE BOOL "" FORCE)
-set(OPTIONAL_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-
 #see https://json.nlohmann.me/integration/cmake/#fetchcontent
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
 set(JSON_SystemInclude ON CACHE BOOL "")
@@ -129,7 +119,7 @@ if(JSON_PATH)
   get_filename_component(FETCHCONTENT_SOURCE_DIR_JSON ${JSON_PATH} ABSOLUTE)  
 endif()
 
-FetchContent_MakeAvailable(HISSTools Eigen Spectra tl_optional json Memory fmt)
+FetchContent_MakeAvailable(HISSTools Eigen Spectra json Memory fmt)
 
 set(FOONATHAN_MEMORY_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
 set(FOONATHAN_MEMORY_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
@@ -158,7 +148,6 @@ target_include_directories(FLUID_DECOMPOSITION SYSTEM INTERFACE
 
 target_link_libraries(FLUID_DECOMPOSITION INTERFACE 
   flucoma_VERSION_LIB 
-  tl::optional
   nlohmann_json::nlohmann_json
   foonathan_memory
   fmt::fmt

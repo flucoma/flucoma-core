@@ -39,7 +39,7 @@ template <typename T, typename U>
 auto sortedDistances(FluidTensorView<T, 1> x, FluidTensorView<U, 2> Y,
                      Allocator& alloc)
 {
-  rt::vector<std::pair<index, double>> distances(Y.rows(), alloc);
+  rt::vector<std::pair<index, double>> distances(asUnsigned(Y.rows()), alloc);
   std::generate(distances.begin(), distances.end(), [n = 0, &x, &Y]() mutable {
     auto result = std::make_pair(n, distance(x, Y.row(n)));
     n++;
@@ -375,7 +375,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return DataSetReadParams; }
 
-  DataSetRead(ParamSetViewType& p, FluidContext& c) : mParams(p)
+  DataSetRead(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});

@@ -116,12 +116,24 @@ add_test_executable(TestTransientSlice algorithms/public/TestTransientSlice.cpp)
 
 add_test_executable(TestMLP algorithms/public/TestMLP.cpp)
 add_test_executable(TestKMeans algorithms/public/TestKMeans.cpp)
+add_test_executable(TestSKMeans algorithms/public/TestSKMeans.cpp)
+add_test_executable(TestNMFCross algorithms/public/TestNMFCross.cpp)
+add_test_executable(TestGriffinLim algorithms/public/TestGriffinLim.cpp)
+add_test_executable(TestNMF algorithms/public/TestNMF.cpp)
+add_test_executable(TestUMAP algorithms/public/TestUMAP.cpp)
+
+add_test_executable(TestDataSampler data/detail/TestDataSampler.cpp)
+add_test_executable(TestSGD algorithms/public/TestSGD.cpp)
 
 target_link_libraries(TestNoveltySeg PRIVATE TestSignals)
 target_link_libraries(TestOnsetSeg PRIVATE TestSignals)
 target_link_libraries(TestEnvelopeSeg PRIVATE TestSignals)
 target_link_libraries(TestEnvelopeGate PRIVATE TestSignals)
 target_link_libraries(TestTransientSlice PRIVATE TestSignals)
+
+add_test_executable(TestEigenRandom algorithms/util/TestEigenRandom.cpp)
+add_test_executable(TestNNDSVD algorithms/public/TestNNDSVD.cpp)
+add_test_executable(TestRTPGHI algorithms/util/TestRTPGHI.cpp)
 
 include(CTest)
 include(Catch)
@@ -148,5 +160,17 @@ catch_discover_tests(TestFluidSink WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 catch_discover_tests(TestBufferedProcess WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 
 catch_discover_tests(TestMLP WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+catch_discover_tests(TestKMeans WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+catch_discover_tests(TestSKMeans) 
+catch_discover_tests(TestEigenRandom WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+catch_discover_tests(TestNMFCross WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+catch_discover_tests(TestGriffinLim WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+catch_discover_tests(TestNNDSVD WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+catch_discover_tests(TestNMF WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+catch_discover_tests(TestRTPGHI WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+catch_discover_tests(TestUMAP WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+
+catch_discover_tests(TestDataSampler)
+catch_discover_tests(TestSGD)
 
 add_compile_tests("FluidTensor Compilation Tests" data/compile_tests/TestFluidTensor_Compile.cpp) 

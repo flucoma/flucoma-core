@@ -25,6 +25,7 @@ enum NMFMatchParamIndex {
   kFilterbuf,
   kMaxRank,
   kIterations,
+  kRandomSeed,
   kFFT
 };
 
@@ -33,6 +34,7 @@ constexpr auto NMFMatchParams = defineParameters(
     LongParamRuntimeMax<Primary>("maxComponents", "Maximum Number of Components", 20,
                            Min(1)),
     LongParam("iterations", "Number of Iterations", 10, Min(1)),
+    LongParam("seed", "Random Seed", -1),
     FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class NMFMatchClient : public FluidBaseClient, public AudioIn, public ControlOut
@@ -104,14 +106,16 @@ public:
       for (index i = 0; i < filter.rows(); ++i)
         filter.row(i) <<= filterBuffer.samps(i);
 
-      mSTFTProcessor.processInput(get<kFFT>(), input, c, [&](ComplexMatrixView in) {
-        algorithm::STFT::magnitude(in, mags);
-        mNMF.processFrame(mags.row(0), filter, activations,
-            10, FluidTensorView<double,1>{nullptr, 0, 0}, c.allocator());
-      });
 
       output[0](Slice(0,rank)) <<= activations;
       output[0](Slice(rank,get<kMaxRank>().max() - rank)).fill(0);
+      mSTFTProcessor.processInput(
+          get<kFFT>(), input, c, [&](ComplexMatrixView in) {
+            algorithm::STFT::magnitude(in, mags);
+            mNMF.processFrame(mags.row(0), filter, activations, 10,
+                              FluidTensorView<double, 1>{nullptr, 0, 0},
+                              get<kRandomSeed>(), c.allocator());
+          });
     }
   }
 

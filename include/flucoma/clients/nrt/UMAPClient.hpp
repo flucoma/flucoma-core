@@ -24,7 +24,8 @@ constexpr auto UMAPParams = defineParameters(
     LongParam("numNeighbours", "Number of Nearest Neighbours", 15, Min(1)),
     FloatParam("minDist", "Minimum Distance", 0.1, Min(0)),
     LongParam("iterations", "Number of Iterations", 200, Min(1)),
-    FloatParam("learnRate", "Learning Rate", 0.1, Min(0.0), Max(1.0)));
+    FloatParam("learnRate", "Learning Rate", 0.1, Min(0.0), Max(1.0)),
+    LongParam("seed", "Random Seed", -1));
 
 class UMAPClient : public FluidBaseClient,
                    OfflineIn,
@@ -38,7 +39,8 @@ class UMAPClient : public FluidBaseClient,
     kNumNeighbors,
     kMinDistance,
     kNumIter,
-    kLearningRate
+    kLearningRate,
+    kRandomSeed
   };
 
 public:
@@ -84,11 +86,11 @@ public:
     FluidDataSet<string, double, 1> result;
     try
     {
-      result = mAlgorithm.train(src, get<kNumNeighbors>(), get<kNumDimensions>(),
-                                get<kMinDistance>(), get<kNumIter>(),
-                                get<kLearningRate>());
-    }
-    catch (const std::runtime_error& e) //spectra library will throw if eigen decomp fails
+      result = mAlgorithm.train(
+          src, get<kNumNeighbors>(), get<kNumDimensions>(), get<kMinDistance>(),
+          get<kNumIter>(), get<kLearningRate>(), get<kRandomSeed>());
+    } catch (const std::runtime_error&
+                 e) // spectra library will throw if eigen decomp fails
     {
       return {Result::Status::kError, e.what()};
     }
@@ -108,7 +110,7 @@ public:
     FluidDataSet<string, double, 1> result;
     result = mAlgorithm.train(src, get<kNumNeighbors>(), get<kNumDimensions>(),
                               get<kMinDistance>(), get<kNumIter>(),
-                              get<kLearningRate>());
+                              get<kLearningRate>(), get<kRandomSeed>());
     return OK();
   }
 
@@ -127,7 +129,8 @@ public:
     if (src.pointSize() != mAlgorithm.inputDims()) return Error(WrongPointSize);
     StringVector                    ids{src.getIds()};
     FluidDataSet<string, double, 1> result;
-    result = mAlgorithm.transform(src, get<kNumIter>(), get<kLearningRate>());
+    result = mAlgorithm.transform(src, get<kNumIter>(), get<kLearningRate>(),
+                                  get<kRandomSeed>());
     destPtr->setDataSet(result);
     return OK();
   }
