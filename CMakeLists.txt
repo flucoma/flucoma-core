@@ -100,7 +100,7 @@ FetchContent_Declare(
   GIT_SHALLOW TRUE  
   GIT_REPOSITORY https://github.com/fmtlib/fmt
   GIT_PROGRESS TRUE
-  GIT_TAG master 
+  GIT_TAG main
   EXCLUDE_FROM_ALL
 )
 
