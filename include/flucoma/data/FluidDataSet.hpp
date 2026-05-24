@@ -104,7 +104,7 @@ bool add(idType const& id, FluidTensorView<const dataType, N> point)
       return pos->second;
   }
 
-bool update(idType const& id, FluidTensorView<const dataType, N> point)
+  bool update(idType const& id, FluidTensorView<const dataType, N> point)
   {
     auto pos = mIndex.find(id);
     if (pos == mIndex.end())
@@ -128,6 +128,11 @@ bool update(idType const& id, FluidTensorView<const dataType, N> point)
         if (point.second > current) point.second--;
     }
     return true;
+  }
+
+  bool contains(idType const& id) const
+  {
+    return (mIndex.count(id) == 1);
   }
 
   FluidTensorView<dataType, N + 1>       getData() { return mData; }
