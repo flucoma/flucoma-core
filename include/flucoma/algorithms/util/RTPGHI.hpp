@@ -17,6 +17,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "AlgorithmUtils.hpp"
 #include "FluidEigenMappings.hpp"
 #include "../public/STFT.hpp"
+#include "../util/EigenRandom.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/FluidMemory.hpp"
 #include "../../data/TensorTypes.hpp"
@@ -59,7 +60,7 @@ public:
   }
 
   void processFrame(RealVectorView in, ComplexVectorView out, index winSize,
-      index fftSize, index hopSize, double tolerance, Allocator& alloc)
+      index fftSize, index hopSize, double tolerance, index seed, Allocator& alloc)
   {
     using namespace Eigen;
     using namespace _impl;
@@ -88,8 +89,8 @@ public:
     todo = (currentLogMag > absTol).cast<double>();
     index                   numTodo = static_cast<index>(todo.sum());
     ScopedEigenMap<ArrayXd> phaseEst(mBins, alloc);
-    phaseEst = pi + ArrayXd::Random(mBins) * pi;
-
+    phaseEst =
+        EigenRandom<ArrayXd>(mBins, RandomSeed{seed}, Range{0.0, 2.0 * pi});
     rt::vector<pair<double, index>> heap(alloc);
     heap.reserve(asUnsigned(mBins));
     for (index i = 0; i < mBins; i++)

@@ -9,6 +9,7 @@
 #include <flucoma/data/FluidJSON.hpp>
 #include <flucoma/data/FluidTensor.hpp>
 #include <flucoma/data/FluidDataSetSampler.hpp>
+#include <vector> 
 #include <iostream>
 
 namespace fluid::algorithm {
@@ -106,7 +107,7 @@ TEST_CASE("MLP works on precomputed example")
   // Make a network and set initial conditions
   MLP   mlp = MLP();
   index act = static_cast<index>(NNActivations::Activation::kSigmoid);
-  mlp.init(3, 1, {2}, act, act);
+  mlp.init(3, 1, {2}, act, act,-1);
   FluidTensor<double, 2> layer0Coeffs = {{0.1, 0.2}, {0.3, 0.1}, {0.5, 0}};
   FluidTensor<double, 2> layer1Coeffs = {{0.1}, {0.2}};
   FluidTensor<double, 1> layer0Bias = {0.1, 0.1};
@@ -117,7 +118,7 @@ TEST_CASE("MLP works on precomputed example")
 
   // train for a single iteration 
   SGD sgd;
-  sgd.train(mlp, x, y, 1, 1, 0.1, 0.0, 0.0);
+  sgd.train(mlp, x, y, 1, 1, 0.1, 0.0, 0.0,-1);
   
   // get our hand computed data 
   auto [W1, W2, b1, b2] = manual(0.0, 0.1);
@@ -221,7 +222,6 @@ TEST_CASE("Test batch loader for mismatched fluid datasets")
   index i = 0;
   for (auto batch : ds)
   {
-    std::cout << "ping\n";
     index expectedSize = i++ == 0 ? batchSize + (N % batchSize) : batchSize;
     CHECK(batch->rows() == expectedSize);
     auto inputidx = batch->col(0);
@@ -233,5 +233,37 @@ TEST_CASE("Test batch loader for mismatched fluid datasets")
   }
 }
 
+TEST_CASE("MLP does repeatable things with manually set seed")
+{
+  using Tensor = FluidTensor<double, 2>; 
+  using Vector = FluidTensor<double, 1>; 
+
+  std::vector weights(5, Tensor(3,3)); 
+  Vector biases(3); 
+  index dummyActivation; 
+
+  MLP model; 
+
+  //same seed should give same result, different seed should give differet result
+  model.init(3, 3,FluidTensor<index,1>{3},0,0,42); 
+  model.getParameters(0, weights[0],biases,dummyActivation); 
+  model.init(3, 3,FluidTensor<index,1>{3},0,0,42); 
+  model.getParameters(0, weights[1],biases,dummyActivation); 
+  model.init(3, 3,FluidTensor<index,1>{3},0,0,2875); 
+  model.getParameters(0, weights[2],biases,dummyActivation); 
+
+  //automatic seeding should give different succcesive results
+  model.init(3, 3,FluidTensor<index,1>{3},0,0,-1); 
+  model.getParameters(0, weights[3],biases,dummyActivation); 
+  model.init(3, 3,FluidTensor<index,1>{3},0,0,-1); 
+  model.getParameters(0, weights[4],biases,dummyActivation); 
+
+  //only weights are stochastic
+  using Catch::Matchers::RangeEquals; 
+  
+  REQUIRE_THAT(weights[1], RangeEquals(weights[0])); 
+  REQUIRE_THAT(weights[1], !RangeEquals(weights[2])); 
+  REQUIRE_THAT(weights[3], !RangeEquals(weights[4])); 
+}
 
 } // namespace fluid::algorithm

@@ -27,6 +27,7 @@ enum NMFFilterIndex {
   kActBuf,
   kAutoAssign,
   kInterpolation,
+  kRandomSeed,
   kFFT
 };
 
@@ -36,6 +37,7 @@ constexpr auto NMFMorphParams = defineParameters(
     InputBufferParam("activations", "Activations"),
     EnumParam("autoassign", "Automatic assign", 1, "No", "Yes"),
     FloatParam("interpolation", "Interpolation", 0, Min(0.0), Max(1.0)),
+    LongParam("seed", "Random Seed", -1),
     FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class NMFMorphClient : public FluidBaseClient, public AudioOut
@@ -116,7 +118,7 @@ public:
       mSTFTProcessor.processOutput(
           get<kFFT>(), output, c, [&](ComplexMatrixView out) {
             mNMFMorph.processFrame(out.row(0), get<kInterpolation>(),
-                                   c.allocator());
+                                   get<kRandomSeed>(), c.allocator());
           });
     }
   }

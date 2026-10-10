@@ -18,8 +18,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../algorithms/public/NMF.hpp"
 #include "../../algorithms/public/RatioMask.hpp"
 #include "../../algorithms/public/STFT.hpp"
-#include "../../data/FluidTensor.hpp"
 #include "../../data/FluidMemory.hpp"
+#include "../../data/FluidTensor.hpp"
 #include <algorithm> //for max_element
 #include <cassert>
 #include <sstream> //for ostringstream
@@ -47,6 +47,7 @@ enum NMFParamIndex {
   kEnvelopesUpdate,
   kRank,
   kIterations,
+  kRandomSeed,
   kFFT
 };
 
@@ -57,7 +58,7 @@ constexpr auto BufNMFParams = defineParameters(
     LongParam("startChan", "Start Channel", 0, Min(0)),
     LongParam("numChans", "Number Channels", -1),
     BufferParam("resynth", "Resynthesis Buffer"),
-    LongParam("resynthMode","Resynthesise components", 0,Min(0),Max(1)),
+    LongParam("resynthMode", "Resynthesise components", 0, Min(0), Max(1)),
     BufferParam("bases", "Bases Buffer"),
     EnumParam("basesMode", "Bases Buffer Update Mode", 0, "None", "Seed",
               "Fixed"),
@@ -66,6 +67,7 @@ constexpr auto BufNMFParams = defineParameters(
               "Fixed"),
     LongParam("components", "Number of Components", 1, Min(1)),
     LongParam("iterations", "Number of Iterations", 100, Min(1)),
+    LongParam("seed", "Random Seed", -1),
     FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class NMFClient : public FluidBaseClient, public OfflineIn, public OfflineOut
@@ -98,7 +100,7 @@ public:
     index nFrames = get<kNumFrames>();
     index nChannels = get<kNumChans>();
     auto  rangeCheck = bufferRangeCheck(get<kSource>().get(), get<kOffset>(),
-                                       nFrames, get<kStartChan>(), nChannels);
+                                        nFrames, get<kStartChan>(), nChannels);
 
     if (!rangeCheck.ok()) return rangeCheck;
 
@@ -264,8 +266,9 @@ public:
                             : true;
           });
       nmf.process(magnitude, outputFilters, outputEnvelopes, outputMags,
-                  get<kRank>(), get<kIterations>() * needsAnalysis, !fixFilters, !fixEnvelopes,
-                  seededFilters, seededEnvelopes);
+                  get<kRank>(), get<kIterations>() * needsAnalysis, !fixFilters,
+                  !fixEnvelopes, get<kRandomSeed>(), seededFilters,
+                  seededEnvelopes);
 
       if (c.task() && c.task()->cancelled())
         return {Result::Status::kCancelled, ""};

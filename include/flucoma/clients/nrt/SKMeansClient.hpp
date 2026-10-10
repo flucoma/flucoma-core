@@ -20,13 +20,16 @@ namespace fluid {
 namespace client {
 namespace skmeans {
 
-enum { kName, kNumClusters, kThreshold, kMaxIter };
+enum { kName, kNumClusters, kThreshold, kMaxIter, kInit, kRandomSeed };
 
 constexpr auto SKMeansParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
     LongParam("numClusters", "Number of Clusters", 4, Min(0)),
     FloatParam("encodingThreshold", "Encoding Threshold", 0.25, Min(0), Max(1)),
-    LongParam("maxIter", "Max number of Iterations", 100, Min(1)));
+    LongParam("maxIter", "Max number of Iterations", 100, Min(1)),
+    EnumParam("initMethod", "Initialize method", 0, "Random Assignment",
+              "Random Points", "Sampling"), 
+    LongParam("seed","Random Seed", -1));
 
 class SKMeansClient : public FluidBaseClient,
                       OfflineIn,
@@ -69,6 +72,8 @@ public:
     return {};
   }
 
+  using InitMethod = algorithm::SKMeans::InitMethod;
+
   MessageResult<IndexVector> fit(DataSetClientRef datasetClient)
   {
     index k = get<kNumClusters>();
@@ -78,11 +83,9 @@ public:
     auto dataSet = datasetClientPtr->getDataSet();
     if (dataSet.size() == 0) return Error<IndexVector>(EmptyDataSet);
     if (k <= 1) return Error<IndexVector>(SmallK);
-    if(mTracker.changed(k)) mAlgorithm.clear(); 
-    mAlgorithm.train(dataSet, k, maxIter);
-    IndexVector assignments(dataSet.size());
-    mAlgorithm.getAssignments(assignments);
-    return getCounts(assignments, k);
+    if(mTracker.changed(k)) mAlgorithm.clear();
+    auto [result, _] = train(dataSet, k, maxIter, get<kInit>(), get<kRandomSeed>());
+    return result;
   }
 
 
@@ -99,13 +102,11 @@ public:
     if (!labelsetClientPtr) return Error<IndexVector>(NoLabelSet);
     if (k <= 1) return Error<IndexVector>(SmallK);
     if (maxIter <= 0) maxIter = 100;
-    if(mTracker.changed(k)) mAlgorithm.clear(); 
-    mAlgorithm.train(dataSet, k, maxIter);
-    IndexVector assignments(dataSet.size());
-    mAlgorithm.getAssignments(assignments);
+    if(mTracker.changed(k)) mAlgorithm.clear();
+auto [result, assignments] = train(dataSet, k, maxIter, get<kInit>(), get<kRandomSeed>());
     StringVectorView ids = dataSet.getIds();
     labelsetClientPtr->setLabelSet(getLabels(ids, assignments));
-    return getCounts(assignments, k);
+    return result;
   }
 
 
@@ -170,12 +171,10 @@ public:
     if (dataSet.size() == 0) return Error<IndexVector>(EmptyDataSet);
     if (k <= 1) return Error<IndexVector>(SmallK);
     if (maxIter <= 0) maxIter = 100;
-    if(mTracker.changed(k)) mAlgorithm.clear(); 
-    mAlgorithm.train(dataSet, k, maxIter);
-    IndexVector assignments(dataSet.size());
-    mAlgorithm.getAssignments(assignments);
+    if(mTracker.changed(k)) mAlgorithm.clear();
+auto [result, _] = train(dataSet, k, maxIter, get<kInit>(), get<kRandomSeed>());    
     encode(srcClient, dstClient);
-    return getCounts(assignments, k);
+    return result;
   }
 
   MessageResult<index> predictPoint(BufferPtr data) const
@@ -258,6 +257,25 @@ public:
 
 
 private:
+  using DataSet = FluidDataSet<std::string, double, 1>;
+
+  std::pair<MessageResult<IndexVector>, IndexVector>
+  train(DataSet const& dataSet, index k, index maxIter , index initMethod, index randomSeed)
+  {
+    mAlgorithm.train(
+        dataSet, k, maxIter,
+        static_cast<algorithm::KMeans::InitMethod>(initMethod), randomSeed);
+    IndexVector assignments(dataSet.size());
+    mAlgorithm.getAssignments(assignments);
+    auto training_result = MessageResult<IndexVector>(getCounts(assignments,k)); 
+    if(mAlgorithm.nEmpty() > 0)
+    {
+      training_result.set(Result::Status::kWarning); 
+      training_result.addMessage("There were empty clusters; perhaps numClusters is too high."); 
+    }
+    return {training_result, assignments}; 
+  }
+
   IndexVector getCounts(IndexVector assignments, index k) const
   {
     IndexVector counts(k);

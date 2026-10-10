@@ -37,9 +37,9 @@ class SimpleDataSampler : public detail::DataSampler<SimpleDataSampler>
 
 public:
   SimpleDataSampler(index size, index batchSize, double validationFraction,
-                    bool shuffle)
+                    bool shuffle, index seed)
       : detail::DataSampler<SimpleDataSampler>(size, batchSize,
-                                               validationFraction, shuffle)
+                                               validationFraction, shuffle, seed)
   {}
 };
 

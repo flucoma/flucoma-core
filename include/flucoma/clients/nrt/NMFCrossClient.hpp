@@ -32,6 +32,7 @@ enum NMFCrossParamIndex {
   kPolyphony,
   kContinuity,
   kIterations,
+  kRandomSeed,
   kFFT
 };
 
@@ -44,6 +45,7 @@ constexpr auto NMFCrossParams = defineParameters(
               FrameSizeUpperLimit<kFFT>()),
     LongParam("continuity", "Continuity", 7, Min(1), Odd()),
     LongParam("iterations", "Number of Iterations", 50, Min(1)),
+    LongParam("seed", "Random Seed", -1),
     FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class NMFCrossClient : public FluidBaseClient,
@@ -154,7 +156,8 @@ public:
     });
 
     nmf.process(tgtMag, outputEnvelopes, W, get<kTimeSparsity>(),
-                std::min(srcWindows, get<kPolyphony>()), get<kContinuity>());
+                std::min(srcWindows, get<kPolyphony>()), get<kContinuity>(),
+                get<kRandomSeed>());
 
     r = checkTask(c, progressCount, progressTotal);
     if (!r.ok()) return r;
@@ -166,7 +169,7 @@ public:
 
     GriffinLim gl;
     gl.process(result, tgtFrames, 50, fftParams.winSize(), fftParams.fftSize(),
-               fftParams.hopSize());
+               fftParams.hopSize(), get<kRandomSeed>());
 
     r = checkTask(c, ++progressCount, progressTotal);
     if (!r.ok()) return r;

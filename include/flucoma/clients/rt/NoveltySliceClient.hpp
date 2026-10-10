@@ -74,23 +74,22 @@ public:
   }
 
   NoveltySliceClient(ParamSetViewType& p, FluidContext& c)
-      : mParams{p}, mNovelty{get<kKernelSize>().max(),
-                             get<kFFT>().maxFrameSize(),
-                             get<kFilterSize>().max(), c.allocator()},
+      : mParams{p},
+        mNovelty{get<kKernelSize>().max(), get<kFFT>().maxFrameSize(),
+                 get<kFilterSize>().max(), c.allocator()},
         mBufferedProcess{get<kFFT>().max(),  get<kFFT>().max(), 1, 1,
                          c.hostVectorSize(), c.allocator()},
         mSTFT{get<kFFT>().max(), get<kFFT>().max(), get<kFFT>().hopSize(), 0,
               c.allocator()},
         mSpectrum{get<kFFT>().maxFrameSize(), c.allocator()},
         mMagnitude{get<kFFT>().maxFrameSize(), c.allocator()},
-        mBands{40, c.allocator()}, mFeature{get<kFFT>().maxFrameSize(),
-                                            c.allocator()},
-        mMelBands{40, get<kFFT>().max(), c.allocator()}, mDCT{40, 13,
-                                                              c.allocator()},
-        mChroma{12, get<kFFT>().max(), c.allocator()}, mLoudness{
-                                                           get<kFFT>().max(),
-                                                           c.allocator()},
-        mYinFFT(get<kFFT>().maxFrameSize(), c.allocator())
+        mBands{40, c.allocator()},
+        mFeature{get<kFFT>().maxFrameSize(), c.allocator()},
+        mMelBands{40, get<kFFT>().max(), c.allocator()},
+        mDCT{40, 13, c.allocator()},
+        mChroma{12, get<kFFT>().max(), c.allocator()},        
+        mYinFFT{get<kFFT>().maxFrameSize(), c.allocator()}, 
+        mLoudness{get<kFFT>().max(), c.allocator()}
   {
     audioChannelsIn(1);
     audioChannelsOut(1);
