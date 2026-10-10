@@ -142,8 +142,8 @@ private:
   
   index                          maxWindowIn;
   index                          maxWindowOut;
-  BufferedProcess                mBufferedProcess;
   algorithm::TransientExtraction mExtractor;
+  BufferedProcess                mBufferedProcess;
 };
 } // namespace transient
 

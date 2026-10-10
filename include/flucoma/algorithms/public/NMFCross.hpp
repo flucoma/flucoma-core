@@ -15,6 +15,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "STFT.hpp"
+#include "../util/EigenRandom.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
@@ -57,16 +58,16 @@ public:
   }
 
   void process(const RealMatrixView X, RealMatrixView H1, RealMatrixView W0,
-               index r, index p, index c) const
+               index r, index p, index c, index randomSeed = -1) const
   {
     index nFrames = X.extent(0);
-    index nBins = X.extent(1);
+    // index nBins = X.extent(1);
     index rank = W0.extent(0);
-    nBins = W0.extent(1);
+    // nBins = W0.extent(1);
     MatrixXd W = asEigen<Matrix>(W0).transpose();
     MatrixXd H;
-    H = MatrixXd::Random(rank, nFrames) * 0.5 +
-        MatrixXd::Constant(rank, nFrames, 0.5);
+    H = EigenRandom<MatrixXd>(rank, nFrames, RandomSeed{randomSeed},
+                Range{0.0, 1.0});
     MatrixXd V = asEigen<Matrix>(X).transpose();
     multiplicativeUpdates(V, W, H, r, p, c);
     MatrixXd HT = H.transpose();

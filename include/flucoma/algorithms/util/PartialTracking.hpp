@@ -309,12 +309,12 @@ private:
       }
     }
     // new tracks
-    index nBorn = 0, nDead = 0;
+    // index nBorn = 0, nDead = 0;
     for (auto&& peak : sinePeaks)
     {
       if (!peak.assigned && peak.logMag > birthThreshold(peak, maxAmp))
       {
-        nBorn++;
+        // nBorn++;
         mTracks.push_back(SineTrack{vector<SinePeak>(1, peak, alloc),
                                     static_cast<int>(mCurrentFrame), -1, true,
                                     true, mLastTrackId++});
@@ -325,7 +325,7 @@ private:
     {
       if (track.active && !track.assigned)
       {
-        nDead++;
+        // nDead++;
         track.active = false;
         track.endFrame = mCurrentFrame;
       }

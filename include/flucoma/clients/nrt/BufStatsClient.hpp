@@ -179,7 +179,7 @@ public:
       auto resultChannel = result.row(i);
       for(index j = 0, k = 0; j < processorOutputSize; ++j)
       {
-         if(selection[j % 7])
+         if(selection[asUnsigned(j % 7)])
           outputChannel(k++) = static_cast<T>(resultChannel(j));
       }
     }

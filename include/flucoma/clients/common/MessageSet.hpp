@@ -2,7 +2,6 @@
 
 #include "ParameterSet.hpp"
 #include "ParameterTypes.hpp"
-#include "tl/optional.hpp"
 #include <functional>
 #include <tuple>
 
@@ -10,15 +9,9 @@ namespace fluid {
 namespace client {
 
 template<typename T>
-using Optional = tl::optional<T>; 
+using Optional = std::optional<T>; 
 
 namespace impl{
-
-//template<typename T>
-//constexpr index isOptional(T&&) { return false; }
-//
-//template<typename T>
-//constexpr index isOptional(Optional<T>&&) { return true; }
 
 template<typename T>
 struct IsOptional: std::false_type{};
