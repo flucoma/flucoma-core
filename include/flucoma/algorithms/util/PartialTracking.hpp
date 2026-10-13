@@ -25,6 +25,14 @@ Capability through Linear Programming". Proceedings of DAFx-2018.
 namespace fluid {
 namespace algorithm {
 
+enum class VoiceState {
+  kFreeState,
+  kAttackState,
+  kSustainState,
+  kReleaseState,
+  kStolenState
+};
+
 struct SinePeak
 {
   double freq;
@@ -32,15 +40,23 @@ struct SinePeak
   bool   assigned;
 };
 
+struct VoicePeak
+{
+  double     freq;
+  double     logMag;
+  index      voiceID;
+  VoiceState state;
+};
+
 struct SineTrack
 {
-
   SineTrack(Allocator& alloc) : peaks(alloc) {}
 
   SineTrack(rt::vector<SinePeak>&& p, index s, index e, bool a, bool ass,
             index t)
-      : peaks{p}, startFrame{s}, endFrame{e}, active{a}, assigned{ass}, trackId{
-                                                                            t}
+      : peaks{p}, startFrame{s}, endFrame{e}, active{a}, assigned{ass},
+        trackId{t}
+
   {}
 
   rt::vector<SinePeak> peaks;
@@ -132,6 +148,29 @@ public:
           track.peaks[asUnsigned(latencyFrame - track.startFrame)]);
     }
     return sinePeaks;
+  }
+
+  // todo - refactor this function with the one above
+  vector<VoicePeak> getActiveVoices(Allocator& alloc)
+  {
+    vector<VoicePeak> voicePeaks(0, alloc);
+    index             latencyFrame = mCurrentFrame - mMinTrackLength;
+    if (latencyFrame < 0) return voicePeaks;
+    for (auto&& track : mTracks)
+    {
+      if (track.startFrame > latencyFrame) continue;
+      if (track.endFrame >= 0 && track.endFrame <= latencyFrame) continue;
+      if (track.endFrame >= 0 &&
+          track.endFrame - track.startFrame < mMinTrackLength)
+        continue;
+      voicePeaks.push_back(
+          {track.peaks[asUnsigned(latencyFrame - track.startFrame)].freq,
+           pow(10,
+               track.peaks[asUnsigned(latencyFrame - track.startFrame)].logMag /
+                   20),
+           track.trackId, VoiceState::kAttackState});
+    }
+    return voicePeaks;
   }
 
 private:
