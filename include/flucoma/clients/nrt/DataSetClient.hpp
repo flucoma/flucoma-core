@@ -230,9 +230,7 @@ public:
   }
 
   MessageResult<double> containsId(string id) const
-  {
-    return mAlgorithm.contains(id) ? 1 : 0;
-  }
+  { return mAlgorithm.contains(id) ? 1 : 0; }
 
   MessageResult<FluidTensor<rt::string, 1>> kNearest(InputBufferPtr data,
                                                      index nNeighbours) const
