@@ -161,6 +161,11 @@ public:
     if (!datasetClientPtr) return Error(NoDataSet);
     auto srcDataSet = datasetClientPtr->getDataSet();
     if (srcDataSet.size() == 0) return Error(EmptyDataSet);
+    if (mAlgorithm.size() == 0)
+    {
+      mAlgorithm = srcDataSet;
+      return OK();
+    }
     if (srcDataSet.pointSize() != mAlgorithm.pointSize())
       return Error(WrongPointSize);
     auto       ids = srcDataSet.getIds();
