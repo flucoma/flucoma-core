@@ -46,9 +46,9 @@ class FluidDataSetSampler : public detail::DataSampler<FluidDataSetSampler>
 public:
   template <typename DataSetA, typename DataSetB>
   FluidDataSetSampler(DataSetA const& in, DataSetB const& out, index batchSize,
-                      double validationFraction, bool shuffle = true)
+                      double validationFraction, bool shuffle = true, index seed = -1)
       : detail::DataSampler<FluidDataSetSampler>(in.size(), batchSize,
-                                                 validationFraction, shuffle),
+                                                 validationFraction, shuffle, seed),
         mIdxMaps{in.indexMap(out)}
   {}
 };

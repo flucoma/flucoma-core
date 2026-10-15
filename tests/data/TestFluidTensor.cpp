@@ -62,9 +62,8 @@ TEST_CASE("FluidTensor can be initialized from initializer lists","[FluidTensor]
                           4}; 
     const std::array<int, 5> y{0,1,2,3,4}; 
     REQUIRE(x.rows() == 5); 
-  //   REQUIRE(x.cols() == 1); 
     REQUIRE(std::distance(x.begin(),x.end()) == x.size()); 
-    REQUIRE(std::equal(x.begin(),x.end(), y.begin()));
+    REQUIRE_THAT(x,Catch::Matchers::RangeEquals(y)); 
   }  
 
   SECTION("2D initialization"){
@@ -76,14 +75,14 @@ TEST_CASE("FluidTensor can be initialized from initializer lists","[FluidTensor]
     REQUIRE(x.rows() == 2); 
     REQUIRE(x.cols() == 5); 
     REQUIRE(std::distance(x.begin(),x.end()) == x.size()); 
-    REQUIRE(std::equal(x.row(0).begin(),x.row(0).end(), y.begin()));
-    REQUIRE(std::equal(x.row(1).begin(),x.row(1).end(), y1.begin()));
+    REQUIRE_THAT(x.row(0),Catch::Matchers::RangeEquals(y)); 
+    REQUIRE_THAT(x.row(1),Catch::Matchers::RangeEquals(y1)); 
 
-    REQUIRE(std::equal(x.col(0).begin(),x.col(0).end(), c.begin()));
-    REQUIRE(std::equal(x.col(1).begin(),x.col(1).end(), c1.begin()));
-    REQUIRE(std::equal(x.col(2).begin(),x.col(2).end(), c2.begin()));
-    REQUIRE(std::equal(x.col(3).begin(),x.col(3).end(), c3.begin()));
-    REQUIRE(std::equal(x.col(4).begin(),x.col(4).end(), c4.begin()));
+    REQUIRE_THAT(x.col(0),Catch::Matchers::RangeEquals(c)); 
+    REQUIRE_THAT(x.col(1),Catch::Matchers::RangeEquals(c1)); 
+    REQUIRE_THAT(x.col(2),Catch::Matchers::RangeEquals(c2)); 
+    REQUIRE_THAT(x.col(3),Catch::Matchers::RangeEquals(c3)); 
+    REQUIRE_THAT(x.col(4),Catch::Matchers::RangeEquals(c4)); 
   }  
 }
 
@@ -104,7 +103,7 @@ TEST_CASE("FluidTensor data can be accessed by index and by slice","[FluidTensor
         const auto y = x(Slice(0),i);  
         const std::array<int, 2> z = {i, i + 5}; 
         CHECK(y.size() == 2); 
-        CHECK(std::equal(y.begin(),y.end(),z.begin())); 
+        CHECK_THAT(y, Catch::Matchers::RangeEquals(z)); 
       }
 
       //rows    
@@ -113,7 +112,7 @@ TEST_CASE("FluidTensor data can be accessed by index and by slice","[FluidTensor
         const auto y = x(i,Slice(0));  
         const std::array<int, 5> z = {(i * 5), (i * 5) + 1, (i * 5) + 2, (i * 5) + 3, (i * 5) + 4}; 
         CHECK(y.size() == 5); 
-        CHECK(std::equal(y.begin(),y.end(),z.begin())); 
+        CHECK_THAT(y, Catch::Matchers::RangeEquals(z)); 
       }
     }
 
@@ -122,7 +121,7 @@ TEST_CASE("FluidTensor data can be accessed by index and by slice","[FluidTensor
       const auto y = x(Slice(0,2),Slice(1,2));//both rows, 2 cols offset 1       
       const std::array<int, 4> z = {1,2,6,7}; 
       CHECK(y.size() == 4); 
-      CHECK(std::equal(y.begin(),y.end(),z.begin())); 
+      CHECK_THAT(y, Catch::Matchers::RangeEquals(z)); 
     }
 
 }
@@ -136,7 +135,7 @@ TEST_CASE("FluidTensor can be copied","[FluidTensor]"){
       CHECK(y.rows() == x.rows()); 
       CHECK(y.cols() == x.cols()); 
       CHECK(y.descriptor() == x.descriptor()); 
-      CHECK(std::equal(y.begin(),y.end(),x.begin())); 
+      CHECK_THAT(y, Catch::Matchers::RangeEquals(x)); 
   }
    
   SECTION("Copy assign") {
@@ -146,7 +145,7 @@ TEST_CASE("FluidTensor can be copied","[FluidTensor]"){
       CHECK(y.rows() == x.rows()); 
       CHECK(y.cols() == x.cols()); 
       CHECK(y.descriptor() == x.descriptor()); 
-      CHECK(std::equal(y.begin(),y.end(),x.begin())); 
+      CHECK_THAT(y, Catch::Matchers::RangeEquals(x)); 
   }
 
   SECTION("Copy algorithm") {
@@ -156,7 +155,7 @@ TEST_CASE("FluidTensor can be copied","[FluidTensor]"){
       CHECK(y.rows() == x.rows()); 
       CHECK(y.cols() == x.cols()); 
       CHECK(y.descriptor() == x.descriptor()); 
-      CHECK(std::equal(y.begin(),y.end(),x.begin())); 
+      CHECK_THAT(y, Catch::Matchers::RangeEquals(x)); 
   }
 
   SECTION("Copy conversion") {
@@ -165,7 +164,7 @@ TEST_CASE("FluidTensor can be copied","[FluidTensor]"){
       CHECK(y.rows() == x.rows()); 
       CHECK(y.cols() == x.cols()); 
       CHECK(y.descriptor() == x.descriptor()); 
-      CHECK(std::equal(y.begin(),y.end(),x.begin())); 
+      CHECK_THAT(y, Catch::Matchers::RangeEquals(x)); 
   }
 }
 
@@ -177,7 +176,7 @@ TEST_CASE("FluidTensor can be moved","[FluidTensor]"){
       CHECK(y.rows() == x.rows()); 
       CHECK(y.cols() == x.cols()); 
       CHECK(y.descriptor() == x.descriptor()); 
-      CHECK(std::equal(y.begin(),y.end(),x.begin())); 
+      CHECK_THAT(y, Catch::Matchers::RangeEquals(x)); 
   }
    
   SECTION("Move assign") {
@@ -187,7 +186,7 @@ TEST_CASE("FluidTensor can be moved","[FluidTensor]"){
       CHECK(y.rows() == x.rows()); 
       CHECK(y.cols() == x.cols()); 
       CHECK(y.descriptor() == x.descriptor()); 
-      CHECK(std::equal(y.begin(),y.end(),x.begin())); 
+      CHECK_THAT(y, Catch::Matchers::RangeEquals(x)); 
   }
 }
 
@@ -221,7 +220,7 @@ TEST_CASE("FluidTensor can be resized","[FluidTensor]"){
     CHECK(x.size() == 6); 
     CHECK(x.rows() == 2); 
     CHECK(x.cols() == 3); 
-    REQUIRE(std::equal(x.begin(),x.end(),y.begin())); 
+    REQUIRE_THAT(x, Catch::Matchers::RangeEquals(y)); 
   }
 }
 

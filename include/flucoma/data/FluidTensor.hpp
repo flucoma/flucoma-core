@@ -105,7 +105,11 @@ public:
   {
     static_assert(std::is_convertible<U, T>::value,
                   "Cannot convert between container value types");
-    std::copy(x.begin(), x.end(), mContainer.begin());
+    // summer 2025: std::copy failing CI on windows (server 2022, MSVC 19.44)
+    // seems like it's not recognising conversion and trying a straight memmove or something
+    // std::copy(x.begin(), x.end(), mContainer.begin());
+    // works ok if forced through assignment operator instead !?
+    *this = x; 
   }
 
   template <typename U, size_t M>
@@ -331,8 +335,7 @@ public:
 
   index extent(index n) const { return mDesc.extents[asUnsigned(n)]; };
   index rows() const { return extent(0); }
-  template <typename dummy = index>
-  std::enable_if_t<N >= 2, dummy> cols() const { return extent(1); }
+  index cols() const { if constexpr (N >= 2) {return extent(1);} else {return 1;} }
   index size() const { return asSigned(mContainer.size()); }
   const FluidTensorSlice<N>& descriptor() const { return mDesc; }
   FluidTensorSlice<N>&       descriptor() { return mDesc; }
@@ -675,7 +678,7 @@ public:
   }
 
   index rows() const { return mDesc.extents[0]; }
-  index cols() const { return order > 1 ? mDesc.extents[1] : 0; }
+  index cols() const { if constexpr (N >= 2) {return extent(1);} else {return 1;} }
   index size() const { return mDesc.size; }
   void  fill(const T x) { std::fill(begin(), end(), x); }
 

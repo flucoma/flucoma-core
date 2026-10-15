@@ -6,11 +6,12 @@
 # under the European Union’s Horizon 2020 research and innovation programme
 # (grant agreement No 725899).
 
-cmake_minimum_required (VERSION 3.18)
+cmake_minimum_required (VERSION 3.28)
 
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+    CACHE STRING "The MSVC runtime library to link with on Windows (/MT[d] by default)")
 
-if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.28.0")
   cmake_policy(SET CMP0135 NEW)
 endif()
 
@@ -55,6 +56,7 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/AlexHarker/HISSTools_Library
   GIT_PROGRESS TRUE
   GIT_TAG f3292ad 
+  EXCLUDE_FROM_ALL
 )
 
 FetchContent_Declare(
@@ -65,6 +67,7 @@ FetchContent_Declare(
   GIT_BRANCH "3.4"
   GIT_TAG "3.4.0"
   SOURCE_SUBDIR "include" # eigen's cmake doesn't do anything useful for us, skip it
+  EXCLUDE_FROM_ALL
 )
 
 FetchContent_Declare(
@@ -75,16 +78,8 @@ FetchContent_Declare(
   GIT_BRANCH "master"
   GIT_TAG "v1.0.1"
   SOURCE_SUBDIR "include" #spectra behaves badly as cmake sub-project, so skip its cmake
+  EXCLUDE_FROM_ALL
 )
-
-FetchContent_Declare(
-  tl_optional 
-  GIT_SHALLOW TRUE
-  GIT_REPOSITORY https://github.com/TartanLlama/optional.git  
-  GIT_PROGRESS TRUE
-)
-set(OPTIONAL_BUILD_PACKAGE OFF CACHE BOOL "" FORCE)
-set(OPTIONAL_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 
 #see https://json.nlohmann.me/integration/cmake/#fetchcontent
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
@@ -96,6 +91,7 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/foonathan/memory.git
   GIT_PROGRESS TRUE
   GIT_TAG main
+  EXCLUDE_FROM_ALL
 )
 
 set(FMT_INSTALL OFF CACHE BOOL "")
@@ -104,7 +100,8 @@ FetchContent_Declare(
   GIT_SHALLOW TRUE  
   GIT_REPOSITORY https://github.com/fmtlib/fmt
   GIT_PROGRESS TRUE
-  GIT_TAG master 
+  GIT_TAG main
+  EXCLUDE_FROM_ALL
 )
 
 if(HISS_PATH) #if hiss path is set, this will stop it downloading
@@ -123,7 +120,7 @@ if(JSON_PATH)
   get_filename_component(FETCHCONTENT_SOURCE_DIR_JSON ${JSON_PATH} ABSOLUTE)  
 endif()
 
-FetchContent_MakeAvailable(HISSTools Eigen Spectra tl_optional json Memory fmt)
+FetchContent_MakeAvailable(HISSTools Eigen Spectra json Memory fmt)
 
 set(FOONATHAN_MEMORY_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
 set(FOONATHAN_MEMORY_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
@@ -152,7 +149,6 @@ target_include_directories(FLUID_DECOMPOSITION SYSTEM INTERFACE
 
 target_link_libraries(FLUID_DECOMPOSITION INTERFACE 
   flucoma_VERSION_LIB 
-  tl::optional
   nlohmann_json::nlohmann_json
   foonathan_memory
   fmt::fmt

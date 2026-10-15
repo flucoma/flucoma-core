@@ -11,6 +11,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "../util/AlgorithmUtils.hpp"
+#include "../util/EigenRandom.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
@@ -28,7 +29,7 @@ public:
 
   index process(RealMatrixView X, RealMatrixView W, RealMatrixView H,
                 index minRank = 0, index maxRank = 200, double amount = 0.8,
-                index method = 0) // 0 - NMF-SVD, 1 NNDSVDar, 2 NNDSVDa 3 NNDSVD
+                index method = 0, index seed = -1) // 0 - NMF-SVD, 1 NNDSVDar, 2 NNDSVDa 3 NNDSVD
   {
     using namespace _impl;
     using namespace Eigen;
@@ -101,14 +102,16 @@ public:
         WT.col(j) = u; // avoid scaling for NMF with normalized W
         HT.row(j) = lbd * v;
       }
-      WT = WT.array().max(epsilon);
-      HT = HT.array().max(epsilon);
+
+      double mean = XT.mean();
       if (method == 1)
       {
         auto Wrand =
-            MatrixXd::Random(WT.rows(), WT.cols()).array().abs() / 100.0;
+            EigenRandom<MatrixXd>(WT.rows(), WT.cols(), RandomSeed{seed},
+                                  Range{epsilon, mean * 0.001});
         auto Hrand =
-            MatrixXd::Random(HT.rows(), HT.cols()).array().abs() / 100.0;
+            EigenRandom<MatrixXd>(HT.rows(), HT.cols(), RandomSeed{seed},
+                                  Range{epsilon, mean * 0.001});
         WT = (WT.array() < epsilon).select(Wrand, WT);
         HT = (HT.array() < epsilon).select(Hrand, HT);
       }

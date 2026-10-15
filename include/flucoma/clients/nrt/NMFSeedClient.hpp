@@ -32,6 +32,7 @@ enum NMFSeedParamIndex {
   kMaxRank,
   kCoverage,
   kMethod,
+  kRandomSeed,
   kFFT
 };
 
@@ -46,6 +47,7 @@ constexpr auto NMFSeedParams =
                      FloatParam("coverage", "Coverage", 0.5, Min(0), Max(1)),
                      EnumParam("method", "Initialization Method", 0, "NMF-SVD",
                                "NNDSVDar", "NNDSVDa", "NNDSVD"),
+                     LongParam("seed", "Random Seed", -1),
                      FFTParam("fftSettings", "FFT Settings", 1024, -1, -1));
 
 class NMFSeedClient : public FluidBaseClient, public OfflineIn, public OfflineOut
@@ -100,9 +102,9 @@ public:
 
     auto nndsvd = algorithm::NNDSVD();
 
-    index rank = nndsvd.process(magnitude, outputFilters, outputEnvelopes,
-                                get<kMinRank>(), get<kMaxRank>(),
-                                get<kCoverage>(), get<kMethod>());
+    index rank = nndsvd.process(
+        magnitude, outputFilters, outputEnvelopes, get<kMinRank>(),
+        get<kMaxRank>(), get<kCoverage>(), get<kMethod>(), get<kRandomSeed>());
 
     auto   filters = BufferAdaptor::Access{get<kFilters>().get()};
     Result resizeResult =

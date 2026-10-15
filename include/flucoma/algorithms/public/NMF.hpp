@@ -11,10 +11,11 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "../util/AlgorithmUtils.hpp"
+#include "../util/EigenRandom.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidIndex.hpp"
-#include "../../data/TensorTypes.hpp"
 #include "../../data/FluidMemory.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <vector>
 
@@ -42,17 +43,16 @@ public:
 
   // processFrame computes activations of a dictionary W in a given frame
   void processFrame(const RealVectorView x, const RealMatrixView W0,
-                    RealVectorView out, index nIterations,
-                    RealVectorView v, Allocator& alloc)
+                    RealVectorView out, index nIterations, RealVectorView v,
+                    index randomSeed, Allocator& alloc)
   {
     using namespace Eigen;
     using namespace _impl;
     index    rank = W0.extent(0);
     FluidEigenMap<Matrix> W = asEigen<Matrix>(W0);
-    
+
     ScopedEigenMap<VectorXd> h(rank, alloc);
-    h = VectorXd::Random(rank) * 0.5 + VectorXd::Constant(rank, 0.5);
-    
+    h = EigenRandom<VectorXd>(rank, RandomSeed{randomSeed}, Range{0.0, 1.0});
     ScopedEigenMap<VectorXd> v0(x.size(), alloc);
     v0 = asEigen<Matrix>(x);
     W = W.array().max(epsilon).matrix();
@@ -90,7 +90,7 @@ public:
 
   void process(const RealMatrixView X, RealMatrixView W1, RealMatrixView H1,
                RealMatrixView V1, index rank, index nIterations, bool updateW,
-               bool           updateH = false,
+               bool updateH = false, index randomSeed = -1,
                RealMatrixView W0 = RealMatrixView(nullptr, 0, 0, 0),
                RealMatrixView H0 = RealMatrixView(nullptr, 0, 0, 0))
   {
@@ -101,8 +101,8 @@ public:
     MatrixXd W;
     if (W0.extent(0) == 0 && W0.extent(1) == 0)
     {
-      W = MatrixXd::Random(nBins, rank) * 0.5 +
-          MatrixXd::Constant(nBins, rank, 0.5);
+      W = EigenRandom<MatrixXd>(nBins, rank, RandomSeed{randomSeed},
+                                Range{0.0, 1.0});
     }
     else
     {
@@ -113,8 +113,8 @@ public:
     MatrixXd H;
     if (H0.extent(0) == 0 && H0.extent(1) == 0)
     {
-      H = MatrixXd::Random(rank, nFrames) * 0.5 +
-          MatrixXd::Constant(rank, nFrames, 0.5);
+      H = EigenRandom<MatrixXd>(rank, nFrames, RandomSeed{randomSeed},
+                                Range{0.0, 1.0});
     }
     else
     {

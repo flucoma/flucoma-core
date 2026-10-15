@@ -93,6 +93,7 @@ public:
     {
       auto srcDataSet = srcPtr->getDataSet();
       if (srcDataSet.size() == 0) return Error<double>(EmptyDataSet);
+      if (srcDataSet.size() < k) return Error<double>(SmallDataSet);
       if (!mAlgorithm.initialized()) return Error<double>(NoDataFitted);
       if (srcDataSet.pointSize() != mAlgorithm.dims())
         return Error<double>(WrongPointSize);
@@ -241,7 +242,7 @@ public:
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext& c)
   {
-    output[0] <<= input[0];
+    output[0](0) = 0;
     if (input[0](0) > 0)
     {
       auto PCAPtr = get<kModel>().get().lock();
@@ -266,6 +267,7 @@ public:
                   .samps(0, algorithm.dims(), 0);
       algorithm.processFrame(src, dest, k, get<kWhiten>() == 1);
       outBuf.samps(0, k, 0) <<= dest;
+      output[0](0) = 1;
     }
   }
 

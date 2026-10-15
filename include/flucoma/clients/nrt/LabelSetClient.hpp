@@ -142,6 +142,11 @@ public:
     return OK();
   }
 
+  MessageResult<double> containsId(string id) const
+  {
+    return mAlgorithm.contains(id) ? 1 : 0;
+  }
+  
   MessageResult<string> print() 
   { 
     return "LabelSet " + std::string(get<kName>()) + ": " + mAlgorithm.print();
@@ -164,7 +169,8 @@ public:
         makeMessage("clear", &LabelSetClient::clear),
         makeMessage("write", &LabelSetClient::write),
         makeMessage("read", &LabelSetClient::read),
-        makeMessage("getIds", &LabelSetClient::getIds));
+        makeMessage("getIds", &LabelSetClient::getIds),
+        makeMessage("containsId", &LabelSetClient::containsId));
   }
 
   const LabelSet getLabelSet() const { return mAlgorithm; }

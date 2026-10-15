@@ -39,7 +39,7 @@ template <typename T, typename U>
 auto sortedDistances(FluidTensorView<T, 1> x, FluidTensorView<U, 2> Y,
                      Allocator& alloc)
 {
-  rt::vector<std::pair<index, double>> distances(Y.rows(), alloc);
+  rt::vector<std::pair<index, double>> distances(asUnsigned(Y.rows()), alloc);
   std::generate(distances.begin(), distances.end(), [n = 0, &x, &Y]() mutable {
     auto result = std::make_pair(n, distance(x, Y.row(n)));
     n++;
@@ -229,6 +229,11 @@ public:
     return OK();
   }
 
+  MessageResult<double> containsId(string id) const
+  {
+    return mAlgorithm.contains(id) ? 1 : 0;
+  }
+
   MessageResult<FluidTensor<rt::string, 1>> kNearest(InputBufferPtr data,
                                                      index nNeighbours) const
   {
@@ -324,6 +329,7 @@ public:
         makeMessage("fromBuffer", &DataSetClient::fromBuffer),
         makeMessage("toBuffer", &DataSetClient::toBuffer),
         makeMessage("getIds", &DataSetClient::getIds),
+        makeMessage("containsId", &DataSetClient::containsId),
         makeMessage("kNearestDist", &DataSetClient::kNearestDist),
         makeMessage("kNearest", &DataSetClient::kNearest));
   }
@@ -350,7 +356,7 @@ namespace dataset {
 
 constexpr auto DataSetReadParams = defineParameters(
     InputDataSetClientRef::makeParam("dataSet", "DataSet Name"),
-    LongParam("numNeighbours", "Number of Nearest Neighbours", 1),
+    LongParam("numNeighbours", "Number of Nearest Neighbours", 1, Min(1)),
     InputDataSetClientRef::makeParam("lookupDataSet", "Lookup DataSet Name"),
     InputBufferParam("inputPointBuffer", "Input Point Buffer"),
     BufferParam("predictionBuffer", "Prediction Buffer"));
@@ -375,7 +381,7 @@ public:
 
   static constexpr auto& getParameterDescriptors() { return DataSetReadParams; }
 
-  DataSetRead(ParamSetViewType& p, FluidContext& c) : mParams(p)
+  DataSetRead(ParamSetViewType& p, FluidContext&) : mParams(p)
   {
     controlChannelsIn(1);
     controlChannelsOut({1, 1});

@@ -214,7 +214,7 @@ public:
   void process(std::vector<FluidTensorView<T, 1>>& input,
                std::vector<FluidTensorView<T, 1>>& output, FluidContext&)
   {
-    output[0] <<= input[0];
+    output[0](0) = 0;
     if (input[0](0) > 0)
     {
       auto normPtr = get<kModel>().get().lock();
@@ -237,6 +237,7 @@ public:
                 .samps(0, algorithm.dims(), 0);
       algorithm.processFrame(src, dest, get<kInvert>() == 1);
       outBuf.samps(0, algorithm.dims(), 0) <<= dest;
+      output[0](0) = 1;
     }
   }
 

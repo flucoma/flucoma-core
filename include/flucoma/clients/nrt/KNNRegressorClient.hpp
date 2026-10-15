@@ -43,8 +43,8 @@ bool check_json(const nlohmann::json& j, const KNNRegressorData&)
   return fluid::check_json(j, {"tree", "target"},
                            {JSONTypes::OBJECT, JSONTypes::OBJECT}) &&
          fluid::algorithm::check_json(j.at("tree"), algorithm::KDTree()) &&
-         fluid::check_json(j.at("labels"),
-                           FluidDataSet<std::string, std::string, 1>());
+         fluid::check_json(j.at("target"),
+                           FluidDataSet<std::string, double, 1>());
 }
 
 void from_json(const nlohmann::json& j, KNNRegressorData& data)
@@ -237,11 +237,11 @@ public:
 
 
   template <typename T>
-  void process(std::vector<FluidTensorView<T, 1>>& in,
-               std::vector<FluidTensorView<T, 1>>& out, FluidContext& c)
+  void process(std::vector<FluidTensorView<T, 1>>& input,
+               std::vector<FluidTensorView<T, 1>>& output, FluidContext& c)
   {
-    out[0] <<= in[0];
-    if (in[0](0) > 0)
+    output[0](0) = 0;
+    if (input[0](0) > 0)
     {
       auto knnPtr = get<kModel>().get().lock();
       if (!knnPtr)
@@ -263,15 +263,16 @@ public:
 
       algorithm::KNNRegressor regressor;
 
-      RealVector input(algorithm.tree.dims(), c.allocator());
-      RealVector output(algorithm.target.dims(), c.allocator());
+      RealVector in(algorithm.tree.dims(), c.allocator());
+      RealVector out(algorithm.target.dims(), c.allocator());
 
-      input <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
+      in <<= BufferAdaptor::ReadAccess(get<kInputBuffer>().get())
                     .samps(0, algorithm.tree.dims(), 0);
 
-      regressor.predict(algorithm.tree, algorithm.target, input, output, k,
+      regressor.predict(algorithm.tree, algorithm.target, in, out, k,
                         weight, c.allocator());
-      outBuf.samps(0) <<= output;
+      outBuf.samps(0) <<= out;
+      output[0](0) = 1;
     }
   }
 
