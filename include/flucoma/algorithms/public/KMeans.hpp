@@ -224,6 +224,8 @@ public:
     mMeans = _impl::asEigen<Eigen::Array>(means);
     mDims = mMeans.cols();
     mK = mMeans.rows();
+    assert(mDims != 0);
+    assert(mK != 0);
     mEmpty = std::vector<bool>(asUnsigned(mK), false);
     mTrained = true;
   }

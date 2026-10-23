@@ -210,7 +210,6 @@ public:
     if (!srcPtr) return Error(NoDataSet);
     auto dataSet = srcPtr->getDataSet();
     if (dataSet.size() == 0) return Error(EmptyDataSet);
-    if (dataSet.size() != get<kNumClusters>()) return Error(WrongNumInitial);
     mAlgorithm.setMeans(dataSet.getData());
     return OK();
   }
