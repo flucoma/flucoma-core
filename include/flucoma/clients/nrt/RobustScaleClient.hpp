@@ -23,7 +23,7 @@ constexpr auto RobustScaleParams = defineParameters(
     StringParam<Fixed<true>>("name", "Name"),
     FloatParam("low", "Low Percentile", 25, Min(0), Max(100)),
     FloatParam("high", "High Percentile", 75, Min(0), Max(100)),
-    EnumParam("dswide", "DataSet Wide", 1, "no", "yes"));
+    EnumParam("byCol", "Scale by Column", 1, "no", "yes"));
 
 class RobustScaleClient : public FluidBaseClient,
                           OfflineIn,
@@ -31,7 +31,7 @@ class RobustScaleClient : public FluidBaseClient,
                           ModelObject,
                           public DataClient<algorithm::RobustScaling>
 {
-  enum { kName, kLow, kHigh, kDSWide };
+  enum { kName, kLow, kHigh, kByCol };
 
 public:
   using string = std::string;
@@ -70,7 +70,7 @@ public:
       auto dataset = datasetClientPtr->getDataSet();
       if (dataset.size() == 0) return Error(EmptyDataSet);
       mAlgorithm.init(get<kLow>(), get<kHigh>(), dataset.getData(),
-                      get<kDSWide>());
+                      get<kByCol>());
     }
     else
     {
