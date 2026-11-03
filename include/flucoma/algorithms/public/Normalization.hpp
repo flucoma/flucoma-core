@@ -26,7 +26,7 @@ public:
   using ArrayXd = Eigen::ArrayXd;
   using ArrayXXd = Eigen::ArrayXXd;
 
-  void init(double min, double max, RealMatrixView in)
+  void init(double min, double max, RealMatrixView in, index byCol)
   {
     using namespace Eigen;
     using namespace _impl;
@@ -35,8 +35,16 @@ public:
     mRange = mMax - mMin;
     handleZerosInScale(mRange);
     ArrayXXd input = asEigen<Array>(in);
-    mDataMin = input.colwise().minCoeff();
-    mDataMax = input.colwise().maxCoeff();
+    if (byCol)
+    {
+      mDataMin = input.colwise().minCoeff();
+      mDataMax = input.colwise().maxCoeff();
+    }
+    else
+    {
+      mDataMin.setConstant(input.cols(), input.minCoeff());
+      mDataMax.setConstant(input.cols(), input.maxCoeff());
+    }
     mDataRange = mDataMax - mDataMin;
     handleZerosInScale(mDataRange);
     mInitialized = true;

@@ -19,7 +19,8 @@ namespace client {
 namespace standardize {
 
 constexpr auto StandardizeParams =
-    defineParameters(StringParam<Fixed<true>>("name", "Name"));
+    defineParameters(StringParam<Fixed<true>>("name", "Name"),
+                     EnumParam("byCol", "Standardize by Column", 1, "no", "yes"));
 
 class StandardizeClient : public FluidBaseClient,
                           OfflineIn,
@@ -27,7 +28,7 @@ class StandardizeClient : public FluidBaseClient,
                           ModelObject,
                           public DataClient<algorithm::Standardization>
 {
-  enum { kName };
+  enum { kName, kByCol };
 
 public:
   using string = std::string;
@@ -65,7 +66,7 @@ public:
     {
       auto dataset = datasetClientPtr->getDataSet();
       if (dataset.size() == 0) return Error(EmptyDataSet);
-      mAlgorithm.init(dataset.getData());
+      mAlgorithm.init(dataset.getData(), get<kByCol>());
     }
     else
     {

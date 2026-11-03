@@ -26,14 +26,15 @@ public:
   using ArrayXd = Eigen::ArrayXd;
   using ArrayXXd = Eigen::ArrayXXd;
 
-  void init(RealMatrixView in)
+  void init(RealMatrixView in, index byCol)
   {
     using namespace Eigen;
     using namespace _impl;
     ArrayXXd input = asEigen<Array>(in);
-    mMean = input.colwise().mean();
-    mStd = ((input.rowwise() - mMean.transpose()).square().colwise().mean())
-               .sqrt();
+    double   overallmean = input.mean();
+    double   overallstd = std::sqrt((input - overallmean).square().mean());
+    mMean.setConstant(input.cols(), overallmean);
+    mStd.setConstant(input.cols(), overallstd);
     handleZerosInScale(mStd);
     mInitialized = true;
   }

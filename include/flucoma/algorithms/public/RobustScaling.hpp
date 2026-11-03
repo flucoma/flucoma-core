@@ -27,7 +27,7 @@ public:
   using ArrayXd = Eigen::ArrayXd;
   using ArrayXXd = Eigen::ArrayXXd;
 
-  void init(double low, double high, RealMatrixView in)
+  void init(double low, double high, RealMatrixView in, index byCol)
   {
     using namespace Eigen;
     using namespace _impl;
@@ -38,15 +38,13 @@ public:
     mDataHigh.resize(input.cols());
     mMedian.resize(input.cols());
     mRange.resize(input.cols());
-    index length = input.rows();
-    for (index i = 0; i < input.cols(); i++)
-    {
-      ArrayXd sorted = input.col(i);
-      std::sort(sorted.data(), sorted.data() + length);
-      mMedian(i) = sorted(lrint(0.5 * (length - 1)));
-      mDataLow(i) = sorted(lrint((mLow / 100.0) * (length - 1)));
-      mDataHigh(i) = sorted(lrint((mHigh / 100.0) * (length - 1)));
-    }
+    index length = input.size();
+    std::sort(input.data(), input.data() + length);
+    mMedian.setConstant(input.cols(), input(lrint(0.5 * (length - 1))));
+    mDataLow.setConstant(input.cols(),
+                         input(lrint((mLow / 100.0) * (length - 1))));
+    mDataHigh.setConstant(input.cols(),
+                          input(lrint((mHigh / 100.0) * (length - 1))));
     mRange = mDataHigh - mDataLow;
     handleZerosInScale(mRange);
     mInitialized = true;

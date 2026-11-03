@@ -18,10 +18,11 @@ namespace fluid {
 namespace client {
 namespace normalize {
 
-constexpr auto NormalizeParams = defineParameters(
-    StringParam<Fixed<true>>("name", "Name"),
-    FloatParam("min", "Minimum Value", 0.0),
-    FloatParam("max", "Maximum Value", 1.0));
+constexpr auto NormalizeParams =
+    defineParameters(StringParam<Fixed<true>>("name", "Name"),
+                     FloatParam("min", "Minimum Value", 0.0),
+                     FloatParam("max", "Maximum Value", 1.0),
+                     EnumParam("byCol", "Normalize by Column", 1, "no", "yes"));
 
 class NormalizeClient : public FluidBaseClient,
                         OfflineIn,
@@ -29,7 +30,7 @@ class NormalizeClient : public FluidBaseClient,
                         ModelObject,
                         public DataClient<algorithm::Normalization>
 {
-  enum { kName, kMin, kMax };
+  enum { kName, kMin, kMax, kByCol };
 
 public:
   using string = std::string;
@@ -67,7 +68,8 @@ public:
     {
       auto dataset = datasetClientPtr->getDataSet();
       if (dataset.size() == 0) return Error(EmptyDataSet);
-      mAlgorithm.init(get<kMin>(), get<kMax>(), dataset.getData());
+      mAlgorithm.init(get<kMin>(), get<kMax>(), dataset.getData(),
+                      get<kByCol>());
     }
     else
     {
