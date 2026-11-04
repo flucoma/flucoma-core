@@ -36,7 +36,7 @@ class KMeansClient : public FluidBaseClient,
                      public DataClient<algorithm::KMeans>
 {
   enum {kName, kNumClusters, kMaxIter, kInit, kRandomSeed}; 
-  ParameterTrackChanges<index> mTracker; 
+    
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
@@ -212,11 +212,8 @@ public:
     if (!srcPtr) return Error(NoDataSet);
     auto dataSet = srcPtr->getDataSet();
     if (dataSet.size() == 0) return Error(EmptyDataSet);
-    auto numClusters = dataSet.size();
     mAlgorithm.setMeans(dataSet.getData());
-    ParamValues newParams = mParams.get().toTuple();
-    std::get<kNumClusters>(newParams) = numClusters;
-    return newParams;
+    return updateParameters();
   }
 
   MessageResult<void> transformPoint(InputBufferPtr in, BufferPtr out) const
@@ -235,6 +232,20 @@ public:
     mAlgorithm.transform(src, dest);
     outBuf.allFrames()(Slice(0, 1), Slice(0, mAlgorithm.size())) <<= dest;
     return OK();
+  }
+
+  MessageResult<ParamValues> read(string fileName)
+  {
+    auto result = DataClient::read(fileName);
+    if (result.ok()) return updateParameters();
+    return {result.status(), result.message()};
+  }
+
+  MessageResult<ParamValues> load(string s)
+  {
+    auto result = DataClient::load(s);
+    if (result.ok()) return updateParameters();
+    return {result.status(), result.message()};
   }
 
   static auto getMessageDescriptors()
@@ -261,6 +272,15 @@ public:
 
 private:
   using DataSet = FluidDataSet<std::string, double, 1>;
+
+  ParameterTrackChanges<index> mTracker;
+
+  MessageResult<ParamValues> updateParameters()
+  {
+    ParamValues newParams = mParams.get().toTuple();
+    std::get<kNumClusters>(newParams) = mAlgorithm.getK();
+    return newParams;
+  }
 
   std::pair<MessageResult<IndexVector>, IndexVector>
   train(DataSet const& dataSet, index k, index maxIter , index initMethod, index randomSeed)
