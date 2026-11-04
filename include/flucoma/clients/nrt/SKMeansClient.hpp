@@ -37,7 +37,6 @@ class SKMeansClient : public FluidBaseClient,
                       ModelObject,
                       public DataClient<algorithm::SKMeans>
 {
-  ParameterTrackChanges<index> mTracker; 
 public:
   using string = std::string;
   using BufferPtr = std::shared_ptr<BufferAdaptor>;
@@ -48,6 +47,8 @@ public:
 
   using ParamDescType = decltype(SKMeansParams);
   using ParamSetViewType = ParameterSetView<ParamDescType>;
+  using ParamValues = typename ParamSetViewType::ValueTuple;
+
   std::reference_wrapper<ParamSetViewType> mParams;
 
   void setParams(ParamSetViewType& p) { mParams = p; }
@@ -204,16 +205,15 @@ auto [result, _] = train(dataSet, k, maxIter, get<kInit>(), get<kRandomSeed>());
     return OK();
   }
 
-  MessageResult<void> setMeans(DataSetClientRef srcClient)
+  MessageResult<ParamValues> setMeans(DataSetClientRef srcClient)
   {
     auto srcPtr = srcClient.get().lock();
     if (!srcPtr) return Error(NoDataSet);
     auto dataSet = srcPtr->getDataSet();
     if (dataSet.size() == 0) return Error(EmptyDataSet);
     mAlgorithm.setMeans(dataSet.getData());
-    return OK();
+      return updateParameters();
   }
-
 
   MessageResult<void> encodePoint(BufferPtr in, BufferPtr out) const
   {
@@ -231,6 +231,20 @@ auto [result, _] = train(dataSet, k, maxIter, get<kInit>(), get<kRandomSeed>());
     mAlgorithm.encode(src, dest, get<kThreshold>());
     outBuf.allFrames()(Slice(0, 1), Slice(0, mAlgorithm.size())) <<= dest;
     return OK();
+  }
+
+  MessageResult<ParamValues> read(string fileName)
+  {
+    auto result = DataClient::read(fileName);
+    if (result.ok()) return updateParameters();
+    return {result.status(), result.message()};
+  }
+
+  MessageResult<ParamValues> load(string s)
+  {
+    auto result = DataClient::load(s);
+    if (result.ok()) return updateParameters();
+    return {result.status(), result.message()};
   }
 
   static auto getMessageDescriptors()
@@ -258,21 +272,33 @@ auto [result, _] = train(dataSet, k, maxIter, get<kInit>(), get<kRandomSeed>());
 private:
   using DataSet = FluidDataSet<std::string, double, 1>;
 
-  std::pair<MessageResult<IndexVector>, IndexVector>
-  train(DataSet const& dataSet, index k, index maxIter , index initMethod, index randomSeed)
+  ParameterTrackChanges<index> mTracker;
+
+  MessageResult<ParamValues> updateParameters()
   {
-    mAlgorithm.train(
-        dataSet, k, maxIter,
-        static_cast<algorithm::KMeans::InitMethod>(initMethod), randomSeed);
+    ParamValues newParams = mParams.get().toTuple();
+    std::get<kNumClusters>(newParams) = mAlgorithm.getK();
+    return newParams;
+  }
+
+  std::pair<MessageResult<IndexVector>, IndexVector>
+  train(DataSet const& dataSet, index k, index maxIter, index initMethod,
+        index randomSeed)
+  {
+    mAlgorithm.train(dataSet, k, maxIter,
+                     static_cast<algorithm::KMeans::InitMethod>(initMethod),
+                     randomSeed);
     IndexVector assignments(dataSet.size());
     mAlgorithm.getAssignments(assignments);
-    auto training_result = MessageResult<IndexVector>(getCounts(assignments,k)); 
-    if(mAlgorithm.nEmpty() > 0)
+    auto training_result =
+        MessageResult<IndexVector>(getCounts(assignments, k));
+    if (mAlgorithm.nEmpty() > 0)
     {
-      training_result.set(Result::Status::kWarning); 
-      training_result.addMessage("There were empty clusters; perhaps numClusters is too high."); 
+      training_result.set(Result::Status::kWarning);
+      training_result.addMessage(
+          "There were empty clusters; perhaps numClusters is too high.");
     }
-    return {training_result, assignments}; 
+    return {training_result, assignments};
   }
 
   IndexVector getCounts(IndexVector assignments, index k) const
