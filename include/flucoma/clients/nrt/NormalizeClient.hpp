@@ -38,8 +38,9 @@ public:
   using StringVector = FluidTensor<string, 1>;
 
   using ParamDescType = decltype(NormalizeParams);
-
   using ParamSetViewType = ParameterSetView<ParamDescType>;
+  using ParamValues = typename ParamSetViewType::ValueTuple;
+
   std::reference_wrapper<ParamSetViewType> mParams;
 
   void setParams(ParamSetViewType& p) { mParams = p; }
@@ -75,6 +76,7 @@ public:
     }
     return {};
   }
+
   MessageResult<void> transform(InputDataSetClientRef sourceClient,
                                 DataSetClientRef destClient)
   {
@@ -91,19 +93,27 @@ public:
   }
 
   MessageResult<void> transformPoint(InputBufferPtr in, BufferPtr out)
-  {
-    return _transformPoint(in, out, false); 
-  }
-  
+  { return _transformPoint(in, out, false); }
+
   MessageResult<void> inverseTransform(InputDataSetClientRef sourceClient,
-                                DataSetClientRef destClient)
-  {
-    return _transform(sourceClient, destClient, true);
-  }
-  
+                                       DataSetClientRef      destClient)
+  { return _transform(sourceClient, destClient, true); }
+
   MessageResult<void> inverseTransformPoint(InputBufferPtr in, BufferPtr out)
+  { return _transformPoint(in, out, true); }
+
+  MessageResult<ParamValues> read(string fileName)
   {
-    return _transformPoint(in, out, true); 
+    auto result = DataClient::read(fileName);
+    if (result.ok()) return updateParameters();
+    return {result.status(), result.message()};
+  }
+
+  MessageResult<ParamValues> load(string s)
+  {
+    auto result = DataClient::load(s);
+    if (result.ok()) return updateParameters();
+    return {result.status(), result.message()};
   }
 
   static auto getMessageDescriptors()
@@ -126,6 +136,16 @@ public:
   }
 
 private:
+  ParameterTrackChanges<double, double> mTracker;
+
+  MessageResult<ParamValues> updateParameters()
+  {
+    ParamValues newParams = mParams.get().toTuple();
+    std::get<kMin>(newParams) = mAlgorithm.getMin();
+    std::get<kMax>(newParams) = mAlgorithm.getMax();
+    return newParams;
+  }
+
   MessageResult<void> _transform(InputDataSetClientRef sourceClient,
                                  DataSetClientRef destClient, bool invert)
   {

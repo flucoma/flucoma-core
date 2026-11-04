@@ -39,8 +39,9 @@ public:
   using StringVector = FluidTensor<string, 1>;
 
   using ParamDescType = decltype(RobustScaleParams);
-
   using ParamSetViewType = ParameterSetView<ParamDescType>;
+  using ParamValues = typename ParamSetViewType::ValueTuple;
+
   std::reference_wrapper<ParamSetViewType> mParams;
 
   void setParams(ParamSetViewType& p) { mParams = p; }
@@ -76,6 +77,7 @@ public:
     }
     return {};
   }
+
   MessageResult<void> transform(InputDataSetClientRef sourceClient,
                                 DataSetClientRef destClient)
   {
@@ -106,6 +108,20 @@ public:
   {
     return _transformPoint(in, out, true);
   }
+    
+  MessageResult<ParamValues> read(string fileName)
+  {
+    auto result = DataClient::read(fileName);
+    if (result.ok()) return updateParameters();
+    return {result.status(), result.message()};
+  }
+
+  MessageResult<ParamValues> load(string s)
+  {
+    auto result = DataClient::load(s);
+    if (result.ok()) return updateParameters();
+    return {result.status(), result.message()};
+  }
 
   static auto getMessageDescriptors()
   {
@@ -127,6 +143,16 @@ public:
   }
 
 private:
+  ParameterTrackChanges<double, double> mTracker;
+
+  MessageResult<ParamValues> updateParameters()
+  {
+    ParamValues newParams = mParams.get().toTuple();
+    std::get<kLow>(newParams) = mAlgorithm.getLow();
+    std::get<kHigh>(newParams) = mAlgorithm.getHigh();
+    return newParams;
+  }
+
   MessageResult<void> _transform(InputDataSetClientRef sourceClient,
                                  DataSetClientRef destClient, bool invert)
   {
@@ -168,7 +194,6 @@ private:
     outBuf.samps(0, mAlgorithm.dims(), 0) <<= dest;
     return OK();
   }
-  
 };
 
 using RobustScaleRef = SharedClientRef<const RobustScaleClient>;
