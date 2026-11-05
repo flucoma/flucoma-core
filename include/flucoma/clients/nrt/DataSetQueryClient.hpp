@@ -17,11 +17,11 @@ namespace fluid {
 namespace client {
 namespace datasetquery {
 
-enum { kName };
-
 constexpr auto DataSetQueryParams = defineParameters();
-
-class DataSetQueryClient : public FluidBaseClient, OfflineIn, OfflineOut
+class DataSetQueryClient : public FluidBaseClient,
+                           OfflineIn,
+                           OfflineOut,
+                           ModelObject
 {
 public:
   using string = std::string;
@@ -29,9 +29,7 @@ public:
 
   template <typename T>
   Result process(FluidContext&)
-  {
-    return {};
-  }
+  { return {}; }
 
   using ParamDescType = decltype(DataSetQueryParams);
   using ParamSetViewType = ParameterSetView<ParamDescType>;
@@ -41,16 +39,12 @@ public:
 
   template <size_t N>
   auto& get() const
-  {
-    return mParams.get().template get<N>();
-  }
+  { return mParams.get().template get<N>(); }
 
   static constexpr auto& getParameterDescriptors()
-  {
-    return DataSetQueryParams;
-  }
+  { return DataSetQueryParams; }
 
-  DataSetQueryClient(ParamSetViewType& p,  FluidContext&) : mParams(p) {}
+  DataSetQueryClient(ParamSetViewType& p, FluidContext&) : mParams(p) {}
 
   MessageResult<void> addColumn(index column)
   {
@@ -101,7 +95,7 @@ public:
 
 
   MessageResult<void> transform(InputDataSetClientRef sourceClient,
-                                DataSetClientRef destClient)
+                                DataSetClientRef      destClient)
   {
     if (mAlgorithm.numColumns() <= 0) return Error("No columns");
     auto srcPtr = sourceClient.get().lock();
@@ -120,7 +114,7 @@ public:
 
   MessageResult<void> transformJoin(InputDataSetClientRef source1Client,
                                     InputDataSetClientRef source2Client,
-                                    DataSetClientRef destClient)
+                                    DataSetClientRef      destClient)
   {
     auto src1Ptr = source1Client.get().lock();
     auto src2Ptr = source2Client.get().lock();
