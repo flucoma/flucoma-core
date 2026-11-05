@@ -22,7 +22,7 @@ constexpr auto NormalizeParams =
     defineParameters(StringParam<Fixed<true>>("name", "Name"),
                      FloatParam("min", "Minimum Value", 0.0),
                      FloatParam("max", "Maximum Value", 1.0),
-                     EnumParam("byCol", "Normalize by Column", 1, "no", "yes"));
+                     LongParam("axis", "Normalizing Axis", 0, Min(-1), Max(0)));
 
 class NormalizeClient : public FluidBaseClient,
                         OfflineIn,
@@ -30,7 +30,7 @@ class NormalizeClient : public FluidBaseClient,
                         ModelObject,
                         public DataClient<algorithm::Normalization>
 {
-  enum { kName, kMin, kMax, kByCol };
+  enum { kName, kMin, kMax, kAxis };
 
 public:
   using string = std::string;
@@ -69,7 +69,7 @@ public:
       auto dataset = datasetClientPtr->getDataSet();
       if (dataset.size() == 0) return Error(EmptyDataSet);
       mAlgorithm.init(get<kMin>(), get<kMax>(), dataset.getData(),
-                      get<kByCol>());
+                      get<kAxis>());
     }
     else
     {
