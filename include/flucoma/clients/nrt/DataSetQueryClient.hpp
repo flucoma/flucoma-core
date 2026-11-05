@@ -17,11 +17,11 @@ namespace fluid {
 namespace client {
 namespace datasetquery {
 
-enum { kName };
-
 constexpr auto DataSetQueryParams = defineParameters();
-
-class DataSetQueryClient : public FluidBaseClient, OfflineIn, OfflineOut
+class DataSetQueryClient : public FluidBaseClient,
+                           OfflineIn,
+                           OfflineOut,
+                           ModelObject
 {
 public:
   using string = std::string;
