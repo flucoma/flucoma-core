@@ -38,13 +38,28 @@ public:
     mDataHigh.resize(input.cols());
     mMedian.resize(input.cols());
     mRange.resize(input.cols());
-    index length = input.size();
-    std::sort(input.data(), input.data() + length);
-    mMedian.setConstant(input.cols(), input(lrint(0.5 * (length - 1))));
-    mDataLow.setConstant(input.cols(),
-                         input(lrint((mLow / 100.0) * (length - 1))));
-    mDataHigh.setConstant(input.cols(),
-                          input(lrint((mHigh / 100.0) * (length - 1))));
+    if (axis == 0)
+    {
+      index length = input.rows();
+      for (index i = 0; i < input.cols(); i++)
+      {
+        ArrayXd sorted = input.col(i);
+        std::sort(sorted.data(), sorted.data() + length);
+        mMedian(i) = sorted(lrint(0.5 * (length - 1)));
+        mDataLow(i) = sorted(lrint((mLow / 100.0) * (length - 1)));
+        mDataHigh(i) = sorted(lrint((mHigh / 100.0) * (length - 1)));
+      }
+    }
+    else
+    {
+      index length = input.size();
+      std::sort(input.data(), input.data() + length);
+      mMedian.setConstant(input.cols(), input(lrint(0.5 * (length - 1))));
+      mDataLow.setConstant(input.cols(),
+                           input(lrint((mLow / 100.0) * (length - 1))));
+      mDataHigh.setConstant(input.cols(),
+                            input(lrint((mHigh / 100.0) * (length - 1))));
+    }
     mRange = mDataHigh - mDataLow;
     handleZerosInScale(mRange);
     mInitialized = true;
