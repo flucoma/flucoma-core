@@ -108,7 +108,7 @@ public:
     return mCount;
   }
 
-  void process(const RealVectorView input, RealVectorView transients,
+  void process(const InputRealVectorView input, RealVectorView transients,
       RealVectorView residual, Allocator& alloc = FluidDefaultAllocator())
   {
     assert(mInitialized && "Call init() before processing");
@@ -121,7 +121,7 @@ public:
     interpolate(transients.data(), residual.data(), alloc);
   }
 
-  void process(const RealVectorView input, const RealVectorView unknowns,
+  void process(const InputRealVectorView input, const InputRealVectorView unknowns,
       RealVectorView transients, RealVectorView residual,
       Allocator& alloc = FluidDefaultAllocator())
   {
@@ -156,7 +156,7 @@ private:
   void analyze(Allocator& alloc)
   {
     mModel.setMinVariance(0.0000001);
-    mModel.estimate(FluidTensorView<const double, 1>(
+    mModel.estimate(InputRealVectorView(
                         mInput.data(), modelOrder(), analysisSize()),
         3, 3.0, alloc);
   }
@@ -168,12 +168,12 @@ private:
     // Forward and backward error
     const double normFactor = 1.0 / sqrt(mModel.variance());
 
-    auto inputView = FluidTensorView<const double, 1>(mInput.data(),
+    auto inputView = InputRealVectorView(mInput.data(),
         modelOrder() + padSize(),
         blockSize() + modelOrder() + mDetectHalfWindow);
-    auto fwdError = FluidTensorView<double, 1>(
-        mForwardError.data(), 0, blockSize() + mDetectHalfWindow);
-    auto backError = FluidTensorView<double, 1>(
+    auto fwdError = RealVectorView(
+    mForwardError.data(), 0, blockSize() + mDetectHalfWindow);
+    auto backError = RealVectorView(
         mBackwardError.data(), 0, blockSize() + mDetectHalfWindow);
 
     errorCalculation<&ARModel::forwardErrorArray>(
@@ -183,9 +183,9 @@ private:
 
     // Window error functions (brute force convolution)
     auto fwdWindowedError =
-        FluidTensorView<double, 1>(mForwardWindowedError.data(), 0, hopSize());
+        RealVectorView(mForwardWindowedError.data(), 0, hopSize());
     auto backWindowedError =
-        FluidTensorView<double, 1>(mBackwardWindowedError.data(), 0, hopSize());
+        RealVectorView(mBackwardWindowedError.data(), 0, hopSize());
 
     windowError(fwdError(Slice(modelOrder())), fwdWindowedError);
     windowError(backError(Slice(modelOrder())), backWindowedError);
@@ -263,7 +263,7 @@ private:
     mCount = count;
   }
 
-  template <double Method(const RealVectorView&)>
+  template <double Method(const InputRealVectorView&)>
   double calcStat(const double* input, index size)
   {
     RealVectorView view(const_cast<double*>(input), 0, size);
@@ -334,7 +334,7 @@ private:
         residual[i] = input[i + order];
     }
 
-    // if (mRefine) refine(FluidTensorView<double, 1>(residual, 0, size), Au,
+    // if (mRefine) refine(RealVectorView(residual, 0, size), Au,
     // u);
 
     for (index i = 0; i < (size - order); i++)
@@ -345,8 +345,7 @@ private:
         mInput.data() + padSize() + order + order);
   }
 
-  void refine(
-      FluidTensorView<double, 1> io, Eigen::MatrixXd& Au, Eigen::MatrixXd& ls)
+  void refine(RealVectorView io, Eigen::MatrixXd& Au, Eigen::MatrixXd& ls)
   {
     const double energy = mModel.variance() * mCount;
     double       energyLS = 0.0;
@@ -394,10 +393,9 @@ private:
     return sum;
   }
 
-  template <void (ARModel::*Method)(
-      FluidTensorView<const double, 1>, FluidTensorView<double, 1>)>
-  void errorCalculation(FluidTensorView<const double, 1> input,
-      FluidTensorView<double, 1> error, double normFactor)
+  template <void (ARModel::*Method)(const InputRealVectorView, RealVectorView)>
+  void errorCalculation(InputRealVectorView  input, RealVectorView error,
+                        double normFactor)
   {
     (mModel.*Method)(input, error);
 
@@ -409,8 +407,8 @@ private:
   // Triangle window
   double calcWindow(double norm) { return std::min(norm, 1.0 - norm); }
 
-  void windowError(FluidTensorView<const double, 1> error,
-      FluidTensorView<double, 1>                    errorWindowed)
+  void windowError(const InputRealVectorView  error,
+                   RealVectorView             errorWindowed)
   {
     assert(error.descriptor().start >= mDetectHalfWindow &&
            "insufficient offset for filter size");

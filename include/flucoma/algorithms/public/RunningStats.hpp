@@ -42,7 +42,7 @@ public:
   }
   
   template<typename T>
-  void process(FluidTensorView<T, 1> in, FluidTensorView<T, 1> meanOut,
+  void process(FluidTensorView<const T, 1> in, FluidTensorView<T, 1> meanOut,
                FluidTensorView<T, 1> stdDevOut)
   {
     // Moving average and _sample_ standard deviation

@@ -31,7 +31,6 @@ public:
   using string = std::string;
 
   using DataSet = FluidDataSet<string, double, 1>;
-  using ConstRealVectorView = FluidTensorView<const double, 1>;
   struct Node;
   using NodePtr = std::shared_ptr<Node>;
   using knnCandidate = std::pair<double, const Node*>;
@@ -72,13 +71,13 @@ public:
     mInitialized = true;
   }
 
-  void addNode(string id, ConstRealVectorView data)
+  void addNode(string id, const InputRealVectorView data)
   {
     mRoot = addNode(mRoot.get(), id, data, 0);
     mNPoints++;
   }
 
-  KNNResult kNearest(ConstRealVectorView data, index k = 1, double radius = 0,
+  KNNResult kNearest(const InputRealVectorView data, index k = 1, double radius = 0,
                      Allocator& alloc = FluidDefaultAllocator()) const
   {
     assert(data.size() == mDims);
@@ -156,12 +155,12 @@ private:
     return current;
   }
 
-  NodePtr makeNode(string id, ConstRealVectorView data) const
+  NodePtr makeNode(string id, const InputRealVectorView data) const
   {
     return std::make_shared<Node>(Node{id, RealVector{data}, nullptr, nullptr});
   }
 
-  NodePtr addNode(Node* current, string id, ConstRealVectorView data,
+  NodePtr addNode(Node* current, string id, const InputRealVectorView data,
                   const index depth) const
   {
     if (current == nullptr) { return makeNode(id, data); }
@@ -176,7 +175,7 @@ private:
     return NodePtr(current);
   }
 
-  double distance(ConstRealVectorView p1, ConstRealVectorView p2) const
+  double distance(const InputRealVectorView p1, const InputRealVectorView p2) const
   {
     using namespace Eigen;
     auto v1 = _impl::asEigen<Array>(p1);
@@ -201,7 +200,7 @@ private:
     print(current->right.get(), depth + 1);
   }
 
-  void kNearest(const Node* current, ConstRealVectorView data, knnQueue& knn,
+  void kNearest(const Node* current, const InputRealVectorView data, knnQueue& knn,
                 index k, double radius, index depth) const
   {
     if (current == nullptr) return;

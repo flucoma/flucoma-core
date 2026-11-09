@@ -17,6 +17,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../data/FluidIndex.hpp"
 #include "../../data/FluidMemory.hpp"
 #include "../../data/FluidTensor.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Eigen>
 #include <algorithm>
 #include <cmath>
@@ -56,7 +57,7 @@ public:
   double        variance() const { return mVariance; }
   index         order() const { return mOrder; }
 
-  void estimate(FluidTensorView<const double, 1> input, index nIterations,
+  void estimate(const InputRealVectorView input, index nIterations,
                 double robustFactor, Allocator& alloc)
   {
     if (nIterations > 0)
@@ -65,44 +66,44 @@ public:
       directEstimate(input, true, alloc);
   }
 
-  double fowardPrediction(FluidTensorView<const double, 1> input)
+  double fowardPrediction(const InputRealVectorView input)
   {
     double prediction;
-    modelPredict(input, FluidTensorView<double, 1>(&prediction, 0, 1),
+    modelPredict(input, RealVectorView(&prediction, 0, 1),
                  std::negate<index>{}, Predict{});
     return prediction;
   }
 
-  double backwardPrediction(FluidTensorView<const double, 1> input)
+  double backwardPrediction(const InputRealVectorView input)
   {
     double prediction;
-    modelPredict(input, FluidTensorView<double, 1>(&prediction, 0, 1),
+    modelPredict(input, RealVectorView(&prediction, 0, 1),
                  Identity{}, Predict{});
     return prediction;
   }
 
-  double forwardError(FluidTensorView<const double, 1> input)
+  double forwardError(const InputRealVectorView input)
   {
     double error;
-    forwardErrorArray(input, FluidTensorView<double, 1>(&error, 0, 1));
+    forwardErrorArray(input, RealVectorView(&error, 0, 1));
     return error;
   }
 
-  double backwardError(FluidTensorView<const double, 1> input)
+  double backwardError(const InputRealVectorView input)
   {
     double error;
-    backwardErrorArray(input, FluidTensorView<double, 1>(&error, 0, 1));
+    backwardErrorArray(input, RealVectorView(&error, 0, 1));
     return error;
   }
 
-  void forwardErrorArray(FluidTensorView<const double, 1> input,
-                         FluidTensorView<double, 1>       errors)
+  void forwardErrorArray(const InputRealVectorView input,
+                         RealVectorView       errors)
   {
     modelPredict(input, errors, std::negate<index>{}, Error{});
   }
 
-  void backwardErrorArray(FluidTensorView<const double, 1> input,
-                          FluidTensorView<double, 1>       errors)
+  void backwardErrorArray(const InputRealVectorView input,
+                          RealVectorView       errors)
   {
     modelPredict(input, errors, Identity{}, Error{});
   }
@@ -129,8 +130,8 @@ private:
   };
 
   template <typename Indexer, typename OutputFn>
-  void modelPredict(FluidTensorView<const double, 1> input,
-                    FluidTensorView<double, 1> output, Indexer fIdx,
+  void modelPredict(const InputRealVectorView input,
+                    RealVectorView output, Indexer fIdx,
                     OutputFn fOut)
   {
     index numPredictions = output.size();
@@ -162,7 +163,7 @@ private:
     }
   }
 
-  void directEstimate(FluidTensorView<const double, 1> input,
+  void directEstimate(const InputRealVectorView input,
                       bool updateVariance, Allocator& alloc)
   {
     index size = input.size();
@@ -217,7 +218,7 @@ private:
     }
   }
 
-  void robustEstimate(FluidTensorView<const double, 1> input, index nIterations,
+  void robustEstimate(const InputRealVectorView input, index nIterations,
                       double robustFactor, Allocator& alloc)
   {
     FluidTensor<double, 1> estimates(input.size() + mOrder, alloc);
@@ -246,8 +247,8 @@ private:
     return cs * psiFunction((input - prediction) / cs);
   }
 
-  void robustVariance(FluidTensorView<double, 1>       estimates,
-                      FluidTensorView<const double, 1> input,
+  void robustVariance(RealVectorView       estimates,
+                      const InputRealVectorView input,
                       double                           robustFactor)
   {
     double residualSqSum = 0.0;
@@ -264,9 +265,9 @@ private:
     setVariance(residualSqSum / input.size());
   }
 
-  void robustIteration(FluidTensorView<double, 1>       estimates,
-                       FluidTensorView<const double, 1> input,
-                       double robustFactor, Allocator& alloc)
+  void robustIteration(RealVectorView                   estimates,
+                       const InputRealVectorView        input,
+                       double robustFactor, Allocator&  alloc)
   {
     // Iterate to find new filtered input
     for (index i = 0; i < input.size(); i++)

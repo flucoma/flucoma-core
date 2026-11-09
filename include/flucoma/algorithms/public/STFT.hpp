@@ -58,36 +58,31 @@ public:
     mFFT.resize(fftSize);
   }
 
-  static void magnitude(const FluidTensorView<std::complex<double>, 2> in,
-                        FluidTensorView<double, 2>                     out)
+  static void magnitude(const InputComplexMatrixView in, RealMatrixView out)
   {
     _impl::asEigen<Eigen::Array>(out) =
         _impl::asEigen<Eigen::Array>(in).abs().real();
   }
 
-  static void magnitude(const FluidTensorView<std::complex<double>, 1> in,
-                        FluidTensorView<double, 1>                     out)
+  static void magnitude(const InputComplexVectorView in, RealVectorView out)
   {
     _impl::asEigen<Eigen::Array>(out) =
         _impl::asEigen<Eigen::Array>(in).abs().real();
   }
 
-  static void phase(const FluidTensorView<std::complex<double>, 2> in,
-                    FluidTensorView<double, 2>                     out)
+  static void phase(const InputComplexMatrixView in, RealMatrixView out)
   {
     _impl::asEigen<Eigen::Array>(out) =
         _impl::asEigen<Eigen::Array>(in).arg().real();
   }
 
-  static void phase(const FluidTensorView<std::complex<double>, 1> in,
-                    FluidTensorView<double, 1>                     out)
+  static void phase(const InputComplexVectorView in, RealVectorView out)
   {
-    phase(FluidTensorView<std::complex<double>, 2>(in),
-          FluidTensorView<double, 2>(out));
+    phase(InputComplexMatrixView(in), RealMatrixView(out));
   }
 
 
-  void process(const RealVectorView audio, ComplexMatrixView spectrogram)
+  void process(const InputRealVectorView audio, ComplexMatrixView spectrogram)
   {
     index      halfWindow = mWindowSize / 2;
     ArrayXdMap window(mWindowBuffer.data(), mWindowSize);
@@ -107,7 +102,7 @@ public:
     spectrogram <<= _impl::asFluid(result);
   }
 
-  void processFrame(const RealVectorView frame, ComplexVectorView out)
+  void processFrame(const InputRealVectorView frame, ComplexVectorView out)
   {
     assert(frame.size() == mWindowSize);
     ArrayXdMap window(mWindowBuffer.data(), mWindowSize);
