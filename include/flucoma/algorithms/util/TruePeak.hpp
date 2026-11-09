@@ -88,8 +88,8 @@ public:
     mInitialized = true;
   }
 
-  void processFrame(FluidTensorView<const double, 1> in,
-                    FluidTensorView<double, 1>       out)
+  void processFrame(const InputRealVectorView   in,
+                    RealVectorView              out)
   {
     assert(mInitialized);
     assert(in.size());
@@ -161,7 +161,7 @@ public:
     mInterpolator.init(nTaps, mFactor);
   }
 
-  double processFrame(const RealVectorView& input, Allocator&)
+  double processFrame(const InputRealVectorView& input, Allocator&)
   {
     using namespace Eigen;
 

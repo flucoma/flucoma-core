@@ -40,7 +40,7 @@ public:
     mDebounce = 0;
   }
 
-  void process(const RealVectorView input, RealVectorView output,
+  void process(const InputRealVectorView input, RealVectorView output,
       Allocator& alloc = FluidDefaultAllocator())
   {
     detect(input.data(), input.extent(0), alloc);

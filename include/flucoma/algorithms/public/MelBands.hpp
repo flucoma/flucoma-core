@@ -76,7 +76,7 @@ public:
     mNBins = nBins;
   }
 
-  void processFrame(const RealVectorView in, RealVectorView out, bool magNorm,
+  void processFrame(const InputRealVectorView in, RealVectorView out, bool magNorm,
                     bool usePower, bool logOutput, Allocator&)
   {
     using namespace Eigen;

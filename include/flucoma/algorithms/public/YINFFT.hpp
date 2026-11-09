@@ -30,7 +30,7 @@ public:
   : mFFT(2 * maxInputSize - 1, alloc)
   {}
   
-  void processFrame(const RealVectorView& input, RealVectorView output,
+  void processFrame(const InputRealVectorView& input, RealVectorView output,
       double minFreq, double maxFreq, double sampleRate,
       Allocator& alloc = FluidDefaultAllocator())
   {

@@ -68,7 +68,7 @@ public:
     mInitialized = true;
   }
 
-  void processFrame(const RealVectorView in, RealVectorView out,
+  void processFrame(const InputRealVectorView in, RealVectorView out,
                     bool inverse = false) const
   {
     using namespace Eigen;

@@ -42,7 +42,7 @@ public:
   }
 
   // processFrame computes activations of a dictionary W in a given frame
-  void processFrame(const RealVectorView x, const RealMatrixView W0,
+  void processFrame(const InputRealVectorView x, const RealMatrixView W0,
                     RealVectorView out, index nIterations, RealVectorView v,
                     index randomSeed, Allocator& alloc)
   {

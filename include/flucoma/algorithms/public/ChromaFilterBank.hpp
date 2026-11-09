@@ -80,7 +80,7 @@ public:
     mSampleRate = sampleRate;
   }
 
-  void processFrame(const RealVectorView in, RealVectorView out,
+  void processFrame(const InputRealVectorView in, RealVectorView out,
     double minFreq = 0, double maxFreq = -1, index normalize = 0)
   {
     using namespace Eigen;

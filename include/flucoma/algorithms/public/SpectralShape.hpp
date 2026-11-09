@@ -101,7 +101,7 @@ public:
     mOutputBuffer(6) = 20 * log10(max(crest, epsilon));
   }
 
-  void processFrame(const RealVectorView input, RealVectorView output,
+  void processFrame(const InputRealVectorView input, RealVectorView output,
                     double sampleRate, double minFreq, double maxFreq,
                     double rolloffTarget, bool logFreq, bool usePower,
                     Allocator& alloc)

@@ -38,7 +38,7 @@ public:
     mInitialized = true;
   }
 
-  void init(const RealVectorView mean, const RealVectorView std)
+  void init(const InputRealVectorView mean, const InputRealVectorView std)
   {
     using namespace Eigen;
     using namespace _impl;
@@ -48,7 +48,7 @@ public:
     mInitialized = true;
   }
 
-  void processFrame(const RealVectorView in, RealVectorView out,
+  void processFrame(const InputRealVectorView in, RealVectorView out,
                     bool inverse = false) const
   {
     using namespace Eigen;

@@ -40,7 +40,7 @@ public:
     mInitialized = true;
   }
 
-  void processFrame(const RealVectorView& input, RealVectorView output,
+  void processFrame(const InputRealVectorView& input, RealVectorView output,
       bool weighting, bool truePeak, Allocator& alloc = FluidDefaultAllocator())
   {
     using namespace Eigen;

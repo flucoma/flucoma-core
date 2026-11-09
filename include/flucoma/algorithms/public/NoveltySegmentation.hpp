@@ -40,7 +40,7 @@ public:
     mPeakBuffer.setZero();
   }
 
-  double processFrame(const RealVectorView input, double threshold,
+  double processFrame(const InputRealVectorView input, double threshold,
       index minSliceLength, Allocator& alloc = FluidDefaultAllocator())
   {
     double detected = 0.;

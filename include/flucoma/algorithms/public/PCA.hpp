@@ -53,7 +53,7 @@ public:
     mInitialized = true;
   }
 
-  void processFrame(const RealVectorView in, RealVectorView out, index k,
+  void processFrame(const InputRealVectorView in, RealVectorView out, index k,
                     bool whiten = false) const
   {
     using namespace Eigen;
