@@ -17,6 +17,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/FluidMemory.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <cassert>
 #include <cmath>
@@ -80,13 +81,14 @@ public:
     mSampleRate = sampleRate;
   }
 
-  void processFrame(const RealVectorView in, RealVectorView out,
-    double minFreq = 0, double maxFreq = -1, index normalize = 0)
+  void processFrame(const InputRealVectorView in, RealVectorView out,
+                    double minFreq = 0, double maxFreq = -1,
+                    index normalize = 0)
   {
     using namespace Eigen;
     using namespace std;
     
-    FluidEigenMap<Eigen::Array> frame = _impl::asEigen<Eigen::Array>(in);
+    auto frame = _impl::asEigen<Eigen::Array>(in);
     
     if(minFreq != 0 || maxFreq != -1){
         maxFreq = (maxFreq == -1) ? (mSampleRate / 2) : min(maxFreq, mSampleRate / 2);

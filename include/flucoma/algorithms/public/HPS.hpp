@@ -22,7 +22,7 @@ class HPS
 {
 
 public:
-  void processFrame(const RealVectorView& input, RealVectorView output,
+  void processFrame(const InputRealVectorView input, RealVectorView output,
                     index nHarmonics, double minFreq, double maxFreq,
                     double sampleRate, Allocator& alloc)
   {

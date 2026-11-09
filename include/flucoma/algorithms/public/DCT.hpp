@@ -61,7 +61,7 @@ public:
     mInitialized = true;
   }
 
-  void processFrame(const RealVectorView in, RealVectorView out)
+  void processFrame(const InputRealVectorView in, RealVectorView out)
   {
     assert(mInitialized && "DCT: processFrame() called before init()");
     assert(in.size() == mInputSize &&
@@ -69,7 +69,7 @@ public:
     assert(out.size() == mOutputSize &&
            "DCT: actual output size doesn't maatch expected size");
 
-    FluidEigenMap<Eigen::Matrix> frame = _impl::asEigen<Eigen::Matrix>(in);
+    auto frame = _impl::asEigen<Eigen::Matrix>(in);
     _impl::asEigen<Eigen::Matrix>(out).noalias() =
         (mTable.topLeftCorner(mOutputSize, mInputSize) * frame);
   }

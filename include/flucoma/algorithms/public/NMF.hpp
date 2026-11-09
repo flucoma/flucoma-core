@@ -30,7 +30,7 @@ public:
   // cancelled)
   using ProgressCallback = std::function<bool(index)>;
 
-  static void estimate(const RealMatrixView W, const RealMatrixView H,
+  static void estimate(const InputRealMatrixView W, const InputRealMatrixView H,
                        index idx, RealMatrixView V)
   {
     using namespace Eigen;
@@ -42,14 +42,14 @@ public:
   }
 
   // processFrame computes activations of a dictionary W in a given frame
-  void processFrame(const RealVectorView x, const RealMatrixView W0,
+  void processFrame(const InputRealVectorView x, const InputRealMatrixView W0,
                     RealVectorView out, index nIterations, RealVectorView v,
                     index randomSeed, Allocator& alloc)
   {
     using namespace Eigen;
     using namespace _impl;
     index    rank = W0.extent(0);
-    FluidEigenMap<Matrix> W = asEigen<Matrix>(W0);
+    auto W = asEigen<Matrix>(W0);
 
     ScopedEigenMap<VectorXd> h(rank, alloc);
     h = EigenRandom<VectorXd>(rank, RandomSeed{randomSeed}, Range{0.0, 1.0});
@@ -88,9 +88,10 @@ public:
     if (v.data()) _impl::asEigen<Matrix>(v).noalias() = (W.transpose() * h);
   }
 
-  void process(const RealMatrixView X, RealMatrixView W1, RealMatrixView H1,
-               RealMatrixView V1, index rank, index nIterations, bool updateW,
-               bool updateH = false, index randomSeed = -1,
+  void process(const InputRealMatrixView X, RealMatrixView W1,
+               RealMatrixView H1, RealMatrixView V1, index rank,
+               index nIterations, bool updateW, bool updateH = false,
+               index          randomSeed = -1,
                RealMatrixView W0 = RealMatrixView(nullptr, 0, 0, 0),
                RealMatrixView H0 = RealMatrixView(nullptr, 0, 0, 0))
   {

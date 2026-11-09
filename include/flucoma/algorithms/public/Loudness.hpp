@@ -40,15 +40,16 @@ public:
     mInitialized = true;
   }
 
-  void processFrame(const RealVectorView& input, RealVectorView output,
-      bool weighting, bool truePeak, Allocator& alloc = FluidDefaultAllocator())
+  void processFrame(const InputRealVectorView input, RealVectorView output,
+                    bool weighting, bool truePeak,
+                    Allocator& alloc = FluidDefaultAllocator())
   {
     using namespace Eigen;
     using namespace std;
     assert(mInitialized);
     assert(output.size() == 2);
     assert(input.size() == mSize);
-    FluidEigenMap<Eigen::Array> in = _impl::asEigen<Array>(input);
+    auto in = _impl::asEigen<Array>(input);
     ScopedEigenMap<ArrayXd>     filtered(mSize, alloc);
     for (index i = 0; i < mSize; i++)
       filtered(i) = weighting ? mFilter.processSample(input(i)) : input(i);

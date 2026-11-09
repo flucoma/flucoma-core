@@ -41,7 +41,7 @@ public:
     mInitialized = true;
   }
 
-  double processFrame(const RealVectorView input, Allocator& alloc)
+  double processFrame(const InputRealVectorView input, Allocator& alloc)
   {
     assert(mInitialized);
     double novelty =

@@ -68,13 +68,13 @@ public:
     mInitialized = true;
   }
 
-  void processFrame(const RealVectorView in, RealVectorView out,
+  void processFrame(const InputRealVectorView in, RealVectorView out,
                     bool inverse = false) const
   {
     using namespace Eigen;
     using namespace _impl;
-    FluidEigenMap<Array> input = asEigen<Array>(in);
-    FluidEigenMap<Array> result = asEigen<Array>(out);
+    auto input = asEigen<Array>(in);
+    auto result = asEigen<Array>(out);
     if (!inverse) { result = (input - mMedian) / mRange; }
     else
     {
@@ -82,7 +82,7 @@ public:
     }
   }
 
-  void process(const RealMatrixView in, RealMatrixView out,
+  void process(const InputRealMatrixView in, RealMatrixView out,
                bool inverse = false) const
   {
     using namespace Eigen;
