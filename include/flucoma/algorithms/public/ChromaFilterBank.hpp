@@ -29,7 +29,8 @@ class ChromaFilterBank
 {
 public:
   ChromaFilterBank(index maxBins, index maxFFT, Allocator& alloc)
-        : mMaxChroma(maxBins), mMaxFFT(maxFFT), mFilters(maxBins, maxFFT/2 + 1, alloc)
+      : mMaxChroma(maxBins), mMaxFFT(maxFFT),
+        mFilters(maxBins, maxFFT / 2 + 1, alloc), mFrame(maxFFT, alloc)
   {}
 
 
@@ -88,7 +89,8 @@ public:
     using namespace Eigen;
     using namespace std;
     
-    auto frame = _impl::asEigen<Eigen::Array>(in);
+    auto frame = mFrame.topRows(in.rows()); 
+    frame = _impl::asEigen<Eigen::Array>(in);
     
     if(minFreq != 0 || maxFreq != -1){
         maxFreq = (maxFreq == -1) ? (mSampleRate / 2) : min(maxFreq, mSampleRate / 2);
@@ -123,6 +125,7 @@ public:
   index mMaxChroma;
   index mMaxFFT;
   ScopedEigenMap<Eigen::MatrixXd> mFilters;
+  ScopedEigenMap<Eigen::ArrayXd>  mFrame; 
 };
 } // namespace algorithm
 } // namespace fluid
