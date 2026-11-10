@@ -27,7 +27,8 @@ class MelBands
 public:
   MelBands(
       index maxBands, index maxFFT, Allocator& alloc = FluidDefaultAllocator())
-      : mFilters(maxBands, maxFFT / 2 + 1, alloc)
+      : mFrame(maxFFT, alloc),
+        mFilters(maxBands, maxFFT / 2 + 1, alloc)
   {}
 
   /*static inline double mel2hz(double x) {
@@ -81,8 +82,8 @@ public:
                     bool usePower, bool logOutput, Allocator&)
   {
     using namespace Eigen;
-
-    auto frame = _impl::asEigen<Array>(in);
+    auto frame = mFrame.leftCols(in.rows()); 
+    frame  = _impl::asEigen<Array>(in);
     auto result = _impl::asEigen<Array>(out);
 
     if (magNorm) frame = frame * mScale1;
@@ -101,6 +102,7 @@ public:
   double mScale2{1.0};
 
 private:
+  ScopedEigenMap<Eigen::ArrayXd>  mFrame; 
   ScopedEigenMap<Eigen::MatrixXd> mFilters;
   index                           mNBands;
   index                           mNBins;

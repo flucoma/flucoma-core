@@ -60,12 +60,11 @@ public:
     using namespace Eigen;
     using namespace _impl;
     if (k > mBases.cols()) return;
-    auto input = asEigen<Matrix>(in);
-    input = input - mMean;
-    FluidEigenMap<Matrix> result = asEigen<Matrix>(out);
+    auto input = asEigen<Matrix>(in);    
+    auto result = asEigen<Matrix>(out);
     // this avoids Eigen making a temporary (sorry):
     result.transpose().noalias() =
-        input.transpose() * mBases.block(0, 0, mBases.rows(), k);
+        (input - mMean).transpose() * mBases.block(0, 0, mBases.rows(), k);
 
     if (whiten)
     {

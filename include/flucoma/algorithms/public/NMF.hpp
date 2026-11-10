@@ -49,7 +49,8 @@ public:
     using namespace Eigen;
     using namespace _impl;
     index    rank = W0.extent(0);
-    auto W = asEigen<Matrix>(W0);
+    ScopedEigenMap<MatrixXd> W{W0.rows(),W0.cols(),alloc}; 
+    W = asEigen<Matrix>(W0);
 
     ScopedEigenMap<VectorXd> h(rank, alloc);
     h = EigenRandom<VectorXd>(rank, RandomSeed{randomSeed}, Range{0.0, 1.0});
