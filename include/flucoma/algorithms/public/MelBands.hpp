@@ -82,7 +82,7 @@ public:
                     bool usePower, bool logOutput, Allocator&)
   {
     using namespace Eigen;
-    auto frame = mFrame.leftCols(in.rows()); 
+    auto frame = mFrame.topRows(in.rows()); 
     frame  = _impl::asEigen<Array>(in);
     auto result = _impl::asEigen<Array>(out);
 
