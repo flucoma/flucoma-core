@@ -10,12 +10,13 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
+#include "../util/AlgorithmUtils.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <Eigen/SVD>
 #include <cassert>
-#include <cmath>
+
 
 namespace fluid {
 namespace algorithm {
@@ -53,18 +54,17 @@ public:
     mInitialized = true;
   }
 
-  void processFrame(const RealVectorView in, RealVectorView out, index k,
+  void processFrame(const InputRealVectorView in, RealVectorView out, index k,
                     bool whiten = false) const
   {
     using namespace Eigen;
     using namespace _impl;
     if (k > mBases.cols()) return;
-    FluidEigenMap<Matrix> input = asEigen<Matrix>(in);
-    input = input - mMean;
-    FluidEigenMap<Matrix> result = asEigen<Matrix>(out);
+    auto input = asEigen<Matrix>(in);    
+    auto result = asEigen<Matrix>(out);
     // this avoids Eigen making a temporary (sorry):
     result.transpose().noalias() =
-        input.transpose() * mBases.block(0, 0, mBases.rows(), k);
+        (input - mMean).transpose() * mBases.block(0, 0, mBases.rows(), k);
 
     if (whiten)
     {
@@ -91,7 +91,7 @@ public:
     }    
   }
 
-  double process(const RealMatrixView in, RealMatrixView out, index k,
+  double process(const InputRealMatrixView in, RealMatrixView out, index k,
                  bool whiten = false) const
   {
     using namespace Eigen;

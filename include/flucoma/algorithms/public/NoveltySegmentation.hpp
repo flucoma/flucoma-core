@@ -11,7 +11,6 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "NoveltyFeature.hpp"
-#include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/FluidMemory.hpp"
 #include "../../data/TensorTypes.hpp"
@@ -40,8 +39,9 @@ public:
     mPeakBuffer.setZero();
   }
 
-  double processFrame(const RealVectorView input, double threshold,
-      index minSliceLength, Allocator& alloc = FluidDefaultAllocator())
+  double processFrame(const InputRealVectorView input, double threshold,
+                      index      minSliceLength,
+                      Allocator& alloc = FluidDefaultAllocator())
   {
     double detected = 0.;
 
