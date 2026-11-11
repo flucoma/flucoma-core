@@ -187,7 +187,7 @@ public:
     SparseMatrixXd knnGraph = SparseMatrixXd(in.size(), in.size());
     ArrayXXd       dists = ArrayXXd::Zero(in.size(), k);
     mK = k;
-    makeGraph(in, mK, knnGraph, dists, true);
+    makeGraph(in, mK, knnGraph, dists, true);// why do we dismiss the diagonal here
     ArrayXd sigma = findSigma(k, dists);
     computeHighDimProb(dists, sigma, knnGraph);
     SparseMatrixXd knnGraphT = knnGraph.transpose();
@@ -209,28 +209,30 @@ public:
     return out;
   }
 
-  DataSet transform(DataSet& in, index maxIter = 200, double learningRate = 1.0, index seed = -1) const
+  DataSet transform(DataSet& in, index maxIter = 200, double learningRate = 1.0, bool optimize = false, index seed = -1) const
   {
     if (!mInitialized) return DataSet();
-    std::random_device rd;
-    std::mt19937_64    rng(static_cast<unsigned int>(seed < 0 ? rd() : seed));
     SparseMatrixXd     knnGraph(in.size(), mEmbedding.rows());
     ArrayXXd       dists = ArrayXXd::Zero(in.size(), mK);
-    makeGraph(in, mK, knnGraph, dists, false);
+    makeGraph(in, mK, knnGraph, dists, false);//and not here
     knnGraph.makeCompressed();
     ArrayXd sigma = findSigma(mK, dists);
     computeHighDimProb(dists, sigma, knnGraph);
     normalizeRows(knnGraph);
     ArrayXXd embedding =
         initTransformEmbedding(knnGraph, mEmbedding, in.size());
-    ArrayXi rowIndices(knnGraph.nonZeros());
-    ArrayXi colIndices(knnGraph.nonZeros());
-    ArrayXd epochsPerSample(knnGraph.nonZeros());
-    getGraphIndices(knnGraph, rowIndices, colIndices);
-    computeEpochsPerSample(knnGraph, epochsPerSample);
-    epochsPerSample = (epochsPerSample == 0).select(-1, epochsPerSample);
-    optimizeLayout(embedding, mEmbedding, rowIndices, colIndices,
-                   epochsPerSample, learningRate, maxIter, rng);
+    if (optimize) {
+        std::random_device rd;
+        std::mt19937_64    rng(static_cast<unsigned int>(seed < 0 ? rd() : seed));
+        ArrayXi rowIndices(knnGraph.nonZeros());
+        ArrayXi colIndices(knnGraph.nonZeros());
+        ArrayXd epochsPerSample(knnGraph.nonZeros());
+        getGraphIndices(knnGraph, rowIndices, colIndices);
+        computeEpochsPerSample(knnGraph, epochsPerSample);
+        epochsPerSample = (epochsPerSample == 0).select(-1, epochsPerSample);
+        optimizeLayout(embedding, mEmbedding, rowIndices, colIndices,
+                       epochsPerSample, learningRate, maxIter, rng);
+    }
     DataSet out(in.getIds(), _impl::asFluid(embedding));
     return out;
   }
