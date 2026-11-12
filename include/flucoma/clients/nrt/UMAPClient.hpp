@@ -115,7 +115,7 @@ public:
   }
 
   MessageResult<void> transform(InputDataSetClientRef sourceClient,
-                                DataSetClientRef destClient, bool optimize = false)
+                                DataSetClientRef destClient, bool updateEmbedding)
   {
     auto srcPtr = sourceClient.get().lock();
     auto destPtr = destClient.get().lock();
@@ -130,7 +130,7 @@ public:
     StringVector                    ids{src.getIds()};
     FluidDataSet<string, double, 1> result;
     result = mAlgorithm.transform(src, get<kNumIter>(), get<kLearningRate>(),
-                                  optimize, get<kRandomSeed>());
+                                  updateEmbedding, get<kRandomSeed>());
     destPtr->setDataSet(result);
     return OK();
   }
