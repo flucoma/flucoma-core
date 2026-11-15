@@ -50,8 +50,9 @@ public:
   using StringVector = FluidTensor<string, 1>;
 
   using ParamDescType = decltype(UMAPParams);
-
   using ParamSetViewType = ParameterSetView<ParamDescType>;
+  using ParamValues = typename ParamSetViewType::ValueTuple;
+
   std::reference_wrapper<ParamSetViewType> mParams;
 
   void setParams(ParamSetViewType& p) { mParams = p; }
@@ -156,6 +157,20 @@ public:
     return OK();
   }
 
+  MessageResult<ParamValues> read(string fileName)
+  {
+    auto result = DataClient::read(fileName);
+    if (result.ok()) return updateParameters();
+    return {result.status(), result.message()};
+  }
+
+  MessageResult<ParamValues> load(string s)
+  {
+    auto result = DataClient::load(s);
+    if (result.ok()) return updateParameters();
+    return {result.status(), result.message()};
+  }
+
   static auto getMessageDescriptors()
   {
     return defineMessages(
@@ -170,6 +185,16 @@ public:
         makeMessage("dump", &UMAPClient::dump),
         makeMessage("write", &UMAPClient::write),
         makeMessage("read", &UMAPClient::read));
+  }
+
+private:
+  ParameterTrackChanges<index> mTracker;
+
+  MessageResult<ParamValues> updateParameters()
+  {
+    ParamValues newParams = mParams.get().toTuple();
+    std::get<kNumDimensions>(newParams) = mAlgorithm.dims();
+    return newParams;
   }
 };
 
