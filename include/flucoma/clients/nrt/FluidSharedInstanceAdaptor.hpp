@@ -25,6 +25,9 @@ under the European Union’s Horizon 2020 research and innovation programme
 namespace fluid {
 namespace client {
 
+template <typename>
+class NRTSharedInstanceAdaptor;
+
 template <typename, typename>
 class ParamAliasAdaptor;
 
@@ -45,6 +48,7 @@ class ParamAliasAdaptor<NRTClient, std::tuple<Ts...>>
     ParamSetType   params{ClientWrapper<NRTClient>::getParameterDescriptors(),
                         FluidDefaultAllocator()};
     ListenersArray listeners;
+    rt::string     name; // key in the lookup tables; shared by all aliases
 
     std::shared_ptr<ListeningParams> getShared() { return shared_from_this(); };
   };
@@ -70,8 +74,10 @@ public:
         mParams.use_count() == 1) // is this the last remaining user of this
                                   // Corpus, except the hash table?
     {
-      auto name = mParams->params.template get<0>();
-      mParamsTable.erase(name); // then remove it from the universe
+      auto entry = mParamsTable.find(mParams->name);
+      // then remove it from the universe (only if the entry is really ours)
+      if (entry != mParamsTable.end() && entry->second.lock() == mParams)
+        mParamsTable.erase(entry);
     }
   }
 
@@ -128,6 +134,57 @@ public:
       return {Result::Status::kWarning, name, " not found"};
   }
 
+  /// The name this object's shared data is registered under
+  const rt::string& name() const { return mParams->name; }
+
+  /// Give this object its name at creation time: if the name is already in
+  /// use, start sharing that entry, otherwise register a new one.
+  Result setName(rt::string name)
+  {
+    if (!name.size())
+      return {Result::Status::kWarning,
+              "Shared object given no name – won't be shared!"};
+
+    if (!mParamsTable.count(name)) // key not already in table
+    {
+      mParams->name = name;
+      mParamsTable.emplace(name, mParams);
+    }
+
+    return refer(name);
+  }
+
+  /// Change the name the shared data is registered under. The data and
+  /// parameters are untouched, and every object sharing them sees the new
+  /// name. Fails if the new name is empty or already in use.
+  Result rename(rt::string newName)
+  {
+    if (!newName.size())
+      return {Result::Status::kError, "Can't rename: no name given"};
+
+    if (newName == mParams->name) return {};
+
+    if (mParamsTable.count(newName))
+      return {Result::Status::kError, "Can't rename: ", newName,
+              " already exists"};
+
+    rt::string oldName = mParams->name;
+    auto       entry = mParamsTable.find(oldName);
+
+    if (entry != mParamsTable.end() && entry->second.lock() == mParams)
+    {
+      auto node = mParamsTable.extract(entry);
+      node.key() = newName;
+      mParamsTable.insert(std::move(node));
+    }
+    else // was unnamed (and hence unshared) until now
+      mParamsTable.emplace(newName, mParams);
+
+    mParams->name = newName;
+    NRTSharedInstanceAdaptor<NRTClient>::rekey(oldName, newName);
+    return {};
+  }
+
   template<typename Func,typename... Args>
   auto setPrimaryParameterValues(bool reportage,Func&& f, Args&&...args)
   {
@@ -137,26 +194,8 @@ public:
   template <template <size_t N, typename T> class Func, typename... Args>
   auto setFixedParameterValues(bool reportage, Args&&... args)
   {
-    auto results = mParams->params.template setFixedParameterValues<Func>(
+    return mParams->params.template setFixedParameterValues<Func>(
         reportage, std::forward<Args>(args)...);
-
-    rt::string name = mParams->params.template get<0>();
-
-    if (!name.size())
-    {
-      results[0].addMessage("Shared object given no name – won't be shared!");
-      results[0].set(Result::Status::kWarning);
-      return results;
-    }
-
-    if (!mParamsTable.count(name)) // key not already in table
-    {
-      mParamsTable.emplace(name, mParams);
-    }
-
-    refer(name);
-
-    return results;
   }
 
   template<size_t N> 
@@ -337,10 +376,11 @@ public:
   {
     // Not using the nifty operator[] of unordered map, because it deault
     // constructs the value object, giving us shared_ptr<nullptr>
-    rt::string name = p.template get<0>();
+    rt::string name = p.name();
     if (!mClientTable.count(name)) // key not already in table
     {
       mClient = std::make_shared<SharedClient>(p.instance(), c);
+      setClientName(*mClient, name);
       mClientTable.emplace(name, mClient);
     }
     else
@@ -361,8 +401,22 @@ public:
     if (mClient &&
         mClient.use_count() == 1) // is this the last remaining user of this
                                   // Corpus, except the hash table?
-      mClientTable.erase(
-          mParams.template get<0>()); // then remove it from the universe
+      mClientTable.erase(mParams.name()); // then remove it from the universe
+  }
+
+  /// Move the entry for oldName to newName, leaving the client it points to
+  /// untouched. Called by ParamAliasAdaptor::rename(); does nothing if there
+  /// is no client registered under oldName yet.
+  static void rekey(const rt::string& oldName, const rt::string& newName)
+  {
+    auto entry = mClientTable.find(oldName);
+    if (entry == mClientTable.end()) return;
+    auto node = mClientTable.extract(entry);
+    node.key() = newName;
+    auto inserted = mClientTable.insert(std::move(node));
+    if (!inserted.inserted) return;
+    if (auto client = inserted.position->second.lock())
+      setClientName(*client, newName);
   }
 
   static ClientPointer lookup(rt::string name)
@@ -392,6 +446,13 @@ public:
   void setParams(ParamSetType&) {}
 
 private:
+  // Clients that derive from NamedObject get told what they are called
+  static void setClientName(SharedClient& client, const rt::string& name)
+  {
+    if constexpr (std::is_base_of<NamedObject, NRTClient>::value)
+      client.setName(std::string_view(name.data(), name.size()));
+  }
+
   ParamSetType                         mParams;
   ClientPointer                        mClient;
   typename WrappedClient::ParamSetType mProcessParams{

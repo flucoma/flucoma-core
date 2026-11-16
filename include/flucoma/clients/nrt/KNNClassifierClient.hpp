@@ -56,7 +56,6 @@ void from_json(const nlohmann::json& j, KNNClassifierData& data)
 }
 
 constexpr auto KNNClassifierParams = defineParameters(
-    StringParam<Fixed<true>>("name", "Name"),
     LongParam("numNeighbours", "Number of Nearest Neighbours", 3, Min(1)),
     EnumParam("weight", "Weight Neighbours by Distance", 1, "No", "Yes"));
 
@@ -66,7 +65,7 @@ class KNNClassifierClient : public FluidBaseClient,
                             ModelObject,
                             public DataClient<KNNClassifierData>
 {
-  enum { kName, kNumNeighbors, kWeight };
+  enum { kNumNeighbors, kWeight };
 
 public:
   using string = std::string;

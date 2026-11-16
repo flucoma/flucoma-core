@@ -22,7 +22,6 @@ namespace kmeans {
 
 
 constexpr auto KMeansParams = defineParameters(
-    StringParam<Fixed<true>>("name", "Name"),
     LongParam("numClusters", "Number of Clusters", 4, Min(1)),
     LongParam("maxIter", "Max number of Iterations", 100, Min(1)),
     EnumParam("initMethod", "Initialize method", 0, "Random Assignment",
@@ -35,7 +34,7 @@ class KMeansClient : public FluidBaseClient,
                      ModelObject,
                      public DataClient<algorithm::KMeans>
 {
-  enum {kName, kNumClusters, kMaxIter, kInit, kRandomSeed}; 
+  enum { kNumClusters, kMaxIter, kInit, kRandomSeed };
   ParameterTrackChanges<index> mTracker; 
 public:
   using string = std::string;

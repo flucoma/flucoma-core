@@ -25,7 +25,6 @@ namespace mlpregressor {
 constexpr std::initializer_list<index> HiddenLayerDefaults = {3, 3};
 
 constexpr auto MLPRegressorParams = defineParameters(
-    StringParam<Fixed<true>>("name", "Name"),
     LongArrayParam("hiddenLayers", "Hidden Layer Sizes", HiddenLayerDefaults),
     EnumParam("activation", "Activation Function", 2, "Identity", "Sigmoid",
               "ReLU", "Tanh"),
@@ -48,7 +47,6 @@ class MLPRegressorClient : public FluidBaseClient,
 {
 
   enum {
-    kName,
     kHidden,
     kActivation,
     kOutputActivation,

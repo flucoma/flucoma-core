@@ -19,7 +19,7 @@ namespace client {
 namespace normalize {
 
 constexpr auto NormalizeParams =
-    defineParameters(StringParam<Fixed<true>>("name", "Name"),
+    defineParameters(
                      FloatParam("min", "Minimum Value", 0.0),
                      FloatParam("max", "Maximum Value", 1.0),
                      LongParam("axis", "Normalizing Axis", 0, Min(-1), Max(0)));
@@ -30,7 +30,7 @@ class NormalizeClient : public FluidBaseClient,
                         ModelObject,
                         public DataClient<algorithm::Normalization>
 {
-  enum { kName, kMin, kMax, kAxis };
+  enum { kMin, kMax, kAxis };
 
 public:
   using string = std::string;

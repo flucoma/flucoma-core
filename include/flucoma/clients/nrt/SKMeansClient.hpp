@@ -20,10 +20,9 @@ namespace fluid {
 namespace client {
 namespace skmeans {
 
-enum { kName, kNumClusters, kThreshold, kMaxIter, kInit, kRandomSeed };
+enum { kNumClusters, kThreshold, kMaxIter, kInit, kRandomSeed };
 
 constexpr auto SKMeansParams = defineParameters(
-    StringParam<Fixed<true>>("name", "Name"),
     LongParam("numClusters", "Number of Clusters", 4, Min(0)),
     FloatParam("encodingThreshold", "Encoding Threshold", 0.25, Min(0), Max(1)),
     LongParam("maxIter", "Max number of Iterations", 100, Min(1)),
