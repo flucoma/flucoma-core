@@ -162,6 +162,9 @@ public:
     return std::get<N>(mMessages)(std::forward<Us>(us)...);
   }
 
+  /// The underlying tuple of message descriptors, e.g. for concatenating sets
+  const MessagesType& messages() const noexcept { return mMessages; }
+
 private:
   MessagesType mMessages;
 
@@ -183,6 +186,19 @@ MessageSet<std::tuple<Args...>> defineMessages(Args&&... args)
 }
 
 inline auto NoMessages = defineMessages();
+
+/// The tuple type held by a MessageSet
+template <typename>
+struct MessageTuple;
+
+template <typename... Ts>
+struct MessageTuple<MessageSet<std::tuple<Ts...>>>
+{
+  using type = std::tuple<Ts...>;
+};
+
+template <typename T>
+using MessageTuple_t = typename MessageTuple<T>::type;
 
 } // namespace client
 } // namespace fluid
