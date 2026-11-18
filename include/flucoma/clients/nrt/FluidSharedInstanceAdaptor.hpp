@@ -73,12 +73,7 @@ public:
     if (mParams &&
         mParams.use_count() == 1) // is this the last remaining user of this
                                   // Corpus, except the hash table?
-    {
-      auto entry = mParamsTable.find(mParams->name);
-      // then remove it from the universe (only if the entry is really ours)
-      if (entry != mParamsTable.end() && entry->second.lock() == mParams)
-        mParamsTable.erase(entry);
-    }
+      eraseEntryFor(mParams);     // then remove it from the universe
   }
 
   typename WrappedClient::ParamSetType& instance() { return mParams->params; }
@@ -118,20 +113,20 @@ public:
 
   Result lookup(rt::string name)
   {
-    return mParamsTable.count(name)
-               ? Result{}
-               : Result{Result::Status::kWarning, name, " not found"};
+    return find(name) ? Result{}
+                      : Result{Result::Status::kWarning, name, " not found"};
   }
 
   Result refer(rt::string name)
   {
-    if (mParamsTable.count(name))
-    {
-      mParams = mParamsTable[name].lock()->getShared();
-      return {};
-    }
-    else
-      return {Result::Status::kWarning, name, " not found"};
+    ParamsPointer target = find(name);
+    if (!target) return {Result::Status::kWarning, name, " not found"};
+
+    ParamsPointer old = mParams;
+    mParams = target;
+    // were we the last user of the old data? then remove it from the universe
+    if (old.use_count() == 1) eraseEntryFor(old);
+    return {};
   }
 
   /// The name this object's shared data is registered under
@@ -145,10 +140,10 @@ public:
       return {Result::Status::kWarning,
               "Shared object given no name – won't be shared!"};
 
-    if (!mParamsTable.count(name)) // key not already in table
+    if (!find(name)) // no live entry under this name
     {
       mParams->name = name;
-      mParamsTable.emplace(name, mParams);
+      mParamsTable.insert_or_assign(name, mParams); // over any dead one
     }
 
     return refer(name);
@@ -164,10 +159,12 @@ public:
 
     if (newName == mParams->name) return {};
 
-    if (mParamsTable.count(newName))
+    // a client that outlived its data (still held somewhere) keeps its name
+    if (find(newName) || NRTSharedInstanceAdaptor<NRTClient>::lookup(newName))
       return {Result::Status::kError, "Can't rename: ", newName,
               " already exists"};
 
+    mParamsTable.erase(newName); // a dead entry, if any, is in the way
     rt::string oldName = mParams->name;
     auto       entry = mParamsTable.find(oldName);
 
@@ -303,6 +300,21 @@ public:
   }
 
 private:
+  /// The data registered under name, if it is still alive
+  static ParamsPointer find(const rt::string& name)
+  {
+    auto entry = mParamsTable.find(name);
+    return entry != mParamsTable.end() ? entry->second.lock() : ParamsPointer{};
+  }
+
+  /// Remove the table entry for p, if the entry really is p
+  static void eraseEntryFor(const ParamsPointer& p)
+  {
+    auto entry = mParamsTable.find(p->name);
+    if (entry != mParamsTable.end() && entry->second.lock() == p)
+      mParamsTable.erase(entry);
+  }
+
   ParamsPointer      mParams;
   static LookupTable mParamsTable;
   //    std::array<std::vector<std::function<void()>>,sizeof...(Ts)> mListeners;
@@ -377,14 +389,13 @@ public:
     // Not using the nifty operator[] of unordered map, because it deault
     // constructs the value object, giving us shared_ptr<nullptr>
     rt::string name = p.name();
-    if (!mClientTable.count(name)) // key not already in table
+    mClient = lookup(name);
+    if (!mClient) // no live client under this name
     {
       mClient = std::make_shared<SharedClient>(p.instance(), c);
       setClientName(*mClient, name);
-      mClientTable.emplace(name, mClient);
+      mClientTable.insert_or_assign(name, mClient); // over any dead one
     }
-    else
-      mClient = mClientTable[name].lock()->shared();
   }
 
   NRTSharedInstanceAdaptor(const NRTSharedInstanceAdaptor& x) { *this = x; }
@@ -401,7 +412,7 @@ public:
     if (mClient &&
         mClient.use_count() == 1) // is this the last remaining user of this
                                   // Corpus, except the hash table?
-      mClientTable.erase(mParams.name()); // then remove it from the universe
+      eraseEntryFor(mParams.name(), mClient); // then unregister it
   }
 
   /// Move the entry for oldName to newName, leaving the client it points to
@@ -409,6 +420,8 @@ public:
   /// is no client registered under oldName yet.
   static void rekey(const rt::string& oldName, const rt::string& newName)
   {
+    // a dead entry under newName would block the move
+    if (!lookup(newName)) mClientTable.erase(newName);
     auto entry = mClientTable.find(oldName);
     if (entry == mClientTable.end()) return;
     auto node = mClientTable.extract(entry);
@@ -419,10 +432,12 @@ public:
       setClientName(*client, newName);
   }
 
+  /// The client registered under name, if it is still alive. Read-only, as
+  /// real-time clients (e.g. KDTreeQuery) look clients up while processing.
   static ClientPointer lookup(rt::string name)
   {
-    return mClientTable.count(name) ? mClientTable[name].lock()->shared()
-                                    : ClientPointer{};
+    auto entry = mClientTable.find(name);
+    return entry != mClientTable.end() ? entry->second.lock() : ClientPointer{};
   }
 
   template <size_t N, typename T, typename... Args>
@@ -451,6 +466,14 @@ private:
   {
     if constexpr (std::is_base_of<NamedObject, NRTClient>::value)
       client.setName(std::string_view(name.data(), name.size()));
+  }
+
+  /// Remove the table entry for name, if the entry really is c
+  static void eraseEntryFor(const rt::string& name, const ClientPointer& c)
+  {
+    auto entry = mClientTable.find(name);
+    if (entry != mClientTable.end() && entry->second.lock() == c)
+      mClientTable.erase(entry);
   }
 
   ParamSetType                         mParams;

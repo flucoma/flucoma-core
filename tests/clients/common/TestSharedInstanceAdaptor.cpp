@@ -162,3 +162,60 @@ TEST_CASE("The name is no longer a parameter", "[SharedInstanceAdaptor]")
   CHECK(Tree::lookup("tree_b"));
   CHECK_FALSE(Tree::lookup("tree_a"));
 }
+
+TEST_CASE("refer unregisters the data it was the last user of",
+          "[SharedInstanceAdaptor]")
+{
+  Params a = makeParams();
+  a.setName("refer_last_a");
+  {
+    Params b = makeParams();
+    b.setName("refer_last_b");
+    CHECK(b.refer("refer_last_a").ok()); // b was the only user of its data
+  }
+  Params probe = makeParams();
+  CHECK_FALSE(probe.lookup("refer_last_b").ok());
+  CHECK(probe.setName("refer_last_b").ok()); // used to crash
+  CHECK(probe.name() == "refer_last_b");
+}
+
+TEST_CASE("A client that outlives its objects doesn't break the tables",
+          "[SharedInstanceAdaptor]")
+{
+  // something other than an object (e.g. a query) can hold a client while
+  // the last object using it goes away
+  DataSet::ClientPointer held;
+  {
+    Params p = makeParams();
+    p.setName("outlive_a");
+    DataSet d(p, FluidContext());
+    held = DataSet::lookup("outlive_a");
+  }
+
+  Params q = makeParams();
+  q.setName("outlive_b");
+  DataSet d(q, FluidContext());
+  auto    client = DataSet::lookup("outlive_b");
+
+  // while that client lives, its name stays taken
+  CHECK_FALSE(q.rename("outlive_a").ok());
+  CHECK(DataSet::lookup("outlive_a") == held);
+
+  held.reset(); // so its entry is now dead
+
+  CHECK_FALSE(DataSet::lookup("outlive_a")); // used to crash
+
+  SECTION("a new object can take the name")
+  {
+    Params r = makeParams();
+    r.setName("outlive_a");
+    DataSet dr(r, FluidContext()); // used to crash
+    CHECK(DataSet::lookup("outlive_a"));
+  }
+
+  SECTION("an object can be renamed onto it")
+  {
+    CHECK(q.rename("outlive_a").ok());
+    CHECK(DataSet::lookup("outlive_a") == client); // used to be dropped
+  }
+}
