@@ -6,6 +6,7 @@
 #include <flucoma/clients/nrt/KDTreeClient.hpp>
 #include <flucoma/data/FluidMemory.hpp>
 #include <string>
+#include <vector>
 
 using fluid::FluidDefaultAllocator;
 using fluid::client::FluidContext;
@@ -13,8 +14,18 @@ using fluid::client::kdtree::KDTreeClient;
 using fluid::client::NRTSharedInstanceAdaptor;
 using fluid::client::dataset::DataSetClient;
 
+using fluid::client::MessageResult;
+using fluid::client::NRTThreadedDataSetClient;
+using fluid::client::NRTThreadedKDTreeClient;
+
 using DataSet = NRTSharedInstanceAdaptor<DataSetClient>;
 using Params = DataSet::ParamSetType;
+
+// What hosts hold: the threading adaptor around the sharing adaptor
+using Threaded = NRTThreadedDataSetClient;
+constexpr size_t kRefer = DataSet::NumClientMessages;
+constexpr size_t kSetName = kRefer + 1;
+constexpr size_t kGetName = kRefer + 2;
 
 namespace {
 Params makeParams()
@@ -33,6 +44,44 @@ fluid::index sizeOf(DataSet::ClientPointer const& c)
 }
 
 const char* const oneEntry = R"({"cols":1,"data":{"a":[1.0]}})";
+
+template <size_t N, typename M>
+struct CollectName
+{
+  void operator()(M const& m, std::vector<std::string>& names)
+  {
+    names.emplace_back(m.name);
+  }
+};
+
+template <typename Set>
+std::vector<std::string> messageNames(Set const& set)
+{
+  std::vector<std::string> names;
+  set.template iterate<CollectName>(names);
+  return names;
+}
+
+// Send "size" to a host-side object through the normal message machinery,
+// to see which client it really talks to
+template <size_t N, typename M>
+struct SendSize
+{
+  void operator()(M const& m, Threaded& c, fluid::index& out)
+  {
+    if constexpr (std::is_same_v<typename M::ReturnType,
+                                 MessageResult<fluid::index>> &&
+                  std::tuple_size_v<typename M::ArgumentTypes> == 0)
+      if (std::string(m.name) == "size") out = c.template invoke<N>(c);
+  }
+};
+
+fluid::index sizeVia(Threaded& c)
+{
+  fluid::index out = -1;
+  Threaded::getMessageDescriptors().template iterate<SendSize>(c, out);
+  return out;
+}
 } // namespace
 
 TEST_CASE("Shared instances are found by the name given to setName",
@@ -218,4 +267,153 @@ TEST_CASE("A client that outlives its objects doesn't break the tables",
     CHECK(q.rename("outlive_a").ok());
     CHECK(DataSet::lookup("outlive_a") == client); // used to be dropped
   }
+}
+
+TEST_CASE("Shared clients declare refer, setname and getname as messages",
+          "[SharedInstanceAdaptor]")
+{
+  auto ds = messageNames(Threaded::getMessageDescriptors());
+  REQUIRE(ds.size() == DataSet::NumClientMessages + 3);
+  CHECK(ds[kRefer] == "refer");
+  CHECK(ds[kSetName] == "setname");
+  CHECK(ds[kGetName] == "getname");
+  // the client's own messages are untouched, and come first
+  CHECK(ds[0] == messageNames(DataSetClient::getMessageDescriptors())[0]);
+
+  auto tree = messageNames(NRTThreadedKDTreeClient::getMessageDescriptors());
+  CHECK(tree.back() == "getname");
+}
+
+TEST_CASE("getname and setname work through the message machinery",
+          "[SharedInstanceAdaptor]")
+{
+  Params p = makeParams();
+  p.setName("msg_name_a");
+  Threaded c(p, FluidContext());
+
+  CHECK(static_cast<std::string>(c.template invoke<kGetName>(c)) ==
+        "msg_name_a");
+
+  auto r = c.template invoke<kSetName>(c, std::string("msg_name_b"));
+  CHECK(r.ok());
+  CHECK(p.name() == "msg_name_b"); // the host's own copy sees it
+  CHECK(DataSet::lookup("msg_name_b"));
+  CHECK_FALSE(DataSet::lookup("msg_name_a"));
+  CHECK(static_cast<std::string>(c.template invoke<kGetName>(c)) ==
+        "msg_name_b");
+
+  Params other = makeParams();
+  other.setName("msg_name_taken");
+  Threaded o(other, FluidContext());
+  CHECK_FALSE(
+      c.template invoke<kSetName>(c, std::string("msg_name_taken")).ok());
+  CHECK(p.name() == "msg_name_b");
+}
+
+TEST_CASE("refer works through the message machinery",
+          "[SharedInstanceAdaptor]")
+{
+  Params pa = makeParams();
+  pa.setName("msg_refer_a");
+  Threaded a(pa, FluidContext());
+  REQUIRE(DataSet::lookup("msg_refer_a")->load(oneEntry).ok());
+
+  Params pb = makeParams();
+  pb.setName("msg_refer_b");
+  Threaded b(pb, FluidContext());
+  CHECK(sizeVia(b) == 0);
+
+  SECTION("to an existing name")
+  {
+    CHECK(b.template invoke<kRefer>(b, std::string("msg_refer_a")).ok());
+    // the host's copy of the params followed, without the host doing anything
+    CHECK(pb.name() == "msg_refer_a");
+    // and messages now reach the referred-to client
+    CHECK(sizeVia(b) == 1);
+    // nobody uses msg_refer_b any more, so it is gone
+    CHECK_FALSE(DataSet::lookup("msg_refer_b"));
+    CHECK_FALSE(pb.lookup("msg_refer_b").ok());
+  }
+
+  SECTION("to an unknown name fails and changes nothing")
+  {
+    auto r = b.template invoke<kRefer>(b, std::string("msg_nope"));
+    CHECK(r.status() == fluid::client::Result::Status::kError);
+    CHECK(pb.name() == "msg_refer_b");
+    CHECK(sizeVia(b) == 0);
+  }
+
+  SECTION("to its own name is a no-op")
+  {
+    CHECK(b.template invoke<kRefer>(b, std::string("msg_refer_b")).ok());
+    CHECK(DataSet::lookup("msg_refer_b"));
+  }
+
+  SECTION("away from data another object still shares")
+  {
+    Params pc = makeParams();
+    pc.setName("msg_refer_b");
+    Threaded c(pc, FluidContext()); // shares b's data
+    CHECK(b.template invoke<kRefer>(b, std::string("msg_refer_a")).ok());
+    CHECK(DataSet::lookup("msg_refer_b")); // c still uses it
+    CHECK(pc.name() == "msg_refer_b");
+    // and b follows the data it now shares
+    CHECK(a.template invoke<kSetName>(a, std::string("msg_refer_c")).ok());
+    CHECK(pb.name() == "msg_refer_c");
+  }
+}
+
+TEST_CASE("refer moves the host's parameter listeners along",
+          "[SharedInstanceAdaptor]")
+{
+  using TreeParams = NRTThreadedKDTreeClient::ParamSetType;
+  constexpr size_t treeRefer =
+      NRTSharedInstanceAdaptor<KDTreeClient>::NumClientMessages;
+  auto make = [] {
+    return TreeParams(NRTThreadedKDTreeClient::getParameterDescriptors(),
+                      FluidDefaultAllocator());
+  };
+
+  TreeParams pa = make();
+  pa.setName("listen_a");
+  NRTThreadedKDTreeClient a(pa, FluidContext());
+
+  TreeParams pb = make();
+  pb.setName("listen_b");
+  NRTThreadedKDTreeClient b(pb, FluidContext());
+
+  int calls = 0;
+  int key = 0;
+  pb.template addListener<0>([&calls] { ++calls; }, &key);
+
+  CHECK(b.template invoke<treeRefer>(b, std::string("listen_a")).ok());
+  CHECK(calls == 1); // fired once so the host can refresh what it displays
+
+  // a change made through the other object now reaches b's listener
+  pa.template set<0>(7, nullptr);
+  CHECK(calls == 2);
+  CHECK(pb.template get<0>() == 7);
+
+  pb.template removeListener<0>(&key);
+  pa.template set<0>(3, nullptr);
+  CHECK(calls == 2);
+}
+
+TEST_CASE("A client rebuilt after refer leaves the new entry alone",
+          "[SharedInstanceAdaptor]")
+{
+  // copies of a host's params re-point together, so a client made before
+  // the host's refer sees the new name when it goes away
+  Params pa = makeParams();
+  pa.setName("rebuild_a");
+  Threaded a(pa, FluidContext());
+
+  Params pb = makeParams();
+  pb.setName("rebuild_b");
+  Threaded b(pb, FluidContext());
+
+  REQUIRE(pb.refer("rebuild_a").ok());
+  b = Threaded(pb, FluidContext()); // as host wrappers used to do
+  CHECK(DataSet::lookup("rebuild_a"));
+  CHECK_FALSE(DataSet::lookup("rebuild_b"));
 }

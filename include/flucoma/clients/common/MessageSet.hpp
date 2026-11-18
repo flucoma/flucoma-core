@@ -162,6 +162,9 @@ public:
     return std::get<N>(mMessages)(std::forward<Us>(us)...);
   }
 
+  /// The underlying tuple of messages, e.g. for concatenating sets
+  const MessagesType& messages() const noexcept { return mMessages; }
+
 private:
   MessagesType mMessages;
 

@@ -18,9 +18,12 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../data/FluidTensor.hpp"
 #include "../../data/TensorTypes.hpp"
 #include "../../data/FluidMemory.hpp"
+#include <algorithm>
 #include <functional>
 #include <string>
+#include <tuple>
 #include <unordered_map>
+#include <vector>
 
 namespace fluid {
 namespace client {
@@ -70,10 +73,10 @@ public:
 
   ~ParamAliasAdaptor()
   {
-    if (mParams &&
-        mParams.use_count() == 1) // is this the last remaining user of this
-                                  // Corpus, except the hash table?
-      eraseEntryFor(mParams);     // then remove it from the universe
+    // copies share one binding: only the last copy, if it is also the last
+    // user of the data (except the hash table), removes it from the universe
+    if (mParams.lastCopy() && mParams.data().use_count() == 1)
+      eraseEntryFor(mParams.data());
   }
 
   typename WrappedClient::ParamSetType& instance() { return mParams->params; }
@@ -117,15 +120,21 @@ public:
                       : Result{Result::Status::kWarning, name, " not found"};
   }
 
+  /// Point this object, and every copy of it, at the data registered under
+  /// name. The listeners it added go along, and fire so that hosts can
+  /// refresh what they display.
   Result refer(rt::string name)
   {
     ParamsPointer target = find(name);
     if (!target) return {Result::Status::kWarning, name, " not found"};
+    if (target == mParams.data()) return {};
 
-    ParamsPointer old = mParams;
-    mParams = target;
+    ParamsPointer old = mParams.data();
+    auto          moved = moveListeners(*old, *target);
+    mParams.data() = target;
     // were we the last user of the old data? then remove it from the universe
     if (old.use_count() == 1) eraseEntryFor(old);
+    for (auto&& l : moved) l.first();
     return {};
   }
 
@@ -143,7 +152,7 @@ public:
     if (!find(name)) // no live entry under this name
     {
       mParams->name = name;
-      mParamsTable.insert_or_assign(name, mParams); // over any dead one
+      mParamsTable.insert_or_assign(name, mParams.data()); // over any dead one
     }
 
     return refer(name);
@@ -168,14 +177,14 @@ public:
     rt::string oldName = mParams->name;
     auto       entry = mParamsTable.find(oldName);
 
-    if (entry != mParamsTable.end() && entry->second.lock() == mParams)
+    if (entry != mParamsTable.end() && entry->second.lock() == mParams.data())
     {
       auto node = mParamsTable.extract(entry);
       node.key() = newName;
       mParamsTable.insert(std::move(node));
     }
     else // was unnamed (and hence unshared) until now
-      mParamsTable.emplace(newName, mParams);
+      mParamsTable.emplace(newName, mParams.data());
 
     mParams->name = newName;
     NRTSharedInstanceAdaptor<NRTClient>::rekey(oldName, newName);
@@ -287,6 +296,9 @@ public:
   void addListener(F&& f, void* key)
   {
     mParams->listeners[N].emplace_back(ListenerEntry{std::forward<F>(f), key});
+    auto& keys = mParams.keys(); // so that refer() can take them along
+    if (std::find(keys.begin(), keys.end(), key) == keys.end())
+      keys.push_back(key);
   }
 
   template <size_t N>
@@ -315,7 +327,53 @@ private:
       mParamsTable.erase(entry);
   }
 
-  ParamsPointer      mParams;
+  /// What this object points at. All copies of a ParamAliasAdaptor (e.g.
+  /// those the threading and sharing adaptors hold) share one Binding, so
+  /// that refer() re-points them all; mParams-> reaches the shared data.
+  class Binding
+  {
+  public:
+    explicit Binding(ParamsPointer p)
+        : mState{std::make_shared<State>(State{std::move(p), {}})}
+    {}
+
+    ParamsPointer&      operator->() const { return mState->data; }
+    ParamsPointer&      data() const { return mState->data; }
+    std::vector<void*>& keys() const { return mState->keys; }
+    bool                lastCopy() const { return mState.use_count() == 1; }
+
+  private:
+    struct State
+    {
+      ParamsPointer      data;
+      std::vector<void*> keys; // that this object added listeners with
+    };
+
+    std::shared_ptr<State> mState;
+  };
+
+  /// Move the listeners this object added from one set of data to another,
+  /// returning them
+  std::vector<ListenerEntry> moveListeners(ListeningParams& from,
+                                           ListeningParams& to)
+  {
+    auto& keys = mParams.keys();
+    auto  notOurs = [&keys](ListenerEntry const& e) {
+      return std::find(keys.begin(), keys.end(), e.second) == keys.end();
+    };
+    std::vector<ListenerEntry> moved;
+    for (size_t i = 0; i < from.listeners.size(); ++i)
+    {
+      auto& src = from.listeners[i];
+      auto  ours = std::stable_partition(src.begin(), src.end(), notOurs);
+      to.listeners[i].insert(to.listeners[i].end(), ours, src.end());
+      moved.insert(moved.end(), ours, src.end());
+      src.erase(ours, src.end());
+    }
+    return moved;
+  }
+
+  Binding            mParams;
   static LookupTable mParamsTable;
   //    std::array<std::vector<std::function<void()>>,sizeof...(Ts)> mListeners;
 };
@@ -352,8 +410,27 @@ public:
   using ClientWeakPointer = typename std::weak_ptr<const SharedClient>;
   using ParamDescType = typename WrappedClient::ParamDescType;
   using ParamSetViewType = typename WrappedClient::ParamSetViewType;
-  using MessageSetType = typename WrappedClient::MessageSetType;
   using isModelObject = typename WrappedClient::isModelObject;
+
+  /// The client's own messages come first; refer, setname and getname follow
+  static constexpr size_t NumClientMessages =
+      WrappedClient::MessageSetType::IndexList::size();
+
+private:
+  // Messages every shared object answers, which act on this adaptor (the
+  // name and the lookup tables) rather than on the client
+  template <typename Ret, typename... Args>
+  using NamingMessage = Message<Ret (*)(NRTSharedInstanceAdaptor&, Args...),
+                                Ret, NRTSharedInstanceAdaptor, Args...>;
+  using NamingMessages =
+      std::tuple<NamingMessage<MessageResult<void>, std::string>,
+                 NamingMessage<MessageResult<void>, std::string>,
+                 NamingMessage<MessageResult<std::string>>>;
+
+public:
+  using MessageSetType = MessageSet<decltype(std::tuple_cat(
+      std::declval<typename WrappedClient::MessageSetType const&>().messages(),
+      std::declval<NamingMessages>()))>;
 
   using LookupTable =
       std::unordered_map<rt::string, std::weak_ptr<SharedClient>, std::hash<std::string_view>>;
@@ -368,7 +445,19 @@ public:
   }
   constexpr static auto getMessageDescriptors()
   {
-    return WrappedClient::getMessageDescriptors();
+    return MessageSetType{std::tuple_cat(
+        WrappedClient::getMessageDescriptors().messages(),
+        NamingMessages{{"refer",
+                        [](NRTSharedInstanceAdaptor& a, std::string name) {
+                          return a.refer(std::move(name));
+                        }},
+                       {"setname",
+                        [](NRTSharedInstanceAdaptor& a, std::string name) {
+                          return a.setname(std::move(name));
+                        }},
+                       {"getname", [](NRTSharedInstanceAdaptor& a) {
+                          return a.getname();
+                        }}})};
   }
 
   index          audioChannelsIn() const noexcept { return 0; }
@@ -443,11 +532,53 @@ public:
   template <size_t N, typename T, typename... Args>
   decltype(auto) invoke(T&, Args&&... args)
   {
-    mProcessParams = mParams.instance();
-    mClient->setParams(mProcessParams);
-    return WrappedClient::getMessageDescriptors().template invoke<N>(
-        *mClient, std::forward<Args>(args)...);
-    // return mClient->template
+    if constexpr (N < NumClientMessages)
+    {
+      mProcessParams = mParams.instance();
+      mClient->setParams(mProcessParams);
+      return WrappedClient::getMessageDescriptors().template invoke<N>(
+          *mClient, std::forward<Args>(args)...);
+    }
+    else // one of the naming messages, which act on this adaptor
+      return getMessageDescriptors().template invoke<N>(
+          *this, std::forward<Args>(args)...);
+  }
+
+  /// Message: share the data (and parameters) of the object called name from
+  /// now on
+  MessageResult<void> refer(std::string name)
+  {
+    rt::string newName(name.c_str());
+    if (newName == mParams.name()) return {};
+
+    // errors, not warnings: hosts carry on (and reply) after a warning, but
+    // here nothing has happened
+    ClientPointer target = lookup(newName);
+    if (!target) return {Result::Status::kError, newName, " not found"};
+
+    rt::string oldName = mParams.name();
+    Result     r = mParams.refer(newName);
+    if (!r.ok()) return {Result::Status::kError, r.message()};
+
+    // were we the last user of the old client? then unregister it
+    if (mClient.use_count() == 1) eraseEntryFor(oldName, mClient);
+    mClient = target;
+    return {};
+  }
+
+  /// Message: change the name the shared data is registered under, for every
+  /// object sharing it
+  MessageResult<void> setname(std::string name)
+  {
+    Result r = mParams.rename(rt::string(name.c_str()));
+    if (!r.ok()) return {r.status(), r.message()};
+    return {};
+  }
+
+  /// Message: the name the shared data is registered under
+  MessageResult<std::string> getname()
+  {
+    return std::string(mParams.name().data(), mParams.name().size());
   }
 
   template <typename T>
