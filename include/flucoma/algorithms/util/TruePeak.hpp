@@ -11,7 +11,6 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "AlgorithmUtils.hpp"
-#include "FFT.hpp"
 #include "FluidEigenMappings.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/FluidMemory.hpp"
@@ -161,7 +160,7 @@ public:
     mInterpolator.init(nTaps, mFactor);
   }
 
-  double processFrame(const RealVectorView& input, Allocator&)
+  double processFrame(const InputRealVectorView input, Allocator&)
   {
     using namespace Eigen;
 

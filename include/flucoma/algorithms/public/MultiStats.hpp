@@ -18,7 +18,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <cassert>
-#include <cmath>
+
 
 namespace fluid {
 namespace algorithm {
@@ -45,7 +45,7 @@ public:
     return in.segment(1, in.size() - 1) - in.segment(0, in.size() - 1);
   }
 
-  void process(const RealMatrixView in, RealMatrixView out, double cutoff = -1,
+  void process(const InputRealMatrixView in, RealMatrixView out, double cutoff = -1,
                RealVectorView w = RealVectorView(nullptr, 0, 0))
   {
     using namespace Eigen;

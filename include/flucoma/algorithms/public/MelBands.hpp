@@ -14,6 +14,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/FluidMemory.hpp"
+#include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <cassert>
 #include <cmath>
@@ -26,7 +27,8 @@ class MelBands
 public:
   MelBands(
       index maxBands, index maxFFT, Allocator& alloc = FluidDefaultAllocator())
-      : mFilters(maxBands, maxFFT / 2 + 1, alloc)
+      : mFrame(maxFFT, alloc),
+        mFilters(maxBands, maxFFT / 2 + 1, alloc)
   {}
 
   /*static inline double mel2hz(double x) {
@@ -76,13 +78,13 @@ public:
     mNBins = nBins;
   }
 
-  void processFrame(const RealVectorView in, RealVectorView out, bool magNorm,
+  void processFrame(const InputRealVectorView in, RealVectorView out, bool magNorm,
                     bool usePower, bool logOutput, Allocator&)
   {
     using namespace Eigen;
-
-    FluidEigenMap<Array> frame = _impl::asEigen<Array>(in);
-    FluidEigenMap<Array> result = _impl::asEigen<Array>(out);
+    auto frame = mFrame.topRows(in.rows()); 
+    frame  = _impl::asEigen<Array>(in);
+    auto result = _impl::asEigen<Array>(out);
 
     if (magNorm) frame = frame * mScale1;
     double energy = frame.sum() * mScale2;
@@ -100,6 +102,7 @@ public:
   double mScale2{1.0};
 
 private:
+  ScopedEigenMap<Eigen::ArrayXd>  mFrame; 
   ScopedEigenMap<Eigen::MatrixXd> mFilters;
   index                           mNBands;
   index                           mNBins;

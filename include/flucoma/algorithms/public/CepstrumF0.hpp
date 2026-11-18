@@ -41,8 +41,9 @@ public:
     mCepstrum.setZero();
   }
 
-  void processFrame(const RealVectorView& input, RealVectorView output,
-                    double minFreq, double maxFreq, double sampleRate, Allocator& alloc)
+  void processFrame(const InputRealVectorView input, RealVectorView output,
+                    double minFreq, double maxFreq, double sampleRate,
+                    Allocator& alloc)
   {
     using namespace Eigen;
     using namespace std;

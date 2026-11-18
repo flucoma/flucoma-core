@@ -11,7 +11,6 @@ under the European Union’s Horizon 2020 research and innovation programme
 #pragma once
 
 #include "../util/ARModel.hpp"
-#include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/FluidMemory.hpp"
 #include "../../data/TensorTypes.hpp"
@@ -108,7 +107,7 @@ public:
     return mCount;
   }
 
-  void process(const RealVectorView input, RealVectorView transients,
+  void process(const InputRealVectorView input, RealVectorView transients,
       RealVectorView residual, Allocator& alloc = FluidDefaultAllocator())
   {
     assert(mInitialized && "Call init() before processing");
@@ -121,7 +120,7 @@ public:
     interpolate(transients.data(), residual.data(), alloc);
   }
 
-  void process(const RealVectorView input, const RealVectorView unknowns,
+  void process(const InputRealVectorView input, const InputRealVectorView unknowns,
       RealVectorView transients, RealVectorView residual,
       Allocator& alloc = FluidDefaultAllocator())
   {
@@ -263,7 +262,7 @@ private:
     mCount = count;
   }
 
-  template <double Method(const RealVectorView&)>
+  template <double Method(const InputRealVectorView)>
   double calcStat(const double* input, index size)
   {
     RealVectorView view(const_cast<double*>(input), 0, size);

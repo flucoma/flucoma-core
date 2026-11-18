@@ -14,14 +14,12 @@ under the European Union’s Horizon 2020 research and innovation programme
 
 #pragma once
 
-#include "STFT.hpp"
 #include "../util/EigenRandom.hpp"
 #include "../util/FluidEigenMappings.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/TensorTypes.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
-#include <iostream>
 #include <vector>
 
 namespace fluid {
@@ -46,7 +44,7 @@ public:
 
   NMFCross(index nIterations) : mIterations(nIterations) {}
 
-  static void synthesize(const RealMatrixView h, const ComplexMatrixView w,
+  static void synthesize(const InputRealMatrixView h, const ComplexMatrixView w,
                          ComplexMatrixView out)
   {
     using namespace Eigen;
@@ -57,8 +55,9 @@ public:
     out <<= asFluid(V);
   }
 
-  void process(const RealMatrixView X, RealMatrixView H1, RealMatrixView W0,
-               index r, index p, index c, index randomSeed = -1) const
+  void process(const InputRealMatrixView X, RealMatrixView H1,
+               RealMatrixView W0, index r, index p, index c,
+               index randomSeed = -1) const
   {
     index nFrames = X.extent(0);
     // index nBins = X.extent(1);
@@ -129,7 +128,7 @@ private:
         VectorXd::Index maxIndex{0};
         neighborhood.maxCoeff(&maxIndex);
         if (int(maxIndex) != halfSize)
-        { output(i, j) = H(i, j) * (1 - ((iteration + 1) / mIterations)); }
+        { output(i, j) = H(i, j) * (1 - ((iteration + 1.0) / mIterations)); }
         else
         {
           output(i, j) = H(i, j);

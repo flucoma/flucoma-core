@@ -14,7 +14,7 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "../../data/FluidIndex.hpp"
 #include "../../data/FluidMemory.hpp"
 #include "../../data/TensorTypes.hpp"
-#include <cmath>
+
 
 namespace fluid {
 namespace algorithm {
@@ -40,7 +40,7 @@ public:
     mDebounce = 0;
   }
 
-  void process(const RealVectorView input, RealVectorView output,
+  void process(const InputRealVectorView input, RealVectorView output,
       Allocator& alloc = FluidDefaultAllocator())
   {
     detect(input.data(), input.extent(0), alloc);
