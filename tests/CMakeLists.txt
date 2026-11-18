@@ -103,6 +103,7 @@ add_test_executable(TestFluidDataSet data/TestFluidDataSet.cpp)
 add_test_executable(TestFluidSource clients/common/TestFluidSource.cpp)
 add_test_executable(TestFluidSink clients/common/TestFluidSink.cpp)
 add_test_executable(TestBufferedProcess clients/common/TestBufferedProcess.cpp)
+add_test_executable(TestSharedInstanceAdaptor clients/common/TestSharedInstanceAdaptor.cpp)
 
 add_test_executable(TestNoveltySeg 
   algorithms/public/TestNoveltySegmentation.cpp
@@ -158,6 +159,7 @@ catch_discover_tests(TestTransientSlice WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 catch_discover_tests(TestFluidSource WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 catch_discover_tests(TestFluidSink WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 catch_discover_tests(TestBufferedProcess WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+catch_discover_tests(TestSharedInstanceAdaptor WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 
 catch_discover_tests(TestMLP WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 catch_discover_tests(TestKMeans WORKING_DIRECTORY ${CMAKE_BINARY_DIR})

@@ -29,15 +29,15 @@ using InputLabelSetClientRef = SharedClientRef<const labelset::LabelSetClient>;
 
 namespace labelset {
 
-enum { kName };
 
 constexpr auto LabelSetParams =
-    defineParameters(StringParam<Fixed<true>>("name", "Name of the LabelSet"));
+    defineParameters();
 
 class LabelSetClient
     : public FluidBaseClient,
       OfflineIn,
       OfflineOut,
+      public NamedObject,
       public DataClient<FluidDataSet<std::string, std::string, 1>>
 {
 public:
@@ -149,7 +149,7 @@ public:
   
   MessageResult<string> print() 
   { 
-    return "LabelSet " + std::string(get<kName>()) + ": " + mAlgorithm.print();
+    return "LabelSet " + name() + ": " + mAlgorithm.print();
   }
 
   static auto getMessageDescriptors()

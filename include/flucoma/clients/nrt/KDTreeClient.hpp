@@ -20,7 +20,6 @@ namespace client {
 namespace kdtree {
 
 constexpr auto KDTreeParams = defineParameters(
-    StringParam<Fixed<true>>("name", "Name"),
     LongParam("numNeighbours", "Number of Nearest Neighbours", 1, Min(0)),
     FloatParam("radius", "Maximum distance", 0, Min(0)));
 
@@ -30,7 +29,7 @@ class KDTreeClient : public FluidBaseClient,
                      ModelObject,
                      public DataClient<algorithm::KDTree>
 {
-  enum { kName, kNumNeighbors, kRadius };
+  enum { kNumNeighbors, kRadius };
 
 public:
   using string = std::string;

@@ -22,10 +22,9 @@ namespace fluid {
 namespace client {
 namespace dataset {
 
-enum { kName };
 
 constexpr auto DataSetParams =
-    defineParameters(StringParam<Fixed<true>>("name", "Name of the DataSet"));
+    defineParameters();
 
 template <typename T, typename U>
 double distance(FluidTensorView<T, 1> point1, FluidTensorView<U, 1> point2)
@@ -53,6 +52,7 @@ auto sortedDistances(FluidTensorView<T, 1> x, FluidTensorView<U, 2> Y,
 class DataSetClient : public FluidBaseClient,
                       OfflineIn,
                       OfflineOut,
+                      public NamedObject,
                       public DataClient<FluidDataSet<std::string, double, 1>>
 {
 public:
@@ -306,7 +306,7 @@ public:
 
   MessageResult<string> print()
   {
-    return "DataSet " + std::string(get<kName>()) + ": " + mAlgorithm.print();
+    return "DataSet " + name() + ": " + mAlgorithm.print();
   }
 
   const DataSet& getDataSet() const { return mAlgorithm; }

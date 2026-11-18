@@ -58,7 +58,6 @@ void from_json(const nlohmann::json& j, MLPClassifierData& data)
 constexpr std::initializer_list<index> HiddenLayerDefaults = {3, 3};
 
 constexpr auto MLPClassifierParams = defineParameters(
-    StringParam<Fixed<true>>("name", "Name"),
     LongArrayParam("hiddenLayers", "Hidden Layer Sizes", HiddenLayerDefaults),
     EnumParam("activation", "Activation Function", 2, "Identity", "Sigmoid",
               "ReLU", "Tanh"),
@@ -77,7 +76,6 @@ class MLPClassifierClient : public FluidBaseClient,
                             public DataClient<MLPClassifierData>
 {
   enum {
-    kName,
     kHidden,
     kActivation,
     kIter,

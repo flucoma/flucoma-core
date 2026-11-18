@@ -55,7 +55,6 @@ void from_json(const nlohmann::json& j, KNNRegressorData& data)
 
 
 constexpr auto KNNRegressorParams = defineParameters(
-    StringParam<Fixed<true>>("name", "Name"),
     LongParam("numNeighbours", "Number of Nearest Neighbours", 3, Min(1)),
     EnumParam("weight", "Weight Neighbours by Distance", 1, "No", "Yes"));
 
@@ -65,7 +64,7 @@ class KNNRegressorClient : public FluidBaseClient,
                            ModelObject,
                            public DataClient<KNNRegressorData>
 {
-  enum { kName, kNumNeighbors, kWeight };
+  enum { kNumNeighbors, kWeight };
 
 public:
   using string = std::string;

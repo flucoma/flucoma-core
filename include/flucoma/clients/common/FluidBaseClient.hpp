@@ -20,6 +20,8 @@ under the European Union’s Horizon 2020 research and innovation programme
 #include "TupleUtilities.hpp"
 #include "../../data/FluidIndex.hpp"
 #include "../../data/FluidMeta.hpp"
+#include <string>
+#include <string_view>
 #include <tuple>
 
 namespace fluid {
@@ -28,6 +30,18 @@ namespace client {
 // Tag type for DataModel clients (like KDTree and friends)
 struct ModelObject
 {};
+
+// Mixin for shared clients that want to know the name they are registered
+// under (e.g. for printing). The name is not a parameter: it is owned by
+// NRTSharedInstanceAdaptor, which keeps this copy up to date.
+struct NamedObject
+{
+  void               setName(std::string_view name) { mName = name; }
+  const std::string& name() const { return mName; }
+
+private:
+  std::string mName;
+};
 
 enum ProcessState { kNoProcess, kProcessing, kDone, kDoneStillProcessing };
 

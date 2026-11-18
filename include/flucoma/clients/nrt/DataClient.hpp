@@ -37,7 +37,6 @@ public:
     return OK();
   }
 
-
   MessageResult<void> write(string fileName)
   {
     auto file = JSONFile(fileName, "w");

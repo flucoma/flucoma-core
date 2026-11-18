@@ -20,7 +20,6 @@ namespace client {
 namespace robustscale {
 
 constexpr auto RobustScaleParams = defineParameters(
-    StringParam<Fixed<true>>("name", "Name"),
     FloatParam("low", "Low Percentile", 25, Min(0), Max(100)),
     FloatParam("high", "High Percentile", 75, Min(0), Max(100)),
     LongParam("axis", "Scaling Axis", 0, Min(-1), Max(0)));
@@ -31,7 +30,7 @@ class RobustScaleClient : public FluidBaseClient,
                           ModelObject,
                           public DataClient<algorithm::RobustScaling>
 {
-  enum { kName, kLow, kHigh, kAxis };
+  enum { kLow, kHigh, kAxis };
 
 public:
   using string = std::string;

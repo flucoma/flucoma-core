@@ -19,7 +19,6 @@ namespace client {
 namespace umap {
 
 constexpr auto UMAPParams = defineParameters(
-    StringParam<Fixed<true>>("name", "Name"),
     LongParam("numDimensions", "Target Number of Dimensions", 2, Min(1)),
     LongParam("numNeighbours", "Number of Nearest Neighbours", 15, Min(1)),
     FloatParam("minDist", "Minimum Distance", 0.1, Min(0)),
@@ -34,7 +33,6 @@ class UMAPClient : public FluidBaseClient,
                    public DataClient<algorithm::UMAP>
 {
   enum {
-    kName,
     kNumDimensions,
     kNumNeighbors,
     kMinDistance,

@@ -30,12 +30,14 @@ namespace fluid {
 namespace client {
 namespace corpus {
 
-enum { kName };
 
 constexpr auto CorpusParams =
-    defineParameters(StringParam<Fixed<true>>("name", "Corpus name"));
+    defineParameters();
 
-class CorpusClient : public FluidBaseClient, public OfflineIn, public OfflineOut
+class CorpusClient : public FluidBaseClient,
+                     public OfflineIn,
+                     public OfflineOut,
+                     public NamedObject
 {
   using string = std::string;
   using Buffer = typename BufferT::type;
@@ -71,8 +73,6 @@ public:
   {
     return {};
   }
-
-  std::string name() const { return get<kName>(); }
 
   MessageResult<void> addPoint(string label, Buffer buffer, size_t offset,
                                int length)

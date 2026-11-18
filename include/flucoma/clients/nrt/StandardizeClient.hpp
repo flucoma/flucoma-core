@@ -19,7 +19,7 @@ namespace client {
 namespace standardize {
 
 constexpr auto StandardizeParams =
-    defineParameters(StringParam<Fixed<true>>("name", "Name"),
+    defineParameters(
                      LongParam("axis", "Standardizing Axis", 0, Min(-1), Max(0)));
 
 class StandardizeClient : public FluidBaseClient,
@@ -28,7 +28,7 @@ class StandardizeClient : public FluidBaseClient,
                           ModelObject,
                           public DataClient<algorithm::Standardization>
 {
-  enum { kName, kAxis };
+  enum { kAxis };
 
 public:
   using string = std::string;

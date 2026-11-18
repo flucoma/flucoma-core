@@ -18,7 +18,6 @@ namespace client {
 namespace pca {
 
 constexpr auto PCAParams = defineParameters(
-    StringParam<Fixed<true>>("name", "Name"),
     LongParam("numDimensions", "Target Number of Dimensions", 2, Min(1)),
     EnumParam("whiten", "Whiten data", 0, "No", "Yes"));
 
@@ -28,7 +27,7 @@ class PCAClient : public FluidBaseClient,
                   ModelObject,
                   public DataClient<algorithm::PCA>
 {
-  enum { kName, kNumDimensions, kWhiten };
+  enum { kNumDimensions, kWhiten };
 
 public:
   using string = std::string;

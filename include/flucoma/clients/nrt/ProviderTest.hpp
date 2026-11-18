@@ -30,15 +30,16 @@ namespace fluid {
 namespace client {
 namespace providertest {
 
-enum { kName, kDummy };
+enum { kDummy };
 
 constexpr auto ProviderTestParams =
-    defineParameters(StringParam<Fixed<true>>("name", "Provider name"),
+    defineParameters(
                      LongParam("dummy", "Checking Attrui Updates", 0));
 
 class ProviderTestClient : public FluidBaseClient,
                            public OfflineIn,
-                           public OfflineOut
+                           public OfflineOut,
+                           public NamedObject
 {
   using string = std::string;
 
@@ -78,8 +79,6 @@ public:
   {
     return {};
   }
-
-  std::string name() const { return get<kName>(); }
 
   MessageResult<void> addPoint(string label, intptr_t offset, intptr_t length)
   {
